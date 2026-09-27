@@ -301,6 +301,37 @@ vi.mock('./notation/NotationPreview', () => ({
           )
         )
         .join(',')}
+      data-event-articulations={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) =>
+              event.type === 'note'
+                ? `${event.id}:${(event.articulations ?? []).join('/')}`
+                : `${event.id}:`
+            )
+          )
+        )
+        .join(',')}
+      data-all-event-articulations={score.parts
+        .flatMap((part) =>
+          part.staves.flatMap((staff) =>
+            staff.measures.flatMap((measure) =>
+              measure.voices.flatMap((voice) =>
+                voice.events.map((event) =>
+                  [
+                    part.id,
+                    staff.id,
+                    measure.id,
+                    voice.id,
+                    event.id,
+                    event.type === 'note' ? (event.articulations ?? []).join('/') : ''
+                  ].join(':')
+                )
+              )
+            )
+          )
+        )
+        .join(',')}
       data-all-event-pitches={score.parts
         .flatMap((part) =>
           part.staves.flatMap((staff) =>
@@ -2696,10 +2727,10 @@ describe('App component shell', () => {
       within(menu).getByRole('menuitem', { name: '뒤에 마디 추가' })
     ).toBeInTheDocument()
     expect(
-      within(menu).getByRole('menuitem', { name: '도돌이표 시작' })
+      within(menu).getByRole('menuitem', { name: '시작 도돌이표' })
     ).toBeInTheDocument()
     expect(
-      within(menu).getByRole('menuitem', { name: '도돌이표 끝' })
+      within(menu).getByRole('menuitem', { name: '끝 도돌이표' })
     ).toBeInTheDocument()
     expect(
       within(menu).getByRole('menuitem', { name: '1번 볼타' })
@@ -2711,24 +2742,24 @@ describe('App component shell', () => {
       within(menu).getByRole('menuitem', { name: '마디 제거' })
     ).toBeInTheDocument()
 
-    fireEvent.click(within(menu).getByRole('menuitem', { name: '도돌이표 시작' }))
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '시작 도돌이표' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-measure-marks',
       expect.stringContaining('2:S::')
     )
-    expect(screen.getByText('도돌이표 시작을 갱신했습니다.')).toBeInTheDocument()
+    expect(screen.getByText('시작 도돌이표를 갱신했습니다.')).toBeInTheDocument()
 
     fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
       clientX: 160,
       clientY: 180
     })
     menu = screen.getByRole('menu', { name: '마디 작업' })
-    fireEvent.click(within(menu).getByRole('menuitem', { name: '도돌이표 끝' }))
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '끝 도돌이표' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-measure-marks',
       expect.stringContaining('2:SE:2:')
     )
-    expect(screen.getByText('도돌이표 끝을 갱신했습니다.')).toBeInTheDocument()
+    expect(screen.getByText('끝 도돌이표를 갱신했습니다.')).toBeInTheDocument()
 
     fireEvent.contextMenu(screen.getByRole('button', { name: '1마디 선택' }), {
       clientX: 160,
@@ -4001,58 +4032,57 @@ describe('App component shell', () => {
     const dialog = screen.getByRole('dialog', { name: '단축키 도움말' })
     expect(within(dialog).getByText('음표 입력')).toBeInTheDocument()
     expect(within(dialog).getByText('음가 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('1-7')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('1-7')).toBeInTheDocument()
     expect(within(dialog).getByText('음높이 한 칸 이동')).toBeInTheDocument()
-    expect(within(dialog).getByText('↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('반음 이동')).toBeInTheDocument()
-    expect(within(dialog).getByText('Alt/Option+↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Alt/Option+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('옥타브 이동')).toBeInTheDocument()
-    expect(within(dialog).getByText('Cmd/Ctrl+↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Cmd/Ctrl+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
-    expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('⌘/Ctrl+3')).toBeInTheDocument()
     expect(within(dialog).getByText('제자리표')).toBeInTheDocument()
-    expect(within(dialog).getByText('N')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('N')).toBeInTheDocument()
     expect(within(dialog).getByText('샤프')).toBeInTheDocument()
-    expect(within(dialog).getByText('+')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('+')).toBeInTheDocument()
+    expect(within(dialog).getByText('스타카토')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Alt/⌥+.')).toBeInTheDocument()
+    expect(within(dialog).getByText('악센트')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Alt/⌥+>')).toBeInTheDocument()
     expect(within(dialog).getByText('다음/이전 마디')).toBeInTheDocument()
-    expect(within(dialog).getByText('Tab / Shift+Tab')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Tab / Shift+Tab')).toBeInTheDocument()
     expect(within(dialog).getByText('다음/이전 성부')).toBeInTheDocument()
-    expect(within(dialog).getByText('Enter / Shift+Enter')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Enter / Shift+Enter')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
     expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
 
     fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
   })
 
-  it('ui.shortcut-hints toggles visible shortcut badges without hiding the command reference', async () => {
+  it('ui.shortcut-tooltips exposes toolbar shortcuts without inline button badges', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
 
     const durationPalette = screen.getByLabelText('음가')
     const accidentalPalette = screen.getByLabelText('임시표')
+    const quarterDuration = within(durationPalette).getByRole('button', {
+      name: '4분음표'
+    })
+    const natural = within(accidentalPalette).getByRole('button', {
+      name: '제자리표'
+    })
 
-    expect(within(durationPalette).getByText('5')).toBeInTheDocument()
-    expect(within(accidentalPalette).getByLabelText('N')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 숨기기' }))
-
-    expect(screen.getByRole('button', { name: '단축키 힌트 표시' })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    )
+    expect(quarterDuration).toHaveAttribute('title', '4분음표 — 단축키 3')
+    expect(natural).toHaveAttribute('title', '제자리표 — 단축키 N')
+    expect(within(durationPalette).queryByLabelText('3')).not.toBeInTheDocument()
     expect(within(accidentalPalette).queryByLabelText('N')).not.toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 3'
-      })
-    ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '단축키 도움말' }))
     expect(
-      within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByText(
+      within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByLabelText(
         'N'
       )
     ).toBeInTheDocument()
@@ -4063,8 +4093,40 @@ describe('App component shell', () => {
         { name: '닫기' }
       )
     )
-    fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 표시' }))
-    expect(within(accidentalPalette).getByLabelText('N')).toBeInTheDocument()
+  })
+
+  it('ui.toolbar-collapse keeps the sticky context controls while hiding dense tools', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const context = screen.getByRole('region', {
+      name: '현재 작업 컨텍스트'
+    })
+    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
+
+    const collapse = within(context).getByRole('button', {
+      name: '작업 도구 접기'
+    })
+    expect(collapse).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(collapse)
+
+    expect(
+      screen.queryByRole('region', { name: '음표 편집' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('navigation', { name: '편집 도구 카테고리' })
+    ).toBeVisible()
+
+    const expand = within(context).getByRole('button', {
+      name: '작업 도구 펼치기'
+    })
+    expect(expand).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(expand)
+
+    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
   })
 
   it('file.new-window opens an independent Electron editing window', async () => {
@@ -5387,7 +5449,7 @@ describe('App component shell', () => {
 
     fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
     const quarterButton = screen.getByRole('button', {
-      name: '4분음표, 단축키 3'
+      name: '4분음표'
     })
     expect(quarterButton).not.toBeDisabled()
     fireEvent.click(quarterButton)
@@ -5412,7 +5474,7 @@ describe('App component shell', () => {
       })
     )
     fireEvent.click(screen.getByRole('button', { name: 'note-a4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '4분음표, 단축키 3' }))
+    fireEvent.click(screen.getByRole('button', { name: '4분음표' }))
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -5428,7 +5490,7 @@ describe('App component shell', () => {
       screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
     ).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '8분음표, 단축키 4' }))
+    fireEvent.click(screen.getByRole('button', { name: '8분음표' }))
 
     await waitFor(() => {
       const durations = screen
@@ -5573,7 +5635,7 @@ describe('App component shell', () => {
       })
     )
     fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    fireEvent.click(screen.getByRole('button', { name: '4분음표, 단축키 3' }))
+    fireEvent.click(screen.getByRole('button', { name: '4분음표' }))
     fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
 
     await waitFor(() => {
@@ -8852,7 +8914,7 @@ describe('App component shell', () => {
     const slurLabel = 'slur:m1-c4–m1-f-sharp-4'
     fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
     const slurButton = screen.getByRole('button', {
-      name: '슬러 추가 또는 해제, 단축키 S'
+      name: '슬러 추가 또는 해제'
     })
 
     expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
@@ -8962,10 +9024,10 @@ describe('App component shell', () => {
     const inspector = screen.getByRole('region', { name: '음표 편집' })
     const durationPalette = screen.getByLabelText('음가')
     const eighthDuration = within(durationPalette).getByRole('button', {
-      name: '8분음표, 단축키 4'
+      name: '8분음표'
     })
     const quarterDuration = within(durationPalette).getByRole('button', {
-      name: '4분음표, 단축키 3'
+      name: '4분음표'
     })
 
     expect(within(inspector).queryByLabelText('선택 이벤트 음가')).not.toBeInTheDocument()
@@ -8985,7 +9047,7 @@ describe('App component shell', () => {
     ).toHaveTextContent('0')
 
     const sharp = within(inspector).getByRole('button', {
-      name: '샤프, 단축키 +'
+      name: '샤프'
     })
     fireEvent.click(sharp)
     expect(sharp).toHaveAttribute('aria-pressed', 'true')
@@ -8993,7 +9055,7 @@ describe('App component shell', () => {
     fireEvent.keyDown(window, { altKey: true, code: 'Digit0', key: '0' })
     expect(
       within(inspector).getByRole('button', {
-        name: '제자리표, 단축키 N'
+        name: '제자리표'
       })
     ).toHaveAttribute('aria-pressed', 'true')
 
@@ -9008,6 +9070,48 @@ describe('App component shell', () => {
     expect(convertToRest).toBeEnabled()
   }, 15000)
 
+  it('keyboard.articulation-shortcuts toggle selected note articulations and expose tooltip hints', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-selected-event-id',
+        'm1-d4'
+      )
+    })
+
+    const inspector = screen.getByRole('region', { name: '음표 편집' })
+    const staccato = within(inspector).getByRole('button', { name: '스타카토' })
+    const accent = within(inspector).getByRole('button', { name: '악센트' })
+
+    expect(staccato).toHaveAttribute('title', '스타카토 — 단축키 Alt/⌥+.')
+    expect(accent).toHaveAttribute('title', '악센트 — 단축키 Alt/⌥+>')
+    expect(staccato).toBeEnabled()
+    expect(staccato).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.keyDown(window, { altKey: true, code: 'Period', key: '.' })
+
+    await waitFor(() => {
+      expect(staccato).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-all-event-articulations',
+        expect.stringContaining('m1-d4:staccato')
+      )
+    })
+
+    fireEvent.keyDown(window, { altKey: true, code: 'Period', key: '>', shiftKey: true })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-all-event-articulations',
+        expect.stringContaining('m1-d4:staccato/accent')
+      )
+    })
+  })
+
   it('keyboard.duration-shortcuts use the V1 notation map and leave plain 9 unbound', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
@@ -9017,47 +9121,47 @@ describe('App component shell', () => {
 
     expect(
       within(durationPalette).getByRole('button', {
-        name: '64분음표, 단축키 7'
+        name: '64분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '32분음표, 단축키 6'
+        name: '32분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '16분음표, 단축키 5'
+        name: '16분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '8분음표, 단축키 4'
+        name: '8분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 3'
+        name: '4분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 3'
+        name: '4분음표'
       })
-    ).toHaveTextContent('3')
+    ).toHaveAttribute('title', '4분음표 — 단축키 3')
     expect(
       within(durationPalette).getByRole('button', {
-        name: '2분음표, 단축키 2'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '온음표, 단축키 1'
+        name: '2분음표'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비, 단축키 ⌘\/Ctrl\+3/
+        name: '온음표'
+      })
+    ).toBeInTheDocument()
+    expect(
+      within(durationPalette).getByRole('button', {
+        name: '셋잇단음표 적용 또는 입력 준비'
       })
     ).toBeInTheDocument()
 
@@ -9067,9 +9171,7 @@ describe('App component shell', () => {
       '셋잇단음표 입력'
     )
     expect(
-      screen.queryByRole('button', {
-        name: /단축키 9/
-      })
+      screen.queryByTitle(/단축키 9/)
     ).not.toBeInTheDocument()
   })
 
@@ -9217,7 +9319,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '3도 위 화음 추가, 단축키 Alt/⌥+3' }))
+    fireEvent.click(screen.getByRole('button', { name: '3도 위 화음 추가' }))
     expect(screen.getByText('화음 구성음을 추가했습니다.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '가사' }))

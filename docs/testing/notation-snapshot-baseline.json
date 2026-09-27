@@ -52,27 +52,27 @@
     "slurs": [
       {
         "box": {
-          "height": 17.9,
+          "height": 19.6,
           "width": 39.6,
           "x": 143.4,
-          "y": 209.1
+          "y": 205.4
         },
         "id": "",
         "index": 0
       },
       {
         "box": {
-          "height": 11.9,
-          "width": 67.1,
-          "x": 194.5,
-          "y": 459
+          "height": 14.2,
+          "width": 122.3,
+          "x": 234.5,
+          "y": 461
         },
         "id": "",
         "index": 1
       }
     ],
     "svg": {
-      "height": 842,
+      "height": 855,
       "width": 644
     },
     "tempo": "♩ = 75",
@@ -131,30 +131,30 @@
     "slurs": [
       {
         "box": {
-          "height": 17.9,
+          "height": 19.6,
           "width": 39.6,
           "x": 143.4,
-          "y": 209.1
+          "y": 205.4
         },
         "id": "",
         "index": 0
       },
       {
         "box": {
-          "height": 8,
-          "width": 26,
-          "x": 770.5,
-          "y": 218
+          "height": 10,
+          "width": 26.3,
+          "x": 769.7,
+          "y": 220
         },
         "id": "",
         "index": 1
       },
       {
         "box": {
-          "height": 8,
-          "width": 59.8,
+          "height": 10,
+          "width": 57.9,
           "x": 99.6,
-          "y": 464
+          "y": 466
         },
         "id": "",
         "index": 2

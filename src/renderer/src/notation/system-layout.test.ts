@@ -338,6 +338,74 @@ describe('system layout', () => {
     })
   })
 
+  it('wraps accidental-heavy tuplet measures before noteheads crowd the barline', () => {
+    const measures = Array.from({ length: 4 }, (_, measureIndex) =>
+      createMeasure({
+        id: `ornate-${measureIndex + 1}`,
+        number: measureIndex + 1,
+        voices: [
+          createVoice({
+            events: Array.from({ length: 6 }, (_, eventIndex) =>
+              createNote({
+                id: `ornate-${measureIndex + 1}-${eventIndex + 1}`,
+                position: createTimePosition(
+                  eventIndex * (TICKS_PER_QUARTER / 2)
+                ),
+                pitch: {
+                  step: ['C', 'D', 'E', 'F', 'G', 'A'][eventIndex] as
+                    | 'C'
+                    | 'D'
+                    | 'E'
+                    | 'F'
+                    | 'G'
+                    | 'A',
+                  octave: 4,
+                  alter: eventIndex % 2 === 0 ? 1 : -1
+                },
+                duration: {
+                  ...createDuration('eighth'),
+                  tuplet: { actualNotes: 3, normalNotes: 2 }
+                }
+              })
+            ),
+            tuplets: [
+              {
+                id: `ornate-${measureIndex + 1}-tuplet-1`,
+                eventIds: [
+                  `ornate-${measureIndex + 1}-1`,
+                  `ornate-${measureIndex + 1}-2`,
+                  `ornate-${measureIndex + 1}-3`
+                ],
+                actualNotes: 3,
+                normalNotes: 2
+              },
+              {
+                id: `ornate-${measureIndex + 1}-tuplet-2`,
+                eventIds: [
+                  `ornate-${measureIndex + 1}-4`,
+                  `ornate-${measureIndex + 1}-5`,
+                  `ornate-${measureIndex + 1}-6`
+                ],
+                actualNotes: 3,
+                normalNotes: 2
+              }
+            ]
+          })
+        ]
+      })
+    )
+    const layout = createSystemLayout(measures, 900)
+
+    expect(layout.systemCount).toBe(2)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 1, 1
+    ])
+    for (const placement of layout.placements) {
+      expect(placement.width).toBeGreaterThanOrEqual(400)
+      expect(placement.x + placement.width).toBeLessThanOrEqual(892)
+    }
+  })
+
   it('reserves more horizontal room for crowded note groups', () => {
     const calm = createMeasure({
       id: 'calm',

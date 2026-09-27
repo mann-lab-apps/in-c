@@ -279,7 +279,9 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 - rehearsal mark.
 - staff text, system text, expression text.
 - repeat start/end and repeat count.
-- first/second endings.
+- first/second endings. Automatic display spans cover short endings up to
+  three measures; longer inferred endings are displayed at the start measure
+  only until explicit editable volta line spans are added.
 - octave lines.
 - tremolo display and MusicXML preservation.
 - unsupported advanced notation warning.
@@ -331,15 +333,23 @@ triplet `⌘/Ctrl+3`, tie/slur, enharmonic respell, voice switching,
 navigation-first Up/Down, save, undo/redo, copy/paste, and delete. The legacy
 plain `9 = triplet` shortcut is not advertised.
 
-2026-09-23 shortcut hint slice: the global context strip adds a `단축키 힌트`
-toggle. When enabled, note-entry buttons show inline badges for duration, tie,
-tuplet and accidental shortcuts; when disabled, the buttons keep the same
-tooltip/aria labels and the full shortcut help dialog remains available. Flat,
-natural and sharp use Finale-style primary keys `-`, `N` and `+`, while the
-older `Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` aliases remain available for users who
-already learned the previous Chromatics beta mapping. Inline badges render as
-separate keycaps and hide in compact desktop widths where they would crowd the
-toolbar.
+2026-09-27 shortcut tooltip slice: toolbar buttons keep command-focused
+accessible names and no longer show inline shortcut badges. Buttons with
+shortcuts expose the shortcut through the hover tooltip, while the shortcut help
+dialog renders shortcuts as keycap-style badges for scanning. Flat, natural and
+sharp use Finale-style primary keys `-`, `N` and `+`, while the older
+`Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` aliases remain available for users who
+already learned the previous Chromatics beta mapping. Articulation shortcuts are
+active for selected notes: `Alt/⌥+.` toggles staccato, `Alt/⌥+>` toggles accent,
+`Alt/⌥+_` toggles tenuto and `Alt/⌥+^` toggles marcato.
+
+2026-09-27 toolbar access slice: the top work-mode tabs, context strip and
+active selection toolbar are grouped in a sticky toolbar stack so scrolling the
+score does not hide the primary editing controls. The context strip includes a
+`작업 도구 접기/펼치기` control that hides dense work-mode tools while keeping
+mode switching, shortcut help, command search and palette/property toggles
+available. The remaining file/action toolbar inside the score workspace can
+wrap in compact desktop widths to avoid horizontal toolbar overflow.
 
 ### Lyrics And Chords
 
@@ -454,8 +464,9 @@ on the score page while PDF export capture hides the guide.
 - Plain destructive keys require visible selection and must be undoable.
 - Plain arrow keys should navigate by default. Destructive musical transforms
   should use modifiers.
-- Every toolbar button with a shortcut shows it in tooltip/aria text, and core
-  note-entry shortcuts can be shown inline with the `단축키 힌트` toggle.
+- Every toolbar button with a shortcut keeps the command name as its accessible
+  label and exposes the shortcut in the tooltip; the shortcut help dialog shows
+  the full keycap-style reference.
 - Shortcut conflicts are resolved by scope in this order:
   1. modal/dialog local commands
   2. active text editor commands
@@ -526,6 +537,16 @@ Finale-style fast chord construction available without making selected notes and
 rests treat the same digit keys differently. Text fields still consume digits
 normally, and the older `Shift+A-G` absolute pitch shortcut remains available as
 a secondary command.
+
+2026-09-27 rhythm-editing follow-up: when changing a note/rest duration or
+deleting into an adjacent rest span, Chromatics should expose the beat structure
+instead of collapsing the released time into the single longest dotted rest. In
+4/4, replacing a full-measure rest with an eighth now yields eighth rest,
+quarter rest and half rest across the remaining beats. Replacing a first quarter
+with a shorter note yields the released beat as a quarter rest before the second
+half of the bar. Compound meters split at their dotted-beat groups. Tuplet-local
+rest spelling, advanced beaming-aware rest grouping and human engraving review
+remain follow-up work under the broader engraving/audit contracts.
 
 ### Accidentals And Pitch
 
@@ -674,6 +695,12 @@ When a text editor is focused, `Space` is text input, not playback.
   slur side choice: hairpins take the safer start/end measure lower lane, and
   below slurs flip above when they would compete with lyric/dynamic/expression
   lanes. Broader solo/grand staff/ensemble visual/manual engraving QA remains.
+- 2026-09-27 dense-engraving follow-up: short slurs use a deeper minimum curve
+  so they do not collapse into nearly flat marks, and the responsive system
+  layout now gives extra width to tuplet groups and explicit accidentals before
+  choosing line breaks. This is a first automatic readability pass, not a full
+  collision solver; slur lanes still need notehead/stem/dynamic/hairpin-aware
+  placement and PDF/manual engraving review.
 - Lyrics and chord symbols have App workflow coverage for editing a `release-test`
   score, saving MusicXML, reopening through the recent-file path, and restoring
   the lyric syllabic/melisma state plus chord symbol. Broader solo/grand staff/

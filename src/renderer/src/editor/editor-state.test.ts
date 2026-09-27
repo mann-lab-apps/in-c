@@ -441,9 +441,19 @@ describe('editor state', () => {
       {
         id: 'remaining-rest',
         type: 'rest',
+        position: { tick: 13_440 },
+        duration: {
+          value: 'quarter',
+          dots: 0
+        }
+      },
+      {
+        id: 'remaining-rest-2',
+        type: 'rest',
+        position: { tick: 26_880 },
         duration: {
           value: 'half',
-          dots: 1
+          dots: 0
         }
       }
     ])
@@ -940,14 +950,14 @@ describe('editor state', () => {
       {
         id: 'right-rest',
         type: 'rest',
-        duration: { value: 'half' },
+        duration: { value: 'eighth' },
         position: { tick: quarter * 1.5 }
       },
       {
         id: 'split-right-rest-1',
         type: 'rest',
-        duration: { value: 'eighth' },
-        position: { tick: quarter * 3.5 }
+        duration: { value: 'half' },
+        position: { tick: quarter * 2 }
       }
     ])
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
@@ -1178,7 +1188,7 @@ describe('editor state', () => {
     expect(command).toMatchObject({
       type: 'voice-events.replace'
     })
-    expect(measure.voices[0].events).toHaveLength(3)
+    expect(measure.voices[0].events).toHaveLength(4)
     expect(measure.voices[0].events).toMatchObject([
       {
         id: 'note-1',
@@ -1190,7 +1200,13 @@ describe('editor state', () => {
         id: 'rest-1',
         type: 'rest',
         position: { tick: TICKS_PER_QUARTER },
-        duration: { value: 'half' }
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'rest-1-delete-rest-1',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 2 },
+        duration: { value: 'quarter' }
       },
       {
         id: 'note-2',

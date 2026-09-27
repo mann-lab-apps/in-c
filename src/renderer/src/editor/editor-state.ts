@@ -19,12 +19,14 @@ import {
   buildRhythmDeleteCommand,
   buildRhythmEditCommand,
   buildSpanCleanupCommands,
+  createFullMeasureRest,
   createNote,
   createRest,
   createDuration as createScoreDuration,
   createTimePosition,
   decomposeDurationTicks,
   durationToTicks,
+  TICKS_PER_QUARTER,
   measureDurationTicks,
   sortVoiceEvents,
   validateMeasureRhythm,
@@ -1238,7 +1240,13 @@ function buildTupletFromAvailableSpan(
 
     if (event.type === 'rest' && endTick > groupEndTick) {
       trailingRests.push(
-        ...createRestsForSpan(groupEndTick, endTick, createId, event.id)
+        ...createRestsForSpan(
+          location.measure,
+          groupEndTick,
+          endTick,
+          createId,
+          event.id
+        )
       )
     }
   }
@@ -1417,6 +1425,7 @@ function buildRangeDeleteCommand(
 
   let generatedRestIndex = 0
   const restEvents = createRestsForSpan(
+    range.measure,
     firstEvent.position.tick,
     endTick,
     () => `${firstEvent.id}-delete-rest-${++generatedRestIndex}`,
@@ -1524,22 +1533,39 @@ export function createDuration(value: DurationValue, dots = 0): Duration {
 }
 
 function createRestsForSpan(
+  measure: Measure,
   startTick: number,
   endTick: number,
   createId: () => string,
   firstId?: string
 ): VoiceEvent[] {
-  const durations = decomposeDurationTicks(endTick - startTick)
+  const durationTicks = endTick - startTick
+
+  if (durationTicks <= 0) {
+    return []
+  }
+
+  if (startTick === 0 && durationTicks === measureDurationTicks(measure)) {
+    return [
+      createFullMeasureRest({
+        id: firstId ?? createId()
+      })
+    ]
+  }
+
+  const durations = decomposeRestSpanInMeasure(measure, startTick, endTick)
 
   if (!durations) {
     return []
   }
 
   let tick = startTick
+  const usedIds = new Set<string>()
 
-  return durations.map((duration) => {
+  return durations.map((duration, index) => {
+    const baseId = index === 0 && firstId ? firstId : createId()
     const rest = createRest({
-      id: firstId && tick === startTick ? firstId : createId(),
+      id: createUniqueRestId(baseId, usedIds),
       position: createTimePosition(tick),
       duration
     })
@@ -1547,6 +1573,146 @@ function createRestsForSpan(
     tick += durationToTicks(duration)
     return rest
   })
+}
+
+function decomposeRestSpanInMeasure(
+  measure: Measure,
+  startTick: number,
+  endTick: number
+): Duration[] | undefined {
+  if (endTick <= startTick) {
+    return []
+  }
+
+  const boundaries = createRestGroupingBoundaries(measure)
+
+  if (boundaries.beats.length < 2) {
+    return decomposeDurationTicks(endTick - startTick)
+  }
+
+  const durations: Duration[] = []
+  let tick = startTick
+
+  while (tick < endTick) {
+    const group = findCurrentGroup(boundaries.groups, tick)
+    const segmentEnd =
+      group && tick === group.start && group.end <= endTick
+        ? group.end
+        : findNextBoundary(boundaries.beats, tick, endTick)
+
+    if (segmentEnd <= tick) {
+      return undefined
+    }
+
+    const segmentDurations = decomposeDurationTicks(segmentEnd - tick)
+
+    if (!segmentDurations) {
+      return undefined
+    }
+
+    durations.push(...segmentDurations)
+    tick = segmentEnd
+  }
+
+  return durations
+}
+
+function createRestGroupingBoundaries(measure: Measure): {
+  beats: number[]
+  groups: Array<{ start: number; end: number }>
+} {
+  const measureTicks = measureDurationTicks(measure)
+  const beatTicks = TICKS_PER_QUARTER * (4 / measure.timeSignature.beatType)
+
+  if (
+    !Number.isInteger(beatTicks) ||
+    beatTicks <= 0 ||
+    measure.timeSignature.beats <= 0
+  ) {
+    return {
+      beats: [0, measureTicks],
+      groups: [{ start: 0, end: measureTicks }]
+    }
+  }
+
+  const beats = Array.from(
+    { length: Math.floor(measureTicks / beatTicks) + 1 },
+    (_, index) => index * beatTicks
+  ).filter((tick) => tick <= measureTicks)
+
+  if (beats.at(-1) !== measureTicks) {
+    beats.push(measureTicks)
+  }
+
+  if (
+    measure.timeSignature.beatType === 4 &&
+    measure.timeSignature.beats === 4 &&
+    measureTicks === beatTicks * 4
+  ) {
+    return {
+      beats,
+      groups: [
+        { start: 0, end: beatTicks * 2 },
+        { start: beatTicks * 2, end: measureTicks }
+      ]
+    }
+  }
+
+  if (
+    measure.timeSignature.beatType === 8 &&
+    measure.timeSignature.beats % 3 === 0
+  ) {
+    const groupTicks = beatTicks * 3
+    const groups: Array<{ start: number; end: number }> = []
+
+    for (let tick = 0; tick < measureTicks; tick += groupTicks) {
+      groups.push({
+        start: tick,
+        end: Math.min(tick + groupTicks, measureTicks)
+      })
+    }
+
+    return { beats, groups }
+  }
+
+  return {
+    beats,
+    groups: beats.slice(0, -1).map((start, index) => ({
+      start,
+      end: beats[index + 1]!
+    }))
+  }
+}
+
+function findCurrentGroup(
+  groups: Array<{ start: number; end: number }>,
+  tick: number
+): { start: number; end: number } | undefined {
+  return groups.find((group) => tick >= group.start && tick < group.end)
+}
+
+function findNextBoundary(
+  boundaries: number[],
+  tick: number,
+  endTick: number
+): number {
+  return Math.min(
+    endTick,
+    boundaries.find((boundary) => boundary > tick) ?? endTick
+  )
+}
+
+function createUniqueRestId(baseId: string, usedIds: Set<string>): string {
+  let id = baseId
+  let suffix = 2
+
+  while (usedIds.has(id)) {
+    id = `${baseId}-${suffix}`
+    suffix += 1
+  }
+
+  usedIds.add(id)
+  return id
 }
 
 function locateSameMeasureRange(
@@ -1759,6 +1925,7 @@ function buildUntupletGroupCommand(
       (event) => !memberIds.has(event.id) && event.position.tick >= currentEndTick
     )
     const consumed = consumeRestSpan(
+      location.measure,
       afterMembers,
       currentEndTick,
       expandedEndTick,
@@ -1899,6 +2066,7 @@ function createUntupledMembers(
 }
 
 function consumeRestSpan(
+  measure: Measure,
   events: VoiceEvent[],
   startTick: number,
   endTick: number,
@@ -1932,7 +2100,13 @@ function consumeRestSpan(
     remainingEvents: events.slice(consumedCount),
     trailingRests:
       trailingRest && trailingEndTick > endTick
-        ? createRestsForSpan(endTick, trailingEndTick, createId, trailingRest.id)
+        ? createRestsForSpan(
+            measure,
+            endTick,
+            trailingEndTick,
+            createId,
+            trailingRest.id
+          )
         : []
   }
 }

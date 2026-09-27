@@ -146,6 +146,7 @@ const MEASURE_STAFF_VERTICAL_PADDING = 18
 const LYRIC_EDITOR_WIDTH = 148
 const LYRIC_EDITOR_HEIGHT = 34
 const LYRIC_EDITOR_BASELINE_OFFSET = 22
+const MAX_AUTO_VOLTA_VISIBLE_MEASURES = 3
 
 interface CursorPoint {
   measureId?: string
@@ -233,6 +234,12 @@ interface RenderedStaffState {
   systemsByEventId: Map<string, number>
 }
 
+interface ActiveVoltaRender {
+  endIndex: number
+  isLongSpan: boolean
+  number: 1 | 2
+}
+
 export function NotationPreview({
   selectedSpan,
   onSelectSpan,
@@ -317,7 +324,7 @@ export function NotationPreview({
     const selectedEventIdSet = new Set(selectedEventIds)
     const measureContextTargets: MeasureContextTarget[] = []
     let dragAnchor: DragAnchor | undefined
-    let activeVolta: { number: 1 | 2 } | undefined
+    let activeVolta: ActiveVoltaRender | undefined
     const primaryMeasureIndexById = new Map(
       measures.map((measure, index) => [measure.id, index])
     )
@@ -550,21 +557,30 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (
-        measure.volta?.start &&
-        hasLaterVoltaEnd(measures, placementIndex, measure.volta.number)
-      ) {
+      const voltaEndIndex = measure.volta?.start
+        ? findLaterVoltaEndIndex(measures, placementIndex, measure.volta.number)
+        : undefined
+
+      if (measure.volta?.start && voltaEndIndex !== undefined) {
+        const visibleMeasureCount = voltaEndIndex - placementIndex + 1
+
         activeVolta = {
+          endIndex: voltaEndIndex,
+          isLongSpan: visibleMeasureCount > MAX_AUTO_VOLTA_VISIBLE_MEASURES,
           number: measure.volta.number
         }
       }
 
+      const suppressLongAutoVoltaContinuation = Boolean(
+        activeVolta?.isLongSpan && !measure.volta?.start
+      )
       const displayVolta =
-        measure.volta || activeVolta
+        !suppressLongAutoVoltaContinuation &&
+        (measure.volta || (activeVolta && !activeVolta.isLongSpan))
           ? {
               number: (measure.volta ?? activeVolta)?.number ?? 1,
               start: measure.volta?.start,
-              end: measure.volta?.end
+              end: measure.volta?.end && !activeVolta?.isLongSpan
             }
           : undefined
 
@@ -589,7 +605,7 @@ export function NotationPreview({
         )
       }
 
-      if (measure.volta?.end) {
+      if (measure.volta?.end || activeVolta?.endIndex === placementIndex) {
         activeVolta = undefined
       }
 
@@ -2074,6 +2090,9 @@ function drawVoltaMark(
   const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   group.classList.add('notation-volta-mark')
+  group.setAttribute('data-volta-number', String(volta.number))
+  group.setAttribute('data-volta-start', String(Boolean(volta.start)))
+  group.setAttribute('data-volta-end', String(Boolean(volta.end)))
   horizontal.setAttribute('x1', String(leftX))
   horizontal.setAttribute('x2', String(rightX))
   horizontal.setAttribute('y1', String(bracketY))
@@ -2581,7 +2600,10 @@ function drawSlurSegment(
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   const offset = (slurIndex % 3) * 6
   const span = Math.abs(x2 - x1)
-  const curveDepth = height === undefined ? Math.min(22, Math.max(10, span * 0.09)) + offset : height * 10
+  const curveDepth =
+    height === undefined
+      ? Math.min(28, Math.max(14, span * 0.12)) + offset
+      : height * 10
   const controlX = (x1 + x2) / 2
   const controlY =
     side === 'above'
@@ -2591,6 +2613,9 @@ function drawSlurSegment(
   const endX = isLast ? x2 : x2 + 8
 
   path.classList.add('notation-slur')
+  path.setAttribute('data-slur-y1', String(y1))
+  path.setAttribute('data-slur-y2', String(y2))
+  path.setAttribute('data-slur-control-y', String(controlY))
   path.setAttribute(
     'data-annotation-lane',
     side === 'above' ? 'upper-slur' : 'lower-slur'
@@ -2688,10 +2713,10 @@ function resolveSlurEndpointY(
   side: 'above' | 'below'
 ): number {
   if (side === 'above') {
-    return (point.noteHeadTopY ?? point.y) - 8
+    return (point.noteHeadTopY ?? point.y) - 10
   }
 
-  return (point.noteHeadBottomY ?? point.y + 40) + 8
+  return (point.noteHeadBottomY ?? point.y + 40) + 10
 }
 
 function resolveSlurContinuationY(
@@ -3060,18 +3085,18 @@ function sortLyricsForDisplay(
   )
 }
 
-function hasLaterVoltaEnd(
+function findLaterVoltaEndIndex(
   measures: Measure[],
   startIndex: number,
   number: 1 | 2
-): boolean {
+): number | undefined {
   for (let index = startIndex + 1; index < measures.length; index += 1) {
     if (measures[index].volta?.number === number && measures[index].volta?.end) {
-      return true
+      return index
     }
   }
 
-  return false
+  return undefined
 }
 
 function stopLyricEditorEvent(event: Event): void {
