@@ -6987,7 +6987,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
   }
 }
 
-enum _SetlistDetailAction { copy, append, duplicate, rename, delete }
+enum _SetlistDetailAction { preview, copy, append, duplicate, rename, delete }
 
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
@@ -7100,14 +7100,87 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   Future<void> _copySetlistText() async {
     final currentSetlist = setlist;
     final scores = controller.scoresForSetlist(currentSetlist);
-    await Clipboard.setData(
-      ClipboardData(text: _setlistShareText(currentSetlist, scores)),
-    );
+    await _copySetlistShareText(_setlistShareText(currentSetlist, scores));
+  }
+
+  Future<void> _copySetlistShareText(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) {
       return;
     }
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('공유용 세트리스트 내용을 복사했습니다.')));
+  }
+
+  Future<void> _showSetlistSharePreview() async {
+    final currentSetlist = setlist;
+    final scores = controller.scoresForSetlist(currentSetlist);
+    final text = _setlistShareText(currentSetlist, scores);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.72;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            child: SizedBox(
+              height: maxHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '복사할 내용 미리보기',
+                    style: Theme.of(sheetContext).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '파일 자체는 포함하지 않고, 세트리스트를 재구성하는 데 필요한 텍스트만 담습니다.',
+                    style: Theme.of(sheetContext).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(sheetContext).colorScheme.outline,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: SelectableText(text),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        child: const Text('닫기'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          Navigator.of(sheetContext).pop();
+                          await _copySetlistShareText(text);
+                        },
+                        icon: const Icon(Icons.content_copy),
+                        label: const Text('복사'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _addScore() async {
@@ -7396,6 +7469,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           ),
           if (!compactActions) ...[
             IconButton(
+              tooltip: '공유용 목록 보기',
+              onPressed: _showSetlistSharePreview,
+              icon: const Icon(Icons.article_outlined),
+            ),
+            IconButton(
               tooltip: '목록 복사',
               onPressed: _copySetlistText,
               icon: const Icon(Icons.content_paste_go_outlined),
@@ -7429,6 +7507,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   return;
                 }
                 switch (action) {
+                  case _SetlistDetailAction.preview:
+                    await _showSetlistSharePreview();
                   case _SetlistDetailAction.copy:
                     await _copySetlistText();
                   case _SetlistDetailAction.append:
@@ -7442,6 +7522,13 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 }
               },
               itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: _SetlistDetailAction.preview,
+                  child: ListTile(
+                    leading: Icon(Icons.article_outlined),
+                    title: Text('공유용 목록 보기'),
+                  ),
+                ),
                 const PopupMenuItem(
                   value: _SetlistDetailAction.copy,
                   child: ListTile(

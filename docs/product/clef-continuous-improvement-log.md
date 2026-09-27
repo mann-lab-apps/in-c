@@ -1542,3 +1542,11 @@ start page, duration, set note, score note, tags, collection/group/rating, custo
 per-score metronome settings. This remains a lightweight text share path and does not bundle
 PDF files or auto-import into another library. Regression coverage extends the setlist share
 text test; feature map, MobileSheets inventory and QA docs describe the new boundary.
+
+S96 VERIFIED LOCAL: tightened the S95 setlist manifest flow before adding any OS-level share
+handoff. The setlist detail toolbar and compact overflow menu now expose `공유용 목록 보기`,
+which previews the exact manifest text and explains that PDF files are not included before the
+user copies it. Existing one-tap `목록 복사` remains available for fast local clipboard use.
+Widget coverage checks compact preview visibility, manifest copy text and tablet toolbar
+affordances. Direct external sharing remains intentionally unimplemented without explicit
+approval because the manifest can include titles, filenames, notes and custom metadata.

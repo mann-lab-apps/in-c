@@ -1797,9 +1797,18 @@ void main() {
       final more = find.byTooltip('세트리스트 작업 더 보기');
       await tester.tap(more);
       await tester.pumpAndSettle();
-      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in ['공유용 목록 보기', '목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
         expect(find.text(label).hitTestable(), findsOneWidget);
       }
+      await tester.tap(find.text('공유용 목록 보기'));
+      await tester.pumpAndSettle();
+      expect(find.text('복사할 내용 미리보기'), findsOneWidget);
+      expect(find.textContaining('Clef & Staff 세트리스트'), findsOneWidget);
+      expect(find.textContaining('제목: 공연 순서'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, '닫기'));
+      await tester.pumpAndSettle();
+      await tester.tap(more);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('목록 복사'));
       await tester.pumpAndSettle();
       expect(copied, contains('공연 순서'));
@@ -1840,7 +1849,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpAndSettle();
       expect(more, findsNothing);
-      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in ['공유용 목록 보기', '목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
         expect(find.byTooltip(label).hitTestable(), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
