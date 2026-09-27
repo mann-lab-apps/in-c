@@ -1728,8 +1728,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 const PopupMenuItem(
                   value: _LibraryToolsAction.deviceCheck,
                   child: ListTile(
-                    leading: Icon(Icons.health_and_safety_outlined),
-                    title: Text('앱 상태 점검'),
+                    leading: Icon(Icons.speed_outlined),
+                    title: Text('기기 성능 리포트'),
+                    subtitle: Text('개발자에게 보낼 호환성 점검'),
                   ),
                 ),
                 const PopupMenuItem(
@@ -4291,8 +4292,8 @@ pageMetadataScores=$pageMetadataCount
           if (onOpenDeviceCheck != null) ...[
             FilledButton.icon(
               onPressed: onOpenDeviceCheck,
-              icon: const Icon(Icons.health_and_safety_outlined),
-              label: const Text('앱 상태 점검 열기'),
+              icon: const Icon(Icons.speed_outlined),
+              label: const Text('기기 리포트 만들기'),
             ),
             const SizedBox(height: 8),
           ],
@@ -4452,11 +4453,11 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
           children: [
             Row(
               children: [
-                const Icon(Icons.health_and_safety_outlined),
+                const Icon(Icons.speed_outlined),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Clef & Staff 앱 상태 점검',
+                    'Clef & Staff 기기 성능 리포트',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -4466,8 +4467,9 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              '주요 기능이 기기에서 열리고 입력을 받는지 점검합니다. '
-              '결과는 사용자가 복사하거나 공유하기 전까지 외부로 전송되지 않습니다.',
+              '이 기기에서 페이지 입력, 메트로놈 스케줄, 마이크 권한 같은 호환성 정보를 확인해 '
+              '개발자에게 보낼 리포트를 만듭니다. 결과는 사용자가 복사하거나 공유하기 전까지 '
+              '외부로 전송되지 않습니다.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 14),
@@ -4581,32 +4583,32 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
                     );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('상태 점검 결과를 복사했습니다.')),
+                        const SnackBar(content: Text('기기 리포트를 복사했습니다.')),
                       );
                     }
                   },
                   icon: const Icon(Icons.content_copy),
-                  label: const Text('결과 복사'),
+                  label: const Text('리포트 복사'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () async {
                     try {
                       await SharePlus.instance.share(
                         ShareParams(
-                          subject: 'Clef & Staff 앱 상태 점검',
+                          subject: 'Clef & Staff 기기 성능 리포트',
                           text: report.toMarkdown(),
                         ),
                       );
                     } catch (_) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('점검 결과를 공유하지 못했습니다.')),
+                          const SnackBar(content: Text('기기 리포트를 공유하지 못했습니다.')),
                         );
                       }
                     }
                   },
                   icon: const Icon(Icons.ios_share),
-                  label: const Text('결과 공유'),
+                  label: const Text('리포트 공유'),
                 ),
               ],
             ),
@@ -4707,7 +4709,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
           id: 'app-launch',
           title: 'App launch',
           status: SheetDeviceCheckStatus.pass,
-          details: '앱 상태 점검 화면이 열렸습니다.',
+          details: '기기 성능 리포트 화면이 열렸습니다.',
         ),
         deviceCheckItemForKeyInput(_lastKeyEntry),
         if (_timingResults.isEmpty)

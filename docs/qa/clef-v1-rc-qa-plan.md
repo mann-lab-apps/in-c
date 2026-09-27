@@ -88,11 +88,12 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
   제출용 스크린샷은 `docs/qa/clef-store-screenshot-checklist.md`의 capture gate를 통과해야 한다.
 - 남은 항목이 v1.1 spike 또는 Later로 분류되어 있고 v1 blocker로 남아 있지 않다.
 
-### 앱 상태 점검으로 줄일 수 있는 실기기 QA
+### 기기 성능 리포트로 줄일 수 있는 실기기 QA
 
-홈 `메뉴` > `앱 상태 점검`은 별도 QA 앱이 아니라 본앱의 지원/진단 화면이다.
-결과는 Markdown/JSON 텍스트로 만들고, 사용자가 `결과 복사` 또는 `결과 공유`를 누르기 전까지
-외부로 전송하지 않는다. 이 화면은 사용자 악보/세트리스트/필기 데이터를 수정하지 않는다.
+홈 `메뉴` > `기기 성능 리포트`는 일반 연주 기능이 아니라, 사용자 기기에서 Clef가 잘 맞는지
+확인해 개발자에게 보낼 수 있는 지원/성능 보고 화면이다. 결과는 Markdown/JSON 텍스트로 만들고,
+사용자가 `리포트 복사` 또는 `리포트 공유`를 누르기 전까지 외부로 전송하지 않는다. 이 화면은
+사용자 악보/세트리스트/필기 데이터를 수정하지 않는다.
 
 자동 또는 반자동으로 기록할 수 있는 항목:
 
@@ -112,8 +113,8 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 - 실제 악기/마이크/연습실 환경의 튜너 정확도.
 - 장시간 연주 안정성.
 
-앱 상태 점검의 `PASS`는 내부 상태와 입력 경로의 근거이며, 실제 오디오/마이크/페달/필기감 품질
-확인 완료로 확대 해석하지 않는다.
+기기 성능 리포트의 `PASS`는 내부 상태와 입력 경로의 근거이며, 실제 오디오/마이크/페달/필기감
+품질 확인 완료로 확대 해석하지 않는다.
 
 ## 준비물
 
@@ -205,7 +206,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 | 15-7 | 복원 진행 UI | 진행 창으로 편집/중복 진입/뒤로가기를 막고 종료 시 해제한다. 공유 PDF는 복원 뒤 처리하며 PDF 가져오기 중에는 백업 메뉴를 잠근다. | 지연 JSON/자동/ZIP 결과 성공/취소/오류, 화면 종료 후 늦은 응답, 공유 채널 순서 widget 검증. native picker/앱 강제 종료 QA 별도 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
-| 16-1 | 앱 상태 점검 | 앱 상태 점검에서 version/platform/OS/build mode, 키 입력 감지, metronome timing, 마이크 권한 상태, 결과 복사/공유가 동작한다. | 결과 Markdown, 120/180/240 BPM timing summary, 감지된 key input, MANUAL로 남은 항목 |
+| 16-1 | 기기 성능 리포트 | 기기 성능 리포트에서 version/platform/OS/build mode, 키 입력 감지, metronome timing, 마이크 권한 상태, 리포트 복사/공유가 동작한다. | Markdown 리포트, 120/180/240 BPM timing summary, 감지된 key input, MANUAL로 남은 항목 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
 
 ## 기기별 필수 확인

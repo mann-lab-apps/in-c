@@ -79,7 +79,8 @@ void main() {
         await tester.tap(menu);
         await tester.pumpAndSettle();
         expect(find.text('보기/입력 기본값'), findsOneWidget);
-        expect(find.widgetWithText(ListTile, '앱 상태 점검'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, '기기 성능 리포트'), findsOneWidget);
+        expect(find.text('개발자에게 보낼 호환성 점검'), findsOneWidget);
         final helpMenuItem = find.widgetWithText(ListTile, '도움말/피드백');
         expect(helpMenuItem, findsOneWidget);
         expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
@@ -94,11 +95,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(ListTile, '앱 상태 점검'));
+        await tester.tap(find.widgetWithText(ListTile, '기기 성능 리포트'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
+        expect(find.text('Clef & Staff 기기 성능 리포트'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'device check');
-        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
+        Navigator.of(tester.element(find.text('Clef & Staff 기기 성능 리포트'))).pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
@@ -143,14 +144,14 @@ void main() {
         expect(find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
         await tester.scrollUntilVisible(
-          find.text('앱 상태 점검 열기'),
+          find.text('기기 리포트 만들기'),
           -180,
           scrollable: find.byType(Scrollable).last,
         );
-        await tester.tap(find.text('앱 상태 점검 열기'));
+        await tester.tap(find.text('기기 리포트 만들기'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
-        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
+        expect(find.text('Clef & Staff 기기 성능 리포트'), findsOneWidget);
+        Navigator.of(tester.element(find.text('Clef & Staff 기기 성능 리포트'))).pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();

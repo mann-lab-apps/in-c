@@ -148,8 +148,8 @@ Repo 포함 fixture:
    확인한다.
 2. Android release APK 또는 AAB 설치 경로가 있으면 같은 smoke flow를 반복한다.
 3. 홈 `메뉴` > `도움말/피드백`에서 작업별 도움말과 마케팅/지원/개인정보 URL이 보이고
-   `앱 상태 점검 열기`로 바로 진단 화면에 들어가는지 확인한다. `결과 복사` 또는
-   `결과 공유`로 Markdown 결과를 남긴다.
+   `기기 리포트 만들기`로 바로 성능 리포트 화면에 들어가는지 확인한다. `리포트 복사` 또는
+   `리포트 공유`로 Markdown 결과를 남긴다.
 4. iOS TestFlight 또는 local no-codesign build에서 Files open-in, PDF/JPG/PNG import, viewer
    rotation/two-page rendering을 확인한다.
 5. PDF import/viewer/search/export/backup 기본 흐름을 `clef-v1-rc-qa-plan.md` 순서대로 실행한다.

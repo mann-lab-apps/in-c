@@ -1275,7 +1275,7 @@ No app build performed; new changes have widget/source evidence only.
 
 - Selected slice: reduce the recurring 10-15 minute manual pre-distribution check
   without creating a separate QA app or uploading diagnostics automatically. Clef now
-  exposes `앱 상태 점검` from the home `메뉴` as a user-safe support/diagnostic surface.
+  originally exposed a home-menu support/diagnostic surface for device checks.
 - Implementation intent: keep the feature inside the real app code path while avoiding
   destructive actions and user-data writes. The sheet records app/version/platform/OS/build
   mode, captures page-turn key input, measures internal metronome scheduling timing for
@@ -1314,7 +1314,7 @@ artifacts so tester reports include the actual installed build code.
 S69 VERIFIED LOCAL: Device QA could not be exercised on the local Android emulator because
 `clef_rc_tablet_api35` did not attach to ADB in this session, but the in-app tester handoff
 still needed less friction. The `도움말/피드백` sheet now shows the App Store review/support
-URLs, copies the review URL bundle, and opens `앱 상태 점검` directly after closing the help
+URLs, copies the review URL bundle, and opens the device report directly after closing the help
 sheet. No diagnostics are uploaded automatically; testers still choose copy/share. Regression
 coverage extends the home named-menu widget test so the support URL and help-to-device-check
 handoff are visible on phone/tablet/landscape and large text sizes. Actual emulator install
@@ -1324,7 +1324,7 @@ available.
 S70 IN PROGRESS: Preparing the next Android internal-test AAB for 실기기 QA. Because
 `1.0.1+26` already exists in the archived AAB folder, source/app info and active QA docs
 were bumped to `1.0.1+27`. The device runbook now points testers through
-`도움말/피드백` -> `앱 상태 점검 열기` so the copied Markdown report includes version,
+`도움말/피드백` -> `기기 리포트 만들기` so the copied Markdown report includes version,
 platform, key input, internal metronome timing and microphone permission evidence before
 manual audio, pedal, stylus, tuner and long-session checks.
 
@@ -1502,3 +1502,10 @@ suite and analyze passed. RC release check reached format/whitespace/stale/debug
 Flutter analyze/test inside the script could not complete because pub.dev advisory lookup reset
 the connection; rerun RC from this checkpoint before release packaging. No app build/version
 change/push/merge.
+
+S91 VERIFIED LOCAL: reframed the in-app device QA surface so regular users do not mistake it
+for a normal score feature. The home menu entry is now `기기 성능 리포트`, the help sheet opens
+`기기 리포트 만들기`, and the sheet/report copy explains that it creates a compatibility and
+performance report for the developer without uploading automatically or modifying scores.
+Regression coverage updated the home tools menu and Clef home smoke tests. Targeted tests,
+analyze and `git diff --check` passed. No app build/version change/push/merge.
