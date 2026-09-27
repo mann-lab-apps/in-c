@@ -2918,6 +2918,10 @@ switching remain reachable.
 | `npm run verify:e2e` | Fail, then Pass | First reruns exposed stale verifier event-count expectations after beat-aware rest splitting. The harness now expects duration shrink to create two remainder rests and triplet completion to produce one additional grouped rest. Final Electron E2E passed. |
 | `npm run verify:visual-regression` | Fail, update, then Pass | First run passed 86 MusicXML/layout tests but caught intentional notation snapshot metric changes from slur/layout spacing. 960/1400 screenshots were inspected, `docs/testing/notation-snapshot-baseline.json` was updated from the generated actual metrics after `verify:notation-snapshots:update` hit intermittent Electron `SIGABRT`, and the final visual regression rerun passed. |
 | `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+| PR #776 / merge commit `f89d633` | Pass | Shortcut tooltip, articulation shortcut, beat-aware rest grouping, responsive layout/slur and volta display updates merged to `main` after GitHub CI passed. |
+| `v0.1.0-alpha.19` release workflow | Pass | GitHub Release workflow completed for Linux, macOS and Windows package jobs plus prerelease publication. Release URL: `https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.19`. |
+| `npm run site:build` | Pass | Download page manifest and static fallback links rebuilt for `0.1.0-alpha.19`. |
+| `node scripts/verify-site-content.mjs` | Pass | Site content manifests, product relations and feature map paths verified after the alpha.19 download manifest update. |
 
 ## Evidence Retention Rules
 
