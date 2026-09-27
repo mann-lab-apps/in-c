@@ -122,6 +122,14 @@ class SheetAnnotationPoint {
     return math.sqrt((dx * dx) + (dy * dy));
   }
 
+  SheetAnnotationPoint shiftedBy({required double dx, required double dy}) {
+    return SheetAnnotationPoint(
+      x: (x + dx).clamp(0.0, 1.0).toDouble(),
+      y: (y + dy).clamp(0.0, 1.0).toDouble(),
+      pressure: pressure,
+    );
+  }
+
   static double _normalizeCoordinate(Object? value) {
     final coordinate = value is num ? value.toDouble() : 0.0;
     return coordinate.clamp(0.0, 1.0).toDouble();
@@ -166,6 +174,20 @@ class SheetAnnotationStroke {
   final double width;
   final List<SheetAnnotationPoint> points;
   final DateTime createdAt;
+
+  SheetAnnotationStroke shiftedBy({required double dx, required double dy}) {
+    return SheetAnnotationStroke(
+      id: id,
+      pageNumber: pageNumber,
+      tool: tool,
+      color: color,
+      width: width,
+      points: points
+          .map((point) => point.shiftedBy(dx: dx, dy: dy))
+          .toList(growable: false),
+      createdAt: createdAt,
+    );
+  }
 
   bool hitTest(SheetAnnotationPoint point, {required double tolerance}) {
     if (points.isEmpty) {
@@ -747,6 +769,32 @@ class SheetAnnotationLayer {
     return SheetAnnotationLayer(
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
+    );
+  }
+
+  SheetAnnotationLayer updateStroke(SheetAnnotationStroke stroke) {
+    if (stroke.points.isEmpty) {
+      return removeStroke(stroke.id);
+    }
+    var didUpdate = false;
+    final next = strokes
+        .map((candidate) {
+          if (candidate.id != stroke.id) {
+            return candidate;
+          }
+          didUpdate = true;
+          return stroke;
+        })
+        .toList(growable: false);
+    if (!didUpdate) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(next),
+      texts: texts,
       redoStack: const <SheetAnnotationRedoEntry>[],
       eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,

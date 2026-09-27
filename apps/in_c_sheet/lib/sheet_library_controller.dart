@@ -2380,6 +2380,24 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<bool> updateStrokeAnnotation(
+    SheetScore score,
+    SheetAnnotationStroke stroke,
+  ) async {
+    final nextLayer = score.annotationLayer.updateStroke(stroke);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
   Future<bool> eraseAnnotationAt(
     SheetScore score, {
     required int pageNumber,

@@ -483,6 +483,36 @@ void main() {
     expect(layer.removeStroke('first').strokesForPage(1).single.id, 'second');
   });
 
+  test('stroke annotations can be nudged within page bounds', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final stroke = _stroke(
+      id: 'shape-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.rectangle,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.02, y: 0.98),
+        SheetAnnotationPoint(x: 0.9, y: 0.1),
+      ],
+      createdAt: now,
+    );
+    final layer = SheetAnnotationLayer.empty.addStroke(stroke);
+
+    final nudged = stroke.shiftedBy(dx: 0.1, dy: -0.2);
+    final clamped = stroke.shiftedBy(dx: -0.1, dy: 0.2);
+    final updated = layer.updateStroke(nudged);
+    final missing = layer.updateStroke(
+      _stroke(id: 'missing', pageNumber: 1, createdAt: now),
+    );
+
+    expect(nudged.points.first.x, moreOrLessEquals(0.12));
+    expect(nudged.points.first.y, moreOrLessEquals(0.78));
+    expect(clamped.points.first.x, 0);
+    expect(clamped.points.first.y, 1);
+    expect(updated.strokes.single.points.first.x, moreOrLessEquals(0.12));
+    expect(updated.redoStack, isEmpty);
+    expect(identical(missing, layer), isTrue);
+  });
+
   test('text annotation encodes and decodes normalized position', () {
     final createdAt = DateTime.parse('2026-08-21T10:00:00.000');
     final text = SheetTextAnnotation(

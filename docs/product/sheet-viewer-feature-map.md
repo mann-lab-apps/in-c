@@ -97,7 +97,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 주석 | crescendo/diminuendo hairpin | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 헤어핀 필기, hit-test/delete, redo, PDF export rendering |
 | 주석 | staff/grid guide | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 오선/격자 guide, hit-test/delete, redo, viewer rendering. 세부 악보 paper template/custom stamp pack은 후속 |
 | 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | 구현됨: favorite annotation tool preset 저장/복원, library profile별 분리. 저장 완료 후 안내/적용 상태 갱신, 중복 제출 차단, 실패 복구/재시도, 원래 library 범위 유지. 관련 회귀 및 전체 검증 통과 |
-| 주석 | nudge tool | MobileSheets 지원 | V1.1 | 중간 | 부분 구현: 텍스트/스탬프 주석을 탭한 뒤 상/하/좌/우로 조금 이동할 수 있다. stroke/shape 전체 selection/nudge는 selection model 필요로 후속 |
+| 주석 | nudge tool | MobileSheets 지원 | V1.1 | 중간 | 부분 구현: 텍스트/스탬프 주석을 탭한 뒤 상/하/좌/우로 조금 이동할 수 있다. stroke/shape는 normalized point 이동과 저장 경로를 보유하지만 viewer selection UI는 후속 |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
 | 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. S41: 저장 실패 안내/복구/재시도, 연속 변경 중 오래된 안내 차단, 종료/다른 화면/라이브러리 전환 후 결과 억제를 로컬 테스트로 검증. 실제 PDF 조작은 기기 QA, 다중 layer/annotation별 layer keying은 후속 |

@@ -2975,6 +2975,19 @@ void main() {
     expect(controller.scores.single.annotationLayer.strokes, hasLength(1));
     expect(controller.scores.single.annotationLayer.texts, hasLength(1));
 
+    final didUpdateStroke = await controller.updateStrokeAnnotation(
+      controller.scores.single,
+      controller.scores.single.annotationLayer.strokes.single.shiftedBy(
+        dx: 0.1,
+        dy: 0.05,
+      ),
+    );
+    expect(didUpdateStroke, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.points.first.x,
+      moreOrLessEquals(0.2),
+    );
+
     final didUpdate = await controller.updateTextAnnotation(
       controller.scores.single,
       controller.scores.single.annotationLayer.texts.single.copyWith(

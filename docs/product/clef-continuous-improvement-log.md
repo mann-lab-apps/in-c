@@ -1483,3 +1483,12 @@ without knowing the exact search keyword. Regression coverage extends the annota
 picker smoke test. Targeted smoke passed, full 1,413-test suite, analyze and RC release
 check passed. S Pen feel and palm rejection remain DEVICE QA. No app build/version
 change/push/merge.
+
+S89 VERIFIED LOCAL: prepared the remaining MobileSheets nudge gap without introducing a full
+viewer selection model in one step. Stroke and shape annotations now have normalized point
+movement and controller update plumbing, so line/arrow/rectangle/hairpin/staff/grid marks can
+be safely shifted and saved once a viewer selection affordance is added. Regression coverage
+targets clamping, layer update behavior and controller persistence. Targeted annotation and
+controller tests passed, full 1,414-test suite, analyze and RC release check passed.
+User-facing stroke/shape selection UI remains the next slice. No app build/version
+change/push/merge.
