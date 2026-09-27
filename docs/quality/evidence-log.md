@@ -2855,6 +2855,10 @@ keeping tooltip/aria/help-dialog discoverability.
 | `npm run verify:chromatics-v1-work-queue` | Pass | Queue verifier passed with 69 rows, 16 Required umbrellas and `automationQueueDrained: false`; expanded V1 remains incomplete. |
 | `npm run verify:chromatics-v1-save-policy` | Pass | Save-policy verifier passed. The earlier attempted `npm run verify:save-policy` name does not exist in `package.json`; the correct script is `verify:chromatics-v1-save-policy`. |
 | `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+| PR #775 / merge commit `7febdde` | Pass | Shortcut discoverability rebuild merged to `main` after GitHub CI passed. |
+| `v0.1.0-alpha.18` release workflow | Pass | GitHub Release workflow completed for Linux, macOS and Windows package jobs plus prerelease publication. Release URL: `https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.18`. |
+| `npm run site:build` | Pass | Download page manifest and static fallback links rebuilt for `0.1.0-alpha.18`. |
+| `node scripts/verify-site-content.mjs` | Pass | Site content manifests, product relations and feature map paths verified after the alpha.18 download manifest update. |
 
 ## Evidence Retention Rules
 
