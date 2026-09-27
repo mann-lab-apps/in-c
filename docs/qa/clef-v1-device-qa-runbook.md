@@ -33,6 +33,9 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 - v1.x 낮은 위험 잔여 항목 중 최근 rail copy, 메트로놈 로컬 phase guard, 드론 음량 표시,
   PDF 공유는 코드/문서상 반영되어 있다. 거리 가독성, 빠른 BPM 청취감, 드론 체감 음량,
   전용 print action 필요성은 실기기/사용자 요구 확인 뒤 판정한다.
+- 2026-09-27 이후 로컬 검증된 v1.1 gap 보강분은 아직 새 실기기 QA로 판정하지 않는다.
+  linked audio A-B 구간 저장/복원/지우기, 긴 PDF 페이지 탐색 빠른 이동, metadata 추천 필드
+  `박자`/`출처`/`연도`, 긴 라이브러리 `빠른 찾기`는 최신 설치본에서 별도 확인한다.
 
 ## 10-15분 RC Smoke 결과표
 
@@ -46,8 +49,10 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | PDF 가져오기/뷰어 | 평소 쓰는 PDF 1개 import, 좌/우 tap, swipe, 마지막 위치 | NOT TESTED | PDF 유형, page 수, blank/crash 여부 |
 | 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감 |
 | 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 이전/다음 곡 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 진행 위치 |
+| 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
+| 연결 오디오/A-B | linked audio 재생, A/B 초 입력, 저장/재열기, `구간 지우기` | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
 | 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
 | 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 페이지 단위 이동, 곡 처음/끝 안내 |
@@ -152,8 +157,11 @@ Repo 포함 fixture:
 8. Cloud provider PDF를 online/offline 상태에서 가져오고 실패 문구를 기록한다.
 9. 실제 CamScanner/object-stream PDF에서 URL link count, sanitizer 결과, 원본 linked file 보존을
    기록한다.
-10. 기준음/드론, local audio playback, tuner latency와 no-signal behavior를 기록한다.
-11. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
+10. 긴 라이브러리 샘플이 있으면 검색/필터와 `빠른 찾기` 첫 글자 그룹으로 원하는 악보를 찾는
+    데 시간이 줄어드는지 기록한다.
+11. 기준음/드론, linked audio A-B loop, local audio playback, tuner latency와 no-signal behavior를
+    기록한다.
+12. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
 
 ## 기록 양식
 
@@ -210,6 +218,23 @@ Cloud provider:
 - provider, online/offline, 내려받기 필요 여부, picker error.
 - 앱 내부 사본 생성 여부, 같은 파일 재가져오기 중복 여부.
 
+Long library navigation:
+
+- 현재 설치본 version/build와 라이브러리 곡 수.
+- 제목 첫 글자가 2개 이상이고 12곡 이상일 때 홈에 `빠른 찾기`가 보이는지.
+- `A 6`, `B 6`처럼 첫 글자와 곡 수가 실제 목록과 맞는지.
+- 칩을 눌렀을 때 해당 그룹의 악보만 sheet에 보이고, 선택한 악보가 바로 열리는지.
+- 검색/즐겨찾기/태그/작곡가/컬렉션/그룹/별점/custom field 필터 적용 상태에서도 현재 목록 기준으로
+  그룹이 만들어지는지.
+- 작은 phone 세로, Android tablet/iPad 가로, 큰 글씨에서 칩이 잘리지 않고 가로 스크롤로 접근 가능한지.
+
+Metadata cleanup:
+
+- 가져온 직후 `정보 정리 필요` rail과 일반 `최근 악보`/`최근 세트리스트` rail이 혼동되지 않는지.
+- 악보 정보 편집과 선택 악보 일괄 편집에서 `조성`, `박자`, `장르`, `난이도`, `편성`, `출처`, `연도`
+  추천칩이 보이고, 값 입력 후 검색/필터/facet에서 찾을 수 있는지.
+- 사용자가 직접 만든 custom field와 추천칩이 충돌하지 않는지.
+
 CamScanner/object-stream PDF:
 
 - page count, file size, URL link count, sanitizer removed/remaining count.
@@ -231,6 +256,9 @@ Audio/tuner:
   target lock은 v1 UI에서 보이지 않는지 확인한다.
 - 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
+- linked audio는 MP3/M4A/WAV별로 재생/정지, A/B 초 입력, sheet 닫기/다시 열기 후 구간 복원,
+  `구간 지우기` 후 재진입 시 입력값이 사라지는지 확인한다. 이어폰/스피커/Bluetooth에서 loop가
+  갑자기 끊기거나 밀리는지 기록한다. waveform timeline/tempo/pitch shift는 아직 후속 범위다.
 - 메트로놈 BPM/박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, tick sound, viewer mini
   panel 전환과 장시간 사용 중 page turn/tap zone 충돌 여부.
 - 다중 선택 bulk setlist add, 세트리스트 drag reorder, 최근 세트리스트 rail, tap zone hint,
