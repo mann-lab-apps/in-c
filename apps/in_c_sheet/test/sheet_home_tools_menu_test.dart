@@ -108,6 +108,27 @@ void main() {
         expect(find.text('처음 쓰는 흐름'), findsOneWidget);
         expect(find.textContaining('악보 추가: PDF 또는 이미지를 가져온 뒤'), findsOneWidget);
         await tester.scrollUntilVisible(
+          find.text('작업별 도움말'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('작업별 도움말'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.textContaining('세트리스트: 여러 악보 선택 후'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.textContaining('세트리스트: 여러 악보 선택 후'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(
+          find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
+          findsOneWidget,
+        );
+        await tester.scrollUntilVisible(
           find.text('지원 링크'),
           180,
           scrollable: find.byType(Scrollable).last,

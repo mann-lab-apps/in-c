@@ -179,7 +179,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - field schema 확장: album/signature/source type은 Clef식 custom field 추천칩으로 1차 흡수.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.
   홈 `메뉴`의 `도움말/피드백`에서 처음 쓰는 흐름, 앱/build 정보, 테스트 항목,
-  피드백 템플릿 복사를 한곳에 묶는다.
+  라이브러리/세트리스트/긴 악보 이동/오디오/필기 같은 작업별 도움말, 피드백 템플릿
+  복사를 한곳에 묶는다.
 
 ### Later / Spike 후보
 

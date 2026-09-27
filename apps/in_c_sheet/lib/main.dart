@@ -4085,6 +4085,15 @@ class _TesterInfoSheet extends StatelessWidget {
     '피드백: 아래 템플릿을 복사해 기기, OS, 파일 정보와 재현 단계를 함께 보냅니다.',
   ];
 
+  static const List<String> _taskHelpItems = <String>[
+    '라이브러리 정리: 검색창 아래 정렬/태그/컬렉션/사용자 필드 칩으로 악보를 좁힙니다.',
+    '정보 보강: 정보 정리 필요 카드나 악보 메뉴의 정보 편집에서 제목/작곡가/조성/출처를 채웁니다.',
+    '세트리스트: 여러 악보 선택 후 세트리스트에 추가하고, 공연 순서는 세트리스트 화면에서 바꿉니다.',
+    '긴 악보 이동: 악보 화면의 쪽 이동에서 슬라이더, 쪽 번호 입력, 북마크/연습 표시를 함께 씁니다.',
+    '오디오 연습: 연결 파일에서 오디오를 추가하고 A/B 마커로 반복 구간을 저장합니다.',
+    '필기/공유: 필기 도구에서 펜/도형/스탬프를 고르고, 공유에서 필기 포함 PDF를 내보냅니다.',
+  ];
+
   static const List<String> _testItems = <String>[
     'PDF 가져오기와 페이지 넘김',
     'PDF 본문 검색과 OCR 미지원 안내',
@@ -4227,6 +4236,21 @@ pageMetadataScores=$pageMetadataCount
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.arrow_right_alt),
+              title: Text(item),
+            ),
+          const SizedBox(height: 14),
+          Text(
+            '작업별 도움말',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final item in _taskHelpItems)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.tips_and_updates_outlined),
               title: Text(item),
             ),
           const SizedBox(height: 12),

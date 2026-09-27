@@ -1452,3 +1452,11 @@ tabs or a fixed twenty-field schema. Clef's common custom metadata chips now inc
 set, with matching facet icons. Metadata smoke tests and bulk-edit recovery tests passed
 after making the recovery helper close text input before tapping the longer sheet. Full
 1,412-test suite, analyze and RC release check passed. No app build/version change/push/merge.
+
+S85 VERIFIED LOCAL: tightening the MobileSheets discoverability gap without adding a dense
+manual or icon glossary. The existing `도움말/피드백` sheet now adds a task-based help section
+for library cleanup, metadata, setlists, long-score navigation, linked audio A/B practice,
+and annotation/share flows so users can find features by job rather than by icon alone.
+Targeted home-tools smoke coverage passed across compact, landscape and tablet sizes. Full
+1,412-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.
