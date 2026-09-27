@@ -1423,3 +1423,11 @@ than A. This keeps the existing seconds-based loop model and prevents silent no-
 attempts. Targeted linked-audio widget tests cover invalid input, save failure, clear failure,
 saved marker preload and playback arguments. Full 1,410-test suite, analyze and RC release
 check passed. No app build/version change/push/merge.
+
+S81 VERIFIED LOCAL: connecting long-score page navigation to musical landmarks before adding
+heavier thumbnail or waveform-style timelines. The page picker now receives the current
+score's bookmarks and rehearsal marks and exposes them as horizontal `표시 지점` chips, so
+long PDFs can jump by Cadenza/A/B section labels from the same sheet that already has
+slider/direct page entry. Targeted smoke test covers selecting a rehearsal-mark chip and then
+confirming navigation. Full 1,411-test suite, analyze and RC release check passed. No app
+build/version change/push/merge.

@@ -34,8 +34,9 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   PDF 공유는 코드/문서상 반영되어 있다. 거리 가독성, 빠른 BPM 청취감, 드론 체감 음량,
   전용 print action 필요성은 실기기/사용자 요구 확인 뒤 판정한다.
 - 2026-09-27 이후 로컬 검증된 v1.1 gap 보강분은 아직 새 실기기 QA로 판정하지 않는다.
-  linked audio A-B 구간 저장/복원/지우기, 긴 PDF 페이지 탐색 빠른 이동, metadata 추천 필드
-  `박자`/`출처`/`연도`, 긴 라이브러리 `빠른 찾기`는 최신 설치본에서 별도 확인한다.
+  linked audio A-B 구간 저장/복원/지우기, 긴 PDF 페이지 탐색 빠른 이동과 북마크/리허설
+  `표시 지점`, metadata 추천 필드 `박자`/`출처`/`연도`, 긴 라이브러리 `빠른 찾기`는
+  최신 설치본에서 별도 확인한다.
 
 ## 10-15분 RC Smoke 결과표
 
@@ -47,7 +48,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | --- | --- | --- | --- |
 | 설치/첫 실행 | 앱 이름 `Clef & Staff`, 테스트 정보 version/build, 홈 진입 | NOT TESTED | 설치 파일, 기기/OS, buildCode |
 | PDF 가져오기/뷰어 | 평소 쓰는 PDF 1개 import, 좌/우 tap, swipe, 마지막 위치 | NOT TESTED | PDF 유형, page 수, blank/crash 여부 |
-| 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감 |
+| 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 북마크/리허설 `표시 지점`, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감, 원하는 지점 찾기 |
 | 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 이전/다음 곡 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 진행 위치 |
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |

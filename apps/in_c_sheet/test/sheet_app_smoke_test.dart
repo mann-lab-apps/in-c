@@ -2582,6 +2582,53 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('page picker exposes bookmark and rehearsal mark targets', (
+    tester,
+  ) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 80,
+        currentPage: 10,
+        bookmarks: [
+          SheetBookmark(
+            pageNumber: 32,
+            label: 'Cadenza',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+        ],
+        pageSettings: SheetPageSettings(
+          hiddenPages: const <int>[],
+          pageRotations: const <int, int>{},
+          rehearsalMarks: [
+            SheetRehearsalMark(
+              id: 'mark-a',
+              pageNumber: 18,
+              label: 'A',
+              kind: SheetRehearsalMark.rehearsalKind,
+              createdAt: DateTime(2026, 9, 27),
+            ),
+          ],
+        ),
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('표시 지점'), findsOneWidget);
+    expect(find.text('Cadenza · 32쪽'), findsOneWidget);
+    expect(find.text('A · 리허설 · 18쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, 'A · 리허설 · 18쪽'));
+    await tester.pump();
+    expect(find.text('현재 10쪽 · 선택 18/80쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[18]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('crop settings sheet offers quick margin presets', (
     tester,
   ) async {

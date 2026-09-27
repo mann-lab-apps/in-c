@@ -8569,6 +8569,8 @@ class _PagePickerSheet extends StatefulWidget {
     required this.pageSummary,
     required this.pageSettings,
     required this.duplicateCounts,
+    required this.bookmarks,
+    required this.rehearsalMarks,
     required this.onGoToPage,
   });
 
@@ -8577,6 +8579,8 @@ class _PagePickerSheet extends StatefulWidget {
   final String pageSummary;
   final SheetPageSettings pageSettings;
   final Map<int, int> duplicateCounts;
+  final List<SheetBookmark> bookmarks;
+  final List<SheetRehearsalMark> rehearsalMarks;
   final ValueChanged<int> onGoToPage;
 
   @override
@@ -8651,6 +8655,28 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     return targets;
   }
 
+  List<MapEntry<String, int>> _namedPageTargets() {
+    final targets = <MapEntry<String, int>>[];
+
+    void add(String label, int page) {
+      if (page < 1 || page > widget.pageCount) {
+        return;
+      }
+      targets.add(MapEntry<String, int>(label, page));
+    }
+
+    for (final bookmark in widget.bookmarks) {
+      add('${bookmark.label} · ${bookmark.pageNumber}쪽', bookmark.pageNumber);
+    }
+    for (final mark in widget.rehearsalMarks) {
+      final kindLabel = mark.kind == SheetRehearsalMark.rehearsalKind
+          ? '리허설'
+          : _rehearsalMarkKindLabel(mark.kind);
+      add('${mark.label} · $kindLabel · ${mark.pageNumber}쪽', mark.pageNumber);
+    }
+    return targets;
+  }
+
   void _goToSelectedPage() {
     _submitTypedPage();
     widget.onGoToPage(_selectedPage);
@@ -8663,6 +8689,8 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     final summary = widget.pageSummary.isEmpty
         ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
         : '${widget.pageSummary} · 원본 PDF는 그대로입니다.';
+    final namedTargets = _namedPageTargets();
+    final gridHeightFactor = namedTargets.isEmpty ? 0.46 : 0.34;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -8765,10 +8793,38 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                     ),
                 ],
               ),
+              if (namedTargets.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  '표시 지점',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final target in namedTargets) ...[
+                        ActionChip(
+                          avatar: const Icon(Icons.flag_outlined, size: 18),
+                          label: Text(target.key),
+                          onPressed: () => _setSelectedPage(target.value),
+                          backgroundColor: target.value == _selectedPage
+                              ? theme.colorScheme.secondaryContainer
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
             const SizedBox(height: 8),
             SizedBox(
-              height: MediaQuery.sizeOf(context).height * 0.46,
+              height: MediaQuery.sizeOf(context).height * gridHeightFactor,
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 96,
@@ -13225,6 +13281,8 @@ setlist=$setlistLabel
         pageSummary: pageSummary,
         pageSettings: pageSettings,
         duplicateCounts: duplicateCounts,
+        bookmarks: currentScore.bookmarks,
+        rehearsalMarks: pageSettings.rehearsalMarks,
         onGoToPage: (page) {
           Navigator.of(context).pop();
           unawaited(_goToSheetPage(page));
@@ -20750,6 +20808,7 @@ Widget buildPagePickerSheetForTest({
     pageRotations: <int, int>{},
     pageOrder: <int>[1, 2, 2, 3, 4],
   ),
+  List<SheetBookmark> bookmarks = const <SheetBookmark>[],
   ValueChanged<int>? onGoToPage,
 }) {
   final duplicateCounts = <int, int>{};
@@ -20764,6 +20823,8 @@ Widget buildPagePickerSheetForTest({
         pageSummary: '숨김 ${pageSettings.hiddenPages.length}',
         pageSettings: pageSettings,
         duplicateCounts: duplicateCounts,
+        bookmarks: bookmarks,
+        rehearsalMarks: pageSettings.rehearsalMarks,
         onGoToPage: onGoToPage ?? (_) {},
       ),
     ),
