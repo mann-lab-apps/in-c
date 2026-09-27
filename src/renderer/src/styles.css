@@ -996,6 +996,23 @@ h2 {
 }
 
 .shortcut-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #47616c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.accidental-control .shortcut-badge,
+.inspector-properties__buttons .shortcut-badge {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.66rem;
+}
+
+.shortcut-key {
   display: inline-grid;
   min-width: 18px;
   min-height: 18px;
@@ -1004,15 +1021,11 @@ h2 {
   border-radius: 4px;
   color: #47616c;
   background: #ffffff;
-  font-size: 0.72rem;
-  line-height: 1;
   place-items: center;
 }
 
-.accidental-control .shortcut-badge,
-.inspector-properties__buttons .shortcut-badge {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.66rem;
+.shortcut-separator {
+  color: #6f777c;
 }
 
 .shortcut-toggle-mark {
@@ -2073,6 +2086,12 @@ h2 {
     width: calc(100% - 32px);
     margin: 16px auto;
     padding: 32px 24px;
+  }
+
+  .selection-toolbar .shortcut-badge,
+  .duration-strip .shortcut-badge,
+  .accidental-control .shortcut-badge {
+    display: none;
   }
 }
 

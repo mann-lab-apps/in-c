@@ -2823,6 +2823,39 @@ shortcuts and broader object clipboard remain Required follow-up work.
 | `npm run package:dir` | Pass | Fresh macOS arm64 unpacked package built after the packaged-smoke score-structure commit wait fix; Rollup emitted existing zod pure-comment warnings only. |
 | `npm run verify:package` | Pass | Fresh packaged smoke passed on macOS arm64. The smoke now waits for the string quartet card selection to commit before submitting; Cello part-view PDF target/write/native layout checks pass. The intentional export-overwrite rejection still logs the expected Korean error before the smoke reports `PACKAGED_APP_SMOKE_OK`. |
 
+## 2026-09-27 Grid Navigation / Shortcut Rebuild Checkpoint
+
+The lost `/private/tmp/chromatics-gridnav-polish-20260926` dirty worktree was not
+recoverable, so this checkpoint rebuilds the shippable shortcut-discoverability
+portion on a fresh worktree at `/private/tmp/chromatics-gridnav-release-rebuild-20260927`
+from latest `origin/main`. Plain `1-7` now remains the duration map for selected
+notes, rests and note-input caret state; interval chord stacking moved to
+`Alt/Option+2-9` above and `Alt/Option+Shift+2-9` below. Accidentals now use
+Finale-style primary `-`, `N` and `+` shortcuts while preserving the previous
+`Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` aliases. Inline shortcut badges render as
+separate keycaps and compact desktop widths hide crowded inline badges while
+keeping tooltip/aria/help-dialog discoverability.
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm ci` | Pass | Fresh worktree dependencies installed from `package-lock.json`. |
+| `npm test -- src/renderer/src/editor/keyboard-input.test.ts` | Pass | 26 keyboard-routing tests passed, including Option-only interval chord shortcuts, Finale-style accidental primary keys and legacy Option accidental aliases. |
+| `npm test -- src/renderer/src/App.test.tsx -t "shortcut-help\|shortcut-hints\|keyboard.interval-chord-input\|notation extension controls\|note-input.edit-selected-event-in-inspector"` | Pass | 5 focused App tests passed / 219 skipped. Coverage verifies shortcut help, keycap badge hints, selected-note duration versus Option chord-stacking behavior, notation extension button labels and selected-note inspector accidentals. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed. |
+| `npm test -- --reporter=dot` | Pass | Full suite passed: 61 files passed / 1 skipped; 784 tests passed / 1 skipped. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:e2e` | Fail, then Pass | First fresh-worktree run failed because Electron's framework root symlink was missing after install. After repairing `node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Electron Framework`, E2E passed. |
+| `npm run verify:visual-regression` | Fail, then Pass | First run hit the same Electron framework install issue after the unit portion passed. After the Electron framework symlink repair, notation snapshots verified at 960px and 1400px. |
+| `npm run verify:musicxml-fixtures` | Pass | External-app fixture QA test target passed: 1 test passed / 59 skipped. |
+| `npm run verify:midi-fixtures` | Pass | V1 MIDI QA fixture target passed: 3 tests passed / 3 skipped. |
+| `npm run package:dir` | Pass | Fresh macOS arm64 unpacked package built from this dirty diff; signing intentionally skipped because identity is null. |
+| `npm run verify:package` | Pass | Fresh packaged smoke passed on macOS arm64. The intentional export-overwrite rejection still logs the expected Korean error before `PACKAGED_APP_SMOKE_OK`. |
+| `npm run site:build` | Pass | Built `out/site`, including `download-manifest.json`, for site-content verification. |
+| `node scripts/verify-site-content.mjs` | Pass | Site content manifests, product relations and feature map paths verified. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue verifier passed with 69 rows, 16 Required umbrellas and `automationQueueDrained: false`; expanded V1 remains incomplete. |
+| `npm run verify:chromatics-v1-save-policy` | Pass | Save-policy verifier passed. The earlier attempted `npm run verify:save-policy` name does not exist in `package.json`; the correct script is `verify:chromatics-v1-save-policy`. |
+| `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

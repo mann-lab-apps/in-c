@@ -116,9 +116,9 @@ export function resolveChordIntervalShortcut(
   if (
     event.isComposing ||
     event.key === 'Process' ||
-    event.altKey ||
     event.ctrlKey ||
-    event.metaKey
+    event.metaKey ||
+    !event.altKey
   ) {
     return undefined
   }
@@ -159,29 +159,57 @@ export function resolveAccidentalShortcut(
   if (
     event.isComposing ||
     event.key === 'Process' ||
-    !event.altKey ||
     event.ctrlKey ||
-    event.metaKey ||
-    event.shiftKey
+    event.metaKey
   ) {
     return undefined
   }
 
-  const physicalAccidental = accidentalByCode[event.code]
+  const isLegacyOptionAlias = event.altKey && !event.shiftKey
 
-  if (physicalAccidental !== undefined) {
-    return physicalAccidental
+  if (event.altKey && !isLegacyOptionAlias) {
+    return undefined
   }
 
-  if (event.key === '-' || event.key === '_') {
+  if (!isLegacyOptionAlias && event.shiftKey && event.code !== 'Equal' && event.code !== 'KeyN') {
+    return undefined
+  }
+
+  if (isLegacyOptionAlias) {
+    const physicalAccidental = accidentalByCode[event.code]
+
+    if (physicalAccidental !== undefined) {
+      return physicalAccidental
+    }
+
+    if (event.key === '-' || event.key === '_') {
+      return -1
+    }
+
+    if (event.key === '0') {
+      return 0
+    }
+
+    if (event.key === '=' || event.key === '+') {
+      return 1
+    }
+
+    return undefined
+  }
+
+  if (event.code === 'Minus' || event.code === 'NumpadSubtract' || event.key === '-') {
     return -1
   }
 
-  if (event.key === '0') {
+  if (event.code === 'KeyN' || event.key === 'n' || event.key === 'N') {
     return 0
   }
 
-  if (event.key === '=' || event.key === '+') {
+  if (
+    event.code === 'NumpadAdd' ||
+    event.key === '+' ||
+    (event.code === 'Equal' && event.shiftKey)
+  ) {
     return 1
   }
 

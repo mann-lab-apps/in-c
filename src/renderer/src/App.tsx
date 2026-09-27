@@ -240,9 +240,9 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
   '64th': '7'
 }
 const accidentalShortcuts: Record<-1 | 0 | 1, string> = {
-  [-1]: 'Alt/⌥+-',
-  [0]: 'Alt/⌥+0',
-  [1]: 'Alt/⌥+='
+  [-1]: '-',
+  [0]: 'N',
+  [1]: '+'
 }
 const durationToolbarLabels: Record<DurationValue, string> = {
   '64th': '64',
@@ -265,6 +265,39 @@ const tripletPreset = {
   label: string
   normalNotes: number
   shortcut: string
+}
+
+function splitShortcutKeys(shortcut: string): Array<{ type: 'key' | 'separator'; text: string }> {
+  const parts: Array<{ type: 'key' | 'separator'; text: string }> = []
+
+  for (const token of shortcut.split(/(\+| \/ )/).filter(Boolean)) {
+    parts.push({
+      text: token,
+      type: token === '+' || token === ' / ' ? 'separator' : 'key'
+    })
+  }
+
+  return parts
+}
+
+function ShortcutBadge({ shortcut }: { shortcut: string }) {
+  return (
+    <span
+      aria-label={shortcut}
+      className="shortcut-badge"
+      title={`단축키 ${shortcut}`}
+    >
+      {splitShortcutKeys(shortcut).map((part, index) => (
+        <span
+          aria-hidden="true"
+          className={part.type === 'key' ? 'shortcut-key' : 'shortcut-separator'}
+          key={`${part.text}-${index}`}
+        >
+          {part.text}
+        </span>
+      ))}
+    </span>
+  )
 }
 
 const eventTypeLabels = {
@@ -694,8 +727,8 @@ const shortcutReferenceSections = [
       ['음높이 한 칸 이동', '↑ / ↓'],
       ['반음 이동', 'Alt/Option+↑ / ↓'],
       ['옥타브 이동', 'Cmd/Ctrl+↑ / ↓'],
-      ['화음 위로 쌓기', '선택 음표에서 2-9'],
-      ['화음 아래로 쌓기', '선택 음표에서 Shift+2-9'],
+      ['화음 위로 쌓기', '선택 음표에서 Alt/⌥+2-9'],
+      ['화음 아래로 쌓기', '선택 음표에서 Alt/⌥+Shift+2-9'],
       ['이명동음 바꾸기', 'J']
     ]
   },
@@ -5611,6 +5644,17 @@ export const App = () => {
         return
       }
 
+      const accidental = resolveAccidentalShortcut(event)
+
+      if (
+        accidental !== undefined &&
+        (noteInputState || eventLocation?.event.type === 'note')
+      ) {
+        event.preventDefault()
+        changeAccidental(accidental)
+        return
+      }
+
       if (isNoteInputToggleShortcut(event)) {
         event.preventDefault()
         toggleNoteInputMode()
@@ -5652,14 +5696,6 @@ export const App = () => {
       if (!event.altKey && !usesCommandKey && event.code === 'KeyJ') {
         event.preventDefault()
         respellEnharmonically()
-        return
-      }
-
-      const accidental = resolveAccidentalShortcut(event)
-
-      if (accidental !== undefined) {
-        event.preventDefault()
-        changeAccidental(accidental)
         return
       }
 
@@ -6457,9 +6493,7 @@ export const App = () => {
                           type="button"
                         >
                           {symbol}
-                          {showShortcutHints ? (
-                  <span className="shortcut-badge">{shortcut}</span>
-                          ) : null}
+                          {showShortcutHints ? <ShortcutBadge shortcut={shortcut} /> : null}
                         </button>
                       )
                     })}
@@ -6533,20 +6567,20 @@ export const App = () => {
                       <span>화음</span>
                       <div className="inspector-properties__buttons">
                         <button
-                          aria-label="3도 위 화음 추가, 단축키 3"
+                          aria-label="3도 위 화음 추가, 단축키 Alt/⌥+3"
                           onClick={() => addChordTone(2)}
                           type="button"
                         >
                           3도 위 추가
-                          {showShortcutHints ? <span className="shortcut-badge">3</span> : null}
+                          {showShortcutHints ? <ShortcutBadge shortcut="Alt/⌥+3" /> : null}
                         </button>
                         <button
-                          aria-label="5도 위 화음 추가, 단축키 5"
+                          aria-label="5도 위 화음 추가, 단축키 Alt/⌥+5"
                           onClick={() => addChordTone(4)}
                           type="button"
                         >
                           5도 위 추가
-                          {showShortcutHints ? <span className="shortcut-badge">5</span> : null}
+                          {showShortcutHints ? <ShortcutBadge shortcut="Alt/⌥+5" /> : null}
                         </button>
                       </div>
                     </div>
@@ -6683,7 +6717,7 @@ export const App = () => {
             >
               슬러
                 {showShortcutHints ? (
-                  <span className="shortcut-badge">S</span>
+                  <ShortcutBadge shortcut="S" />
                 ) : null}
               </button>
               <div className="inspector-properties__row">
@@ -7927,9 +7961,7 @@ export const App = () => {
                     type="button"
                   >
                     {symbol}
-                    {showShortcutHints ? (
-                      <span className="shortcut-badge">{shortcut}</span>
-                    ) : null}
+                    {showShortcutHints ? <ShortcutBadge shortcut={shortcut} /> : null}
                   </button>
                 )
               })}
@@ -8060,9 +8092,7 @@ export const App = () => {
                   type="button"
                 >
                   {durationToolbarLabels[duration]}
-                  {showShortcutHints && shortcut ? (
-                    <span className="shortcut-badge">{shortcut}</span>
-                  ) : null}
+                  {showShortcutHints && shortcut ? <ShortcutBadge shortcut={shortcut} /> : null}
                 </button>
               )
             })}
@@ -8106,9 +8136,7 @@ export const App = () => {
               ) : (
                 <Link2 aria-hidden="true" size={17} />
               )}
-              {showShortcutHints ? (
-                <span className="shortcut-badge">T</span>
-              ) : null}
+              {showShortcutHints ? <ShortcutBadge shortcut="T" /> : null}
             </button>
 
             <button
@@ -8129,9 +8157,7 @@ export const App = () => {
             >
               <span aria-hidden="true">3</span>
               <span className="tuplet-duration-label">8</span>
-              {showShortcutHints ? (
-                <span className="shortcut-badge">{tripletPreset.shortcut}</span>
-              ) : null}
+              {showShortcutHints ? <ShortcutBadge shortcut={tripletPreset.shortcut} /> : null}
             </button>
           </div>
 

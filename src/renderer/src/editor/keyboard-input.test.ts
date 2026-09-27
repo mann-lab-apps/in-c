@@ -62,14 +62,17 @@ describe('keyboard input routing', () => {
   })
 
   it('maps selected-note interval chord shortcuts above and below the reference note', () => {
-    expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit3', key: '#' })))
+    expect(
+      resolveChordIntervalShortcut(keyEvent({ altKey: true, code: 'Digit3', key: '#' }))
+    )
       .toEqual({ direction: 1, interval: 3 })
     expect(
       resolveChordIntervalShortcut(
-        keyEvent({ code: 'Numpad5', key: '5', shiftKey: true })
+        keyEvent({ altKey: true, code: 'Numpad5', key: '5', shiftKey: true })
       )
     ).toEqual({ direction: -1, interval: 5 })
     expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit1', key: '1' }))).toBeUndefined()
+    expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit3', key: '3' }))).toBeUndefined()
     expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit9', key: '9', metaKey: true }))).toBeUndefined()
   })
 
@@ -78,7 +81,14 @@ describe('keyboard input routing', () => {
     expect(resolveDotShortcut(keyEvent({ code: 'Comma', key: ',' }))).toBe(-1)
   })
 
-  it('maps option-modified physical keys to accidentals without stealing the rest shortcut', () => {
+  it('maps Finale-style accidental keys and keeps option-modified aliases', () => {
+    expect(resolveAccidentalShortcut(keyEvent({ code: 'Minus', key: '-' }))).toBe(-1)
+    expect(resolveAccidentalShortcut(keyEvent({ code: 'KeyN', key: 'n' }))).toBe(0)
+    expect(resolveAccidentalShortcut(keyEvent({ code: 'KeyN', key: 'N', shiftKey: true }))).toBe(0)
+    expect(
+      resolveAccidentalShortcut(keyEvent({ code: 'Equal', key: '+', shiftKey: true }))
+    ).toBe(1)
+    expect(resolveAccidentalShortcut(keyEvent({ code: 'NumpadAdd', key: '+' }))).toBe(1)
     expect(
       resolveAccidentalShortcut(keyEvent({ altKey: true, code: 'Minus', key: '-' }))
     ).toBe(-1)

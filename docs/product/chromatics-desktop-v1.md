@@ -335,8 +335,11 @@ plain `9 = triplet` shortcut is not advertised.
 toggle. When enabled, note-entry buttons show inline badges for duration, tie,
 tuplet and accidental shortcuts; when disabled, the buttons keep the same
 tooltip/aria labels and the full shortcut help dialog remains available. Flat,
-natural and sharp are bound to `Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` so the plain
-`0` rest shortcut remains unambiguous.
+natural and sharp use Finale-style primary keys `-`, `N` and `+`, while the
+older `Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` aliases remain available for users who
+already learned the previous Chromatics beta mapping. Inline badges render as
+separate keycaps and hide in compact desktop widths where they would crowd the
+toolbar.
 
 ### Lyrics And Chords
 
@@ -500,8 +503,8 @@ Implementation policy:
 | Exit note input | `Esc` |
 | Enter pitch | `A-G` |
 | Add absolute pitch to chord | `Shift-A` to `Shift-G` |
-| Stack chord tone above selected note | `2-9` while a note is selected |
-| Stack chord tone below selected note | `Shift+2-9` while a note is selected |
+| Stack chord tone above selected note | `Alt/Option+2-9` while a note is selected |
+| Stack chord tone below selected note | `Alt/Option+Shift+2-9` while a note is selected |
 | Enter rest | `0` |
 | Enter rest alias | `R`, kept as Chromatics convenience |
 | Add tie | `T` |
@@ -515,12 +518,14 @@ Implementation policy:
 duration maps. The active V1 map leaves plain `9` unbound and exposes triplet as
 `Cmd/Ctrl-3`.
 
-2026-09-25 interval chord input slice: when a concrete note is selected, plain
-`2-9` stack the corresponding diatonic interval above that selected note and
-`Shift+2-9` stack the interval below it. This scope takes precedence over
-duration shortcuts only for selected-note editing. Note-input caret state keeps
-the duration map above, and text fields still consume digits normally. The older
-`Shift+A-G` absolute pitch shortcut remains available as a secondary command.
+2026-09-27 interval chord input follow-up: plain `1-7` now always means duration
+selection on a selected note, rest or note-input caret. When a concrete note is
+selected, `Alt/Option+2-9` stacks the corresponding diatonic interval above that
+selected note and `Alt/Option+Shift+2-9` stacks the interval below it. This keeps
+Finale-style fast chord construction available without making selected notes and
+rests treat the same digit keys differently. Text fields still consume digits
+normally, and the older `Shift+A-G` absolute pitch shortcut remains available as
+a secondary command.
 
 ### Accidentals And Pitch
 
