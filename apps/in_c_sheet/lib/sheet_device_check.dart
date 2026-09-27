@@ -260,20 +260,37 @@ SheetDeviceCheckItem deviceCheckItemForKeyInput(
       id: 'page-key-input',
       title: 'Page key input',
       status: SheetDeviceCheckStatus.notTested,
-      details: '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요.',
+      details:
+          '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요. '
+          '감지 후 실제 악보 화면에서도 같은 키로 페이지 단위 이동을 확인하세요.',
     );
   }
   final action = entry.action == SheetViewerInputAction.none
       ? 'unmapped'
       : entry.action.value;
+  final guidance = _deviceCheckKeyGuidance(entry);
   return SheetDeviceCheckItem(
     id: 'page-key-input',
     title: 'Page key input',
     status: entry.action == SheetViewerInputAction.none
         ? SheetDeviceCheckStatus.warn
         : SheetDeviceCheckStatus.pass,
-    details: '${entry.inputId} -> $action',
+    details: '${entry.inputId} -> $action. $guidance',
   );
+}
+
+String _deviceCheckKeyGuidance(SheetViewerInputDiagnosticEntry entry) {
+  if (entry.action != SheetViewerInputAction.none) {
+    return '키 매핑은 감지됐습니다. 실제 악보 화면에서 PDF 스크롤이 아니라 '
+        '페이지 단위로 넘어가는지도 확인하세요.';
+  }
+  final inputLabel = '${entry.inputId} ${entry.logicalKeyLabel}'.toLowerCase();
+  if (inputLabel.contains('volume') || inputLabel.contains('audio volume')) {
+    return '시스템 볼륨 키는 기본 페이지 넘김으로 쓰지 않습니다. 실제 페달이 '
+        '이 키를 보내면 사용자 설정 후보로 기록하세요.';
+  }
+  return '기본 페이지 넘김 키가 아닙니다. 실제 페달 장비라면 사용자 설정이 '
+      '필요할 수 있습니다.';
 }
 
 String sanitizeDeviceCheckText(String value) {

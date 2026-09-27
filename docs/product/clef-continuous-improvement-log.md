@@ -1517,3 +1517,12 @@ small scroll deltas. Volume keys remain unmapped by default to avoid stealing sy
 they can be considered as custom pedal inputs if a real pedal sends them. Viewer input unit
 tests, analyze and format passed. Actual Android tablet Arrow/Page key behavior needs the next
 internal-test build/device check.
+
+S93 VERIFIED LOCAL: tightened the device performance report after the same physical tablet
+showed PageUp/PageDown turning pages while Arrow keys previously behaved like PDF nudge-scroll.
+The report now separates key mapping detection from actual viewer behavior: mapped Arrow/Page
+keys ask the tester to confirm page-unit movement in a real score, and volume keys explicitly
+remain unmapped so system volume is not stolen. The PDF viewer manual item repeats that the
+reported key must turn pages rather than scroll the PDF surface. Targeted device-check tests,
+format, analyze and `git diff --check` passed. New build/device QA still needs to confirm the
+S92 route-scoped handler on the tablet.

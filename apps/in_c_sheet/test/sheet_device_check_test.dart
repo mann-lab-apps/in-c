@@ -107,6 +107,14 @@ void main() {
       inputId: 'Key A',
       action: SheetViewerInputAction.none,
     );
+    final volume = SheetViewerInputDiagnosticEntry(
+      timestamp: DateTime.utc(2026, 9, 26, 12),
+      logicalKeyLabel: 'Audio Volume Down',
+      logicalKeyId: LogicalKeyboardKey.audioVolumeDown.keyId,
+      physicalKeyId: 0,
+      inputId: 'Audio Volume Down',
+      action: SheetViewerInputAction.none,
+    );
 
     expect(
       deviceCheckItemForKeyInput(null).status,
@@ -121,8 +129,20 @@ void main() {
       contains('ArrowRight -> nextPage'),
     );
     expect(
+      deviceCheckItemForKeyInput(mapped).details,
+      contains('페이지 단위로 넘어가는지도 확인'),
+    );
+    expect(
       deviceCheckItemForKeyInput(unmapped).status,
       SheetDeviceCheckStatus.warn,
+    );
+    expect(
+      deviceCheckItemForKeyInput(unmapped).details,
+      contains('사용자 설정이 필요'),
+    );
+    expect(
+      deviceCheckItemForKeyInput(volume).details,
+      contains('시스템 볼륨 키는 기본 페이지 넘김으로 쓰지 않습니다'),
     );
   });
 }

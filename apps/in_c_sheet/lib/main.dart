@@ -4735,7 +4735,10 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
         id: 'pdf-viewer',
         title: 'PDF viewer',
         status: SheetDeviceCheckStatus.manual,
-        details: '사용자 악보를 열어 렌더링과 페이지 넘김을 확인하세요.',
+        details:
+            '사용자 악보를 열어 렌더링과 페이지 넘김을 확인하세요. '
+            '기기 리포트에서 감지한 키는 여기서도 PDF 스크롤이 아니라 '
+            '페이지 단위 이동이어야 합니다.',
       ),
       SheetDeviceCheckItem(
         id: 'annotation-tools',

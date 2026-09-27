@@ -56,7 +56,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
 | 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
-| 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 페이지 단위 이동, 곡 처음/끝 안내 |
+| 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 기기 리포트 감지 결과, 실제 악보 화면의 페이지 단위 이동, PDF nudge-scroll 여부, 곡 처음/끝 안내 |
 | Import/export/backup | PDF 공유, 필기 포함 공유, metadata backup/restore | NOT TESTED | 공유 대상, 필기 포함 여부, 복원 결과 |
 
 상태 값은 `PASS`, `ISSUE`, `DEVICE QA CONTINUES`, `BLOCKER`, `NOT TESTED` 중 하나만 쓴다.
