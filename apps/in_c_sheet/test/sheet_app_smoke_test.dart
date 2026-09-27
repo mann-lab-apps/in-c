@@ -2556,6 +2556,109 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked audio sheet clears saved A-B loop markers', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_clear_loop');
+    final calls = <MethodCall>[];
+    final savedFiles = <SheetLinkedFile>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return true;
+        },
+      ),
+    );
+
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, '구간 지우기'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles.single.audioLoopStartMs, isNull);
+    expect(savedFiles.single.audioLoopEndMs, isNull);
+    expect(calls, isEmpty);
+    expect(find.text('2'), findsNothing);
+    expect(find.text('9'), findsNothing);
+    expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
+    final loopSwitch = tester.widget<SwitchListTile>(
+      find.widgetWithText(SwitchListTile, 'A-B 반복'),
+    );
+    expect(loopSwitch.value, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet keeps saved loop when clear save fails', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_clear_failure');
+    final calls = <MethodCall>[];
+    final savedFiles = <SheetLinkedFile>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '구간 지우기'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles.single.audioLoopStartMs, isNull);
+    expect(savedFiles.single.audioLoopEndMs, isNull);
+    expect(calls, isEmpty);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(find.text('A-B 반복 구간을 지우지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    final loopSwitch = tester.widget<SwitchListTile>(
+      find.widgetWithText(SwitchListTile, 'A-B 반복'),
+    );
+    expect(loopSwitch.value, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('linked audio sheet blocks playback when loop save fails', (
     tester,
   ) async {

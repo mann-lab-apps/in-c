@@ -1370,3 +1370,13 @@ without those markers, and changing an audio linked file to a non-audio type cle
 This keeps backup/restore metadata from making non-audio attachments look loopable while
 preserving marker edits across audio label/role changes. Targeted score/store/audio/widget
 tests passed, full 1,404-test suite passed, analyze passed, and RC release check passed.
+
+S75 VERIFIED LOCAL: continuing the linked audio A-B loop slice with the smallest missing
+control before waveform timelines or multiple marker presets. Clef now adds an explicit
+`구간 지우기` action in the linked audio sheet. The action clears persisted linked-audio
+loop markers only after the existing linked-file save callback succeeds; failed clears keep
+the visible A/B values and report retry guidance instead of implying that the saved loop
+was removed. Regression coverage targets successful clear, failed clear and no accidental
+playback during clear. Targeted linked-audio widget tests and the audio-marker model test
+passed, full 1,406-test suite passed, analyze passed, and RC release check passed. Actual
+speaker/earphone loop timing remains DEVICE QA.

@@ -18767,6 +18767,36 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     }
   }
 
+  Future<void> _clearLoop() async {
+    final onLinkedFileChanged = widget.onLinkedFileChanged;
+    if (onLinkedFileChanged != null) {
+      final updated = widget.linkedFile.copyWith(clearAudioLoop: true);
+      bool didSave;
+      try {
+        didSave = await onLinkedFileChanged(updated);
+      } catch (_) {
+        didSave = false;
+      }
+      if (!mounted) {
+        return;
+      }
+      if (!didSave) {
+        setState(() {
+          _lastResult = SheetAudioPlaybackResult.failed(
+            'A-B 반복 구간을 지우지 못했습니다. 다시 시도해주세요.',
+          );
+        });
+        return;
+      }
+    }
+    setState(() {
+      _loopEnabled = false;
+      _loopStartController.clear();
+      _loopEndController.clear();
+      _lastResult = null;
+    });
+  }
+
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
       await _player.stop();
@@ -18890,6 +18920,15 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                     ),
                   ),
                 ],
+              ),
+            if (_loopEnabled)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _isPlaying ? null : _clearLoop,
+                  icon: const Icon(Icons.clear),
+                  label: const Text('구간 지우기'),
+                ),
               ),
             if (_lastResult?.status ==
                 SheetAudioPlaybackStatus.unsupportedPlatform)
