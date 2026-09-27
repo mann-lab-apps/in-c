@@ -2953,6 +2953,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked files editor labels audio image and pdf attachments', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildLinkedFilesEditorForTest([
+        SheetLinkedFile(
+          path: '/tmp/part.pdf',
+          type: 'pdf',
+          label: 'Trumpet Part',
+          role: SheetLinkedFile.partRole,
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/backing.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/cover.png',
+          type: 'png',
+          label: 'Cover Scan',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: DateTime(2026, 9, 27),
+        ),
+      ]),
+    );
+
+    expect(find.text('Trumpet Part'), findsOneWidget);
+    expect(find.textContaining('Part · PDF · /tmp/part.pdf'), findsOneWidget);
+    expect(find.text('Backing Track'), findsOneWidget);
+    expect(
+      find.textContaining('Reference · 오디오 · /tmp/backing.m4a'),
+      findsOneWidget,
+    );
+    expect(find.text('Cover Scan'), findsOneWidget);
+    expect(
+      find.textContaining('Reference · 이미지 · /tmp/cover.png'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('linked audio sheet blocks playback when loop save fails', (
     tester,
   ) async {

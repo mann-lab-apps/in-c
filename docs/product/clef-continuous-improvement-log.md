@@ -1431,3 +1431,10 @@ long PDFs can jump by Cadenza/A/B section labels from the same sheet that alread
 slider/direct page entry. Targeted smoke test covers selecting a rehearsal-mark chip and then
 confirming navigation. Full 1,411-test suite, analyze and RC release check passed. No app
 build/version change/push/merge.
+
+S82 VERIFIED LOCAL: polishing linked file and backing-track identification without changing the
+storage model or adding a full track router. Linked file lists now use type-aware icons and
+human labels for PDF, image and audio attachments instead of a generic attachment glyph and
+raw extension text. Targeted smoke test covers PDF/audio/image rows in the metadata editor
+linked-files list. Full 1,412-test suite, analyze and RC release check passed. No app
+build/version change/push/merge.

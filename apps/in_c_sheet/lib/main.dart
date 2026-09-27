@@ -3231,6 +3231,35 @@ String _linkedFileRoleLabel(String role) {
   };
 }
 
+String _linkedFileTypeLabel(SheetLinkedFile file) {
+  if (file.type == 'pdf') {
+    return 'PDF';
+  }
+  if (_isSupportedLinkedImage(file)) {
+    return '이미지';
+  }
+  if (_isSupportedLinkedAudio(file)) {
+    return '오디오';
+  }
+  return file.type.trim().isEmpty ? '파일' : file.type.toUpperCase();
+}
+
+IconData _linkedFileIcon(SheetLinkedFile file, {bool exists = true}) {
+  if (!exists) {
+    return Icons.error_outline;
+  }
+  if (file.type == 'pdf') {
+    return Icons.picture_as_pdf_outlined;
+  }
+  if (_isSupportedLinkedImage(file)) {
+    return Icons.image_outlined;
+  }
+  if (_isSupportedLinkedAudio(file)) {
+    return Icons.audiotrack;
+  }
+  return Icons.attach_file;
+}
+
 bool _isSupportedLinkedImage(SheetLinkedFile file) {
   final extension = file.type.trim().isNotEmpty
       ? file.type.trim().toLowerCase()
@@ -3721,7 +3750,7 @@ class _LinkedFilesEditor extends StatelessWidget {
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.attach_file),
+                leading: Icon(_linkedFileIcon(linkedFiles[index])),
                 title: Text(
                   linkedFiles[index].label,
                   maxLines: 1,
@@ -3729,7 +3758,8 @@ class _LinkedFilesEditor extends StatelessWidget {
                 ),
                 subtitle: Text(
                   '${_linkedFileRoleLabel(linkedFiles[index].role)} · '
-                  '${linkedFiles[index].type} · ${linkedFiles[index].path}',
+                  '${_linkedFileTypeLabel(linkedFiles[index])} · '
+                  '${linkedFiles[index].path}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -10276,23 +10306,16 @@ setlist=$setlistLabel
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
                   final isAudio = _isSupportedLinkedAudio(linkedFile);
+                  final typeLabel = _linkedFileTypeLabel(linkedFile);
                   final canOpen =
                       exists &&
                       (linkedFile.type == 'pdf' || isImage || isAudio);
                   return ListTile(
-                    leading: Icon(
-                      !exists
-                          ? Icons.error_outline
-                          : isImage
-                          ? Icons.image_outlined
-                          : isAudio
-                          ? Icons.audiotrack
-                          : Icons.library_music_outlined,
-                    ),
+                    leading: Icon(_linkedFileIcon(linkedFile, exists: exists)),
                     title: Text(linkedFile.label),
                     subtitle: Text(
                       '${_linkedFileRoleLabel(linkedFile.role)} · '
-                      '${exists ? '파일 확인됨' : '파일 없음'} · '
+                      '$typeLabel · ${exists ? '파일 확인됨' : '파일 없음'} · '
                       '${linkedFile.path}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -20794,6 +20817,21 @@ Widget buildLinkedAudioPlayerSheetForTest({
             ),
         player: SheetAudioPlayer(channel: channel),
         onLinkedFileChanged: onLinkedFileChanged,
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildLinkedFilesEditorForTest(List<SheetLinkedFile> linkedFiles) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _LinkedFilesEditor(
+        linkedFiles: linkedFiles,
+        onAdd: () async {},
+        onRename: (_) {},
+        onRoleChanged: (_, _) {},
+        onRemove: (_) {},
       ),
     ),
   );

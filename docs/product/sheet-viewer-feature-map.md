@@ -53,7 +53,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
-| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`로 새 PDF 사본을 현재 파일로 승격하고 이전 PDF를 연결된 edited copy로 보존 |
+| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`로 새 PDF 사본을 현재 파일로 승격하고 이전 PDF를 연결된 edited copy로 보존. 연결 파일 목록은 PDF/이미지/오디오 라벨과 아이콘으로 구분 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | CSV/PDF 북마크로 같은 PDF를 참조하는 곡 항목을 생성한다. 곡 밖 페이지는 숨기고 표시 순서/자동 스크롤/점프/리허설 마크를 해당 구간으로 제한한다. 구간이 모두 숨겨져 있으면 새 곡의 첫 페이지 한 장을 표시한다. 같은 원본/표시 구간/제목은 중복 생성하지 않고 생성 직후 `세트리스트 만들기`로 곡 모음을 만든다. 원본 PDF/설정은 보존하며 물리 분할은 후속 |
 | 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
@@ -114,7 +114,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
-| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
+| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, 연결 파일 목록의 오디오 라벨/아이콘, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
 | 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력, linked audio 전용 마지막 A/B 구간 저장/복원/지우기, 숫자/순서 입력 오류 안내, native MediaPlayer loop. PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. waveform marker/timeline, track marker list, iOS parity는 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
