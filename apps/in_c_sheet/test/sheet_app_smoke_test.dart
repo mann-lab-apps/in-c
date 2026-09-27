@@ -154,6 +154,80 @@ void main() {
     );
   }
 
+  testWidgets('metadata dialog suggests existing custom field values', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 27);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'target',
+        title: 'Target score',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/target.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+      SheetScore(
+        id: 'source',
+        title: 'Source score',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/source.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+        customFields: const [
+          SheetCustomMetadataField(key: '조성', value: 'A minor'),
+        ],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Target score').first);
+    await tester.pumpAndSettle();
+    final keyChip = find.widgetWithText(ActionChip, '조성').last;
+    await tester.ensureVisible(keyChip);
+    await tester.tap(keyChip);
+    await tester.pumpAndSettle();
+
+    expect(find.text('이전에 쓴 값'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'A minor'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, 'A minor'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '저장').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('target').customFields.single.key, '조성');
+    expect(controller.scoreById('target').customFields.single.value, 'A minor');
+    expect(tester.takeException(), isNull);
+  });
+
   for (final action in <String>['정보 복원', '자동 정보 복원', '전체 백업 복원']) {
     for (final outcome in <String>['success', 'cancel', 'error']) {
       testWidgets('$action blocks editing until restore $outcome', (
@@ -1226,6 +1300,23 @@ void main() {
         isFavorite: false,
         bookmarks: const <SheetBookmark>[],
       ),
+      SheetScore(
+        id: 'score-2',
+        title: 'metadata source score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/metadata-source-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'F minor'),
+        ],
+      ),
     ]);
     final controller = SheetLibraryController(store: store);
     await controller.load();
@@ -1246,24 +1337,29 @@ void main() {
       '  Bach  ',
     );
     expect(find.text('사용자 필드 일괄 지정'), findsOneWidget);
-    expect(find.text('조성'), findsOneWidget);
-    expect(find.text('박자'), findsOneWidget);
-    expect(find.text('출처'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '조성'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '박자'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '출처'), findsOneWidget);
     expect(find.text('필드 이름'), findsOneWidget);
     expect(find.text('필드 값'), findsOneWidget);
 
-    await tester.tap(find.text('조성'));
+    await tester.tap(find.widgetWithText(ActionChip, '조성'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '필드 값'), 'D');
+    expect(find.text('이전에 쓴 값'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'F minor'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ActionChip, 'F minor'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
     final apply = find.widgetWithText(FilledButton, '적용');
-    await tester.ensureVisible(apply);
-    await tester.pumpAndSettle();
     await tester.tap(apply);
     await tester.pumpAndSettle();
 
     expect(controller.scoreById('score-1').customFields.single.key, '조성');
-    expect(controller.scoreById('score-1').customFields.single.value, 'D');
+    expect(
+      controller.scoreById('score-1').customFields.single.value,
+      'F minor',
+    );
     expect(controller.scoreById('score-1').composer, 'Bach');
     await tester.tap(find.byTooltip('여러 악보 선택'));
     await tester.pumpAndSettle();

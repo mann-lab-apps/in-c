@@ -198,7 +198,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => const _BulkEditSheet(),
+      builder: (context) => _BulkEditSheet(
+        customFieldValueSuggestions: _customMetadataValueSuggestionsByKey(
+          controller.scores,
+        ),
+      ),
     );
     if (!mounted || input == null) {
       return;
@@ -1005,6 +1009,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       score: score,
       onAddLinkedFile: controller.pickLinkedFile,
+      customFieldValueSuggestions: _customMetadataValueSuggestionsByKey(
+        controller.scores,
+      ),
     );
     if (result == null || !mounted) {
       return;
@@ -3289,6 +3296,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
   required BuildContext context,
   required SheetScore score,
   required Future<SheetLinkedFile?> Function() onAddLinkedFile,
+  required Map<String, List<String>> customFieldValueSuggestions,
 }) async {
   final titleController = TextEditingController(text: score.title);
   final composerController = TextEditingController(text: score.composer);
@@ -3420,6 +3428,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                     onAdd: () async {
                       final field = await _showCustomFieldDialog(
                         context: context,
+                        valueSuggestionsByKey: customFieldValueSuggestions,
                       );
                       if (field == null) {
                         return;
@@ -3438,6 +3447,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                           key: fieldKey,
                           value: '',
                         ),
+                        valueSuggestionsByKey: customFieldValueSuggestions,
                       );
                       if (field == null) {
                         return;
@@ -3453,6 +3463,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                       final field = await _showCustomFieldDialog(
                         context: context,
                         initialField: customFields[index],
+                        valueSuggestionsByKey: customFieldValueSuggestions,
                       );
                       if (field == null) {
                         return;
@@ -3515,65 +3526,155 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
 Future<SheetCustomMetadataField?> _showCustomFieldDialog({
   required BuildContext context,
   SheetCustomMetadataField? initialField,
+  Map<String, List<String>> valueSuggestionsByKey = const {},
 }) async {
   final keyController = TextEditingController(text: initialField?.key ?? '');
   final valueController = TextEditingController(
     text: initialField?.value ?? '',
   );
   try {
-    return await showDialog<SheetCustomMetadataField>(
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final route = DialogRoute<SheetCustomMetadataField>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(initialField == null ? '필드 추가' : '필드 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: keyController,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: '이름'),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: valueController,
-              decoration: const InputDecoration(labelText: '값'),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) {
-                Navigator.of(context).pop(
-                  SheetCustomMetadataField(
-                    key: keyController.text,
-                    value: valueController.text,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop(
-                SheetCustomMetadataField(
-                  key: keyController.text,
-                  value: valueController.text,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final valueSuggestions = _customMetadataSuggestedValues(
+            valueSuggestionsByKey,
+            keyController.text,
+          );
+          return AlertDialog(
+            title: Text(initialField == null ? '필드 추가' : '필드 수정'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: keyController,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: '이름'),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => setDialogState(() {}),
                 ),
-              );
-            },
-            child: const Text('저장'),
-          ),
-        ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: valueController,
+                  decoration: const InputDecoration(labelText: '값'),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    Navigator.of(context).pop(
+                      SheetCustomMetadataField(
+                        key: keyController.text,
+                        value: valueController.text,
+                      ),
+                    );
+                  },
+                ),
+                if (valueSuggestions.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '이전에 쓴 값',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final value in valueSuggestions)
+                          ActionChip(
+                            label: Text(value),
+                            onPressed: () {
+                              valueController.text = value;
+                              valueController.selection =
+                                  TextSelection.collapsed(
+                                    offset: valueController.text.length,
+                                  );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('취소'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pop(
+                    SheetCustomMetadataField(
+                      key: keyController.text,
+                      value: valueController.text,
+                    ),
+                  );
+                },
+                child: const Text('저장'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    final result = await navigator.push(route);
+    await route.completed;
+    return result;
   } finally {
     keyController.dispose();
     valueController.dispose();
   }
 }
+
+Map<String, List<String>> _customMetadataValueSuggestionsByKey(
+  Iterable<SheetScore> scores, {
+  int maxValuesPerKey = 6,
+}) {
+  final valuesByKey = <String, List<String>>{};
+  final seenValuesByKey = <String, Set<String>>{};
+  for (final score in scores) {
+    for (final field in score.customFields) {
+      final key = field.key.trim();
+      final value = field.value.trim();
+      if (key.isEmpty || value.isEmpty) {
+        continue;
+      }
+      final normalizedKey = _normalizeCustomMetadataLookupKey(key);
+      final normalizedValue = value.toLowerCase();
+      final seenValues = seenValuesByKey.putIfAbsent(
+        normalizedKey,
+        () => <String>{},
+      );
+      final values = valuesByKey.putIfAbsent(normalizedKey, () => <String>[]);
+      if (!seenValues.add(normalizedValue) ||
+          values.length >= maxValuesPerKey) {
+        continue;
+      }
+      values.add(value);
+    }
+  }
+  return {
+    for (final entry in valuesByKey.entries)
+      entry.key: List<String>.unmodifiable(entry.value),
+  };
+}
+
+List<String> _customMetadataSuggestedValues(
+  Map<String, List<String>> valueSuggestionsByKey,
+  String fieldKey,
+) {
+  return valueSuggestionsByKey[_normalizeCustomMetadataLookupKey(fieldKey)] ??
+      const <String>[];
+}
+
+String _normalizeCustomMetadataLookupKey(String key) =>
+    key.trim().toLowerCase();
 
 class _LinkedFilesEditor extends StatelessWidget {
   const _LinkedFilesEditor({
@@ -5666,7 +5767,9 @@ class _BulkEditInput {
 }
 
 class _BulkEditSheet extends StatefulWidget {
-  const _BulkEditSheet();
+  const _BulkEditSheet({required this.customFieldValueSuggestions});
+
+  final Map<String, List<String>> customFieldValueSuggestions;
 
   @override
   State<_BulkEditSheet> createState() => _BulkEditSheetState();
@@ -5754,7 +5857,11 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                 for (final key in _commonCustomMetadataFieldKeys)
                   ActionChip(
                     label: Text(key),
-                    onPressed: () => _customFieldKeyController.text = key,
+                    onPressed: () {
+                      setState(() {
+                        _customFieldKeyController.text = key;
+                      });
+                    },
                   ),
               ],
             ),
@@ -5764,6 +5871,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                 labelText: '필드 이름',
                 hintText: '예: 조성, 장르, 난이도, 편성',
               ),
+              onChanged: (_) => setState(() {}),
             ),
             TextField(
               controller: _customFieldValueController,
@@ -5772,6 +5880,43 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                 hintText: '예: D, Etude, 쉬움, 현악합주',
               ),
             ),
+            if (_customMetadataSuggestedValues(
+              widget.customFieldValueSuggestions,
+              _customFieldKeyController.text,
+            ).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '이전에 쓴 값',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final value in _customMetadataSuggestedValues(
+                      widget.customFieldValueSuggestions,
+                      _customFieldKeyController.text,
+                    ))
+                      ActionChip(
+                        label: Text(value),
+                        onPressed: () {
+                          _customFieldValueController.text = value;
+                          _customFieldValueController.selection =
+                              TextSelection.collapsed(
+                                offset: _customFieldValueController.text.length,
+                              );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             DropdownButtonFormField<int?>(
               initialValue: _rating,
@@ -10330,6 +10475,9 @@ setlist=$setlistLabel
       context: context,
       score: target,
       onAddLinkedFile: widget.controller.pickLinkedFile,
+      customFieldValueSuggestions: _customMetadataValueSuggestionsByKey(
+        widget.controller.scores,
+      ),
     );
     if (result == null || !mounted) {
       return;

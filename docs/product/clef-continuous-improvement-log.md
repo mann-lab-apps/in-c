@@ -1405,3 +1405,13 @@ picker so long libraries can jump to a score by first letter while keeping the e
 search/facet/filter model unchanged. Regression coverage targets the quick-index chips
 and grouped picker. Targeted smoke passed, full 1,408-test suite passed and analyze
 passed. MobileSheets-style alphabet scroll rail and voice search remain future work.
+
+S79 VERIFIED LOCAL: continuing the MobileSheets metadata cleanup gap without introducing
+heavy metadata tabs. Clef now derives per-field custom metadata value suggestions from the
+current library and shows them as `이전에 쓴 값` chips in both single-score metadata editing
+and bulk edit. This lets repeated values such as key, meter, genre, source or year be reused
+after import while preserving the existing custom-field schema and facet model. The slice also
+fixed the custom field dialog lifecycle by waiting for the dialog route to complete before
+disposing text controllers. Targeted smoke tests cover single-score and bulk value reuse.
+Full 1,409-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.
