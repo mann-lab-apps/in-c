@@ -1389,3 +1389,11 @@ cursor behavior continue to use the established viewer path. Regression coverage
 the quick-jump labels, selection updates and no immediate navigation before confirmation.
 Targeted page-picker tests passed, full 1,407-test suite passed, analyze passed, and RC
 release check passed. Actual finger ergonomics on large PDFs remain DEVICE QA.
+
+S77 VERIFIED LOCAL: reducing the MobileSheets metadata depth gap without adding a dense
+multi-tab schema. Clef's existing custom metadata suggestion chips now include `박자`,
+`출처` and `연도` alongside `조성`/`장르`/`난이도`/`편성`, and the facet icon mapping covers the
+new common fields. This keeps the lightweight custom-field model while making common
+library cleanup faster after import or bulk edit. Regression coverage targets the metadata
+dialog and bulk edit suggestion chips. Targeted smoke tests passed, full 1,407-test suite
+passed and analyze passed. Dedicated album/source-type tabs remain future work.

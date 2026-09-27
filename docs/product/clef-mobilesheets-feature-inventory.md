@@ -50,7 +50,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 영역 | MobileSheets 기능 | MobileSheets 근거 | Clef 현재 상태 | Clef 근거 | 상태 | 메모 |
 | --- | --- | --- | --- | --- | --- | --- |
 | Library / Metadata | 대형 라이브러리와 빠른 검색/편집 | 공식 features는 SQLite 기반 대형 라이브러리와 캐시를 설명 | 로컬 metadata/store와 lazy rendering, 검색/필터/정렬, 저장 실패 복구가 있다 | feature map `라이브러리`, controller/store tests | Partially Implemented | Clef는 SharedPreferences 중심이라 초대형 라이브러리 성능은 별도 계측 필요 |
-| Library / Metadata | 20개 이상 metadata field, custom field | 공식 features, user guide Library Management | 제목/작곡가/태그/메모/컬렉션/그룹/별점/custom field가 있다 | feature map `제목/작곡가/태그/메모`, `고급 메타데이터 필드` | Partially Implemented | Album/year/signature/source type 등 전용 schema와 tab은 없다 |
+| Library / Metadata | 20개 이상 metadata field, custom field | 공식 features, user guide Library Management | 제목/작곡가/태그/메모/컬렉션/그룹/별점/custom field가 있고, 조성/박자/장르/난이도/편성/출처/연도 추천 필드로 빠르게 정리할 수 있다 | feature map `제목/작곡가/태그/메모`, `고급 메타데이터 필드` | Partially Implemented | Album/signature/source type 등 전용 schema와 tab은 없다 |
 | Library / Metadata | Recent/Songs/Setlists/Collections/Artists/Albums/Genres 등 탭 | user guide Library Management | 홈 rail/facet 중심으로 `최근 악보`, 최근 세트리스트, 작곡가/custom field facet을 제공 | feature map, hands-on analysis | Partially Implemented | Clef는 탭 복제 대신 간결한 홈+facet 구조를 선택 |
 | Library / Metadata | configurable tabs / display formatting | user guide 목차 `Configuring Tabs`, `Song Title Formatting` | 카드/리스트 표시와 파일명 fallback은 있으나 사용자 정의 title formatting은 없다 | feature map의 카드 식별성 기록 | Not Implemented | 파워유저 기능. v1에는 불필요하게 무거울 수 있음 |
 | Library / Metadata | Filtering, alphabet list, voice search | official library page, user guide | 검색/정렬/facet/hidden facet search는 있다. alphabet jump와 음성 검색은 없다 | feature map `정렬/필터`, `음성 검색` | Partially Implemented | 음성 검색은 Later 후보 |
@@ -175,7 +175,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - 내용 기반 자동 crop 또는 더 강한 semi-auto crop.
 - advanced audio player: waveform marker timeline, 여러 A-B marker preset, tempo/pitch shift.
 - custom stamp import보다 먼저 stamp set 관리/검색.
-- field schema 확장: album/year/signature/source type을 Clef에 맞게 단순화.
+- field schema 확장: album/signature/source type을 Clef에 맞게 단순화.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.
   홈 `메뉴`의 `도움말/피드백`에서 처음 쓰는 흐름, 앱/build 정보, 테스트 항목,
   피드백 템플릿 복사를 한곳에 묶는다.
