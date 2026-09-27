@@ -44,6 +44,8 @@ const TIME_SIGNATURE_PADDING = 8
 const MAX_LEADING_NOTATION_PADDING = 52
 const EVENT_CROWDING_WIDTH = 10
 const DENSE_RHYTHM_WIDTH = 8
+const TUPLET_GROUP_WIDTH = 24
+const ACCIDENTAL_WIDTH = 10
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 72
@@ -497,6 +499,7 @@ function measureMinimumWidth(
   const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
+  const notationComplexityWidth = measureNotationComplexityWidth(measure)
   const leadingModifierWidth = leadingNotationPadding(measure, {
     showsClef:
       isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
@@ -511,8 +514,34 @@ function measureMinimumWidth(
     leadingModifierWidth +
     eventCrowdingWidth +
     voiceWidth +
-    denseRhythmWidth
+    denseRhythmWidth +
+    notationComplexityWidth
   )
+}
+
+function measureNotationComplexityWidth(measure: Measure): number {
+  const tupletWidth = measure.voices.reduce(
+    (sum, voice) => sum + (voice.tuplets?.length ?? 0) * TUPLET_GROUP_WIDTH,
+    0
+  )
+  const accidentalWidth = measure.voices.reduce(
+    (sum, voice) =>
+      sum +
+      voice.events.reduce((eventSum, event) => {
+        if (event.type !== 'note') {
+          return eventSum
+        }
+
+        const noteAccidentals = event.pitch.alter !== undefined ? 1 : 0
+        const chordAccidentals =
+          event.pitches?.filter((pitch) => pitch.alter !== undefined).length ?? 0
+
+        return eventSum + (noteAccidentals + chordAccidentals) * ACCIDENTAL_WIDTH
+      }, 0),
+    0
+  )
+
+  return tupletWidth + accidentalWidth
 }
 
 export function leadingNotationPadding(

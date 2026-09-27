@@ -60,7 +60,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(result.score)
   })
 
-  it('replaces part of a full-measure rest and fills the remaining span', () => {
+  it('replaces part of a full-measure rest and fills the remaining span by beat groups', () => {
     const score = createScore()
     const command = buildRhythmEditCommand(score, {
       target,
@@ -82,7 +82,63 @@ describe('monophonic rhythm editing', () => {
         id: 'rest-1',
         type: 'rest',
         position: { tick: quarter },
-        duration: { value: 'half', dots: 1 }
+        duration: { value: 'quarter', dots: 0 }
+      },
+      {
+        id: 'rest-2',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half', dots: 0 }
+      }
+    ])
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+
+    expect(result.undo).toMatchObject({
+      type: 'voice-events.replace',
+      target
+    })
+    const undone = applyScoreCommand(result.score, result.undo)
+    expect(undone.score).toEqual(score)
+    expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(
+      result.score
+    )
+  })
+
+  it('splits an off-beat released rest at visible beat boundaries', () => {
+    const score = createScore()
+    const command = buildRhythmEditCommand(score, {
+      target,
+      eventId: 'measure-1-full-measure-rest',
+      event: note('replacement', 0, 'eighth'),
+      createId: idSequence('rest')
+    })
+
+    const result = applyScoreCommand(score, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'measure-1-full-measure-rest',
+        type: 'note',
+        position: { tick: 0 },
+        duration: { value: 'eighth' }
+      },
+      {
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: quarter / 2 },
+        duration: { value: 'eighth', dots: 0 }
+      },
+      {
+        id: 'rest-2',
+        type: 'rest',
+        position: { tick: quarter },
+        duration: { value: 'quarter', dots: 0 }
+      },
+      {
+        id: 'rest-3',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half', dots: 0 }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -141,7 +197,13 @@ describe('monophonic rhythm editing', () => {
         id: 'note-2',
         type: 'rest',
         position: { tick: quarter },
-        duration: { value: 'half', dots: 1 }
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'note-2-trailing-rest-2',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half' }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -170,7 +232,19 @@ describe('monophonic rhythm editing', () => {
         id: 'rest-1',
         type: 'rest',
         position: { tick: quarter / 2 },
-        duration: { value: 'half', dots: 2 }
+        duration: { value: 'eighth' }
+      },
+      {
+        id: 'rest-1-trailing-rest-3',
+        type: 'rest',
+        position: { tick: quarter },
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'rest-1-trailing-rest-4',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half' }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -255,7 +329,7 @@ describe('monophonic rhythm editing', () => {
         duration: { value: 'half' }
       },
       {
-        id: 'rest-2-trailing-rest-1',
+        id: 'rest-2-trailing-rest-2',
         type: 'rest',
         position: { tick: quarter * 2 },
         duration: { value: 'eighth' }

@@ -244,6 +244,12 @@ const accidentalShortcuts: Record<-1 | 0 | 1, string> = {
   [0]: 'N',
   [1]: '+'
 }
+const articulationShortcuts: Record<Articulation, string> = {
+  accent: 'Alt/⌥+>',
+  marcato: 'Alt/⌥+^',
+  staccato: 'Alt/⌥+.',
+  tenuto: 'Alt/⌥+_'
+}
 const durationToolbarLabels: Record<DurationValue, string> = {
   '64th': '64',
   '32nd': '32',
@@ -298,6 +304,40 @@ function ShortcutBadge({ shortcut }: { shortcut: string }) {
       ))}
     </span>
   )
+}
+
+function commandTooltip(label: string, shortcut?: string): string {
+  return shortcut ? `${label} — 단축키 ${shortcut}` : label
+}
+
+function resolveArticulationShortcut(event: KeyboardEvent): Articulation | undefined {
+  if (
+    event.isComposing ||
+    event.key === 'Process' ||
+    !event.altKey ||
+    event.ctrlKey ||
+    event.metaKey
+  ) {
+    return undefined
+  }
+
+  if ((event.code === 'Period' && event.shiftKey) || event.key === '>') {
+    return 'accent'
+  }
+
+  if ((event.code === 'Minus' && event.shiftKey) || event.key === '_') {
+    return 'tenuto'
+  }
+
+  if ((event.code === 'Digit6' && event.shiftKey) || event.key === '^') {
+    return 'marcato'
+  }
+
+  if (!event.shiftKey && (event.code === 'Period' || event.key === '.')) {
+    return 'staccato'
+  }
+
+  return undefined
 }
 
 const eventTypeLabels = {
@@ -724,6 +764,10 @@ const shortcutReferenceSections = [
       ['플랫', accidentalShortcuts[-1]],
       ['제자리표', accidentalShortcuts[0]],
       ['샤프', accidentalShortcuts[1]],
+      ['스타카토', articulationShortcuts.staccato],
+      ['악센트', articulationShortcuts.accent],
+      ['테누토', articulationShortcuts.tenuto],
+      ['마르카토', articulationShortcuts.marcato],
       ['음높이 한 칸 이동', '↑ / ↓'],
       ['반음 이동', 'Alt/Option+↑ / ↓'],
       ['옥타브 이동', 'Cmd/Ctrl+↑ / ↓'],
@@ -765,7 +809,6 @@ const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
-const shortcutHintsStorageKey = 'chromatics.shortcut-hints.v1'
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -814,14 +857,7 @@ export const App = () => {
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
-  const [showShortcutHints, setShowShortcutHints] = useState(() => {
-    try {
-      const value = window.localStorage.getItem(shortcutHintsStorageKey)
-      return value === null ? true : value === 'true'
-    } catch {
-      return true
-    }
-  })
+  const [toolbarsCollapsed, setToolbarsCollapsed] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('')
   const [commandPaletteActiveIndex, setCommandPaletteActiveIndex] = useState(0)
@@ -844,16 +880,6 @@ export const App = () => {
       // Workspace controls remain usable when browser storage is unavailable.
     }
   }, [dockVisibility])
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        shortcutHintsStorageKey,
-        showShortcutHints ? 'true' : 'false'
-      )
-    } catch {
-      // Shortcut badges are still controlled in-session when storage is unavailable.
-    }
-  }, [showShortcutHints])
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -3594,7 +3620,7 @@ export const App = () => {
             start: measure.repeat?.start ? undefined : true
           })
         }),
-        '도돌이표 시작을 갱신했습니다.'
+        '시작 도돌이표를 갱신했습니다.'
       )
     } else if (action === 'toggle-repeat-end') {
       updateMeasureById(
@@ -3607,7 +3633,7 @@ export const App = () => {
             times: measure.repeat?.end ? undefined : measure.repeat?.times ?? 2
           })
         }),
-        '도돌이표 끝을 갱신했습니다.'
+        '끝 도돌이표를 갱신했습니다.'
       )
     } else {
       const number = action === 'toggle-volta-1' ? 1 : 2
@@ -4002,37 +4028,6 @@ export const App = () => {
     [measureLocation?.measure.repeat, updateActiveRepeat]
   )
 
-  const toggleArticulation = useCallback(
-    (articulation: Articulation) => {
-      if (!eventLocation || eventLocation.event.type !== 'note') {
-        return
-      }
-
-      const currentArticulations = new Set(
-        eventLocation.event.articulations ?? []
-      )
-
-      if (currentArticulations.has(articulation)) {
-        currentArticulations.delete(articulation)
-      } else {
-        currentArticulations.add(articulation)
-      }
-
-      const articulations = Array.from(currentArticulations)
-
-      executeCommand({
-        type: 'voice-event.replace',
-        target: eventLocation.address,
-        eventId: eventLocation.event.id,
-        event: {
-          ...eventLocation.event,
-          articulations: articulations.length > 0 ? articulations : undefined
-        }
-      })
-    },
-    [eventLocation, executeCommand]
-  )
-
   const replaceSelectedNote = useCallback(
     (
       update: (note: Note) => Note,
@@ -4064,6 +4059,28 @@ export const App = () => {
       return false
     },
     [eventLocation, executeCommand]
+  )
+
+  const toggleArticulation = useCallback(
+    (articulation: Articulation) => {
+      replaceSelectedNote((note) => {
+        const currentArticulations = new Set(note.articulations ?? [])
+
+        if (currentArticulations.has(articulation)) {
+          currentArticulations.delete(articulation)
+        } else {
+          currentArticulations.add(articulation)
+        }
+
+        const articulations = Array.from(currentArticulations)
+
+        return {
+          ...note,
+          articulations: articulations.length > 0 ? articulations : undefined
+        }
+      }, '표현 기호를 갱신했습니다.')
+    },
+    [replaceSelectedNote]
   )
 
   const addChordTone = useCallback(
@@ -5644,6 +5661,14 @@ export const App = () => {
         return
       }
 
+      const articulation = resolveArticulationShortcut(event)
+
+      if (articulation && eventLocation?.event.type === 'note') {
+        event.preventDefault()
+        toggleArticulation(articulation)
+        return
+      }
+
       const accidental = resolveAccidentalShortcut(event)
 
       if (
@@ -5884,6 +5909,7 @@ export const App = () => {
     saveMusicXml,
     saveNativeProject,
     switchActiveVoice,
+    toggleArticulation,
     toggleSlur,
     toggleTie,
     toggleTuplet,
@@ -6296,6 +6322,10 @@ export const App = () => {
         </section>
       ) : (
         <>
+      <div
+        className="editor-toolbar-stack"
+        data-collapsed={toolbarsCollapsed}
+      >
       <nav className="toolbar-tabs" aria-label="편집 도구 카테고리">
         {toolbarCategories.map((category) => (
           <button
@@ -6341,23 +6371,31 @@ export const App = () => {
           <Keyboard aria-hidden="true" size={18} />
         </button>
         <button
-          aria-label={
-            showShortcutHints ? '단축키 힌트 숨기기' : '단축키 힌트 표시'
-          }
-          aria-pressed={showShortcutHints}
-          title={showShortcutHints ? '단축키 힌트 숨기기' : '단축키 힌트 표시'}
-          type="button"
-          onClick={() => setShowShortcutHints((value) => !value)}
-        >
-          <span aria-hidden="true" className="shortcut-toggle-mark">⌘</span>
-        </button>
-        <button
           aria-label="명령 검색"
           title="명령 검색"
           type="button"
           onClick={() => setCommandPaletteOpen(true)}
         >
           <Search aria-hidden="true" size={18} />
+        </button>
+        <button
+          aria-label={
+            toolbarsCollapsed ? '작업 도구 펼치기' : '작업 도구 접기'
+          }
+          aria-pressed={toolbarsCollapsed}
+          title={
+            toolbarsCollapsed
+              ? '작업 도구 펼치기'
+              : '작업 도구 접기'
+          }
+          type="button"
+          onClick={() => setToolbarsCollapsed((value) => !value)}
+        >
+          {toolbarsCollapsed ? (
+            <ChevronsDown aria-hidden="true" size={18} />
+          ) : (
+            <ChevronsUp aria-hidden="true" size={18} />
+          )}
         </button>
         <div>
           <span>작업</span>
@@ -6400,7 +6438,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="음표 편집"
-        hidden={toolbarCategory !== 'note'}
+        hidden={toolbarsCollapsed || toolbarCategory !== 'note'}
       >
         <section className="inspector-properties" aria-label="성부">
           <h3>성부</h3>
@@ -6477,11 +6515,10 @@ export const App = () => {
                       [1, '♯', '샤프']
                     ] as const).map(([alter, symbol, label]) => {
                       const shortcut = accidentalShortcuts[alter]
-                      const buttonLabel = `${label}, 단축키 ${shortcut}`
 
                       return (
                         <button
-                          aria-label={buttonLabel}
+                          aria-label={label}
                           aria-pressed={selectedPitchAlter === alter}
                           className={
                             selectedPitchAlter === alter ? 'is-active' : undefined
@@ -6489,11 +6526,10 @@ export const App = () => {
                           disabled={!canEditPitch}
                           key={alter}
                           onClick={() => changeAccidental(alter)}
-                          title={buttonLabel}
+                          title={commandTooltip(label, shortcut)}
                           type="button"
                         >
                           {symbol}
-                          {showShortcutHints ? <ShortcutBadge shortcut={shortcut} /> : null}
                         </button>
                       )
                     })}
@@ -6553,6 +6589,7 @@ export const App = () => {
                         disabled={eventLocation.event.type !== 'note'}
                         key={value}
                         onClick={() => toggleArticulation(value)}
+                        title={commandTooltip(label, articulationShortcuts[value])}
                         type="button"
                       >
                         {symbol}
@@ -6567,20 +6604,20 @@ export const App = () => {
                       <span>화음</span>
                       <div className="inspector-properties__buttons">
                         <button
-                          aria-label="3도 위 화음 추가, 단축키 Alt/⌥+3"
+                          aria-label="3도 위 화음 추가"
                           onClick={() => addChordTone(2)}
+                          title={commandTooltip('3도 위 화음 추가', 'Alt/⌥+3')}
                           type="button"
                         >
                           3도 위 추가
-                          {showShortcutHints ? <ShortcutBadge shortcut="Alt/⌥+3" /> : null}
                         </button>
                         <button
-                          aria-label="5도 위 화음 추가, 단축키 Alt/⌥+5"
+                          aria-label="5도 위 화음 추가"
                           onClick={() => addChordTone(4)}
+                          title={commandTooltip('5도 위 화음 추가', 'Alt/⌥+5')}
                           type="button"
                         >
                           5도 위 추가
-                          {showShortcutHints ? <ShortcutBadge shortcut="Alt/⌥+5" /> : null}
                         </button>
                       </div>
                     </div>
@@ -6677,7 +6714,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="표기 객체"
-        hidden={toolbarCategory !== 'notation'}
+        hidden={toolbarsCollapsed || toolbarCategory !== 'notation'}
       >
             <section className="inspector-properties range-notation-palette" aria-label="범위 기호">
               <h3>범위 기호</h3>
@@ -6707,18 +6744,15 @@ export const App = () => {
                 </div>
               </div>
               <button
-                aria-label="슬러 추가 또는 해제, 단축키 S"
+                aria-label="슬러 추가 또는 해제"
                 aria-pressed={selectedRangeSlur || (selection.type === 'event' && pendingSlurAnchorEventId === selection.eventId)}
                 className="inspector-properties__command"
                 disabled={!canApplySlur}
                 onClick={toggleSlur}
-                title="슬러 추가 또는 해제 (S)"
+                title={commandTooltip('슬러 추가 또는 해제', 'S')}
               type="button"
             >
               슬러
-                {showShortcutHints ? (
-                  <ShortcutBadge shortcut="S" />
-                ) : null}
               </button>
               <div className="inspector-properties__row">
                 <span>옥타브</span>
@@ -7046,7 +7080,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="가사 편집"
-        hidden={toolbarCategory !== 'lyrics'}
+        hidden={toolbarsCollapsed || toolbarCategory !== 'lyrics'}
       >
         <section className="inspector-properties" aria-label="가사 속성">
           <h3>가사</h3>
@@ -7176,7 +7210,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="악보 편집"
-        hidden={toolbarCategory !== 'measure'}
+        hidden={toolbarsCollapsed || toolbarCategory !== 'measure'}
       >
         <section className="inspector-properties" aria-label="빠르기">
           <h3>빠르기</h3>
@@ -7484,7 +7518,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="내보내기 설정"
-        hidden={toolbarCategory !== 'export'}
+        hidden={toolbarsCollapsed || toolbarCategory !== 'export'}
       >
         <section className="inspector-properties" aria-label="PDF 페이지 설정">
           <h3>PDF 설정</h3>
@@ -7621,6 +7655,7 @@ export const App = () => {
           </div>
         </section>
       </section>
+      </div>
 
       <section className="workspace" aria-label="악보 편집기">
         <header className="toolbar" hidden={toolbarCategory === 'playback'}>
@@ -7943,11 +7978,10 @@ export const App = () => {
                 [1, '♯', '샤프']
               ] as const).map(([alter, symbol, label]) => {
                 const shortcut = accidentalShortcuts[alter]
-                const buttonLabel = `${label}, 단축키 ${shortcut}`
 
                 return (
                   <button
-                    aria-label={buttonLabel}
+                    aria-label={label}
                     aria-pressed={noteInputState?.accidental === alter}
                     className={
                       noteInputState?.accidental === alter
@@ -7957,11 +7991,10 @@ export const App = () => {
                     disabled={!accidentalEnabled}
                     key={alter}
                     onClick={() => changeAccidental(alter)}
-                    title={buttonLabel}
+                    title={commandTooltip(label, shortcut)}
                     type="button"
                   >
                     {symbol}
-                    {showShortcutHints ? <ShortcutBadge shortcut={shortcut} /> : null}
                   </button>
                 )
               })}
@@ -8011,7 +8044,7 @@ export const App = () => {
               disabled={!canEditPitch}
               hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('diatonic', -1)}
-              title="음높이 한 칸 내리기"
+              title={commandTooltip('음높이 한 칸 내리기', '↓')}
               type="button"
             >
               <ArrowDown aria-hidden="true" size={18} />
@@ -8023,7 +8056,7 @@ export const App = () => {
               disabled={!canEditPitch}
               hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('diatonic', 1)}
-              title="음높이 한 칸 올리기"
+              title={commandTooltip('음높이 한 칸 올리기', '↑')}
               type="button"
             >
               <ArrowUp aria-hidden="true" size={18} />
@@ -8035,7 +8068,7 @@ export const App = () => {
               disabled={!canEditPitch}
               hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('octave', -1)}
-              title="한 옥타브 내리기"
+              title={commandTooltip('한 옥타브 내리기', 'Cmd/Ctrl+↓')}
               type="button"
             >
               <ChevronsDown aria-hidden="true" size={18} />
@@ -8047,7 +8080,7 @@ export const App = () => {
               disabled={!canEditPitch}
               hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('octave', 1)}
-              title="한 옥타브 올리기"
+              title={commandTooltip('한 옥타브 올리기', 'Cmd/Ctrl+↑')}
               type="button"
             >
               <ChevronsUp aria-hidden="true" size={18} />
@@ -8059,7 +8092,7 @@ export const App = () => {
               disabled={!canEditPitch}
               hidden={toolbarCategory !== 'note'}
               onClick={respellEnharmonically}
-              title="이명동음으로 바꾸기, 단축키 J"
+              title={commandTooltip('이명동음으로 바꾸기', 'J')}
               type="button"
             >
               <RotateCw aria-hidden="true" size={18} />
@@ -8075,9 +8108,7 @@ export const App = () => {
             <Clock3 aria-hidden="true" size={17} />
             {durations.map((duration) => {
               const shortcut = durationShortcuts[duration]
-              const label = shortcut
-                ? `${durationLabels[duration]}, 단축키 ${shortcut}`
-                : durationLabels[duration]
+              const label = durationLabels[duration]
 
               return (
                 <button
@@ -8088,11 +8119,10 @@ export const App = () => {
                   }
                   key={duration}
                   onClick={() => changeDuration(duration)}
-                  title={label}
+                  title={commandTooltip(label, shortcut)}
                   type="button"
                 >
                   {durationToolbarLabels[duration]}
-                  {showShortcutHints && shortcut ? <ShortcutBadge shortcut={shortcut} /> : null}
                 </button>
               )
             })}
@@ -8122,43 +8152,52 @@ export const App = () => {
               </button>
             </div>
 
-            <button
-              aria-label={tieSelected ? '타이 해제, 단축키 T' : '타이 추가, 단축키 T'}
-              aria-pressed={tieSelected}
-              className={`tie-button${tieSelected ? ' is-active' : ''}`}
-              disabled={!tieCommand}
-              onClick={toggleTie}
-              title={tieSelected ? '타이 해제 (T)' : '타이 추가 (T)'}
-              type="button"
-            >
-              {tieSelected ? (
-                <Unlink2 aria-hidden="true" size={17} />
-              ) : (
-                <Link2 aria-hidden="true" size={17} />
-              )}
-              {showShortcutHints ? <ShortcutBadge shortcut="T" /> : null}
-            </button>
+            {(() => {
+              const tieLabel = tieSelected ? '타이 해제' : '타이 추가'
 
-            <button
-              aria-label={
-                isTupletInput
-                  ? `셋잇단음표 입력 취소, 단축키 ${tripletPreset.shortcut} 또는 Esc`
-                  : `셋잇단음표 적용 또는 입력 준비, 단축키 ${tripletPreset.shortcut}`
-              }
-              aria-pressed={isTupletInput}
-              className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
-              onClick={toggleTuplet}
-              title={
-                isTupletInput
-                  ? `셋잇단음표 취소 (${tupletProgress})`
-                  : `셋잇단음표 적용 또는 입력 준비 (${tripletPreset.shortcut})`
-              }
-              type="button"
-            >
-              <span aria-hidden="true">3</span>
-              <span className="tuplet-duration-label">8</span>
-              {showShortcutHints ? <ShortcutBadge shortcut={tripletPreset.shortcut} /> : null}
-            </button>
+              return (
+                <button
+                  aria-label={tieLabel}
+                  aria-pressed={tieSelected}
+                  className={`tie-button${tieSelected ? ' is-active' : ''}`}
+                  disabled={!tieCommand}
+                  onClick={toggleTie}
+                  title={commandTooltip(tieLabel, 'T')}
+                  type="button"
+                >
+                  {tieSelected ? (
+                    <Unlink2 aria-hidden="true" size={17} />
+                  ) : (
+                    <Link2 aria-hidden="true" size={17} />
+                  )}
+                </button>
+              )
+            })()}
+
+            {(() => {
+              const tupletLabel = isTupletInput
+                ? '셋잇단음표 입력 취소'
+                : '셋잇단음표 적용 또는 입력 준비'
+              const tupletShortcut = isTupletInput
+                ? `${tripletPreset.shortcut} / Esc`
+                : tripletPreset.shortcut
+
+              return (
+                <button
+                  aria-label={tupletLabel}
+                  aria-pressed={isTupletInput}
+                  className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
+                  onClick={toggleTuplet}
+                  title={`${commandTooltip(tupletLabel, tupletShortcut)}${
+                    isTupletInput ? ` · 진행 ${tupletProgress}` : ''
+                  }`}
+                  type="button"
+                >
+                  <span aria-hidden="true">3</span>
+                  <span className="tuplet-duration-label">8</span>
+                </button>
+              )
+            })()}
           </div>
 
         </header>
@@ -8647,14 +8686,14 @@ export const App = () => {
               role="menuitem"
               type="button"
             >
-              도돌이표 시작
+              시작 도돌이표
             </button>
             <button
               onClick={() => applyMeasureContextAction('toggle-repeat-end')}
               role="menuitem"
               type="button"
             >
-              도돌이표 끝
+              끝 도돌이표
             </button>
             <button
               onClick={() => applyMeasureContextAction('toggle-volta-1')}
@@ -8930,7 +8969,7 @@ export const App = () => {
                     {section.rows.map(([label, shortcut]) => (
                       <div key={label}>
                         <dt>{label}</dt>
-                        <dd>{shortcut}</dd>
+                        <dd><ShortcutBadge shortcut={shortcut} /></dd>
                       </div>
                     ))}
                   </dl>

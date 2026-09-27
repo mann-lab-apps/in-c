@@ -705,7 +705,7 @@ async function verifyKeyboardRouting(window) {
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
         hasProgress: Boolean(document.querySelector('.tuplet-progress')),
-        shortcut: button?.querySelector('.shortcut-badge')?.textContent,
+        title: button?.getAttribute('title'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length
@@ -1033,7 +1033,7 @@ async function verifyKeyboardRouting(window) {
     fullRestToNote.status !== '4분음표' ||
     fullRestToNote.event === 'm2-1' ||
     durationShortcutChange.editCount !== '1회 수정' ||
-    durationShortcutChange.eventCount !== initialEventCount + 1 ||
+    durationShortcutChange.eventCount !== initialEventCount + 2 ||
     durationShortcutChange.pressedDuration !== '8분음표' ||
     durationShortcutChange.statusMessage !== '음가를 8분음표로 바꿨습니다.' ||
     durationShortcutCursor.editCount !== '2회 수정' ||
@@ -1066,8 +1066,8 @@ async function verifyKeyboardRouting(window) {
     noteDeleteAbsorbsPrevious.eventCount !== initialEventCount ||
     noteDeleteAbsorbsPrevious.selectedEvent !== 'm4-a4' ||
     noteDeleteAbsorbsPrevious.status !== '음표를 지웠습니다.' ||
-    !tripletButton.ariaLabel?.includes('단축키 ⌘/Ctrl+3') ||
-    tripletButton.shortcut !== '⌘/Ctrl+3' ||
+    tripletButton.ariaLabel !== '셋잇단음표 적용 또는 입력 준비' ||
+    tripletButton.title !== '셋잇단음표 적용 또는 입력 준비 — 단축키 ⌘/Ctrl+3' ||
     tripletButton.editCount !== '1회 수정' ||
     tripletButton.eventCount !== initialEventCount + 1 ||
     tripletButton.hasProgress ||
@@ -1086,7 +1086,7 @@ async function verifyKeyboardRouting(window) {
     tripletShortcutPreview.progress !== '셋잇단음표 2/3' ||
     tripletShortcutPreview.status !== '셋잇단음표 2/3개 입력됨. 1개 더 입력해 주세요.' ||
     tripletShortcutComplete.editCount !== '2회 수정' ||
-    tripletShortcutComplete.eventCount !== initialEventCount + 4 ||
+    tripletShortcutComplete.eventCount !== initialEventCount + 5 ||
     tripletShortcutComplete.hasProgress ||
     tripletShortcutComplete.tupletCount !== 2 ||
     tripletShortcutComplete.status !== '셋잇단음표 입력을 완료했습니다.' ||

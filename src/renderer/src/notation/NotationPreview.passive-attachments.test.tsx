@@ -110,6 +110,35 @@ describe('NotationPreview passive lower-staff attachments', () => {
     return score
   }
 
+  const createVoltaScore = (measureCount: number): Score => {
+    const measures = Array.from({ length: measureCount }, (_, index) =>
+      createMeasure({
+        id: `volta-measure-${index + 1}`,
+        volta:
+          index === 0
+            ? { number: 1, start: true }
+            : index === measureCount - 1
+              ? { number: 1, end: true }
+              : undefined
+      })
+    )
+
+    return createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures
+            })
+          ]
+        })
+      ]
+    })
+  }
+
   it.each([
     ['screen layout', false],
     ['print layout', true]
@@ -158,6 +187,52 @@ describe('NotationPreview passive lower-staff attachments', () => {
 
     expect(ornamentY).toBeLessThanOrEqual(fermataY - 24)
     expect(breathX).toBeGreaterThanOrEqual(fermataX + 24)
+  })
+
+  it('renders short automatic voltas across their covered measures', async () => {
+    const { container } = render(
+      <NotationPreview
+        score={createVoltaScore(3)}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.notation-volta-mark')).toHaveLength(3)
+    })
+
+    const voltas = [...container.querySelectorAll('.notation-volta-mark')]
+
+    expect(voltas[0]).toHaveAttribute('data-volta-start', 'true')
+    expect(voltas[0]).toHaveAttribute('data-volta-end', 'false')
+    expect(voltas[2]).toHaveAttribute('data-volta-start', 'false')
+    expect(voltas[2]).toHaveAttribute('data-volta-end', 'true')
+  })
+
+  it('keeps long automatic voltas from stretching across every system', async () => {
+    const { container } = render(
+      <NotationPreview
+        score={createVoltaScore(5)}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.notation-volta-mark')).toHaveLength(1)
+    })
+
+    const [volta] = [...container.querySelectorAll('.notation-volta-mark')]
+
+    expect(volta).toHaveAttribute('data-volta-start', 'true')
+    expect(volta).toHaveAttribute('data-volta-end', 'false')
   })
 
   it('places staccato dots near the rendered notehead instead of a fixed upper annotation lane', async () => {
@@ -385,6 +460,73 @@ describe('NotationPreview passive lower-staff attachments', () => {
       kind: 'hairpin',
       id: 'keyboard-hairpin'
     }))
+  })
+
+  it('keeps short slurs visibly arched away from their endpoints', async () => {
+    const events = [
+      createNote({
+        id: 'short-slur-start',
+        position: createTimePosition(0),
+        pitch: { step: 'B', octave: 4 }
+      }),
+      createNote({
+        id: 'short-slur-end',
+        position: createTimePosition(TICKS_PER_QUARTER / 2),
+        pitch: { step: 'C', octave: 5 }
+      })
+    ]
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Melody',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [createVoice({ events })]
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      slurs: [
+        {
+          id: 'short-slur',
+          startEventId: events[0].id,
+          endEventId: events[1].id
+        }
+      ]
+    })
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.notation-slur')).toBeInTheDocument()
+    })
+
+    const slur = container.querySelector<SVGPathElement>('.notation-slur')!
+    const y1 = Number(slur.getAttribute('data-slur-y1'))
+    const y2 = Number(slur.getAttribute('data-slur-y2'))
+    const controlY = Number(slur.getAttribute('data-slur-control-y'))
+    const lane = slur.getAttribute('data-annotation-lane')
+
+    if (lane === 'upper-slur') {
+      expect(controlY).toBeLessThanOrEqual(Math.min(y1, y2) - 14)
+    } else {
+      expect(controlY).toBeGreaterThanOrEqual(Math.max(y1, y2) + 14)
+    }
   })
 
   it('exposes multiple same-measure dynamic objects for direct selection', async () => {

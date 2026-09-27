@@ -2860,6 +2860,65 @@ keeping tooltip/aria/help-dialog discoverability.
 | `npm run site:build` | Pass | Download page manifest and static fallback links rebuilt for `0.1.0-alpha.18`. |
 | `node scripts/verify-site-content.mjs` | Pass | Site content manifests, product relations and feature map paths verified after the alpha.18 download manifest update. |
 
+## 2026-09-27 Shortcut Tooltip / Articulation UX Checkpoint
+
+This checkpoint stabilizes the post-alpha.18 toolbar shortcut UX on a fresh
+worktree at `/private/tmp/chromatics-shortcut-tooltip-20260927`. Toolbar buttons
+with shortcuts no longer render inline shortcut badges; the command name remains
+the accessible label and the shortcut is exposed through the button tooltip.
+The shortcut help dialog keeps keycap-style shortcut badges for scanning. The
+selected-note articulation controls now advertise and execute keyboard shortcuts:
+`Alt/⌥+.` for staccato, `Alt/⌥+>` for accent, `Alt/⌥+_` for tenuto and
+`Alt/⌥+^` for marcato. Toolbar groups wrap instead of relying on horizontal
+scroll where possible. The follow-up toolbar access slice makes the work-mode
+tabs/context strip/active selection toolbar sticky and adds `작업 도구 접기/펼치기`
+so dense tools can be hidden while shortcut help, command search and mode
+switching remain reachable.
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "articulation-shortcuts"` | Fail, then Pass | First run exposed a stale test assumption: `m1-c4` already has staccato in the release fixture. The coverage now selects `m1-d4`, verifies `Alt/⌥+.` toggles staccato, `Alt/⌥+>` adds accent, and observes all parts/staves instead of only the first staff. |
+| `npm test -- src/renderer/src/App.test.tsx -t "shortcut\|articulation-shortcuts\|duration-shortcuts"` | Pass | 11 focused App tests passed / 214 skipped. Coverage confirms shortcut help keycaps, toolbar tooltip shortcuts without inline button badges, articulation shortcuts and the active duration-shortcut policy. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the tooltip and articulation shortcut changes. |
+| `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:visual-regression` | Pass | Notation layout tests and snapshots passed; screenshots were generated at `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-960.png` and `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-1400.png`. |
+| `npm run verify:e2e` | Fail, then Pass | First run failed because the E2E harness still looked for an inline `.shortcut-badge` and shortcut text in the triplet button accessible label. The harness now verifies the command-only aria label and the tooltip shortcut; rerun passed. |
+| `npm test -- src/renderer/src/App.test.tsx -t "toolbar-collapse\|shortcut\|articulation-shortcuts\|duration-shortcuts"` | Pass | 12 focused App tests passed / 214 skipped. Coverage confirms the new sticky toolbar collapse control hides and restores the dense note toolbar while keeping the context strip and work-mode tabs reachable. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after adding the sticky toolbar stack and collapse state. |
+| `git diff --check` | Pass | No whitespace errors after the sticky/collapse code and documentation updates. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed after the toolbar access slice; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:visual-regression` | Pass | Notation layout tests and snapshots passed again after the sticky toolbar access slice; screenshots were regenerated at `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-960.png` and `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-1400.png`. |
+| `npm run verify:e2e` | Pass | Electron MVP verification passed after the sticky/collapse follow-up. The next compact-toolbar CSS pass also brought the File-mode toolbar overflow telemetry to `false` at the checked compact width. |
+| `npm test -- src/score-core/rhythm-editing.test.ts` | Pass | 21 rhythm-editing tests passed after changing released/deleted ordinary rest spans to split at visible beat/group boundaries. Coverage includes replacing a full-measure rest with a quarter note as quarter rest + half rest, and replacing it with an eighth note as eighth rest + quarter rest + half rest instead of a double-dotted half rest. |
+| `npm test -- src/renderer/src/App.test.tsx -t "shortcut\|articulation-shortcuts\|duration-shortcuts"` | Pass | 11 focused App tests passed / 215 skipped after the beat-aware rest grouping follow-up, confirming the duration shortcut path still works with the toolbar shortcut/articulation changes. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the beat-aware rest grouping helpers and documentation updates. Tuplet-local rest spelling and human engraving review remain follow-up work. |
+| `npm test -- --reporter=dot` | Fail, then Pass | The first full-suite run exposed that the core duration-edit path could split a released rest span into multiple events while a deterministic test `createId` returned the same ID. The core and editor-state rest creation helpers now de-duplicate generated IDs within one replacement, preserve full-measure rests when an entire measure is cleared, and keep mid-measure spans split at visible beat/group boundaries. Final rerun passed: 61 files passed / 1 skipped; 787 tests passed / 1 skipped. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the core/editor-state de-duplication and full-measure rest follow-up. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed after the beat-aware rest grouping slice; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue verifier passed with 70 rows, 16 Required umbrellas and `automationQueueDrained: false` after adding `CV1-X-BEAT-REST-GROUPING` as a Partial child. |
+| `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+| `npm test -- src/renderer/src/notation/system-layout.test.ts` | Pass | 26 system-layout tests passed after adding tuplet/accidental width weighting. The new regression wraps accidental-heavy tuplet measures into two systems instead of keeping all four ornate measures on one line. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "short slurs\|visible span objects"` | Pass | 2 focused renderer tests passed / 8 skipped. Coverage confirms visible span keyboard selection still works and short slurs keep at least a 14px curve depth away from their endpoints. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/notation/system-layout.test.ts src/renderer/src/notation/annotation-lanes.test.ts` | Pass | 3 renderer/layout test files passed; 48 tests passed. |
+| `npm test -- src/renderer/src/App.test.tsx -t "toolbar-collapse\|shortcut\|articulation-shortcuts\|duration-shortcuts"` | Pass | 12 focused App tests passed / 214 skipped after the slur/layout follow-up. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the slur curve and responsive width changes. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed after the slur/layout follow-up; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:notation-snapshots` | Blocked local runtime | The first run before the endpoint-softening adjustment produced an intentional notation snapshot metric diff and screenshot artifacts for review. After softening endpoint clearance, the Electron runtime failed before snapshot comparison: even `env -u ELECTRON_RUN_AS_NODE node_modules/.bin/electron --version` exits with `SIGABRT`, so the local Electron runtime must be repaired before rerunning/updating this visual gate. |
+| MuseScore Studio Handbook Voltas / Repeat signs reference | Reviewed | Checked 2026-09-27. MuseScore describes voltas as lines above the staff for alternate endings, with editable ranges, and repeat signs as the repeat boundaries. URLs: `https://handbook.musescore.org/notation/repeats/voltas.md`, `https://handbook.musescore.org/notation/repeats/repeat-signs`. Chromatics now treats long automatically inferred volta ranges as model/playback data but suppresses page-wide continuation display after the start measure. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "voltas"` | Pass | 2 focused renderer tests passed / 10 skipped. Coverage confirms short automatic voltas render across 3 covered measures while 5-measure inferred voltas render only the start mark instead of stretching across every system. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the volta display-span policy. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue verifier passed with 72 rows, 16 Required umbrellas and `automationQueueDrained: false` after adding `CV1-X-VOLTA-AUTO-SPAN-DISPLAY`. |
+| `npm test -- --reporter=dot` | Pass | 61 files passed / 1 skipped; 791 tests passed / 1 skipped after shortcut tooltip, beat-aware rest grouping, slur/layout and volta display updates. |
+| `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:musicxml-fixtures` | Pass | External-app fixture QA test passed after the renderer/layout and rhythm updates. |
+| `npm run verify:midi-fixtures` | Pass | V1 QA MIDI fixture tests passed: 3 passed / 3 skipped. |
+| `npm run package:dir` | Pass | macOS arm64 unpacked app built at `release/mac-arm64`; signing remains disabled for this local directory smoke. |
+| `npm run verify:package` | Pass | Packaged app smoke passed against `/private/tmp/chromatics-shortcut-tooltip-20260927/release/mac-arm64/in-C.app/Contents/MacOS/in-C`, including native recovery, part XML/PDF/MIDI and autosave checks. |
+| `npm run verify:e2e` | Fail, then Pass | First reruns exposed stale verifier event-count expectations after beat-aware rest splitting. The harness now expects duration shrink to create two remainder rests and triplet completion to produce one additional grouped rest. Final Electron E2E passed. |
+| `npm run verify:visual-regression` | Fail, update, then Pass | First run passed 86 MusicXML/layout tests but caught intentional notation snapshot metric changes from slur/layout spacing. 960/1400 screenshots were inspected, `docs/testing/notation-snapshot-baseline.json` was updated from the generated actual metrics after `verify:notation-snapshots:update` hit intermittent Electron `SIGABRT`, and the final visual regression rerun passed. |
+| `git diff --check` | Pass | No whitespace errors after code and documentation updates. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

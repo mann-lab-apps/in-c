@@ -1,6 +1,7 @@
 import { createFullMeasureRest, createNote, createRest } from './factories'
 import { resolveNotePitch } from './pitch'
 import {
+  TICKS_PER_QUARTER,
   durationToTicks,
   measureDurationTicks,
   sortVoiceEvents,
@@ -712,17 +713,24 @@ function createRestsForSpan(input: {
     ]
   }
 
-  const durations = decomposeDurationTicks(durationTicks)
+  const durations = decomposeRestSpanInMeasure(
+    input.measure,
+    input.startTick,
+    input.endTick
+  )
 
   if (!durations) {
     return []
   }
 
   let tick = input.startTick
+  const usedIds = new Set<string>()
 
   return durations.map((duration, index) => {
+    const baseId =
+      index === 0 && input.firstId ? input.firstId : input.createId()
     const rest = createRest({
-      id: index === 0 && input.firstId ? input.firstId : input.createId(),
+      id: createUniqueRestId(baseId, usedIds),
       position: {
         tick
       },
@@ -732,6 +740,19 @@ function createRestsForSpan(input: {
     tick += durationToTicks(duration)
     return rest
   })
+}
+
+function createUniqueRestId(baseId: string, usedIds: Set<string>): string {
+  let id = baseId
+  let suffix = 2
+
+  while (usedIds.has(id)) {
+    id = `${baseId}-${suffix}`
+    suffix += 1
+  }
+
+  usedIds.add(id)
+  return id
 }
 
 export function decomposeDurationTicks(
@@ -767,6 +788,133 @@ export function decomposeDurationTicks(
   }
 
   return visit(totalTicks)
+}
+
+function decomposeRestSpanInMeasure(
+  measure: Measure,
+  startTick: Tick,
+  endTick: Tick
+): Duration[] | undefined {
+  if (endTick <= startTick) {
+    return []
+  }
+
+  const boundaries = createRestGroupingBoundaries(measure)
+
+  if (boundaries.beats.length < 2) {
+    return decomposeDurationTicks(endTick - startTick)
+  }
+
+  const durations: Duration[] = []
+  let tick = startTick
+
+  while (tick < endTick) {
+    const group = findCurrentGroup(boundaries.groups, tick)
+    const segmentEnd =
+      group && tick === group.start && group.end <= endTick
+        ? group.end
+        : findNextBoundary(boundaries.beats, tick, endTick)
+
+    if (segmentEnd <= tick) {
+      return undefined
+    }
+
+    const segmentDurations = decomposeDurationTicks(segmentEnd - tick)
+
+    if (!segmentDurations) {
+      return undefined
+    }
+
+    durations.push(...segmentDurations)
+    tick = segmentEnd
+  }
+
+  return durations
+}
+
+function createRestGroupingBoundaries(measure: Measure): {
+  beats: Tick[]
+  groups: Array<{ start: Tick; end: Tick }>
+} {
+  const measureTicks = measureDurationTicks(measure)
+  const beatTicks = TICKS_PER_QUARTER * (4 / measure.timeSignature.beatType)
+
+  if (
+    !Number.isInteger(beatTicks) ||
+    beatTicks <= 0 ||
+    measure.timeSignature.beats <= 0
+  ) {
+    return {
+      beats: [0, measureTicks],
+      groups: [{ start: 0, end: measureTicks }]
+    }
+  }
+
+  const beats = Array.from(
+    { length: Math.floor(measureTicks / beatTicks) + 1 },
+    (_, index) => index * beatTicks
+  ).filter((tick) => tick <= measureTicks)
+
+  if (beats.at(-1) !== measureTicks) {
+    beats.push(measureTicks)
+  }
+
+  if (
+    measure.timeSignature.beatType === 4 &&
+    measure.timeSignature.beats === 4 &&
+    measureTicks === beatTicks * 4
+  ) {
+    return {
+      beats,
+      groups: [
+        { start: 0, end: beatTicks * 2 },
+        { start: beatTicks * 2, end: measureTicks }
+      ]
+    }
+  }
+
+  if (
+    measure.timeSignature.beatType === 8 &&
+    measure.timeSignature.beats % 3 === 0
+  ) {
+    const groupTicks = beatTicks * 3
+    const groups: Array<{ start: Tick; end: Tick }> = []
+
+    for (let tick = 0; tick < measureTicks; tick += groupTicks) {
+      groups.push({
+        start: tick,
+        end: Math.min(tick + groupTicks, measureTicks)
+      })
+    }
+
+    return { beats, groups }
+  }
+
+  return {
+    beats,
+    groups: beats.slice(0, -1).map((start, index) => ({
+      start,
+      end: beats[index + 1]!
+    }))
+  }
+}
+
+function findCurrentGroup(
+  groups: Array<{ start: Tick; end: Tick }>,
+  tick: Tick
+): { start: Tick; end: Tick } | undefined {
+  return groups.find((group) => tick >= group.start && tick < group.end)
+}
+
+function findNextBoundary(
+  boundaries: Tick[],
+  tick: Tick,
+  endTick: Tick
+): Tick {
+  return Math.min(
+    endTick,
+    boundaries.find((boundary) => boundary > tick) ?? endTick
+  )
 }
 
 function normalizeReplacement(
