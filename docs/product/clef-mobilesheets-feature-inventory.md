@@ -92,7 +92,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Annotation | Favorite annotation tools | annotation page | favorite annotation tool preset 저장/복원이 있다 | feature map `favorite tool` | Implemented | 실사용 발견성 QA 필요 |
 | Annotation | Stylus pressure, stylus button shortcut, inactivity exit | annotation page | pressure/palm rejection은 있으나 stylus button/inactivity exit는 없다 | feature map `스타일러스 pressure`, `palm rejection` | Partially Implemented | S Pen 실기기 QA 필요 |
 | Annotation | Undo/redo and autosave | annotation page | stroke/text undo/redo와 자동 저장이 있다 | feature map `undo/redo`, `자동 저장` | Implemented | 대량 stroke 성능은 file-backed migration 후보 |
-| Annotation | Nudge tool | annotation page | 텍스트/스탬프 주석은 탭 후 상/하/좌/우 미세 이동 가능. stroke/shape는 normalized point 이동과 controller 저장 경로가 있으나 viewer 선택 UI는 아직 없다 | feature map `nudge tool` | Partially Implemented | 전체 selection model 필요 |
+| Annotation | Nudge tool | annotation page | 텍스트/스탬프/필기 stroke/도형 주석은 탭 후 상/하/좌/우 미세 이동과 삭제가 가능하다. 다중 선택/drag nudge는 아직 없다 | feature map `nudge tool` | Partially Implemented | 전체 selection model 필요 |
 | Annotation | Snipping/cut/copy/paste page content | annotation page | 없다 | feature map에는 명시적 구현 없음 | Not Implemented | PDF page bitmap 편집 영역 |
 | Annotation | Annotation layers | annotation page | 기본 layer visibility/export flag는 있다. 다중 layer/keying은 없다 | feature map `annotation layer` | Partially Implemented | 다중 layer는 후속 |
 | Annotation | Editable PDF annotation embed | annotation page | rendered stamp export fallback은 있으나 standard editable annotation export는 unsupported | spike backlog `PDF 표준 Annotation Embed/Export` | Partially Implemented | compatibility fixture 필요 |

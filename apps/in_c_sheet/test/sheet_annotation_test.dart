@@ -500,6 +500,16 @@ void main() {
     final nudged = stroke.shiftedBy(dx: 0.1, dy: -0.2);
     final clamped = stroke.shiftedBy(dx: -0.1, dy: 0.2);
     final updated = layer.updateStroke(nudged);
+    final hit = updated.strokeAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.12, y: 0.78),
+      tolerance: 0.03,
+    );
+    final miss = updated.strokeAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.5, y: 0.5),
+      tolerance: 0.01,
+    );
     final missing = layer.updateStroke(
       _stroke(id: 'missing', pageNumber: 1, createdAt: now),
     );
@@ -509,6 +519,8 @@ void main() {
     expect(clamped.points.first.x, 0);
     expect(clamped.points.first.y, 1);
     expect(updated.strokes.single.points.first.x, moreOrLessEquals(0.12));
+    expect(hit?.id, 'shape-1');
+    expect(miss, isNull);
     expect(updated.redoStack, isEmpty);
     expect(identical(missing, layer), isTrue);
   });

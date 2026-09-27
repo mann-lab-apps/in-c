@@ -1492,3 +1492,13 @@ targets clamping, layer update behavior and controller persistence. Targeted ann
 controller tests passed, full 1,414-test suite, analyze and RC release check passed.
 User-facing stroke/shape selection UI remains the next slice. No app build/version
 change/push/merge.
+
+S90 VERIFIED LOCAL: connected the stroke/shape nudge plumbing to the viewer without adding a
+large multi-selection model. When annotation mode is active with a pen/shape tool, tapping an
+existing stroke, line, arrow, rectangle, hairpin, staff or grid mark opens the same small
+movement/delete action pattern used for text and stamps. Regression coverage extends stroke
+hit-test and clamped movement behavior. Targeted annotation tests passed, full 1,414-test
+suite and analyze passed. RC release check reached format/whitespace/stale/debug scans but
+Flutter analyze/test inside the script could not complete because pub.dev advisory lookup reset
+the connection; rerun RC from this checkpoint before release packaging. No app build/version
+change/push/merge.

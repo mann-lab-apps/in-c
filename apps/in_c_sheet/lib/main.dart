@@ -8344,6 +8344,8 @@ enum _TextAnnotationAction {
   delete,
 }
 
+enum _StrokeAnnotationAction { moveUp, moveDown, moveLeft, moveRight, delete }
+
 enum _PageOrderAction { moveUp, moveDown, duplicate, reset }
 
 enum _JumpPointAction { add, open, rename, delete }
@@ -13167,12 +13169,24 @@ setlist=$setlistLabel
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
   ) async {
-    if (_annotationTool != _AnnotationToolbarTool.text &&
-        _annotationTool != _AnnotationToolbarTool.stamp) {
-      return;
-    }
     final point = geometry.pointFromPageLocal(details.localPosition);
     if (point == null) {
+      return;
+    }
+    if (_annotationTool != _AnnotationToolbarTool.text &&
+        _annotationTool != _AnnotationToolbarTool.stamp &&
+        _annotationTool != _AnnotationToolbarTool.eraser) {
+      final hitStroke = score.annotationLayer.strokeAt(
+        pageNumber: pageNumber,
+        point: point,
+        tolerance: geometry.normalizedToleranceForStrokeWidth(_annotationWidth),
+      );
+      if (hitStroke != null) {
+        await _showStrokeAnnotationActions(hitStroke);
+      }
+      return;
+    }
+    if (_annotationTool == _AnnotationToolbarTool.eraser) {
       return;
     }
     if (_annotationTool == _AnnotationToolbarTool.text) {
@@ -13234,6 +13248,89 @@ setlist=$setlistLabel
       );
     } catch (_) {
       _showSnackBar('텍스트 주석을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+    }
+  }
+
+  Future<void> _showStrokeAnnotationActions(
+    SheetAnnotationStroke annotation,
+  ) async {
+    final action = await showModalBottomSheet<_StrokeAnnotationAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.arrow_upward),
+              title: const Text('위로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_StrokeAnnotationAction.moveUp),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_downward),
+              title: const Text('아래로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_StrokeAnnotationAction.moveDown),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_back),
+              title: const Text('왼쪽으로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_StrokeAnnotationAction.moveLeft),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_forward),
+              title: const Text('오른쪽으로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_StrokeAnnotationAction.moveRight),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('필기/도형 삭제'),
+              onTap: () =>
+                  Navigator.of(context).pop(_StrokeAnnotationAction.delete),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) {
+      return;
+    }
+
+    switch (action) {
+      case _StrokeAnnotationAction.moveUp:
+        await _nudgeStrokeAnnotation(annotation, dx: 0, dy: -0.015);
+        return;
+      case _StrokeAnnotationAction.moveDown:
+        await _nudgeStrokeAnnotation(annotation, dx: 0, dy: 0.015);
+        return;
+      case _StrokeAnnotationAction.moveLeft:
+        await _nudgeStrokeAnnotation(annotation, dx: -0.015, dy: 0);
+        return;
+      case _StrokeAnnotationAction.moveRight:
+        await _nudgeStrokeAnnotation(annotation, dx: 0.015, dy: 0);
+        return;
+      case _StrokeAnnotationAction.delete:
+        final didRemove = await _saveAnnotationChange(
+          () => widget.controller.updateStrokeAnnotation(
+            score,
+            SheetAnnotationStroke(
+              id: annotation.id,
+              pageNumber: annotation.pageNumber,
+              tool: annotation.tool,
+              color: annotation.color,
+              width: annotation.width,
+              points: const <SheetAnnotationPoint>[],
+              createdAt: annotation.createdAt,
+            ),
+          ),
+        );
+        if (didRemove == null) return;
+        _showSnackBar(didRemove ? '필기/도형을 삭제했습니다.' : '삭제할 필기/도형이 없습니다.');
+        return;
     }
   }
 
@@ -13358,6 +13455,21 @@ setlist=$setlistLabel
     );
     if (didUpdate == null) return;
     _showSnackBar(didUpdate ? '텍스트/스탬프 위치를 조정했습니다.' : '이동할 텍스트가 없습니다.');
+  }
+
+  Future<void> _nudgeStrokeAnnotation(
+    SheetAnnotationStroke annotation, {
+    required double dx,
+    required double dy,
+  }) async {
+    final didUpdate = await _saveAnnotationChange(
+      () => widget.controller.updateStrokeAnnotation(
+        score,
+        annotation.shiftedBy(dx: dx, dy: dy),
+      ),
+    );
+    if (didUpdate == null) return;
+    _showSnackBar(didUpdate ? '필기/도형 위치를 조정했습니다.' : '이동할 필기/도형이 없습니다.');
   }
 
   Future<void> _eraseAnnotationAt(

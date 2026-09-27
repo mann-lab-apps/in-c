@@ -890,6 +890,19 @@ class SheetAnnotationLayer {
     return hits.last;
   }
 
+  SheetAnnotationStroke? strokeAt({
+    required int pageNumber,
+    required SheetAnnotationPoint point,
+    required double tolerance,
+  }) {
+    final hits = strokesForPage(pageNumber)
+        .where((stroke) => stroke.hitTest(point, tolerance: tolerance));
+    if (hits.isEmpty) {
+      return null;
+    }
+    return hits.last;
+  }
+
   SheetAnnotationLayer undoLastStroke(int pageNumber) {
     final pageStrokes = strokesForPage(pageNumber);
     if (pageStrokes.isEmpty) {
