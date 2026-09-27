@@ -134,7 +134,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
 | 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 작업별 도움말(라이브러리 정리, 정보 보강, 세트리스트, 긴 악보 이동, 오디오 연습, 필기/공유), 주요 테스트 항목, 피드백 템플릿 복사, 진단 요약 복사, 기기 리포트 만들기, App Store 심사용 마케팅/지원/개인정보 URL 표시와 복사, 외부 QA 체크리스트/known issues 문서 |
-| 설정/접근성 | 기기 성능 리포트 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `기기 성능 리포트` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 리포트 복사·공유를 제공한다. 일반 연주 기능이 아니라 개발자에게 보낼 지원/성능 보고이며, 사용자 악보/세트리스트/필기를 수정하지 않고 자동 서버 전송도 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
+| 설정/접근성 | 기기 성능 리포트 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `기기 성능 리포트` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 리포트 복사·공유를 제공한다. 키 입력은 매핑 감지와 실제 악보 화면의 페이지 단위 이동을 구분해 기록하며, 시스템 volume key는 기본 페이지 넘김으로 쓰지 않는다. 일반 연주 기능이 아니라 개발자에게 보낼 지원/성능 보고이며, 사용자 악보/세트리스트/필기를 수정하지 않고 자동 서버 전송도 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |
 
