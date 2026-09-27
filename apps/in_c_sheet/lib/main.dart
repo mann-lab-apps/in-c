@@ -5566,11 +5566,12 @@ String _setlistMissingScoreSuffix(SheetSetlistBulkAddResult result) =>
 
 String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
   final buffer = StringBuffer()
-    ..writeln(setlist.title)
+    ..writeln('Clef & Staff 세트리스트')
+    ..writeln('제목: ${setlist.title}')
     ..writeln(
       setlist.totalEstimatedSeconds > 0
-          ? '${scores.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}'
-          : '${scores.length}곡',
+          ? '곡 수: ${scores.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}'
+          : '곡 수: ${scores.length}곡',
     );
   if (setlist.transitionSeconds > 0 && scores.length > 1) {
     buffer.writeln('전환 ${_formatDuration(setlist.transitionSeconds)}');
@@ -5579,22 +5580,56 @@ String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
 
   for (var index = 0; index < scores.length; index += 1) {
     final score = scores[index];
-    final composer = score.composer.trim();
-    final note = setlist.scoreNotes[score.id]?.trim();
-    final duration = setlist.scoreDurations[score.id] ?? 0;
-    final details = <String>[
-      if (composer.isNotEmpty) composer,
-      '${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽부터',
-      if (duration > 0) _formatDuration(duration),
-      if (note?.isNotEmpty == true) note!,
-    ];
     buffer.writeln('${index + 1}. ${score.displayTitle}');
-    if (details.isNotEmpty) {
-      buffer.writeln('   ${details.join(' · ')}');
+    final details = _setlistShareDetails(setlist, score);
+    for (final detail in details) {
+      buffer.writeln('   $detail');
     }
   }
 
   return buffer.toString().trimRight();
+}
+
+List<String> _setlistShareDetails(SheetSetlist setlist, SheetScore score) {
+  final composer = score.composer.trim();
+  final note = setlist.scoreNotes[score.id]?.trim();
+  final duration = setlist.scoreDurations[score.id] ?? 0;
+  final collection = score.collection.trim();
+  final group = score.group.trim();
+  final scoreNote = score.note.trim();
+  final metadata = <String>[
+    if (composer.isNotEmpty) '작곡가: $composer',
+    '파일: ${score.sourceFileDisplayName}',
+    '시작: ${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽',
+    if (duration > 0) '예상 시간: ${_formatDuration(duration)}',
+    if (note?.isNotEmpty == true) '세트 메모: $note',
+    if (scoreNote.isNotEmpty) '악보 메모: $scoreNote',
+    if (score.tags.isNotEmpty) '태그: ${score.tags.join(', ')}',
+    if (collection.isNotEmpty) '컬렉션: $collection',
+    if (group.isNotEmpty) '그룹: $group',
+    if (score.rating > 0) '별점: ${score.rating}/5',
+  ];
+  for (final field in score.customFields) {
+    metadata.add('${field.key}: ${field.value}');
+  }
+  final metronome =
+      setlist.scoreMetronomeSettings[score.id] ?? score.metronomeSettings;
+  if (metronome != null) {
+    metadata.add('메트로놈: ${_formatMetronomeSettings(metronome)}');
+  }
+  return metadata;
+}
+
+String _formatMetronomeSettings(SheetMetronomeSettings settings) {
+  final parts = <String>[
+    '${settings.bpm} BPM',
+    settings.meter.label,
+    if (settings.subdivision != SheetMetronomeSubdivision.none)
+      settings.subdivision.label,
+    settings.soundEnabled ? '소리 ${settings.volumePercent}%' : '시각만',
+    if (settings.countInBars > 0) '카운트인 ${settings.countInBars}마디',
+  ];
+  return parts.join(' · ');
 }
 
 @visibleForTesting
@@ -7072,7 +7107,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       return;
     }
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('세트리스트 내용을 복사했습니다.')));
+        .showSnackBar(const SnackBar(content: Text('공유용 세트리스트 내용을 복사했습니다.')));
   }
 
   Future<void> _addScore() async {

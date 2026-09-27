@@ -111,7 +111,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | External Control | Link points | utilities page | page jump point metadata와 tappable overlay/list가 있다 | feature map `link point/jump point` | Implemented | repeat 처리용 기본은 있음 |
 | External Control | Smart buttons | utilities page | 없다 | feature map `smart button` | Not Implemented | action registry 필요 |
 | External Control | Configurable quick action box | utilities page | 공연 모드 quick action overlay와 일부 toggle action이 있다 | feature map `quick action box` | Partially Implemented | 위치 이동/숨김/사용자 구성 폭은 작음 |
-| Sync / Collaboration | Share score/setlist package | collaboration page | PDF/share/backup ZIP은 있으나 MobileSheets 전용 setlist package 공유는 없다 | feature map `PDF 공유/export`, `백업/복원` | Partially Implemented | 같은 라이브러리 사용자 간 PDF 없는 setlist 공유는 없음 |
+| Sync / Collaboration | Share score/setlist package | collaboration page | PDF/share/backup ZIP이 있고, 세트리스트는 제목/곡수/예상 시간/전환/곡별 파일명/시작쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 텍스트 manifest를 복사할 수 있다. MobileSheets 전용 binary setlist package는 없다 | feature map `PDF 공유/export`, `백업/복원`, `세트리스트` | Partially Implemented | PDF 파일 자체를 묶지 않는 가벼운 공유/전달용 manifest이며, 같은 라이브러리 사용자 간 자동 import는 없음 |
 | Sync / Collaboration | Export PDFs with annotations | collaboration page | rendered annotation PDF 사본 공유가 있다 | feature map `필기 포함 PDF 공유` | Implemented | editable annotation export는 미구현 |
 | Sync / Collaboration | Library cloud synchronization | collaboration and files pages | 없다. 백업/복원과 system picker import만 있음 | feature map `클라우드 동기화` | Not Implemented | account/conflict/privacy 결정 필요 |
 | Sync / Collaboration | Wi-Fi/Bluetooth leader-follower tablets | collaboration page | 없다 | feature map `leader/follower tablet` | Not Implemented | 공연 협업 영역 |
@@ -137,7 +137,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 ## MobileSheets 대비 큰 gap
 
 1. Cloud/sync/collaboration: cloud library sync, field-selective sync, leader/follower tablets,
-   same-library setlist sharing은 Clef에 없다.
+   automatic same-library setlist package import는 Clef에 없다. 세트리스트 공유용 텍스트
+   manifest는 있으나 PDF 파일과 라이브러리 항목을 자동 재구성하지는 않는다.
 2. Text/ChordPro/docx: MobileSheets는 텍스트/ChordPro를 악보 유형으로 다루지만 Clef는 PDF/image 중심이다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오

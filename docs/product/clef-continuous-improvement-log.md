@@ -1534,3 +1534,11 @@ cards and explicit `정보 편집` buttons instead of reusing the quick-access s
 now asserts the task-oriented copy and the layout no longer overflows at tablet size. Feature
 map, MobileSheets inventory and Device QA runbook were updated to describe the separated task
 panel.
+
+S95 VERIFIED LOCAL: reducing the MobileSheets setlist package gap without adding a binary
+package/import format. Existing `목록 복사` now copies a richer Clef setlist manifest with
+setlist title, score count, estimated duration, transition, per-score file display name,
+start page, duration, set note, score note, tags, collection/group/rating, custom fields and
+per-score metronome settings. This remains a lightweight text share path and does not bundle
+PDF files or auto-import into another library. Regression coverage extends the setlist share
+text test; feature map, MobileSheets inventory and QA docs describe the new boundary.
