@@ -377,6 +377,16 @@ class SheetTextAnnotation {
     );
   }
 
+  SheetTextAnnotation shiftedBy({required double dx, required double dy}) {
+    return copyWith(
+      position: SheetAnnotationPoint(
+        x: (position.x + dx).clamp(0.0, 1.0).toDouble(),
+        y: (position.y + dy).clamp(0.0, 1.0).toDouble(),
+        pressure: position.pressure,
+      ),
+    );
+  }
+
   bool hitTest(SheetAnnotationPoint point, {double tolerance = 0.025}) {
     if (text.trim().isEmpty) {
       return false;

@@ -92,7 +92,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Annotation | Favorite annotation tools | annotation page | favorite annotation tool preset 저장/복원이 있다 | feature map `favorite tool` | Implemented | 실사용 발견성 QA 필요 |
 | Annotation | Stylus pressure, stylus button shortcut, inactivity exit | annotation page | pressure/palm rejection은 있으나 stylus button/inactivity exit는 없다 | feature map `스타일러스 pressure`, `palm rejection` | Partially Implemented | S Pen 실기기 QA 필요 |
 | Annotation | Undo/redo and autosave | annotation page | stroke/text undo/redo와 자동 저장이 있다 | feature map `undo/redo`, `자동 저장` | Implemented | 대량 stroke 성능은 file-backed migration 후보 |
-| Annotation | Nudge tool | annotation page | 없다 | feature map `nudge tool` | Not Implemented | selection model 필요 |
+| Annotation | Nudge tool | annotation page | 텍스트/스탬프 주석은 탭 후 상/하/좌/우 미세 이동 가능. stroke/shape nudge는 없다 | feature map `nudge tool` | Partially Implemented | 전체 selection model 필요 |
 | Annotation | Snipping/cut/copy/paste page content | annotation page | 없다 | feature map에는 명시적 구현 없음 | Not Implemented | PDF page bitmap 편집 영역 |
 | Annotation | Annotation layers | annotation page | 기본 layer visibility/export flag는 있다. 다중 layer/keying은 없다 | feature map `annotation layer` | Partially Implemented | 다중 layer는 후속 |
 | Annotation | Editable PDF annotation embed | annotation page | rendered stamp export fallback은 있으나 standard editable annotation export는 unsupported | spike backlog `PDF 표준 Annotation Embed/Export` | Partially Implemented | compatibility fixture 필요 |
@@ -143,7 +143,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
    연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker
    timeline, 여러 track marker preset은 없다.
-5. Advanced annotation: custom stamps, nudge, snipping, multi-layer, editable PDF annotation export가 남아 있다.
+5. Advanced annotation: stroke/shape nudge, custom stamps, snipping, multi-layer, editable PDF annotation export가 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
 7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
    있으나 MobileSheets식 내용 기반 automatic crop, Android direct-reference library는 없다.

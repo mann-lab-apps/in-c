@@ -1460,3 +1460,10 @@ and annotation/share flows so users can find features by job rather than by icon
 Targeted home-tools smoke coverage passed across compact, landscape and tablet sizes. Full
 1,412-test suite, analyze and RC release check passed. No app build/version
 change/push/merge.
+
+S86 VERIFIED LOCAL: starting a small annotation nudge slice without introducing a full
+selection model. Text and stamp annotations already open an action sheet when tapped; this
+slice adds four small move actions for those annotation types only. Stroke/shape selection
+and multi-object nudge remain future work. Targeted model coverage checks normalized
+position clamping, and the full 1,413-test suite, analyze and RC release check passed.
+No app build/version change/push/merge.

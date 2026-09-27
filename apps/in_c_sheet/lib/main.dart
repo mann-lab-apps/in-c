@@ -8301,7 +8301,14 @@ _SheetViewerDisplayEffect _displayEffectFromSettings(
 
 enum _BookmarkListAction { open, rename, delete }
 
-enum _TextAnnotationAction { edit, delete }
+enum _TextAnnotationAction {
+  edit,
+  moveUp,
+  moveDown,
+  moveLeft,
+  moveRight,
+  delete,
+}
 
 enum _PageOrderAction { moveUp, moveDown, duplicate, reset }
 
@@ -13213,6 +13220,32 @@ setlist=$setlistLabel
               onTap: () =>
                   Navigator.of(context).pop(_TextAnnotationAction.edit),
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.arrow_upward),
+              title: const Text('위로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_TextAnnotationAction.moveUp),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_downward),
+              title: const Text('아래로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_TextAnnotationAction.moveDown),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_back),
+              title: const Text('왼쪽으로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_TextAnnotationAction.moveLeft),
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_forward),
+              title: const Text('오른쪽으로 조금 이동'),
+              onTap: () =>
+                  Navigator.of(context).pop(_TextAnnotationAction.moveRight),
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.delete_outline),
               title: const Text('텍스트 삭제'),
@@ -13256,6 +13289,18 @@ setlist=$setlistLabel
         if (didUpdate == null) return;
         _showSnackBar(didUpdate ? '텍스트 주석을 수정했습니다.' : '수정할 텍스트가 없습니다.');
         return;
+      case _TextAnnotationAction.moveUp:
+        await _nudgeTextAnnotation(annotation, dx: 0, dy: -0.015);
+        return;
+      case _TextAnnotationAction.moveDown:
+        await _nudgeTextAnnotation(annotation, dx: 0, dy: 0.015);
+        return;
+      case _TextAnnotationAction.moveLeft:
+        await _nudgeTextAnnotation(annotation, dx: -0.015, dy: 0);
+        return;
+      case _TextAnnotationAction.moveRight:
+        await _nudgeTextAnnotation(annotation, dx: 0.015, dy: 0);
+        return;
       case _TextAnnotationAction.delete:
         final didRemove = await _saveAnnotationChange(
           () => widget.controller.removeTextAnnotation(score, annotation.id),
@@ -13264,6 +13309,21 @@ setlist=$setlistLabel
         _showSnackBar(didRemove ? '텍스트 주석을 삭제했습니다.' : '삭제할 텍스트가 없습니다.');
         return;
     }
+  }
+
+  Future<void> _nudgeTextAnnotation(
+    SheetTextAnnotation annotation, {
+    required double dx,
+    required double dy,
+  }) async {
+    final didUpdate = await _saveAnnotationChange(
+      () => widget.controller.updateTextAnnotation(
+        score,
+        annotation.shiftedBy(dx: dx, dy: dy),
+      ),
+    );
+    if (didUpdate == null) return;
+    _showSnackBar(didUpdate ? '텍스트/스탬프 위치를 조정했습니다.' : '이동할 텍스트가 없습니다.');
   }
 
   Future<void> _eraseAnnotationAt(

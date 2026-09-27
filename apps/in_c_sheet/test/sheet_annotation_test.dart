@@ -668,6 +668,24 @@ void main() {
     expect(removed.texts, isEmpty);
   });
 
+  test('text annotations can be nudged within page bounds', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final text = _text(
+      id: 'text-1',
+      pageNumber: 1,
+      createdAt: now,
+      position: const SheetAnnotationPoint(x: 0.02, y: 0.98),
+    );
+
+    final nudged = text.shiftedBy(dx: 0.1, dy: -0.2);
+    final clamped = text.shiftedBy(dx: -0.1, dy: 0.2);
+
+    expect(nudged.position.x, moreOrLessEquals(0.12));
+    expect(nudged.position.y, moreOrLessEquals(0.78));
+    expect(clamped.position.x, 0);
+    expect(clamped.position.y, 1);
+  });
+
   test('text annotation hit test finds the last matching text on a page', () {
     final now = DateTime.parse('2026-08-21T10:00:00.000');
     final layer = SheetAnnotationLayer.empty
@@ -908,11 +926,12 @@ SheetTextAnnotation _text({
   required String id,
   required int pageNumber,
   required DateTime createdAt,
+  SheetAnnotationPoint position = const SheetAnnotationPoint(x: 0.25, y: 0.5),
 }) {
   return SheetTextAnnotation(
     id: id,
     pageNumber: pageNumber,
-    position: const SheetAnnotationPoint(x: 0.25, y: 0.5),
+    position: position,
     text: 'Note',
     color: 0xff111111,
     fontSize: 18,
