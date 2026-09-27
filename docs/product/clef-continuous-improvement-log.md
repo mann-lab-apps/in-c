@@ -1509,3 +1509,11 @@ for a normal score feature. The home menu entry is now `기기 성능 리포트`
 performance report for the developer without uploading automatically or modifying scores.
 Regression coverage updated the home tools menu and Clef home smoke tests. Targeted tests,
 analyze and `git diff --check` passed. No app build/version change/push/merge.
+
+S92 VERIFIED LOCAL: physical-device report showed PageUp/PageDown turn pages but arrow keys
+still nudge-scroll the PDF surface. The viewer now registers a route-scoped hardware keyboard
+handler so standard page-turn keys are consumed before the PDF viewer can treat arrows as
+small scroll deltas. Volume keys remain unmapped by default to avoid stealing system volume;
+they can be considered as custom pedal inputs if a real pedal sends them. Viewer input unit
+tests, analyze and format passed. Actual Android tablet Arrow/Page key behavior needs the next
+internal-test build/device check.

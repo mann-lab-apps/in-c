@@ -9261,6 +9261,7 @@ setlist=$setlistLabel
     _pageNumber = _initialViewerPage;
     _pdfController.addListener(_handleViewerChanged);
     widget.controller.addListener(_handleLibraryChanged);
+    HardwareKeyboard.instance.addHandler(_handleViewerHardwareKeyEvent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
@@ -9316,6 +9317,7 @@ setlist=$setlistLabel
       textSearcher.dispose();
     }
     _pdfController.removeListener(_handleViewerChanged);
+    HardwareKeyboard.instance.removeHandler(_handleViewerHardwareKeyEvent);
     _keyboardFocusNode.dispose();
     super.dispose();
   }
@@ -14114,9 +14116,23 @@ setlist=$setlistLabel
     _schedulePageControlsAutoHide();
   }
 
+  bool _handleViewerHardwareKeyEvent(KeyEvent event) {
+    final route = ModalRoute.of(context);
+    if (!mounted || (route != null && !route.isCurrent)) {
+      return false;
+    }
+    return _handleViewerKeyEventCore(event);
+  }
+
   KeyEventResult _handleViewerKeyEvent(FocusNode node, KeyEvent event) {
+    return _handleViewerKeyEventCore(event)
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored;
+  }
+
+  bool _handleViewerKeyEventCore(KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
+      return false;
     }
     final entry = SheetViewerInputDiagnosticEntry.fromKeyEvent(
       event: event,
@@ -14138,12 +14154,12 @@ setlist=$setlistLabel
     );
     if (shouldConsume) {
       if (entry.action == SheetViewerInputAction.none) {
-        return KeyEventResult.handled;
+        return true;
       }
       _handleViewerInputIntent(_ViewerInputIntent(entry.action));
-      return KeyEventResult.handled;
+      return true;
     }
-    return KeyEventResult.ignored;
+    return false;
   }
 
   Future<void> _showInputDiagnostic() async {
