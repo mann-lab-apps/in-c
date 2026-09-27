@@ -1339,7 +1339,10 @@ void main() {
     expect(find.text('사용자 필드 일괄 지정'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, '조성'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, '박자'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '조표'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '앨범'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, '출처'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '출처 유형'), findsOneWidget);
     expect(find.text('필드 이름'), findsOneWidget);
     expect(find.text('필드 값'), findsOneWidget);
 
@@ -1372,9 +1375,10 @@ void main() {
       find.widgetWithText(TextField, '추가할 태그'),
       'practice',
     );
-    await tester.ensureVisible(apply);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
-    await tester.tap(apply);
+    final secondApply = find.widgetWithText(FilledButton, '적용');
+    await tester.tap(secondApply);
     await tester.pumpAndSettle();
     expect(controller.scoreById('score-1').composer, 'Bach');
     expect(controller.scoreById('score-1').tags, contains('practice'));
@@ -1700,10 +1704,13 @@ void main() {
     expect(find.text('자주 쓰는 필드'), findsOneWidget);
     expect(find.text('조성'), findsOneWidget);
     expect(find.text('박자'), findsOneWidget);
+    expect(find.text('조표'), findsOneWidget);
     expect(find.text('장르'), findsOneWidget);
+    expect(find.text('앨범'), findsOneWidget);
     expect(find.text('난이도'), findsOneWidget);
     expect(find.text('편성'), findsOneWidget);
     expect(find.text('출처'), findsOneWidget);
+    expect(find.text('출처 유형'), findsOneWidget);
     expect(find.text('연도'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -250,9 +250,11 @@ Future<void> _submit(WidgetTester tester, {required bool collection}) async {
     await tester.tap(find.text('Recital').last);
   } else {
     await tester.enterText(find.widgetWithText(TextField, '작곡가 변경'), 'Mozart');
-    final apply = find.widgetWithText(FilledButton, '적용');
-    await tester.ensureVisible(apply);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -900));
+    await tester.pumpAndSettle();
+    final apply = find.widgetWithText(FilledButton, '적용');
     await tester.tap(apply);
   }
   await tester.pumpAndSettle();

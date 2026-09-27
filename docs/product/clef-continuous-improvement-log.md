@@ -1445,3 +1445,10 @@ viewer setlist context, and the viewer app bar/progress badge shows `다음: ...
 following score exists. Targeted controller and progress-badge smoke tests passed. Full
 1,412-test suite, analyze and RC release check passed. No app build/version
 change/push/merge.
+
+S84 VERIFIED LOCAL: absorbing a little more MobileSheets metadata depth without adding dense
+tabs or a fixed twenty-field schema. Clef's common custom metadata chips now include `조표`,
+`앨범` and `출처 유형` alongside the previous key/meter/genre/difficulty/instrumentation/source/year
+set, with matching facet icons. Metadata smoke tests and bulk-edit recovery tests passed
+after making the recovery helper close text input before tapping the longer sheet. Full
+1,412-test suite, analyze and RC release check passed. No app build/version change/push/merge.

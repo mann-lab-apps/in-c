@@ -2902,10 +2902,13 @@ IconData _customMetadataFacetIcon(String fieldKey) {
   return switch (fieldKey) {
     '조성' => Icons.music_note_outlined,
     '박자' => Icons.av_timer_outlined,
+    '조표' => Icons.key_outlined,
     '장르' => Icons.category_outlined,
+    '앨범' => Icons.album_outlined,
     '난이도' => Icons.trending_up_outlined,
     '편성' => Icons.groups_outlined,
     '출처' => Icons.source_outlined,
+    '출처 유형' => Icons.folder_copy_outlined,
     '연도' => Icons.calendar_month_outlined,
     _ => Icons.tune_outlined,
   };
@@ -3903,10 +3906,13 @@ class _CustomFieldsEditor extends StatelessWidget {
 const _commonCustomMetadataFieldKeys = <String>[
   '조성',
   '박자',
+  '조표',
   '장르',
+  '앨범',
   '난이도',
   '편성',
   '출처',
+  '출처 유형',
   '연도',
 ];
 
