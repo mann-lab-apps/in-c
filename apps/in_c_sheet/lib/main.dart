@@ -644,7 +644,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: const Text('텍스트/ChordPro/DOCX 안내'),
-                subtitle: const Text('아직 직접 보기 미지원 · PDF 변환 권장'),
+                subtitle: const Text('지원 준비 중 · 지금은 PDF 변환 권장'),
                 onTap: () =>
                     Navigator.of(context)
                         .pop(_LibraryImportAction.textScoreInfo),
@@ -714,9 +714,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.upcoming_outlined),
-                title: Text('후속 검토 항목'),
+                title: Text('ChordPro 지원 준비 중'),
                 subtitle: Text(
-                  'ChordPro transpose/capo와 텍스트 악보 전용 보기 모드는 별도 기능으로 검토합니다.',
+                  '코드/가사 분석, transpose, capo shape 계산 코어는 준비되어 있지만 라이브러리 악보로 직접 추가하는 화면은 후속입니다.',
                 ),
               ),
               const SizedBox(height: 8),

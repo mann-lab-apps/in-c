@@ -88,7 +88,7 @@ class SheetFileImportPolicy {
     final name = _fileNameFromMessage(value);
     final extension = extensionOf(name);
     final label = _unsupportedTextScoreLabel(extension);
-    return '$label 파일은 아직 Clef & Staff에서 직접 열 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보 중심입니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
+    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. ChordPro 코드/가사 지원은 준비 중이며, 현재 버전은 PDF/JPG/PNG 악보 중심입니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }
 
   static String extensionOf(String name) {

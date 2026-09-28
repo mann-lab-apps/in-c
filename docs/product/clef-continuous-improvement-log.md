@@ -1632,3 +1632,9 @@ shapes using the saved capo directive or an explicit fret override, and suppress
 trailing empty line from files ending with a newline. Focused tests cover plain rendering,
 transposed rendering, capo-shape rendering and trailing newline behavior. Import UI, styled
 viewer layout and DOCX parsing remain later work.
+
+S109 VERIFIED LOCAL: refreshed the text-score import guidance now that ChordPro parser/rendering
+core exists. The import policy and home import info sheet no longer imply that Clef has no
+ChordPro work at all; they now say ChordPro code/lyric, transpose and capo support is being
+prepared while the current safe library path remains PDF/JPG/PNG. Widget and policy tests cover
+the updated copy. Direct Text/ChordPro import/viewer UI is still not enabled.

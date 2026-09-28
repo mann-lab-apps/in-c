@@ -847,7 +847,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('지금 가능한 흐름'), findsOneWidget);
-    expect(find.textContaining('직접 열 수 없습니다'), findsOneWidget);
+    expect(find.textContaining('악보로 직접 추가할 수 없습니다'), findsOneWidget);
+    expect(find.text('ChordPro 지원 준비 중'), findsOneWidget);
     expect(find.textContaining('PDF 가져오기를 사용'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
