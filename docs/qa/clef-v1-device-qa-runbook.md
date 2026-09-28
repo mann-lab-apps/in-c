@@ -46,6 +46,10 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   import다. PDF를 포함하는 `clef.setlist.package` ZIP은 세트리스트 화면의 `패키지` 버튼에서
   선택해 dry-run preview까지 확인할 수 있다. package 안 PDF를 실제 라이브러리에 저장하고 새
   score/setlist를 만드는 import storage와 package export/share UI는 아직 없다.
+- `악보 추가`의 `텍스트/ChordPro/DOCX 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
+  ChordPro 텍스트를 붙여넣어 제목/작곡가/조성/박자 metadata chip과 코드/가사 preview가 보이는지
+  확인한다. 이 경로는 저장 없는 preview이며, 라이브러리에 새 악보가 생기면 안 된다. DOCX parsing과
+  ChordPro 전용 viewer/import save는 후속이다.
 
 ## 10-15분 RC Smoke 결과표
 
@@ -138,8 +142,8 @@ Repo 포함 fixture:
 - 실제 CamScanner/object-stream PDF 1개.
 - JPG/PNG 이미지 악보 2-3장.
 - HEIC/HEIF 이미지 1장.
-- Text/ChordPro/DOCX 악보 샘플 1개씩. 직접 보기 지원 확인이 아니라 PDF 변환 안내가 자연스러운지 확인한다.
-  ChordPro는 parser/import draft 기반만 있으므로 직접 악보 추가 UI가 열리면 안 된다.
+- Text/ChordPro/DOCX 악보 샘플 1개씩. Text/DOCX는 PDF 변환 안내가 자연스러운지 확인하고,
+  ChordPro는 붙여넣기 미리보기에서 metadata/preview가 보이되 직접 악보 저장으로 이어지지 않는지 확인한다.
 - Drive, iCloud, Dropbox 등 cloud provider에만 있는 PDF 1개.
 - MP3/M4A/WAV local audio file 각 1개 이상.
 

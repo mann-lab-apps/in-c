@@ -21,6 +21,7 @@ import 'sheet_annotation.dart';
 import 'sheet_annotation_geometry.dart';
 import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_chordpro.dart';
 import 'sheet_device_check.dart';
 import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
@@ -708,18 +709,31 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.lyrics_outlined),
+                title: const Text('ChordPro 붙여넣기 미리보기'),
+                subtitle: const Text('코드/가사 렌더링과 metadata 추출을 저장 전 확인합니다.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(_showChordProPreview());
+                },
+              ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.picture_as_pdf_outlined),
-                title: Text('지금 가능한 흐름'),
-                subtitle: Text('원본 앱에서 PDF로 내보내거나 인쇄한 뒤 PDF 가져오기를 사용하세요.'),
+                title: Text('지금 가능한 저장 흐름'),
+                subtitle: Text(
+                  '라이브러리 악보 저장은 원본 앱에서 PDF로 내보내거나 인쇄한 뒤 PDF 가져오기를 사용하세요.',
+                ),
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.upcoming_outlined),
                 title: Text('ChordPro 지원 준비 중'),
                 subtitle: Text(
-                  '코드/가사 분석, transpose, capo shape 계산 코어는 준비되어 있지만 라이브러리 악보로 직접 추가하는 화면은 후속입니다.',
+                  '코드/가사 분석, transpose, capo shape 계산 코어와 붙여넣기 미리보기는 준비되어 있지만 라이브러리 악보로 직접 추가하는 화면은 후속입니다.',
                 ),
               ),
               const SizedBox(height: 8),
@@ -734,6 +748,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showChordProPreview() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => const _ChordProPreviewSheet(),
     );
   }
 
@@ -7429,6 +7452,189 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ChordProPreviewSheet extends StatefulWidget {
+  const _ChordProPreviewSheet();
+
+  @override
+  State<_ChordProPreviewSheet> createState() => _ChordProPreviewSheetState();
+}
+
+class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final source = _controller.text;
+    final hasText = source.trim().isNotEmpty;
+    final document = hasText ? SheetChordProParser.parse(source) : null;
+    final draft = document == null
+        ? null
+        : SheetChordProScoreDraft.fromDocument(document);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: 20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 760),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ChordPro 미리보기',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '저장하지 않고 코드/가사 렌더링과 metadata 추출 결과만 확인합니다.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                maxLines: 8,
+                minLines: 5,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'ChordPro 텍스트',
+                  hintText: '{title: Autumn Tune}\n{artist: Lee}\n[C]노래 [G]가사',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: hasText
+                      ? _ChordProParsedPreview(
+                          document: document!,
+                          draft: draft!,
+                        )
+                      : Text(
+                          'ChordPro 텍스트를 붙여넣으면 제목, 작곡가, 조성, 박자, 카포와 코드/가사 미리보기를 보여줍니다.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'DOCX 직접 읽기와 라이브러리 저장은 후속입니다.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('닫기'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChordProParsedPreview extends StatelessWidget {
+  const _ChordProParsedPreview({required this.document, required this.draft});
+
+  final SheetChordProDocument document;
+  final SheetChordProScoreDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metadataChips = <Widget>[
+      Chip(label: Text('제목: ${draft.title}')),
+      if (draft.composer.isNotEmpty)
+        Chip(label: Text('작곡가: ${draft.composer}')),
+      if (draft.subtitle.isNotEmpty) Chip(label: Text('부제: ${draft.subtitle}')),
+      if (draft.tags.isNotEmpty)
+        Chip(label: Text('태그: ${draft.tags.join(', ')}')),
+      for (final entry in draft.customFields.entries)
+        if (entry.key != '출처 유형')
+          Chip(label: Text('${entry.key}: ${entry.value}')),
+    ];
+    final previewText = draft.previewText.trim().isEmpty
+        ? '표시할 코드/가사 줄이 없습니다.'
+        : draft.previewText;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ImportStatusBox(
+          icon: document.hasChords
+              ? Icons.check_circle_outline
+              : Icons.info_outline,
+          title: document.hasChords ? '코드를 읽었습니다' : '가사/텍스트를 읽었습니다',
+          message:
+              '${draft.title} · ${document.lines.length}줄 · ${document.metadata.length}개 metadata',
+          color: document.hasChords
+              ? theme.colorScheme.secondary
+              : theme.colorScheme.tertiary,
+        ),
+        if (metadataChips.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: metadataChips),
+        ],
+        const SizedBox(height: 10),
+        Text(
+          '렌더링 미리보기',
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.42,
+            ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+            ),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SelectableText(
+                previewText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontFamily: 'monospace',
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

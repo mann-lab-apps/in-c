@@ -1046,10 +1046,47 @@ Clef & Staff 세트리스트
     await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
     await tester.pumpAndSettle();
 
-    expect(find.text('지금 가능한 흐름'), findsOneWidget);
+    expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
     expect(find.textContaining('악보로 직접 추가할 수 없습니다'), findsOneWidget);
     expect(find.text('ChordPro 지원 준비 중'), findsOneWidget);
     expect(find.textContaining('PDF 가져오기를 사용'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro info can preview pasted text without saving', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ChordPro 붙여넣기 미리보기'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'ChordPro 텍스트'), '''
+{title: Autumn Tune}
+{artist: Lee}
+{key: D}
+{time: 6/8}
+[D]가을 [A]노래
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('코드를 읽었습니다'), findsOneWidget);
+    expect(find.text('제목: Autumn Tune'), findsOneWidget);
+    expect(find.text('작곡가: Lee'), findsOneWidget);
+    expect(find.text('조성: D'), findsOneWidget);
+    expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(controller.scores, isEmpty);
     expect(tester.takeException(), isNull);
   });
 

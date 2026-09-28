@@ -1791,3 +1791,9 @@ The sheet explicitly says package file storage/import is still the next slice, s
 preview for a completed import.
 Focused package/smoke/save-recovery tests passed. Format, analyze, full 1,461-test suite, RC release
 check, git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.
+
+S131 VERIFIED LOCAL: exposed the existing ChordPro parser/rendering core through a no-save paste
+preview. The import menu's Text/ChordPro/DOCX help now opens a ChordPro preview sheet that parses
+pasted text, surfaces title/composer/key/time/capo metadata as chips, renders chord-over-lyric plain
+text, and states that DOCX parsing/library save is still follow-up. No score/library writes occur.
+Focused smoke test passed; full validation is recorded with the commit.
