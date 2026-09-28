@@ -19995,6 +19995,8 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   late final TextEditingController _loopEndController;
   bool _isPlaying = false;
   bool _loopEnabled = false;
+  int? _savedLoopStartMs;
+  int? _savedLoopEndMs;
   SheetAudioPlaybackResult? _lastResult;
 
   @override
@@ -20010,6 +20012,8 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     _loopEnabled =
         widget.linkedFile.audioLoopStartMs != null &&
         widget.linkedFile.audioLoopEndMs != null;
+    _savedLoopStartMs = widget.linkedFile.audioLoopStartMs;
+    _savedLoopEndMs = widget.linkedFile.audioLoopEndMs;
   }
 
   @override
@@ -20068,6 +20072,16 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     return _formatAudioLoopSeconds(milliseconds);
   }
 
+  bool _isSavedLoopText(String start, String end) {
+    final startSeconds = double.tryParse(start);
+    final endSeconds = double.tryParse(end);
+    if (startSeconds == null || endSeconds == null) {
+      return false;
+    }
+    return _savedLoopStartMs == (startSeconds * 1000).round() &&
+        _savedLoopEndMs == (endSeconds * 1000).round();
+  }
+
   Widget _buildLoopSummary(ThemeData theme) {
     Widget buildSummary(
       TextEditingValue startValue,
@@ -20078,6 +20092,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       if (!_loopEnabled || start.isEmpty || end.isEmpty) {
         return const SizedBox.shrink();
       }
+      final statusLabel = _isSavedLoopText(start, end) ? '저장된 구간' : '새 구간';
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: DecoratedBox(
@@ -20098,7 +20113,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '반복 구간 A $start초 -> B $end초',
+                    '$statusLabel · A $start초 -> B $end초',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSecondaryContainer,
                       fontWeight: FontWeight.w700,
@@ -20133,7 +20148,12 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       audioLoopEndMs: loop.end.inMilliseconds,
     );
     try {
-      return await onLinkedFileChanged(updated);
+      final didSave = await onLinkedFileChanged(updated);
+      if (didSave) {
+        _savedLoopStartMs = loop.start.inMilliseconds;
+        _savedLoopEndMs = loop.end.inMilliseconds;
+      }
+      return didSave;
     } catch (_) {
       return false;
     }
@@ -20163,6 +20183,8 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     }
     setState(() {
       _loopEnabled = false;
+      _savedLoopStartMs = null;
+      _savedLoopEndMs = null;
       _loopStartController.clear();
       _loopEndController.clear();
       _lastResult = null;

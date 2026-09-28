@@ -1698,3 +1698,10 @@ bookmarks and rehearsal marks, but page jump points were only visible through th
 This slice adds jump points to the `페이지 탐색` named-target list so long PDFs can use one surface
 for explicit link points, bookmarks and rehearsal locations. Focused page picker widget test, full
 analyze, 1,433 tests and RC release check passed.
+
+S120 VERIFIED LOCAL: tightening the current linked-audio A-B loop model before considering multiple
+marker presets or waveform timelines. The player sheet already saves one A/B range per linked
+audio file, but the summary did not say whether the visible values were the saved range or an
+unsaved edit. This slice labels the summary as `저장된 구간` or `새 구간` and updates that state after
+a successful save or clear. Focused linked-audio loop widget tests, full analyze, 1,433 tests and
+RC release check passed.
