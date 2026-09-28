@@ -8,21 +8,68 @@ class SheetChordProDocument {
   final Map<String, String> metadata;
 
   String get title {
-    final explicit = metadata['title'] ?? metadata['t'];
+    final explicit = _metadataValue('title') ?? _metadataValue('t');
     return explicit?.trim().isNotEmpty == true ? explicit!.trim() : 'Untitled';
   }
 
+  String get sortTitle {
+    return _metadataValue('sorttitle') ?? title;
+  }
+
+  String get subtitle {
+    return _metadataValue('subtitle') ?? '';
+  }
+
   String get artist {
-    final explicit = metadata['artist'] ?? metadata['composer'];
-    return explicit?.trim() ?? '';
+    return _metadataValue('artist') ?? composer;
+  }
+
+  String get composer {
+    return _metadataValue('composer') ?? '';
+  }
+
+  String get lyricist {
+    return _metadataValue('lyricist') ?? '';
+  }
+
+  String get arranger {
+    return _metadataValue('arranger') ?? '';
+  }
+
+  String get album {
+    return _metadataValue('album') ?? '';
+  }
+
+  String get year {
+    return _metadataValue('year') ?? '';
   }
 
   String get key {
-    return metadata['key']?.trim() ?? '';
+    return _metadataValue('key') ?? '';
+  }
+
+  String get timeSignature {
+    return _metadataValue('time') ?? '';
+  }
+
+  String get tempo {
+    return _metadataValue('tempo') ?? '';
+  }
+
+  String get duration {
+    return _metadataValue('duration') ?? '';
+  }
+
+  String get copyright {
+    return _metadataValue('copyright') ?? '';
+  }
+
+  String get tag {
+    return _metadataValue('tag') ?? '';
   }
 
   int? get capo {
-    final raw = metadata['capo']?.trim();
+    final raw = _metadataValue('capo');
     if (raw == null || raw.isEmpty) {
       return null;
     }
@@ -56,6 +103,11 @@ class SheetChordProDocument {
           line.transposedBy(semitones, preferFlats: preferFlats),
       ],
     );
+  }
+
+  String? _metadataValue(String key) {
+    final value = metadata[key]?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 }
 
@@ -141,6 +193,12 @@ class SheetChordProParser {
       final directive = _parseDirective(rawLine);
       if (directive != null) {
         metadata[directive.$1] = directive.$2;
+        if (directive.$1 == 'meta') {
+          final explicitMetadata = _parseMetaDirectiveValue(directive.$2);
+          if (explicitMetadata != null) {
+            metadata[explicitMetadata.$1] = explicitMetadata.$2;
+          }
+        }
         lines.add(
           SheetChordProLine(
             raw: rawLine,
@@ -178,6 +236,23 @@ class SheetChordProParser {
       return null;
     }
     return (name, (match.group(2) ?? '').trim());
+  }
+
+  static (String, String)? _parseMetaDirectiveValue(String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final match = RegExp(r'^([^\s:]+)\s*:?\s*(.*)$').firstMatch(trimmed);
+    if (match == null) {
+      return null;
+    }
+    final key = _normalizeDirectiveName(match.group(1) ?? '');
+    final value = (match.group(2) ?? '').trim();
+    if (key.isEmpty || value.isEmpty) {
+      return null;
+    }
+    return (key, value);
   }
 
   static String _normalizeDirectiveName(String value) {

@@ -28,6 +28,54 @@ Plain lyric line
     expect(document.lines[5].lyricText, 'Plain lyric line');
   });
 
+  test('exposes common ChordPro metadata for future text score import', () {
+    final document = SheetChordProParser.parse('''
+{title: Autumn Song}
+{sorttitle: Song, Autumn}
+{st: Recital cut}
+{meta: artist Clef Trio}
+{composer: Composer Name}
+{lyricist: Lyricist Name}
+{arranger: Arranger Name}
+{album: Concert Book}
+{year: 2026}
+{key: Dm}
+{time: 6/8}
+{tempo: 132}
+{duration: 3:45}
+{copyright: 2026 Clef}
+{tag: recital}
+{capo: 3}
+[Dm]Autumn
+''');
+
+    expect(document.title, 'Autumn Song');
+    expect(document.sortTitle, 'Song, Autumn');
+    expect(document.subtitle, 'Recital cut');
+    expect(document.artist, 'Clef Trio');
+    expect(document.composer, 'Composer Name');
+    expect(document.lyricist, 'Lyricist Name');
+    expect(document.arranger, 'Arranger Name');
+    expect(document.album, 'Concert Book');
+    expect(document.year, '2026');
+    expect(document.key, 'Dm');
+    expect(document.timeSignature, '6/8');
+    expect(document.tempo, '132');
+    expect(document.duration, '3:45');
+    expect(document.copyright, '2026 Clef');
+    expect(document.tag, 'recital');
+    expect(document.capo, 3);
+  });
+
+  test('falls back from blank artist metadata to composer', () {
+    final document = SheetChordProParser.parse('''
+{artist: }
+{composer: Bach}
+''');
+
+    expect(document.artist, 'Bach');
+  });
+
   test('transposes roots, slash bass notes and key directives', () {
     final document = SheetChordProParser.parse('''
 {title: Tune}

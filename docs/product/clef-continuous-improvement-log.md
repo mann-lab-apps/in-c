@@ -1678,3 +1678,10 @@ The parser now normalizes `{np}`, `{npp}` and `{colb}` into page/column directiv
 text renderer keeps them as `[Page break]` or `[Column break]` so future ChordPro display does not
 silently flatten rehearsal layout hints. Focused ChordPro tests, full analyze, 1,430 tests and RC
 release check passed.
+
+S117 VERIFIED LOCAL: preparing ChordPro metadata for a future text-score import/viewer path.
+The document model now exposes common ChordPro metadata getters for subtitle, sort title,
+composer, lyricist, arranger, album, year, time signature, tempo, duration, copyright and tag.
+Explicit `{meta: name value}` directives populate the same normalized metadata map, and blank
+artist values fall back to composer instead of hiding useful attribution. Focused ChordPro tests,
+full analyze, 1,432 tests and RC release check passed.
