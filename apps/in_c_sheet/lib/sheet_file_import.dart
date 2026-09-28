@@ -38,8 +38,11 @@ class SheetFileImportPolicy {
     'cho',
     'chordpro',
     'chopro',
+    'chord',
     'crd',
     'pro',
+    'song',
+    'onsong',
     'docx',
   };
 
@@ -113,8 +116,11 @@ class SheetFileImportPolicy {
     if (extension == 'cho' ||
         extension == 'chordpro' ||
         extension == 'chopro' ||
+        extension == 'chord' ||
         extension == 'crd' ||
-        extension == 'pro') {
+        extension == 'pro' ||
+        extension == 'song' ||
+        extension == 'onsong') {
       return 'ChordPro';
     }
     return '텍스트 악보';

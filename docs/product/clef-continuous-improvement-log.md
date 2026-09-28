@@ -1655,3 +1655,9 @@ SAF/iOS code. The spike now recommends a read-only catalog preview, a copy-on-se
 reuses the existing import pipeline, and only then a persistent direct-reference storage type with
 permission-lost recovery. This keeps Clef's backup/export guarantees intact while leaving a clear
 path toward Android folder workflows.
+
+S113 VERIFIED LOCAL: widened the known text-score import guard so more ChordPro/OnSong-style files
+land on the helpful PDF conversion message instead of the generic image failure path. Added
+recognition for `.chord`, `.song` and `.onsong` alongside existing ChordPro extensions while
+keeping direct text-score import disabled. Focused import tests, full analyze, 1,428 tests,
+RC release check, whitespace scan, tab scan and stale wording scan passed.

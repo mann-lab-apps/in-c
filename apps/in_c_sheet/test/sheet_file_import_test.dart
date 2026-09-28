@@ -39,6 +39,12 @@ void main() {
     );
     expect(
       SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
+        'worship-chart.onsong',
+      ),
+      isTrue,
+    );
+    expect(
+      SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
         'lesson-notes.DOCX',
       ),
       isTrue,
@@ -72,6 +78,12 @@ void main() {
         'lesson-notes.docx',
       ),
       allOf(contains('DOCX'), contains('PDF')),
+    );
+    expect(
+      SheetFileImportPolicy.unsupportedTextScoreImportMessage(
+        'worship-chart.onsong',
+      ),
+      allOf(contains('ChordPro'), contains('PDF')),
     );
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage('lyrics.txt'),
