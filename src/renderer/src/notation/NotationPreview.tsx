@@ -169,6 +169,14 @@ interface SystemBounds {
   endMeasureId: string
 }
 
+type HairpinRenderSegment = ReturnType<typeof resolveHairpinSegments>[number]
+
+interface HairpinAutoLane {
+  globalStaffIndex: number
+  lane: number
+  segment: Pick<HairpinRenderSegment, 'systemIndex' | 'x1' | 'x2'>
+}
+
 interface RenderedSpanSegment {
   element: SVGGraphicsElement
   address: SpanSegmentAddress
@@ -970,6 +978,7 @@ export function NotationPreview({
     if (svg) {
       const manualBounds: DOMRect[] = []
       const renderedSegments: SpanReference[] = []
+      const automaticHairpinLanes: HairpinAutoLane[] = []
       ;(score.slurs ?? []).forEach((slur, slurIndex) => {
         const start = staffRenderState.pointsByEventId.get(slur.startEventId)
         const end = staffRenderState.pointsByEventId.get(slur.endEventId)
@@ -1037,6 +1046,47 @@ export function NotationPreview({
           continue
         }
 
+        const staffIndex = staffRenderState.staffIndexByEventId.get(
+          hairpin.startEventId
+        )
+        const renderedStaffTarget = renderedStaffTargets.find(
+          target => target.globalStaffIndex === staffIndex
+        )
+
+        if (!renderedStaffTarget || staffIndex === undefined) {
+          continue
+        }
+
+        const hairpinSegments = resolveHairpinSegments(
+          start,
+          end,
+          startSystem,
+          endSystem,
+          staffBounds
+        )
+        const baseYOffset = resolveHairpinStemClearance(resolveHairpinSpanYOffset([
+          start.measureId
+            ? annotationLanesByMeasureId.get(start.measureId)
+            : undefined,
+          end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
+        ]) ?? HAIRPIN_Y_OFFSET, Array.from(staffRenderState.notesByEventId).flatMap(([eventId, note]) => {
+          const point = staffRenderState.pointsByEventId.get(eventId)
+          const system = staffRenderState.systemsByEventId.get(eventId)
+          if (!point || system === undefined || system < startSystem || system > endSystem ||
+            staffRenderState.staffIndexByEventId.get(eventId) !== staffIndex ||
+            (system === startSystem && point.x < start.x) ||
+            (system === endSystem && point.x > end.x) || !note.hasStem()) return []
+          const stem = resolveStemGeometry(note, point.y)
+          return [Math.max(stem.topY, stem.baseY) - point.y]
+        }))
+        const automaticLaneOffset = hairpin.engraving
+          ? 0
+          : reserveHairpinAutoLane(
+              automaticHairpinLanes,
+              staffIndex,
+              hairpinSegments
+            )
+
         const segments = drawHairpinSegments(
           svg,
           start,
@@ -1045,22 +1095,8 @@ export function NotationPreview({
           startSystem,
           endSystem,
           staffBounds,
-          resolveHairpinStemClearance(resolveHairpinSpanYOffset([
-            start.measureId
-              ? annotationLanesByMeasureId.get(start.measureId)
-              : undefined,
-            end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
-          ]) ?? HAIRPIN_Y_OFFSET, Array.from(staffRenderState.notesByEventId).flatMap(([eventId, note]) => {
-            const point = staffRenderState.pointsByEventId.get(eventId)
-            const system = staffRenderState.systemsByEventId.get(eventId)
-            if (!point || system === undefined || system < startSystem || system > endSystem ||
-              staffRenderState.staffIndexByEventId.get(eventId) !== staffRenderState.staffIndexByEventId.get(hairpin.startEventId) ||
-              (system === startSystem && point.x < start.x) ||
-              (system === endSystem && point.x > end.x) || !note.hasStem()) return []
-            const stem = resolveStemGeometry(note, point.y)
-            return [Math.max(stem.topY, stem.baseY) - point.y]
-          })),
-          renderedStaffTargets.find(target => target.globalStaffIndex === staffRenderState.staffIndexByEventId.get(hairpin.startEventId))!,
+          baseYOffset + automaticLaneOffset,
+          renderedStaffTarget,
           hairpin.engraving
         )
         for (const segment of segments) {
@@ -2518,6 +2554,52 @@ function drawHairpinSegments(
     ) })
   }
   return elements
+}
+
+function reserveHairpinAutoLane(
+  occupied: HairpinAutoLane[],
+  globalStaffIndex: number,
+  segments: HairpinRenderSegment[]
+): number {
+  let lane = 0
+
+  while (
+    segments.some((segment) =>
+      occupied.some(
+        (item) =>
+          item.globalStaffIndex === globalStaffIndex &&
+          item.lane === lane &&
+          hairpinSegmentsOverlap(item.segment, segment)
+      )
+    )
+  ) {
+    lane += 1
+  }
+
+  for (const segment of segments) {
+    occupied.push({
+      globalStaffIndex,
+      lane,
+      segment: {
+        systemIndex: segment.systemIndex,
+        x1: segment.x1,
+        x2: segment.x2
+      }
+    })
+  }
+
+  return lane * 16
+}
+
+function hairpinSegmentsOverlap(
+  left: Pick<HairpinRenderSegment, 'systemIndex' | 'x1' | 'x2'>,
+  right: Pick<HairpinRenderSegment, 'systemIndex' | 'x1' | 'x2'>
+): boolean {
+  return (
+    left.systemIndex === right.systemIndex &&
+    left.x1 < right.x2 - 4 &&
+    right.x1 < left.x2 - 4
+  )
 }
 
 function drawHairpinSegment(
