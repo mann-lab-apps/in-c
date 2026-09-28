@@ -1610,3 +1610,10 @@ generic image import error. The home import menu adds a named `텍스트/ChordPr
 that explains the current PDF/JPG/PNG focus and the follow-up ChordPro/transpose/capo scope.
 Policy and widget smoke tests cover the classification and visible guidance; actual
 Text/ChordPro rendering remains V2/spike work.
+
+S106 VERIFIED LOCAL: opened the next Text/ChordPro step as a pure parser core rather than a
+user-facing renderer. `sheet_chordpro.dart` parses title/artist/key/capo directives, chord lyric
+tokens and plain lyric lines, and can transpose root notes, suffix chords, slash bass notes and
+the key directive by semitones. Focused tests cover metadata parsing, slash chords, flat/sharp
+preference and stable handling of unrecognized chord markers. Import UI, ChordPro rendering,
+capo-aware display and DOCX parsing remain later work.
