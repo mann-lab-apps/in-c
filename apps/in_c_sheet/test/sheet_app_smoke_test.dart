@@ -2668,6 +2668,15 @@ void main() {
         pageSettings: SheetPageSettings(
           hiddenPages: const <int>[],
           pageRotations: const <int, int>{},
+          jumpPoints: [
+            SheetPageJumpPoint(
+              id: 'jump-solo',
+              sourcePage: 8,
+              targetPage: 12,
+              label: 'Solo',
+              createdAt: DateTime(2026, 9, 27),
+            ),
+          ],
           rehearsalMarks: [
             SheetRehearsalMark(
               id: 'mark-a',
@@ -2682,20 +2691,22 @@ void main() {
       ),
     );
 
-    expect(find.text('표시 지점 2개'), findsOneWidget);
-    expect(find.text('북마크 1 · 리허설 1'), findsOneWidget);
-    expect(find.text('북마크 · Cadenza · 32쪽'), findsNWidgets(2));
-    expect(find.text('리허설 · A · 18쪽'), findsNWidgets(2));
+    expect(find.text('표시 지점 3개'), findsOneWidget);
+    expect(find.text('점프 1 · 북마크 1 · 리허설 1'), findsOneWidget);
+    expect(find.text('점프 · Solo · 12쪽'), findsWidgets);
+    expect(find.text('북마크 · Cadenza · 32쪽'), findsWidgets);
+    expect(find.text('리허설 · A · 18쪽'), findsWidgets);
+    expect(find.text('12쪽으로 선택'), findsOneWidget);
     expect(find.text('18쪽으로 선택'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ListTile, '리허설 · A · 18쪽'));
+    await tester.tap(find.widgetWithText(ListTile, '점프 · Solo · 12쪽'));
     await tester.pump();
-    expect(find.text('현재 10쪽 · 선택 18/80쪽'), findsOneWidget);
+    expect(find.text('현재 10쪽 · 선택 12/80쪽'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '이동'));
     await tester.pump();
 
-    expect(requestedPages, <int>[18]);
+    expect(requestedPages, <int>[12]);
     expect(tester.takeException(), isNull);
   });
 

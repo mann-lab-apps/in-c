@@ -9044,6 +9044,7 @@ class _PagePickerSheet extends StatefulWidget {
     required this.pageSummary,
     required this.pageSettings,
     required this.duplicateCounts,
+    required this.jumpPoints,
     required this.bookmarks,
     required this.rehearsalMarks,
     required this.onGoToPage,
@@ -9054,6 +9055,7 @@ class _PagePickerSheet extends StatefulWidget {
   final String pageSummary;
   final SheetPageSettings pageSettings;
   final Map<int, int> duplicateCounts;
+  final List<SheetPageJumpPoint> jumpPoints;
   final List<SheetBookmark> bookmarks;
   final List<SheetRehearsalMark> rehearsalMarks;
   final ValueChanged<int> onGoToPage;
@@ -9168,6 +9170,32 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     return targets;
   }
 
+  List<_PagePickerNamedTarget> _jumpPointTargets() {
+    final targets = <_PagePickerNamedTarget>[];
+
+    void add(String label, int page) {
+      if (page < 1 || page > widget.pageCount) {
+        return;
+      }
+      targets.add(
+        _PagePickerNamedTarget(
+          label: label,
+          page: page,
+          icon: Icons.keyboard_tab,
+        ),
+      );
+    }
+
+    for (final jumpPoint in widget.jumpPoints) {
+      add(
+        '점프 · ${jumpPoint.label} · ${jumpPoint.targetPage}쪽',
+        jumpPoint.targetPage,
+      );
+    }
+    targets.sort((a, b) => a.page.compareTo(b.page));
+    return targets;
+  }
+
   List<_PagePickerNamedTarget> _rehearsalTargets() {
     final targets = <_PagePickerNamedTarget>[];
 
@@ -9206,10 +9234,14 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     final summary = widget.pageSummary.isEmpty
         ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
         : '${widget.pageSummary} · 원본 PDF는 그대로입니다.';
+    final jumpPointTargets = _jumpPointTargets();
     final bookmarkTargets = _bookmarkTargets();
     final rehearsalTargets = _rehearsalTargets();
-    final namedTargets = [...bookmarkTargets, ...rehearsalTargets]
-      ..sort((a, b) => a.page.compareTo(b.page));
+    final namedTargets = [
+      ...jumpPointTargets,
+      ...bookmarkTargets,
+      ...rehearsalTargets,
+    ]..sort((a, b) => a.page.compareTo(b.page));
     final namedTargetCount = namedTargets.length;
     final gridHeightFactor = namedTargetCount == 0 ? 0.46 : 0.18;
     return SafeArea(
@@ -9328,6 +9360,8 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                     ),
                     Text(
                       [
+                        if (jumpPointTargets.isNotEmpty)
+                          '점프 ${jumpPointTargets.length}',
                         if (bookmarkTargets.isNotEmpty)
                           '북마크 ${bookmarkTargets.length}',
                         if (rehearsalTargets.isNotEmpty)
@@ -14037,6 +14071,7 @@ setlist=$setlistLabel
         pageSummary: pageSummary,
         pageSettings: pageSettings,
         duplicateCounts: duplicateCounts,
+        jumpPoints: pageSettings.jumpPoints,
         bookmarks: currentScore.bookmarks,
         rehearsalMarks: pageSettings.rehearsalMarks,
         onGoToPage: (page) {
@@ -21750,6 +21785,7 @@ Widget buildPagePickerSheetForTest({
         pageSummary: '숨김 ${pageSettings.hiddenPages.length}',
         pageSettings: pageSettings,
         duplicateCounts: duplicateCounts,
+        jumpPoints: pageSettings.jumpPoints,
         bookmarks: bookmarks,
         rehearsalMarks: pageSettings.rehearsalMarks,
         onGoToPage: onGoToPage ?? (_) {},

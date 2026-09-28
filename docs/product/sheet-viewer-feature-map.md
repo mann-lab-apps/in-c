@@ -79,7 +79,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 instance override metadata, 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate, duplicate별 crop/rotation override, 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | 구현됨: 빈 페이지 metadata와 실제 PDF page tree 적용 사본 생성 |
-| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, rename/delete |
+| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, 페이지 탐색 표시 지점, rename/delete |
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |
 | PDF 링크 | link annotation 표시 | 사용자 차별화 | MVP | 중간 | 구현됨: `pdfrx` link handler 영역 표시 |
 | PDF 링크 | link tap 비활성화 | 사용자 차별화 | MVP | 중간 | 구현됨: URL tap 차단, 내부 destination 유지 |

@@ -1691,3 +1691,10 @@ text-score import. Directive parsing now handles both `{name: value}` and `{name
 plain text rendering extracts section labels from `label="..."` attributes so rehearsal labels do
 not appear as raw attributes. Focused ChordPro tests, full analyze, 1,433 tests and RC release
 check passed.
+
+S119 VERIFIED LOCAL: closing a long-score navigation gap between the viewer quick-jump overlay and
+the full page picker. The page picker already exposed direct page entry, slider, quick page chips,
+bookmarks and rehearsal marks, but page jump points were only visible through the compact overlay.
+This slice adds jump points to the `페이지 탐색` named-target list so long PDFs can use one surface
+for explicit link points, bookmarks and rehearsal locations. Focused page picker widget test, full
+analyze, 1,433 tests and RC release check passed.
