@@ -1719,3 +1719,10 @@ a pure parser for copied Clef manifests so title, item order, file names, notes,
 warnings can be read back into a draft structure later, while leaving actual setlist import UI and
 PDF bundling for a separate scope.
 Focused setlist manifest tests, full analyze, 1,438 tests and RC release check passed.
+
+S123 VERIFIED LOCAL: continuing the same setlist package gap with a local matching preview instead
+of adding a binary package importer. Parsed Clef manifests can now be compared with the current
+library by source file display name, title plus composer and title fallback, while ambiguous or
+missing matches stay unresolved with warnings. This keeps later import UI honest about skipped
+items and avoids silently creating a setlist from the wrong scores.
+Focused setlist manifest tests, full analyze, 1,441 tests and RC release check passed.

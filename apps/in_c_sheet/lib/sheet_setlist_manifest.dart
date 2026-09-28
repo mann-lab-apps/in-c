@@ -1,3 +1,5 @@
+import 'sheet_score.dart';
+
 class SheetSetlistShareManifest {
   const SheetSetlistShareManifest({
     required this.title,
@@ -113,6 +115,15 @@ class SheetSetlistShareManifest {
       warnings: List<String>.unmodifiable(warnings),
     );
   }
+
+  SheetSetlistManifestMatchPreview matchScores(List<SheetScore> scores) {
+    return SheetSetlistManifestMatchPreview(
+      manifest: this,
+      matches: items
+          .map((item) => SheetSetlistManifestMatch.resolve(item, scores))
+          .toList(growable: false),
+    );
+  }
 }
 
 class SheetSetlistShareItem {
@@ -125,4 +136,168 @@ class SheetSetlistShareItem {
   String get composer => details['작곡가'] ?? '';
   String get startPageLabel => details['시작'] ?? '';
   String get setlistNote => details['세트 메모'] ?? '';
+}
+
+class SheetSetlistManifestMatchPreview {
+  const SheetSetlistManifestMatchPreview({
+    required this.manifest,
+    required this.matches,
+  });
+
+  final SheetSetlistShareManifest manifest;
+  final List<SheetSetlistManifestMatch> matches;
+
+  bool get canCreateSetlist {
+    return manifest.canPreviewImport &&
+        matches.isNotEmpty &&
+        matches.every((match) => match.isResolved);
+  }
+
+  List<SheetSetlistManifestMatch> get missingMatches {
+    return matches
+        .where((match) => match.kind == SheetSetlistManifestMatchKind.missing)
+        .toList(growable: false);
+  }
+
+  List<SheetSetlistManifestMatch> get ambiguousMatches {
+    return matches
+        .where((match) => match.kind == SheetSetlistManifestMatchKind.ambiguous)
+        .toList(growable: false);
+  }
+
+  List<String> get matchedScoreIds {
+    return matches
+        .map((match) => match.score?.id)
+        .whereType<String>()
+        .toList(growable: false);
+  }
+
+  List<String> get warnings {
+    return <String>[
+      ...manifest.warnings,
+      for (final match in missingMatches)
+        '라이브러리에서 찾을 수 없는 곡: ${match.item.title}',
+      for (final match in ambiguousMatches)
+        '여러 악보와 일치하는 곡: ${match.item.title}',
+    ];
+  }
+}
+
+enum SheetSetlistManifestMatchKind {
+  fileName,
+  titleAndComposer,
+  title,
+  missing,
+  ambiguous,
+}
+
+class SheetSetlistManifestMatch {
+  const SheetSetlistManifestMatch({
+    required this.item,
+    required this.kind,
+    this.score,
+    this.candidates = const <SheetScore>[],
+  });
+
+  final SheetSetlistShareItem item;
+  final SheetSetlistManifestMatchKind kind;
+  final SheetScore? score;
+  final List<SheetScore> candidates;
+
+  bool get isResolved => score != null && candidates.length == 1;
+
+  static SheetSetlistManifestMatch resolve(
+    SheetSetlistShareItem item,
+    List<SheetScore> scores,
+  ) {
+    final fileName = _normalizeLookup(item.fileName);
+    if (fileName.isNotEmpty) {
+      final byFile = _uniqueMatch(
+        item,
+        scores,
+        SheetSetlistManifestMatchKind.fileName,
+        (score) {
+          final fileKeys = <String>{
+            _normalizeLookup(score.sourceFileDisplayName),
+            _normalizeLookup(_fileStem(score.filePath)),
+            _normalizeLookup(_fileName(score.filePath)),
+          }..remove('');
+          return fileKeys.contains(fileName);
+        },
+      );
+      if (byFile != null) {
+        return byFile;
+      }
+    }
+
+    final title = _normalizeLookup(item.title);
+    final composer = _normalizeLookup(item.composer);
+    if (title.isNotEmpty && composer.isNotEmpty) {
+      final byTitleAndComposer = _uniqueMatch(
+        item,
+        scores,
+        SheetSetlistManifestMatchKind.titleAndComposer,
+        (score) =>
+            _normalizeLookup(score.displayTitle) == title &&
+            _normalizeLookup(score.composer) == composer,
+      );
+      if (byTitleAndComposer != null) {
+        return byTitleAndComposer;
+      }
+    }
+
+    if (title.isNotEmpty) {
+      final byTitle = _uniqueMatch(
+        item,
+        scores,
+        SheetSetlistManifestMatchKind.title,
+        (score) => _normalizeLookup(score.displayTitle) == title,
+      );
+      if (byTitle != null) {
+        return byTitle;
+      }
+    }
+
+    return SheetSetlistManifestMatch(
+      item: item,
+      kind: SheetSetlistManifestMatchKind.missing,
+    );
+  }
+
+  static SheetSetlistManifestMatch? _uniqueMatch(
+    SheetSetlistShareItem item,
+    List<SheetScore> scores,
+    SheetSetlistManifestMatchKind kind,
+    bool Function(SheetScore score) predicate,
+  ) {
+    final candidates = scores.where(predicate).toList(growable: false);
+    if (candidates.isEmpty) {
+      return null;
+    }
+    if (candidates.length == 1) {
+      return SheetSetlistManifestMatch(
+        item: item,
+        kind: kind,
+        score: candidates.single,
+        candidates: candidates,
+      );
+    }
+    return SheetSetlistManifestMatch(
+      item: item,
+      kind: SheetSetlistManifestMatchKind.ambiguous,
+      candidates: candidates,
+    );
+  }
+}
+
+String _normalizeLookup(String value) {
+  return value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+}
+
+String _fileName(String path) {
+  return path.trim().replaceAll('\\', '/').split('/').last.trim();
+}
+
+String _fileStem(String path) {
+  return _fileName(path).replaceFirst(RegExp(r'\.[^.]+$'), '').trim();
 }

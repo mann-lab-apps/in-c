@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
 
 void main() {
@@ -61,4 +62,100 @@ Clef & Staff 세트리스트
     expect(manifest.canPreviewImport, isFalse);
     expect(manifest.warnings, contains('곡 수와 항목 수가 다릅니다.'));
   });
+
+  test('matches manifest items to existing scores by file name first', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Recital
+곡 수: 2곡
+
+1. Retitled Etude
+   작곡가: Goedicke
+   파일: goedicke-concert-etude
+2. Mozart Sonata
+   작곡가: Mozart
+''');
+
+    final preview = manifest!.matchScores([
+      _score(
+        id: 'goedicke',
+        title: 'Old metadata title',
+        composer: 'Goedicke',
+        filePath: '/tmp/imports/goedicke-concert-etude.pdf',
+      ),
+      _score(id: 'mozart', title: 'Mozart Sonata', composer: 'Mozart'),
+    ]);
+
+    expect(preview.canCreateSetlist, isTrue);
+    expect(preview.matchedScoreIds, ['goedicke', 'mozart']);
+    expect(preview.matches.first.kind, SheetSetlistManifestMatchKind.fileName);
+    expect(
+      preview.matches.last.kind,
+      SheetSetlistManifestMatchKind.titleAndComposer,
+    );
+    expect(preview.warnings, isEmpty);
+  });
+
+  test('keeps ambiguous manifest matches unresolved', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Recital
+곡 수: 1곡
+
+1. Sonata
+''');
+
+    final preview = manifest!.matchScores([
+      _score(id: 'a', title: 'Sonata', composer: 'Mozart'),
+      _score(id: 'b', title: 'Sonata', composer: 'Beethoven'),
+    ]);
+
+    expect(preview.canCreateSetlist, isFalse);
+    expect(preview.ambiguousMatches, hasLength(1));
+    expect(preview.ambiguousMatches.single.candidates, hasLength(2));
+    expect(preview.warnings, contains('여러 악보와 일치하는 곡: Sonata'));
+  });
+
+  test('reports missing manifest matches', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Recital
+곡 수: 1곡
+
+1. Missing Score
+   파일: missing-score
+''');
+
+    final preview = manifest!.matchScores([
+      _score(id: 'other', title: 'Other Score'),
+    ]);
+
+    expect(preview.canCreateSetlist, isFalse);
+    expect(preview.missingMatches, hasLength(1));
+    expect(preview.matchedScoreIds, isEmpty);
+    expect(preview.warnings, contains('라이브러리에서 찾을 수 없는 곡: Missing Score'));
+  });
+}
+
+SheetScore _score({
+  required String id,
+  required String title,
+  String composer = '',
+  String? filePath,
+}) {
+  final now = DateTime(2026, 9, 28, 12);
+  return SheetScore(
+    id: id,
+    title: title,
+    composer: composer,
+    tags: const <String>[],
+    note: '',
+    filePath: filePath ?? '/tmp/$id.pdf',
+    importedAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    lastPage: 1,
+    isFavorite: false,
+    bookmarks: const <SheetBookmark>[],
+  );
 }
