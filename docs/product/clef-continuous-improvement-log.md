@@ -1594,3 +1594,11 @@ source: `정보 정리 필요` is a task panel with `정보 보강` cards and ex
 while `최근 악보`, `최근 세트리스트`, `고정` and `즐겨찾기` remain ordinary open rails. Updated
 the MobileSheets gap refresh and Device QA checklist/runbook so testers verify the task-panel
 visual distinction, tap expectation, file fallback and phone/tablet/large-text readability.
+
+S104 VERIFIED LOCAL: expanded tuner/drone Device QA automation without claiming real audio
+quality from internal checks. The device report now records current tuner setup
+(A4 reference, detection algorithm, notation and chromatic-only state) and drone setup
+(mode, note/frequency, volume and simple clipping-risk warnings for muted or loud multi-voice
+drones). Unit coverage verifies chromatic tuner setup reporting and risky drone settings.
+QA docs now separate automated setup evidence from manual reference-tone, real-instrument,
+earphone/speaker/Bluetooth and rehearsal-room checks.

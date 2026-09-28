@@ -103,14 +103,17 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
   측정 중 화면을 닫거나 다시 시작하면 진행 중인 내부 수집은 취소되며, 실제 클릭 소리 품질은
   여전히 직접 들어서 확인한다.
 - 마이크 권한 상태.
+- 현재 tuner setup: A4 기준, 감지 엔진, 표기 설정, chromatic-only 정규화 여부.
+- 현재 drone setup: drone mode, concert note/frequency, volume, 0% 또는 고음량 다성 drone의
+  clipping-risk warning.
 
 직접 확인으로 남는 항목:
 
 - 실제 메트로놈 청감과 이어폰/스피커/Bluetooth 출력 균일성.
-- 드론 음량과 출력 route.
+- 드론 음량, 출력 route, 시작/종료 잡음.
 - Bluetooth/USB 페달의 pairing, repeat cadence, transport quirks.
 - S Pen/Apple Pencil/stylus 필기감.
-- 실제 악기/마이크/연습실 환경의 튜너 정확도.
+- 440/441/442Hz reference tone과 실제 악기/마이크/연습실 환경의 튜너 정확도.
 - 장시간 연주 안정성.
 
 기기 성능 리포트의 `PASS`는 내부 상태와 입력 경로의 근거이며, 실제 오디오/마이크/페달/필기감

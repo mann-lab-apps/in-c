@@ -578,7 +578,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => _DeviceCheckSheet(appVersion: _clefAppVersion),
+      builder: (context) => _DeviceCheckSheet(
+        appVersion: _clefAppVersion,
+        tunerSettings: controller.tunerSettings,
+        toneSettings: controller.toneSettings,
+      ),
     );
   }
 
@@ -4403,9 +4407,15 @@ pageMetadataScores=$pageMetadataCount
 }
 
 class _DeviceCheckSheet extends StatefulWidget {
-  const _DeviceCheckSheet({required this.appVersion});
+  const _DeviceCheckSheet({
+    required this.appVersion,
+    required this.tunerSettings,
+    required this.toneSettings,
+  });
 
   final String appVersion;
+  final SheetTunerSettings tunerSettings;
+  final SheetToneSettings toneSettings;
 
   @override
   State<_DeviceCheckSheet> createState() => _DeviceCheckSheetState();
@@ -4725,12 +4735,14 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
         _microphoneItem,
         ..._manualItems(),
       ],
-      notes: '내부 timing은 실제 스피커/이어폰 출력 품질을 보장하지 않습니다.',
+      notes:
+          '내부 timing과 설정 점검은 실제 스피커/이어폰 출력 품질이나 '
+          '악기별 튜너 정확도를 보장하지 않습니다.',
     );
   }
 
   List<SheetDeviceCheckItem> _manualItems() {
-    return const <SheetDeviceCheckItem>[
+    return <SheetDeviceCheckItem>[
       SheetDeviceCheckItem(
         id: 'pdf-viewer',
         title: 'PDF viewer',
@@ -4750,13 +4762,21 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
         id: 'metronome-audio',
         title: 'Real metronome audio',
         status: SheetDeviceCheckStatus.manual,
-        details: '빠른 BPM 청감, 이어폰/스피커/Bluetooth 출력은 직접 확인하세요.',
+        details:
+            '내부 timing PASS 뒤에도 120/180/240 BPM을 이어폰, 내장 스피커, '
+            'Bluetooth에서 들어보고 박이 몰리거나 빠지는지 확인하세요.',
+      ),
+      deviceCheckItemForToneSettings(
+        settings: widget.toneSettings,
+        referencePitchA4: widget.tunerSettings.referencePitchA4,
       ),
       SheetDeviceCheckItem(
         id: 'drone-volume',
         title: 'Drone volume',
         status: SheetDeviceCheckStatus.manual,
-        details: '연습실과 실제 출력 경로에서 음량을 확인하세요.',
+        details:
+            '드론 설정 PASS는 설정 위험도만 뜻합니다. 같은 volume으로 이어폰, '
+            '내장 스피커, Bluetooth, 연습실에서 음량과 시작/종료 잡음을 확인하세요.',
       ),
       SheetDeviceCheckItem(
         id: 'pedal-device',
@@ -4764,11 +4784,14 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
         status: SheetDeviceCheckStatus.manual,
         details: '실제 페달 pairing과 반복 입력 cadence는 장비로 확인하세요.',
       ),
+      deviceCheckItemForTunerSettings(widget.tunerSettings),
       SheetDeviceCheckItem(
         id: 'tuner-accuracy',
         title: 'Tuner accuracy',
         status: SheetDeviceCheckStatus.manual,
-        details: '실제 악기/마이크/주변 소음 환경에서 확인하세요.',
+        details:
+            '마이크 권한과 chromatic 설정 PASS 뒤에도 440/441/442Hz reference tone, '
+            '실제 악기, 주변 소음 환경에서 note/cents/latency를 비교하세요.',
       ),
     ];
   }

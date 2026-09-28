@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_device_check.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
+import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:in_c_sheet/sheet_viewer_input.dart';
 
 void main() {
@@ -144,5 +146,55 @@ void main() {
       deviceCheckItemForKeyInput(volume).details,
       contains('시스템 볼륨 키는 기본 페이지 넘김으로 쓰지 않습니다'),
     );
+  });
+
+  test('device check records tuner setup for reproducible QA', () {
+    final defaultItem = deviceCheckItemForTunerSettings(
+      SheetTunerSettings.defaultSettings,
+    );
+    final stalePresetItem = deviceCheckItemForTunerSettings(
+      SheetTunerSettings.defaultSettings.copyWith(
+        tuningMode: SheetTunerMode.target,
+        tuningPreset: SheetTunerPreset.guitarStandard,
+        displayMode: SheetTunerDisplayMode.guitar,
+        detectionProfile: SheetTunerDetectionProfile.guitarBass,
+        targetLockEnabled: true,
+      ),
+    );
+
+    expect(defaultItem.status, SheetDeviceCheckStatus.pass);
+    expect(defaultItem.details, contains('A4 440Hz'));
+    expect(defaultItem.details, contains('자동'));
+    expect(defaultItem.details, contains('Chromatic-only'));
+    expect(stalePresetItem.status, SheetDeviceCheckStatus.warn);
+    expect(stalePresetItem.details, contains('이전 preset/target 설정'));
+  });
+
+  test('device check flags risky drone setups before listening QA', () {
+    final defaultItem = deviceCheckItemForToneSettings(
+      settings: SheetToneSettings.defaultSettings,
+      referencePitchA4: 440,
+    );
+    final mutedItem = deviceCheckItemForToneSettings(
+      settings: SheetToneSettings.defaultSettings.copyWith(volumePercent: 0),
+      referencePitchA4: 440,
+    );
+    final loudMultiVoiceItem = deviceCheckItemForToneSettings(
+      settings: SheetToneSettings.defaultSettings.copyWith(
+        droneMode: SheetToneDroneMode.fifthOctave,
+        volumePercent: 90,
+      ),
+      referencePitchA4: 442,
+    );
+
+    expect(defaultItem.status, SheetDeviceCheckStatus.pass);
+    expect(defaultItem.details, contains('기준음'));
+    expect(defaultItem.details, contains('A4'));
+    expect(defaultItem.details, contains('440.0Hz'));
+    expect(mutedItem.status, SheetDeviceCheckStatus.warn);
+    expect(mutedItem.details, contains('음량이 0%'));
+    expect(loudMultiVoiceItem.status, SheetDeviceCheckStatus.warn);
+    expect(loudMultiVoiceItem.details, contains('기준음+5도+옥타브'));
+    expect(loudMultiVoiceItem.details, contains('clipping'));
   });
 }

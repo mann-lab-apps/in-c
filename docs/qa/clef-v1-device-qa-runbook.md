@@ -265,13 +265,18 @@ iPad/iOS smoke:
 
 Audio/tuner:
 
+- 먼저 홈 `메뉴` > `기기 성능 리포트`에서 `Tuner setup`과 `Drone setup` 줄을 확인한다.
+  `Tuner setup`은 A4 기준, 감지 엔진, 표기, chromatic-only 상태를 기록해야 한다.
+  `Drone setup`은 drone mode, concert note/frequency, volume, 0%/고음량 다성 clipping-risk를
+  기록해야 한다. 이 두 항목의 PASS는 설정 위험도가 낮다는 뜻이며 실제 음량/정확도 PASS가 아니다.
 - tuner no-signal behavior, 가장 가까운 chromatic note/cents 표시, 440/441/442Hz A4 quick
   action/history, reference tone frequency/cents, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과
   감지 진단 label.
 - 기타 줄 맞춤, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, Target mode shortcut,
   target lock은 v1 UI에서 보이지 않는지 확인한다.
 - 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
-- reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
+- reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감. 이어폰/스피커/Bluetooth/연습실
+  각각에서 음량, clipping, 시작/종료 잡음, drone mode별 밸런스를 기록한다.
 - linked audio는 연결 파일 목록에서 PDF/이미지/오디오가 구분되는지 확인한 뒤, MP3/M4A/WAV별로
   재생/정지, A/B 초 입력, sheet 닫기/다시 열기 후 구간 복원, `구간 지우기` 후 재진입 시
   입력값이 사라지는지 확인한다. 숫자가 아닌 값, 비어 있는 값, B가 A보다 작거나 같은 값이
