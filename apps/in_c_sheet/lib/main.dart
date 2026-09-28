@@ -7456,6 +7456,111 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
   }
 }
 
+class _SetlistPackageExportPreviewSheet extends StatelessWidget {
+  const _SetlistPackageExportPreviewSheet({
+    required this.result,
+    required this.setlistTitle,
+    required this.scoreCount,
+    required this.onShare,
+  });
+
+  final SheetSetlistPackageExportResult result;
+  final String setlistTitle;
+  final int scoreCount;
+  final VoidCallback? onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final canShare = result.didExport;
+    final color = canShare
+        ? theme.colorScheme.secondary
+        : theme.colorScheme.error;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 720),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '세트리스트 패키지 내보내기',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$setlistTitle · PDF/JPG/PNG 원본과 Clef manifest를 ZIP으로 묶습니다.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _ImportStatusBox(
+                icon: canShare ? Icons.archive_outlined : Icons.error_outline,
+                title: canShare ? '공유할 패키지를 만들었습니다' : '패키지를 만들 수 없습니다',
+                message: canShare
+                    ? '곡 $scoreCount개 · 파일 ${result.includedFileCount}개 · 가져오기 전 preview에서 다시 확인합니다.'
+                    : result.failureReason,
+                color: color,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Chip(label: Text('곡 $scoreCount개')),
+                  Chip(label: Text('파일 ${result.includedFileCount}개')),
+                  Chip(label: Text(canShare ? 'ZIP 준비 완료' : '확인 필요')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: SelectableText(result.manifestText),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '가져오는 쪽에서는 패키지 미리보기로 기존 악보/새 파일/확인 필요 항목을 먼저 확인합니다.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('닫기'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: onShare,
+                    icon: const Icon(Icons.ios_share),
+                    label: const Text('패키지 공유'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChordProPreviewSheet extends StatefulWidget {
   const _ChordProPreviewSheet();
 
@@ -7963,7 +8068,27 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
   }
 }
 
-enum _SetlistDetailAction { preview, copy, append, duplicate, rename, delete }
+String _setlistPackageShareFileName(String title) {
+  final sanitized = title
+      .trim()
+      .replaceAll(RegExp(r'[/\\:*?"<>|]+'), '-')
+      .replaceAll(RegExp(r'\s+'), '-')
+      .replaceAll(RegExp(r'[^A-Za-z0-9가-힣._-]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^[-.]+|[-.]+$'), '');
+  final base = sanitized.isEmpty ? 'clef-setlist' : sanitized;
+  return '$base.clef-setlist.zip';
+}
+
+enum _SetlistDetailAction {
+  preview,
+  copy,
+  exportPackage,
+  append,
+  duplicate,
+  rename,
+  delete,
+}
 
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
@@ -8157,6 +8282,79 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         );
       },
     );
+  }
+
+  Future<void> _showSetlistPackageExportPreview() async {
+    final currentSetlist = setlist;
+    final scores = controller.scoresForSetlist(currentSetlist);
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: currentSetlist,
+      scores: scores,
+      readScoreBytes: (score) async {
+        final file = File(score.filePath);
+        if (!await file.exists()) {
+          return null;
+        }
+        return file.readAsBytes();
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _SetlistPackageExportPreviewSheet(
+          result: result,
+          setlistTitle: currentSetlist.title,
+          scoreCount: scores.length,
+          onShare: result.didExport
+              ? () async {
+                  Navigator.of(sheetContext).pop();
+                  await _shareSetlistPackage(currentSetlist, result);
+                }
+              : null,
+        );
+      },
+    );
+  }
+
+  Future<void> _shareSetlistPackage(
+    SheetSetlist currentSetlist,
+    SheetSetlistPackageExportResult result,
+  ) async {
+    final bytes = result.bytes;
+    if (bytes == null) {
+      return;
+    }
+    final packageDir = await Directory.systemTemp.createTemp(
+      'clef-setlist-package-',
+    );
+    final fileName = _setlistPackageShareFileName(currentSetlist.title);
+    final outputFile = File('${packageDir.path}/$fileName');
+    await outputFile.writeAsBytes(bytes, flush: true);
+    if (!mounted) {
+      return;
+    }
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          subject: currentSetlist.title,
+          text: 'Clef & Staff 세트리스트 패키지입니다.',
+          files: [
+            XFile(outputFile.path, name: fileName, mimeType: 'application/zip'),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('세트리스트 패키지를 공유하지 못했습니다.')));
+      }
+    }
   }
 
   Future<void> _addScore() async {
@@ -8455,6 +8653,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
               icon: const Icon(Icons.content_paste_go_outlined),
             ),
             IconButton(
+              tooltip: '패키지 내보내기',
+              onPressed: _showSetlistPackageExportPreview,
+              icon: const Icon(Icons.archive_outlined),
+            ),
+            IconButton(
               tooltip: '다른 세트리스트 이어붙이기',
               onPressed: canAppendSetlist ? _appendSetlist : null,
               icon: const Icon(Icons.playlist_add_check),
@@ -8487,6 +8690,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                     await _showSetlistSharePreview();
                   case _SetlistDetailAction.copy:
                     await _copySetlistText();
+                  case _SetlistDetailAction.exportPackage:
+                    await _showSetlistPackageExportPreview();
                   case _SetlistDetailAction.append:
                     await _appendSetlist();
                   case _SetlistDetailAction.duplicate:
@@ -8510,6 +8715,13 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   child: ListTile(
                     leading: Icon(Icons.content_paste_go_outlined),
                     title: Text('목록 복사'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _SetlistDetailAction.exportPackage,
+                  child: ListTile(
+                    leading: Icon(Icons.archive_outlined),
+                    title: Text('패키지 내보내기'),
                   ),
                 ),
                 PopupMenuItem(

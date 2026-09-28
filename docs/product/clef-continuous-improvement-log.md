@@ -1797,3 +1797,10 @@ preview. The import menu's Text/ChordPro/DOCX help now opens a ChordPro preview 
 pasted text, surfaces title/composer/key/time/capo metadata as chips, renders chord-over-lyric plain
 text, and states that DOCX parsing/library save is still follow-up. No score/library writes occur.
 Focused smoke test passed; full validation is recorded with the commit.
+
+S132 VERIFIED LOCAL: added the missing user-facing export boundary for Clef setlist packages.
+Setlist detail now exposes `패키지 내보내기` beside the text manifest copy flow. The export sheet builds
+the `clef.setlist.package` ZIP from current setlist scores, previews the manifest and included file
+count, disables sharing when the package cannot be built, and shares the generated ZIP only after the
+preview step. Package import storage still remains follow-up; the existing package import path previews
+existing scores, importable files and unresolved entries without writing library data.

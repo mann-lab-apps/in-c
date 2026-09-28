@@ -39,7 +39,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/작곡가/컬렉션/그룹/별점 필터. MobileSheets의 Artists 탭은 Clef에서 작곡가 facet으로, Key/Genre/Difficulty 축은 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수한다. 적용 중인 검색/필터 조건은 해제 가능한 요약 칩으로 표시하고, facet 값이 많을 때는 `더 보기` sheet에서 검색으로 좁혀 숨겨진 값까지 선택 가능. 12곡 이상 현재 목록은 제목 첫 글자별 `빠른 찾기` sheet로 바로 악보를 고를 수 있다. 저장 실패 시 현재 요청의 설정만 복구하고 홈 오류 안내/재시도, 지연 저장의 원래 library 범위 유지 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 다른 세트리스트 이어붙이기/중복·누락 skip/새 곡 공연 설정 가져오기, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 제목/곡수/예상 시간/전환/곡별 파일명/시작 쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 세트리스트 manifest 미리보기/복사, 복사 manifest 붙여넣기 import, 현재 라이브러리 악보 매칭 preview, missing/ambiguous 저장 차단, 순서/시작쪽/메모/예상 시간/전환 보존 새 세트리스트 생성, PDF 포함 package를 위한 `clef.setlist.package` v1 ZIP codec/export/dry-run model과 ZIP 선택 preview(공유 PDF dedupe, missing source, unsupported format, 기존 악보/새 파일/missing/duplicate/ambiguous 분류), 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지와 곡별 메모 표시 |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 다른 세트리스트 이어붙이기/중복·누락 skip/새 곡 공연 설정 가져오기, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 제목/곡수/예상 시간/전환/곡별 파일명/시작 쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 세트리스트 manifest 미리보기/복사, 복사 manifest 붙여넣기 import, 현재 라이브러리 악보 매칭 preview, missing/ambiguous 저장 차단, 순서/시작쪽/메모/예상 시간/전환 보존 새 세트리스트 생성, PDF 포함 package를 위한 `clef.setlist.package` v1 ZIP codec/export/dry-run model, 세트리스트 상세의 ZIP package export preview/share, 세트리스트 화면의 ZIP 선택 import preview(공유 PDF dedupe, missing source, unsupported format, 기존 악보/새 파일/missing/duplicate/ambiguous 분류), 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지와 곡별 메모 표시 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기. page picker의 `표시 지점` 칩에서 북마크/리허설 마크로 바로 이동 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기/삭제. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경/삭제는 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리하고 삭제는 목록/활성 ID fallback/프로필 데이터 제거를 묶어서 처리. S42: 최신 읽기 요청만 완성된 상태/오류/로딩 종료를 반영. S43: 내용 읽기 실패 후 이전 활성 ID 복구 시도/복구 실패 안내. S44: 같은 라이브러리 재로드 중 새 편집/저장 복구 요청/오류를 보존하고, 전환 중 새 전역 설정도 유지 |
@@ -188,9 +188,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   악보와 매칭한 뒤 완전히 해결된 경우에만 새 세트리스트로 가져올 수 있다. 긴 manifest는 요약 chip과
   축약 리스트로 보여주며, missing/ambiguous 항목은 partial import를 막는다. 저장 실패는 성공/이동
   없이 재시도 안내로 처리하고, 같은 제목이나 draft ID 충돌은 안전한 새 이름/id로 저장한다. PDF 파일
-  자체를 묶는 package export UI/storage는 후속이지만, `clef.setlist.package` v1 ZIP
-  codec/export/dry-run model은 `clef-setlist-package.txt`와 `scores/` entry를 만들고 해석하며,
-  세트리스트 화면의 ZIP package preview에서 실제 파일 쓰기 전에 공유 PDF dedupe, missing source,
+  자체를 묶는 package export UI는 세트리스트 상세의 `패키지 내보내기` preview/share로 연결했다.
+  `clef.setlist.package` v1 ZIP codec/export/dry-run model은 `clef-setlist-package.txt`와
+  `scores/` entry를 만들고 해석하며, 세트리스트 화면의 ZIP package preview에서 실제 파일 쓰기 전에 공유 PDF dedupe, missing source,
   unsupported format, 기존 악보 재사용, package 새 파일 import 후보, missing file, duplicate filename,
   ambiguous existing score를 구분한다. package 안 파일을 라이브러리에 저장하고 새 score/setlist를
   만드는 import storage는 후속이다.

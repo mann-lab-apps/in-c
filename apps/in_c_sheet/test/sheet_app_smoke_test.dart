@@ -2059,7 +2059,14 @@ Clef & Staff 세트리스트
       final more = find.byTooltip('세트리스트 작업 더 보기');
       await tester.tap(more);
       await tester.pumpAndSettle();
-      for (final label in ['공유용 목록 보기', '목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in [
+        '공유용 목록 보기',
+        '목록 복사',
+        '패키지 내보내기',
+        '세트리스트 복제',
+        '이름 변경',
+        '삭제',
+      ]) {
         expect(find.text(label).hitTestable(), findsOneWidget);
       }
       await tester.tap(find.text('공유용 목록 보기'));
@@ -2111,12 +2118,69 @@ Clef & Staff 세트리스트
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpAndSettle();
       expect(more, findsNothing);
-      for (final label in ['공유용 목록 보기', '목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in [
+        '공유용 목록 보기',
+        '목록 복사',
+        '패키지 내보내기',
+        '세트리스트 복제',
+        '이름 변경',
+        '삭제',
+      ]) {
         expect(find.byTooltip(label).hitTestable(), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('setlist package export explains empty package before sharing', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 15);
+    final setlist = SheetSetlist(
+      id: 'package-recital',
+      title: 'Package Recital',
+      scoreIds: const <String>[],
+      createdAt: now,
+      updatedAt: now,
+    );
+    final store = SheetLibraryStore();
+    await store.saveSetlists(<SheetSetlist>[setlist]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: setlist.id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('패키지 내보내기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('세트리스트 패키지 내보내기'), findsOneWidget);
+    expect(find.text('패키지를 만들 수 없습니다'), findsOneWidget);
+    expect(find.text('곡 0개'), findsOneWidget);
+    expect(find.text('파일 0개'), findsOneWidget);
+    expect(find.textContaining('세트리스트에 내보낼 악보가 없습니다'), findsOneWidget);
+    expect(find.textContaining('제목: Package Recital'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '패키지 공유'))
+          .onPressed,
+      isNull,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   for (final listChanged in [false, true]) {
     testWidgets('setlist direct order entry with changed list: $listChanged', (
