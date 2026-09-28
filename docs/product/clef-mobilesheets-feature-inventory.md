@@ -168,7 +168,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 메트로놈 빠른 BPM | Android native click output 재사용, start 전 prepare, count-in phase, delayed tick phase, stale callback guard는 로컬 테스트로 보강됨. | 실제 오디오 균일성은 120/180/240 BPM, 4/4/6/8, subdivision, 이어폰/스피커/Bluetooth 별 실기기 QA. 오디오 기준 native scheduler는 현 버전 범위 밖. |
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
 | 긴 라이브러리 navigation | 12곡 이상 현재 목록에서 제목 첫 글자별 `빠른 찾기` sheet를 열어 해당 그룹의 악보를 바로 고를 수 있다. | MobileSheets식 edge alphabet scroll rail, user-configurable tabs, 음성 검색은 후속 후보. |
-| 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동과 처음/현재/끝/10쪽 전후 빠른 이동을 추가했다. 북마크/리허설 마크도 `표시 지점` 개수와 타입 라벨이 있는 칩으로 바로 선택할 수 있다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
+| 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동과 처음/현재/끝/10쪽 전후 빠른 이동을 추가했다. 북마크/리허설 마크도 `표시 지점` 개수와 타입 라벨이 있는 칩으로 바로 선택할 수 있고, 악보 위 빠른 이동 overflow도 점프/리허설/북마크를 구분한다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
 | 세트리스트 곡별 메모 표시 | 리허설 모드의 곡별 메모를 viewer 상단 context와 공연 진행 badge에도 노출한다. 저장 schema 추가 없이 기존 notes를 재사용한다. | 긴 메모가 악보를 가리지 않는지, 실제 공연 거리에서 한 줄 표시가 충분한지 DEVICE QA. |
 | PDF print/share intent | 원본 PDF와 필기 포함 PDF를 `공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상을 찾을 수 있게 했다. | 실제 iOS/Android 프린터 대상 노출과 사용자 이해도는 DEVICE QA. 별도 native print engine은 필요가 확인되면 v1.1 후보로 검토. |
 

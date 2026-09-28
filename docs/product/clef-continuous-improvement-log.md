@@ -1556,3 +1556,9 @@ or a separate outline browser. The existing page picker still keeps the slider, 
 entry and quick jump chips, but named targets now show a `표시 지점 n개` summary and distinguish
 bookmarks from rehearsal marks in the chip text and icon. Focused widget coverage verifies the
 typed labels and page selection behavior; actual long-score touch comfort remains Device QA.
+
+S98 VERIFIED LOCAL: applied the same named-target clarity to the viewer's on-score quick jump
+overflow. The popup now labels overflow entries as `점프`, `리허설` or `북마크` with matching
+icons before the target label/page, so the compact overlay no longer mixes different jump
+sources as visually identical text. A focused widget test verifies the overflow labels and
+bookmark selection callback. No thumbnail/outline browser or new navigation model was added.

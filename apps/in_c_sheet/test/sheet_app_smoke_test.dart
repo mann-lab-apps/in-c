@@ -2673,6 +2673,68 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('quick jump overflow labels named target types', (tester) async {
+    final jumps = <SheetPageJumpPoint>[];
+    final pages = <int>[];
+    final createdAt = DateTime(2026, 9, 28);
+
+    await tester.pumpWidget(
+      buildQuickJumpButtonsForTest(
+        jumpPoints: [
+          SheetPageJumpPoint(
+            id: 'jump-a',
+            sourcePage: 2,
+            targetPage: 4,
+            label: 'To A',
+            createdAt: createdAt,
+          ),
+          SheetPageJumpPoint(
+            id: 'jump-b',
+            sourcePage: 6,
+            targetPage: 8,
+            label: 'To B',
+            createdAt: createdAt,
+          ),
+          SheetPageJumpPoint(
+            id: 'jump-c',
+            sourcePage: 10,
+            targetPage: 12,
+            label: 'To C',
+            createdAt: createdAt,
+          ),
+        ],
+        rehearsalMarks: [
+          SheetRehearsalMark(
+            id: 'mark-a',
+            pageNumber: 18,
+            label: 'A',
+            kind: SheetRehearsalMark.rehearsalKind,
+            createdAt: createdAt,
+          ),
+        ],
+        bookmarks: [
+          SheetBookmark(pageNumber: 32, label: 'Cadenza', createdAt: createdAt),
+        ],
+        onJump: jumps.add,
+        onPageSelected: pages.add,
+      ),
+    );
+
+    await tester.tap(find.text('+3'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('점프 · To C · 12쪽'), findsOneWidget);
+    expect(find.text('리허설 · A · 18쪽'), findsOneWidget);
+    expect(find.text('북마크 · Cadenza · 32쪽'), findsOneWidget);
+
+    await tester.tap(find.text('북마크 · Cadenza · 32쪽'));
+    await tester.pumpAndSettle();
+
+    expect(jumps, isEmpty);
+    expect(pages, <int>[32]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('crop settings sheet offers quick margin presets', (
     tester,
   ) async {

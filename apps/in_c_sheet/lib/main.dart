@@ -17646,27 +17646,30 @@ class _QuickJumpButtons extends StatelessWidget {
                   for (final jumpPoint in overflowJumpPoints)
                     PopupMenuItem<Object>(
                       value: jumpPoint,
-                      child: Text(
-                        '${jumpPoint.label} · ${jumpPoint.targetPage}쪽',
-                        overflow: TextOverflow.ellipsis,
+                      child: _QuickJumpMenuLabel(
+                        icon: Icons.keyboard_tab,
+                        text:
+                            '점프 · ${jumpPoint.label} · ${jumpPoint.targetPage}쪽',
                       ),
                     ),
                   for (final mark in rehearsalMarks)
                     PopupMenuItem<Object>(
                       value: mark,
-                      child: Text(
-                        '${mark.label} · '
-                        '${_rehearsalMarkKindLabel(mark.kind)} · '
-                        '${mark.pageNumber}쪽',
-                        overflow: TextOverflow.ellipsis,
+                      child: _QuickJumpMenuLabel(
+                        icon: Icons.flag_outlined,
+                        text:
+                            '${mark.kind == SheetRehearsalMark.rehearsalKind ? '리허설' : _rehearsalMarkKindLabel(mark.kind)} · '
+                            '${mark.label} · ${mark.pageNumber}쪽',
                       ),
                     ),
                   for (final bookmark in bookmarks)
                     PopupMenuItem<Object>(
                       value: bookmark,
-                      child: Text(
-                        '${bookmark.label} · 북마크 · ${bookmark.pageNumber}쪽',
-                        overflow: TextOverflow.ellipsis,
+                      child: _QuickJumpMenuLabel(
+                        icon: Icons.bookmarks_outlined,
+                        text:
+                            '북마크 · ${bookmark.label} · '
+                            '${bookmark.pageNumber}쪽',
                       ),
                     ),
                 ],
@@ -17675,6 +17678,25 @@ class _QuickJumpButtons extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _QuickJumpMenuLabel extends StatelessWidget {
+  const _QuickJumpMenuLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 8),
+        Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+      ],
     );
   }
 }
@@ -21490,6 +21512,29 @@ Widget buildPagePickerSheetForTest({
         bookmarks: bookmarks,
         rehearsalMarks: pageSettings.rehearsalMarks,
         onGoToPage: onGoToPage ?? (_) {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildQuickJumpButtonsForTest({
+  List<SheetPageJumpPoint> jumpPoints = const <SheetPageJumpPoint>[],
+  List<SheetRehearsalMark> rehearsalMarks = const <SheetRehearsalMark>[],
+  List<SheetBookmark> bookmarks = const <SheetBookmark>[],
+  ValueChanged<SheetPageJumpPoint>? onJump,
+  ValueChanged<int>? onPageSelected,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _QuickJumpButtons(
+          jumpPoints: jumpPoints,
+          rehearsalMarks: rehearsalMarks,
+          bookmarks: bookmarks,
+          onJump: onJump ?? (_) {},
+          onPageSelected: onPageSelected ?? (_) {},
+        ),
       ),
     ),
   );
