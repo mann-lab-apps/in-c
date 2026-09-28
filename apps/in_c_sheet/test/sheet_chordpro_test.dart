@@ -50,6 +50,21 @@ Plain lyric line
     expect(SheetChordProTransposer.transposeChord('Bbmaj7/F', 2), 'Cmaj7/G');
   });
 
+  test('derives capo chord shapes from concert chords', () {
+    expect(SheetChordProTransposer.capoShapeForConcertChord('D', 2), 'C');
+    expect(SheetChordProTransposer.capoShapeForConcertChord('A/C#', 2), 'G/B');
+    expect(
+      SheetChordProTransposer.capoShapeForConcertChord(
+        'Ebmaj7/Bb',
+        1,
+        preferFlats: true,
+      ),
+      'Dmaj7/A',
+    );
+    expect(SheetChordProTransposer.capoShapeForConcertChord('F', 0), 'F');
+    expect(SheetChordProTransposer.capoShapeForConcertChord('F', -1), 'F');
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}

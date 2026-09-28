@@ -297,6 +297,17 @@ class SheetChordProTransposer {
     return '$root$suffix/$transposedBass${parsedBass.rest}';
   }
 
+  static String capoShapeForConcertChord(
+    String concertChord,
+    int capoFrets, {
+    bool preferFlats = false,
+  }) {
+    if (capoFrets <= 0) {
+      return concertChord;
+    }
+    return transposeChord(concertChord, -capoFrets, preferFlats: preferFlats);
+  }
+
   static _ParsedChordRoot? _parseRoot(String chord) {
     final match = RegExp(r'^([A-Ga-g])([#bB]?)(.*)$').firstMatch(chord);
     if (match == null) {

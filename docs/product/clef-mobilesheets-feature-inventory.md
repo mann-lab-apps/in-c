@@ -60,7 +60,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Library / Metadata | Duplicate handling | hands-on import flow | 원본 파일명 재가져오기 시 기존 악보 열기 안내가 있다 | feature map, controller tests | Implemented | 파일 내용 hash 수준의 중복 탐지는 별도 검토 |
 | Import / File Management | PDF/image import | official files page | PDF, JPG, PNG import와 이미지 PDF 변환이 있다 | feature map `PDF 가져오기`, `이미지 파일 지원` | Implemented | HEIC/HEIF는 spike |
 | Import / File Management | Text/ChordPro/docx import | official files page, Google Play listing | 텍스트/ChordPro/docx viewer/import UI는 없지만 가져오기 메뉴와 import policy가 Text/ChordPro/DOCX를 명시적으로 미지원으로 안내하고 PDF 변환 흐름을 제시한다. ChordPro parser core는 title/artist/key/capo와 chord lyric tokens를 읽을 수 있다 | feature map `텍스트/ChordPro 보기`, import menu smoke test, `sheet_chordpro_test` | Partially Implemented | 음악 코드/가사 앱에 가까워지는 큰 범위. v1.1은 silent fail/혼동 방지와 parser 기반까지만 처리 |
-| Import / File Management | Text/ChordPro transpose/capo | official files page | ChordPro transpose core가 root, suffix, slash bass, key directive를 반음 단위로 변환하고 capo metadata를 읽는다. 사용자-facing transpose/capo UI는 없다 | feature map `ChordPro transpose/capo`, `sheet_chordpro_test` | Partially Implemented | renderer와 import/viewer UI 필요 |
+| Import / File Management | Text/ChordPro transpose/capo | official files page | ChordPro transpose core가 root, suffix, slash bass, key directive를 반음 단위로 변환하고 capo metadata를 읽는다. Concert chord 기준 capo shape 계산도 가능하지만 사용자-facing transpose/capo UI는 없다 | feature map `ChordPro transpose/capo`, `sheet_chordpro_test` | Partially Implemented | renderer와 import/viewer UI 필요 |
 | Import / File Management | Multiple files per score | official files page | linkedFiles 관리와 viewer PDF 연결 파일 전환, audio linked file import가 있다. 연결 파일 목록은 PDF/이미지/오디오 라벨과 아이콘으로 구분한다 | feature map `한 곡에 여러 파일 연결`, tests | Implemented | 여러 audio track route/iOS parity는 QA 필요 |
 | Import / File Management | Cloud import/export browser | official site and files page | 시스템 file picker/provider 우선, 별도 cloud SDK 내장은 없다 | feature map `클라우드 파일 가져오기` | Partially Implemented | Dropbox/Drive/OneDrive 내장 browser는 Later |
 | Import / File Management | Direct file reference without copy on Android | official files page | 앱 내부 복사 정책이 기본이며 기존 폴더 직접 참조는 spike | spike backlog `기존 폴더 직접 참조` | Not Implemented | SAF/iOS Files 권한 정책 결정 필요 |
@@ -141,7 +141,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
    manifest는 있으나 PDF 파일과 라이브러리 항목을 자동 재구성하지는 않는다.
 2. Text/ChordPro/docx: MobileSheets는 텍스트/ChordPro를 악보 유형으로 다루지만 Clef는 PDF/image 중심이다.
    v1.1에서는 가져오기 메뉴와 policy가 해당 형식을 명시적으로 미지원 안내하고 PDF 변환을 권장하며,
-   ChordPro parser/transpose core까지만 마련했다. 사용자-facing viewer/import UI는 없다.
+   ChordPro parser/transpose/capo-shape core까지만 마련했다. 사용자-facing viewer/import UI는 없다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
    연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker

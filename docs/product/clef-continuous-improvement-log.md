@@ -1617,3 +1617,10 @@ tokens and plain lyric lines, and can transpose root notes, suffix chords, slash
 the key directive by semitones. Focused tests cover metadata parsing, slash chords, flat/sharp
 preference and stable handling of unrecognized chord markers. Import UI, ChordPro rendering,
 capo-aware display and DOCX parsing remain later work.
+
+S107 VERIFIED LOCAL: extended the ChordPro core with capo shape derivation so a future viewer can
+show concert chords and player chord shapes without re-solving the transposition rules. The helper
+derives capo shapes from concert chords by transposing root and slash bass notes downward by the
+capo fret count, preserves non-positive capo values as no-op, and keeps the existing flat/sharp
+preference behavior. Focused tests cover ordinary, slash-bass and flat-preferred shapes. No
+user-facing ChordPro renderer/import flow was added in this slice.
