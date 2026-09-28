@@ -1574,3 +1574,10 @@ S100 VERIFIED LOCAL: connected the recent long-score navigation and linked-audio
 to the named help surface. `도움말/피드백` now names `북마크/리허설 표시 지점` and `반복 구간 요약`
 so users can find the new affordances by task instead of memorizing toolbar icons. The home
 tools menu smoke test covers the updated help copy across phone/tablet and larger text sizes.
+
+S101 VERIFIED LOCAL: made long-score named navigation less chip-only. The existing page picker
+now keeps the horizontal `표시 지점` chips for quick access, but also shows a compact list of
+bookmark/rehearsal targets with page-selection copy and selected-state feedback. This improves
+MobileSheets-style outline browsing for long PDFs without adding thumbnails, a separate outline
+browser or a new renderer. Widget coverage verifies list visibility and row selection; actual
+long-score hand comfort remains Device QA.

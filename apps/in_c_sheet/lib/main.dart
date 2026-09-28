@@ -9116,7 +9116,7 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     final namedTargets = [...bookmarkTargets, ...rehearsalTargets]
       ..sort((a, b) => a.page.compareTo(b.page));
     final namedTargetCount = namedTargets.length;
-    final gridHeightFactor = namedTargetCount == 0 ? 0.46 : 0.34;
+    final gridHeightFactor = namedTargetCount == 0 ? 0.46 : 0.18;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -9262,6 +9262,57 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                         const SizedBox(width: 8),
                       ],
                     ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Material(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.42,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: theme.colorScheme.outlineVariant),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 104),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      primary: false,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: namedTargets.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        indent: 56,
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                      itemBuilder: (context, index) {
+                        final target = namedTargets[index];
+                        final isSelected = target.page == _selectedPage;
+                        return ListTile(
+                          dense: true,
+                          leading: Icon(target.icon),
+                          title: Text(
+                            target.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.w900
+                                  : FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text('${target.page}쪽으로 선택'),
+                          trailing: isSelected
+                              ? Icon(
+                                  Icons.check_circle,
+                                  color: theme.colorScheme.primary,
+                                )
+                              : null,
+                          onTap: () => _setSelectedPage(target.page),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
