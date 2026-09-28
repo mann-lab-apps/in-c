@@ -65,6 +65,41 @@ Plain lyric line
     expect(SheetChordProTransposer.capoShapeForConcertChord('F', -1), 'F');
   });
 
+  test('renders ChordPro lines as chord rows above lyrics', () {
+    final document = SheetChordProParser.parse('''
+{title: Tune}
+[C]Falling [G/B]leaves
+Plain lyric line
+''');
+
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      'C       G/B',
+      'Falling leaves',
+      'Plain lyric line',
+    ]);
+    expect(
+      SheetChordProTextRenderer.renderPlainText(document),
+      'C       G/B\nFalling leaves\nPlain lyric line',
+    );
+  });
+
+  test('renders transposed concert chords and capo shapes', () {
+    final document = SheetChordProParser.parse('''
+{key: D}
+{capo: 2}
+[D]Home [A/C#]again
+''');
+
+    expect(
+      SheetChordProTextRenderer.renderLines(document, transposeSemitones: 2),
+      <String>['E    B/D#', 'Home again'],
+    );
+    expect(
+      SheetChordProTextRenderer.renderLines(document, showCapoShapes: true),
+      <String>['C    G/B', 'Home again'],
+    );
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}

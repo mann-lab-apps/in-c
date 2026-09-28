@@ -1624,3 +1624,11 @@ derives capo shapes from concert chords by transposing root and slash bass notes
 capo fret count, preserves non-positive capo values as no-op, and keeps the existing flat/sharp
 preference behavior. Focused tests cover ordinary, slash-bass and flat-preferred shapes. No
 user-facing ChordPro renderer/import flow was added in this slice.
+
+S108 VERIFIED LOCAL: added a pure ChordPro plain-text rendering core as the next small step toward
+Text/ChordPro score support. `SheetChordProTextRenderer` converts parsed chord/lyric lines into
+readable chord rows above lyric rows, can render transposed concert chords, can render capo player
+shapes using the saved capo directive or an explicit fret override, and suppresses the common
+trailing empty line from files ending with a newline. Focused tests cover plain rendering,
+transposed rendering, capo-shape rendering and trailing newline behavior. Import UI, styled
+viewer layout and DOCX parsing remain later work.
