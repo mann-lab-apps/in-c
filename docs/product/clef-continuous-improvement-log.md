@@ -1672,3 +1672,9 @@ The ChordPro parser now normalizes `{sot}`/`{eot}` tab block aliases, and the pl
 keeps start-of-tab cues as `[Tab]` or the supplied label so guitar tab sections do not vanish in
 future text-score display. Focused ChordPro tests, full analyze, 1,429 tests and RC release check
 passed.
+
+S116 VERIFIED LOCAL: preserving ChordPro layout cues without enabling a full text-score viewer.
+The parser now normalizes `{np}`, `{npp}` and `{colb}` into page/column directives, and the plain
+text renderer keeps them as `[Page break]` or `[Column break]` so future ChordPro display does not
+silently flatten rehearsal layout hints. Focused ChordPro tests, full analyze, 1,430 tests and RC
+release check passed.

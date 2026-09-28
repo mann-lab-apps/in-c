@@ -154,6 +154,32 @@ e|--0--1--|
     ]);
   });
 
+  test('preserves ChordPro page and column break cues', () {
+    final document = SheetChordProParser.parse('''
+[C]First
+{np}
+[G]Second
+{new_physical_page}
+[Am]Third
+{colb}
+[F]Fourth
+''');
+
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      'C',
+      'First',
+      '[Page break]',
+      'G',
+      'Second',
+      '[Page break]',
+      'Am',
+      'Third',
+      '[Column break]',
+      'F',
+      'Fourth',
+    ]);
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}

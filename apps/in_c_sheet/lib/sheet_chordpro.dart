@@ -196,6 +196,9 @@ class SheetChordProParser {
       'eob' => 'end_of_bridge',
       'sot' => 'start_of_tab',
       'eot' => 'end_of_tab',
+      'np' => 'new_page',
+      'npp' => 'new_physical_page',
+      'colb' => 'column_break',
       _ => normalized,
     };
   }
@@ -296,6 +299,9 @@ class SheetChordProTextRenderer {
       'start_of_verse' => '[${value.isEmpty ? 'Verse' : value}]',
       'start_of_bridge' => '[${value.isEmpty ? 'Bridge' : value}]',
       'start_of_tab' => '[${value.isEmpty ? 'Tab' : value}]',
+      'new_page' => '[Page break]',
+      'new_physical_page' => '[Page break]',
+      'column_break' => '[Column break]',
       _ => null,
     };
   }
