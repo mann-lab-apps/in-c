@@ -121,6 +121,12 @@ void main() {
         );
         expect(find.textContaining('세트리스트: 여러 악보 선택 후'), findsOneWidget);
         await tester.scrollUntilVisible(
+          find.textContaining('긴 악보 이동: 쪽 이동에서 슬라이더'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.textContaining('북마크/리허설 표시 지점'), findsOneWidget);
+        await tester.scrollUntilVisible(
           find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
           180,
           scrollable: find.byType(Scrollable).last,
@@ -129,6 +135,7 @@ void main() {
           find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
           findsOneWidget,
         );
+        expect(find.textContaining('반복 구간 요약'), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('지원 링크'),
           180,

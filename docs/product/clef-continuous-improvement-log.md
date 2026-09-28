@@ -1569,3 +1569,8 @@ timelines or a new audio engine. The player sheet now shows a compact
 user edits the numbers, and removes it after a successful clear. Regression coverage extends
 the existing linked-audio widget tests. Format, analyze, full 1,415-test suite and RC release
 check passed; actual route timing remains Device QA.
+
+S100 VERIFIED LOCAL: connected the recent long-score navigation and linked-audio polish back
+to the named help surface. `도움말/피드백` now names `북마크/리허설 표시 지점` and `반복 구간 요약`
+so users can find the new affordances by task instead of memorizing toolbar icons. The home
+tools menu smoke test covers the updated help copy across phone/tablet and larger text sizes.
