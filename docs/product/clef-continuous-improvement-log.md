@@ -1504,7 +1504,7 @@ the connection; rerun RC from this checkpoint before release packaging. No app b
 change/push/merge.
 
 S91 VERIFIED LOCAL: reframed the in-app device QA surface so regular users do not mistake it
-for a normal score feature. The home menu entry is now `기기 성능 리포트`, the help sheet opens
+for a normal score feature. The home menu entry is now `개발자용 기기 리포트`, the help sheet opens
 `기기 리포트 만들기`, and the sheet/report copy explains that it creates a compatibility and
 performance report for the developer without uploading automatically or modifying scores.
 Regression coverage updated the home tools menu and Clef home smoke tests. Targeted tests,
@@ -1661,3 +1661,8 @@ land on the helpful PDF conversion message instead of the generic image failure 
 recognition for `.chord`, `.song` and `.onsong` alongside existing ChordPro extensions while
 keeping direct text-score import disabled. Focused import tests, full analyze, 1,428 tests,
 RC release check, whitespace scan, tab scan and stale wording scan passed.
+
+S114 VERIFIED LOCAL: made the device check surface harder to mistake for a normal player feature.
+The home menu entry, sheet title, share subject, report markdown header and QA wording now use
+`개발자용 기기 리포트`, and the sheet intro states that it is not a general practice tool.
+Targeted device/home/smoke tests, full analyze, 1,428 tests and RC release check passed.

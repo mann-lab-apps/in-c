@@ -83,6 +83,7 @@ void main() {
 
     final markdown = report.toMarkdown();
 
+    expect(markdown, contains('# Clef & Staff 개발자용 기기 리포트'));
     expect(markdown, contains('Clef & Staff 1.0.1+27'));
     expect(markdown, contains('Home: PASS'));
     expect(markdown, contains('Pedal: MANUAL'));

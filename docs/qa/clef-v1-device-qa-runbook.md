@@ -266,7 +266,7 @@ iPad/iOS smoke:
 
 Audio/tuner:
 
-- 먼저 홈 `메뉴` > `기기 성능 리포트`에서 `Tuner setup`과 `Drone setup` 줄을 확인한다.
+- 먼저 홈 `메뉴` > `개발자용 기기 리포트`에서 `Tuner setup`과 `Drone setup` 줄을 확인한다.
   `Tuner setup`은 A4 기준, 감지 엔진, 표기, chromatic-only 상태를 기록해야 한다.
   `Drone setup`은 drone mode, concert note/frequency, volume, 0%/고음량 다성 clipping-risk를
   기록해야 한다. 이 두 항목의 PASS는 설정 위험도가 낮다는 뜻이며 실제 음량/정확도 PASS가 아니다.

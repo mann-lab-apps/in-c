@@ -746,7 +746,7 @@ void main() {
     expect(find.byTooltip('악보 추가'), findsOneWidget);
     await tester.tap(find.byTooltip('라이브러리 메뉴'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '기기 성능 리포트'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, '개발자용 기기 리포트'), findsOneWidget);
     expect(find.widgetWithText(ListTile, '도움말/피드백'), findsOneWidget);
     expect(find.byTooltip('클래식 듣기'), findsNothing);
   });

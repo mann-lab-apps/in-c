@@ -1804,8 +1804,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   value: _LibraryToolsAction.deviceCheck,
                   child: ListTile(
                     leading: Icon(Icons.speed_outlined),
-                    title: Text('기기 성능 리포트'),
-                    subtitle: Text('개발자에게 보낼 호환성 점검'),
+                    title: Text('개발자용 기기 리포트'),
+                    subtitle: Text('성능·호환성 점검 결과 복사'),
                   ),
                 ),
                 const PopupMenuItem(
@@ -4539,7 +4539,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Clef & Staff 기기 성능 리포트',
+                    'Clef & Staff 개발자용 기기 리포트',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -4549,7 +4549,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              '이 기기에서 페이지 입력, 메트로놈 스케줄, 마이크 권한 같은 호환성 정보를 확인해 '
+              '일반 연주 도구가 아니라, 이 기기에서 페이지 입력, 메트로놈 스케줄, 마이크 권한 같은 호환성 정보를 확인해 '
               '개발자에게 보낼 리포트를 만듭니다. 결과는 사용자가 복사하거나 공유하기 전까지 '
               '외부로 전송되지 않습니다.',
               style: theme.textTheme.bodySmall,
@@ -4677,7 +4677,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
                     try {
                       await SharePlus.instance.share(
                         ShareParams(
-                          subject: 'Clef & Staff 기기 성능 리포트',
+                          subject: 'Clef & Staff 개발자용 기기 리포트',
                           text: report.toMarkdown(),
                         ),
                       );
@@ -4791,7 +4791,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
           id: 'app-launch',
           title: 'App launch',
           status: SheetDeviceCheckStatus.pass,
-          details: '기기 성능 리포트 화면이 열렸습니다.',
+          details: '개발자용 기기 리포트 화면이 열렸습니다.',
         ),
         deviceCheckItemForKeyInput(_lastKeyEntry),
         if (_timingResults.isEmpty)

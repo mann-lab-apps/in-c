@@ -92,7 +92,7 @@ class SheetDeviceCheckReport {
 
   String toMarkdown() {
     final buffer = StringBuffer()
-      ..writeln('# Clef & Staff 기기 성능 리포트')
+      ..writeln('# Clef & Staff 개발자용 기기 리포트')
       ..writeln()
       ..writeln('App: Clef & Staff $appVersion')
       ..writeln('Platform: ${sanitizeDeviceCheckText(platform)}')

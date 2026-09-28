@@ -79,8 +79,8 @@ void main() {
         await tester.tap(menu);
         await tester.pumpAndSettle();
         expect(find.text('보기/입력 기본값'), findsOneWidget);
-        expect(find.widgetWithText(ListTile, '기기 성능 리포트'), findsOneWidget);
-        expect(find.text('개발자에게 보낼 호환성 점검'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, '개발자용 기기 리포트'), findsOneWidget);
+        expect(find.text('성능·호환성 점검 결과 복사'), findsOneWidget);
         final helpMenuItem = find.widgetWithText(ListTile, '도움말/피드백');
         expect(helpMenuItem, findsOneWidget);
         expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
@@ -95,11 +95,12 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(ListTile, '기기 성능 리포트'));
+        await tester.tap(find.widgetWithText(ListTile, '개발자용 기기 리포트'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 기기 성능 리포트'), findsOneWidget);
+        expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'device check');
-        Navigator.of(tester.element(find.text('Clef & Staff 기기 성능 리포트'))).pop();
+        Navigator.of(tester.element(find.text('Clef & Staff 개발자용 기기 리포트')))
+            .pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
@@ -157,8 +158,9 @@ void main() {
         );
         await tester.tap(find.text('기기 리포트 만들기'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 기기 성능 리포트'), findsOneWidget);
-        Navigator.of(tester.element(find.text('Clef & Staff 기기 성능 리포트'))).pop();
+        expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);
+        Navigator.of(tester.element(find.text('Clef & Staff 개발자용 기기 리포트')))
+            .pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
