@@ -1754,3 +1754,13 @@ still a separate MobileSheets-style package spike.
 Focused save-failure, duplicate/id-collision and phone-width long-manifest tests passed. Format, analyze,
 full 1,449-test suite, RC release check, git diff whitespace check, trailing whitespace scan, tab scan and
 stale wording scan passed.
+
+S127 VERIFIED LOCAL: starting the larger MobileSheets-style setlist package gap without adding an unsafe
+archive importer. Added a pure dry-run model for a future Clef setlist package format
+(`clef.setlist.package` v1): given a parsed setlist manifest, current library scores and package file
+entries, it separates items that already match library scores from files that could be imported from
+the package, while keeping missing files, duplicate package filenames, unsupported formats and ambiguous
+existing-score matches unresolved. This does not read ZIP bytes, copy files, create scores or save
+setlists yet; it fixes the preview boundary needed before any package import UI/storage flow.
+Focused package dry-run model tests passed. Format, analyze, full 1,453-test suite, RC release check,
+git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.

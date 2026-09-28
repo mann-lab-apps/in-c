@@ -1,0 +1,186 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_setlist_manifest.dart';
+import 'package:in_c_sheet/sheet_setlist_package.dart';
+
+void main() {
+  test('dry run separates existing scores from package files', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 3곡
+
+1. Existing Etude
+   작곡가: Goedicke
+   파일: existing-etude.pdf
+2. New Sonata
+   작곡가: Mozart
+   파일: new-sonata.pdf
+3. New Image Score
+   파일: scans/new-image-score.png
+''');
+
+    final dryRun = SheetSetlistPackageDryRun.preview(
+      manifest: manifest!,
+      currentScores: [
+        _score(
+          id: 'existing',
+          title: 'Existing Etude',
+          composer: 'Goedicke',
+          filePath: '/library/existing-etude.pdf',
+        ),
+      ],
+      packageFiles: const [
+        SheetSetlistPackageFile(path: 'scores/new-sonata.pdf'),
+        SheetSetlistPackageFile(path: 'scores/scans/new-image-score.png'),
+      ],
+    );
+
+    expect(dryRun.canImport, isTrue);
+    expect(dryRun.existingScoreCount, 1);
+    expect(dryRun.importableFileCount, 2);
+    expect(dryRun.unresolvedCount, 0);
+    expect(dryRun.entries.map((entry) => entry.status), [
+      SheetSetlistPackageEntryStatus.existingScore,
+      SheetSetlistPackageEntryStatus.importableFile,
+      SheetSetlistPackageEntryStatus.importableFile,
+    ]);
+    expect(dryRun.entries.first.existingScore?.id, 'existing');
+    expect(dryRun.entries[1].packageFile?.path, 'scores/new-sonata.pdf');
+    expect(
+      dryRun.entries[2].packageFile?.path,
+      'scores/scans/new-image-score.png',
+    );
+    expect(dryRun.warnings, isEmpty);
+  });
+
+  test('dry run reports missing, duplicate and unsupported package files', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Risky Package
+곡 수: 4곡
+
+1. Missing
+   파일: missing.pdf
+2. Duplicate
+   파일: duplicate.pdf
+3. Unsupported
+   파일: chart.docx
+4. No File
+''');
+
+    final dryRun = SheetSetlistPackageDryRun.preview(
+      manifest: manifest!,
+      currentScores: const <SheetScore>[],
+      packageFiles: const [
+        SheetSetlistPackageFile(path: 'scores/duplicate.pdf'),
+        SheetSetlistPackageFile(path: 'extras/duplicate.pdf'),
+        SheetSetlistPackageFile(path: 'scores/chart.docx'),
+      ],
+    );
+
+    expect(dryRun.canImport, isFalse);
+    expect(dryRun.existingScoreCount, 0);
+    expect(dryRun.importableFileCount, 0);
+    expect(dryRun.unresolvedCount, 4);
+    expect(dryRun.entries.map((entry) => entry.status), [
+      SheetSetlistPackageEntryStatus.missingFile,
+      SheetSetlistPackageEntryStatus.duplicatePackageFile,
+      SheetSetlistPackageEntryStatus.unsupportedFile,
+      SheetSetlistPackageEntryStatus.missingFile,
+    ]);
+    expect(
+      dryRun.warnings,
+      containsAll([
+        '패키지에서 찾을 수 없는 파일: missing.pdf',
+        '패키지에 같은 이름의 파일이 여러 개 있습니다: duplicate.pdf',
+        '지원하지 않는 패키지 파일 형식: chart.docx',
+        '패키지에서 찾을 수 없는 파일: No File',
+      ]),
+    );
+  });
+
+  test(
+    'dry run keeps ambiguous library matches unresolved before file import',
+    () {
+      final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Ambiguous Package
+곡 수: 1곡
+
+1. Sonata
+   파일: sonata.pdf
+''');
+
+      final dryRun = SheetSetlistPackageDryRun.preview(
+        manifest: manifest!,
+        currentScores: [
+          _score(id: 'mozart', title: 'Sonata', composer: 'Mozart'),
+          _score(id: 'beethoven', title: 'Sonata', composer: 'Beethoven'),
+        ],
+        packageFiles: const [
+          SheetSetlistPackageFile(path: 'scores/sonata.pdf'),
+        ],
+      );
+
+      expect(dryRun.canImport, isFalse);
+      expect(
+        dryRun.entries.single.status,
+        SheetSetlistPackageEntryStatus.ambiguousExistingScore,
+      );
+      expect(dryRun.entries.single.candidates.map((score) => score.id), [
+        'mozart',
+        'beethoven',
+      ]);
+      expect(dryRun.importableFileCount, 0);
+      expect(dryRun.warnings, contains('여러 기존 악보와 일치하는 곡: Sonata'));
+    },
+  );
+
+  test('dry run inherits manifest validation failures', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Count Mismatch
+곡 수: 2곡
+
+1. Only One
+   파일: only-one.pdf
+''');
+
+    final dryRun = SheetSetlistPackageDryRun.preview(
+      manifest: manifest!,
+      currentScores: const <SheetScore>[],
+      packageFiles: const [
+        SheetSetlistPackageFile(path: 'scores/only-one.pdf'),
+      ],
+    );
+
+    expect(manifest.canPreviewImport, isFalse);
+    expect(dryRun.canImport, isFalse);
+    expect(dryRun.importableFileCount, 1);
+    expect(dryRun.warnings, contains('곡 수와 항목 수가 다릅니다.'));
+  });
+}
+
+SheetScore _score({
+  required String id,
+  required String title,
+  String composer = '',
+  String? filePath,
+}) {
+  final now = DateTime(2026, 9, 28, 15);
+  return SheetScore(
+    id: id,
+    title: title,
+    composer: composer,
+    tags: const <String>[],
+    note: '',
+    filePath: filePath ?? '/tmp/$id.pdf',
+    importedAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    lastPage: 1,
+    isFavorite: false,
+    bookmarks: const <SheetBookmark>[],
+  );
+}
