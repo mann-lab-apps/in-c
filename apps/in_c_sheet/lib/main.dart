@@ -8967,6 +8967,18 @@ class _PagePickerSheet extends StatefulWidget {
   State<_PagePickerSheet> createState() => _PagePickerSheetState();
 }
 
+class _PagePickerNamedTarget {
+  const _PagePickerNamedTarget({
+    required this.label,
+    required this.page,
+    required this.icon,
+  });
+
+  final String label;
+  final int page;
+  final IconData icon;
+}
+
 class _PagePickerSheetState extends State<_PagePickerSheet> {
   late int _selectedPage;
   late final TextEditingController _pageController;
@@ -9035,25 +9047,55 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     return targets;
   }
 
-  List<MapEntry<String, int>> _namedPageTargets() {
-    final targets = <MapEntry<String, int>>[];
+  List<_PagePickerNamedTarget> _bookmarkTargets() {
+    final targets = <_PagePickerNamedTarget>[];
 
     void add(String label, int page) {
       if (page < 1 || page > widget.pageCount) {
         return;
       }
-      targets.add(MapEntry<String, int>(label, page));
+      targets.add(
+        _PagePickerNamedTarget(
+          label: label,
+          page: page,
+          icon: Icons.bookmarks_outlined,
+        ),
+      );
     }
 
     for (final bookmark in widget.bookmarks) {
-      add('${bookmark.label} · ${bookmark.pageNumber}쪽', bookmark.pageNumber);
+      add(
+        '북마크 · ${bookmark.label} · ${bookmark.pageNumber}쪽',
+        bookmark.pageNumber,
+      );
     }
+    targets.sort((a, b) => a.page.compareTo(b.page));
+    return targets;
+  }
+
+  List<_PagePickerNamedTarget> _rehearsalTargets() {
+    final targets = <_PagePickerNamedTarget>[];
+
+    void add(String label, int page) {
+      if (page < 1 || page > widget.pageCount) {
+        return;
+      }
+      targets.add(
+        _PagePickerNamedTarget(
+          label: label,
+          page: page,
+          icon: Icons.flag_outlined,
+        ),
+      );
+    }
+
     for (final mark in widget.rehearsalMarks) {
       final kindLabel = mark.kind == SheetRehearsalMark.rehearsalKind
           ? '리허설'
           : _rehearsalMarkKindLabel(mark.kind);
-      add('${mark.label} · $kindLabel · ${mark.pageNumber}쪽', mark.pageNumber);
+      add('$kindLabel · ${mark.label} · ${mark.pageNumber}쪽', mark.pageNumber);
     }
+    targets.sort((a, b) => a.page.compareTo(b.page));
     return targets;
   }
 
@@ -9069,8 +9111,12 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     final summary = widget.pageSummary.isEmpty
         ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
         : '${widget.pageSummary} · 원본 PDF는 그대로입니다.';
-    final namedTargets = _namedPageTargets();
-    final gridHeightFactor = namedTargets.isEmpty ? 0.46 : 0.34;
+    final bookmarkTargets = _bookmarkTargets();
+    final rehearsalTargets = _rehearsalTargets();
+    final namedTargets = [...bookmarkTargets, ...rehearsalTargets]
+      ..sort((a, b) => a.page.compareTo(b.page));
+    final namedTargetCount = namedTargets.length;
+    final gridHeightFactor = namedTargetCount == 0 ? 0.46 : 0.34;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -9173,13 +9219,31 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                     ),
                 ],
               ),
-              if (namedTargets.isNotEmpty) ...[
+              if (namedTargetCount > 0) ...[
                 const SizedBox(height: 10),
-                Text(
-                  '표시 지점',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '표시 지점 $namedTargetCount개',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      [
+                        if (bookmarkTargets.isNotEmpty)
+                          '북마크 ${bookmarkTargets.length}',
+                        if (rehearsalTargets.isNotEmpty)
+                          '리허설 ${rehearsalTargets.length}',
+                      ].join(' · '),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 SingleChildScrollView(
@@ -9188,10 +9252,10 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                     children: [
                       for (final target in namedTargets) ...[
                         ActionChip(
-                          avatar: const Icon(Icons.flag_outlined, size: 18),
-                          label: Text(target.key),
-                          onPressed: () => _setSelectedPage(target.value),
-                          backgroundColor: target.value == _selectedPage
+                          avatar: Icon(target.icon, size: 18),
+                          label: Text(target.label),
+                          onPressed: () => _setSelectedPage(target.page),
+                          backgroundColor: target.page == _selectedPage
                               ? theme.colorScheme.secondaryContainer
                               : null,
                         ),

@@ -2657,11 +2657,12 @@ void main() {
       ),
     );
 
-    expect(find.text('표시 지점'), findsOneWidget);
-    expect(find.text('Cadenza · 32쪽'), findsOneWidget);
-    expect(find.text('A · 리허설 · 18쪽'), findsOneWidget);
+    expect(find.text('표시 지점 2개'), findsOneWidget);
+    expect(find.text('북마크 1 · 리허설 1'), findsOneWidget);
+    expect(find.text('북마크 · Cadenza · 32쪽'), findsOneWidget);
+    expect(find.text('리허설 · A · 18쪽'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ActionChip, 'A · 리허설 · 18쪽'));
+    await tester.tap(find.widgetWithText(ActionChip, '리허설 · A · 18쪽'));
     await tester.pump();
     expect(find.text('현재 10쪽 · 선택 18/80쪽'), findsOneWidget);
 

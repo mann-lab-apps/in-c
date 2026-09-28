@@ -1550,3 +1550,9 @@ user copies it. Existing one-tap `목록 복사` remains available for fast loca
 Widget coverage checks compact preview visibility, manifest copy text and tablet toolbar
 affordances. Direct external sharing remains intentionally unimplemented without explicit
 approval because the manifest can include titles, filenames, notes and custom metadata.
+
+S97 VERIFIED LOCAL: reduced a small long-PDF navigation gap without adding thumbnail rendering
+or a separate outline browser. The existing page picker still keeps the slider, typed page
+entry and quick jump chips, but named targets now show a `표시 지점 n개` summary and distinguish
+bookmarks from rehearsal marks in the chip text and icon. Focused widget coverage verifies the
+typed labels and page selection behavior; actual long-score touch comfort remains Device QA.
