@@ -1587,3 +1587,10 @@ system. The annotation stamp picker now keeps search and category chips, and add
 row with the current stamp plus common rehearsal/tempo stamps for one-tap reuse. Widget coverage
 verifies the quick row and one-tap quick selection path. User-provided stamp packs, snipping and
 editable PDF annotation export remain separate MobileSheets-gap items.
+
+S103 VERIFIED LOCAL: rechecked the user-reported home metadata confusion against source,
+widget coverage and MobileSheets inventory. The requested UI separation is already in the current
+source: `정보 정리 필요` is a task panel with `정보 보강` cards and explicit `정보 편집` actions,
+while `최근 악보`, `최근 세트리스트`, `고정` and `즐겨찾기` remain ordinary open rails. Updated
+the MobileSheets gap refresh and Device QA checklist/runbook so testers verify the task-panel
+visual distinction, tap expectation, file fallback and phone/tablet/large-text readability.

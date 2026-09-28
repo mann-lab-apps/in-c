@@ -158,6 +158,18 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - 기능 발견성은 MobileSheets의 전통적인 icon/toolbar 밀도보다 Clef의 이름 있는 `메뉴`/`도구`
   fallback을 유지하는 편이 낫다.
 
+## 2026-09-28 gap refresh
+
+- 사용자 피드백의 metadata 없는 악보 혼동은 현재 코드/테스트 기준 반영됨. 홈의 `정보 정리 필요`는
+  일반 `최근 악보` rail이 아니라 `정보 보강` task card와 `정보 편집` action으로 표시된다.
+- 긴 PDF navigation은 page picker slider, 직접 page 입력, 빠른 이동, named target list까지 구현됨.
+  MobileSheets식 thumbnail strip/별도 outline browser는 렌더링 비용 확인 전까지 후속 후보로 남긴다.
+- Annotation stamp discovery는 검색, category chip, `빠른 선택` row까지 구현됨. 사용자 stamp pack,
+  snipping, multi-layer, editable PDF annotation export는 여전히 gap이다.
+- Device QA가 필요한 항목은 제품 기능 부재와 구분한다. 특히 실제 오디오 균일성, 드론 음량,
+  Bluetooth/USB pedal, stylus 필기감, 긴 악보/긴 라이브러리 손가락 조작감은 자동 테스트만으로
+  완료 처리하지 않는다.
+
 ## 다음 단계 후보
 
 ### v1.x에 흡수할 만한 낮은 위험 기능
