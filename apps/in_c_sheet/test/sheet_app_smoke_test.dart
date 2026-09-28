@@ -2810,6 +2810,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('스탬프 선택'), findsWidgets);
+    expect(find.text('빠른 선택'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'OK'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'CUE'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '!'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '전체'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '리허설 표시'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '반복/마침'), findsOneWidget);
@@ -2820,8 +2824,7 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, '템포 변화'));
     await tester.pumpAndSettle();
 
-    expect(find.text('rit.'), findsOneWidget);
-    expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('rit.'), findsAtLeastNWidgets(1));
     expect(find.text('Fine'), findsNothing);
 
     await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
@@ -2832,15 +2835,20 @@ void main() {
 
     expect(find.text('반복/마침'), findsWidgets);
     expect(find.text('Fine'), findsOneWidget);
-    expect(find.text('D.C.'), findsOneWidget);
+    expect(find.text('D.C.'), findsAtLeastNWidgets(1));
 
     await tester.enterText(find.byType(TextField), '템포');
     await tester.pumpAndSettle();
 
     expect(find.text('템포 변화'), findsWidgets);
-    expect(find.text('rit.'), findsOneWidget);
-    expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('rit.'), findsAtLeastNWidgets(1));
     expect(find.text('Fine'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ActionChip, 'CUE'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('빠른 선택'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

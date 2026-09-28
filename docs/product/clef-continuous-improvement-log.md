@@ -1581,3 +1581,9 @@ bookmark/rehearsal targets with page-selection copy and selected-state feedback.
 MobileSheets-style outline browsing for long PDFs without adding thumbnails, a separate outline
 browser or a new renderer. Widget coverage verifies list visibility and row selection; actual
 long-score hand comfort remains Device QA.
+
+S102 VERIFIED LOCAL: reduced the stamp-picker depth gap without adding a custom stamp asset
+system. The annotation stamp picker now keeps search and category chips, and adds a `빠른 선택`
+row with the current stamp plus common rehearsal/tempo stamps for one-tap reuse. Widget coverage
+verifies the quick row and one-tap quick selection path. User-provided stamp packs, snipping and
+editable PDF annotation export remain separate MobileSheets-gap items.

@@ -18603,6 +18603,13 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
 class _AnnotationStampPickerSheetState
     extends State<_AnnotationStampPickerSheet> {
   static const _allCategoryLabel = '전체';
+  static const _quickStamps = <_AnnotationStamp>[
+    _AnnotationStamp.ok,
+    _AnnotationStamp.cue,
+    _AnnotationStamp.mark,
+    _AnnotationStamp.rit,
+    _AnnotationStamp.dc,
+  ];
 
   String _query = '';
   String _category = _allCategoryLabel;
@@ -18622,6 +18629,11 @@ class _AnnotationStampPickerSheetState
               (query.isEmpty || stamp.searchText.contains(query)),
         )
         .toList(growable: false);
+    final quickStamps = <_AnnotationStamp>[
+      widget.selectedStamp,
+      for (final stamp in _quickStamps)
+        if (stamp != widget.selectedStamp) stamp,
+    ];
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -18650,6 +18662,33 @@ class _AnnotationStampPickerSheetState
                 hintText: '이름, 역할, 기호 검색',
                 prefixIcon: Icon(Icons.search),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              '빠른 선택',
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              children: [
+                for (final stamp in quickStamps) ...[
+                  ActionChip(
+                    avatar: Icon(stamp.icon, size: 18),
+                    label: Text(stamp.label),
+                    onPressed: () => Navigator.of(context).pop(stamp),
+                    backgroundColor: stamp == widget.selectedStamp
+                        ? Theme.of(context).colorScheme.secondaryContainer
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ],
             ),
           ),
           SingleChildScrollView(
