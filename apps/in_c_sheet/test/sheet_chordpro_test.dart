@@ -76,6 +76,28 @@ Plain lyric line
     expect(document.artist, 'Bach');
   });
 
+  test('parses ChordPro directives with whitespace arguments', () {
+    final document = SheetChordProParser.parse('''
+{subtitle Recital cut}
+{comment freely}
+{sov Verse 1}
+[C]Sing
+{start_of_chorus label="Big chorus"}
+[G]Again
+''');
+
+    expect(document.subtitle, 'Recital cut');
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      '[freely]',
+      '[Verse 1]',
+      'C',
+      'Sing',
+      '[Big chorus]',
+      'G',
+      'Again',
+    ]);
+  });
+
   test('transposes roots, slash bass notes and key directives', () {
     final document = SheetChordProParser.parse('''
 {title: Tune}

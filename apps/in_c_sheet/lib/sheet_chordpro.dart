@@ -226,16 +226,38 @@ class SheetChordProParser {
   }
 
   static (String, String)? _parseDirective(String rawLine) {
-    final match = RegExp(r'^\{\s*([^:}]+)\s*:?\s*([^}]*)\}$')
-        .firstMatch(rawLine.trim());
+    final match = RegExp(r'^\{\s*([^}]*)\s*\}$').firstMatch(rawLine.trim());
     if (match == null) {
       return null;
     }
-    final name = _normalizeDirectiveName(match.group(1) ?? '');
+    final inner = (match.group(1) ?? '').trim();
+    if (inner.isEmpty) {
+      return null;
+    }
+    final parts = _splitDirectiveInner(inner);
+    final name = _normalizeDirectiveName(parts.$1);
     if (name.isEmpty) {
       return null;
     }
-    return (name, (match.group(2) ?? '').trim());
+    return (name, parts.$2);
+  }
+
+  static (String, String) _splitDirectiveInner(String inner) {
+    final colonIndex = inner.indexOf(':');
+    if (colonIndex >= 0) {
+      return (
+        inner.substring(0, colonIndex).trim(),
+        inner.substring(colonIndex + 1).trim(),
+      );
+    }
+    final whitespace = RegExp(r'\s+').firstMatch(inner);
+    if (whitespace == null) {
+      return (inner, '');
+    }
+    return (
+      inner.substring(0, whitespace.start).trim(),
+      inner.substring(whitespace.end).trim(),
+    );
   }
 
   static (String, String)? _parseMetaDirectiveValue(String rawValue) {
@@ -365,20 +387,31 @@ class SheetChordProTextRenderer {
   static String? _renderDirectiveLine(SheetChordProLine line) {
     final name = line.directiveName;
     final value = line.directiveValue?.trim() ?? '';
+    final label = _directiveLabel(value);
     return switch (name) {
       'comment' ||
       'comment_box' ||
       'comment_italic' ||
       'section' => value.isEmpty ? null : '[$value]',
-      'start_of_chorus' => '[${value.isEmpty ? 'Chorus' : value}]',
-      'start_of_verse' => '[${value.isEmpty ? 'Verse' : value}]',
-      'start_of_bridge' => '[${value.isEmpty ? 'Bridge' : value}]',
-      'start_of_tab' => '[${value.isEmpty ? 'Tab' : value}]',
+      'start_of_chorus' => '[${label.isEmpty ? 'Chorus' : label}]',
+      'start_of_verse' => '[${label.isEmpty ? 'Verse' : label}]',
+      'start_of_bridge' => '[${label.isEmpty ? 'Bridge' : label}]',
+      'start_of_tab' => '[${label.isEmpty ? 'Tab' : label}]',
       'new_page' => '[Page break]',
       'new_physical_page' => '[Page break]',
       'column_break' => '[Column break]',
       _ => null,
     };
+  }
+
+  static String _directiveLabel(String value) {
+    final match = RegExp(
+      r'''(?:^|\s)label\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s]+))''',
+    ).firstMatch(value);
+    if (match == null) {
+      return value;
+    }
+    return (match.group(1) ?? match.group(2) ?? match.group(3) ?? '').trim();
   }
 
   static String _renderChordRow(

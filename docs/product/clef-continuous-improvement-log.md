@@ -1685,3 +1685,9 @@ composer, lyricist, arranger, album, year, time signature, tempo, duration, copy
 Explicit `{meta: name value}` directives populate the same normalized metadata map, and blank
 artist values fall back to composer instead of hiding useful attribution. Focused ChordPro tests,
 full analyze, 1,432 tests and RC release check passed.
+
+S118 VERIFIED LOCAL: accepting common ChordPro directive argument forms before enabling direct
+text-score import. Directive parsing now handles both `{name: value}` and `{name value}` forms, and
+plain text rendering extracts section labels from `label="..."` attributes so rehearsal labels do
+not appear as raw attributes. Focused ChordPro tests, full analyze, 1,433 tests and RC release
+check passed.
