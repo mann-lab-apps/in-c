@@ -1712,3 +1712,10 @@ tab and page/column cues. This slice adds a future import draft model that conve
 metadata into Clef title/composer/tags/custom fields and produces preview text, so a later
 user-facing import UI can reuse tested mapping instead of inventing metadata rules in the widget.
 Focused ChordPro tests, full analyze, 1,435 tests and RC release check passed.
+
+S122 VERIFIED LOCAL: reducing the setlist package gap without adding an opaque MobileSheets-style
+binary format. Clef already previews and copies a rich text manifest for setlists. This slice adds
+a pure parser for copied Clef manifests so title, item order, file names, notes, custom fields and
+warnings can be read back into a draft structure later, while leaving actual setlist import UI and
+PDF bundling for a separate scope.
+Focused setlist manifest tests, full analyze, 1,438 tests and RC release check passed.
