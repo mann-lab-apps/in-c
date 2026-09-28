@@ -39,7 +39,11 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   최신 설치본에서 별도 확인한다. 세트리스트 `목록 복사`는 공유용 manifest에 곡별 파일명,
   시작 쪽, 시간, 메모, 태그/분류, 사용자 필드와 메트로놈 설정이 포함되고 순서/항목이 구조화 가능한
   텍스트로 유지되는지 확인한다. 세트리스트 화면의 `복사한 세트리스트 가져오기`는 붙여넣은 manifest를
-  현재 라이브러리 악보와 매칭해 미리 보여주고, missing/ambiguous 곡이 있으면 저장하지 않는지 확인한다.
+  현재 라이브러리 악보와 매칭해 미리 보여주고, 긴 manifest에서는 매칭/확인/후보 중복 요약과
+  `외 N곡` 축약이 작은 화면에서 잘 보이는지 확인한다. missing/ambiguous 곡이 있으면 저장하지
+  않아야 하며, 같은 제목을 다시 가져오면 안전한 번호가 붙어야 한다. 이 기능은 PDF 파일을 함께
+  가져오는 package import가 아니라 이미 라이브러리에 있는 악보를 새 세트리스트로 묶는 lightweight
+  import다.
 
 ## 10-15분 RC Smoke 결과표
 
@@ -52,7 +56,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 설치/첫 실행 | 앱 이름 `Clef & Staff`, 테스트 정보 version/build, 홈 진입 | NOT TESTED | 설치 파일, 기기/OS, buildCode |
 | PDF 가져오기/뷰어 | 평소 쓰는 PDF 1개 import, 좌/우 tap, swipe, 마지막 위치 | NOT TESTED | PDF 유형, page 수, blank/crash 여부 |
 | 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 북마크/리허설 `표시 지점` chip과 목록 row, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감, 원하는 지점 찾기 |
-| 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, missing/ambiguous match 차단, 진행 위치, 다음 곡 예측 가능성 |
+| 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 긴 manifest 요약, missing/ambiguous match 차단, 같은 제목 import suffix, 진행 위치, 다음 곡 예측 가능성 |
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/빠른 선택, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |

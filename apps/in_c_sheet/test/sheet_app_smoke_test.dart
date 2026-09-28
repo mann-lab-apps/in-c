@@ -936,6 +936,77 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('setlist manifest import summarizes long lists on phone width', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 12);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (var index = 1; index <= 20; index++)
+        SheetScore(
+          id: 'score-$index',
+          title: 'Score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/score-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final manifest = StringBuffer('''
+Clef & Staff 세트리스트
+제목: Long Recital
+곡 수: 20곡 · 총 20분
+전환 5초
+
+''');
+    for (var index = 1; index <= 20; index++) {
+      manifest
+        ..writeln('$index. Score $index')
+        ..writeln('   작곡가: Composer')
+        ..writeln('   파일: score-$index.pdf')
+        ..writeln('   예상 시간: 1분');
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), manifest.toString());
+    await tester.pumpAndSettle();
+
+    expect(find.text('모든 곡을 찾았습니다'), findsOneWidget);
+    expect(find.text('매칭 20개'), findsOneWidget);
+    expect(find.text('확인 0개'), findsOneWidget);
+    expect(find.text('외 12곡'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.tap(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists.single.title, 'Long Recital');
+    expect(controller.setlists.single.scoreIds, hasLength(20));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('import menu exposes setlist assignment actions', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final controller = SheetLibraryController(store: SheetLibraryStore());

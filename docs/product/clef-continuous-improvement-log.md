@@ -1741,3 +1741,16 @@ missing or ambiguous, and creates a new setlist only from a fully resolved previ
 preserves item order, start pages, per-song notes, per-song durations and transition duration, while
 PDF bundling/external missing-file import remains out of scope.
 Focused setlist manifest import widget tests, full analyze, 1,445 tests and RC release check passed.
+
+S126 VERIFIED LOCAL: reducing the remaining risk in the new setlist manifest import flow before treating
+it as a safer same-library transfer path. The narrow-width import callout now stacks its action below
+the explanatory copy, and long pasted manifests show matched/unresolved/ambiguous summary chips while
+keeping only the first eight rows expanded with an `외 N곡` tail. Regression coverage now verifies that
+storage failure during fully matched import restores the durable setlist list, reports only failure
+guidance, does not navigate or show success, and preserves retry context. Duplicate imported titles and
+draft ID collisions now get a safe title suffix/new ID before saving. This remains a lightweight import
+for scores already present in the current library; PDF bundling or automatic external file import is
+still a separate MobileSheets-style package spike.
+Focused save-failure, duplicate/id-collision and phone-width long-manifest tests passed. Format, analyze,
+full 1,449-test suite, RC release check, git diff whitespace check, trailing whitespace scan, tab scan and
+stale wording scan passed.

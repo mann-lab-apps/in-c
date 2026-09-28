@@ -7156,17 +7156,11 @@ class _SetlistManifestImportCallout extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.32),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+          final title = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.playlist_add_check_outlined,
@@ -7193,15 +7187,40 @@ class _SetlistManifestImportCallout extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: onImport,
-                icon: const Icon(Icons.content_paste_search_outlined),
-                label: const Text('가져오기'),
-              ),
             ],
-          ),
-        ),
+          );
+          final action = OutlinedButton.icon(
+            onPressed: onImport,
+            icon: const Icon(Icons.content_paste_search_outlined),
+            label: const Text('가져오기'),
+          );
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer.withValues(
+                alpha: 0.32,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: compact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [title, const SizedBox(height: 10), action],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: title),
+                        const SizedBox(width: 10),
+                        action,
+                      ],
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -7346,6 +7365,10 @@ class _SetlistManifestImportPreview extends StatelessWidget {
       );
     }
     final warnings = preview!.warnings;
+    final matchedCount = preview!.matches
+        .where((match) => match.isResolved)
+        .length;
+    final unresolvedCount = preview!.matches.length - matchedCount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -7359,6 +7382,29 @@ class _SetlistManifestImportPreview extends StatelessWidget {
           color: preview!.canCreateSetlist
               ? theme.colorScheme.secondary
               : theme.colorScheme.tertiary,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            Chip(
+              avatar: const Icon(Icons.check_circle_outline, size: 16),
+              label: Text('매칭 $matchedCount개'),
+              visualDensity: VisualDensity.compact,
+            ),
+            Chip(
+              avatar: const Icon(Icons.help_outline, size: 16),
+              label: Text('확인 $unresolvedCount개'),
+              visualDensity: VisualDensity.compact,
+            ),
+            if (preview!.ambiguousMatches.isNotEmpty)
+              Chip(
+                avatar: const Icon(Icons.rule, size: 16),
+                label: Text('후보 중복 ${preview!.ambiguousMatches.length}개'),
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
         ),
         if (warnings.isNotEmpty) ...[
           const SizedBox(height: 8),

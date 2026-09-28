@@ -234,6 +234,59 @@ void main() {
     });
   }
 
+  test('manifest draft save failure restores durable setlists', () async {
+    final original = controller.setlists.map((s) => s.toJson()).toList();
+    final draft = SheetSetlist(
+      id: 'manifest-1',
+      title: 'Imported Concert',
+      scoreIds: const ['one', 'free'],
+      createdAt: DateTime(2026, 9, 28),
+      updatedAt: DateTime(2026, 9, 28),
+      scoreStartPages: const {'one': 2},
+      scoreNotes: const {'one': 'mute ready'},
+      scoreDurations: const {'one': 180, 'free': 120},
+      transitionSeconds: 10,
+    );
+
+    store.failWrites = true;
+    await expectLater(
+      controller.createSetlistFromDraft(draft),
+      throwsA(same(failure)),
+    );
+
+    expect(controller.setlists.map((s) => s.toJson()).toList(), original);
+    expect(
+      (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+      original,
+    );
+  });
+
+  test('manifest draft avoids duplicate title and id collisions', () async {
+    final draft = SheetSetlist(
+      id: 'concert',
+      title: 'Concert',
+      scoreIds: const ['one', 'free'],
+      createdAt: DateTime(2026, 9, 28),
+      updatedAt: DateTime(2026, 9, 28),
+      scoreStartPages: const {'one': 2},
+      scoreNotes: const {'one': 'mute ready'},
+      scoreDurations: const {'one': 180, 'free': 120},
+      transitionSeconds: 10,
+    );
+
+    final imported = await controller.createSetlistFromDraft(draft);
+
+    expect(imported.id, isNot('concert'));
+    expect(imported.title, 'Concert (2)');
+    expect(imported.scoreIds, ['one', 'free']);
+    expect(imported.scoreStartPages, {'one': 2});
+    expect(imported.scoreNotes, {'one': 'mute ready'});
+    expect(imported.scoreDurations, {'one': 180, 'free': 120});
+    expect(imported.transitionSeconds, 10);
+    expect(controller.setlists.first.id, imported.id);
+    expect((await store.loadSetlists()).first.toJson(), imported.toJson());
+  });
+
   for (final firstFails in [false, true]) {
     for (final lastFails in [false, true]) {
       test(
@@ -463,6 +516,38 @@ void main() {
       }
     });
   }
+
+  testWidgets('manifest import failure reports without success or navigation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '''
+Clef & Staff 세트리스트
+제목: Imported
+곡 수: 1곡
+
+1. one
+   파일: one.pdf
+''');
+    await tester.pumpAndSettle();
+    expect(find.text('모든 곡을 찾았습니다'), findsOneWidget);
+
+    store.failWrites = true;
+    await tester.tap(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('세트리스트 목록을 가져오지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(find.textContaining('세트리스트를 1곡으로 만들었습니다'), findsNothing);
+    expect(find.byType(SheetSetlistDetailScreen), findsNothing);
+    expect(controller.setlistByTitleOrNull('Imported'), isNull);
+  });
 
   testWidgets('detail undo failure does not queue a missing-item message', (
     tester,
