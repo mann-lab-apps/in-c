@@ -113,6 +113,29 @@ Plain lyric line
     ]);
   });
 
+  test('renders common section and comment directives as rehearsal labels', () {
+    final document = SheetChordProParser.parse('''
+{c: Intro}
+[C][G]
+{soc}
+[Am]Sing
+{eoc}
+{section: Bridge}
+[F]Stay
+''');
+
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      '[Intro]',
+      'C G',
+      '[Chorus]',
+      'Am',
+      'Sing',
+      '[Bridge]',
+      'F',
+      'Stay',
+    ]);
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}

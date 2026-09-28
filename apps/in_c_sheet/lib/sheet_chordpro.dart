@@ -185,6 +185,15 @@ class SheetChordProParser {
     return switch (normalized) {
       't' => 'title',
       'st' => 'subtitle',
+      'c' => 'comment',
+      'ci' => 'comment_italic',
+      'cb' => 'comment_box',
+      'soc' => 'start_of_chorus',
+      'eoc' => 'end_of_chorus',
+      'sov' => 'start_of_verse',
+      'eov' => 'end_of_verse',
+      'sob' => 'start_of_bridge',
+      'eob' => 'end_of_bridge',
       _ => normalized,
     };
   }
@@ -244,6 +253,10 @@ class SheetChordProTextRenderer {
     for (var index = 0; index < source.lines.length; index += 1) {
       final line = source.lines[index];
       if (line.isDirective) {
+        final directiveLine = _renderDirectiveLine(line);
+        if (directiveLine != null) {
+          rendered.add(directiveLine);
+        }
         continue;
       }
       if (!line.tokens.any((token) => token.chord != null)) {
@@ -267,6 +280,21 @@ class SheetChordProTextRenderer {
       }
     }
     return rendered;
+  }
+
+  static String? _renderDirectiveLine(SheetChordProLine line) {
+    final name = line.directiveName;
+    final value = line.directiveValue?.trim() ?? '';
+    return switch (name) {
+      'comment' ||
+      'comment_box' ||
+      'comment_italic' ||
+      'section' => value.isEmpty ? null : '[$value]',
+      'start_of_chorus' => '[${value.isEmpty ? 'Chorus' : value}]',
+      'start_of_verse' => '[${value.isEmpty ? 'Verse' : value}]',
+      'start_of_bridge' => '[${value.isEmpty ? 'Bridge' : value}]',
+      _ => null,
+    };
   }
 
   static String _renderChordRow(

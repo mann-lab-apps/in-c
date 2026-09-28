@@ -1643,3 +1643,9 @@ S110 VERIFIED LOCAL: hardened the ChordPro plain-text rendering core for chord-o
 intros, interludes and rehearsal vamps. The renderer should keep the chord row but avoid adding a
 blank lyric row underneath it, so future ChordPro display does not look double-spaced on common
 lead sheet sections. Focused tests cover the chord-only line behavior.
+
+S111 VERIFIED LOCAL: preserved common ChordPro rehearsal structure in the plain-text renderer.
+`comment`/`section` directives and common short aliases such as `c` and `soc` should render as
+simple bracketed labels, while title/key/capo metadata remains out of the body. This keeps
+intro/chorus/bridge cues visible for future text-score display without enabling direct ChordPro
+import yet.
