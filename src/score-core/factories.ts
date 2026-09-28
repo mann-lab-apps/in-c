@@ -68,6 +68,7 @@ export function createNote(input: {
   lyrics?: Note['lyrics']
   graceNotes?: Note['graceNotes']
   ornaments?: Note['ornaments']
+  clefBefore?: Note['clefBefore']
 }): Note {
   return {
     type: 'note',
@@ -83,7 +84,8 @@ export function createNote(input: {
     tremolo: input.tremolo,
     lyrics: input.lyrics,
     graceNotes: input.graceNotes,
-    ornaments: input.ornaments
+    ornaments: input.ornaments,
+    clefBefore: input.clefBefore
   }
 }
 
@@ -94,6 +96,7 @@ export function createRest(input: {
   fullMeasure?: boolean
   fermata?: boolean
   breathMark?: Rest['breathMark']
+  clefBefore?: Rest['clefBefore']
 }): Rest {
   return {
     type: 'rest',
@@ -102,7 +105,8 @@ export function createRest(input: {
     duration: input.duration ?? createDuration('quarter'),
     fullMeasure: input.fullMeasure,
     fermata: input.fermata,
-    breathMark: input.breathMark
+    breathMark: input.breathMark,
+    clefBefore: input.clefBefore
   }
 }
 

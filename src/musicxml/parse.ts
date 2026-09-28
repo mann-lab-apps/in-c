@@ -84,6 +84,9 @@ const parser = new XMLParser({
 
 const orderedParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false, preserveOrder: true })
 const directionTicks = new WeakMap<XmlNode, number>()
+const noteClefsBefore = new WeakMap<XmlNode, Clef>()
+const measureLeadingAttributes = new WeakMap<XmlNode, XmlNode[]>()
+const measureTrailingAttributes = new WeakMap<XmlNode, XmlNode[]>()
 
 const defaultMeasureState: MeasureState = {
   clef: {
@@ -142,10 +145,13 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
   orderedRoot.filter(node => 'part' in node).forEach((orderedPart, partIndex) => {
     const measures = toArray(parts[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
     let divisions = TICKS_PER_QUARTER
+    let staffCount = 1
     ;(orderedPart.part as XmlNode[]).filter(node => 'measure' in node).forEach((orderedMeasure, measureIndex) => {
       const measure = measures[measureIndex]
       if (!measure) return
       let cursor = 0
+      let hasRhythmicContent = false
+      const pendingClefs = new Map<number, Clef>()
       const indices = new Map<string, number>()
       for (const child of orderedMeasure.measure as XmlNode[]) {
         const key = Object.keys(child).find(name => name !== ':@')
@@ -154,7 +160,26 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
         indices.set(key, index + 1)
         const node = toArray(measure[key] as XmlNode | XmlNode[] | undefined)[index]
         if (!node || typeof node !== 'object') continue
-        if (key === 'attributes') divisions = readDivisions(node, divisions)
+        if (key === 'attributes') {
+          staffCount = readStaffCount(node, staffCount)
+          divisions = readDivisions(node, divisions)
+          const clefs = readAttributeClefs(node, staffCount)
+
+          if (!hasRhythmicContent && cursor === 0) {
+            measureLeadingAttributes.set(measure, [
+              ...(measureLeadingAttributes.get(measure) ?? []),
+              node
+            ])
+          } else {
+            measureTrailingAttributes.set(measure, [
+              ...(measureTrailingAttributes.get(measure) ?? []),
+              node
+            ])
+            for (const [staffNumber, clef] of clefs) {
+              pendingClefs.set(staffNumber, clef)
+            }
+          }
+        }
         if (key === 'direction') {
           const offset = Number(readOptionalString(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
           const tick = cursor + offset
@@ -163,8 +188,18 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
         }
         if (key === 'backup' || key === 'forward') {
           cursor += readMusicXmlDurationTicks(node, divisions) * (key === 'backup' ? -1 : 1)
+          hasRhythmicContent = true
         } else if (key === 'note' && !('chord' in node) && !('grace' in node)) {
+          const staffNumber = readStaffNumber(node, staffCount)
+          const clefBefore = pendingClefs.get(staffNumber)
+
+          if (clefBefore) {
+            noteClefsBefore.set(node, { ...clefBefore })
+            pendingClefs.delete(staffNumber)
+          }
+
           cursor += readMusicXmlDurationTicks(node, divisions)
+          hasRhythmicContent = true
         }
       }
     })
@@ -348,12 +383,15 @@ function parseMusicXmlPart(
   const measuresByStaff = new Map<number, Measure[]>()
 
   measureNodes.forEach((measureNode, measureIndex) => {
-    const attributes = readOptionalNode(measureNode, 'attributes')
+    const leadingAttributes =
+      measureLeadingAttributes.get(measureNode) ??
+      toArray(measureNode.attributes as XmlNode | XmlNode[] | undefined)
 
-    if (attributes) {
+    for (const attributes of leadingAttributes) {
       state = readPartMeasureState(attributes, state)
     }
 
+    const measureState = state
     const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
     const positionTicksByVoice = new Map<string, number>()
     const eventsByVoice = new Map<string, VoiceEvent[]>()
@@ -361,8 +399,8 @@ function parseMusicXmlPart(
     const pendingGraceNotesByVoice = new Map<string, GraceNote[]>()
 
     for (const noteNode of noteNodes) {
-      const staffNumber = readStaffNumber(noteNode, state.staffCount)
-      const voiceId = readVoiceId(noteNode, staffNumber, state.staffCount)
+      const staffNumber = readStaffNumber(noteNode, measureState.staffCount)
+      const voiceId = readVoiceId(noteNode, staffNumber, measureState.staffCount)
       const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
 
       if ('grace' in noteNode) {
@@ -393,14 +431,19 @@ function parseMusicXmlPart(
           partId,
           staffNumber,
           eventCounter,
-          options.preserveLegacyIds && state.staffCount === 1
+          options.preserveLegacyIds && measureState.staffCount === 1
         )
       )
+      const clefBefore = noteClefsBefore.get(noteNode)
       const xmlDurationTicks = readMusicXmlDurationTicks(
         noteNode,
-        state.divisions
+        measureState.divisions
       )
       const pendingGraceNotes = pendingGraceNotesByVoice.get(voiceKey) ?? []
+
+      if (clefBefore) {
+        event.clefBefore = { ...clefBefore }
+      }
 
       if (event.type === 'note' && pendingGraceNotes.length > 0) {
         event.graceNotes = pendingGraceNotes
@@ -440,12 +483,12 @@ function parseMusicXmlPart(
       throw new Error('MusicXML 못갖춘마디의 duration은 0보다 커야 합니다.')
     }
 
-    for (let staffNumber = 1; staffNumber <= state.staffCount; staffNumber += 1) {
+    for (let staffNumber = 1; staffNumber <= measureState.staffCount; staffNumber += 1) {
       const measureId = createImportedMeasureId(
         partId,
         staffNumber,
         measureNumber,
-        options.preserveLegacyIds && state.staffCount === 1
+        options.preserveLegacyIds && measureState.staffCount === 1
       )
       const voiceEntries = [...eventsByVoice.entries()]
         .filter(([voiceKey]) => voiceKey.startsWith(`${staffNumber}:`))
@@ -493,10 +536,10 @@ function parseMusicXmlPart(
           : {
               type: 'regular'
             },
-        clef: { ...(state.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
-        transposition: state.transpositions.get(staffNumber),
-        keySignature: { ...state.keySignature },
-        timeSignature: { ...state.timeSignature },
+        clef: { ...(measureState.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
+        transposition: measureState.transpositions.get(staffNumber),
+        keySignature: { ...measureState.keySignature },
+        timeSignature: { ...measureState.timeSignature },
         repeat: readRepeatMark(measureNode),
         volta: readVoltaMark(measureNode),
         voices
@@ -522,6 +565,10 @@ function parseMusicXmlPart(
         ...(measuresByStaff.get(staffNumber) ?? []),
         measure
       ])
+    }
+
+    for (const attributes of measureTrailingAttributes.get(measureNode) ?? []) {
+      state = readPartMeasureState(attributes, state)
     }
   })
 
@@ -1751,6 +1798,22 @@ function createPartMeasureState(): PartMeasureState {
     staffCount: 1,
     timeSignature: { ...defaultMeasureState.timeSignature }
   }
+}
+
+function readAttributeClefs(
+  attributes: XmlNode,
+  staffCount: number
+): Array<[number, Clef]> {
+  const clefNodes = toArray(attributes.clef as XmlNode | XmlNode[] | undefined)
+
+  return clefNodes.map((clefNode, index) => {
+    const staffNumber =
+      readOptionalInteger(clefNode, '@_number') ??
+      (clefNodes.length > 1 ? index + 1 : 1)
+    validateStaffNumber(staffNumber, staffCount)
+
+    return [staffNumber, readClef(clefNode)]
+  })
 }
 
 function readPartMeasureState(

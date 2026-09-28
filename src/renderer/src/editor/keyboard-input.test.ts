@@ -99,14 +99,14 @@ describe('keyboard input routing', () => {
       resolveAccidentalShortcut(keyEvent({ altKey: true, code: 'Equal', key: '=' }))
     ).toBe(1)
     expect(resolveAccidentalShortcut(keyEvent({ code: 'Digit0', key: '0' }))).toBeUndefined()
-    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: '0' }))).toBe(true)
+    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: '0' }))).toBe(false)
   })
 
   it('maps physical command keys for note input, rest, tuplet, tie, slur, undo, and redo', () => {
     expect(isNoteInputToggleShortcut(keyEvent({ code: 'KeyN', key: 'ㅜ' }))).toBe(true)
     expect(isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ' }))).toBe(true)
-    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: ')' }))).toBe(true)
-    expect(isRestShortcut(keyEvent({ code: 'Numpad0', key: '0' }))).toBe(true)
+    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: ')' }))).toBe(false)
+    expect(isRestShortcut(keyEvent({ code: 'Numpad0', key: '0' }))).toBe(false)
     expect(
       isTupletShortcut(keyEvent({ code: 'Digit3', key: '3', metaKey: true }))
     ).toBe(true)

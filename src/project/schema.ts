@@ -17,9 +17,11 @@ const pitch = harmonyPitch.extend({ octave: integer.min(-1).max(9) })
 const durationValue = z.enum(['whole', 'half', 'quarter', 'eighth', '16th', '32nd', '64th'])
 const ratio = { actualNotes: positive.max(64), normalNotes: positive.max(64) }
 const duration = z.strictObject({ value: durationValue, dots: integer.min(0).max(3), tuplet: z.strictObject(ratio).optional() })
+const clef = z.strictObject({ sign: z.enum(['G', 'F', 'C', 'percussion', 'tab']), line: positive.max(6), octaveChange: integer.min(-3).max(3).optional() })
 const eventBase = {
   id, position: z.strictObject({ tick }), duration,
-  fermata: z.boolean().optional(), breathMark: z.enum(['breath', 'caesura']).optional()
+  fermata: z.boolean().optional(), breathMark: z.enum(['breath', 'caesura']).optional(),
+  clefBefore: clef.optional()
 }
 const event = z.discriminatedUnion('type', [
   z.strictObject({
@@ -42,7 +44,7 @@ const measure = z.strictObject({
   timing: z.discriminatedUnion('type', [z.strictObject({ type: z.literal('regular') }), z.strictObject({ type: z.literal('pickup'), durationTicks: positive })]),
   timeSignature: z.strictObject({ beats: positive.max(128), beatType: z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(8), z.literal(16), z.literal(32), z.literal(64)]) }),
   keySignature: z.strictObject({ fifths: integer.min(-7).max(7), mode: z.enum(['major', 'minor']).optional() }),
-  clef: z.strictObject({ sign: z.enum(['G', 'F', 'C', 'percussion', 'tab']), line: positive.max(6), octaveChange: integer.min(-3).max(3).optional() }),
+  clef,
   transposition: z.strictObject({ diatonic: integer.min(-28).max(28).optional(), chromatic: integer.min(-48).max(48), octaveChange: integer.min(-4).max(4).optional() }).optional(),
   repeat: z.strictObject({ start: z.boolean().optional(), end: z.boolean().optional(), times: positive.max(100).optional() }).optional(),
   volta: z.strictObject({ number: z.union([z.literal(1), z.literal(2)]), start: z.boolean().optional(), end: z.boolean().optional() }).optional(),

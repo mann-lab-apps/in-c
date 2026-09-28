@@ -354,6 +354,28 @@ vi.mock('./notation/NotationPreview', () => ({
           )
         )
         .join(',')}
+      data-event-clefs-before={score.parts
+        .flatMap((part) =>
+          part.staves.flatMap((staff) =>
+            staff.measures.flatMap((measure) =>
+              measure.voices.flatMap((voice) =>
+                voice.events.map((event) =>
+                  [
+                    part.id,
+                    staff.id,
+                    measure.id,
+                    voice.id,
+                    event.id,
+                    event.clefBefore
+                      ? `${event.clefBefore.sign}${event.clefBefore.line}`
+                      : ''
+                  ].join(':')
+                )
+              )
+            )
+          )
+        )
+        .join(',')}
       data-global-tempo={score.tempo?.bpm}
       data-rhythm-feel={score.rhythmFeel?.unit ?? ''}
       data-part-structure={score.parts
@@ -374,6 +396,22 @@ vi.mock('./notation/NotationPreview', () => ({
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
+      data-measure-timings={score.parts
+        .flatMap((part) =>
+          part.staves.flatMap((staff) =>
+            staff.measures.map((measure) =>
+              [
+                part.id,
+                staff.id,
+                measure.id,
+                measure.timing.type === 'pickup'
+                  ? `pickup:${measure.timing.durationTicks}`
+                  : 'regular'
+              ].join(':')
+            )
+          )
+        )
+        .join('|')}
       data-voice-ids={score.parts[0]?.staves[0]?.measures
         .map(
           (measure) =>
@@ -986,14 +1024,17 @@ describe('App component shell', () => {
     )
   })
 
-  it('score-setup.pickup-measure creates a MusicXML pickup measure from the wizard', async () => {
+  it('score-setup.pickup-measure creates a subdivision MusicXML pickup measure from the wizard', async () => {
     const { App } = await import('./App')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('못갖춘마디'), {
-      target: { value: '1' }
+    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 단위'), {
+      target: { value: '16th' }
+    })
+    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 개수'), {
+      target: { value: '3' }
     })
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
@@ -1012,9 +1053,75 @@ describe('App component shell', () => {
 
     expect(firstMeasure.timing).toEqual({
       type: 'pickup',
-      durationTicks: TICKS_PER_QUARTER
+      durationTicks: (TICKS_PER_QUARTER / 4) * 3
     })
     expect(secondMeasure.timing).toEqual({ type: 'regular' })
+  })
+
+  it('score-setup.pickup-measure preserves subdivision pickup through native save and reopen', async () => {
+    const { decodeNativeProject } = await import('../../project/schema')
+    vi.mocked(window.inC.project.save).mockResolvedValue({
+      filePath: '/scores/pickup.chromatics',
+      fileName: 'pickup.chromatics'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
+    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 단위'), {
+      target: { value: '16th' }
+    })
+    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 개수'), {
+      target: { value: '3' }
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
+
+    const pickupTicks = (TICKS_PER_QUARTER / 4) * 3
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining(`measure-1:pickup:${pickupTicks}`)
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.project.save).toHaveBeenCalledTimes(1)
+    })
+
+    const savedContents = vi.mocked(window.inC.project.save).mock.calls[0]![0]
+      .contents
+    const saved = decodeNativeProject(savedContents)
+    expect(saved.score.parts[0].staves[0].measures[0].timing).toEqual({
+      type: 'pickup',
+      durationTicks: pickupTicks
+    })
+
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/scores/pickup.chromatics',
+      fileName: 'pickup.chromatics',
+      contents: savedContents
+    })
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('pickup.chromatics을 열었습니다.')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining(`measure-1:pickup:${pickupTicks}`)
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => {
+      expect(window.inC.project.save).toHaveBeenCalledTimes(2)
+    })
+    expect(
+      decodeNativeProject(
+        vi.mocked(window.inC.project.save).mock.calls[1]![0].contents
+      ).score.parts[0].staves[0].measures[0].timing
+    ).toEqual({
+      type: 'pickup',
+      durationTicks: pickupTicks
+    })
   })
 
   it('layout.live-part-view previews and exports the selected ensemble part', async () => {
@@ -3473,6 +3580,53 @@ describe('App component shell', () => {
     ).toBeInTheDocument()
   })
 
+  it('clef.change-before-selected-event stores an inline clef on the selected event', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.project.save).mockResolvedValue({
+      filePath: '/scores/inline-clef.chromatics',
+      fileName: 'inline-clef.chromatics'
+    })
+    const { decodeNativeProject } = await import('../../project/schema')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '음표' }))
+
+    const noteToolbar = screen.getByRole('region', { name: '음표 편집' })
+    const inlineClef = within(noteToolbar).getByLabelText('선택 이벤트 앞 음자리표')
+
+    expect(inlineClef).toHaveValue('')
+    fireEvent.change(inlineClef, { target: { value: 'bass' } })
+
+    expect(screen.getByText('선택 이벤트 앞 음자리표를 바꿨습니다.')).toBeInTheDocument()
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-clefs-before',
+      expect.stringContaining('m1-d4:F4')
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalled())
+    await screen.findByText('inline-clef.chromatics에 저장했습니다.')
+
+    const saved = decodeNativeProject(
+      vi.mocked(window.inC.project.save).mock.calls[0]![0].contents
+    )
+    const savedEvent = saved.score.parts
+      .flatMap((part) => part.staves)
+      .flatMap((staff) => staff.measures)
+      .flatMap((measure) => measure.voices)
+      .flatMap((voice) => voice.events)
+      .find((event) => event.id === 'm1-d4')
+
+    expect(savedEvent?.clefBefore).toEqual({ sign: 'F', line: 4 })
+
+    expect(serializeMusicXml(saved.score)).toMatch(
+      /<attributes>\s*<clef>\s*<sign>F<\/sign>\s*<line>4<\/line>\s*<\/clef>\s*<\/attributes>/
+    )
+  })
+
   it('clef.change-current-staff changes every measure clef in the active staff', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
@@ -4053,6 +4207,8 @@ describe('App component shell', () => {
     expect(within(dialog).getByLabelText('Tab / Shift+Tab')).toBeInTheDocument()
     expect(within(dialog).getByText('다음/이전 성부')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Enter / Shift+Enter')).toBeInTheDocument()
+    expect(within(dialog).getByText('다음/이전 파트')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Cmd/Ctrl+Alt+↓ / ↑')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
     expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
@@ -5051,6 +5207,50 @@ describe('App component shell', () => {
         expect.stringContaining('measure-1-voice-2-full-measure-rest:C')
       )
     })
+
+    fireEvent.click(screen.getByRole('button', { name: '1성부' }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '1성부' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-voice-ids',
+        expect.stringContaining('measure-1:voice-1/voice-2')
+      )
+    })
+  })
+
+  it('note-input.switch-same-staff-voice prunes empty auxiliary voices when returning to voice 1', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '2성부' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-voice-ids',
+        expect.stringContaining('measure-1:voice-1/voice-2')
+      )
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '1성부' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '1성부' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
+      expect(screen.getByTestId('notation-preview')).not.toHaveAttribute(
+        'data-voice-ids',
+        expect.stringContaining('measure-1:voice-1/voice-2')
+      )
+    })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'note-c4'
+    )
   })
 
   it('note-input.switch-staff-target moves note input to the selected grand staff staff', async () => {
@@ -5125,6 +5325,61 @@ describe('App component shell', () => {
         )
       )
     })
+  })
+
+  it('keyboard.part-navigation moves between score parts without cycling same-staff voices', async () => {
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
+    chooseNewScoreStructure(dialog, 'duet')
+    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
+
+    const preview = screen.getByTestId('notation-preview')
+
+    expect(preview).toHaveAttribute(
+      'data-selected-event-address',
+      'part-1:staff-1:part-1-staff-1-measure-1:voice-1'
+    )
+
+    fireEvent.keyDown(window, {
+      altKey: true,
+      code: 'ArrowDown',
+      key: 'ArrowDown',
+      metaKey: true
+    })
+
+    await waitFor(() => {
+      expect(preview).toHaveAttribute(
+        'data-selected-event-address',
+        'part-2:staff-1:part-2-staff-1-measure-1:voice-1'
+      )
+    })
+    expect(screen.getByRole('button', { name: '1성부' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '다음 파트로 이동했습니다.'
+    )
+
+    fireEvent.keyDown(window, {
+      altKey: true,
+      code: 'ArrowUp',
+      key: 'ArrowUp',
+      metaKey: true
+    })
+
+    await waitFor(() => {
+      expect(preview).toHaveAttribute(
+        'data-selected-event-address',
+        'part-1:staff-1:part-1-staff-1-measure-1:voice-1'
+      )
+    })
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '이전 파트로 이동했습니다.'
+    )
   })
 
   it('note-input.cycle-same-staff-voice supports V cycling and command-alt digit shortcuts', async () => {
@@ -5795,6 +6050,114 @@ describe('App component shell', () => {
     for (const button of within(dockedDynamics).getAllByRole('button')) {
       expect(button).toBeDisabled()
     }
+  })
+
+  it('measure.pickup-duration edits selected first measure with subdivision counts and round-trips MusicXML', async () => {
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
+    chooseNewScoreStructure(dialog, 'piano-grand-staff')
+    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+
+    const pickupTicks = (TICKS_PER_QUARTER / 4) * 3
+    const measureNotation = screen.getByRole('region', { name: '마디 표기' })
+    const pickupUnit = within(measureNotation).getByLabelText(
+      '작업 중 못갖춘마디 단위'
+    )
+    const pickupCount = within(measureNotation).getByLabelText(
+      '작업 중 못갖춘마디 개수'
+    )
+    const preview = screen.getByTestId('notation-preview')
+
+    fireEvent.change(pickupUnit, { target: { value: '16th' } })
+    fireEvent.change(pickupCount, { target: { value: '3' } })
+
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining(`part-1:staff-1:part-1-staff-1-measure-1:pickup:${pickupTicks}`)
+    )
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining(`part-1:staff-2:part-1-staff-2-measure-1:pickup:${pickupTicks}`)
+    )
+    expect(screen.getByText('못갖춘마디 길이를 갱신했습니다.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }))
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining('part-1:staff-1:part-1-staff-1-measure-1:regular')
+    )
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining('part-1:staff-2:part-1-staff-2-measure-1:regular')
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }))
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining(`part-1:staff-1:part-1-staff-1-measure-1:pickup:${pickupTicks}`)
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalled()
+    })
+
+    const saved = parseMusicXml(
+      vi.mocked(window.inC.musicXml.save).mock.calls.at(-1)![0].contents
+    )
+    expect(saved.parts[0].staves[0].measures[0].timing).toEqual({
+      type: 'pickup',
+      durationTicks: pickupTicks
+    })
+    expect(saved.parts[0].staves[1].measures[0].timing).toEqual({
+      type: 'pickup',
+      durationTicks: pickupTicks
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    fireEvent.change(
+      within(screen.getByRole('region', { name: '마디 표기' })).getByLabelText(
+        '작업 중 못갖춘마디 개수'
+      ),
+      { target: { value: '0' } }
+    )
+    expect(preview).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining('part-1:staff-1:part-1-staff-1-measure-1:regular')
+    )
+    expect(screen.getByText('못갖춘마디를 해제했습니다.')).toBeInTheDocument()
+  })
+
+  it('measure.pickup-duration rejects selected measure pickup changes that would overflow existing notes', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+
+    const measureNotation = screen.getByRole('region', { name: '마디 표기' })
+    fireEvent.change(
+      within(measureNotation).getByLabelText('작업 중 못갖춘마디 단위'),
+      { target: { value: '16th' } }
+    )
+    fireEvent.change(
+      within(measureNotation).getByLabelText('작업 중 못갖춘마디 개수'),
+      { target: { value: '1' } }
+    )
+
+    expect(screen.getByText('마디 안의 기존 음표가 새 못갖춘마디 길이를 넘어섭니다.')).toBeInTheDocument()
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-timings',
+      expect.stringContaining('measure-1:regular')
+    )
   })
 
   it('palette.lyrics-chords separates lyric and chord groups and anchors measure-selected chords at tick 0', async () => {
@@ -9173,6 +9536,27 @@ describe('App component shell', () => {
     expect(
       screen.queryByTitle(/단축키 9/)
     ).not.toBeInTheDocument()
+  })
+
+  it('keyboard.rest-shortcut keeps plain 0 unbound and uses R for rest conversion', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    const preview = screen.getByTestId('notation-preview')
+
+    expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:C4')
+
+    fireEvent.keyDown(window, { code: 'Digit0', key: '0' })
+    expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:C4')
+    expect(preview.getAttribute('data-event-pitches')).not.toContain('m1-c4:rest')
+
+    fireEvent.keyDown(window, { code: 'KeyR', key: 'r' })
+
+    await waitFor(() => {
+      expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:rest')
+    })
   })
 
   it('keyboard.interval-chord-input stacks diatonic chord tones with Option digit aliases', async () => {

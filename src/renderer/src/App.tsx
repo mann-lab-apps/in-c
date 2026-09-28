@@ -66,6 +66,7 @@ import {
   resolveNotePitch,
   scoreRepeatSource,
   sortVoiceEvents,
+  timeSignatureDurationTicks,
   voiceEventDurationTicks,
   type Duration,
   type DurationValue,
@@ -95,7 +96,8 @@ import {
   type TempoMarking,
   type TremoloMark,
   type TimeSignature,
-  type VoiceAddress
+  type VoiceAddress,
+  type VoiceEvent
 } from '../../score-core'
 import {
   parseMusicXml,
@@ -557,7 +559,9 @@ interface NewScoreDraft {
   keySignatureId: string
   timeSignatureId: string
   measureCount: number
+  pickupMeasureUnit: DurationValue
   pickupMeasureBeats: number
+  pickupMeasureCount: number
   tempo: number
 }
 
@@ -781,6 +785,7 @@ const shortcutReferenceSections = [
     rows: [
       ['다음/이전 마디', 'Tab / Shift+Tab'],
       ['다음/이전 성부', 'Enter / Shift+Enter'],
+      ['다음/이전 파트', 'Cmd/Ctrl+Alt+↓ / ↑'],
       ['성부 순환', 'V'],
       ['성부 직접 선택', 'Cmd/Ctrl+Alt+1-4'],
       ['선택 범위 확장', 'Shift+Click']
@@ -825,6 +830,10 @@ export const App = () => {
   const [staffTextTarget, setStaffTextTarget] = useState<{ measureId: string; id: string }>()
   const [systemTextTarget, setSystemTextTarget] = useState<{ measureId: string; id: string }>()
   const [expressionTextTarget, setExpressionTextTarget] = useState<{ measureId: string; id: string }>()
+  const [measurePickupUnitDraft, setMeasurePickupUnitDraft] = useState<{
+    measureId: string
+    unit: DurationValue
+  }>()
   const [selectionEventTypeFilter, setSelectionEventTypeFilter] =
     useState<SelectionEventTypeFilter>('notes-and-rests')
   const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
@@ -1148,6 +1157,14 @@ export const App = () => {
   const activeTimeSignatureId = activeTimeSignature
     ? resolveTimeSignaturePresetId(activeTimeSignature)
     : timeSignaturePresets[2].id
+  const activeMeasurePickupUnitDraft =
+    measurePickupUnitDraft && measurePickupUnitDraft.measureId === activeMeasureId
+      ? measurePickupUnitDraft.unit
+      : undefined
+  const activeMeasurePickupControls = resolvePickupMeasureControls(
+    measureLocation?.measure,
+    activeMeasurePickupUnitDraft
+  )
   const activeToolbarCategoryLabel =
     toolbarCategories.find((category) => category.id === toolbarCategory)
       ?.label ?? '음표'
@@ -1390,6 +1407,27 @@ export const App = () => {
 
         if (!executeCommand(command)) {
           return
+        }
+      }
+
+      if (targetVoiceId === 'voice-1' && location.address.voiceId !== 'voice-1') {
+        const prunedMeasure = pruneEmptyAuxiliaryVoices(location.measure)
+
+        if (prunedMeasure !== location.measure) {
+          const command: ScoreCommand = {
+            type: 'staff-measures.replace',
+            target: {
+              partId: location.address.partId,
+              staffId: location.address.staffId
+            },
+            measures: location.staffMeasures.map((measure) =>
+              measure.id === location.measure.id ? prunedMeasure : measure
+            )
+          }
+
+          if (!executeCommand(command)) {
+            return
+          }
         }
       }
 
@@ -2157,9 +2195,10 @@ export const App = () => {
     const timeSignature = resolveTimeSignaturePreset(
       newScoreDraft.timeSignatureId
     ).value
-    const pickupMeasureBeats = normalizePickupMeasureBeats(
+    const pickupMeasureTicks = resolvePickupMeasureTicksFromDraft(
       newScoreDraft.timeSignatureId,
-      newScoreDraft.pickupMeasureBeats
+      newScoreDraft.pickupMeasureUnit,
+      newScoreDraft.pickupMeasureCount
     )
     const nextScore = createNewScore({
       title: newScoreDraft.title,
@@ -2170,7 +2209,8 @@ export const App = () => {
       keySignature,
       timeSignature,
       measureCount: newScoreDraft.measureCount,
-      pickupMeasureBeats,
+      pickupMeasureBeats: newScoreDraft.pickupMeasureBeats,
+      pickupMeasureTicks,
       tempo: newScoreDraft.tempo
     })
 
@@ -3955,6 +3995,79 @@ export const App = () => {
     [executeCommand, measureLocation, score.parts]
   )
 
+  const updateActivePickupMeasure = useCallback(
+    (unit: DurationValue, count: number) => {
+      if (!measureLocation || activeMeasureIndex < 0) {
+        return
+      }
+
+      setMeasurePickupUnitDraft({
+        measureId: measureLocation.measure.id,
+        unit
+      })
+      const normalizedCount = normalizePickupMeasureCount(
+        activeTimeSignatureId,
+        unit,
+        count
+      )
+      const pickupTicks =
+        normalizedCount > 0
+          ? durationToTicks({ value: unit, dots: 0 }) * normalizedCount
+          : undefined
+      const nextParts = score.parts.map((part) => ({
+        ...part,
+        staves: part.staves.map((staff) => ({
+          ...staff,
+          measures: staff.measures.map((measure, index) => {
+            if (index !== activeMeasureIndex) {
+              return measure
+            }
+
+            return {
+              ...measure,
+              timing: pickupTicks
+                ? {
+                    type: 'pickup' as const,
+                    durationTicks: pickupTicks
+                  }
+                : { type: 'regular' as const }
+            }
+          })
+        }))
+      }))
+      const invalidMeasure = findMeasureOverflowAtIndex(nextParts, activeMeasureIndex)
+
+      if (invalidMeasure) {
+        setFileStatus({
+          tone: 'error',
+          message: '마디 안의 기존 음표가 새 못갖춘마디 길이를 넘어섭니다.'
+        })
+        return
+      }
+
+      if (
+        executeCommand({
+          type: 'score-parts.replace',
+          parts: nextParts
+        })
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message: pickupTicks
+            ? '못갖춘마디 길이를 갱신했습니다.'
+            : '못갖춘마디를 해제했습니다.'
+        })
+      }
+    },
+    [
+      activeMeasureIndex,
+      activeTimeSignatureId,
+      executeCommand,
+      measureLocation,
+      score.parts
+    ]
+  )
+
   const changeClef = useCallback(
     (clefId: string) => {
       const preset = clefPresets.find((candidate) => candidate.id === clefId)
@@ -4059,6 +4172,53 @@ export const App = () => {
       return false
     },
     [eventLocation, executeCommand]
+  )
+
+  const replaceSelectedEvent = useCallback(
+    (update: (event: VoiceEvent) => VoiceEvent, message: string) => {
+      if (!eventLocation) {
+        setFileStatus({
+          tone: 'error',
+          message: '음표나 쉼표를 선택해 주세요.'
+        })
+        return false
+      }
+
+      if (
+        executeCommand({
+          type: 'voice-event.replace',
+          target: eventLocation.address,
+          eventId: eventLocation.event.id,
+          event: update(eventLocation.event)
+        })
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message
+        })
+        return true
+      }
+
+      return false
+    },
+    [eventLocation, executeCommand]
+  )
+
+  const changeSelectedEventClefBefore = useCallback(
+    (clefId: string) => {
+      const preset = clefPresets.find((candidate) => candidate.id === clefId)
+
+      replaceSelectedEvent(
+        (event) => ({
+          ...event,
+          clefBefore: preset?.value
+        }),
+        preset
+          ? '선택 이벤트 앞 음자리표를 바꿨습니다.'
+          : '선택 이벤트 앞 음자리표를 해제했습니다.'
+      )
+    },
+    [replaceSelectedEvent]
   )
 
   const toggleArticulation = useCallback(
@@ -4837,6 +4997,93 @@ export const App = () => {
       return true
     },
     [activeAddress, activeMeasureId, score, selection.type]
+  )
+
+  const moveToAdjacentPart = useCallback(
+    (direction: -1 | 1): boolean => {
+      const baseLocation = resolveVoiceSwitchLocation(
+        score,
+        selection,
+        noteInputState
+      )
+
+      if (!baseLocation || score.parts.length < 2) {
+        return false
+      }
+
+      const currentPartIndex = score.parts.findIndex(
+        (part) => part.id === baseLocation.address.partId
+      )
+
+      if (currentPartIndex === -1) {
+        return false
+      }
+
+      const currentPart = score.parts[currentPartIndex]
+      const currentStaffIndex = currentPart.staves.findIndex(
+        (staff) => staff.id === baseLocation.address.staffId
+      )
+      const targetPartIndex =
+        currentPartIndex + direction < 0
+          ? score.parts.length - 1
+          : (currentPartIndex + direction) % score.parts.length
+      const targetPart = score.parts[targetPartIndex]
+      const targetStaff =
+        targetPart.staves[Math.max(0, currentStaffIndex)] ??
+        targetPart.staves[0]
+      const targetMeasure =
+        targetStaff?.measures[baseLocation.measureIndex] ??
+        targetStaff?.measures[0]
+
+      if (!targetStaff || !targetMeasure) {
+        return false
+      }
+
+      const targetVoice =
+        targetMeasure.voices.find(
+          (voice) => voice.id === baseLocation.address.voiceId
+        ) ?? targetMeasure.voices[0]
+
+      if (!targetVoice) {
+        return false
+      }
+
+      const targetAddress: VoiceAddress = {
+        partId: targetPart.id,
+        staffId: targetStaff.id,
+        measureId: targetMeasure.id,
+        voiceId: targetVoice.id
+      }
+      const targetEvents = sortVoiceEvents(targetVoice.events)
+      const targetEvent =
+        targetEvents.find((event) => event.position.tick === baseLocation.tick) ??
+        targetEvents[0]
+
+      setMode('select')
+      setMeasureContextMenu(undefined)
+
+      if (noteInputState) {
+        setNoteInputState({
+          ...noteInputState,
+          target: targetAddress,
+          tick: targetEvent?.position.tick ?? 0
+        })
+      } else {
+        setNoteInputState(undefined)
+      }
+
+      setSelection(
+        targetEvent && selection.type !== 'measure'
+          ? createEventSelection(score, targetEvent.id, targetAddress)
+          : createMeasureSelection(score, targetMeasure.id, targetAddress)
+      )
+      setFileStatus({
+        tone: 'neutral',
+        message: direction === 1 ? '다음 파트로 이동했습니다.' : '이전 파트로 이동했습니다.'
+      })
+      return true
+    },
+    [noteInputState, score, selection]
   )
 
   const moveToNextLyricNote = useCallback(() => {
@@ -5718,6 +5965,12 @@ export const App = () => {
         return
       }
 
+      if (event.altKey && usesCommandKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+        event.preventDefault()
+        moveToAdjacentPart(event.key === 'ArrowDown' ? 1 : -1)
+        return
+      }
+
       if (!event.altKey && !usesCommandKey && event.code === 'KeyJ') {
         event.preventDefault()
         respellEnharmonically()
@@ -5895,6 +6148,7 @@ export const App = () => {
     movePitch,
     moveSelection,
     moveToAdjacentMeasure,
+    moveToAdjacentPart,
     moveToNextLyricNote,
     respellEnharmonically,
     mode,
@@ -6545,6 +6799,28 @@ export const App = () => {
                   쉼표로 변환
                 </button>
 
+                <label>
+                  <span>음표 앞 음자리표</span>
+                  <select
+                    aria-label="선택 이벤트 앞 음자리표"
+                    onChange={(event) =>
+                      changeSelectedEventClefBefore(event.target.value)
+                    }
+                    value={
+                      eventLocation.event.clefBefore
+                        ? resolveClefPresetId(eventLocation.event.clefBefore)
+                        : ''
+                    }
+                  >
+                    <option value="">없음</option>
+                    {clefPresets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
                 <div className="inspector-properties__row">
                   <span>정지 기호</span>
                   <div className="inspector-properties__buttons">
@@ -6982,6 +7258,44 @@ export const App = () => {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label>
+                <span>못갖춘마디 단위</span>
+                <select
+                  aria-label="작업 중 못갖춘마디 단위"
+                  disabled={!canEditMeasureNotation || !measureLocation}
+                  onChange={(event) =>
+                    updateActivePickupMeasure(
+                      event.target.value as DurationValue,
+                      activeMeasurePickupControls.count
+                    )
+                  }
+                  value={activeMeasurePickupControls.unit}
+                >
+                  <option value="quarter">4분음표</option>
+                  <option value="eighth">8분음표</option>
+                  <option value="16th">16분음표</option>
+                </select>
+              </label>
+              <label>
+                <span>못갖춘마디 개수</span>
+                <input
+                  aria-label="작업 중 못갖춘마디 개수"
+                  disabled={!canEditMeasureNotation || !measureLocation}
+                  max={resolvePickupMeasureMaxCount(
+                    activeTimeSignatureId,
+                    activeMeasurePickupControls.unit
+                  )}
+                  min="0"
+                  onChange={(event) =>
+                    updateActivePickupMeasure(
+                      activeMeasurePickupControls.unit,
+                      event.target.valueAsNumber
+                    )
+                  }
+                  type="number"
+                  value={activeMeasurePickupControls.count}
+                />
               </label>
             </div>
           </section>
@@ -8842,6 +9156,11 @@ export const App = () => {
                       pickupMeasureBeats: normalizePickupMeasureBeats(
                         event.target.value,
                         newScoreDraft.pickupMeasureBeats
+                      ),
+                      pickupMeasureCount: normalizePickupMeasureCount(
+                        event.target.value,
+                        newScoreDraft.pickupMeasureUnit,
+                        newScoreDraft.pickupMeasureCount
                       )
                     })
                   }
@@ -8877,34 +9196,51 @@ export const App = () => {
               </label>
 
               <label>
-                <span>못갖춘마디</span>
+                <span>못갖춘마디 단위</span>
                 <select
-                  aria-label="못갖춘마디"
+                  aria-label="못갖춘마디 단위"
                   onChange={(event) =>
                     setNewScoreDraft({
                       ...newScoreDraft,
-                      pickupMeasureBeats: normalizePickupMeasureBeats(
+                      pickupMeasureUnit: event.target.value as DurationValue,
+                      pickupMeasureCount: normalizePickupMeasureCount(
                         newScoreDraft.timeSignatureId,
-                        Number(event.target.value)
+                        event.target.value as DurationValue,
+                        newScoreDraft.pickupMeasureCount
                       )
                     })
                   }
-                  value={String(
-                    normalizePickupMeasureBeats(
-                      newScoreDraft.timeSignatureId,
-                      newScoreDraft.pickupMeasureBeats
-                    )
-                  )}
+                  value={newScoreDraft.pickupMeasureUnit}
                 >
-                  <option value="0">없음</option>
-                  {resolvePickupMeasureBeatOptions(
-                    newScoreDraft.timeSignatureId
-                  ).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <option value="quarter">4분음표</option>
+                  <option value="eighth">8분음표</option>
+                  <option value="16th">16분음표</option>
                 </select>
+              </label>
+
+              <label>
+                <span>못갖춘마디 개수</span>
+                <input
+                  aria-label="못갖춘마디 개수"
+                  max={resolvePickupMeasureMaxCount(
+                    newScoreDraft.timeSignatureId,
+                    newScoreDraft.pickupMeasureUnit
+                  )}
+                  min="0"
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      pickupMeasureBeats: 0,
+                      pickupMeasureCount: normalizePickupMeasureCount(
+                        newScoreDraft.timeSignatureId,
+                        newScoreDraft.pickupMeasureUnit,
+                        event.target.valueAsNumber
+                      )
+                    })
+                  }
+                  type="number"
+                  value={newScoreDraft.pickupMeasureCount}
+                />
               </label>
 
               <label>
@@ -9218,25 +9554,105 @@ function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
     keySignatureId: 'c-major',
     timeSignatureId: '4-4',
     measureCount: 8,
+    pickupMeasureUnit: 'quarter',
     pickupMeasureBeats: 0,
+    pickupMeasureCount: 0,
     tempo
   }
 }
 
-function resolvePickupMeasureBeatOptions(
-  timeSignatureId: string
-): Array<{ value: number; label: string }> {
+function resolvePickupMeasureTicksFromDraft(
+  timeSignatureId: string,
+  unit: DurationValue,
+  count: number
+): number | undefined {
+  const ticks = durationToTicks({ value: unit, dots: 0 }) * normalizePickupMeasureCount(
+    timeSignatureId,
+    unit,
+    count
+  )
+  const regularTicks = timeSignatureDurationTicks(
+    resolveTimeSignaturePreset(timeSignatureId).value
+  )
+
+  return ticks > 0 && ticks < regularTicks ? ticks : undefined
+}
+
+function resolvePickupMeasureMaxCount(
+  timeSignatureId: string,
+  unit: DurationValue
+): number {
   const timeSignature = resolveTimeSignaturePreset(timeSignatureId).value
-  const maxPickupBeats = Math.max(0, timeSignature.beats - 1)
+  const unitTicks = durationToTicks({ value: unit, dots: 0 })
+  const regularTicks = timeSignatureDurationTicks(timeSignature)
 
-  return Array.from({ length: maxPickupBeats }, (_, index) => {
-    const value = index + 1
+  return unitTicks > 0 ? Math.max(0, Math.floor((regularTicks - 1) / unitTicks)) : 0
+}
 
-    return {
-      value,
-      label: `${timeSignature.beatType}분음표 ${value}개`
+function normalizePickupMeasureCount(
+  timeSignatureId: string,
+  unit: DurationValue,
+  value: number
+): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0
+  }
+
+  return Math.min(resolvePickupMeasureMaxCount(timeSignatureId, unit), Math.floor(value))
+}
+
+function resolvePickupMeasureControls(
+  measure: Measure | undefined,
+  unitDraft?: DurationValue
+): { unit: DurationValue; count: number } {
+  if (!measure || measure.timing.type !== 'pickup') {
+    return { unit: unitDraft ?? 'quarter', count: 0 }
+  }
+
+  for (const unit of ['quarter', 'eighth', '16th'] as const) {
+    const unitTicks = durationToTicks({ value: unit, dots: 0 })
+
+    if (measure.timing.durationTicks % unitTicks === 0) {
+      return {
+        unit,
+        count: measure.timing.durationTicks / unitTicks
+      }
     }
-  })
+  }
+
+  return { unit: '16th', count: 0 }
+}
+
+function findMeasureOverflowAtIndex(
+  parts: Part[],
+  measureIndex: number
+): Measure | undefined {
+  for (const part of parts) {
+    for (const staff of part.staves) {
+      const measure = staff.measures[measureIndex]
+
+      if (!measure) {
+        continue
+      }
+
+      const measureEndTick = measureDurationTicks(measure)
+      const hasOverflow = measure.voices.some((voice) =>
+        voice.events.some((event) => {
+          if (event.type === 'rest' && event.fullMeasure) {
+            return false
+          }
+
+          return event.position.tick + voiceEventDurationTicks(event, measure) > measureEndTick
+        })
+      )
+
+      if (hasOverflow) {
+        return measure
+      }
+    }
+  }
+
+  return undefined
 }
 
 function normalizePickupMeasureBeats(
@@ -9518,6 +9934,41 @@ function resolveVoiceSwitchLocation(
         tick: location.events[0]?.position.tick ?? 0
       }
     : undefined
+}
+
+function pruneEmptyAuxiliaryVoices(measure: Measure): Measure {
+  const voices = measure.voices.filter(
+    (voice) => !isEmptyAuxiliaryVoicePlaceholder(voice)
+  )
+
+  return voices.length === measure.voices.length
+    ? measure
+    : {
+        ...measure,
+        voices
+      }
+}
+
+function isEmptyAuxiliaryVoicePlaceholder(
+  voice: Measure['voices'][number]
+): boolean {
+  if (voice.id === 'voice-1' || voice.tuplets?.length) {
+    return false
+  }
+
+  if (voice.events.length !== 1) {
+    return false
+  }
+
+  const event = voice.events[0]
+
+  return (
+    event.type === 'rest' &&
+    event.fullMeasure === true &&
+    !event.fermata &&
+    !event.breathMark &&
+    !event.clefBefore
+  )
 }
 
 function resolveActiveStructureTarget(

@@ -1184,6 +1184,73 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('clef.inline-event-round-trip preserves a clef change before the selected event', () => {
+    const score = createScore({
+      title: 'Inline Clef Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  clef: {
+                    sign: 'G',
+                    line: 2
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-before-clef',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: createDuration('quarter')
+                        }),
+                        createNote({
+                          id: 'note-with-inline-clef',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'E', octave: 3 },
+                          duration: createDuration('quarter'),
+                          clefBefore: {
+                            sign: 'F',
+                            line: 4
+                          }
+                        }),
+                        createNote({
+                          id: 'note-after-clef',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: { step: 'G', octave: 3 },
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const events = roundTrip.parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported).toMatch(
+      /<attributes>\s*<clef>\s*<sign>F<\/sign>\s*<line>4<\/line>\s*<\/clef>\s*<\/attributes>\s*<note>/
+    )
+    expect(roundTrip.parts[0].staves[0].measures[0].clef).toEqual({
+      sign: 'G',
+      line: 2
+    })
+    expect(events[0].clefBefore).toBeUndefined()
+    expect(events[1].clefBefore).toEqual({
+      sign: 'F',
+      line: 4
+    })
+    expect(events[2].clefBefore).toBeUndefined()
+  })
+
   it('exports and re-imports slurs', () => {
     const score = createScore({
       title: 'Slur Sketch',

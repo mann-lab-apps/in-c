@@ -23,6 +23,7 @@ import {
   shouldDisplayAccidental,
   sortVoiceEvents,
   type Measure,
+  type Clef,
   type Score,
   type SpanEngraving,
   type SpanSegmentAddress,
@@ -196,6 +197,7 @@ interface RenderedStaffTarget {
   globalStaffIndex: number
   partId: string
   partName: string
+  partStaffCount: number
   staff: Staff
   staffId: string
   staffIndex: number
@@ -488,18 +490,12 @@ export function NotationPreview({
 
       stave.setContext(context).draw()
 
-      if (
-        svg &&
-        primaryStaffTarget &&
-        visibleStaffCount > 1 &&
-        placement.isSystemStart
-      ) {
-        drawStaffLabel(
+      if (svg && placement.isSystemStart) {
+        drawSystemPartLabels(
           svg,
-          placement.x + 4,
-          placement.y - 12,
-          primaryStaffTarget.partName,
-          primaryStaffTarget
+          placement,
+          renderedStaffTargets,
+          vertical.staffOffsets
         )
       }
 
@@ -881,6 +877,9 @@ export function NotationPreview({
           })
           firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
+          if (event?.clefBefore) {
+            drawInlineClef(svg, event.clefBefore, eventX - 24, placement.y, event.id)
+          }
           drawEventAttachments(svg, event, note, eventX, placement.y, { lyricScale, onSelectLyric, inlineLyricEditor })
         })
       })
@@ -1206,6 +1205,7 @@ function createRenderedStaffTargets(score: Score): RenderedStaffTarget[] {
       globalStaffIndex: 0,
       partId: part.id,
       partName: part.name,
+      partStaffCount: part.staves.length,
       staff,
       staffId: staff.id,
       staffIndex
@@ -1618,16 +1618,6 @@ function drawPassiveStaffMeasure(
     measure.id
   )
 
-  if (svg && placement.isSystemStart) {
-    drawStaffLabel(
-      svg,
-      placement.x + 4,
-      y - 8,
-      target.staffIndex === 0 ? target.partName : `Staff ${target.staffIndex + 1}`,
-      target
-    )
-  }
-
   const defaultNoteStartX = stave.getNoteStartX()
 
   if (showsClef || showsKeySignature || showsTimeSignature) {
@@ -1857,6 +1847,9 @@ function drawPassiveStaffMeasure(
       })
       firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
+      if (event.clefBefore) {
+        drawInlineClef(svg, event.clefBefore, eventX - 24, y, event.id)
+      }
       if (isPreviewEventId(event.id)) {
         return
       }
@@ -2225,6 +2218,110 @@ function drawStaffLabel(
   text.setAttribute('y', String(y))
   text.textContent = label
   svg.append(text)
+}
+
+function drawInlineClef(
+  svg: SVGSVGElement | null,
+  clef: Clef,
+  x: number,
+  staffY: number,
+  eventId: string
+): void {
+  if (!svg) {
+    return
+  }
+
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-inline-clef')
+  text.setAttribute('data-event-id', eventId)
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(staffY + 32))
+  text.textContent = clefToGlyph(clef)
+  svg.append(text)
+}
+
+function clefToGlyph(clef: Clef): string {
+  switch (clef.sign) {
+    case 'F':
+      return '𝄢'
+    case 'C':
+      return '𝄡'
+    case 'percussion':
+      return '𝄥'
+    case 'tab':
+      return 'TAB'
+    case 'G':
+    default:
+      return '𝄞'
+  }
+}
+
+function drawSystemPartLabels(
+  svg: SVGSVGElement,
+  placement: MeasurePlacement,
+  targets: RenderedStaffTarget[],
+  staffOffsets: number[]
+): void {
+  const firstPartTargets = targets.filter((target) => target.staffIndex === 0)
+
+  for (const target of firstPartTargets) {
+    const partTargets = targets.filter(
+      (candidate) => candidate.partId === target.partId
+    )
+
+    if (target.partStaffCount > 1 && partTargets.length > 1) {
+      const topY = placement.y + (staffOffsets[target.globalStaffIndex] ?? 0)
+      const bottomTarget = partTargets.at(-1)!
+      const bottomY =
+        placement.y + (staffOffsets[bottomTarget.globalStaffIndex] ?? 0) + 40
+
+      drawGrandStaffBrace(svg, placement.x + 1, topY - 3, bottomY + 3, target)
+      drawStaffLabel(
+        svg,
+        placement.x + 4,
+        (topY + bottomY) / 2,
+        target.partName,
+        target
+      )
+      continue
+    }
+
+    drawStaffLabel(
+      svg,
+      placement.x + 4,
+      placement.y + (staffOffsets[target.globalStaffIndex] ?? 0) + 22,
+      target.partName,
+      target
+    )
+  }
+}
+
+function drawGrandStaffBrace(
+  svg: SVGSVGElement,
+  x: number,
+  topY: number,
+  bottomY: number,
+  target: RenderedStaffTarget
+): void {
+  const brace = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  const midY = (topY + bottomY) / 2
+  const height = Math.max(64, bottomY - topY)
+  const curve = Math.min(34, height * 0.24)
+
+  brace.classList.add('notation-grand-staff-brace')
+  brace.setAttribute('data-part-id', target.partId)
+  brace.setAttribute('data-staff-id', target.staffId)
+  brace.setAttribute(
+    'd',
+    [
+      `M ${x + 13} ${topY}`,
+      `C ${x - curve} ${topY + height * 0.14}, ${x - curve} ${midY - 10}, ${x + 6} ${midY}`,
+      `C ${x - curve} ${midY + 10}, ${x - curve} ${bottomY - height * 0.14}, ${x + 13} ${bottomY}`
+    ].join(' ')
+  )
+  brace.setAttribute('fill', 'none')
+  svg.append(brace)
 }
 
 function drawSystemText(

@@ -88,4 +88,18 @@ describe('new score setup', () => {
     expect(measureDurationTicks(firstMeasure)).toBe(TICKS_PER_QUARTER)
     expect(secondMeasure.timing).toEqual({ type: 'regular' })
   })
+
+  it('score-setup.create-pickup-measure accepts subdivision ticks below the beat', () => {
+    const score = createNewScore({
+      ...commonOptions,
+      pickupMeasureTicks: TICKS_PER_QUARTER / 4
+    })
+    const firstMeasure = score.parts[0].staves[0].measures[0]
+
+    expect(firstMeasure.timing).toEqual({
+      type: 'pickup',
+      durationTicks: TICKS_PER_QUARTER / 4
+    })
+    expect(measureDurationTicks(firstMeasure)).toBe(TICKS_PER_QUARTER / 4)
+  })
 })

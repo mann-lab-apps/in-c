@@ -30,6 +30,7 @@ export interface NewScoreOptions {
   tempo?: number
   templateId?: NewScoreTemplateId
   pickupMeasureBeats?: number
+  pickupMeasureTicks?: number
 }
 
 export const keySignaturePresets = [
@@ -322,6 +323,7 @@ export function createNewScore(options: NewScoreOptions): Score {
   const tempo = options.tempo ?? 120
   const pickupMeasureTicks = resolvePickupMeasureTicks(
     options.timeSignature,
+    options.pickupMeasureTicks,
     options.pickupMeasureBeats
   )
   const template = resolveScoreStructurePreset(
@@ -419,8 +421,16 @@ function createTemplateMeasures({
 
 function resolvePickupMeasureTicks(
   timeSignature: TimeSignature,
+  pickupMeasureTicks?: number,
   pickupMeasureBeats?: number
 ): number | undefined {
+  const regularTicks = timeSignatureDurationTicks(timeSignature)
+  const ticks = Math.floor(pickupMeasureTicks ?? 0)
+
+  if (ticks > 0 && ticks < regularTicks) {
+    return ticks
+  }
+
   const beats = Math.floor(pickupMeasureBeats ?? 0)
 
   if (beats <= 0) {
@@ -428,10 +438,9 @@ function resolvePickupMeasureTicks(
   }
 
   const beatTicks = TICKS_PER_QUARTER * (4 / timeSignature.beatType)
-  const ticks = beats * beatTicks
-  const regularTicks = timeSignatureDurationTicks(timeSignature)
+  const legacyTicks = beats * beatTicks
 
-  return ticks > 0 && ticks < regularTicks ? ticks : undefined
+  return legacyTicks > 0 && legacyTicks < regularTicks ? legacyTicks : undefined
 }
 
 export function createTempoMarkingForTimeSignature(

@@ -406,6 +406,44 @@ describe('system layout', () => {
     }
   })
 
+  it('reserves horizontal room for inline clefs before events', () => {
+    const measures = Array.from({ length: 4 }, (_, measureIndex) =>
+      createMeasure({
+        id: `inline-clef-${measureIndex + 1}`,
+        number: measureIndex + 1,
+        voices: [
+          createVoice({
+            events: Array.from({ length: 4 }, (_, eventIndex) =>
+              createNote({
+                id: `inline-clef-${measureIndex + 1}-${eventIndex + 1}`,
+                position: createTimePosition(eventIndex * TICKS_PER_QUARTER),
+                pitch: {
+                  step: 'C',
+                  octave: 4
+                },
+                duration: createDuration('quarter'),
+                clefBefore: {
+                  sign: eventIndex % 2 === 0 ? 'F' : 'G',
+                  line: eventIndex % 2 === 0 ? 4 : 2
+                }
+              })
+            )
+          })
+        ]
+      })
+    )
+    const layout = createSystemLayout(measures, 900)
+
+    expect(layout.systemCount).toBe(2)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 1, 1
+    ])
+    for (const placement of layout.placements) {
+      expect(placement.width).toBeGreaterThanOrEqual(400)
+      expect(placement.x + placement.width).toBeLessThanOrEqual(892)
+    }
+  })
+
   it('reserves more horizontal room for crowded note groups', () => {
     const calm = createMeasure({
       id: 'calm',

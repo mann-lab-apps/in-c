@@ -139,6 +139,113 @@ describe('NotationPreview passive lower-staff attachments', () => {
     })
   }
 
+  const createGrandStaffLabelScore = (): Score =>
+    createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [
+                    createVoice({
+                      events: [
+                        createRest({
+                          id: 'upper-rest',
+                          position: createTimePosition(0),
+                          duration: { value: 'whole', dots: 0 },
+                          fullMeasure: true
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }),
+            createStaff({
+              id: 'P1-S2',
+              measures: [
+                createMeasure({
+                  id: 'P1-S2-M1',
+                  voices: [
+                    createVoice({
+                      events: [
+                        createRest({
+                          id: 'lower-rest',
+                          position: createTimePosition(0),
+                          duration: { value: 'whole', dots: 0 },
+                          fullMeasure: true
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+  it('part-layout.grand-staff labels the piano system once and connects staves with a brace', async () => {
+    const { container } = render(
+      <NotationPreview
+        score={createGrandStaffLabelScore()}
+        onOpenMeasureContextMenu={vi.fn()}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('svg')).toBeInTheDocument()
+    })
+
+    const staffLabels = Array.from(
+      container.querySelectorAll<SVGTextElement>('.notation-staff-label')
+    ).map((label) => label.textContent)
+
+    expect(staffLabels).toEqual(['Piano'])
+    expect(staffLabels).not.toContain('Staff 2')
+    expect(
+      container.querySelector('.notation-grand-staff-brace[data-part-id="P1"]')
+    ).toBeInTheDocument()
+  })
+
+  it('clef.inline-change renders a selected-event clef marker before the note', async () => {
+    const score = createGrandStaffLabelScore()
+    const lowerEvent = score.parts[0]!.staves[1]!.measures[0]!.voices[0]!.events[0]!
+
+    lowerEvent.clefBefore = { sign: 'G', line: 2 }
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onOpenMeasureContextMenu={vi.fn()}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        container.querySelector(
+          '.notation-inline-clef[data-event-id="lower-rest"]'
+        )
+      ).toBeInTheDocument()
+    })
+    expect(
+      container.querySelector('.notation-inline-clef[data-event-id="lower-rest"]')
+    ).toHaveTextContent('𝄞')
+  })
+
   it.each([
     ['screen layout', false],
     ['print layout', true]

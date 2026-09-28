@@ -224,10 +224,7 @@ export function isRestShortcut(event: PitchShortcutEvent): boolean {
     !event.isComposing &&
     event.key !== 'Process' &&
     !event.shiftKey &&
-    (event.code === 'Digit0' ||
-      event.code === 'Numpad0' ||
-      event.key === '0' ||
-      event.code === 'KeyR' ||
+    (event.code === 'KeyR' ||
       event.key === 'r' ||
       event.key === 'R')
   )

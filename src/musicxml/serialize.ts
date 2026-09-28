@@ -314,8 +314,8 @@ function buildMeasurePlaybackElements(
 
   return sortScoreVoices(measure.voices).flatMap((voice, voiceIndex) => {
     const voiceEvents = sortVoiceEvents(voice.events)
-    const voiceElements = voiceEvents.flatMap((event) =>
-      buildNoteElements(
+    const voiceElements = voiceEvents.flatMap((event) => {
+      const notes = buildNoteElements(
         event,
         measure,
         voice,
@@ -324,7 +324,19 @@ function buildMeasurePlaybackElements(
         tupletBoundariesByVoice.get(voice.id)?.get(event.id),
         slurBoundaries.get(event.id)
       ).map((noteElement) => xmlElement('note', noteElement))
-    )
+      const inlineClef = event.clefBefore
+        ? [
+            xmlElement('attributes', {
+              clef: {
+                ...(staffNumber !== undefined ? { '@_number': staffNumber } : {}),
+                ...buildClefAttributes(clefToMusicXml(event.clefBefore))
+              }
+            })
+          ]
+        : []
+
+      return [...inlineClef, ...notes]
+    })
     const voiceEndTick = readVoiceEndTick(measure, voice)
     const prefix =
       (voiceIndex > 0 || staffNumber !== undefined) &&

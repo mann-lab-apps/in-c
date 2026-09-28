@@ -46,6 +46,8 @@ const EVENT_CROWDING_WIDTH = 10
 const DENSE_RHYTHM_WIDTH = 8
 const TUPLET_GROUP_WIDTH = 24
 const ACCIDENTAL_WIDTH = 10
+const INLINE_CLEF_WIDTH = 40
+const INLINE_CLEF_SPACING_WEIGHT = 0.75
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 72
@@ -540,8 +542,15 @@ function measureNotationComplexityWidth(measure: Measure): number {
       }, 0),
     0
   )
+  const inlineClefWidth = measure.voices.reduce(
+    (sum, voice) =>
+      sum +
+      voice.events.filter((event) => Boolean(event.clefBefore)).length *
+        INLINE_CLEF_WIDTH,
+    0
+  )
 
-  return tupletWidth + accidentalWidth
+  return tupletWidth + accidentalWidth + inlineClefWidth
 }
 
 export function leadingNotationPadding(
@@ -629,7 +638,9 @@ function measureSpacingWeight(measure: Measure): number {
       }
 
       const durationTicks = voiceEventDurationTicks(event, measure)
-      return weight + Math.sqrt(TICKS_PER_QUARTER / durationTicks)
+      const inlineClefWeight = event.clefBefore ? INLINE_CLEF_SPACING_WEIGHT : 0
+
+      return weight + Math.sqrt(TICKS_PER_QUARTER / durationTicks) + inlineClefWeight
     }, 0)
   )
 }

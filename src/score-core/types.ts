@@ -96,6 +96,7 @@ export interface Note {
   lyrics?: LyricSyllable[]
   graceNotes?: GraceNote[]
   ornaments?: Ornament[]
+  clefBefore?: Clef
 }
 
 export interface Rest {
@@ -106,6 +107,7 @@ export interface Rest {
   fullMeasure?: boolean
   fermata?: boolean
   breathMark?: BreathMark
+  clefBefore?: Clef
 }
 
 export type VoiceEvent = Note | Rest
