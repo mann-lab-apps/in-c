@@ -1,3 +1,4 @@
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
@@ -159,6 +160,109 @@ Clef & Staff 세트리스트
     expect(dryRun.canImport, isFalse);
     expect(dryRun.importableFileCount, 1);
     expect(dryRun.warnings, contains('곡 수와 항목 수가 다릅니다.'));
+  });
+
+  test('codec decodes ZIP package bytes and connects dry run', () {
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 2곡
+
+1. Existing Etude
+   작곡가: Goedicke
+   파일: existing-etude.pdf
+2. New Sonata
+   작곡가: Mozart
+   파일: new-sonata.pdf
+''',
+      scoreFiles: const {
+        'scores/new-sonata.pdf': [1, 2, 3],
+      },
+    );
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+    final dryRun = package.previewImport(
+      currentScores: [
+        _score(
+          id: 'existing',
+          title: 'Existing Etude',
+          composer: 'Goedicke',
+          filePath: '/library/existing-etude.pdf',
+        ),
+      ],
+    );
+
+    expect(package.manifest.title, 'Package Recital');
+    expect(package.packageFiles.single.path, 'scores/new-sonata.pdf');
+    expect(package.packageFiles.single.mediaType, 'application/pdf');
+    expect(dryRun.canImport, isTrue);
+    expect(dryRun.existingScoreCount, 1);
+    expect(dryRun.importableFileCount, 1);
+  });
+
+  test('codec rejects packages without a Clef manifest', () {
+    final archive = Archive()
+      ..addFile(ArchiveFile.bytes('scores/new-sonata.pdf', [1, 2, 3]));
+    final zip = ZipEncoder().encode(archive);
+
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(zip),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('manifest is missing'),
+        ),
+      ),
+    );
+  });
+
+  test('codec rejects unsafe score entry paths', () {
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile.string(sheetSetlistPackageManifestFileName, '''
+Clef & Staff 세트리스트
+제목: Unsafe Package
+곡 수: 1곡
+
+1. Unsafe
+   파일: evil.pdf
+'''),
+      )
+      ..addFile(ArchiveFile.bytes('scores/../evil.pdf', [1, 2, 3]));
+    final zip = ZipEncoder().encode(archive);
+
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(zip),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('Unsafe setlist package entry'),
+        ),
+      ),
+    );
+  });
+
+  test('codec rejects non-Clef manifest content', () {
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile.string(sheetSetlistPackageManifestFileName, 'plain text'),
+      )
+      ..addFile(ArchiveFile.bytes('scores/etude.pdf', [1, 2, 3]));
+    final zip = ZipEncoder().encode(archive);
+
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(zip),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('not a Clef setlist manifest'),
+        ),
+      ),
+    );
   });
 }
 

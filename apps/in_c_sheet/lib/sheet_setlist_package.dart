@@ -1,8 +1,124 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:archive/archive.dart';
+
 import 'sheet_score.dart';
 import 'sheet_setlist_manifest.dart';
 
 const String sheetSetlistPackageScope = 'clef.setlist.package';
 const int sheetSetlistPackageVersion = 1;
+const String sheetSetlistPackageManifestFileName = 'clef-setlist-package.txt';
+const String sheetSetlistPackageScoreDirectory = 'scores/';
+
+class SheetSetlistPackageArchive {
+  const SheetSetlistPackageArchive({
+    required this.manifest,
+    required this.packageFiles,
+  });
+
+  final SheetSetlistShareManifest manifest;
+  final List<SheetSetlistPackageFile> packageFiles;
+
+  SheetSetlistPackageDryRun previewImport({
+    required List<SheetScore> currentScores,
+  }) {
+    return SheetSetlistPackageDryRun.preview(
+      manifest: manifest,
+      currentScores: currentScores,
+      packageFiles: packageFiles,
+    );
+  }
+
+  static SheetSetlistPackageArchive decodeBytes(List<int> bytes) {
+    late Archive archive;
+    try {
+      archive = ZipDecoder().decodeBytes(bytes);
+    } on ArchiveException catch (error) {
+      throw FormatException(
+        'Setlist package ZIP cannot be read: ${error.message}',
+      );
+    }
+
+    final fileEntries = archive.files
+        .where((entry) => entry.isFile)
+        .toList(growable: false);
+    final manifestEntries = fileEntries
+        .where((entry) => entry.name == sheetSetlistPackageManifestFileName)
+        .toList(growable: false);
+    if (manifestEntries.isEmpty) {
+      throw const FormatException('Setlist package manifest is missing.');
+    }
+    if (manifestEntries.length > 1) {
+      throw const FormatException(
+        'Setlist package contains more than one manifest.',
+      );
+    }
+
+    final manifestText = utf8.decode(manifestEntries.single.content);
+    final manifest = SheetSetlistShareManifest.tryParse(manifestText);
+    if (manifest == null) {
+      throw const FormatException(
+        'Setlist package manifest is not a Clef setlist manifest.',
+      );
+    }
+
+    final paths = <String>{};
+    final packageFiles = <SheetSetlistPackageFile>[];
+    for (final entry in fileEntries) {
+      final path = entry.name.trim();
+      if (path == sheetSetlistPackageManifestFileName) {
+        continue;
+      }
+      if (!_isSafePackageScoreZipEntryPath(path)) {
+        throw FormatException('Unsafe setlist package entry: $path');
+      }
+      if (!paths.add(path)) {
+        throw FormatException('Duplicate setlist package entry: $path');
+      }
+      packageFiles.add(
+        SheetSetlistPackageFile(
+          path: path,
+          mediaType: _mediaTypeForScoreFile(path),
+        ),
+      );
+    }
+
+    return SheetSetlistPackageArchive(
+      manifest: manifest,
+      packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
+    );
+  }
+
+  static Uint8List encodeBytes({
+    required String manifestText,
+    required Map<String, List<int>> scoreFiles,
+  }) {
+    final manifest = SheetSetlistShareManifest.tryParse(manifestText);
+    if (manifest == null) {
+      throw const FormatException(
+        'Setlist package manifest is not a Clef setlist manifest.',
+      );
+    }
+
+    final archive = Archive();
+    archive.addFile(
+      ArchiveFile.string(sheetSetlistPackageManifestFileName, manifestText),
+    );
+    final paths = <String>{};
+    for (final entry in scoreFiles.entries) {
+      final path = entry.key.trim().replaceAll('\\', '/');
+      if (!_isSafePackageScoreZipEntryPath(path)) {
+        throw FormatException('Unsafe setlist package entry: $path');
+      }
+      if (!paths.add(path)) {
+        throw FormatException('Duplicate setlist package entry: $path');
+      }
+      archive.addFile(ArchiveFile.bytes(path, entry.value));
+    }
+    return Uint8List.fromList(ZipEncoder().encode(archive));
+  }
+}
 
 class SheetSetlistPackageFile {
   const SheetSetlistPackageFile({
@@ -259,4 +375,25 @@ String _fileExtension(String path) {
     return '';
   }
   return name.substring(dot);
+}
+
+bool _isSafePackageScoreZipEntryPath(String path) {
+  return path.startsWith(sheetSetlistPackageScoreDirectory) &&
+      !path.contains('..') &&
+      !path.startsWith('/') &&
+      !path.contains('\\') &&
+      _fileName(path).isNotEmpty;
+}
+
+String _mediaTypeForScoreFile(String path) {
+  switch (_fileExtension(path)) {
+    case '.pdf':
+      return 'application/pdf';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+  }
+  return '';
 }

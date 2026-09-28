@@ -1764,3 +1764,12 @@ existing-score matches unresolved. This does not read ZIP bytes, copy files, cre
 setlists yet; it fixes the preview boundary needed before any package import UI/storage flow.
 Focused package dry-run model tests passed. Format, analyze, full 1,453-test suite, RC release check,
 git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.
+
+S128 VERIFIED LOCAL: continuing the package path with a codec boundary instead of jumping straight to
+library writes. `clef.setlist.package` v1 archives now have a tested manifest entry
+(`clef-setlist-package.txt`) and `scores/` file-entry policy. The pure codec can encode/decode package
+bytes, parse the embedded Clef setlist manifest, list package score files with media types, reject
+missing/non-Clef manifests and block unsafe ZIP paths before handing the result to the existing dry-run
+preview. This still does not copy files, create scores, save setlists or expose a user-facing package
+import UI; those remain separate steps after export/import storage rollback is designed.
+Focused package codec tests passed.
