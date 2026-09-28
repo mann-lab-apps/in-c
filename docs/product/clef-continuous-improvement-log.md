@@ -1602,3 +1602,11 @@ quality from internal checks. The device report now records current tuner setup
 drones). Unit coverage verifies chromatic tuner setup reporting and risky drone settings.
 QA docs now separate automated setup evidence from manual reference-tone, real-instrument,
 earphone/speaker/Bluetooth and rehearsal-room checks.
+
+S105 VERIFIED LOCAL: reduced the Text/ChordPro/DOCX MobileSheets gap at the import boundary
+without pretending Clef has a parser/renderer. The import policy now recognizes common text
+score extensions as known unsupported formats and returns a PDF conversion message instead of a
+generic image import error. The home import menu adds a named `텍스트/ChordPro/DOCX 안내` entry
+that explains the current PDF/JPG/PNG focus and the follow-up ChordPro/transpose/capo scope.
+Policy and widget smoke tests cover the classification and visible guidance; actual
+Text/ChordPro rendering remains V2/spike work.

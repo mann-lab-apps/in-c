@@ -825,6 +825,30 @@ void main() {
     expect(find.text('여러 PDF를 세트리스트에 추가'), findsOneWidget);
     expect(find.text('이미지를 PDF 악보로 묶기'), findsOneWidget);
     expect(find.text('이미지를 묶어 세트리스트에 추가'), findsOneWidget);
+    expect(find.text('텍스트/ChordPro/DOCX 안내'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('import menu explains unsupported text score formats', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('지금 가능한 흐름'), findsOneWidget);
+    expect(find.textContaining('직접 열 수 없습니다'), findsOneWidget);
+    expect(find.textContaining('PDF 가져오기를 사용'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

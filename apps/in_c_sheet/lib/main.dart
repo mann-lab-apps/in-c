@@ -640,6 +640,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     Navigator.of(context)
                         .pop(_LibraryImportAction.imagesToSetlist),
               ),
+              const Divider(height: 8),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('텍스트/ChordPro/DOCX 안내'),
+                subtitle: const Text('아직 직접 보기 미지원 · PDF 변환 권장'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.textScoreInfo),
+              ),
             ],
           ),
         ),
@@ -658,9 +667,71 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _importImagesAsPdf();
       case _LibraryImportAction.imagesToSetlist:
         await _importImagesAsPdf(addToSetlist: true);
+      case _LibraryImportAction.textScoreInfo:
+        await _showTextScoreImportInfo();
       case null:
         return;
     }
+  }
+
+  Future<void> _showTextScoreImportInfo() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '텍스트/ChordPro/DOCX 안내',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                SheetFileImportPolicy.unsupportedTextScoreImportMessage(
+                  'example.chordpro',
+                ),
+              ),
+              const SizedBox(height: 12),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.picture_as_pdf_outlined),
+                title: Text('지금 가능한 흐름'),
+                subtitle: Text('원본 앱에서 PDF로 내보내거나 인쇄한 뒤 PDF 가져오기를 사용하세요.'),
+              ),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.upcoming_outlined),
+                title: Text('후속 검토 항목'),
+                subtitle: Text(
+                  'ChordPro transpose/capo와 텍스트 악보 전용 보기 모드는 별도 기능으로 검토합니다.',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('확인'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openRecentSetlist(SheetSetlist setlist) async {
@@ -2342,6 +2413,7 @@ enum _LibraryImportAction {
   pdfsToSetlist,
   images,
   imagesToSetlist,
+  textScoreInfo,
 }
 
 enum _LibraryProfileActionType { all, select, create, rename, delete }

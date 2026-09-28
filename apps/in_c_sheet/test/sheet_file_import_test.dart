@@ -31,6 +31,18 @@ void main() {
       isTrue,
     );
     expect(SheetFileImportPolicy.isSupportedAudioExtension('.m4a'), isTrue);
+    expect(
+      SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
+        'lead-sheet.chordpro',
+      ),
+      isTrue,
+    );
+    expect(
+      SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
+        'lesson-notes.DOCX',
+      ),
+      isTrue,
+    );
   });
 
   test('explains known unsupported image types', () {
@@ -45,6 +57,25 @@ void main() {
         'Unsupported image file: page-1.tiff',
       ),
       contains('JPG/PNG'),
+    );
+  });
+
+  test('explains known unsupported text score types', () {
+    expect(
+      SheetFileImportPolicy.unsupportedImportMessage(
+        'Unsupported score file: lead-sheet.chordpro',
+      ),
+      allOf(contains('ChordPro'), contains('PDF')),
+    );
+    expect(
+      SheetFileImportPolicy.unsupportedTextScoreImportMessage(
+        'lesson-notes.docx',
+      ),
+      allOf(contains('DOCX'), contains('PDF')),
+    );
+    expect(
+      SheetFileImportPolicy.unsupportedTextScoreImportMessage('lyrics.txt'),
+      contains('텍스트 악보'),
     );
   });
 

@@ -29,6 +29,19 @@ class SheetFileImportPolicy {
     'ogg',
   };
   static const unsupportedImageExtensions = <String>{'heic', 'heif'};
+  static const unsupportedTextScoreExtensions = <String>{
+    'txt',
+    'text',
+    'md',
+    'markdown',
+    'rtf',
+    'cho',
+    'chordpro',
+    'chopro',
+    'crd',
+    'pro',
+    'docx',
+  };
 
   static bool isPdfFileName(String name) {
     return pdfExtensions.contains(extensionOf(name));
@@ -56,12 +69,26 @@ class SheetFileImportPolicy {
     return unsupportedImageExtensions.contains(extensionOf(name));
   }
 
+  static bool isKnownButUnsupportedTextScoreFileName(String name) {
+    return unsupportedTextScoreExtensions.contains(extensionOf(name));
+  }
+
   static String unsupportedImportMessage(String value) {
     final name = _fileNameFromMessage(value);
     if (isKnownButUnsupportedImageFileName(name)) {
       return 'HEIC/HEIF 이미지는 바로 가져올 수 없습니다. 사진 앱에서 JPG로 저장한 뒤 다시 가져와주세요.';
     }
+    if (isKnownButUnsupportedTextScoreFileName(name)) {
+      return unsupportedTextScoreImportMessage(name);
+    }
     return '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지, 클라우드 파일이 기기에 내려받아져 있는지 확인해주세요.';
+  }
+
+  static String unsupportedTextScoreImportMessage(String value) {
+    final name = _fileNameFromMessage(value);
+    final extension = extensionOf(name);
+    final label = _unsupportedTextScoreLabel(extension);
+    return '$label 파일은 아직 Clef & Staff에서 직접 열 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보 중심입니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }
 
   static String extensionOf(String name) {
@@ -77,6 +104,20 @@ class SheetFileImportPolicy {
     final trimmed = value.trim();
     final separator = trimmed.lastIndexOf(':');
     return separator == -1 ? trimmed : trimmed.substring(separator + 1).trim();
+  }
+
+  static String _unsupportedTextScoreLabel(String extension) {
+    if (extension == 'docx') {
+      return 'DOCX';
+    }
+    if (extension == 'cho' ||
+        extension == 'chordpro' ||
+        extension == 'chopro' ||
+        extension == 'crd' ||
+        extension == 'pro') {
+      return 'ChordPro';
+    }
+    return '텍스트 악보';
   }
 
   static String titleFromFileName(String name) {

@@ -130,6 +130,7 @@ Repo 포함 fixture:
 - 실제 CamScanner/object-stream PDF 1개.
 - JPG/PNG 이미지 악보 2-3장.
 - HEIC/HEIF 이미지 1장.
+- Text/ChordPro/DOCX 악보 샘플 1개씩. 직접 보기 지원 확인이 아니라 PDF 변환 안내가 자연스러운지 확인한다.
 - Drive, iCloud, Dropbox 등 cloud provider에만 있는 PDF 1개.
 - MP3/M4A/WAV local audio file 각 1개 이상.
 
