@@ -2538,11 +2538,68 @@ class SheetLibraryController extends ChangeNotifier {
   Future<SheetSetlist> createSetlist(String title) async {
     final now = DateTime.now();
     final setlist = SheetSetlist(
-      id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
+      id: _newSetlistId(now),
       title: _normalizeSetlistTitle(title),
       scoreIds: const <String>[],
       createdAt: now,
       updatedAt: now,
+    );
+    _setlists = <SheetSetlist>[setlist, ..._setlists];
+    await _saveSetlistChanges();
+    return setlist;
+  }
+
+  Future<SheetSetlist> createSetlistFromDraft(SheetSetlist draft) async {
+    final validScoreIds = _scores.map((score) => score.id).toSet();
+    final scoreIds = draft.scoreIds
+        .where(validScoreIds.contains)
+        .toList(growable: false);
+    if (scoreIds.length != draft.scoreIds.length || scoreIds.isEmpty) {
+      throw StateError('Cannot create setlist from unresolved scores.');
+    }
+    final now = DateTime.now();
+    final id = draft.id.trim().isNotEmpty && setlistByIdOrNull(draft.id) == null
+        ? draft.id
+        : _newSetlistId(now);
+    final title = _uniqueSetlistTitle(_normalizeSetlistTitle(draft.title));
+    final scoreIdSet = scoreIds.toSet();
+    final setlist = SheetSetlist(
+      id: id,
+      title: title,
+      scoreIds: List<String>.unmodifiable(scoreIds),
+      createdAt: now,
+      updatedAt: now,
+      rehearsalMode: draft.rehearsalMode,
+      scoreStartPages: Map<String, int>.unmodifiable(
+        Map<String, int>.fromEntries(
+          draft.scoreStartPages.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreNotes: Map<String, String>.unmodifiable(
+        Map<String, String>.fromEntries(
+          draft.scoreNotes.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreDurations: Map<String, int>.unmodifiable(
+        Map<String, int>.fromEntries(
+          draft.scoreDurations.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreMetronomeSettings: Map.unmodifiable(
+        Map.fromEntries(
+          draft.scoreMetronomeSettings.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      transitionSeconds: draft.transitionSeconds,
+      viewerSettingsOverride: draft.viewerSettingsOverride,
     );
     _setlists = <SheetSetlist>[setlist, ..._setlists];
     await _saveSetlistChanges();
@@ -2562,13 +2619,9 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetSetlist> duplicateSetlist(SheetSetlist setlist) async {
     final now = DateTime.now();
-    final baseTitle = '${setlist.title} copy';
-    var title = baseTitle;
-    for (var suffix = 2; setlistByTitleOrNull(title) != null; suffix++) {
-      title = '$baseTitle ($suffix)';
-    }
+    final title = _uniqueSetlistTitle('${setlist.title} copy');
     final duplicate = SheetSetlist(
-      id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
+      id: _newSetlistId(now),
       title: title,
       scoreIds: List<String>.unmodifiable(setlist.scoreIds),
       createdAt: now,
@@ -3411,6 +3464,23 @@ class SheetLibraryController extends ChangeNotifier {
   String _normalizeSetlistTitle(String title) {
     final normalized = title.trim();
     return normalized.isEmpty ? '새 세트리스트' : normalized;
+  }
+
+  String _uniqueSetlistTitle(String title) {
+    final baseTitle = _normalizeSetlistTitle(title);
+    if (setlistByTitleOrNull(baseTitle) == null) {
+      return baseTitle;
+    }
+    for (var suffix = 2; ; suffix++) {
+      final candidate = '$baseTitle ($suffix)';
+      if (setlistByTitleOrNull(candidate) == null) {
+        return candidate;
+      }
+    }
+  }
+
+  String _newSetlistId(DateTime now) {
+    return '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';
   }
 
   String _normalizeBookmarkLabel(String label, int pageNumber) {

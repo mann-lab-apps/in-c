@@ -35,6 +35,7 @@ import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_setlist_manifest.dart';
 import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
@@ -6982,6 +6983,62 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     );
   }
 
+  Future<void> _importSetlistManifest() async {
+    final preview =
+        await showModalBottomSheet<SheetSetlistManifestMatchPreview>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (context) =>
+              _SetlistManifestImportSheet(scores: controller.scores),
+        );
+    if (!mounted || preview == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final draft = preview.toSetlistDraft(
+      id: 'manifest-${now.microsecondsSinceEpoch}',
+      now: now,
+    );
+    if (draft == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('모든 곡이 확인된 뒤 세트리스트를 만들 수 있습니다.')),
+      );
+      return;
+    }
+    final imported = await _trySetlistSave(
+      context,
+      () => controller.createSetlistFromDraft(draft),
+      errorMessage: '세트리스트 목록을 가져오지 못했습니다. 다시 시도해주세요.',
+    );
+    if (!mounted || imported == null) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '"${imported.title}" 세트리스트를 ${imported.scoreIds.length}곡으로 만들었습니다.',
+        ),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (!mounted) return;
+            unawaited(
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (context) => SheetSetlistDetailScreen(
+                    controller: controller,
+                    setlistId: imported.id,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _openFirstScore(SheetSetlist setlist) async {
     final scores = controller.scoresForSetlist(setlist);
     if (scores.isEmpty) {
@@ -7023,63 +7080,395 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
         label: const Text('새 세트리스트'),
       ),
       body: SafeArea(
-        child: setlists.isEmpty
-            ? const Center(child: Text('세트리스트가 없습니다.'))
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                itemBuilder: (context, index) {
-                  final setlist = setlists[index];
-                  return ListTile(
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    leading: const Icon(Icons.queue_music),
-                    title: Text(
-                      setlist.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    subtitle: Text(
-                      '${setlist.scoreIds.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}',
-                    ),
-                    trailing: Wrap(
-                      spacing: 0,
-                      children: [
-                        IconButton(
-                          tooltip: '첫 곡 열기',
-                          onPressed: setlist.scoreIds.isEmpty
-                              ? null
-                              : () => _openFirstScore(setlist),
-                          icon: const Icon(Icons.play_arrow),
-                        ),
-                        const IconButton(
-                          tooltip: '상세',
-                          onPressed: null,
-                          icon: Icon(Icons.chevron_right),
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push<void>(
-                        MaterialPageRoute<void>(
-                          builder: (context) => SheetSetlistDetailScreen(
-                            controller: controller,
-                            setlistId: setlist.id,
+        child: Column(
+          children: [
+            _SetlistManifestImportCallout(onImport: _importSetlistManifest),
+            Expanded(
+              child: setlists.isEmpty
+                  ? const Center(child: Text('세트리스트가 없습니다.'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                      itemBuilder: (context, index) {
+                        final setlist = setlists[index];
+                        return ListTile(
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 10),
-                itemCount: setlists.length,
-              ),
+                          leading: const Icon(Icons.queue_music),
+                          title: Text(
+                            setlist.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          subtitle: Text(
+                            '${setlist.scoreIds.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}',
+                          ),
+                          trailing: Wrap(
+                            spacing: 0,
+                            children: [
+                              IconButton(
+                                tooltip: '첫 곡 열기',
+                                onPressed: setlist.scoreIds.isEmpty
+                                    ? null
+                                    : () => _openFirstScore(setlist),
+                                icon: const Icon(Icons.play_arrow),
+                              ),
+                              const IconButton(
+                                tooltip: '상세',
+                                onPressed: null,
+                                icon: Icon(Icons.chevron_right),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (context) => SheetSetlistDetailScreen(
+                                  controller: controller,
+                                  setlistId: setlist.id,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
+                      itemCount: setlists.length,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _SetlistManifestImportCallout extends StatelessWidget {
+  const _SetlistManifestImportCallout({required this.onImport});
+
+  final VoidCallback onImport;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.32),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
+            children: [
+              Icon(
+                Icons.playlist_add_check_outlined,
+                color: theme.colorScheme.secondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '복사한 세트리스트 가져오기',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '다른 Clef & Staff에서 복사한 목록을 현재 라이브러리 악보와 맞춰봅니다.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.content_paste_search_outlined),
+                label: const Text('가져오기'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SetlistManifestImportSheet extends StatefulWidget {
+  const _SetlistManifestImportSheet({required this.scores});
+
+  final List<SheetScore> scores;
+
+  @override
+  State<_SetlistManifestImportSheet> createState() =>
+      _SetlistManifestImportSheetState();
+}
+
+class _SetlistManifestImportSheetState
+    extends State<_SetlistManifestImportSheet> {
+  final TextEditingController _controller = TextEditingController();
+  SheetSetlistShareManifest? _manifest;
+  SheetSetlistManifestMatchPreview? _preview;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTextChanged(String text) {
+    final manifest = SheetSetlistShareManifest.tryParse(text);
+    setState(() {
+      _manifest = manifest;
+      _preview = manifest?.matchScores(widget.scores);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final preview = _preview;
+    final hasText = _controller.text.trim().isNotEmpty;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: 20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 720),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '복사한 목록 가져오기',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Clef & Staff의 공유용 세트리스트 텍스트만 읽습니다. PDF 파일은 포함되지 않습니다.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                maxLines: 8,
+                minLines: 5,
+                onChanged: _handleTextChanged,
+                decoration: const InputDecoration(
+                  labelText: '공유용 세트리스트 텍스트',
+                  hintText: 'Clef & Staff 세트리스트\n제목: ...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: _SetlistManifestImportPreview(
+                    hasText: hasText,
+                    manifest: _manifest,
+                    preview: preview,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('취소'),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: preview?.canCreateSetlist == true
+                        ? () => Navigator.of(context).pop(preview)
+                        : null,
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: const Text('세트리스트 만들기'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SetlistManifestImportPreview extends StatelessWidget {
+  const _SetlistManifestImportPreview({
+    required this.hasText,
+    required this.manifest,
+    required this.preview,
+  });
+
+  final bool hasText;
+  final SheetSetlistShareManifest? manifest;
+  final SheetSetlistManifestMatchPreview? preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (!hasText) {
+      return Text(
+        '목록 복사로 만든 텍스트를 붙여넣으면 곡 매칭 결과를 먼저 보여줍니다.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    if (manifest == null || preview == null) {
+      return _ImportStatusBox(
+        icon: Icons.error_outline,
+        title: '읽을 수 없는 목록입니다',
+        message: 'Clef & Staff 세트리스트 텍스트인지 확인해주세요.',
+        color: theme.colorScheme.error,
+      );
+    }
+    final warnings = preview!.warnings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ImportStatusBox(
+          icon: preview!.canCreateSetlist
+              ? Icons.check_circle_outline
+              : Icons.info_outline,
+          title: preview!.canCreateSetlist ? '모든 곡을 찾았습니다' : '확인이 필요합니다',
+          message:
+              '${manifest!.title} · ${preview!.matches.length}/${manifest!.expectedScoreCount}곡',
+          color: preview!.canCreateSetlist
+              ? theme.colorScheme.secondary
+              : theme.colorScheme.tertiary,
+        ),
+        if (warnings.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          for (final warning in warnings.take(4))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                warning,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ),
+          if (warnings.length > 4)
+            Text(
+              '외 ${warnings.length - 4}개 확인 필요',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+        ],
+        const SizedBox(height: 8),
+        for (final match in preview!.matches.take(8))
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              match.isResolved ? Icons.check_circle : Icons.help_outline,
+              color: match.isResolved
+                  ? theme.colorScheme.secondary
+                  : theme.colorScheme.error,
+            ),
+            title: Text(match.item.title, maxLines: 1),
+            subtitle: Text(_manifestMatchSubtitle(match), maxLines: 2),
+          ),
+        if (preview!.matches.length > 8)
+          Text(
+            '외 ${preview!.matches.length - 8}곡',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ImportStatusBox extends StatelessWidget {
+  const _ImportStatusBox({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _manifestMatchSubtitle(SheetSetlistManifestMatch match) {
+  if (match.isResolved) {
+    final score = match.score!;
+    return '${score.displayTitle} · ${score.sourceFileDisplayName}';
+  }
+  if (match.candidates.isNotEmpty) {
+    return '후보 ${match.candidates.length}개 · 제목이나 파일명을 더 구분해주세요.';
+  }
+  return '현재 라이브러리에서 일치하는 악보를 찾지 못했습니다.';
 }
 
 enum _SetlistDetailAction { preview, copy, append, duplicate, rename, delete }

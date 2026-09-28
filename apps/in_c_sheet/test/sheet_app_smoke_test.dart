@@ -808,6 +808,134 @@ void main() {
     },
   );
 
+  testWidgets('setlist manifest import creates matched setlist', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 12);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'goedicke',
+        title: 'Goedicke Concert Etude',
+        composer: 'Goedicke',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/goedicke-concert-etude.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'bach',
+        title: 'Bach Cello Suite No. 1',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/bach-suite.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '''
+Clef & Staff 세트리스트
+제목: Autumn Recital
+곡 수: 2곡 · 총 7분 30초
+전환 10초
+
+1. Goedicke Concert Etude
+   작곡가: Goedicke
+   파일: goedicke-concert-etude.pdf
+   시작: 3쪽
+   예상 시간: 3분 30초
+   세트 메모: mute ready
+2. Bach Cello Suite No. 1
+   작곡가: Bach
+   파일: bach-suite.pdf
+   시작: 1쪽
+   예상 시간: 4분
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('모든 곡을 찾았습니다'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists, hasLength(1));
+    final imported = controller.setlists.single;
+    expect(imported.title, 'Autumn Recital');
+    expect(imported.scoreIds, ['goedicke', 'bach']);
+    expect(imported.scoreStartPages, {'goedicke': 3, 'bach': 1});
+    expect(imported.scoreNotes, {'goedicke': 'mute ready'});
+    expect(imported.scoreDurations, {'goedicke': 210, 'bach': 240});
+    expect(imported.transitionSeconds, 10);
+    expect(find.textContaining('세트리스트를 2곡으로 만들었습니다'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('setlist manifest import blocks unresolved matches', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '''
+Clef & Staff 세트리스트
+제목: Autumn Recital
+곡 수: 1곡
+
+1. Missing Score
+   파일: missing.pdf
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('확인이 필요합니다'), findsOneWidget);
+    expect(find.textContaining('라이브러리에서 찾을 수 없는 곡'), findsOneWidget);
+    final createButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '세트리스트 만들기'),
+    );
+    expect(createButton.onPressed, isNull);
+    expect(controller.setlists, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('import menu exposes setlist assignment actions', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final controller = SheetLibraryController(store: SheetLibraryStore());

@@ -1733,3 +1733,11 @@ the match preview can now produce a `SheetSetlist` draft preserving item order, 
 per-song note, per-song duration and transition duration. Missing or ambiguous matches still
 return no draft, so later UI cannot silently import a partial or wrong list.
 Focused setlist manifest tests, full analyze, 1,443 tests and RC release check passed.
+
+S125 VERIFIED LOCAL: closed the next small setlist package gap by adding a user-facing paste import
+flow on the setlist screen. The new import sheet accepts copied Clef setlist manifest text, previews
+parsed title/count and per-item matching against the current library, blocks saving while matches are
+missing or ambiguous, and creates a new setlist only from a fully resolved preview. The saved draft
+preserves item order, start pages, per-song notes, per-song durations and transition duration, while
+PDF bundling/external missing-file import remains out of scope.
+Focused setlist manifest import widget tests, full analyze, 1,445 tests and RC release check passed.

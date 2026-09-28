@@ -111,7 +111,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | External Control | Link points | utilities page | page jump point metadata와 tappable overlay/list가 있다 | feature map `link point/jump point` | Implemented | repeat 처리용 기본은 있음 |
 | External Control | Smart buttons | utilities page | 없다 | feature map `smart button` | Not Implemented | action registry 필요 |
 | External Control | Configurable quick action box | utilities page | 공연 모드 quick action overlay와 일부 toggle action이 있다 | feature map `quick action box` | Partially Implemented | 위치 이동/숨김/사용자 구성 폭은 작음 |
-| Sync / Collaboration | Share score/setlist package | collaboration page | PDF/share/backup ZIP이 있고, 세트리스트는 제목/곡수/예상 시간/전환/곡별 파일명/시작쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 텍스트 manifest를 미리 보고 복사할 수 있다. 복사된 Clef manifest를 title/items/details/warnings로 다시 읽고, 현재 라이브러리 악보와 file/title/composer 기준으로 매칭 preview를 만들며, 모든 항목이 해결되면 순서/시작쪽/메모/예상 시간/전환을 보존한 `SheetSetlist` draft를 만들 수 있다. MobileSheets 전용 binary setlist package는 없다 | feature map `PDF 공유/export`, `백업/복원`, `세트리스트`, `sheet_setlist_manifest_test` | Partially Implemented | PDF 파일 자체를 묶지 않는 가벼운 공유/전달용 manifest이며, 같은 라이브러리 사용자 간 자동 import UI는 없음 |
+| Sync / Collaboration | Share score/setlist package | collaboration page | PDF/share/backup ZIP이 있고, 세트리스트는 제목/곡수/예상 시간/전환/곡별 파일명/시작쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 텍스트 manifest를 미리 보고 복사할 수 있다. 복사된 Clef manifest를 title/items/details/warnings로 다시 읽고, 현재 라이브러리 악보와 file/title/composer 기준으로 매칭 preview를 만들며, 모든 항목이 해결되면 세트리스트 화면에서 붙여넣기 import로 순서/시작쪽/메모/예상 시간/전환을 보존한 새 `SheetSetlist`를 만들 수 있다. MobileSheets 전용 binary setlist package는 없다 | feature map `PDF 공유/export`, `백업/복원`, `세트리스트`, `sheet_setlist_manifest_test`, `sheet_app_smoke_test` | Partially Implemented | PDF 파일 자체를 묶지 않는 가벼운 공유/전달용 manifest이며, missing/ambiguous 곡은 저장하지 않고 현재 라이브러리에 이미 있는 악보만 연결한다 |
 | Sync / Collaboration | Export PDFs with annotations | collaboration page | rendered annotation PDF 사본 공유가 있다 | feature map `필기 포함 PDF 공유` | Implemented | editable annotation export는 미구현 |
 | Sync / Collaboration | Library cloud synchronization | collaboration and files pages | 없다. 백업/복원과 system picker import만 있음 | feature map `클라우드 동기화` | Not Implemented | account/conflict/privacy 결정 필요 |
 | Sync / Collaboration | Wi-Fi/Bluetooth leader-follower tablets | collaboration page | 없다 | feature map `leader/follower tablet` | Not Implemented | 공연 협업 영역 |
@@ -137,9 +137,9 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 ## MobileSheets 대비 큰 gap
 
 1. Cloud/sync/collaboration: cloud library sync, field-selective sync, leader/follower tablets,
-   automatic same-library setlist package import는 Clef에 없다. 세트리스트 공유용 텍스트
-   manifest parser, 현재 라이브러리 악보 매칭 preview와 setlist draft helper는 있으나 PDF 파일과
-   라이브러리 항목을 자동 재구성하는 사용자-facing UI는 없다.
+   PDF 파일까지 포함하는 automatic setlist package import는 Clef에 없다. 세트리스트 공유용
+   텍스트 manifest는 세트리스트 화면에서 붙여넣어 현재 라이브러리 악보와 매칭한 뒤 새
+   세트리스트로 만들 수 있지만, PDF 파일과 라이브러리 항목을 자동 재구성하지는 않는다.
 2. Text/ChordPro/docx: MobileSheets는 텍스트/ChordPro를 악보 유형으로 다루지만 Clef는 PDF/image 중심이다.
    v1.1에서는 가져오기 메뉴와 policy가 해당 형식을 명시적으로 미지원 안내하고 PDF 변환을 권장하며,
    ChordPro parser/metadata/transpose/capo-shape/plain-text rendering core까지만 마련했다. comment/section/chorus/tab/page/column cue는 보존하지만 사용자-facing viewer/import UI는 없다.
