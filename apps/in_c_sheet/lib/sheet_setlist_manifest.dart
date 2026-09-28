@@ -1,4 +1,5 @@
 import 'sheet_score.dart';
+import 'sheet_setlist.dart';
 
 class SheetSetlistShareManifest {
   const SheetSetlistShareManifest({
@@ -181,6 +182,52 @@ class SheetSetlistManifestMatchPreview {
         '여러 악보와 일치하는 곡: ${match.item.title}',
     ];
   }
+
+  SheetSetlist? toSetlistDraft({required String id, required DateTime now}) {
+    if (!canCreateSetlist) {
+      return null;
+    }
+    final scoreIds = matchedScoreIds;
+    return SheetSetlist(
+      id: id,
+      title: manifest.title.trim(),
+      scoreIds: scoreIds,
+      createdAt: now,
+      updatedAt: now,
+      scoreStartPages: Map<String, int>.unmodifiable(
+        _matchedIntDetails((item) => _parsePageNumber(item.startPageLabel)),
+      ),
+      scoreNotes: Map<String, String>.unmodifiable(
+        _matchedStringDetails((item) => item.setlistNote.trim()),
+      ),
+      scoreDurations: Map<String, int>.unmodifiable(
+        _matchedIntDetails(
+          (item) => _parseDurationSeconds(item.details['예상 시간'] ?? ''),
+        ),
+      ),
+      transitionSeconds: _parseDurationSeconds(manifest.transitionLabel),
+    );
+  }
+
+  Map<String, int> _matchedIntDetails(
+    int Function(SheetSetlistShareItem item) valueFor,
+  ) {
+    return <String, int>{
+      for (final match in matches)
+        if (match.score != null && valueFor(match.item) > 0)
+          match.score!.id: valueFor(match.item),
+    };
+  }
+
+  Map<String, String> _matchedStringDetails(
+    String Function(SheetSetlistShareItem item) valueFor,
+  ) {
+    return <String, String>{
+      for (final match in matches)
+        if (match.score != null && valueFor(match.item).isNotEmpty)
+          match.score!.id: valueFor(match.item),
+    };
+  }
 }
 
 enum SheetSetlistManifestMatchKind {
@@ -300,4 +347,29 @@ String _fileName(String path) {
 
 String _fileStem(String path) {
   return _fileName(path).replaceFirst(RegExp(r'\.[^.]+$'), '').trim();
+}
+
+int _parsePageNumber(String value) {
+  final match = RegExp(r'(\d+)').firstMatch(value);
+  return int.tryParse(match?.group(1) ?? '') ?? 0;
+}
+
+int _parseDurationSeconds(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return 0;
+  }
+  var seconds = 0;
+  for (final match in RegExp(r'(\d+)\s*(시간|분|초)').allMatches(trimmed)) {
+    final amount = int.tryParse(match.group(1) ?? '') ?? 0;
+    switch (match.group(2)) {
+      case '시간':
+        seconds += amount * 3600;
+      case '분':
+        seconds += amount * 60;
+      case '초':
+        seconds += amount;
+    }
+  }
+  return seconds;
 }

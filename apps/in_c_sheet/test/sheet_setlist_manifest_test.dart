@@ -135,6 +135,66 @@ Clef & Staff 세트리스트
     expect(preview.matchedScoreIds, isEmpty);
     expect(preview.warnings, contains('라이브러리에서 찾을 수 없는 곡: Missing Score'));
   });
+
+  test('creates setlist draft from fully matched manifest preview', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Recital
+곡 수: 2곡 · 총 7분 45초
+전환 15초
+
+1. Goedicke Etude
+   작곡가: Goedicke
+   파일: goedicke
+   시작: 3쪽
+   예상 시간: 3분 30초
+   세트 메모: mute ready
+2. Bach Suite
+   파일: bach-suite
+   시작: 1쪽
+   예상 시간: 4분
+''');
+
+    final preview = manifest!.matchScores([
+      _score(id: 'goedicke', title: 'Goedicke Etude'),
+      _score(id: 'bach', title: 'Bach Suite', filePath: '/tmp/bach-suite.pdf'),
+    ]);
+    final draft = preview.toSetlistDraft(
+      id: 'setlist-1',
+      now: DateTime(2026, 9, 28, 13),
+    );
+
+    expect(draft, isNotNull);
+    expect(draft!.id, 'setlist-1');
+    expect(draft.title, 'Recital');
+    expect(draft.scoreIds, ['goedicke', 'bach']);
+    expect(draft.scoreStartPages, {'goedicke': 3, 'bach': 1});
+    expect(draft.scoreDurations, {'goedicke': 210, 'bach': 240});
+    expect(draft.scoreNotes, {'goedicke': 'mute ready'});
+    expect(draft.transitionSeconds, 15);
+  });
+
+  test(
+    'does not create setlist draft while manifest matches are unresolved',
+    () {
+      final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Recital
+곡 수: 1곡
+
+1. Missing Score
+''');
+
+      final preview = manifest!.matchScores([
+        _score(id: 'other', title: 'Other Score'),
+      ]);
+
+      expect(
+        preview.toSetlistDraft(id: 'setlist-1', now: DateTime(2026)),
+        isNull,
+      );
+    },
+  );
 }
 
 SheetScore _score({

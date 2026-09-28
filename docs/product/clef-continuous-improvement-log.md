@@ -1726,3 +1726,10 @@ library by source file display name, title plus composer and title fallback, whi
 missing matches stay unresolved with warnings. This keeps later import UI honest about skipped
 items and avoids silently creating a setlist from the wrong scores.
 Focused setlist manifest tests, full analyze, 1,441 tests and RC release check passed.
+
+S124 VERIFIED LOCAL: preparing a safe same-library setlist import draft without adding a user-facing
+paste/import flow yet. When every parsed manifest item resolves to exactly one existing score,
+the match preview can now produce a `SheetSetlist` draft preserving item order, title, start page,
+per-song note, per-song duration and transition duration. Missing or ambiguous matches still
+return no draft, so later UI cannot silently import a partial or wrong list.
+Focused setlist manifest tests, full analyze, 1,443 tests and RC release check passed.
