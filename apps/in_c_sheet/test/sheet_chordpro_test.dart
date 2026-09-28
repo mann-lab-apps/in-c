@@ -100,6 +100,19 @@ Plain lyric line
     );
   });
 
+  test('renders chord-only lines without adding empty lyric rows', () {
+    final document = SheetChordProParser.parse('''
+[C][G][Am][F]
+[C]Home
+''');
+
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      'C G Am F',
+      'C',
+      'Home',
+    ]);
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}

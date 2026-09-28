@@ -1638,3 +1638,8 @@ core exists. The import policy and home import info sheet no longer imply that C
 ChordPro work at all; they now say ChordPro code/lyric, transpose and capo support is being
 prepared while the current safe library path remains PDF/JPG/PNG. Widget and policy tests cover
 the updated copy. Direct Text/ChordPro import/viewer UI is still not enabled.
+
+S110 VERIFIED LOCAL: hardened the ChordPro plain-text rendering core for chord-only lines such as
+intros, interludes and rehearsal vamps. The renderer should keep the chord row but avoid adding a
+blank lyric row underneath it, so future ChordPro display does not look double-spaced on common
+lead sheet sections. Focused tests cover the chord-only line behavior.

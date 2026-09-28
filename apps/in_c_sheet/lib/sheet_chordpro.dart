@@ -262,7 +262,9 @@ class SheetChordProTextRenderer {
       if (chordRow.isNotEmpty) {
         rendered.add(chordRow);
       }
-      rendered.add(line.lyricText);
+      if (line.lyricText.isNotEmpty) {
+        rendered.add(line.lyricText);
+      }
     }
     return rendered;
   }
