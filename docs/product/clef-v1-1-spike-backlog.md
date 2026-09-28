@@ -68,6 +68,47 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   데이터 삭제 없이 재연결 안내를 표시한다.
 - Blocker 해제 조건: SAF/iOS Files policy 결정, 실기기 권한 유지 QA, data model migration plan.
 
+### 권장 단계
+
+1. **Read-only catalog preview**
+   - Android `ACTION_OPEN_DOCUMENT_TREE`로 폴더 권한을 얻고 PDF 후보 목록만 보여준다.
+   - 이 단계에서는 Clef 라이브러리에 항목을 만들지 않고, provider/display name/last modified/size만 기록한다.
+   - Acceptance: 권한 승인/취소/권한 상실/빈 폴더/큰 폴더가 앱 데이터를 변경하지 않고 안내된다.
+
+2. **Copy-on-select bridge**
+   - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.
+   - folder source URI와 display path는 source metadata로 남겨 중복 탐지와 “원본 폴더에서 다시 가져오기”에 사용한다.
+   - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
+
+3. **Persistent direct reference**
+   - 별도 score storage type을 추가해 앱 내부 사본 없이 tree URI를 직접 열 수 있게 한다.
+   - permission lost, file rename/delete, provider offline 상태를 score-level warning으로 표시한다.
+   - Acceptance: 권한이 사라져도 metadata와 annotations는 삭제되지 않고, 사용자는 재연결하거나 앱 내부 사본으로 전환할 수 있다.
+
+4. **iOS parity decision**
+   - iOS는 security-scoped resource와 Files provider 동작 차이가 커서 Android direct reference와 같은 UX를 보장하지 않는다.
+   - iOS는 document picker copy-on-select를 기본으로 유지하고, direct folder parity는 실기기 spike 이후 결정한다.
+
+### 데이터 모델 초안
+
+- `externalFolderId`: opaque local id.
+- `platform`: `android-saf` 또는 `ios-files`.
+- `treeUri`/`bookmarkData`: platform-specific permission token. 백업에는 기본적으로 포함하지 않거나 redacted로 둔다.
+- `displayPath`: 사용자-facing 경로 힌트. 실제 파일 접근 근거로 사용하지 않는다.
+- `lastScanAt`, `lastKnownFileCount`, `permissionState`: 홈/설정에서 상태를 보여주는 용도.
+- score source metadata:
+  - `sourceFolderId`
+  - `sourceDocumentUri`
+  - `sourceDisplayName`
+  - `sourceLastModified`
+  - `sourceSizeBytes`
+
+### 배포 원칙
+
+- v1.x에서는 copy-on-select bridge까지만 들어가도 충분한 사용자 가치가 있다.
+- direct reference는 백업/복원과 “파일이 사라진 악보” UX를 바꾸므로 release flag 또는 beta-only 설정으로 시작한다.
+- 스캔/클라우드/sync 기능과 섞지 않는다. 폴더 참조는 “내 기기에 이미 정리한 악보를 빠르게 가져오는 길”로 한정한다.
+
 ## 4. iOS Share Extension
 
 - 현재 v1 상태: iOS document open URL bridge scaffold가 있고, Android ACTION_VIEW/SEND import가

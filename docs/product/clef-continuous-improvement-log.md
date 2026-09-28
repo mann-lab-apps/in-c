@@ -1649,3 +1649,9 @@ S111 VERIFIED LOCAL: preserved common ChordPro rehearsal structure in the plain-
 simple bracketed labels, while title/key/capo metadata remains out of the body. This keeps
 intro/chorus/bridge cues visible for future text-score display without enabling direct ChordPro
 import yet.
+
+S112 VERIFIED LOCAL: decomposed the MobileSheets-style direct folder reference gap before writing
+SAF/iOS code. The spike now recommends a read-only catalog preview, a copy-on-select bridge that
+reuses the existing import pipeline, and only then a persistent direct-reference storage type with
+permission-lost recovery. This keeps Clef's backup/export guarantees intact while leaving a clear
+path toward Android folder workflows.
