@@ -19848,6 +19848,61 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     return _formatAudioLoopSeconds(milliseconds);
   }
 
+  Widget _buildLoopSummary(ThemeData theme) {
+    Widget buildSummary(
+      TextEditingValue startValue,
+      TextEditingValue endValue,
+    ) {
+      final start = startValue.text.trim();
+      final end = endValue.text.trim();
+      if (!_loopEnabled || start.isEmpty || end.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.repeat,
+                  size: 18,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '반복 구간 A $start초 -> B $end초',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _loopStartController,
+      builder: (context, startValue, _) {
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _loopEndController,
+          builder: (context, endValue, _) => buildSummary(startValue, endValue),
+        );
+      },
+    );
+  }
+
   Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
     final onLinkedFileChanged = widget.onLinkedFileChanged;
     if (onLinkedFileChanged == null) {
@@ -19987,6 +20042,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                       });
                     },
             ),
+            if (_loopEnabled) _buildLoopSummary(theme),
             if (_loopEnabled)
               Row(
                 children: [

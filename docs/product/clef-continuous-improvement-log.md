@@ -1562,3 +1562,10 @@ overflow. The popup now labels overflow entries as `점프`, `리허설` or `북
 icons before the target label/page, so the compact overlay no longer mixes different jump
 sources as visually identical text. A focused widget test verifies the overflow labels and
 bookmark selection callback. No thumbnail/outline browser or new navigation model was added.
+
+S99 VERIFIED LOCAL: continued the linked-audio A-B loop polish without adding waveform
+timelines or a new audio engine. The player sheet now shows a compact
+`반복 구간 A ... -> B ...` summary when an audio file has A/B markers, updates it while the
+user edits the numbers, and removes it after a successful clear. Regression coverage extends
+the existing linked-audio widget tests. Format, analyze, full 1,415-test suite and RC release
+check passed; actual route timing remains Device QA.

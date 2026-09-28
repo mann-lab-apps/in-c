@@ -2915,9 +2915,14 @@ void main() {
     expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('9'), findsOneWidget);
+    expect(find.text('반복 구간 A 2초 -> B 9초'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).at(0), '3.5');
     await tester.enterText(find.byType(TextField).at(1), '10');
+    await tester.pumpAndSettle();
+
+    expect(find.text('반복 구간 A 3.5초 -> B 10초'), findsOneWidget);
+
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
@@ -2976,6 +2981,7 @@ void main() {
     expect(calls, isEmpty);
     expect(find.text('2'), findsNothing);
     expect(find.text('9'), findsNothing);
+    expect(find.text('반복 구간 A 2초 -> B 9초'), findsNothing);
     expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
     final loopSwitch = tester.widget<SwitchListTile>(
       find.widgetWithText(SwitchListTile, 'A-B 반복'),
