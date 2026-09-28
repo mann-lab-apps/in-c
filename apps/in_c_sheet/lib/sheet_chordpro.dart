@@ -111,6 +111,85 @@ class SheetChordProDocument {
   }
 }
 
+class SheetChordProScoreDraft {
+  const SheetChordProScoreDraft({
+    required this.title,
+    required this.composer,
+    this.subtitle = '',
+    this.tags = const <String>[],
+    this.customFields = const <String, String>{},
+    this.previewText = '',
+  });
+
+  factory SheetChordProScoreDraft.fromDocument(
+    SheetChordProDocument document, {
+    String fallbackTitle = 'Untitled score',
+  }) {
+    final title = _firstNonEmpty([document.title, fallbackTitle]);
+    final composer = _firstNonEmpty([document.composer, document.artist]);
+    final customFields = <String, String>{
+      '출처 유형': 'ChordPro',
+      if (document.key.trim().isNotEmpty) '조성': document.key.trim(),
+      if (document.timeSignature.trim().isNotEmpty)
+        '박자': document.timeSignature.trim(),
+      if (document.capo != null) '카포': '${document.capo}',
+      if (document.tempo.trim().isNotEmpty) '템포': document.tempo.trim(),
+      if (document.album.trim().isNotEmpty) '앨범': document.album.trim(),
+      if (document.year.trim().isNotEmpty) '연도': document.year.trim(),
+      if (document.duration.trim().isNotEmpty) '길이': document.duration.trim(),
+      if (document.arranger.trim().isNotEmpty) '편곡': document.arranger.trim(),
+      if (document.lyricist.trim().isNotEmpty) '작사': document.lyricist.trim(),
+      if (document.copyright.trim().isNotEmpty)
+        '저작권': document.copyright.trim(),
+    };
+    return SheetChordProScoreDraft(
+      title: title,
+      composer: composer,
+      subtitle: document.subtitle.trim(),
+      tags: _splitTags(document.tag),
+      customFields: Map<String, String>.unmodifiable(customFields),
+      previewText: SheetChordProTextRenderer.renderPlainText(document),
+    );
+  }
+
+  final String title;
+  final String composer;
+  final String subtitle;
+  final List<String> tags;
+  final Map<String, String> customFields;
+  final String previewText;
+
+  bool get hasUsefulMetadata {
+    return composer.isNotEmpty ||
+        subtitle.isNotEmpty ||
+        tags.isNotEmpty ||
+        customFields.entries.any((entry) => entry.key != '출처 유형');
+  }
+
+  static String _firstNonEmpty(Iterable<String> values) {
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty && trimmed != 'Untitled') {
+        return trimmed;
+      }
+    }
+    return 'Untitled score';
+  }
+
+  static List<String> _splitTags(String value) {
+    final seen = <String>{};
+    final tags = <String>[];
+    for (final raw in value.split(RegExp(r'[,;#]+'))) {
+      final tag = raw.trim();
+      if (tag.isEmpty || !seen.add(tag.toLowerCase())) {
+        continue;
+      }
+      tags.add(tag);
+    }
+    return List<String>.unmodifiable(tags);
+  }
+}
+
 class SheetChordProLine {
   const SheetChordProLine({
     required this.raw,

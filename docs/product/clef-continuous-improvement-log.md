@@ -1705,3 +1705,10 @@ audio file, but the summary did not say whether the visible values were the save
 unsaved edit. This slice labels the summary as `저장된 구간` or `새 구간` and updates that state after
 a successful save or clear. Focused linked-audio loop widget tests, full analyze, 1,433 tests and
 RC release check passed.
+
+S121 VERIFIED LOCAL: reducing the Text/ChordPro import gap without enabling a half-finished viewer.
+The parser/rendering core already understands common metadata, transpose/capo, rehearsal labels,
+tab and page/column cues. This slice adds a future import draft model that converts ChordPro
+metadata into Clef title/composer/tags/custom fields and produces preview text, so a later
+user-facing import UI can reuse tested mapping instead of inventing metadata rules in the widget.
+Focused ChordPro tests, full analyze, 1,435 tests and RC release check passed.

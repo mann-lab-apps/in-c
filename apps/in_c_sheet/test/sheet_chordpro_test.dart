@@ -67,6 +67,66 @@ Plain lyric line
     expect(document.capo, 3);
   });
 
+  test('builds a Clef score draft from ChordPro metadata', () {
+    final document = SheetChordProParser.parse('''
+{title: Autumn Song}
+{subtitle: Recital cut}
+{artist: Clef Trio}
+{composer: Composer Name}
+{lyricist: Lyricist Name}
+{arranger: Arranger Name}
+{album: Concert Book}
+{year: 2026}
+{key: Dm}
+{time: 6/8}
+{tempo: 132}
+{duration: 3:45}
+{copyright: 2026 Clef}
+{tag: recital, lesson; recital}
+{capo: 3}
+[Dm]Autumn
+''');
+
+    final draft = SheetChordProScoreDraft.fromDocument(document);
+
+    expect(draft.title, 'Autumn Song');
+    expect(draft.composer, 'Composer Name');
+    expect(draft.subtitle, 'Recital cut');
+    expect(draft.tags, <String>['recital', 'lesson']);
+    expect(draft.customFields, <String, String>{
+      '출처 유형': 'ChordPro',
+      '조성': 'Dm',
+      '박자': '6/8',
+      '카포': '3',
+      '템포': '132',
+      '앨범': 'Concert Book',
+      '연도': '2026',
+      '길이': '3:45',
+      '편곡': 'Arranger Name',
+      '작사': 'Lyricist Name',
+      '저작권': '2026 Clef',
+    });
+    expect(draft.previewText, contains('Dm\nAutumn'));
+    expect(draft.hasUsefulMetadata, isTrue);
+  });
+
+  test('score draft falls back to file title and artist metadata', () {
+    final document = SheetChordProParser.parse('''
+{artist: Clef Trio}
+[G]Tune
+''');
+
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: 'session lead sheet',
+    );
+
+    expect(draft.title, 'session lead sheet');
+    expect(draft.composer, 'Clef Trio');
+    expect(draft.customFields, <String, String>{'출처 유형': 'ChordPro'});
+    expect(draft.hasUsefulMetadata, isTrue);
+  });
+
   test('falls back from blank artist metadata to composer', () {
     final document = SheetChordProParser.parse('''
 {artist: }
