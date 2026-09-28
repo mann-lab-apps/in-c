@@ -525,7 +525,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '''
 Clef & Staff 세트리스트

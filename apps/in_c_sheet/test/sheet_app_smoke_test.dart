@@ -858,7 +858,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    expect(find.widgetWithText(OutlinedButton, '패키지'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '''
 Clef & Staff 세트리스트
@@ -914,7 +915,7 @@ Clef & Staff 세트리스트
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '''
 Clef & Staff 세트리스트
@@ -988,8 +989,8 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '가져오기'));
-    await tester.tap(find.widgetWithText(OutlinedButton, '가져오기'));
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '텍스트'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), manifest.toString());
     await tester.pumpAndSettle();

@@ -7,6 +7,7 @@ import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart';
@@ -36,6 +37,7 @@ import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 import 'sheet_setlist_manifest.dart';
+import 'sheet_setlist_package.dart';
 import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
@@ -7039,6 +7041,48 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     );
   }
 
+  Future<void> _previewSetlistPackage() async {
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: const <String>['zip'],
+      );
+      if (file == null) {
+        return;
+      }
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        await file.readAsBytes(),
+      );
+      final dryRun = package.previewImport(currentScores: controller.scores);
+      if (!mounted) {
+        return;
+      }
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => _SetlistPackageImportPreviewSheet(
+          fileName: file.name,
+          dryRun: dryRun,
+        ),
+      );
+    } on FormatException {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Clef & Staff 세트리스트 패키지 ZIP을 읽지 못했습니다.')),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('세트리스트 패키지를 열지 못했습니다. 다시 시도해주세요.')),
+      );
+    }
+  }
+
   Future<void> _openFirstScore(SheetSetlist setlist) async {
     final scores = controller.scoresForSetlist(setlist);
     if (scores.isEmpty) {
@@ -7082,7 +7126,10 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _SetlistManifestImportCallout(onImport: _importSetlistManifest),
+            _SetlistManifestImportCallout(
+              onImport: _importSetlistManifest,
+              onPackagePreview: _previewSetlistPackage,
+            ),
             Expanded(
               child: setlists.isEmpty
                   ? const Center(child: Text('세트리스트가 없습니다.'))
@@ -7147,9 +7194,13 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
 }
 
 class _SetlistManifestImportCallout extends StatelessWidget {
-  const _SetlistManifestImportCallout({required this.onImport});
+  const _SetlistManifestImportCallout({
+    required this.onImport,
+    required this.onPackagePreview,
+  });
 
   final VoidCallback onImport;
+  final VoidCallback onPackagePreview;
 
   @override
   Widget build(BuildContext context) {
@@ -7189,10 +7240,22 @@ class _SetlistManifestImportCallout extends StatelessWidget {
               ),
             ],
           );
-          final action = OutlinedButton.icon(
-            onPressed: onImport,
-            icon: const Icon(Icons.content_paste_search_outlined),
-            label: const Text('가져오기'),
+          final actions = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.content_paste_search_outlined),
+                label: const Text('텍스트'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onPackagePreview,
+                icon: const Icon(Icons.folder_zip_outlined),
+                label: const Text('패키지'),
+              ),
+            ],
           );
           return DecoratedBox(
             decoration: BoxDecoration(
@@ -7209,18 +7272,162 @@ class _SetlistManifestImportCallout extends StatelessWidget {
               child: compact
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [title, const SizedBox(height: 10), action],
+                      children: [title, const SizedBox(height: 10), actions],
                     )
                   : Row(
                       children: [
                         Expanded(child: title),
                         const SizedBox(width: 10),
-                        action,
+                        actions,
                       ],
                     ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SetlistPackageImportPreviewSheet extends StatelessWidget {
+  const _SetlistPackageImportPreviewSheet({
+    required this.fileName,
+    required this.dryRun,
+  });
+
+  final String fileName;
+  final SheetSetlistPackageDryRun dryRun;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final warnings = dryRun.warnings;
+    final canImportLater = dryRun.canImport;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 720),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '세트리스트 패키지 미리보기',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$fileName · 패키지 안 PDF/JPG/PNG와 현재 라이브러리 매칭을 확인합니다.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _ImportStatusBox(
+                icon: canImportLater
+                    ? Icons.inventory_2_outlined
+                    : Icons.info_outline,
+                title: canImportLater ? '가져올 준비가 된 패키지입니다' : '확인이 필요합니다',
+                message:
+                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 확인 ${dryRun.unresolvedCount}개',
+                color: canImportLater
+                    ? theme.colorScheme.secondary
+                    : theme.colorScheme.tertiary,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  Chip(
+                    avatar: const Icon(Icons.library_music_outlined, size: 16),
+                    label: Text('기존 ${dryRun.existingScoreCount}곡'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  Chip(
+                    avatar: const Icon(
+                      Icons.insert_drive_file_outlined,
+                      size: 16,
+                    ),
+                    label: Text('새 파일 ${dryRun.importableFileCount}개'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  Chip(
+                    avatar: const Icon(Icons.help_outline, size: 16),
+                    label: Text('확인 ${dryRun.unresolvedCount}개'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (warnings.isNotEmpty)
+                for (final warning in warnings.take(4))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      warning,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+              if (warnings.length > 4)
+                Text(
+                  '외 ${warnings.length - 4}개 확인 필요',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemBuilder: (context, index) {
+                    final entry = dryRun.entries[index];
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        _packageEntryIcon(entry.status),
+                        color: entry.isResolved
+                            ? theme.colorScheme.secondary
+                            : theme.colorScheme.error,
+                      ),
+                      title: Text(entry.item.title, maxLines: 1),
+                      subtitle: Text(_packageEntrySubtitle(entry), maxLines: 2),
+                    );
+                  },
+                  itemCount: math.min(dryRun.entries.length, 10),
+                ),
+              ),
+              if (dryRun.entries.length > 10)
+                Text(
+                  '외 ${dryRun.entries.length - 10}곡',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _ImportStatusBox(
+                icon: Icons.construction_outlined,
+                title: '저장은 다음 단계에서 지원합니다',
+                message: '지금은 패키지를 안전하게 확인하는 단계입니다. 패키지 안 파일을 라이브러리에 저장하는 실제 import는 후속 작업으로 분리했습니다.',
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('확인'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -7515,6 +7722,39 @@ String _manifestMatchSubtitle(SheetSetlistManifestMatch match) {
     return '후보 ${match.candidates.length}개 · 제목이나 파일명을 더 구분해주세요.';
   }
   return '현재 라이브러리에서 일치하는 악보를 찾지 못했습니다.';
+}
+
+IconData _packageEntryIcon(SheetSetlistPackageEntryStatus status) {
+  return switch (status) {
+    SheetSetlistPackageEntryStatus.existingScore =>
+      Icons.library_music_outlined,
+    SheetSetlistPackageEntryStatus.importableFile =>
+      Icons.insert_drive_file_outlined,
+    SheetSetlistPackageEntryStatus.ambiguousExistingScore =>
+      Icons.rule_folder_outlined,
+    SheetSetlistPackageEntryStatus.missingFile => Icons.folder_off_outlined,
+    SheetSetlistPackageEntryStatus.duplicatePackageFile =>
+      Icons.file_copy_outlined,
+    SheetSetlistPackageEntryStatus.unsupportedFile => Icons.block_flipped,
+  };
+}
+
+String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
+  switch (entry.status) {
+    case SheetSetlistPackageEntryStatus.existingScore:
+      final score = entry.existingScore!;
+      return '현재 라이브러리 악보 · ${score.sourceFileDisplayName}';
+    case SheetSetlistPackageEntryStatus.importableFile:
+      return '패키지 파일 · ${entry.packageFile?.path ?? entry.item.fileName}';
+    case SheetSetlistPackageEntryStatus.ambiguousExistingScore:
+      return '후보 ${entry.candidates.length}개 · 제목/파일명을 더 구분해야 합니다.';
+    case SheetSetlistPackageEntryStatus.missingFile:
+      return '패키지 안에서 파일을 찾지 못했습니다.';
+    case SheetSetlistPackageEntryStatus.duplicatePackageFile:
+      return '같은 이름의 패키지 파일 후보 ${entry.packageFileCandidates.length}개';
+    case SheetSetlistPackageEntryStatus.unsupportedFile:
+      return 'PDF/JPG/PNG 악보만 패키지에서 확인할 수 있습니다.';
+  }
 }
 
 enum _SetlistDetailAction { preview, copy, append, duplicate, rename, delete }

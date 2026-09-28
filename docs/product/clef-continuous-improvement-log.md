@@ -1782,3 +1782,12 @@ reports missing source files or unsupported formats without returning bytes, and
 the existing codec/dry-run preview. This still does not save/share a package from the UI and does not
 import files into the library; those remain the next storage/UI slices.
 Focused package export tests passed.
+
+S130 VERIFIED LOCAL: added the first user-facing package import preview boundary without library writes.
+The setlist screen now separates copied manifest text from ZIP package preview. Choosing a Clef
+setlist package ZIP decodes the package, runs the existing dry-run against the current library and
+shows existing scores, importable package files and unresolved entries before any save path exists.
+The sheet explicitly says package file storage/import is still the next slice, so users cannot mistake
+preview for a completed import.
+Focused package/smoke/save-recovery tests passed. Format, analyze, full 1,461-test suite, RC release
+check, git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.
