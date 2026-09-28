@@ -1666,3 +1666,9 @@ S114 VERIFIED LOCAL: made the device check surface harder to mistake for a norma
 The home menu entry, sheet title, share subject, report markdown header and QA wording now use
 `개발자용 기기 리포트`, and the sheet intro states that it is not a general practice tool.
 Targeted device/home/smoke tests, full analyze, 1,428 tests and RC release check passed.
+
+S115 VERIFIED LOCAL: reducing another small Text/ChordPro gap before opening user-facing import.
+The ChordPro parser now normalizes `{sot}`/`{eot}` tab block aliases, and the plain text renderer
+keeps start-of-tab cues as `[Tab]` or the supplied label so guitar tab sections do not vanish in
+future text-score display. Focused ChordPro tests, full analyze, 1,429 tests and RC release check
+passed.

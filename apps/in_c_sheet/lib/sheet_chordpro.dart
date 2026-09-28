@@ -194,6 +194,8 @@ class SheetChordProParser {
       'eov' => 'end_of_verse',
       'sob' => 'start_of_bridge',
       'eob' => 'end_of_bridge',
+      'sot' => 'start_of_tab',
+      'eot' => 'end_of_tab',
       _ => normalized,
     };
   }
@@ -293,6 +295,7 @@ class SheetChordProTextRenderer {
       'start_of_chorus' => '[${value.isEmpty ? 'Chorus' : value}]',
       'start_of_verse' => '[${value.isEmpty ? 'Verse' : value}]',
       'start_of_bridge' => '[${value.isEmpty ? 'Bridge' : value}]',
+      'start_of_tab' => '[${value.isEmpty ? 'Tab' : value}]',
       _ => null,
     };
   }

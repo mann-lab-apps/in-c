@@ -136,6 +136,24 @@ Plain lyric line
     ]);
   });
 
+  test('preserves ChordPro tab section markers in plain text rendering', () {
+    final document = SheetChordProParser.parse('''
+{sot}
+e|--0--1--|
+{eot}
+{start_of_tab: Guitar riff}
+[Am]Sing
+''');
+
+    expect(SheetChordProTextRenderer.renderLines(document), <String>[
+      '[Tab]',
+      'e|--0--1--|',
+      '[Guitar riff]',
+      'Am',
+      'Sing',
+    ]);
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}
