@@ -43,8 +43,8 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   `외 N곡` 축약이 작은 화면에서 잘 보이는지 확인한다. missing/ambiguous 곡이 있으면 저장하지
   않아야 하며, 같은 제목을 다시 가져오면 안전한 번호가 붙어야 한다. 이 기능은 PDF 파일을 함께
   가져오는 package import가 아니라 이미 라이브러리에 있는 악보를 새 세트리스트로 묶는 lightweight
-  import다. PDF를 포함하는 `clef.setlist.package` ZIP codec/dry-run은 내부 기반만 있으며,
-  최신 설치본에서 사용자가 직접 실행할 package import UI는 아직 없다.
+  import다. PDF를 포함하는 `clef.setlist.package` ZIP codec/export/dry-run은 내부 기반만 있으며,
+  최신 설치본에서 사용자가 직접 실행할 package export/import UI는 아직 없다.
 
 ## 10-15분 RC Smoke 결과표
 

@@ -1773,3 +1773,12 @@ missing/non-Clef manifests and block unsafe ZIP paths before handing the result 
 preview. This still does not copy files, create scores, save setlists or expose a user-facing package
 import UI; those remain separate steps after export/import storage rollback is designed.
 Focused package codec tests passed.
+
+S129 VERIFIED LOCAL: added the first export-side package model for MobileSheets-style setlist transfer
+without exposing a half-finished UI. A `SheetSetlist` plus its ordered scores can now produce
+`clef.setlist.package` ZIP bytes containing the text manifest and `scores/` entries. The exporter
+deduplicates shared source PDFs, uses the user-facing source display name for package file stems,
+reports missing source files or unsupported formats without returning bytes, and round-trips through
+the existing codec/dry-run preview. This still does not save/share a package from the UI and does not
+import files into the library; those remain the next storage/UI slices.
+Focused package export tests passed.

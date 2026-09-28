@@ -1,6 +1,7 @@
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
 import 'package:in_c_sheet/sheet_setlist_package.dart';
 
@@ -264,6 +265,144 @@ Clef & Staff 세트리스트
       ),
     );
   });
+
+  test('export package bytes round trip through codec and dry run', () async {
+    final now = DateTime(2026, 9, 28, 15);
+    final scores = [
+      _score(
+        id: 'goedicke',
+        title: 'Goedicke Concert Etude',
+        composer: 'Goedicke',
+        filePath: '/library/goedicke-concert-etude.pdf',
+      ),
+      _score(
+        id: 'mozart',
+        title: 'Mozart Sonata K. 545',
+        composer: 'Mozart',
+        filePath: '/library/mozart-k545.pdf',
+      ),
+    ];
+    final setlist = SheetSetlist(
+      id: 'recital',
+      title: 'Package Recital',
+      scoreIds: const ['goedicke', 'mozart'],
+      createdAt: now,
+      updatedAt: now,
+      scoreStartPages: const {'goedicke': 3},
+      scoreNotes: const {'goedicke': 'mute ready'},
+      scoreDurations: const {'goedicke': 210, 'mozart': 240},
+      transitionSeconds: 10,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: scores,
+      readScoreBytes: (score) async => [score.id.length],
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedFileCount, 2);
+    expect(result.manifestText, contains('제목: Package Recital'));
+    expect(result.manifestText, contains('시작: 3쪽'));
+    expect(result.manifestText, contains('세트 메모: mute ready'));
+
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.packageFiles.map((file) => file.path), [
+      'scores/concert-etude.pdf',
+      'scores/k545.pdf',
+    ]);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+    expect(dryRun.canImport, isTrue);
+    expect(dryRun.importableFileCount, 2);
+  });
+
+  test('export stores a shared source file once', () async {
+    final now = DateTime(2026, 9, 28, 15);
+    final scores = [
+      _score(
+        id: 'song-a',
+        title: 'Songbook A',
+        filePath: '/library/songbook.pdf',
+      ),
+      _score(
+        id: 'song-b',
+        title: 'Songbook B',
+        filePath: '/library/songbook.pdf',
+      ),
+    ];
+    final setlist = SheetSetlist(
+      id: 'songbook-set',
+      title: 'Songbook Set',
+      scoreIds: const ['song-a', 'song-b'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: scores,
+      readScoreBytes: (_) async => [1, 2, 3],
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedFileCount, 1);
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.packageFiles, hasLength(1));
+    expect(package.packageFiles.single.path, 'scores/songbook.pdf');
+  });
+
+  test('export reports missing source files without bytes', () async {
+    final now = DateTime(2026, 9, 28, 15);
+    final score = _score(id: 'missing', title: 'Missing');
+    final setlist = SheetSetlist(
+      id: 'missing-set',
+      title: 'Missing Set',
+      scoreIds: const ['missing'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: [score],
+      readScoreBytes: (_) async => null,
+    );
+
+    expect(result.didExport, isFalse);
+    expect(result.bytes, isNull);
+    expect(result.missingScores.single.id, 'missing');
+    expect(result.failureReason, contains('원본 파일을 찾을 수 없는 악보'));
+  });
+
+  test(
+    'export reports unsupported source file formats without bytes',
+    () async {
+      final now = DateTime(2026, 9, 28, 15);
+      final score = _score(
+        id: 'midi',
+        title: 'Registration',
+        filePath: '/library/registration.mid',
+      );
+      final setlist = SheetSetlist(
+        id: 'midi-set',
+        title: 'MIDI Set',
+        scoreIds: const ['midi'],
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: setlist,
+        scores: [score],
+        readScoreBytes: (_) async => [1, 2, 3],
+      );
+
+      expect(result.didExport, isFalse);
+      expect(result.bytes, isNull);
+      expect(result.unsupportedScores.single.id, 'midi');
+      expect(result.failureReason, contains('묶을 수 없는 파일 형식'));
+    },
+  );
 }
 
 SheetScore _score({
