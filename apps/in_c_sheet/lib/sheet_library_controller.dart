@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -538,17 +539,7 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final document = SheetChordProParser.parse(trimmedSource);
-      final draft = SheetChordProScoreDraft.fromDocument(document);
-      final importedScore = await store.importChordProText(
-        source: source,
-        draft: draft,
-      );
-      if (_activeLibraryProfile.id != libraryId) return null;
-      final score = _withActiveCollection(importedScore);
-      _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
-      return score;
+      return await _storeChordProSource(source, libraryId: libraryId);
     } catch (_) {
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'ChordPro 악보를 저장하지 못했습니다. 내용을 확인한 뒤 다시 시도해주세요.';
@@ -558,6 +549,66 @@ class SheetLibraryController extends ChangeNotifier {
       _isImporting = false;
       notifyListeners();
     }
+  }
+
+  Future<SheetScore?> importChordProFile() async {
+    if (_isImporting) {
+      return null;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickChordProFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      final source = utf8.decode(importedFile.bytes, allowMalformed: true);
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty ChordPro file.');
+      }
+      return await _storeChordProSource(
+        source,
+        libraryId: libraryId,
+        fallbackTitle: SheetFileImportPolicy.titleFromFileName(
+          importedFile.name,
+        ),
+      );
+    } catch (_) {
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'ChordPro 파일을 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> _storeChordProSource(
+    String source, {
+    required String libraryId,
+    String? fallbackTitle,
+  }) async {
+    final trimmedSource = source.trim();
+    final document = SheetChordProParser.parse(trimmedSource);
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: fallbackTitle ?? 'Untitled score',
+    );
+    final importedScore = await store.importChordProText(
+      source: source,
+      draft: draft,
+    );
+    if (_activeLibraryProfile.id != libraryId) return null;
+    final score = _withActiveCollection(importedScore);
+    _scores = <SheetScore>[score, ..._scores];
+    if (!await _saveImportedScores(libraryId)) return null;
+    return score;
   }
 
   Future<List<SheetScore>> importSharedPdfFiles(

@@ -648,7 +648,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: const Text('텍스트/ChordPro/DOCX 안내'),
-                subtitle: const Text('지원 준비 중 · 지금은 PDF 변환 권장'),
+                subtitle: const Text('ChordPro 저장 가능 · DOCX는 PDF 변환 권장'),
                 onTap: () =>
                     Navigator.of(context)
                         .pop(_LibraryImportAction.textScoreInfo),
@@ -720,20 +720,31 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   unawaited(_showChordProPreview());
                 },
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.file_open_outlined),
+                title: const Text('ChordPro 파일 선택 가져오기'),
+                subtitle: const Text('.chordpro, .cho, .onsong 파일을 악보로 저장'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(_importChordProFile());
+                },
+              ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.save_outlined),
                 title: Text('지금 가능한 저장 흐름'),
                 subtitle: Text(
-                  'PDF/JPG/PNG 가져오기와 ChordPro 붙여넣기 저장을 사용할 수 있습니다.',
+                  'PDF/JPG/PNG 가져오기, ChordPro 붙여넣기/파일 저장을 사용할 수 있습니다.',
                 ),
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.upcoming_outlined),
-                title: Text('파일 선택과 DOCX는 준비 중'),
+                title: Text('DOCX와 transpose/capo 화면은 준비 중'),
                 subtitle: Text(
-                  'ChordPro 파일 선택 가져오기, DOCX 읽기, transpose/capo 조작 화면은 후속입니다.',
+                  'DOCX 읽기, ChordPro transpose/capo 조작 화면은 후속입니다.',
                 ),
               ),
               const SizedBox(height: 8),
@@ -746,6 +757,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importChordProFile() async {
+    final imported = await controller.importChordProFile();
+    if (!mounted || imported == null) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${imported.displayTitle}" ChordPro 파일을 가져왔습니다.'),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (mounted) {
+              unawaited(_openScore(imported, showImportNudge: true));
+            }
+          },
         ),
       ),
     );
@@ -7733,7 +7764,7 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'DOCX 직접 읽기와 ChordPro 파일 선택 가져오기는 후속입니다.',
+                      'DOCX 직접 읽기와 transpose/capo 조작 화면은 후속입니다.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

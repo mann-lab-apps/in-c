@@ -802,6 +802,21 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetImportedFile?> pickChordProFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.chordProExtensions.toList(),
+    );
+
+    if (file == null) {
+      return null;
+    }
+    if (!SheetFileImportPolicy.isChordProFileName(file.name)) {
+      throw FormatException('Unsupported ChordPro file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
   Future<SheetLinkedFile?> pickLinkedFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,

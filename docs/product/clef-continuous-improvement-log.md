@@ -1817,11 +1817,21 @@ and controller tests passed. MobileSheets proprietary/binary package compatibili
 scope; this is the Clef v1 ZIP package flow.
 
 S134 VERIFIED LOCAL: opened the first saved Text/ChordPro score path instead of leaving ChordPro as
-preview-only. The import help now explains that PDF/JPG/PNG import and ChordPro paste-to-save are
-available, while DOCX and file picker based ChordPro import remain follow-up. The ChordPro preview
+preview-only. The import help explained that PDF/JPG/PNG import and ChordPro paste-to-save were
+available, while DOCX and file picker based ChordPro import were still follow-up at that point. The ChordPro preview
 sheet can save pasted source as a library `SheetScore`; the store preserves the raw `.chordpro`
 file, maps parsed title/composer/tags/subtitle/custom metadata into Clef score metadata, and uses the
 existing score save recovery path so injected persistence failure restores the previous library
 state without false success. Opening a saved ChordPro score now routes to a read-only chord/lyric
 viewer instead of the PDF viewer. Targeted ChordPro/controller/smoke tests passed. Styled ChordPro
 layout, transpose/capo controls, DOCX parsing, and direct file selection remain later work.
+
+S135 VERIFIED LOCAL: closed the first direct ChordPro file selection gap without expanding into DOCX
+or styled editing. The text-score help sheet now offers `ChordPro 파일 선택 가져오기` alongside paste
+preview, and the store picker accepts common ChordPro/OnSong-style extensions before decoding the
+file as UTF-8. The controller reuses the saved ChordPro score path with filename fallback metadata,
+active-library ownership and existing imported-score rollback, so injected save failure preserves
+the previous library without false success. Smoke coverage confirms the named UI entry, successful
+file import snackbar/card creation, and controller coverage verifies fallback title/custom metadata
+plus save failure recovery. Styled ChordPro layout, transpose/capo controls and DOCX parsing remain
+later work.

@@ -25,6 +25,7 @@
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
 - Text/ChordPro/DOCX 원본이 있다면 `악보 추가`의 안내가 직접 지원과 PDF 변환 권장을 헷갈리지 않게 설명하는지 확인한다.
   ChordPro는 붙여넣기 미리보기에서 metadata와 코드/가사 preview를 보여야 하며, `악보로 저장` 후 라이브러리 카드와 읽기 viewer로 열려야 한다.
+  `.chordpro`/`.onsong` 파일 선택 가져오기도 같은 라이브러리 카드와 읽기 viewer 흐름으로 열려야 한다.
 - iPad/TestFlight와 Android 태블릿/APK를 모두 테스트할 수 있으면 화면 크기별 표시 차이를 함께 기록한다.
 
 ## 필수 테스트

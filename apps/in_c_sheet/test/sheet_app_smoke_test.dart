@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_chordpro.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -1050,8 +1052,9 @@ Clef & Staff 세트리스트
 
     expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
     expect(find.textContaining('ChordPro 붙여넣기 미리보기'), findsWidgets);
-    expect(find.text('파일 선택과 DOCX는 준비 중'), findsOneWidget);
-    expect(find.textContaining('ChordPro 붙여넣기 저장'), findsOneWidget);
+    expect(find.text('ChordPro 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('DOCX와 transpose/capo 화면은 준비 중'), findsOneWidget);
+    expect(find.textContaining('ChordPro 붙여넣기/파일 저장'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1092,6 +1095,44 @@ Clef & Staff 세트리스트
     expect(find.text('"Autumn Tune" ChordPro 악보를 저장했습니다.'), findsOneWidget);
     expect(controller.scores.single.title, 'Autumn Tune');
     expect(find.text('Autumn Tune'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro info can import a selected ChordPro file', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedChordProFile = SheetImportedFile(
+          name: 'winter-song.chordpro',
+          bytes: Uint8List.fromList(
+            utf8.encode('''
+{title: Winter Song}
+{artist: Kim}
+{key: F}
+[F]겨울 [C]노래
+'''),
+          ),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ChordPro 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"Winter Song" ChordPro 파일을 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.title, 'Winter Song');
+    expect(find.text('Winter Song'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -3696,6 +3737,13 @@ class _RecordingSharedImportController extends SheetLibraryController {
 }
 
 class _SmokeChordProStore extends SheetLibraryStore {
+  SheetImportedFile? pickedChordProFile;
+
+  @override
+  Future<SheetImportedFile?> pickChordProFile() async {
+    return pickedChordProFile;
+  }
+
   @override
   Future<SheetScore> importChordProText({
     required String source,

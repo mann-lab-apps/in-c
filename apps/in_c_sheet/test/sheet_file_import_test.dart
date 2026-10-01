@@ -83,7 +83,7 @@ void main() {
       SheetFileImportPolicy.unsupportedTextScoreImportMessage(
         'worship-chart.onsong',
       ),
-      allOf(contains('ChordPro'), contains('PDF')),
+      allOf(contains('ChordPro'), contains('파일 선택')),
     );
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage('lyrics.txt'),

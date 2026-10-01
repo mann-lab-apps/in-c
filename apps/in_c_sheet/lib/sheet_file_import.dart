@@ -35,6 +35,10 @@ class SheetFileImportPolicy {
     'md',
     'markdown',
     'rtf',
+    ...chordProExtensions,
+    'docx',
+  };
+  static const chordProExtensions = <String>{
     'cho',
     'chordpro',
     'chopro',
@@ -43,7 +47,6 @@ class SheetFileImportPolicy {
     'pro',
     'song',
     'onsong',
-    'docx',
   };
 
   static bool isPdfFileName(String name) {
@@ -65,14 +68,7 @@ class SheetFileImportPolicy {
 
   static bool isChordProFileName(String name) {
     final extension = extensionOf(name);
-    return extension == 'cho' ||
-        extension == 'chordpro' ||
-        extension == 'chopro' ||
-        extension == 'chord' ||
-        extension == 'crd' ||
-        extension == 'pro' ||
-        extension == 'song' ||
-        extension == 'onsong';
+    return chordProExtensions.contains(extension);
   }
 
   static bool isSupportedAudioExtension(String extension) {
@@ -104,7 +100,7 @@ class SheetFileImportPolicy {
     final extension = extensionOf(name);
     final label = _unsupportedTextScoreLabel(extension);
     if (isChordProFileName(name)) {
-      return '$label 파일 선택 가져오기는 아직 준비 중입니다. 지금은 ChordPro 붙여넣기 미리보기에서 악보로 저장하거나, 원본 앱에서 PDF로 내보내 가져와주세요.';
+      return '$label 파일은 텍스트/ChordPro 안내에서 파일 선택으로 가져올 수 있습니다. 저장 전에 metadata와 코드/가사를 확인하려면 붙여넣기 미리보기를 사용하세요.';
     }
     return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보와 ChordPro 붙여넣기 저장을 지원합니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }
@@ -128,14 +124,7 @@ class SheetFileImportPolicy {
     if (extension == 'docx') {
       return 'DOCX';
     }
-    if (extension == 'cho' ||
-        extension == 'chordpro' ||
-        extension == 'chopro' ||
-        extension == 'chord' ||
-        extension == 'crd' ||
-        extension == 'pro' ||
-        extension == 'song' ||
-        extension == 'onsong') {
+    if (chordProExtensions.contains(extension)) {
       return 'ChordPro';
     }
     return '텍스트 악보';

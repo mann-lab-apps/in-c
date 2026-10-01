@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -690,6 +692,32 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.title, 'Autumn Tune');
   });
 
+  test('imports a ChordPro file with filename fallback metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'late-autumn.onsong',
+        bytes: Uint8List.fromList(
+          utf8.encode('''
+{key: G}
+[G]늦가을 [D]노래
+'''),
+        ),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProFile();
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'late autumn');
+    expect(imported.filePath, endsWith('.chordpro'));
+    expect(imported.customFields.map((field) => field.key), contains('조성'));
+    expect(store.importedSource, contains('늦가을'));
+    expect(controller.scores.single.title, 'late autumn');
+  });
+
   test('ChordPro import save failure restores previous scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 9, 28, 16);
@@ -704,6 +732,32 @@ Clef & Staff 세트리스트
 {title: Broken Save}
 [C]Line
 ''');
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+  });
+
+  test('ChordPro file import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'broken-save.chordpro',
+        bytes: Uint8List.fromList(
+          utf8.encode('''
+{title: Broken Save}
+[C]Line
+'''),
+        ),
+      );
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProFile();
 
     expect(imported, isNull);
     expect(controller.scores.map((score) => score.id), ['existing']);
@@ -4208,6 +4262,12 @@ class _ChordProImportStore extends SheetLibraryStore {
   final DateTime now;
   String importedSource = '';
   bool failSaveScores = false;
+  SheetImportedFile? pickedChordProFile;
+
+  @override
+  Future<SheetImportedFile?> pickChordProFile() async {
+    return pickedChordProFile;
+  }
 
   @override
   Future<SheetScore> importChordProText({
