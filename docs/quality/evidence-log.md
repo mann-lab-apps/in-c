@@ -2986,6 +2986,9 @@ switching remain reachable.
 | `npm run verify:visual-regression` | Pass | MusicXML/layout tests passed with 88 tests, production build passed and notation snapshot verification passed at 960px and 1400px after the hairpin lane update. |
 | `npm run verify:musicxml-fixtures`; `npm run verify:midi-fixtures` | Pass | External-app MusicXML fixture QA passed; V1 QA MIDI fixture tests passed with 3 passed / 3 skipped before alpha.21 prep. |
 | `npm run package:dir`; `npm run verify:package` | Pass | Alpha.21 local macOS arm64 unpacked package built at `release/mac-arm64`; signing remains disabled by null identity, and packaged app smoke passed with MusicXML/PDF/MIDI/native/recovery/autosave/part-layout checks. |
+| PR #777 / merge commit `928e726` | Pass | Alpha.21 hairpin lane update merged to `main` after GitHub checks passed: CI test, Build site, Package Linux, Package macOS and Package Windows. Stale local worktree metadata was pruned, and the merged feature branch was deleted locally and remotely. |
+| `v0.1.0-alpha.21` release workflow `36820467001` | Pass | Tag `v0.1.0-alpha.21` points to version commit `46dfa90`; the tag-triggered Release workflow completed Linux/macOS/Windows package jobs and published the GitHub prerelease at `https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.21`. Artifacts and `SHA256SUMS.txt` were present. This is still an unsigned/not-notarized prerelease, so macOS Gatekeeper and Windows SmartScreen warnings can remain. |
+| `npm run site:build`; `node scripts/verify-site-content.mjs` | Pass | Download manifest and static fallback links rebuilt for `0.1.0-alpha.21`; site content manifests, product relations and feature map paths verified after the alpha.21 release update. |
 
 ## Evidence Retention Rules
 
