@@ -197,6 +197,7 @@ Clef & Staff 세트리스트
     expect(package.manifest.title, 'Package Recital');
     expect(package.packageFiles.single.path, 'scores/new-sonata.pdf');
     expect(package.packageFiles.single.mediaType, 'application/pdf');
+    expect(package.packageFiles.single.bytes, [1, 2, 3]);
     expect(dryRun.canImport, isTrue);
     expect(dryRun.existingScoreCount, 1);
     expect(dryRun.importableFileCount, 1);

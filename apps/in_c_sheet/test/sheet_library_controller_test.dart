@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
@@ -12,6 +13,7 @@ import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_setlist_package.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -550,6 +552,113 @@ void main() {
       expect(controller.setlists.single.scoreIds, ['a', 'b']);
       await controller.load();
       expect(controller.setlists.single.scoreIds, ['a', 'b']);
+    },
+  );
+
+  test('imports a resolved setlist package into scores and setlists', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 15);
+    final existing = _score(
+      now,
+      id: 'existing',
+      title: 'Existing Etude',
+      composer: 'Goedicke',
+      filePath: '/library/existing-etude.pdf',
+    );
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 2곡 · 총 7분 40초
+전환 10초
+
+1. Existing Etude
+   작곡가: Goedicke
+   파일: existing-etude.pdf
+   시작: 3쪽
+   예상 시간: 3분 30초
+   세트 메모: mute ready
+2. New Sonata
+   작곡가: Mozart
+   파일: new-sonata.pdf
+   예상 시간: 4분
+   악보 메모: imported note
+   태그: recital, piano
+   컬렉션: Autumn
+   장르: Sonata
+''',
+        scoreFiles: const {
+          'scores/new-sonata.pdf': [1, 2, 3],
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'Package Recital');
+    expect(imported.scoreIds, ['existing', 'package-pdf-0']);
+    expect(imported.scoreStartPages, {'existing': 3});
+    expect(imported.scoreNotes, {'existing': 'mute ready'});
+    expect(imported.scoreDurations, {'existing': 210, 'package-pdf-0': 240});
+    expect(imported.transitionSeconds, 10);
+    final newScore = controller.scoreById('package-pdf-0');
+    expect(newScore.title, 'New Sonata');
+    expect(newScore.composer, 'Mozart');
+    expect(newScore.tags, ['recital', 'piano']);
+    expect(newScore.note, 'imported note');
+    expect(newScore.collection, 'Autumn');
+    expect(newScore.customFields.single.key, '장르');
+    expect(newScore.customFields.single.value, 'Sonata');
+    expect(store.importedPdfBytes.single, [1, 2, 3]);
+
+    await controller.load();
+    expect(controller.setlists.single.scoreIds, ['existing', 'package-pdf-0']);
+    expect(controller.scoreById('package-pdf-0').title, 'New Sonata');
+  });
+
+  test(
+    'setlist package import failure restores previous scores and setlists',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 28, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now)..failSaveScoresAndSetlists = true;
+      await store.saveScores([existing]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: const {
+            'scores/new-sonata.pdf': [1, 2, 3],
+          },
+        ),
+      );
+      final dryRun = package.previewImport(currentScores: controller.scores);
+
+      await expectLater(
+        controller.importSetlistPackage(package, dryRun),
+        throwsStateError,
+      );
+
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect(controller.setlists, isEmpty);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(await store.loadSetlists(), isEmpty);
     },
   );
 
@@ -3989,6 +4098,59 @@ class _ImportScoreStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> importPdfs() async {
     return batchScores;
+  }
+}
+
+class _PackageImportStore extends SheetLibraryStore {
+  _PackageImportStore(this.now);
+
+  final DateTime now;
+  final importedPdfBytes = <List<int>>[];
+  var _pdfCount = 0;
+  var _imageCount = 0;
+  bool failSaveScoresAndSetlists = false;
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    importedPdfBytes.add(List<int>.from(bytes));
+    final index = _pdfCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-pdf-$index',
+      title: fileName,
+      filePath: '/package/$fileName',
+    );
+  }
+
+  @override
+  Future<SheetScore> importImagesAsPdfBytes({
+    required List<SheetImportedFile> images,
+    String? title,
+    DateTime? importedAt,
+  }) async {
+    final index = _imageCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-image-$index',
+      title: title ?? images.first.name,
+      filePath: '/package/${title ?? images.first.name}.pdf',
+    );
+  }
+
+  @override
+  Future<void> saveScoresAndSetlists(
+    List<SheetScore> scores,
+    List<SheetSetlist> setlists, {
+    required String libraryId,
+  }) async {
+    if (failSaveScoresAndSetlists) {
+      throw StateError('package import save failed');
+    }
+    await super.saveScoresAndSetlists(scores, setlists, libraryId: libraryId);
   }
 }
 

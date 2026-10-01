@@ -16,6 +16,8 @@ import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_setlist_manifest.dart';
+import 'sheet_setlist_package.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
@@ -75,6 +77,20 @@ class SheetSongbookSplitResult {
   int get createdCount => createdScores.length;
   bool get didCreateAny => createdScores.isNotEmpty;
 }
+
+const _setlistPackageKnownDetailKeys = <String>{
+  '파일',
+  '작곡가',
+  '시작',
+  '예상 시간',
+  '세트 메모',
+  '악보 메모',
+  '태그',
+  '컬렉션',
+  '그룹',
+  '별점',
+  '메트로놈',
+};
 
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
@@ -2606,6 +2622,104 @@ class SheetLibraryController extends ChangeNotifier {
     return setlist;
   }
 
+  Future<SheetSetlist?> importSetlistPackage(
+    SheetSetlistPackageArchive package,
+    SheetSetlistPackageDryRun dryRun,
+  ) async {
+    if (!dryRun.canImport) {
+      throw StateError('Cannot import unresolved setlist package.');
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final createdScores = <SheetScore>[];
+    final scoreIds = <String>[];
+    final startPages = <String, int>{};
+    final notes = <String, String>{};
+    final durations = <String, int>{};
+
+    for (var index = 0; index < dryRun.entries.length; index += 1) {
+      final entry = dryRun.entries[index];
+      late final SheetScore score;
+      if (entry.status == SheetSetlistPackageEntryStatus.existingScore) {
+        final currentScore = scoreByIdOrNull(entry.existingScore?.id ?? '');
+        if (currentScore == null) {
+          throw StateError('Resolved package score is no longer available.');
+        }
+        score = currentScore;
+      } else if (entry.status ==
+          SheetSetlistPackageEntryStatus.importableFile) {
+        final packageFile = entry.packageFile;
+        final bytes = packageFile?.bytes;
+        if (packageFile == null || bytes == null) {
+          throw StateError('Package file bytes are not available.');
+        }
+        final importedAt = now.add(Duration(microseconds: index));
+        final rawScore = packageFile.isPdf
+            ? await store.importPdfBytes(
+                bytes: bytes,
+                fileName: packageFile.fileName,
+                importedAt: importedAt,
+              )
+            : await store.importImagesAsPdfBytes(
+                images: [
+                  SheetImportedFile(name: packageFile.fileName, bytes: bytes),
+                ],
+                title: entry.item.title,
+                importedAt: importedAt,
+              );
+        if (_activeLibraryProfile.id != libraryId) {
+          return null;
+        }
+        score = _scoreFromSetlistPackageItem(rawScore, entry.item);
+        createdScores.add(score);
+      } else {
+        throw StateError('Cannot import unresolved setlist package entry.');
+      }
+
+      scoreIds.add(score.id);
+      final startPage = _parseManifestPageNumber(entry.item.startPageLabel);
+      if (startPage > 0) {
+        startPages[score.id] = startPage;
+      }
+      final note = entry.item.setlistNote.trim();
+      if (note.isNotEmpty) {
+        notes[score.id] = note;
+      }
+      final duration = _parseManifestDurationSeconds(
+        entry.item.details['예상 시간'] ?? '',
+      );
+      if (duration > 0) {
+        durations[score.id] = duration;
+      }
+    }
+
+    if (scoreIds.isEmpty || _activeLibraryProfile.id != libraryId) {
+      return null;
+    }
+
+    final setlist = SheetSetlist(
+      id: _newSetlistId(now),
+      title: _uniqueSetlistTitle(
+        _normalizeSetlistTitle(package.manifest.title),
+      ),
+      scoreIds: List<String>.unmodifiable(scoreIds),
+      createdAt: now,
+      updatedAt: now,
+      scoreStartPages: Map<String, int>.unmodifiable(startPages),
+      scoreNotes: Map<String, String>.unmodifiable(notes),
+      scoreDurations: Map<String, int>.unmodifiable(durations),
+      transitionSeconds: _parseManifestDurationSeconds(
+        package.manifest.transitionLabel,
+      ),
+    );
+
+    _scores = <SheetScore>[...createdScores.reversed, ..._scores];
+    _setlists = <SheetSetlist>[setlist, ..._setlists];
+    await _saveScoresAndSetlistsChanges();
+    return setlist;
+  }
+
   Future<void> renameSetlist(SheetSetlist setlist, String title) async {
     final current = setlistByIdOrNull(setlist.id);
     if (current == null) return;
@@ -3380,6 +3494,39 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _saveScoresAndSetlistsChanges() async {
+    final pendingScores = _scores;
+    final pendingSetlists = _setlists;
+    final libraryId = _activeLibraryProfile.id;
+    try {
+      await store.saveScoresAndSetlists(
+        pendingScores,
+        pendingSetlists,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (identical(_scores, pendingScores) &&
+          identical(_setlists, pendingSetlists) &&
+          _activeLibraryProfile.id == libraryId) {
+        try {
+          final persistedScores = await store.loadScores();
+          final persistedSetlists = await store.loadSetlists();
+          if (identical(_scores, pendingScores) &&
+              identical(_setlists, pendingSetlists) &&
+              _activeLibraryProfile.id == libraryId) {
+            _scores = persistedScores;
+            _setlists = persistedSetlists;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Preserve the original write failure when recovery cannot read.
+        }
+      }
+      rethrow;
+    }
+    notifyListeners();
+  }
+
   Future<void> _updateLibraryViewSettings(
     SheetLibraryViewSettings settings,
   ) async {
@@ -3424,6 +3571,67 @@ class SheetLibraryController extends ChangeNotifier {
       collection: nextCollection,
       updatedAt: DateTime.now(),
     );
+  }
+
+  SheetScore _scoreFromSetlistPackageItem(
+    SheetScore score,
+    SheetSetlistShareItem item,
+  ) {
+    final details = item.details;
+    final title = _normalizeScoreTitle(item.title, score.title);
+    final composer = _normalizeOptionalMetadata(item.composer);
+    final note = _normalizeOptionalMetadata(details['악보 메모'] ?? '');
+    final collection = _normalizeOptionalMetadata(details['컬렉션'] ?? '');
+    final group = _normalizeOptionalMetadata(details['그룹'] ?? '');
+    final customFields = <SheetCustomMetadataField>[
+      for (final entry in details.entries)
+        if (!_setlistPackageKnownDetailKeys.contains(entry.key) &&
+            entry.value.trim().isNotEmpty)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+    ];
+
+    return score.copyWith(
+      title: title,
+      composer: composer,
+      tags: _normalizeTags(details['태그'] ?? ''),
+      note: note,
+      collection: collection,
+      group: group,
+      rating: _parseManifestRating(details['별점'] ?? ''),
+      customFields: customFields,
+      viewerSettings: _globalViewerSettings,
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  int _parseManifestRating(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return SheetScore.normalizeRating(int.tryParse(match?.group(0) ?? '') ?? 0);
+  }
+
+  int _parseManifestPageNumber(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return int.tryParse(match?.group(0) ?? '') ?? 0;
+  }
+
+  int _parseManifestDurationSeconds(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return 0;
+    }
+    var seconds = 0;
+    for (final match in RegExp(r'(\d+)\s*(시간|분|초)').allMatches(trimmed)) {
+      final amount = int.tryParse(match.group(1) ?? '') ?? 0;
+      switch (match.group(2)) {
+        case '시간':
+          seconds += amount * 3600;
+        case '분':
+          seconds += amount * 60;
+        case '초':
+          seconds += amount;
+      }
+    }
+    return seconds;
   }
 
   String _imageImportErrorMessage(Object error) {

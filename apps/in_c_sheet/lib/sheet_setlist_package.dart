@@ -82,6 +82,7 @@ class SheetSetlistPackageArchive {
         SheetSetlistPackageFile(
           path: path,
           mediaType: _mediaTypeForScoreFile(path),
+          bytes: Uint8List.fromList(entry.content),
         ),
       );
     }
@@ -222,11 +223,13 @@ class SheetSetlistPackageFile {
     required this.path,
     String? displayName,
     this.mediaType = '',
+    this.bytes,
   }) : displayName = displayName ?? '';
 
   final String path;
   final String displayName;
   final String mediaType;
+  final Uint8List? bytes;
 
   String get fileName {
     final explicit = displayName.trim();
@@ -239,6 +242,8 @@ class SheetSetlistPackageFile {
   bool get isSupportedScoreFile {
     return _supportedScoreExtensions.contains(_fileExtension(fileName));
   }
+
+  bool get isPdf => _fileExtension(fileName) == '.pdf';
 }
 
 class SheetSetlistPackageDryRun {

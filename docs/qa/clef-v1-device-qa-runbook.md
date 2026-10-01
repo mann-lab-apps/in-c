@@ -45,8 +45,8 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   가져오는 package import가 아니라 이미 라이브러리에 있는 악보를 새 세트리스트로 묶는 lightweight
   import다. PDF를 포함하는 `clef.setlist.package` ZIP은 세트리스트 화면의 `패키지` 버튼에서
   선택해 dry-run preview까지 확인할 수 있다. 세트리스트 상세의 `패키지 내보내기`는 ZIP으로 묶을
-  파일 수와 manifest를 먼저 보여준 뒤 공유한다. package 안 PDF를 실제 라이브러리에 저장하고 새
-  score/setlist를 만드는 import storage는 아직 없다.
+  파일 수와 manifest를 먼저 보여준 뒤 공유한다. 완전히 해결된 package는 preview 후 `패키지 가져오기`로
+  기존 악보와 package 안 PDF/image 파일을 묶은 새 세트리스트를 만들 수 있어야 한다.
 - `악보 추가`의 `텍스트/ChordPro/DOCX 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
   ChordPro 텍스트를 붙여넣어 제목/작곡가/조성/박자 metadata chip과 코드/가사 preview가 보이는지
   확인한다. 이 경로는 저장 없는 preview이며, 라이브러리에 새 악보가 생기면 안 된다. DOCX parsing과
@@ -63,7 +63,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 설치/첫 실행 | 앱 이름 `Clef & Staff`, 테스트 정보 version/build, 홈 진입 | NOT TESTED | 설치 파일, 기기/OS, buildCode |
 | PDF 가져오기/뷰어 | 평소 쓰는 PDF 1개 import, 좌/우 tap, swipe, 마지막 위치 | NOT TESTED | PDF 유형, page 수, blank/crash 여부 |
 | 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 북마크/리허설 `표시 지점` chip과 목록 row, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감, 원하는 지점 찾기 |
-| 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, ZIP package export/import preview, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 긴 manifest 요약, missing/ambiguous match 차단, 같은 제목 import suffix, package export가 공유 전 preview를 거치는지, package import preview가 저장 완료처럼 보이지 않는지, 진행 위치, 다음 곡 예측 가능성 |
+| 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, ZIP package export/import, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 긴 manifest 요약, missing/ambiguous match 차단, 같은 제목 import suffix, package export가 공유 전 preview를 거치는지, package import가 preview 확인 뒤 새 악보/세트리스트를 만드는지, 진행 위치, 다음 곡 예측 가능성 |
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/빠른 선택, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |

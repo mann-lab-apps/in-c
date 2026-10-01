@@ -1803,4 +1803,15 @@ Setlist detail now exposes `패키지 내보내기` beside the text manifest cop
 the `clef.setlist.package` ZIP from current setlist scores, previews the manifest and included file
 count, disables sharing when the package cannot be built, and shares the generated ZIP only after the
 preview step. Package import storage still remains follow-up; the existing package import path previews
-existing scores, importable files and unresolved entries without writing library data.
+existing scores, importable files and unresolved entries without writing library data. Superseded by
+S133 for the first Clef ZIP package import storage path.
+
+S133 VERIFIED LOCAL: closed the first `clef.setlist.package` import storage path. Decoded package
+files now retain bytes, and the setlist package preview can create a new setlist after the user
+confirms. Existing library scores are reused, package PDFs/images are imported through the existing
+score import byte APIs, manifest title/composer/tags/notes/collection/custom fields and setlist
+start pages/notes/durations/transitions are applied, and unresolved/missing/ambiguous entries still
+block import. Scores and setlist metadata are saved together; injected persistence failure restores
+the previous in-memory and durable score/setlist state and does not show success. Targeted package
+and controller tests passed. MobileSheets proprietary/binary package compatibility remains out of
+scope; this is the Clef v1 ZIP package flow.

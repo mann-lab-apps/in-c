@@ -7080,13 +7080,50 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       if (!mounted) {
         return;
       }
-      await showModalBottomSheet<void>(
+      final shouldImport = await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
         builder: (context) => _SetlistPackageImportPreviewSheet(
           fileName: file.name,
           dryRun: dryRun,
+          onImport: dryRun.canImport
+              ? () => Navigator.of(context).pop(true)
+              : null,
+        ),
+      );
+      if (!mounted || shouldImport != true) {
+        return;
+      }
+      final imported = await _trySetlistSave(
+        context,
+        () => controller.importSetlistPackage(package, dryRun),
+        errorMessage: '세트리스트 패키지를 가져오지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해주세요.',
+      );
+      if (!mounted || imported == null) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '"${imported.title}" 패키지를 ${imported.scoreIds.length}곡으로 가져왔습니다.',
+          ),
+          action: SnackBarAction(
+            label: '열기',
+            onPressed: () {
+              if (!mounted) return;
+              unawaited(
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) => SheetSetlistDetailScreen(
+                      controller: controller,
+                      setlistId: imported.id,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     } on FormatException {
@@ -7316,10 +7353,12 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
   const _SetlistPackageImportPreviewSheet({
     required this.fileName,
     required this.dryRun,
+    required this.onImport,
   });
 
   final String fileName;
   final SheetSetlistPackageDryRun dryRun;
+  final VoidCallback? onImport;
 
   @override
   Widget build(BuildContext context) {
@@ -7435,18 +7474,32 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               _ImportStatusBox(
-                icon: Icons.construction_outlined,
-                title: '저장은 다음 단계에서 지원합니다',
-                message: '지금은 패키지를 안전하게 확인하는 단계입니다. 패키지 안 파일을 라이브러리에 저장하는 실제 import는 후속 작업으로 분리했습니다.',
-                color: theme.colorScheme.primary,
+                icon: Icons.download_done_outlined,
+                title: canImportLater
+                    ? '가져오기 전에 한 번 더 확인하세요'
+                    : '확인 필요 항목을 먼저 해결하세요',
+                message: canImportLater
+                    ? '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다.'
+                    : 'missing/ambiguous 항목이 남아 있으면 partial import를 하지 않습니다.',
+                color: canImportLater
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.tertiary,
               ),
               const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('확인'),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('닫기'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: onImport,
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('패키지 가져오기'),
+                  ),
+                ],
               ),
             ],
           ),
