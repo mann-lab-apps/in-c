@@ -69,7 +69,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 북마크/리허설 `표시 지점` chip과 목록 row, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감, 원하는 지점 찾기 |
 | 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, ZIP package export/import, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 긴 manifest 요약, missing/ambiguous match 차단, 같은 제목 import suffix, package export가 공유 전 preview를 거치는지, package import가 preview 확인 뒤 새 악보/세트리스트를 만드는지, 진행 위치, 다음 곡 예측 가능성 |
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
-| 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/빠른 선택, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
+| 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/최근 사용/빠른 선택, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 최근 스탬프 복원, 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
 | 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장된 구간/새 구간 구분, 저장/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |

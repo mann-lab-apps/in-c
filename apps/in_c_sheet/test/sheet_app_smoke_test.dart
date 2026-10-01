@@ -3367,6 +3367,34 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'annotation stamp picker restores recent stamps without duplicates',
+    (tester) async {
+      await tester.pumpWidget(
+        buildAnnotationToolbarForTest(
+          recentStampNames: const <String>['fine', 'unknown', 'cue', 'rit'],
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('스탬프 선택'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('스탬프 선택'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('최근 사용'), findsOneWidget);
+      expect(find.text('빠른 선택'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'Fine'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'CUE'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'rit.'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'OK'), findsOneWidget);
+      expect(find.text('unknown'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('linked audio sheet sends A-B loop points to player', (
     tester,
   ) async {

@@ -1850,3 +1850,10 @@ explicit conflict rules for metadata, annotations, setlist order and binary file
 leader/follower tablet session state, QR/code pairing, mismatch/disconnect behavior, out-of-order
 event handling and simulator-first implementation steps. The feature map and MobileSheets inventory
 now point to those first safe slices instead of treating cloud/collaboration as a single vague gap.
+
+S138 VERIFIED LOCAL: shrinking the advanced annotation gap with recent stamp reuse before custom
+stamp packs or multi-layer annotation. Clef now stores the last five built-in stamp names per
+library, restores them when the viewer opens, and shows a non-duplicated `최근 사용` row above the
+existing quick-pick row. Store/controller/widget coverage verifies duplicate removal, corrupt or
+unknown name fallback, persistence across app reopen and unchanged search/category quick-pick
+behavior. Full 1,480-test suite, analyze and RC release check passed.

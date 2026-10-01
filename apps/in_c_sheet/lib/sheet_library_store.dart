@@ -54,6 +54,7 @@ class SheetLibraryStore {
   static const _performancePresetTemplatesKey =
       'clef_performance_preset_templates';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
+  static const _recentAnnotationStampsKey = 'clef_recent_annotation_stamps';
   static const _automaticMetadataBackupKey = 'clef_automatic_metadata_backup';
   static const _libraryProfilesKey = 'clef_library_profiles';
   static const _activeLibraryProfileKey = 'clef_active_library_profile';
@@ -228,6 +229,7 @@ class SheetLibraryStore {
       _scopedKey(_setlistsKey, libraryId): null,
       _scopedKey(_libraryViewSettingsKey, libraryId): null,
       _scopedKey(_favoriteAnnotationPresetKey, libraryId): null,
+      _scopedKey(_recentAnnotationStampsKey, libraryId): null,
       _scopedKey(_automaticMetadataBackupKey, libraryId): null,
     };
   }
@@ -249,6 +251,24 @@ class SheetLibraryStore {
       return key;
     }
     return '$key.$libraryId';
+  }
+
+  static List<String> _normalizeRecentAnnotationStampNames(
+    Iterable<String> stampNames,
+  ) {
+    final seen = <String>{};
+    final normalized = <String>[];
+    for (final stampName in stampNames) {
+      final name = stampName.trim().toLowerCase();
+      if (name.isEmpty || !seen.add(name)) {
+        continue;
+      }
+      normalized.add(name);
+      if (normalized.length == 5) {
+        break;
+      }
+    }
+    return List<String>.unmodifiable(normalized);
   }
 
   static String _normalizeLibraryName(String value) {
@@ -354,6 +374,30 @@ class SheetLibraryStore {
       return preset.isValid ? preset : null;
     } catch (_) {
       return null;
+    }
+  }
+
+  List<String> _readRecentAnnotationStampNames(
+    SharedPreferences preferences,
+    String activeLibraryId,
+  ) {
+    final value = preferences.getString(
+      _scopedKey(_recentAnnotationStampsKey, activeLibraryId),
+    );
+    if (value == null) {
+      return const <String>[];
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List) {
+        return const <String>[];
+      }
+      return _normalizeRecentAnnotationStampNames([
+        for (final item in decoded)
+          if (item is String) item,
+      ]);
+    } catch (_) {
+      return const <String>[];
     }
   }
 
@@ -559,6 +603,25 @@ class SheetLibraryStore {
       key: preset != null && preset.isValid
           ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
           : null,
+    }, automaticBackupLibraryId: activeLibraryId);
+  }
+
+  Future<List<String>> loadRecentAnnotationStampNames() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    return _readRecentAnnotationStampNames(preferences, activeLibraryId);
+  }
+
+  Future<void> saveRecentAnnotationStampNames(
+    List<String> stampNames, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    final normalized = _normalizeRecentAnnotationStampNames(stampNames);
+    final key = _scopedKey(_recentAnnotationStampsKey, activeLibraryId);
+    await _writeMetadataValues(preferences, {
+      key: normalized.isEmpty ? null : jsonEncode(normalized),
     }, automaticBackupLibraryId: activeLibraryId);
   }
 

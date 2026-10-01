@@ -10382,11 +10382,18 @@ enum _AnnotationStamp {
   final String label;
   final IconData icon;
 
+  static _AnnotationStamp? tryFromName(String name) {
+    final normalized = name.trim().toLowerCase();
+    for (final stamp in _AnnotationStamp.values) {
+      if (stamp.name == normalized) {
+        return stamp;
+      }
+    }
+    return null;
+  }
+
   static _AnnotationStamp fromName(String name) {
-    return _AnnotationStamp.values.firstWhere(
-      (stamp) => stamp.name == name,
-      orElse: () => _AnnotationStamp.ok,
-    );
+    return tryFromName(name) ?? _AnnotationStamp.ok;
   }
 }
 
@@ -15081,6 +15088,26 @@ setlist=$setlistLabel
     _showSnackBar('즐겨찾기 필기 도구를 적용했습니다.');
   }
 
+  List<_AnnotationStamp> _recentAnnotationStamps() {
+    final seen = <_AnnotationStamp>{};
+    final stamps = <_AnnotationStamp>[];
+    for (final name in widget.controller.recentAnnotationStampNames) {
+      final stamp = _AnnotationStamp.tryFromName(name);
+      if (stamp == null || !seen.add(stamp)) {
+        continue;
+      }
+      stamps.add(stamp);
+    }
+    return List<_AnnotationStamp>.unmodifiable(stamps);
+  }
+
+  void _selectAnnotationStamp(_AnnotationStamp stamp) {
+    setState(() {
+      _annotationStamp = stamp;
+    });
+    unawaited(widget.controller.recordRecentAnnotationStampName(stamp.name));
+  }
+
   Future<void> _handleAnnotationPanStart(
     DragStartDetails details,
     SheetAnnotationPageGeometry geometry,
@@ -17479,6 +17506,7 @@ setlist=$setlistLabel
                         child: _AnnotationToolbar(
                           selectedTool: _annotationTool,
                           selectedStamp: _annotationStamp,
+                          recentStamps: _recentAnnotationStamps(),
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
                           hasFavoritePreset: _favoriteAnnotationPreset != null,
@@ -17494,11 +17522,7 @@ setlist=$setlistLabel
                               _annotationTool = tool;
                             });
                           },
-                          onStampSelected: (stamp) {
-                            setState(() {
-                              _annotationStamp = stamp;
-                            });
-                          },
+                          onStampSelected: _selectAnnotationStamp,
                           onColorSelected: (color) {
                             setState(() {
                               _annotationColor = color;
@@ -19930,6 +19954,7 @@ class _AnnotationToolbar extends StatelessWidget {
   const _AnnotationToolbar({
     required this.selectedTool,
     required this.selectedStamp,
+    required this.recentStamps,
     required this.selectedColor,
     required this.selectedWidth,
     required this.hasFavoritePreset,
@@ -19950,6 +19975,7 @@ class _AnnotationToolbar extends StatelessWidget {
 
   final _AnnotationToolbarTool selectedTool;
   final _AnnotationStamp selectedStamp;
+  final List<_AnnotationStamp> recentStamps;
   final int selectedColor;
   final double selectedWidth;
   final bool hasFavoritePreset;
@@ -20063,10 +20089,12 @@ class _AnnotationToolbar extends StatelessWidget {
               onPressed: () async {
                 final selected = await showModalBottomSheet<_AnnotationStamp>(
                   context: context,
+                  isScrollControlled: true,
                   showDragHandle: true,
                   builder: (context) => SafeArea(
                     child: _AnnotationStampPickerSheet(
                       selectedStamp: selectedStamp,
+                      recentStamps: recentStamps,
                     ),
                   ),
                 );
@@ -20210,13 +20238,50 @@ class _AnnotationToolbar extends StatelessWidget {
 }
 
 class _AnnotationStampPickerSheet extends StatefulWidget {
-  const _AnnotationStampPickerSheet({required this.selectedStamp});
+  const _AnnotationStampPickerSheet({
+    required this.selectedStamp,
+    required this.recentStamps,
+  });
 
   final _AnnotationStamp selectedStamp;
+  final List<_AnnotationStamp> recentStamps;
 
   @override
   State<_AnnotationStampPickerSheet> createState() =>
       _AnnotationStampPickerSheetState();
+}
+
+class _AnnotationStampChipRow extends StatelessWidget {
+  const _AnnotationStampChipRow({
+    required this.stamps,
+    required this.selectedStamp,
+  });
+
+  final List<_AnnotationStamp> stamps;
+  final _AnnotationStamp selectedStamp;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          for (final stamp in stamps) ...[
+            ActionChip(
+              avatar: Icon(stamp.icon, size: 18),
+              label: Text(stamp.label),
+              onPressed: () => Navigator.of(context).pop(stamp),
+              backgroundColor: stamp == selectedStamp
+                  ? Theme.of(context).colorScheme.secondaryContainer
+                  : null,
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _AnnotationStampPickerSheetState
@@ -20248,15 +20313,31 @@ class _AnnotationStampPickerSheetState
               (query.isEmpty || stamp.searchText.contains(query)),
         )
         .toList(growable: false);
-    final quickStamps = <_AnnotationStamp>[
-      widget.selectedStamp,
-      for (final stamp in _quickStamps)
+    final recentStamps = <_AnnotationStamp>[
+      for (final stamp in widget.recentStamps)
         if (stamp != widget.selectedStamp) stamp,
     ];
+    final quickStamps = <_AnnotationStamp>[];
+    final recentStampSet = <_AnnotationStamp>{...recentStamps};
+    final quickStampSet = <_AnnotationStamp>{};
+    void addQuickStamp(_AnnotationStamp stamp) {
+      if (stamp != widget.selectedStamp && recentStampSet.contains(stamp)) {
+        return;
+      }
+      if (!quickStampSet.add(stamp)) {
+        return;
+      }
+      quickStamps.add(stamp);
+    }
+
+    addQuickStamp(widget.selectedStamp);
+    for (final stamp in _quickStamps) {
+      addQuickStamp(stamp);
+    }
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.88,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -20286,29 +20367,28 @@ class _AnnotationStampPickerSheetState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              '빠른 선택',
+              recentStamps.isEmpty ? '빠른 선택' : '최근 사용',
               style: Theme.of(context).textTheme.labelLarge
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                for (final stamp in quickStamps) ...[
-                  ActionChip(
-                    avatar: Icon(stamp.icon, size: 18),
-                    label: Text(stamp.label),
-                    onPressed: () => Navigator.of(context).pop(stamp),
-                    backgroundColor: stamp == widget.selectedStamp
-                        ? Theme.of(context).colorScheme.secondaryContainer
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
+          if (recentStamps.isNotEmpty) ...[
+            _AnnotationStampChipRow(
+              stamps: recentStamps,
+              selectedStamp: widget.selectedStamp,
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                '빠른 선택',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+          _AnnotationStampChipRow(
+            stamps: quickStamps,
+            selectedStamp: widget.selectedStamp,
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -23206,7 +23286,13 @@ Widget buildTapZoneHintOverlayForTest() {
 }
 
 @visibleForTesting
-Widget buildAnnotationToolbarForTest() {
+Widget buildAnnotationToolbarForTest({
+  List<String> recentStampNames = const [],
+}) {
+  final recentStamps = recentStampNames
+      .map(_AnnotationStamp.tryFromName)
+      .nonNulls
+      .toList(growable: false);
   return MaterialApp(
     home: Scaffold(
       body: _AnnotationToolbar(
@@ -23215,6 +23301,7 @@ Widget buildAnnotationToolbarForTest() {
         selectedColor: 0xff111111,
         selectedWidth: 4,
         selectedStamp: _AnnotationStamp.ok,
+        recentStamps: recentStamps,
         isLayerVisible: true,
         includeLayerInExport: true,
         hasFavoritePreset: true,

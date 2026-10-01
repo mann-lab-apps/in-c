@@ -3022,6 +3022,53 @@ Clef & Staff 세트리스트
     expect(await store.loadFavoriteAnnotationPreset(), isNull);
   });
 
+  test('records and restores recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    for (final stampName in const <String>[
+      'cue',
+      'fine',
+      'rit',
+      'cue',
+      'dc',
+      'ok',
+      'mark',
+    ]) {
+      expect(
+        await controller.recordRecentAnnotationStampName(stampName),
+        isTrue,
+      );
+    }
+
+    expect(controller.recentAnnotationStampNames, <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+    expect(await store.loadRecentAnnotationStampNames(), <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(nextController.recentAnnotationStampNames, <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+  });
+
   test('clears library query and filters for empty result recovery', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

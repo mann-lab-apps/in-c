@@ -1048,6 +1048,42 @@ void main() {
     expect((await store.loadActiveLibraryProfile()).id, newProfile.id);
   });
 
+  test('saves normalized recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+
+    await store.saveRecentAnnotationStampNames(const <String>[
+      ' CUE ',
+      'fine',
+      'cue',
+      '',
+      'rit',
+      'dc',
+      'ok',
+      'mark',
+    ]);
+
+    expect(await store.loadRecentAnnotationStampNames(), <String>[
+      'cue',
+      'fine',
+      'rit',
+      'dc',
+      'ok',
+    ]);
+
+    await store.saveRecentAnnotationStampNames(const <String>[]);
+    expect(await store.loadRecentAnnotationStampNames(), isEmpty);
+  });
+
+  test('ignores malformed recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'clef_recent_annotation_stamps': '{',
+    });
+    final store = SheetLibraryStore();
+
+    expect(await store.loadRecentAnnotationStampNames(), isEmpty);
+  });
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(
@@ -1066,6 +1102,8 @@ void main() {
         store.savePerformancePresetTemplates([]),
     'clef_favorite_annotation_preset': (store) =>
         store.saveFavoriteAnnotationPreset(null),
+    'clef_recent_annotation_stamps': (store) =>
+        store.saveRecentAnnotationStampNames(const <String>['cue']),
   };
   for (final entry in metadataSaves.entries) {
     for (final backupFails in [false, true]) {

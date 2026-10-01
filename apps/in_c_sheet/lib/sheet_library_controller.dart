@@ -119,6 +119,8 @@ class SheetLibraryController extends ChangeNotifier {
       SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   Object? _favoritePresetSaveRequest;
+  List<String> _recentAnnotationStampNames = const <String>[];
+  Object? _recentAnnotationStampsSaveRequest;
   Object? _viewSettingsSaveRequest;
   Object? _libraryLoadRequest;
   String _query = '';
@@ -142,6 +144,10 @@ class SheetLibraryController extends ChangeNotifier {
   SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
     return _favoriteAnnotationPreset;
+  }
+
+  List<String> get recentAnnotationStampNames {
+    return _recentAnnotationStampNames;
   }
 
   String get query => _query;
@@ -342,6 +348,8 @@ class SheetLibraryController extends ChangeNotifier {
     final previousTemplates = _performancePresetTemplates;
     final previousFavorite = _favoriteAnnotationPreset;
     final previousFavoriteRequest = _favoritePresetSaveRequest;
+    final previousRecentStamps = _recentAnnotationStampNames;
+    final previousRecentStampsRequest = _recentAnnotationStampsSaveRequest;
     final previousError = _errorMessage;
     final profiles = await store.loadLibraryProfiles();
     final active = await store.loadActiveLibraryProfile();
@@ -354,6 +362,7 @@ class SheetLibraryController extends ChangeNotifier {
     final viewer = await store.loadGlobalViewerSettings();
     final templates = await store.loadPerformancePresetTemplates();
     final favorite = await store.loadFavoriteAnnotationPreset();
+    final recentStamps = await store.loadRecentAnnotationStampNames();
     if (!identical(_libraryLoadRequest, request)) return;
     // Publish one completed load; superseded reads must never clean up newer data.
     final sameLibrary = active.id == previousActive.id;
@@ -391,6 +400,15 @@ class SheetLibraryController extends ChangeNotifier {
             identical(_favoritePresetSaveRequest, previousFavoriteRequest))) {
       _favoriteAnnotationPreset = favorite;
       _favoritePresetSaveRequest = null;
+    }
+    if (!sameLibrary ||
+        (identical(_recentAnnotationStampNames, previousRecentStamps) &&
+            identical(
+              _recentAnnotationStampsSaveRequest,
+              previousRecentStampsRequest,
+            ))) {
+      _recentAnnotationStampNames = recentStamps;
+      _recentAnnotationStampsSaveRequest = null;
     }
     if (!sameLibrary || _errorMessage == previousError) _errorMessage = null;
     await _removeMissingSetlistScores();
@@ -928,6 +946,7 @@ class SheetLibraryController extends ChangeNotifier {
     final setlists = _setlists;
     final viewSettings = _libraryViewSettings;
     final favoritePreset = _favoriteAnnotationPreset;
+    final recentStamps = _recentAnnotationStampNames;
     final didClear = await store.clearLibraryProfile(id);
     if (!didClear) {
       return false;
@@ -943,6 +962,10 @@ class SheetLibraryController extends ChangeNotifier {
       if (identical(_favoriteAnnotationPreset, favoritePreset)) {
         _favoriteAnnotationPreset = null;
         _favoritePresetSaveRequest = null;
+      }
+      if (identical(_recentAnnotationStampNames, recentStamps)) {
+        _recentAnnotationStampNames = const <String>[];
+        _recentAnnotationStampsSaveRequest = null;
       }
     }
     notifyListeners();
@@ -1498,6 +1521,53 @@ class SheetLibraryController extends ChangeNotifier {
       rethrow;
     }
     notifyListeners();
+  }
+
+  Future<bool> recordRecentAnnotationStampName(String stampName) async {
+    final normalizedName = stampName.trim().toLowerCase();
+    if (normalizedName.isEmpty) {
+      return true;
+    }
+    final pendingNames = List<String>.unmodifiable(
+      <String>[
+        normalizedName,
+        for (final name in _recentAnnotationStampNames)
+          if (name.toLowerCase() != normalizedName) name,
+      ].take(5),
+    );
+    final libraryId = _activeLibraryProfile.id;
+    final request = Object();
+    _recentAnnotationStampsSaveRequest = request;
+    _recentAnnotationStampNames = pendingNames;
+    bool ownsState() =>
+        identical(_recentAnnotationStampsSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_recentAnnotationStampNames, pendingNames);
+    try {
+      await store.saveRecentAnnotationStampNames(
+        pendingNames,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadRecentAnnotationStampNames();
+          if (ownsState()) {
+            _recentAnnotationStampNames = persisted;
+            _recentAnnotationStampsSaveRequest = null;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Keep the picker usable even when recovery cannot read persisted state.
+        }
+      }
+      return false;
+    }
+    if (ownsState()) {
+      _recentAnnotationStampsSaveRequest = null;
+    }
+    notifyListeners();
+    return true;
   }
 
   Future<SheetPdfLinkSanitizationResult> createPdfLinkDisabledCopy(
