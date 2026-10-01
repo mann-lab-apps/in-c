@@ -7918,6 +7918,8 @@ class SheetChordProViewerScreen extends StatefulWidget {
 class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   Future<_ChordProViewerData>? _viewerDataFuture;
   String _loadedPath = '';
+  int _transposeSemitones = 0;
+  bool _showCapoShapes = false;
 
   @override
   Widget build(BuildContext context) {
@@ -7944,6 +7946,12 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
             );
           }
           final data = snapshot.data!;
+          final displayDocument = _displayDocument(data.document);
+          final renderedText = SheetChordProTextRenderer.renderPlainText(
+            data.document,
+            transposeSemitones: _transposeSemitones,
+            showCapoShapes: _showCapoShapes,
+          );
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -7955,19 +7963,36 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                     Chip(label: Text('ChordPro')),
                     if (data.draft.composer.isNotEmpty)
                       Chip(label: Text('작곡가: ${data.draft.composer}')),
-                    if (data.document.key.isNotEmpty)
-                      Chip(label: Text('조성: ${data.document.key}')),
+                    if (displayDocument.key.isNotEmpty)
+                      Chip(label: Text('조성: ${displayDocument.key}')),
                     if (data.document.timeSignature.isNotEmpty)
                       Chip(label: Text('박자: ${data.document.timeSignature}')),
                     if (data.document.capo != null)
                       Chip(label: Text('카포: ${data.document.capo}')),
+                    if (_transposeSemitones != 0)
+                      Chip(label: Text('이조: ${_transposeLabel()}')),
+                    if (_showCapoShapes && (data.document.capo ?? 0) > 0)
+                      const Chip(label: Text('카포 운지 표시')),
                   ],
                 ),
                 const SizedBox(height: 12),
+                _ChordProViewerDisplayControls(
+                  transposeLabel: _transposeLabel(),
+                  canReset: _transposeSemitones != 0 || _showCapoShapes,
+                  canShowCapoShapes: (data.document.capo ?? 0) > 0,
+                  showCapoShapes: _showCapoShapes,
+                  onTransposeDown: () => _shiftTranspose(-1),
+                  onTransposeUp: () => _shiftTranspose(1),
+                  onReset: _resetDisplay,
+                  onShowCapoShapesChanged: (value) {
+                    setState(() => _showCapoShapes = value);
+                  },
+                ),
+                const SizedBox(height: 12),
                 Text(
-                  data.draft.previewText.trim().isEmpty
+                  renderedText.trim().isEmpty
                       ? '표시할 코드/가사 줄이 없습니다.'
-                      : data.draft.previewText,
+                      : renderedText,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontFamily: 'monospace',
                     height: 1.45,
@@ -7988,6 +8013,38 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     }
     return _viewerDataFuture!;
   }
+
+  SheetChordProDocument _displayDocument(SheetChordProDocument document) {
+    if (_transposeSemitones == 0) {
+      return document;
+    }
+    return document.transposedBy(_transposeSemitones);
+  }
+
+  String _transposeLabel() {
+    if (_transposeSemitones == 0) {
+      return '원조';
+    }
+    return _transposeSemitones > 0
+        ? '+$_transposeSemitones'
+        : '$_transposeSemitones';
+  }
+
+  void _shiftTranspose(int delta) {
+    setState(() {
+      _transposeSemitones = math.max(
+        -11,
+        math.min(11, _transposeSemitones + delta),
+      );
+    });
+  }
+
+  void _resetDisplay() {
+    setState(() {
+      _transposeSemitones = 0;
+      _showCapoShapes = false;
+    });
+  }
 }
 
 class _ChordProViewerData {
@@ -8006,6 +8063,76 @@ Future<_ChordProViewerData> _loadChordProViewerData(SheetScore score) {
       draft: SheetChordProScoreDraft.fromDocument(document),
     );
   });
+}
+
+class _ChordProViewerDisplayControls extends StatelessWidget {
+  const _ChordProViewerDisplayControls({
+    required this.transposeLabel,
+    required this.canReset,
+    required this.canShowCapoShapes,
+    required this.showCapoShapes,
+    required this.onTransposeDown,
+    required this.onTransposeUp,
+    required this.onReset,
+    required this.onShowCapoShapesChanged,
+  });
+
+  final String transposeLabel;
+  final bool canReset;
+  final bool canShowCapoShapes;
+  final bool showCapoShapes;
+  final VoidCallback onTransposeDown;
+  final VoidCallback onTransposeUp;
+  final VoidCallback onReset;
+  final ValueChanged<bool> onShowCapoShapesChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Text(
+              '표시 조정',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            IconButton.outlined(
+              tooltip: '반음 내림',
+              onPressed: onTransposeDown,
+              icon: const Icon(Icons.remove),
+            ),
+            Chip(label: Text('이조 $transposeLabel')),
+            IconButton.outlined(
+              tooltip: '반음 올림',
+              onPressed: onTransposeUp,
+              icon: const Icon(Icons.add),
+            ),
+            FilterChip(
+              label: const Text('카포 운지'),
+              selected: showCapoShapes,
+              onSelected: canShowCapoShapes ? onShowCapoShapesChanged : null,
+            ),
+            TextButton.icon(
+              onPressed: canReset ? onReset : null,
+              icon: const Icon(Icons.restart_alt),
+              label: const Text('원래대로'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SetlistManifestImportSheet extends StatefulWidget {

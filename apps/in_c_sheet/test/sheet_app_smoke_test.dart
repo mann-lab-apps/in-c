@@ -1195,6 +1195,79 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ChordPro viewer can transpose and show capo chord shapes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-display-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/capo.chordpro')
+      ..writeAsStringSync('''
+{title: Capo Tune}
+{composer: Lee}
+{key: E}
+{capo: 2}
+[E]가을 [B]노래
+''');
+    final now = DateTime(2026, 9, 28, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-capo-score',
+        title: 'Capo Tune',
+        composer: 'Lee',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-capo-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('조성: E'), findsOneWidget);
+    expect(find.textContaining('E  B'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('반음 올림'));
+    await tester.pump();
+
+    expect(find.text('조성: F'), findsOneWidget);
+    expect(find.text('이조: +1'), findsOneWidget);
+    expect(find.textContaining('F  C'), findsOneWidget);
+
+    await tester.tap(find.text('원래대로'));
+    await tester.pump();
+    await tester.tap(find.text('카포 운지'));
+    await tester.pump();
+
+    expect(find.text('카포 운지 표시'), findsOneWidget);
+    expect(find.textContaining('D  A'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home renders recent setlists without overflow', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);

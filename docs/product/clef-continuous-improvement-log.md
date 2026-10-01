@@ -1835,3 +1835,10 @@ the previous library without false success. Smoke coverage confirms the named UI
 file import snackbar/card creation, and controller coverage verifies fallback title/custom metadata
 plus save failure recovery. Styled ChordPro layout, transpose/capo controls and DOCX parsing remain
 later work.
+
+S136 VERIFIED LOCAL: surfaced the existing ChordPro transpose/capo rendering core in the saved
+ChordPro viewer. The read-only viewer now has `표시 조정` controls for semitone down/up, reset and
+capo-shape display; these change only the displayed chord/key text and do not rewrite the original
+`.chordpro` source. Widget coverage verifies the key chip and chord row update for transpose and
+capo shape mode. Styled chord-grid layout, persisted transpose/capo edits and DOCX parsing remain
+later work.
