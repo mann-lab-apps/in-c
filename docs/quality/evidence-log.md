@@ -2977,6 +2977,15 @@ switching remain reachable.
 | `npm run verify:midi-fixtures` | Pass | V1 QA MIDI fixture tests passed before release prep: 3 passed / 3 skipped. |
 | `npm run package:dir` | Pass | Local macOS arm64 unpacked package built at `release/mac-arm64`; signing remains disabled for this local smoke because electron-builder is configured with null identity. |
 | `npm run verify:package` | Pass | Packaged app smoke passed against `release/mac-arm64/in-C.app/Contents/MacOS/in-C`, including MusicXML/PDF/MIDI/native/recovery/autosave/part-layout checks. The expected guarded same-path export warning was logged during the smoke and the harness completed with `PACKAGED_APP_SMOKE_OK`. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "overlapping automatic hairpins"` | Fail, then Pass | Failure-first coverage reproduced two same-staff automatic hairpins sharing the same lower lane; after the fix, overlapping hairpin x-ranges reserve separate automatic lanes while explicit manual engraving stays under user geometry control. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "overlapping automatic hairpins\|visible span objects\|short slurs"` | Pass | 3 focused renderer tests passed after the hairpin lane update, confirming span selection, short slur clearance and overlapping automatic hairpin separation still work together. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/notation/annotation-lanes.test.ts src/renderer/src/notation/system-layout.test.ts` | Pass | 3 renderer/layout files passed; 54 tests passed after the hairpin lane update. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the hairpin lane reservation code. |
+| `npm run verify:chromatics-v1-work-queue`; `git diff --check` | Pass | Queue verifier passed with 74 rows, 16 Required umbrellas and `automationQueueDrained: false`; diff check found no whitespace errors after the hairpin lane documentation. |
+| `npm test -- --reporter=dot` | Pass | Full local suite passed after the hairpin lane update: 62 files passed / 1 skipped; 805 tests passed / 1 skipped. |
+| `npm run verify:visual-regression` | Pass | MusicXML/layout tests passed with 88 tests, production build passed and notation snapshot verification passed at 960px and 1400px after the hairpin lane update. |
+| `npm run verify:musicxml-fixtures`; `npm run verify:midi-fixtures` | Pass | External-app MusicXML fixture QA passed; V1 QA MIDI fixture tests passed with 3 passed / 3 skipped before alpha.21 prep. |
+| `npm run package:dir`; `npm run verify:package` | Pass | Alpha.21 local macOS arm64 unpacked package built at `release/mac-arm64`; signing remains disabled by null identity, and packaged app smoke passed with MusicXML/PDF/MIDI/native/recovery/autosave/part-layout checks. |
 
 ## Evidence Retention Rules
 

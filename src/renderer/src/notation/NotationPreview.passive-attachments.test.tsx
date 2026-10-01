@@ -636,6 +636,102 @@ describe('NotationPreview passive lower-staff attachments', () => {
     }
   })
 
+  it('separates overlapping automatic hairpins into lower lanes', async () => {
+    const events = [
+      createNote({
+        id: 'hairpin-n1',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 }
+      }),
+      createNote({
+        id: 'hairpin-n2',
+        position: createTimePosition(TICKS_PER_QUARTER),
+        pitch: { step: 'D', octave: 4 }
+      }),
+      createNote({
+        id: 'hairpin-n3',
+        position: createTimePosition(TICKS_PER_QUARTER * 2),
+        pitch: { step: 'E', octave: 4 }
+      }),
+      createNote({
+        id: 'hairpin-n4',
+        position: createTimePosition(TICKS_PER_QUARTER * 3),
+        pitch: { step: 'F', octave: 4 }
+      })
+    ]
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Melody',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [createVoice({ events })]
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      hairpins: [
+        {
+          id: 'outer-hairpin',
+          type: 'crescendo',
+          startEventId: events[0].id,
+          endEventId: events[3].id
+        },
+        {
+          id: 'inner-hairpin',
+          type: 'diminuendo',
+          startEventId: events[1].id,
+          endEventId: events[2].id
+        }
+      ]
+    })
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+        onSelectSpan={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-span-id="outer-hairpin"] .notation-hairpin')
+      ).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-span-id="inner-hairpin"] .notation-hairpin')
+      ).toBeInTheDocument()
+    })
+
+    const baseline = (spanId: string) => {
+      const lines = Array.from(
+        container.querySelectorAll<SVGLineElement>(
+          `[data-span-id="${spanId}"] .notation-hairpin line`
+        )
+      )
+
+      return (
+        (Number(lines[0]!.getAttribute('y1')) +
+          Number(lines[1]!.getAttribute('y1'))) /
+        2
+      )
+    }
+
+    expect(baseline('inner-hairpin')).toBeGreaterThanOrEqual(
+      baseline('outer-hairpin') + 16
+    )
+  })
+
   it('exposes multiple same-measure dynamic objects for direct selection', async () => {
     const measure = createMeasure({ id: 'P1-S1-M1' })
     const score = createScore({
