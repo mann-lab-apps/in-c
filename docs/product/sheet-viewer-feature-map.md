@@ -125,10 +125,10 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
 | 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
 | 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
-| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | conflict model |
-| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Wi-Fi/Bluetooth session |
-| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
-| 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | merge/conflict rules |
+| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | v1.1 spike가 account 없는 cloud-folder export, backup health/status, sync dry-run, account-backed continuous sync 단계를 분리했다. Conflict model은 metadata field merge, annotation object merge/tombstone, setlist order review, binary duplicate preservation을 기본 원칙으로 둔다 |
+| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Leader/follower spike가 page/setlist event reducer, QR/code pairing, mismatch/disconnect UX, transport 선택을 분리했다. 실제 네트워크 구현 전 simulator와 two-device QA 필요 |
+| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | Same setlist/page state를 follower에 보내되 missing score와 out-of-order page event를 안전하게 처리해야 한다. Transport/API는 별도 결정 |
+| 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | Cloud sync spike에서 annotation object-level additive merge와 deletion tombstone을 우선 원칙으로 둔다 |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
 | 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·개발자용 기기 리포트·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
@@ -353,10 +353,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 음악 키보드, 녹음기.
 - face gesture page turn.
 - MIDI registration/linking.
-- cloud library sync.
-- 기기 간 페이지 전환.
-- leader/follower tablet 협업.
-- 주석 보존 sync.
+- cloud library sync. Backup health/status, cloud-folder export, sync dry-run을 선행한다.
+- 기기 간 페이지 전환. Offline event model과 simulator를 선행한다.
+- leader/follower tablet 협업. QR/code pairing, mismatch/reconnect UX, two-device QA가 필요하다.
+- 주석 보존 sync. Annotation object merge/tombstone conflict model이 필요하다.
 - visible watermark 제거는 별도 법적/윤리적 검토 전까지 비목표로 유지한다.
 
 ## 결정 메모

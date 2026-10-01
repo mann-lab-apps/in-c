@@ -272,6 +272,65 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - Blocker 해제 조건: overlay architecture 결정, audio latency/fallback QA, 실제 연주 중 장시간 사용성
   확인.
 
+## 13. Cloud Sync / Conflict Model
+
+- 현재 v1 상태: 앱은 local-first이다. Library profile별 metadata-only automatic snapshot,
+  metadata JSON backup, PDF 포함 full backup ZIP, setlist package ZIP export/import가 있다.
+  System file picker/provider를 통해 cloud 파일을 가져올 수 있지만, account-backed continuous sync는 없다.
+- 왜 v1.1/Later spike인지: cloud sync는 단순 업로드가 아니라 account, encryption, quota, offline queue,
+  background task, conflict UI, privacy policy와 운영 책임을 함께 요구한다.
+- 결정 필요사항: account 없이 user-selected cloud folder export로 갈지, 자체 account/server를 둘지,
+  PDF binary까지 sync할지 metadata/annotations만 sync할지, conflict를 자동 병합할지 사용자 review로 남길지,
+  삭제 tombstone 보존 기간, device identity, encrypted backup 여부.
+- Sync 대상 후보:
+  - library profiles, score metadata, bookmarks, page transforms, setlists, setlist progress.
+  - annotations/stamps/layers, linked audio metadata, ChordPro source, imported package manifests.
+  - raw PDFs/images/audio binaries는 quota와 저작권/개인정보 리스크 때문에 별도 선택 sync로 둔다.
+- Conflict model 초안:
+  - score identity는 `score.id`와 source fingerprint를 함께 본다. 파일명만으로 merge하지 않는다.
+  - metadata field는 field-level timestamp merge 후보지만 title/composer/tags 같은 핵심 field는
+    conflict review card로 남길 수 있어야 한다.
+  - annotations는 stroke/object id 단위 additive merge를 우선하고, 삭제는 tombstone으로 보존한다.
+  - setlist order는 list operation log 또는 manual review가 필요하다. last-write-wins는 공연 순서를
+    조용히 잃을 수 있으므로 기본값으로 두지 않는다.
+  - 파일 binary 충돌은 자동 덮어쓰기 금지. 두 사본을 모두 보존하고 사용자에게 교체/보관을 묻는다.
+- 구현 후보:
+  1. Backup health/status 화면: 마지막 자동 snapshot/full backup/package export 상태를 한 곳에 보여준다.
+  2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
+  3. Sync dry-run: 두 backup snapshot을 비교해 변경/충돌 report를 만든다. 실제 merge는 하지 않는다.
+  4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
+- 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를
+  엇갈리게 수정한 fixture, offline/online 전환, provider quota/권한 취소, iCloud/Drive/Dropbox provider smoke.
+- Acceptance criteria: 첫 단계는 데이터를 자동 삭제/덮어쓰기하지 않고 현재 backup/sync 상태와 conflict 후보를
+  설명할 수 있어야 한다. 실제 continuous sync는 conflict review UX와 privacy/security review 전에는 완료 처리하지 않는다.
+- Blocker 해제 조건: account/provider 전략, privacy policy 갱신 범위, conflict fixture, rollback plan.
+
+## 14. Leader / Follower Tablet Session
+
+- 현재 v1 상태: 한 기기 안의 setlist progress, page turn, pedal input, performance mode는 있다.
+  여러 태블릿 사이의 page/setlist 동기화는 없다.
+- 왜 v1.1/Later spike인지: local network permission, pairing, latency, reconnect, leader authority,
+  score identity mismatch, audience-facing failure mode를 모두 설계해야 한다.
+- 결정 필요사항: 같은 library/package를 양쪽에 미리 갖고 있어야 하는지, leader가 PDF 파일까지 보내는지,
+  page turn만 sync할지 setlist position/tempo/notes까지 sync할지, follower가 local override를 허용하는지,
+  rehearsal mode와 performance mode의 권한 차이.
+- Session model 초안:
+  - `sessionId`, `leaderDeviceId`, `followerDeviceId`, `setlistId`, `scoreId`, `page`, `timestamp`.
+  - pairing은 QR/code 기반으로 시작하고, 같은 LAN/Bluetooth 세부 구현은 spike에서 결정한다.
+  - follower는 수신한 `scoreId`가 없으면 조용히 페이지를 넘기지 않고 “악보 없음/패키지 필요” 상태를 표시한다.
+  - leader page turn event는 idempotent sequence number를 가진다. 늦은 이벤트가 최신 page를 되돌리면 안 된다.
+  - disconnect/reconnect 시 follower는 마지막 leader state를 표시하되 local page turn을 계속 허용할지 mode별로 결정한다.
+- 구현 후보:
+  1. Offline session event model과 reducer unit test.
+  2. QR pairing mock UI 또는 debug-only local session simulator.
+  3. Same-device leader/follower simulator로 setlist/page mismatch UX 검증.
+  4. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
+- 테스트/fixture/실기기 조건: Android tablet 2대, iPad/Android 혼합, 같은 setlist/다른 setlist,
+  missing score, rapid page turns, disconnect/reconnect, screen sleep, pedal input while following.
+- Acceptance criteria: follower가 잘못된 악보로 넘어가지 않고, 연결 손실과 mismatch를 명확히 표시하며,
+  leader/follower state reducer가 out-of-order event를 안전하게 처리한다.
+- Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
+
 ## RC 이후 추천 우선순위
 
 1. 실제 CamScanner/object stream 샘플과 Android tablet smoke QA로 v1 RC release blocker를 먼저 닫는다.
@@ -285,4 +344,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    adapter 설계를 먼저 고정한다.
 6. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
    audio lifecycle 영향이 있으므로 v1.1 spike로 설계한 뒤 구현한다.
-7. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.
+7. Cloud sync/account/server 저장은 backup health/status와 sync dry-run부터 시작하고, continuous sync는
+   conflict/privacy 전략 확정 이후 V2/Later 투자 판단으로 남긴다.
+8. Leader/follower tablet은 offline event model과 simulator로 mismatch/reconnect UX를 먼저 검증한 뒤
+   실제 transport 구현을 결정한다.

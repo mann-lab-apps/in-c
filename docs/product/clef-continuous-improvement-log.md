@@ -1842,3 +1842,11 @@ capo-shape display; these change only the displayed chord/key text and do not re
 `.chordpro` source. Widget coverage verifies the key chip and chord row update for transpose and
 capo shape mode. Styled chord-grid layout, persisted transpose/capo edits and DOCX parsing remain
 later work.
+
+S137 VERIFIED LOCAL: reduced the direct-folder/cloud/leader-follower gap from a broad MobileSheets
+comparison item into implementable spikes. The v1.1 spike backlog now separates cloud work into
+backup health/status, user-selected cloud-folder export, sync dry-run and account-backed sync, with
+explicit conflict rules for metadata, annotations, setlist order and binary files. It also defines
+leader/follower tablet session state, QR/code pairing, mismatch/disconnect behavior, out-of-order
+event handling and simulator-first implementation steps. The feature map and MobileSheets inventory
+now point to those first safe slices instead of treating cloud/collaboration as a single vague gap.
