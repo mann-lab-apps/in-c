@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -1047,17 +1049,15 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
 
     expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
-    expect(find.textContaining('악보로 직접 추가할 수 없습니다'), findsOneWidget);
-    expect(find.text('ChordPro 지원 준비 중'), findsOneWidget);
-    expect(find.textContaining('PDF 가져오기를 사용'), findsOneWidget);
+    expect(find.textContaining('ChordPro 붙여넣기 미리보기'), findsWidgets);
+    expect(find.text('파일 선택과 DOCX는 준비 중'), findsOneWidget);
+    expect(find.textContaining('ChordPro 붙여넣기 저장'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ChordPro info can preview pasted text without saving', (
-    tester,
-  ) async {
+  testWidgets('ChordPro info can preview and save pasted text', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    final controller = SheetLibraryController(store: SheetLibraryStore());
+    final controller = SheetLibraryController(store: _SmokeChordProStore());
     await controller.load();
 
     await tester.pumpWidget(InCSheetApp(controller: controller));
@@ -1086,7 +1086,71 @@ Clef & Staff 세트리스트
     expect(find.text('작곡가: Lee'), findsOneWidget);
     expect(find.text('조성: D'), findsOneWidget);
     expect(find.textContaining('가을 노래'), findsOneWidget);
-    expect(controller.scores, isEmpty);
+    await tester.tap(find.text('악보로 저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"Autumn Tune" ChordPro 악보를 저장했습니다.'), findsOneWidget);
+    expect(controller.scores.single.title, 'Autumn Tune');
+    expect(find.text('Autumn Tune'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved ChordPro score opens a read-only chord lyric viewer', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-viewer-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/autumn.chordpro')
+      ..writeAsStringSync('''
+{title: Autumn Tune}
+{composer: Lee}
+{key: D}
+[D]가을 [A]노래
+''');
+    final now = DateTime(2026, 9, 28, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-score',
+        title: 'Autumn Tune',
+        composer: 'Lee',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('Autumn Tune'), findsWidgets);
+    expect(find.text('ChordPro'), findsOneWidget);
+    expect(find.text('조성: D'), findsOneWidget);
+    expect(find.textContaining('가을 노래'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -3628,6 +3692,35 @@ class _RecordingSharedImportController extends SheetLibraryController {
   ) async {
     sharedImports.addAll(files);
     return <SheetScore>[];
+  }
+}
+
+class _SmokeChordProStore extends SheetLibraryStore {
+  @override
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 9, 28, 17);
+    return SheetScore(
+      id: 'smoke-chordpro',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: '/text/${draft.title}.chordpro',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
   }
 }
 

@@ -722,18 +722,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.picture_as_pdf_outlined),
+                leading: Icon(Icons.save_outlined),
                 title: Text('지금 가능한 저장 흐름'),
                 subtitle: Text(
-                  '라이브러리 악보 저장은 원본 앱에서 PDF로 내보내거나 인쇄한 뒤 PDF 가져오기를 사용하세요.',
+                  'PDF/JPG/PNG 가져오기와 ChordPro 붙여넣기 저장을 사용할 수 있습니다.',
                 ),
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.upcoming_outlined),
-                title: Text('ChordPro 지원 준비 중'),
+                title: Text('파일 선택과 DOCX는 준비 중'),
                 subtitle: Text(
-                  '코드/가사 분석, transpose, capo shape 계산 코어와 붙여넣기 미리보기는 준비되어 있지만 라이브러리 악보로 직접 추가하는 화면은 후속입니다.',
+                  'ChordPro 파일 선택 가져오기, DOCX 읽기, transpose/capo 조작 화면은 후속입니다.',
                 ),
               ),
               const SizedBox(height: 8),
@@ -752,11 +752,28 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showChordProPreview() async {
-    await showModalBottomSheet<void>(
+    final imported = await showModalBottomSheet<SheetScore>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => const _ChordProPreviewSheet(),
+      builder: (context) =>
+          _ChordProPreviewSheet(onImport: controller.importChordProText),
+    );
+    if (!mounted || imported == null) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${imported.displayTitle}" ChordPro 악보를 저장했습니다.'),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (mounted) {
+              unawaited(_openScore(imported, showImportNudge: true));
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -1095,12 +1112,17 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (context) => SheetViewerScreen(
-          controller: controller,
-          scoreId: score.id,
-          setlistId: setlistId,
-          showImportNudge: showImportNudge,
-        ),
+        builder: (context) => _isChordProScore(score)
+            ? SheetChordProViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+              )
+            : SheetViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+                setlistId: setlistId,
+                showImportNudge: showImportNudge,
+              ),
       ),
     );
   }
@@ -7615,7 +7637,9 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
 }
 
 class _ChordProPreviewSheet extends StatefulWidget {
-  const _ChordProPreviewSheet();
+  const _ChordProPreviewSheet({required this.onImport});
+
+  final Future<SheetScore?> Function(String source) onImport;
 
   @override
   State<_ChordProPreviewSheet> createState() => _ChordProPreviewSheetState();
@@ -7623,6 +7647,8 @@ class _ChordProPreviewSheet extends StatefulWidget {
 
 class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
   final TextEditingController _controller = TextEditingController();
+  bool _isSaving = false;
+  String _saveError = '';
 
   @override
   void dispose() {
@@ -7660,7 +7686,7 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
               ),
               const SizedBox(height: 6),
               Text(
-                '저장하지 않고 코드/가사 렌더링과 metadata 추출 결과만 확인합니다.',
+                '코드/가사 렌더링과 metadata 추출 결과를 확인한 뒤 라이브러리에 저장할 수 있습니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -7694,17 +7720,39 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
                 ),
               ),
               const SizedBox(height: 12),
+              if (_saveError.isNotEmpty) ...[
+                _ImportStatusBox(
+                  icon: Icons.error_outline,
+                  title: '저장하지 못했습니다',
+                  message: _saveError,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 12),
+              ],
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      'DOCX 직접 읽기와 라이브러리 저장은 후속입니다.',
+                      'DOCX 직접 읽기와 ChordPro 파일 선택 가져오기는 후속입니다.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: hasText && !_isSaving
+                        ? () => unawaited(_saveChordPro())
+                        : null,
+                    icon: _isSaving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('악보로 저장'),
+                  ),
+                  const SizedBox(width: 8),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('닫기'),
@@ -7716,6 +7764,26 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveChordPro() async {
+    if (_isSaving) return;
+    setState(() {
+      _isSaving = true;
+      _saveError = '';
+    });
+    final imported = await widget.onImport(_controller.text);
+    if (!mounted) {
+      return;
+    }
+    if (imported == null) {
+      setState(() {
+        _isSaving = false;
+        _saveError = 'ChordPro 내용이나 저장 공간을 확인한 뒤 다시 시도해주세요.';
+      });
+      return;
+    }
+    Navigator.of(context).pop(imported);
   }
 }
 
@@ -7795,6 +7863,118 @@ class _ChordProParsedPreview extends StatelessWidget {
       ],
     );
   }
+}
+
+bool _isChordProScore(SheetScore score) {
+  return SheetFileImportPolicy.isChordProFileName(score.filePath);
+}
+
+class SheetChordProViewerScreen extends StatefulWidget {
+  const SheetChordProViewerScreen({
+    super.key,
+    required this.controller,
+    required this.scoreId,
+  });
+
+  final SheetLibraryController controller;
+  final String scoreId;
+
+  @override
+  State<SheetChordProViewerScreen> createState() =>
+      _SheetChordProViewerScreenState();
+}
+
+class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
+  Future<_ChordProViewerData>? _viewerDataFuture;
+  String _loadedPath = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final score = widget.controller.scoreByIdOrNull(widget.scoreId);
+    final theme = Theme.of(context);
+    if (score == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('ChordPro 악보')),
+        body: const Center(child: Text('악보를 찾을 수 없습니다.')),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(score.displayTitle)),
+      body: FutureBuilder<_ChordProViewerData>(
+        future: _viewerDataFor(score),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _ViewerErrorBanner(
+              filePath: score.filePath,
+              error: snapshot.error ?? 'ChordPro 파일을 읽지 못했습니다.',
+            );
+          }
+          final data = snapshot.data!;
+          return SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(label: Text('ChordPro')),
+                    if (data.draft.composer.isNotEmpty)
+                      Chip(label: Text('작곡가: ${data.draft.composer}')),
+                    if (data.document.key.isNotEmpty)
+                      Chip(label: Text('조성: ${data.document.key}')),
+                    if (data.document.timeSignature.isNotEmpty)
+                      Chip(label: Text('박자: ${data.document.timeSignature}')),
+                    if (data.document.capo != null)
+                      Chip(label: Text('카포: ${data.document.capo}')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  data.draft.previewText.trim().isEmpty
+                      ? '표시할 코드/가사 줄이 없습니다.'
+                      : data.draft.previewText,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontFamily: 'monospace',
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<_ChordProViewerData> _viewerDataFor(SheetScore score) {
+    if (_viewerDataFuture == null || _loadedPath != score.filePath) {
+      _loadedPath = score.filePath;
+      _viewerDataFuture = _loadChordProViewerData(score);
+    }
+    return _viewerDataFuture!;
+  }
+}
+
+class _ChordProViewerData {
+  const _ChordProViewerData({required this.document, required this.draft});
+
+  final SheetChordProDocument document;
+  final SheetChordProScoreDraft draft;
+}
+
+Future<_ChordProViewerData> _loadChordProViewerData(SheetScore score) {
+  return Future<_ChordProViewerData>.sync(() {
+    final source = File(score.filePath).readAsStringSync();
+    final document = SheetChordProParser.parse(source);
+    return _ChordProViewerData(
+      document: document,
+      draft: SheetChordProScoreDraft.fromDocument(document),
+    );
+  });
 }
 
 class _SetlistManifestImportSheet extends StatefulWidget {
@@ -8533,11 +8713,16 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (context) => SheetViewerScreen(
-          controller: controller,
-          scoreId: score.id,
-          setlistId: currentSetlist.id,
-        ),
+        builder: (context) => _isChordProScore(score)
+            ? SheetChordProViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+              )
+            : SheetViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+                setlistId: currentSetlist.id,
+              ),
       ),
     );
   }

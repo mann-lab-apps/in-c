@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
 import 'sheet_bookmark_import.dart';
+import 'sheet_chordpro.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
@@ -63,6 +64,7 @@ class SheetLibraryStore {
   static const _legacyLibraryViewSettingsKey =
       'in_c_sheet_library_view_settings';
   static const _pdfFolderName = 'scores';
+  static const _textScoresFolderName = 'text-scores';
   static const _linkedFilesFolderName = 'linked-files';
   static const _backupFolderName = 'backups';
 
@@ -758,6 +760,45 @@ class SheetLibraryStore {
     }
     return score.copyWith(
       linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
+    );
+  }
+
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    final trimmedSource = source.trim();
+    if (trimmedSource.isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: utf8.encode(source),
+      id: id,
+      originalFileName: '${draft.title}.chordpro',
+    );
+    return SheetScore(
+      id: id,
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      viewerSettings: SheetViewerSettings.defaultSettings,
+      pageSettings: SheetPageSettings.empty,
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
     );
   }
 
@@ -1644,6 +1685,27 @@ class SheetLibraryStore {
 
     final safeName = _safeFileName(originalFileName);
     final file = File('${scoresDir.path}/$id-$safeName');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  Future<String> _writeTextScore({
+    required List<int> bytes,
+    required String id,
+    required String originalFileName,
+  }) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final textScoresDir = Directory('${documents.path}/$_textScoresFolderName');
+    if (!textScoresDir.existsSync()) {
+      await textScoresDir.create(recursive: true);
+    }
+
+    final safeName = _safeFileName(
+      originalFileName.toLowerCase().endsWith('.chordpro')
+          ? originalFileName
+          : '$originalFileName.chordpro',
+    );
+    final file = File('${textScoresDir.path}/$id-$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }

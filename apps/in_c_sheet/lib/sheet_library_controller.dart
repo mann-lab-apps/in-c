@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'sheet_annotation.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_chordpro.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
@@ -513,6 +514,44 @@ class SheetLibraryController extends ChangeNotifier {
     } catch (error) {
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = _imageImportErrorMessage(error);
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> importChordProText(String source) async {
+    if (_isImporting) {
+      return null;
+    }
+    final trimmedSource = source.trim();
+    if (trimmedSource.isEmpty) {
+      return null;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final document = SheetChordProParser.parse(trimmedSource);
+      final draft = SheetChordProScoreDraft.fromDocument(document);
+      final importedScore = await store.importChordProText(
+        source: source,
+        draft: draft,
+      );
+      if (_activeLibraryProfile.id != libraryId) return null;
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) return null;
+      return score;
+    } catch (_) {
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'ChordPro 악보를 저장하지 못했습니다. 내용을 확인한 뒤 다시 시도해주세요.';
       }
       return null;
     } finally {

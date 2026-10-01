@@ -63,6 +63,18 @@ class SheetFileImportPolicy {
     return audioExtensions.contains(extensionOf(name));
   }
 
+  static bool isChordProFileName(String name) {
+    final extension = extensionOf(name);
+    return extension == 'cho' ||
+        extension == 'chordpro' ||
+        extension == 'chopro' ||
+        extension == 'chord' ||
+        extension == 'crd' ||
+        extension == 'pro' ||
+        extension == 'song' ||
+        extension == 'onsong';
+  }
+
   static bool isSupportedAudioExtension(String extension) {
     final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
     return audioExtensions.contains(normalized);
@@ -91,7 +103,10 @@ class SheetFileImportPolicy {
     final name = _fileNameFromMessage(value);
     final extension = extensionOf(name);
     final label = _unsupportedTextScoreLabel(extension);
-    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. ChordPro 코드/가사 지원은 준비 중이며, 현재 버전은 PDF/JPG/PNG 악보 중심입니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
+    if (isChordProFileName(name)) {
+      return '$label 파일 선택 가져오기는 아직 준비 중입니다. 지금은 ChordPro 붙여넣기 미리보기에서 악보로 저장하거나, 원본 앱에서 PDF로 내보내 가져와주세요.';
+    }
+    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보와 ChordPro 붙여넣기 저장을 지원합니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }
 
   static String extensionOf(String name) {

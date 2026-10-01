@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
@@ -661,6 +662,53 @@ Clef & Staff 세트리스트
       expect(await store.loadSetlists(), isEmpty);
     },
   );
+
+  test('imports ChordPro text as a library score draft', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final store = _ChordProImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProText('''
+{title: Autumn Tune}
+{composer: Lee}
+{key: D}
+{time: 6/8}
+{tag: recital, lesson}
+[D]가을 [A]노래
+''');
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'Autumn Tune');
+    expect(imported.composer, 'Lee');
+    expect(imported.tags, ['recital', 'lesson']);
+    expect(imported.filePath, endsWith('.chordpro'));
+    expect(imported.customFields.map((field) => field.key), contains('조성'));
+    expect(store.importedSource, contains('[D]가을 [A]노래'));
+    await controller.load();
+    expect(controller.scores.single.title, 'Autumn Tune');
+  });
+
+  test('ChordPro import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now);
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProText('''
+{title: Broken Save}
+[C]Line
+''');
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+  });
 
   test(
     'appends another setlist while preserving target performance settings',
@@ -4151,6 +4199,43 @@ class _PackageImportStore extends SheetLibraryStore {
       throw StateError('package import save failed');
     }
     await super.saveScoresAndSetlists(scores, setlists, libraryId: libraryId);
+  }
+}
+
+class _ChordProImportStore extends SheetLibraryStore {
+  _ChordProImportStore(this.now);
+
+  final DateTime now;
+  String importedSource = '';
+  bool failSaveScores = false;
+
+  @override
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    importedSource = source;
+    return _score(
+      importedAt ?? now,
+      id: 'chordpro-1',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      filePath: '/text/${draft.title}.chordpro',
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSaveScores) {
+      throw StateError('ChordPro score save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }
 

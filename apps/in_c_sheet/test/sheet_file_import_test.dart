@@ -71,7 +71,7 @@ void main() {
       SheetFileImportPolicy.unsupportedImportMessage(
         'Unsupported score file: lead-sheet.chordpro',
       ),
-      allOf(contains('ChordPro'), contains('지원은 준비 중'), contains('PDF')),
+      allOf(contains('ChordPro'), contains('파일 선택'), contains('붙여넣기')),
     );
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage(
