@@ -1857,3 +1857,11 @@ library, restores them when the viewer opens, and shows a non-duplicated `최근
 existing quick-pick row. Store/controller/widget coverage verifies duplicate removal, corrupt or
 unknown name fallback, persistence across app reopen and unchanged search/category quick-pick
 behavior. Full 1,480-test suite, analyze and RC release check passed.
+
+S139 VERIFIED LOCAL: reduced the custom stamp pack gap without opening image asset import yet.
+The v1.1 spike backlog now defines a Clef-first text/icon stamp pack model, backup/restore and
+setlist package questions, deletion fallback policy, license/source metadata, and the reason image
+stamp import remains gated behind size/license/export compatibility decisions. The MobileSheets
+inventory and feature map now point to this schema-first path instead of treating custom stamps as
+a vague missing feature. This was a docs-only slice; git diff whitespace, trailing whitespace, tab
+and stale wording scans passed.

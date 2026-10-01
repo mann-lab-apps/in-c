@@ -88,7 +88,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Setlists / Collections | Setlist merge | official library page | 세트리스트 상세에서 다른 세트리스트 이어붙이기를 지원한다 | feature map `세트리스트` | Implemented | 중복/누락 곡은 건너뛰고 새로 붙는 곡의 공연 메모/시간/시작쪽/메트로놈 설정을 가져온다 |
 | Setlists / Collections | Setlist/song notes display | user guide 목차 | 곡별 시작 쪽/시간/메모가 세트리스트 상세, 목록 복사, viewer context, 공연 진행 badge에 표시된다 | feature map, main.dart viewer notes | Implemented | 긴 메모의 실제 거리 가독성은 DEVICE QA |
 | Annotation | Pen/highlighter/text/eraser/stamps/shapes/arrows/hairpins/staff/grid | annotation page | 대응 도구 대부분이 있다 | feature map `주석` | Implemented | custom stamp pack 제외 |
-| Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형을 제공하고, 내장 stamp는 검색, 카테고리 칩, 최근 사용, 빠른 선택 row로 찾는다 | feature map `스탬프/기본 도형` | Partially Implemented | 사용자 stamp import/대형 stamp pack은 없음 |
+| Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형을 제공하고, 내장 stamp는 검색, 카테고리 칩, 최근 사용, 빠른 선택 row로 찾는다 | feature map `스탬프/기본 도형`, spike backlog `Custom Stamp Pack` | Partially Implemented | 사용자 stamp는 text/icon-only schema와 backup/restore fixture부터 시작하고, image stamp pack은 license/export 정책 후속 |
 | Annotation | Favorite annotation tools | annotation page | favorite annotation tool preset 저장/복원이 있다 | feature map `favorite tool` | Implemented | 실사용 발견성 QA 필요 |
 | Annotation | Stylus pressure, stylus button shortcut, inactivity exit | annotation page | pressure/palm rejection은 있으나 stylus button/inactivity exit는 없다 | feature map `스타일러스 pressure`, `palm rejection` | Partially Implemented | S Pen 실기기 QA 필요 |
 | Annotation | Undo/redo and autosave | annotation page | stroke/text undo/redo와 자동 저장이 있다 | feature map `undo/redo`, `자동 저장` | Implemented | 대량 stroke 성능은 file-backed migration 후보 |
@@ -156,7 +156,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
    연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker
    timeline, 여러 track marker preset은 없다.
-5. Advanced annotation: stroke/shape nudge, custom stamps, snipping, multi-layer, editable PDF annotation export가 남아 있다.
+5. Advanced annotation: stroke/shape nudge는 단일 선택 수준까지 구현되어 있고, custom stamp는 text/icon-only
+   schema spike가 있다. snipping, multi-layer, editable PDF annotation export는 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
 7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
    있으나 MobileSheets식 내용 기반 automatic crop, Android direct-reference library는 없다.
@@ -176,8 +177,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
   일반 `최근 악보` rail이 아니라 `정보 보강` task card와 `정보 편집` action으로 표시된다.
 - 긴 PDF navigation은 page picker slider, 직접 page 입력, 빠른 이동, named target list까지 구현됨.
   MobileSheets식 thumbnail strip/별도 outline browser는 렌더링 비용 확인 전까지 후속 후보로 남긴다.
-- Annotation stamp discovery는 검색, category chip, `빠른 선택` row까지 구현됨. 사용자 stamp pack,
-  snipping, multi-layer, editable PDF annotation export는 여전히 gap이다.
+- Annotation stamp discovery는 검색, category chip, 최근 사용, `빠른 선택` row까지 구현됨. 사용자 stamp
+  pack은 text/icon-only schema spike부터 시작하고, snipping, multi-layer, editable PDF annotation export는 여전히 gap이다.
 - Device QA가 필요한 항목은 제품 기능 부재와 구분한다. 특히 실제 오디오 균일성, 드론 음량,
   Bluetooth/USB pedal, stylus 필기감, 긴 악보/긴 라이브러리 손가락 조작감은 자동 테스트만으로
   완료 처리하지 않는다.

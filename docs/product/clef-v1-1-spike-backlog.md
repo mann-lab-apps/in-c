@@ -331,20 +331,59 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   leader/follower state reducer가 out-of-order event를 안전하게 처리한다.
 - Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
 
+## 15. Custom Stamp Pack / Stamp Management
+
+- 현재 v1 상태: built-in 음악 stamp, 검색, 카테고리 칩, 빠른 선택, 최근 사용 stamp 저장/복원이
+  있다. 사용자 제공 stamp pack, stamp 숨김/정렬/공유/import는 없다.
+- 왜 v1.1 spike인지: 사용자 stamp는 에셋 저작권, 백업/복원, sync conflict, PDF export,
+  picker 밀도, 앱 번들 크기와 직접 연결된다. 이미지 stamp까지 바로 열면 데이터 모델과 권리 검토가
+  함께 커진다.
+- 결정 필요사항:
+  - built-in stamp와 user stamp를 같은 picker에 섞을지, 별도 섹션으로 둘지
+  - v1.1 첫 범위를 text/icon-only preset으로 제한할지
+  - image stamp import를 허용할 경우 지원 포맷, 최대 크기, 투명 배경, 압축/보관 위치
+  - backup/export/setlist package/cloud sync에 user stamp asset을 포함할지
+  - user stamp 삭제 시 기존 주석 rendering을 보존할지 fallback label로 바꿀지
+  - 외부 stamp pack 공유를 허용할 경우 license/출처 표시와 악성/대용량 파일 방어
+- 제안 schema 초안:
+  - `SheetAnnotationStampPack(id, name, version, createdAt, updatedAt, stamps)`
+  - `SheetAnnotationUserStamp(id, packId, label, category, kind, iconName?, text?, assetRef?,
+    keywords, licenseLabel?, sourceUrl?, checksum?)`
+  - `kind`: `text`, `icon`, `image` 중 하나. v1.1 첫 구현은 `text`와 allow-listed `icon`만
+    허용하고 `image`는 schema reserved로 둔다.
+  - 기존 annotation에는 `stampName` 대신 당장 `userStampId`를 추가하지 않는다. 첫 slice는 picker
+    preset으로만 시작하고, 실제 주석 저장 모델 확장은 별도 migration에서 결정한다.
+- 구현 후보:
+  1. user stamp pack schema와 JSON validator만 추가한다.
+  2. built-in stamp picker에 `사용자 스탬프` 섹션을 scaffold하되 empty state만 노출한다.
+  3. text/icon-only custom stamp 생성/삭제를 추가하고, built-in stamp와 동일한 text annotation
+     rendering path를 재사용한다.
+  4. backup/restore와 setlist package 포함 여부를 검증한다.
+  5. image stamp import는 license/size/export QA 이후 별도 slice로 연다.
+- 테스트/fixture/실기기 조건: malformed JSON, duplicate id, deleted stamp fallback, backup/restore,
+  package export/import, Korean/English label, large pack performance, PDF export, S Pen picker use.
+- Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,
+  저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
+  export path가 준비될 때까지 비활성이다.
+- Blocker 해제 조건: schema/validator 합의, backup/restore fixture, user stamp deletion policy,
+  권리/라이선스 copy 결정.
+
 ## RC 이후 추천 우선순위
 
-1. 실제 CamScanner/object stream 샘플과 Android tablet smoke QA로 v1 RC release blocker를 먼저 닫는다.
+1. Android/iPad 실기기 QA에서 S Pen/stylus, audio, pedal, 장시간 연주 결과를 먼저 닫는다.
 2. HID key capture wizard와 S Pen tuning은 실기기 QA 결과가 바로 설계 입력이 되므로 장비 테스트 직후
    v1.1 spike로 착수한다.
-3. OCR, HEIC, font embedding은 engine/license/sample 결정이 선행되어야 하므로 별도 기술 선택 회의로
+3. Custom stamp pack은 text/icon-only schema와 backup/restore fixture부터 시작하고, 이미지 stamp는
+   라이선스/용량/export 정책이 정해질 때까지 열지 않는다.
+4. OCR, HEIC, font embedding은 engine/license/sample 결정이 선행되어야 하므로 별도 기술 선택 회의로
    묶는다.
-4. Page별 live rotation은 `pdfrx` API 선택과 overlay/link/search coordinate regression을 먼저
+5. Page별 live rotation은 `pdfrx` API 선택과 overlay/link/search coordinate regression을 먼저
    고정한다.
-5. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
+6. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
    adapter 설계를 먼저 고정한다.
-6. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
+7. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
    audio lifecycle 영향이 있으므로 v1.1 spike로 설계한 뒤 구현한다.
-7. Cloud sync/account/server 저장은 backup health/status와 sync dry-run부터 시작하고, continuous sync는
+8. Cloud sync/account/server 저장은 backup health/status와 sync dry-run부터 시작하고, continuous sync는
    conflict/privacy 전략 확정 이후 V2/Later 투자 판단으로 남긴다.
-8. Leader/follower tablet은 offline event model과 simulator로 mismatch/reconnect UX를 먼저 검증한 뒤
+9. Leader/follower tablet은 offline event model과 simulator로 mismatch/reconnect UX를 먼저 검증한 뒤
    실제 transport 구현을 결정한다.
