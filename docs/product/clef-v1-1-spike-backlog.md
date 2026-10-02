@@ -355,7 +355,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
     preset으로만 시작하고, 실제 주석 저장 모델 확장은 별도 migration에서 결정한다.
 - 구현 후보:
   1. 완료: user stamp pack schema와 JSON validator를 추가했다.
-  2. built-in stamp picker에 `사용자 스탬프` 섹션을 scaffold하되 empty state만 노출한다.
+  2. 완료: built-in stamp picker에 `사용자 스탬프` 섹션을 scaffold하되 empty state만 노출한다.
   3. text/icon-only custom stamp 생성/삭제를 추가하고, built-in stamp와 동일한 text annotation
      rendering path를 재사용한다.
   4. backup/restore와 setlist package 포함 여부를 검증한다.
@@ -368,7 +368,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
   export path가 준비될 때까지 비활성이다.
 - Blocker 해제 조건: backup/restore fixture, user stamp deletion policy, 권리/라이선스 copy 결정,
-  picker empty state와 text/icon-only 생성 UI.
+  text/icon-only 생성 UI.
 
 ## RC 이후 추천 우선순위
 

@@ -3329,6 +3329,8 @@ Clef & Staff 세트리스트
     expect(find.widgetWithText(ActionChip, 'OK'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, 'CUE'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, '!'), findsOneWidget);
+    expect(find.text('사용자 스탬프'), findsOneWidget);
+    expect(find.text('추가된 사용자 스탬프가 없습니다.'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '전체'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '리허설 표시'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '반복/마침'), findsOneWidget);

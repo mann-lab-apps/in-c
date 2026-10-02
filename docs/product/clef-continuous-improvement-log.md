@@ -1874,3 +1874,10 @@ image-stamp gate. Focused annotation tests cover valid text/icon packs, unsafe/a
 and explicit image-stamp allowance. Next safe slice is a user-stamp empty state or text/icon-only
 creation flow; backup/restore and setlist package fixtures still need to be wired before external
 stamp pack sharing.
+
+S141 VERIFIED LOCAL: added the first user-facing custom stamp scaffold without enabling stamp
+creation or image import. The annotation stamp picker now separates a `사용자 스탬프` empty state from
+built-in recent/quick/category/search rows, so the next text/icon-only creation slice has a stable
+home without making built-in stamps harder to reach. Widget coverage verifies the empty state stays
+visible alongside existing quick stamps and category filters. Text/icon custom stamp creation,
+backup/restore fixtures and setlist package inclusion remain follow-up work.
