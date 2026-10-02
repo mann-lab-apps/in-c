@@ -2006,3 +2006,10 @@ JSON and full ZIP previews now classify selected backups as `변경 없음`, `�
 전체 교체`, or `삭제 포함 전체 교체` and show the corresponding guidance in restore confirmation dialogs.
 This still does not perform field-level merge; it makes whole-library replacement risk explicit before
 the user confirms. Diff/controller/widget tests cover additive, destructive and review-required cases.
+
+S158 VERIFIED LOCAL: made the backup dry-run review more actionable without applying field-level
+merge. Changed score and setlist entries now aggregate changed top-level field labels such as `제목`,
+`원본 파일`, `필기 레이어`, `곡 순서`, or `곡별 메모`, and the existing restore preview review text shows
+those labels before the user confirms a whole-library replacement. Diff tests cover score and setlist
+field-label summaries plus the existing file/settings review warnings. Actual conflict resolution,
+field-selective apply and remote sync remain follow-up work.

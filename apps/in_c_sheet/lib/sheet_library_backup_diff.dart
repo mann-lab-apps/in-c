@@ -9,11 +9,13 @@ class SheetLibraryBackupDiff {
     required this.addedScoreIds,
     required this.removedScoreIds,
     required this.changedScoreIds,
+    required this.changedScoreFieldLabels,
     required this.fileChangedScoreIds,
     required this.annotationChangedScoreIds,
     required this.addedSetlistIds,
     required this.removedSetlistIds,
     required this.changedSetlistIds,
+    required this.changedSetlistFieldLabels,
     required this.setlistOrderChangedIds,
     required this.settingsChanged,
   });
@@ -28,13 +30,19 @@ class SheetLibraryBackupDiff {
       ..retainAll(incomingScores.keys);
 
     final changedScoreIds = <String>[];
+    final changedScoreFieldLabels = <String>{};
     final fileChangedScoreIds = <String>[];
     final annotationChangedScoreIds = <String>[];
     for (final id in sharedScoreIds) {
       final baseScore = baseScores[id]!;
       final incomingScore = incomingScores[id]!;
-      if (!_jsonEqual(baseScore.toJson(), incomingScore.toJson())) {
+      final baseJson = baseScore.toJson();
+      final incomingJson = incomingScore.toJson();
+      if (!_jsonEqual(baseJson, incomingJson)) {
         changedScoreIds.add(id);
+        changedScoreFieldLabels.addAll(
+          _changedFieldLabels(baseJson, incomingJson, _scoreFieldLabels),
+        );
       }
       if (_scoreFileSignature(baseScore) !=
           _scoreFileSignature(incomingScore)) {
@@ -52,12 +60,18 @@ class SheetLibraryBackupDiff {
       ..retainAll(incomingSetlists.keys);
 
     final changedSetlistIds = <String>[];
+    final changedSetlistFieldLabels = <String>{};
     final setlistOrderChangedIds = <String>[];
     for (final id in sharedSetlistIds) {
       final baseSetlist = baseSetlists[id]!;
       final incomingSetlist = incomingSetlists[id]!;
-      if (!_jsonEqual(baseSetlist.toJson(), incomingSetlist.toJson())) {
+      final baseJson = baseSetlist.toJson();
+      final incomingJson = incomingSetlist.toJson();
+      if (!_jsonEqual(baseJson, incomingJson)) {
         changedSetlistIds.add(id);
+        changedSetlistFieldLabels.addAll(
+          _changedFieldLabels(baseJson, incomingJson, _setlistFieldLabels),
+        );
       }
       if (!_stringListsEqual(baseSetlist.scoreIds, incomingSetlist.scoreIds)) {
         setlistOrderChangedIds.add(id);
@@ -68,6 +82,10 @@ class SheetLibraryBackupDiff {
       addedScoreIds: _sortedDifference(incomingScores.keys, baseScores.keys),
       removedScoreIds: _sortedDifference(baseScores.keys, incomingScores.keys),
       changedScoreIds: _sorted(changedScoreIds),
+      changedScoreFieldLabels: _orderedLabels(
+        changedScoreFieldLabels,
+        _scoreFieldLabels,
+      ),
       fileChangedScoreIds: _sorted(fileChangedScoreIds),
       annotationChangedScoreIds: _sorted(annotationChangedScoreIds),
       addedSetlistIds: _sortedDifference(
@@ -79,6 +97,10 @@ class SheetLibraryBackupDiff {
         incomingSetlists.keys,
       ),
       changedSetlistIds: _sorted(changedSetlistIds),
+      changedSetlistFieldLabels: _orderedLabels(
+        changedSetlistFieldLabels,
+        _setlistFieldLabels,
+      ),
       setlistOrderChangedIds: _sorted(setlistOrderChangedIds),
       settingsChanged: !_jsonEqual(
         _settingsJson(base),
@@ -90,11 +112,13 @@ class SheetLibraryBackupDiff {
   final List<String> addedScoreIds;
   final List<String> removedScoreIds;
   final List<String> changedScoreIds;
+  final List<String> changedScoreFieldLabels;
   final List<String> fileChangedScoreIds;
   final List<String> annotationChangedScoreIds;
   final List<String> addedSetlistIds;
   final List<String> removedSetlistIds;
   final List<String> changedSetlistIds;
+  final List<String> changedSetlistFieldLabels;
   final List<String> setlistOrderChangedIds;
   final bool settingsChanged;
 
@@ -169,10 +193,14 @@ class SheetLibraryBackupDiffReport {
     final reviewLines = <String>[
       if (diff.removedScoreIds.isNotEmpty)
         '삭제된 악보가 있어 복원할지 삭제를 유지할지 확인이 필요합니다.',
+      if (diff.changedScoreFieldLabels.isNotEmpty)
+        '수정된 악보 필드: ${diff.changedScoreFieldLabels.join(', ')}',
       if (diff.fileChangedScoreIds.isNotEmpty)
         '파일 경로나 연결 파일이 달라 원본 PDF/오디오 위치 확인이 필요합니다.',
       if (diff.annotationChangedScoreIds.isNotEmpty)
         '필기 데이터가 달라 어느 필기를 보존할지 확인이 필요합니다.',
+      if (diff.changedSetlistFieldLabels.isNotEmpty)
+        '수정된 세트리스트 필드: ${diff.changedSetlistFieldLabels.join(', ')}',
       if (diff.setlistOrderChangedIds.isNotEmpty)
         '세트리스트 순서가 달라 어느 순서를 사용할지 확인이 필요합니다.',
       if (diff.settingsChanged) '메트로놈, 튜너, 표시, 필기 preset 같은 전역 설정 변경을 확인하세요.',
@@ -324,6 +352,77 @@ List<String> _sorted(Iterable<String> values) {
 bool _jsonEqual(Object? left, Object? right) {
   return jsonEncode(left) == jsonEncode(right);
 }
+
+List<String> _changedFieldLabels(
+  Map<String, Object?> base,
+  Map<String, Object?> incoming,
+  Map<String, String> labels,
+) {
+  final changedKeys = <String>{};
+  for (final key in <String>{...base.keys, ...incoming.keys}) {
+    if (!_jsonEqual(base[key], incoming[key])) {
+      changedKeys.add(key);
+    }
+  }
+  return _orderedLabels(
+    changedKeys.map((key) => labels[key] ?? key).toSet(),
+    labels,
+  );
+}
+
+List<String> _orderedLabels(Set<String> values, Map<String, String> labels) {
+  final ordered = <String>[
+    for (final label in labels.values)
+      if (values.contains(label)) label,
+  ];
+  final unknown = values.difference(ordered.toSet()).toList(growable: false)
+    ..sort();
+  return List<String>.unmodifiable(<String>[...ordered, ...unknown]);
+}
+
+const _scoreFieldLabels = <String, String>{
+  'title': '제목',
+  'composer': '작곡가',
+  'tags': '태그',
+  'note': '메모',
+  'filePath': '원본 파일',
+  'collection': '컬렉션',
+  'group': '그룹',
+  'rating': '별점',
+  'linkedFiles': '연결 파일',
+  'structuredNotes': '공연/연습 메모',
+  'customFields': '사용자 필드',
+  'importedAt': '가져온 날짜',
+  'updatedAt': '수정 시간',
+  'lastOpenedAt': '최근 열기',
+  'lastPage': '마지막 페이지',
+  'isFavorite': '즐겨찾기',
+  'isPinned': '고정',
+  'bookmarks': '북마크',
+  'viewerSettings': '보기 설정',
+  'pageSettings': '페이지 정리',
+  'annotationLayer': '필기 레이어',
+  'annotationStorage': '필기 저장소',
+  'pdfLinkSanitization': 'PDF 링크 처리',
+  'autoScrollSettings': '자동 스크롤',
+  'metronomeSettings': '메트로놈 설정',
+};
+
+const _setlistFieldLabels = <String, String>{
+  'title': '제목',
+  'scoreIds': '곡 순서',
+  'createdAt': '생성일',
+  'updatedAt': '수정 시간',
+  'rehearsalMode': '공연 모드',
+  'scoreStartPages': '시작 쪽',
+  'scoreNotes': '곡별 메모',
+  'scoreDurations': '곡별 시간',
+  'scoreMetronomeSettings': '곡별 메트로놈',
+  'transitionSeconds': '전환 시간',
+  'viewerSettingsOverride': '보기 preset',
+  'lastOpenedAt': '최근 열기',
+  'lastOpenedScoreId': '진행 위치',
+};
 
 String _scoreFileSignature(SheetScore score) {
   return jsonEncode(<String, Object?>{

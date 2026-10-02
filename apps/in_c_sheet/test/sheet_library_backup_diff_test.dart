@@ -39,9 +39,11 @@ void main() {
     expect(diff.addedScoreIds, ['score-c']);
     expect(diff.removedScoreIds, ['score-a']);
     expect(diff.changedScoreIds, ['score-b']);
+    expect(diff.changedScoreFieldLabels, ['제목']);
     expect(diff.addedSetlistIds, ['setlist-2']);
     expect(diff.removedSetlistIds, isEmpty);
     expect(diff.changedSetlistIds, ['setlist-1']);
+    expect(diff.changedSetlistFieldLabels, ['곡 순서']);
     expect(diff.setlistOrderChangedIds, ['setlist-1']);
     expect(diff.settingsChanged, isFalse);
     expect(diff.hasChanges, isTrue);
@@ -62,6 +64,8 @@ void main() {
       report.reviewLines,
       containsAll(<String>[
         '삭제된 악보가 있어 복원할지 삭제를 유지할지 확인이 필요합니다.',
+        '수정된 악보 필드: 제목',
+        '수정된 세트리스트 필드: 곡 순서',
         '세트리스트 순서가 달라 어느 순서를 사용할지 확인이 필요합니다.',
       ]),
     );
@@ -95,6 +99,7 @@ void main() {
     expect(diff.addedScoreIds, isEmpty);
     expect(diff.removedScoreIds, isEmpty);
     expect(diff.changedScoreIds, ['score-a']);
+    expect(diff.changedScoreFieldLabels, ['원본 파일']);
     expect(diff.fileChangedScoreIds, ['score-a']);
     expect(diff.annotationChangedScoreIds, isEmpty);
     expect(diff.settingsChanged, isTrue);
@@ -106,6 +111,7 @@ void main() {
     expect(
       report.reviewLines,
       containsAll(<String>[
+        '수정된 악보 필드: 원본 파일',
         '파일 경로나 연결 파일이 달라 원본 PDF/오디오 위치 확인이 필요합니다.',
         '메트로놈, 튜너, 표시, 필기 preset 같은 전역 설정 변경을 확인하세요.',
       ]),
