@@ -8349,7 +8349,6 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final score = widget.controller.scoreByIdOrNull(widget.scoreId);
-    final theme = Theme.of(context);
     if (score == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('ChordPro 악보')),
@@ -8372,7 +8371,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
           }
           final data = snapshot.data!;
           final displayDocument = _displayDocument(data.document);
-          final renderedText = SheetChordProTextRenderer.renderPlainText(
+          final displayLines = SheetChordProTextRenderer.renderDisplayLines(
             data.document,
             transposeSemitones: _transposeSemitones,
             showCapoShapes: _showCapoShapes,
@@ -8414,15 +8413,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  renderedText.trim().isEmpty
-                      ? '표시할 코드/가사 줄이 없습니다.'
-                      : renderedText,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontFamily: 'monospace',
-                    height: 1.45,
-                  ),
-                ),
+                _ChordProDisplayLinesView(lines: displayLines),
               ],
             ),
           );
@@ -8470,6 +8461,98 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       _showCapoShapes = false;
     });
   }
+}
+
+class _ChordProDisplayLinesView extends StatelessWidget {
+  const _ChordProDisplayLinesView({required this.lines});
+
+  final List<SheetChordProDisplayLine> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    if (lines.isEmpty ||
+        lines.every(
+          (line) => line.kind == SheetChordProDisplayLineKind.blank,
+        )) {
+      return const Text('표시할 코드/가사 줄이 없습니다.');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines) _ChordProDisplayLineView(line: line),
+      ],
+    );
+  }
+}
+
+class _ChordProDisplayLineView extends StatelessWidget {
+  const _ChordProDisplayLineView({required this.line});
+
+  final SheetChordProDisplayLine line;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    switch (line.kind) {
+      case SheetChordProDisplayLineKind.directive:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 4),
+          child: Text(
+            line.label,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        );
+      case SheetChordProDisplayLineKind.blank:
+        return const SizedBox(height: 12);
+      case SheetChordProDisplayLineKind.lyric:
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(line.lyricText, style: theme.textTheme.bodyLarge),
+        );
+      case SheetChordProDisplayLineKind.chordLyric:
+        final chordRow = _chordProDisplayChordRow(line);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (chordRow.isNotEmpty)
+                Text(
+                  chordRow,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                  ),
+                ),
+              if (line.lyricText.isNotEmpty)
+                Text(
+                  line.lyricText,
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
+                ),
+            ],
+          ),
+        );
+    }
+  }
+}
+
+String _chordProDisplayChordRow(SheetChordProDisplayLine line) {
+  var chordRow = '';
+  for (final cell in line.chords) {
+    final lyricColumn = cell.lyricColumn;
+    if (chordRow.length < lyricColumn) {
+      chordRow += ' ' * (lyricColumn - chordRow.length);
+    } else if (chordRow.length > lyricColumn && !chordRow.endsWith(' ')) {
+      chordRow += ' ';
+    }
+    chordRow += cell.chord;
+  }
+  return chordRow.trimRight();
 }
 
 class _ChordProViewerData {

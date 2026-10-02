@@ -2072,3 +2072,10 @@ blank, lyric and chord/lyric lines with chord cells, lyric columns and associate
 while preserving the existing monospace plain-text output. Focused tests cover rehearsal directives,
 blank lines, transposed chord cells and capo-shape display cells. The user-facing viewer remains the
 current read-only text viewer; styled chord-grid UI and persisted transpose/capo edits remain follow-up.
+
+S167 VERIFIED LOCAL: applied the structured ChordPro display lines to the saved ChordPro viewer.
+The viewer now renders rehearsal/directive labels, chord rows and lyric rows as separate widgets
+instead of a single monospace text block, while keeping the existing read-only source preservation and
+display-only transpose/capo controls. Existing viewer smoke coverage still checks title/key, chord row
+updates and capo-shape display. A denser chord-grid layout, saved display preferences and editable
+ChordPro source remain follow-up work.
