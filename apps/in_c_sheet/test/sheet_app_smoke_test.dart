@@ -3477,6 +3477,63 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('annotation stamp picker creates and selects user icon stamps', (
+    tester,
+  ) async {
+    final iconPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'repeat-cue',
+          'packId': 'user',
+          'label': 'Repeat cue',
+          'category': '사용자',
+          'kind': 'icon',
+          'iconName': 'repeat',
+        },
+      ],
+    });
+    var currentPacks = <SheetAnnotationStampPack>[];
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: currentPacks,
+        onCreateIconUserStamp: (_, _) async {
+          currentPacks = <SheetAnnotationStampPack>[iconPack];
+          return currentPacks;
+        },
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('아이콘 스탬프 추가'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '이름'), 'Repeat cue');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ChoiceChip, '반복'));
+    await tester.pump();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repeat cue'), findsOneWidget);
+
+    await tester.tap(find.text('Repeat cue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Repeat cue'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'annotation stamp picker restores recent stamps without duplicates',
     (tester) async {

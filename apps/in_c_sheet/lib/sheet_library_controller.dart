@@ -1641,6 +1641,59 @@ class SheetLibraryController extends ChangeNotifier {
     return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
   }
 
+  Future<bool> createIconUserAnnotationStamp({
+    required String label,
+    required String iconName,
+  }) async {
+    final normalizedLabel = label.trim();
+    final normalizedIconName = iconName.trim().toLowerCase();
+    if (normalizedLabel.isEmpty ||
+        !SheetAnnotationStampPack.defaultAllowedIconNames.contains(
+          normalizedIconName,
+        )) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final stamp = SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: normalizedLabel,
+      category: '사용자',
+      kind: SheetAnnotationUserStamp.iconKind,
+      iconName: normalizedIconName,
+      keywords: <String>{
+        ..._normalizeTags(normalizedLabel),
+        normalizedIconName,
+      }.toList(growable: false),
+    );
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
   Future<bool> deleteUserAnnotationStamp({
     required String packId,
     required String stampId,

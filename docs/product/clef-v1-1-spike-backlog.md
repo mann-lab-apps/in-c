@@ -360,19 +360,20 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      malformed, duplicate pack fallback을 검증했다.
   4. 완료: text-only custom stamp 생성/삭제/선택을 추가하고, built-in stamp와 동일한
      `SheetTextAnnotation` rendering path를 재사용한다.
-  5. icon-only custom stamp 생성 UI와 text/icon 관리 polish를 추가한다.
+  5. 완료: allow-listed icon-only custom stamp 생성/삭제/선택을 추가하고, compact symbol fallback으로
+     기존 text annotation rendering path를 재사용한다.
   6. setlist package 포함 여부를 결정하고 fixture를 추가한다.
   7. image stamp import는 license/size/export QA 이후 별도 slice로 연다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, metadata save/load, malformed
-  storage fallback, metadata backup restore, text stamp create/delete/reload, picker create/select/delete.
+  storage fallback, metadata backup restore, text/icon stamp create/delete/reload, picker
+  create/select/delete.
 - 남은 테스트/fixture/실기기 조건: deleted stamp fallback, package export/import, Korean/English
-  label, icon-only creation UI, large pack performance, PDF export, S Pen picker use.
+  label, large pack performance, PDF export, S Pen picker use.
 - Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
   export path가 준비될 때까지 비활성이다.
-- Blocker 해제 조건: 권리/라이선스 copy 결정, icon-only 생성 UI, package inclusion policy,
-  image stamp asset policy.
+- Blocker 해제 조건: 권리/라이선스 copy 결정, package inclusion policy, image stamp asset policy.
 
 ## RC 이후 추천 우선순위
 

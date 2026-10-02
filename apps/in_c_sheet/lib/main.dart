@@ -15255,7 +15255,9 @@ setlist=$setlistLabel
     if (_annotationTool == _AnnotationToolbarTool.stamp) {
       final now = DateTime.now();
       final userStamp = _selectedUserAnnotationStamp;
-      final stampText = userStamp?.text ?? _annotationStamp.label;
+      final stampText = userStamp == null
+          ? _annotationStamp.label
+          : _userStampPrintableText(userStamp);
       try {
         await widget.controller.addTextAnnotation(
           score,
@@ -17546,6 +17548,16 @@ setlist=$setlistLabel
                                 .createTextUserAnnotationStamp(
                                   label: label,
                                   text: text,
+                                );
+                            return didSave
+                                ? widget.controller.userAnnotationStampPacks
+                                : null;
+                          },
+                          onCreateIconUserStamp: (label, iconName) async {
+                            final didSave = await widget.controller
+                                .createIconUserAnnotationStamp(
+                                  label: label,
+                                  iconName: iconName,
                                 );
                             return didSave
                                 ? widget.controller.userAnnotationStampPacks
@@ -20000,6 +20012,44 @@ class _AnnotationPainter extends CustomPainter {
 typedef _UserStampPackMutation =
     Future<List<SheetAnnotationStampPack>?> Function(String value, String text);
 
+const Map<String, IconData> _userStampIconDataByName = <String, IconData>{
+  'check': Icons.check_circle_outline,
+  'star': Icons.star_border,
+  'flag': Icons.flag_outlined,
+  'music-note': Icons.music_note,
+  'repeat': Icons.repeat,
+  'coda': Icons.adjust,
+  'segno': Icons.repeat_on_outlined,
+  'tempo': Icons.speed_outlined,
+  'warning': Icons.priority_high,
+};
+
+const Map<String, String> _userStampIconTextByName = <String, String>{
+  'check': '✓',
+  'star': '★',
+  'flag': '⚑',
+  'music-note': '♪',
+  'repeat': '↺',
+  'coda': 'Coda',
+  'segno': 'Segno',
+  'tempo': 'Tempo',
+  'warning': '!',
+};
+
+IconData _userStampIconData(SheetAnnotationUserStamp stamp) {
+  if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
+    return _userStampIconDataByName[stamp.iconName] ?? Icons.label_outline;
+  }
+  return Icons.text_fields;
+}
+
+String _userStampPrintableText(SheetAnnotationUserStamp stamp) {
+  if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
+    return _userStampIconTextByName[stamp.iconName] ?? stamp.label;
+  }
+  return stamp.text.isEmpty ? stamp.label : stamp.text;
+}
+
 class _AnnotationStampSelection {
   const _AnnotationStampSelection.builtIn(this.builtIn) : userStamp = null;
   const _AnnotationStampSelection.user(this.userStamp) : builtIn = null;
@@ -20024,6 +20074,7 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onToolSelected,
     required this.onStampSelected,
     required this.onCreateUserStamp,
+    required this.onCreateIconUserStamp,
     required this.onDeleteUserStamp,
     required this.onColorSelected,
     required this.onWidthChanged,
@@ -20049,6 +20100,7 @@ class _AnnotationToolbar extends StatelessWidget {
   final ValueChanged<_AnnotationToolbarTool> onToolSelected;
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
+  final _UserStampPackMutation onCreateIconUserStamp;
   final _UserStampPackMutation onDeleteUserStamp;
   final ValueChanged<int> onColorSelected;
   final ValueChanged<double> onWidthChanged;
@@ -20070,6 +20122,7 @@ class _AnnotationToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final userStamp = selectedUserStamp;
     final toolbarContent = Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: isCompact ? 6 : 10,
@@ -20165,6 +20218,7 @@ class _AnnotationToolbar extends StatelessWidget {
                           recentStamps: recentStamps,
                           userStampPacks: userStampPacks,
                           onCreateUserStamp: onCreateUserStamp,
+                          onCreateIconUserStamp: onCreateIconUserStamp,
                           onDeleteUserStamp: onDeleteUserStamp,
                         ),
                       ),
@@ -20174,11 +20228,11 @@ class _AnnotationToolbar extends StatelessWidget {
                 }
               },
               icon: Icon(
-                selectedUserStamp == null
+                userStamp == null
                     ? selectedStamp.icon
-                    : Icons.text_fields,
+                    : _userStampIconData(userStamp),
               ),
-              label: Text(selectedUserStamp?.label ?? selectedStamp.label),
+              label: Text(userStamp?.label ?? selectedStamp.label),
             ),
           ),
         for (final color in _colors)
@@ -20319,6 +20373,7 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
     required this.recentStamps,
     required this.userStampPacks,
     required this.onCreateUserStamp,
+    required this.onCreateIconUserStamp,
     required this.onDeleteUserStamp,
   });
 
@@ -20327,6 +20382,7 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
   final List<_AnnotationStamp> recentStamps;
   final List<SheetAnnotationStampPack> userStampPacks;
   final _UserStampPackMutation onCreateUserStamp;
+  final _UserStampPackMutation onCreateIconUserStamp;
   final _UserStampPackMutation onDeleteUserStamp;
 
   @override
@@ -20416,6 +20472,39 @@ class _AnnotationStampPickerSheetState
       SnackBar(
         content: Text(
           nextPacks == null ? '사용자 스탬프를 저장하지 못했습니다.' : '사용자 스탬프를 저장했습니다.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createIconUserStamp() async {
+    final draft = await showDialog<_UserIconStampDraft>(
+      context: context,
+      builder: (context) => const _UserIconStampDialog(),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = true;
+    });
+    final nextPacks = await widget.onCreateIconUserStamp(
+      draft.label,
+      draft.iconName,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = false;
+      if (nextPacks != null) {
+        _userStampPacks = nextPacks;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nextPacks == null ? '아이콘 스탬프를 저장하지 못했습니다.' : '아이콘 스탬프를 저장했습니다.',
         ),
       ),
     );
@@ -20560,6 +20649,7 @@ class _AnnotationStampPickerSheetState
             packs: _userStampPacks,
             isSaving: _isSavingUserStamp,
             onCreateTextStamp: _createTextUserStamp,
+            onCreateIconStamp: _createIconUserStamp,
             onDeleteStamp: _deleteUserStamp,
           ),
           SingleChildScrollView(
@@ -20622,12 +20712,14 @@ class _UserStampSection extends StatelessWidget {
     required this.packs,
     required this.isSaving,
     required this.onCreateTextStamp,
+    required this.onCreateIconStamp,
     required this.onDeleteStamp,
   });
 
   final List<SheetAnnotationStampPack> packs;
   final bool isSaving;
   final VoidCallback onCreateTextStamp;
+  final VoidCallback onCreateIconStamp;
   final ValueChanged<SheetAnnotationUserStamp> onDeleteStamp;
 
   @override
@@ -20653,7 +20745,7 @@ class _UserStampSection extends StatelessWidget {
               Icon(
                 stamps.isEmpty
                     ? Icons.add_reaction_outlined
-                    : Icons.text_fields,
+                    : Icons.collections_bookmark_outlined,
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
@@ -20683,9 +20775,9 @@ class _UserStampSection extends StatelessWidget {
                         children: [
                           for (final stamp in stamps)
                             InputChip(
-                              avatar: const Icon(Icons.text_fields, size: 18),
+                              avatar: Icon(_userStampIconData(stamp), size: 18),
                               label: Text(stamp.label),
-                              tooltip: stamp.text,
+                              tooltip: _userStampPrintableText(stamp),
                               deleteIcon: const Icon(Icons.close, size: 18),
                               onPressed: () => Navigator.of(context)
                                   .pop(_AnnotationStampSelection.user(stamp)),
@@ -20696,21 +20788,29 @@ class _UserStampSection extends StatelessWidget {
                         ],
                       ),
                     const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: isSaving ? null : onCreateTextStamp,
-                        icon: isSaving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add),
-                        label: const Text('텍스트 스탬프 추가'),
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        TextButton.icon(
+                          onPressed: isSaving ? null : onCreateTextStamp,
+                          icon: isSaving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.add),
+                          label: const Text('텍스트 스탬프 추가'),
+                        ),
+                        TextButton.icon(
+                          onPressed: isSaving ? null : onCreateIconStamp,
+                          icon: const Icon(Icons.add_reaction_outlined),
+                          label: const Text('아이콘 스탬프 추가'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -20809,6 +20909,127 @@ class _UserTextStampDialogState extends State<_UserTextStampDialog> {
               ? () =>
                     Navigator.of(context)
                         .pop(_UserTextStampDraft(label: label, text: text))
+              : null,
+          child: const Text('저장'),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserIconStampDraft {
+  const _UserIconStampDraft({required this.label, required this.iconName});
+
+  final String label;
+  final String iconName;
+}
+
+class _UserIconStampDialog extends StatefulWidget {
+  const _UserIconStampDialog();
+
+  @override
+  State<_UserIconStampDialog> createState() => _UserIconStampDialogState();
+}
+
+class _UserIconStampDialogState extends State<_UserIconStampDialog> {
+  static const Map<String, String> _iconLabels = <String, String>{
+    'check': '체크',
+    'star': '별',
+    'flag': '깃발',
+    'music-note': '음표',
+    'repeat': '반복',
+    'coda': '코다',
+    'segno': '세뇨',
+    'tempo': '템포',
+    'warning': '주의',
+  };
+
+  final _labelController = TextEditingController();
+  String _iconName = 'check';
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController.addListener(_handleChanged);
+  }
+
+  @override
+  void dispose() {
+    _labelController
+      ..removeListener(_handleChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _labelController.text.trim();
+    final canSave = label.isNotEmpty;
+    final iconNames = SheetAnnotationStampPack.defaultAllowedIconNames.toList(
+      growable: false,
+    );
+    return AlertDialog(
+      title: const Text('아이콘 스탬프 추가'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _labelController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: '이름',
+                hintText: '예: 반복 확인',
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (canSave) {
+                  Navigator.of(
+                    context,
+                  ).pop(_UserIconStampDraft(label: label, iconName: _iconName));
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            Text('아이콘', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final iconName in iconNames)
+                  ChoiceChip(
+                    avatar: Icon(
+                      _userStampIconDataByName[iconName] ?? Icons.label_outline,
+                      size: 18,
+                    ),
+                    label: Text(_iconLabels[iconName] ?? iconName),
+                    selected: _iconName == iconName,
+                    onSelected: (_) {
+                      setState(() {
+                        _iconName = iconName;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: canSave
+              ? () => Navigator.of(context)
+                    .pop(_UserIconStampDraft(label: label, iconName: _iconName))
               : null,
           child: const Text('저장'),
         ),
@@ -23667,6 +23888,8 @@ Widget buildAnnotationToolbarForTest({
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onCreateUserStamp,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
+  onCreateIconUserStamp,
+  Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onDeleteUserStamp,
 }) {
   final recentStamps = recentStampNames
@@ -23706,6 +23929,8 @@ Widget buildAnnotationToolbarForTest({
           },
           onCreateUserStamp:
               onCreateUserStamp ?? (_, _) async => userStampPacks,
+          onCreateIconUserStamp:
+              onCreateIconUserStamp ?? (_, _) async => userStampPacks,
           onDeleteUserStamp:
               onDeleteUserStamp ?? (_, _) async => userStampPacks,
           onUndo: () {},

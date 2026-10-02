@@ -3107,6 +3107,31 @@ Clef & Staff 세트리스트
     );
     expect(nextController.userAnnotationStampPacks, isEmpty);
     expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+
+    expect(
+      await nextController.createIconUserAnnotationStamp(
+        label: 'Repeat cue',
+        iconName: 'repeat',
+      ),
+      isTrue,
+    );
+    expect(
+      await nextController.createIconUserAnnotationStamp(
+        label: 'Bad icon',
+        iconName: 'unknown',
+      ),
+      isFalse,
+    );
+    final iconPack = nextController.userAnnotationStampPacks.single;
+    expect(iconPack.stamps.single.kind, SheetAnnotationUserStamp.iconKind);
+    expect(iconPack.stamps.single.iconName, 'repeat');
+
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    expect(
+      restoredController.userAnnotationStampPacks.single.stamps.single.iconName,
+      'repeat',
+    );
   });
 
   test('clears library query and filters for empty result recovery', () async {

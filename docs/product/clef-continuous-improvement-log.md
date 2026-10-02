@@ -1898,3 +1898,11 @@ path and delete them without breaking built-in stamps. Controller coverage verif
 and reload persistence; widget coverage verifies picker creation, selection and deletion. Icon-only
 custom stamps, setlist package inclusion, image stamp import, multi-layer annotation and editable
 PDF annotation export remain follow-up work.
+
+S144 VERIFIED LOCAL: extended the custom stamp picker from text-only to allow-listed icon stamps
+without opening image asset import. Users can create a named icon stamp from the safe built-in icon
+set, select it in the same `사용자 스탬프` section, place it through the existing text-annotation
+rendering path using a compact symbol fallback, and delete it without affecting built-in stamps.
+Controller coverage verifies create/reject/reload persistence for icon stamps, and widget coverage
+verifies picker creation and selection. Setlist package inclusion, image stamp import, multi-layer
+annotation and editable PDF annotation export remain follow-up work.
