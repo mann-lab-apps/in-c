@@ -1216,7 +1216,7 @@ Clef & Staff 세트리스트
     expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
     expect(find.textContaining('ChordPro 붙여넣기 미리보기'), findsWidgets);
     expect(find.text('ChordPro 파일 선택 가져오기'), findsOneWidget);
-    expect(find.text('DOCX와 transpose/capo 화면은 준비 중'), findsOneWidget);
+    expect(find.text('ChordPro 표시 조정 지원'), findsOneWidget);
     expect(find.textContaining('ChordPro 붙여넣기/파일 저장'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

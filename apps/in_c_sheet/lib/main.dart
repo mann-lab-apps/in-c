@@ -742,10 +742,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.upcoming_outlined),
-                title: Text('DOCX와 transpose/capo 화면은 준비 중'),
+                leading: Icon(Icons.tune_outlined),
+                title: Text('ChordPro 표시 조정 지원'),
                 subtitle: Text(
-                  'DOCX 읽기, ChordPro transpose/capo 조작 화면은 후속입니다.',
+                  '저장된 ChordPro 악보에서 반음 이조와 카포 운지 표시를 바꿀 수 있습니다. DOCX 읽기는 후속입니다.',
                 ),
               ),
               const SizedBox(height: 8),
@@ -8189,7 +8189,7 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'DOCX 직접 읽기와 transpose/capo 조작 화면은 후속입니다.',
+                      'DOCX 직접 읽기는 후속입니다. 저장된 ChordPro 악보는 viewer에서 반음 이조와 카포 운지를 바꿀 수 있습니다.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

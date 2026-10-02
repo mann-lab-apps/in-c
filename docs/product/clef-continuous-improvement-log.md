@@ -2059,3 +2059,9 @@ folder label, size and modified time, but keeps the platform document token out 
 Focused tests cover token redaction, ISO modified timestamps and omission of empty/invalid optional
 fields. Wiring this metadata into saved scores, SAF byte reads and the user-facing folder picker UI
 remain follow-up work.
+
+S165 VERIFIED LOCAL: removed stale ChordPro import guidance now that the saved ChordPro viewer has
+display controls. The text-score import sheet no longer says transpose/capo controls are future work;
+it points users to the saved ChordPro viewer for semitone transposition and capo-shape display while
+keeping DOCX direct reading as follow-up. The ChordPro preview sheet copy was updated the same way,
+and the import menu smoke test now asserts the current `ChordPro 표시 조정 지원` entry.
