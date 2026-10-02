@@ -1923,3 +1923,11 @@ stamps to existing packs. Codec and controller coverage now verify duplicate-pre
 that a package stamp with the same id cannot replace the user's local stamp. Image stamp assets,
 explicit conflict-resolution UI, multi-layer annotation and editable PDF annotation export remain
 follow-up work.
+
+S147 VERIFIED LOCAL: brought user-created text/icon stamps into the same discovery controls as
+built-in stamps. The stamp picker now adds user stamp categories to the category chips and filters
+user stamps by label, category, printable text, icon name and keywords when the search box changes.
+The user-stamp section distinguishes an empty library from a filtered-empty result, while keeping
+creation/deletion and built-in stamp search intact. Widget coverage verifies search and category
+filtering for user stamps. Image stamp assets, advanced stamp conflict resolution, multi-layer
+annotation and editable PDF annotation export remain follow-up work.

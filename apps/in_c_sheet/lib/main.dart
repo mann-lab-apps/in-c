@@ -20582,9 +20582,16 @@ class _AnnotationStampPickerSheetState
   @override
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
+    final allUserStamps = <SheetAnnotationUserStamp>[
+      for (final pack in _userStampPacks) ...pack.stamps,
+    ];
     final categories = [
       _allCategoryLabel,
       ...{for (final stamp in _AnnotationStamp.values) stamp.categoryLabel},
+      ...{
+        for (final stamp in allUserStamps)
+          if (stamp.category.trim().isNotEmpty) stamp.category.trim(),
+      },
     ];
     final stamps = _AnnotationStamp.values
         .where(
@@ -20592,6 +20599,13 @@ class _AnnotationStampPickerSheetState
               (_category == _allCategoryLabel ||
                   stamp.categoryLabel == _category) &&
               (query.isEmpty || stamp.searchText.contains(query)),
+        )
+        .toList(growable: false);
+    final userStamps = allUserStamps
+        .where(
+          (stamp) =>
+              (_category == _allCategoryLabel || stamp.category == _category) &&
+              (query.isEmpty || _userStampSearchText(stamp).contains(query)),
         )
         .toList(growable: false);
     final recentStamps = <_AnnotationStamp>[
@@ -20672,7 +20686,9 @@ class _AnnotationStampPickerSheetState
             selectedStamp: widget.selectedStamp,
           ),
           _UserStampSection(
-            packs: _userStampPacks,
+            stamps: userStamps,
+            totalStampCount: allUserStamps.length,
+            isFiltered: query.isNotEmpty || _category != _allCategoryLabel,
             isSaving: _isSavingUserStamp,
             onCreateTextStamp: _createTextUserStamp,
             onCreateIconStamp: _createIconUserStamp,
@@ -20735,14 +20751,18 @@ class _AnnotationStampPickerSheetState
 
 class _UserStampSection extends StatelessWidget {
   const _UserStampSection({
-    required this.packs,
+    required this.stamps,
+    required this.totalStampCount,
+    required this.isFiltered,
     required this.isSaving,
     required this.onCreateTextStamp,
     required this.onCreateIconStamp,
     required this.onDeleteStamp,
   });
 
-  final List<SheetAnnotationStampPack> packs;
+  final List<SheetAnnotationUserStamp> stamps;
+  final int totalStampCount;
+  final bool isFiltered;
   final bool isSaving;
   final VoidCallback onCreateTextStamp;
   final VoidCallback onCreateIconStamp;
@@ -20752,9 +20772,6 @@ class _UserStampSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final stamps = <SheetAnnotationUserStamp>[
-      for (final pack in packs) ...pack.stamps,
-    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: DecoratedBox(
@@ -20769,7 +20786,7 @@ class _UserStampSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                stamps.isEmpty
+                totalStampCount == 0
                     ? Icons.add_reaction_outlined
                     : Icons.collections_bookmark_outlined,
                 color: colorScheme.onSurfaceVariant,
@@ -20789,7 +20806,11 @@ class _UserStampSection extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (stamps.isEmpty)
                       Text(
-                        '추가된 사용자 스탬프가 없습니다.',
+                        totalStampCount == 0
+                            ? '추가된 사용자 스탬프가 없습니다.'
+                            : isFiltered
+                            ? '조건에 맞는 사용자 스탬프가 없습니다.'
+                            : '사용자 스탬프가 없습니다.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -20847,6 +20868,18 @@ class _UserStampSection extends StatelessWidget {
       ),
     );
   }
+}
+
+String _userStampSearchText(SheetAnnotationUserStamp stamp) {
+  return [
+    stamp.label,
+    stamp.category,
+    stamp.kind,
+    stamp.text,
+    stamp.iconName,
+    stamp.assetRef,
+    ...stamp.keywords,
+  ].join(' ').toLowerCase();
 }
 
 class _UserTextStampDraft {

@@ -369,8 +369,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, metadata save/load, malformed
   storage fallback, metadata backup restore, text/icon stamp create/delete/reload, picker
-  create/select/delete, setlist package stamp metadata round-trip/import merge, package duplicate stamp
-  preview and local-preservation merge.
+  create/select/delete, user stamp search/category filtering, setlist package stamp metadata
+  round-trip/import merge, package duplicate stamp preview and local-preservation merge.
 - 남은 테스트/fixture/실기기 조건: deleted stamp fallback, Korean/English
   label, large pack performance, PDF export, S Pen picker use.
 - Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,

@@ -3477,6 +3477,67 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'annotation stamp picker filters user stamps by search and category',
+    (tester) async {
+      final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+        'id': 'user',
+        'name': '사용자 스탬프',
+        'createdAt': '2026-10-02T10:00:00.000',
+        'updatedAt': '2026-10-02T10:00:00.000',
+        'stamps': const <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'bow-cue',
+            'packId': 'user',
+            'label': 'Bow cue',
+            'category': '개인 표시',
+            'kind': 'text',
+            'text': 'BOW',
+          },
+          <String, Object?>{
+            'id': 'repeat-cue',
+            'packId': 'user',
+            'label': 'Repeat cue',
+            'category': '사용자',
+            'kind': 'icon',
+            'iconName': 'repeat',
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        buildAnnotationToolbarForTest(
+          userStampPacks: <SheetAnnotationStampPack>[userPack],
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('스탬프 선택'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('스탬프 선택'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'bow');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, '개인 표시'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('annotation stamp picker creates and selects user icon stamps', (
     tester,
   ) async {
