@@ -135,6 +135,53 @@ class SheetCollaborationInviteDecodeResult {
   bool get isValid => status == SheetCollaborationInviteStatus.valid;
 }
 
+class SheetCollaborationLocalSimulator {
+  SheetCollaborationLocalSimulator({
+    required this.invite,
+    required Set<String> followerScoreIds,
+  }) : _followerScoreIds = Set<String>.unmodifiable(followerScoreIds),
+       _state = SheetFollowerSyncState.idle(invite.sessionId);
+
+  final SheetCollaborationInvite invite;
+  Set<String> _followerScoreIds;
+  SheetFollowerSyncState _state;
+  int _sequence = 0;
+
+  SheetFollowerSyncState get state => _state;
+
+  Set<String> get followerScoreIds => _followerScoreIds;
+
+  SheetFollowerSyncState applyLeaderPage({
+    required String scoreId,
+    required int page,
+    required DateTime timestamp,
+  }) {
+    _sequence += 1;
+    _state = _state.applyLeaderEvent(
+      SheetLeaderPageEvent(
+        sessionId: invite.sessionId,
+        sequence: _sequence,
+        leaderDeviceId: invite.leaderDeviceId,
+        setlistId: invite.setlistId,
+        scoreId: scoreId,
+        page: page,
+        timestamp: timestamp,
+      ),
+      availableScoreIds: _followerScoreIds,
+    );
+    return _state;
+  }
+
+  SheetFollowerSyncState markDisconnected(DateTime timestamp) {
+    _state = _state.markDisconnected(timestamp);
+    return _state;
+  }
+
+  void replaceFollowerScoreIds(Set<String> scoreIds) {
+    _followerScoreIds = Set<String>.unmodifiable(scoreIds);
+  }
+}
+
 class SheetLeaderPageEvent {
   const SheetLeaderPageEvent({
     required this.sessionId,

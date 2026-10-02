@@ -2028,3 +2028,10 @@ valid, malformed, unsupported-version and expired invites, so a future pairing U
 foreign codes without starting a follower session. Unit tests cover payload round trip, expiry, version
 gate and malformed/missing lifetime data. QR rendering, local simulator UI, transport and two-device QA
 remain follow-up.
+
+S161 VERIFIED LOCAL: added a same-device leader/follower simulator core without network transport.
+`SheetCollaborationLocalSimulator` uses a valid invite to generate monotonic leader page events and
+feeds them through the follower reducer with a controlled follower score set. Tests cover normal page
+sync, missing-score hold, recovery after the follower library gains the score and disconnect preserving
+the last visible page. This makes mismatch/reconnect behavior testable before QR UI, transport, local
+network permission and two-device QA.

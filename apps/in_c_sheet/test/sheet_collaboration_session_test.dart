@@ -93,6 +93,128 @@ void main() {
     expect(decoded.message, contains('필요한 공연 세션 정보'));
   });
 
+  test('local simulator applies leader pages through the follower reducer', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final simulator = SheetCollaborationLocalSimulator(
+      invite: SheetCollaborationInvite(
+        sessionId: 'session-1',
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        createdAt: now,
+        expiresAt: now.add(const Duration(minutes: 5)),
+      ),
+      followerScoreIds: {'score-a'},
+    );
+
+    final first = simulator.applyLeaderPage(
+      scoreId: 'score-a',
+      page: 2,
+      timestamp: now.add(const Duration(seconds: 1)),
+    );
+    final second = simulator.applyLeaderPage(
+      scoreId: 'score-a',
+      page: 3,
+      timestamp: now.add(const Duration(seconds: 2)),
+    );
+
+    expect(first.status, SheetFollowerSyncStatus.synced);
+    expect(first.lastSequence, 1);
+    expect(first.page, 2);
+    expect(second.status, SheetFollowerSyncStatus.synced);
+    expect(second.lastSequence, 2);
+    expect(second.page, 3);
+    expect(simulator.state.page, 3);
+  });
+
+  test('local simulator keeps page when leader points to a missing score', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final simulator =
+        SheetCollaborationLocalSimulator(
+          invite: SheetCollaborationInvite(
+            sessionId: 'session-1',
+            leaderDeviceId: 'leader-a',
+            setlistId: 'setlist-a',
+            createdAt: now,
+            expiresAt: now.add(const Duration(minutes: 5)),
+          ),
+          followerScoreIds: {'score-a'},
+        )..applyLeaderPage(
+          scoreId: 'score-a',
+          page: 2,
+          timestamp: now.add(const Duration(seconds: 1)),
+        );
+
+    final missing = simulator.applyLeaderPage(
+      scoreId: 'score-b',
+      page: 1,
+      timestamp: now.add(const Duration(seconds: 2)),
+    );
+
+    expect(missing.status, SheetFollowerSyncStatus.missingScore);
+    expect(missing.lastSequence, 2);
+    expect(missing.scoreId, 'score-a');
+    expect(missing.page, 2);
+  });
+
+  test('local simulator can recover after follower library gains score', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final simulator =
+        SheetCollaborationLocalSimulator(
+          invite: SheetCollaborationInvite(
+            sessionId: 'session-1',
+            leaderDeviceId: 'leader-a',
+            setlistId: 'setlist-a',
+            createdAt: now,
+            expiresAt: now.add(const Duration(minutes: 5)),
+          ),
+          followerScoreIds: {'score-a'},
+        )..applyLeaderPage(
+          scoreId: 'score-b',
+          page: 1,
+          timestamp: now.add(const Duration(seconds: 1)),
+        );
+
+    simulator.replaceFollowerScoreIds({'score-a', 'score-b'});
+    final recovered = simulator.applyLeaderPage(
+      scoreId: 'score-b',
+      page: 2,
+      timestamp: now.add(const Duration(seconds: 2)),
+    );
+
+    expect(recovered.status, SheetFollowerSyncStatus.synced);
+    expect(recovered.lastSequence, 2);
+    expect(recovered.scoreId, 'score-b');
+    expect(recovered.page, 2);
+  });
+
+  test('local simulator disconnect preserves last page', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final simulator =
+        SheetCollaborationLocalSimulator(
+          invite: SheetCollaborationInvite(
+            sessionId: 'session-1',
+            leaderDeviceId: 'leader-a',
+            setlistId: 'setlist-a',
+            createdAt: now,
+            expiresAt: now.add(const Duration(minutes: 5)),
+          ),
+          followerScoreIds: {'score-a'},
+        )..applyLeaderPage(
+          scoreId: 'score-a',
+          page: 2,
+          timestamp: now.add(const Duration(seconds: 1)),
+        );
+
+    final disconnected = simulator.markDisconnected(
+      now.add(const Duration(seconds: 2)),
+    );
+
+    expect(disconnected.status, SheetFollowerSyncStatus.disconnected);
+    expect(disconnected.scoreId, 'score-a');
+    expect(disconnected.page, 2);
+    expect(disconnected.message, contains('현재 쪽'));
+  });
+
   test('follower applies newer leader page events for available scores', () {
     final now = DateTime(2026, 10, 2, 20);
     final state = SheetFollowerSyncState.idle('session-1');

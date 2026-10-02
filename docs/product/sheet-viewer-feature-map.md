@@ -126,8 +126,8 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 정보 JSON과 전체 ZIP 모두 복원 전 파일을 읽어 악보/세트리스트 수, 변경 요약, 누락 파일 경고를 보여준다. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
 | 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
 | 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | backup menu에 `백업 상태`를 추가해 자동 정보 snapshot 존재 여부, 최근 수동 백업 기록, 현재 라이브러리 범위, PDF 포함 전체 백업 필요성을 먼저 설명한다. 두 metadata backup snapshot의 added/removed/changed score/setlist, file-path conflict 후보, annotation 후보, setlist order, settings 변경을 계산하는 sync dry-run core와 요약/report/merge-risk/field-label model이 있다. 자동 정보 복원 dialog는 현재 metadata와 자동 snapshot의 변경 요약/검토 필요 문구를 복원 전 표시한다. 외부 metadata JSON backup과 PDF 포함 전체 ZIP backup도 파일 선택 후 복원 전 preview를 표시하고 ready/invalid/unsupported/error를 분리한다. v1.1 spike는 account 없는 cloud-folder export와 account-backed continuous sync를 분리했다. Conflict model은 metadata field merge, annotation object merge/tombstone, setlist order review, binary duplicate preservation을 기본 원칙으로 둔다 |
-| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Leader/follower spike가 page/setlist event reducer, QR/code pairing, mismatch/disconnect UX, transport 선택을 분리했다. Offline follower reducer는 session mismatch, out-of-order event, missing score, disconnect 상태를 잘못된 page move 없이 처리한다. QR/code invite payload core는 session/leader/setlist/expiry와 version gate를 검증한다. 실제 네트워크 구현 전 simulator와 two-device QA 필요 |
-| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | Same setlist/page state를 follower에 보내되 missing score와 out-of-order page event를 안전하게 처리하는 reducer core와 versioned invite payload core가 있다. QR rendering, local simulator, transport/API는 후속 결정 |
+| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Leader/follower spike가 page/setlist event reducer, QR/code pairing, mismatch/disconnect UX, transport 선택을 분리했다. Offline follower reducer는 session mismatch, out-of-order event, missing score, disconnect 상태를 잘못된 page move 없이 처리한다. QR/code invite payload core는 session/leader/setlist/expiry와 version gate를 검증한다. Same-device simulator core는 monotonic leader event, missing-score hold, follower recovery, disconnect를 네트워크 없이 검증한다. 실제 네트워크 구현 전 simulator UI와 two-device QA 필요 |
+| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | Same setlist/page state를 follower에 보내되 missing score와 out-of-order page event를 안전하게 처리하는 reducer core, versioned invite payload core, local simulator core가 있다. QR rendering UI, transport/API는 후속 결정 |
 | 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | Cloud sync spike에서 annotation object-level additive merge와 deletion tombstone을 우선 원칙으로 둔다 |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
 | 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·개발자용 기기 리포트·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
@@ -354,8 +354,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - face gesture page turn.
 - MIDI registration/linking.
 - cloud library sync. Backup health/status 화면, 최근 수동 백업 기록, backup snapshot diff/report/merge-risk/field-label core, 자동 정보 복원 dry-run preview, 외부 metadata JSON/full ZIP file-picker preview는 추가됐고, cloud-folder export와 field-level merge 적용은 후속이다.
-- 기기 간 페이지 전환. Offline event reducer와 QR/code invite payload core는 추가됐고, simulator와 transport spike를 선행한다.
-- leader/follower tablet 협업. QR rendering, mismatch/reconnect UX, two-device QA가 필요하다.
+- 기기 간 페이지 전환. Offline event reducer, QR/code invite payload core, local simulator core는 추가됐고, simulator UI와 transport spike를 선행한다.
+- leader/follower tablet 협업. QR rendering, mismatch/reconnect UI, two-device QA가 필요하다.
 - 주석 보존 sync. Annotation object merge/tombstone conflict model이 필요하다.
 - visible watermark 제거는 별도 법적/윤리적 검토 전까지 비목표로 유지한다.
 
