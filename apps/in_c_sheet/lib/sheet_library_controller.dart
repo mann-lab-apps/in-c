@@ -10,6 +10,7 @@ import 'sheet_auto_scroll.dart';
 import 'sheet_chordpro.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_backup_diff.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
@@ -3818,6 +3819,23 @@ class SheetLibraryController extends ChangeNotifier {
       await load();
     }
     return result;
+  }
+
+  Future<SheetLibraryBackupDiffReport?> loadAutomaticBackupDiffReport() async {
+    final automaticBackup = await store.loadAutomaticMetadataBackup();
+    if (automaticBackup == null) {
+      return null;
+    }
+    try {
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      return SheetLibraryBackupDiffReport.fromDiff(
+        SheetLibraryBackupDiff.compare(currentBackup, automaticBackup),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {

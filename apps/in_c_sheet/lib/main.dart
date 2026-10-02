@@ -26,6 +26,7 @@ import 'sheet_device_check.dart';
 import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_backup_diff.dart';
 import 'sheet_library_controller.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
@@ -1618,12 +1619,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _restoreAutomaticBackup() async {
+    final diffReportFuture = controller.loadAutomaticBackupDiffReport();
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('자동 정보 복원'),
-        content: const Text(
-          '마지막 자동 정보 백업으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+        content: FutureBuilder<SheetLibraryBackupDiffReport?>(
+          future: diffReportFuture,
+          builder: (context, snapshot) {
+            return SingleChildScrollView(
+              child: _automaticBackupRestoreContent(snapshot),
+            );
+          },
         ),
         actions: [
           TextButton(
@@ -1658,6 +1665,41 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     };
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _automaticBackupRestoreContent(
+    AsyncSnapshot<SheetLibraryBackupDiffReport?> snapshot,
+  ) {
+    final report = snapshot.data;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('마지막 자동 정보 백업으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.'),
+        const SizedBox(height: 12),
+        if (snapshot.connectionState != ConnectionState.done)
+          const SizedBox(
+            height: 32,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (snapshot.hasError || report == null)
+          const Text('변경 요약을 읽지 못했습니다. 복원 전 현재 라이브러리를 확인하세요.')
+        else ...[
+          Text(
+            report.headline,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          for (final line in report.summaryLines) Text('• $line'),
+          if (report.reviewLines.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text('확인 필요', style: TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            for (final line in report.reviewLines) Text('• $line'),
+          ],
+        ],
+      ],
+    );
   }
 
   Future<void> _showGlobalViewerDefaults() async {

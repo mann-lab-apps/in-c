@@ -1270,6 +1270,29 @@ Clef & Staff 세트리스트
     },
   );
 
+  test('previews automatic metadata restore changes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
+    ]);
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final report = await controller.loadAutomaticBackupDiffReport();
+    expect(report?.headline, '백업 변경 1종 감지');
+    expect(report?.summaryLines, contains('새 악보 1개'));
+    expect(report?.requiresReview, isFalse);
+  });
+
   test('reports backup health without claiming cloud sync', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-09-27T10:00:00.000');

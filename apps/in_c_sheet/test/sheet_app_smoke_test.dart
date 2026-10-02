@@ -786,6 +786,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('automatic restore dialog previews backup changes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 27, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'auto-backup-score',
+        title: 'Automatic Backup Score',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/automatic-backup-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('자동 정보 복원'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('자동 정보 복원'), findsOneWidget);
+    expect(find.text('백업 변경 1종 감지'), findsOneWidget);
+    expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Clef home exposes RC actions without discovery surface', (
     tester,
   ) async {

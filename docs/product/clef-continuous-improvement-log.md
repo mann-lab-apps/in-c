@@ -1968,3 +1968,11 @@ backup exports now store the export kind, timestamp and output URI; the backup s
 `최근 수동 백업` card instead of only describing what should be backed up. Store/controller/widget
 tests cover record persistence and status surface display. This is still a local backup status hint,
 not cloud sync or a guarantee that the target provider retained the file.
+
+S153 VERIFIED LOCAL: connected the backup diff/report core to the first user-facing restore review
+surface. `자동 정보 복원` now computes a dry-run comparison between the current library metadata and
+the last automatic metadata snapshot, then shows a concise change summary and review warnings before
+the destructive restore confirmation. The restore operation itself still uses the existing rollback
+path; this slice only improves pre-restore visibility. Controller and widget tests cover the automatic
+backup diff report and dialog summary. External metadata JSON/full ZIP import previews and merge
+resolution remain follow-up.
