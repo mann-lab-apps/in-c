@@ -1739,6 +1739,57 @@ class SheetLibraryController extends ChangeNotifier {
     return _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
   }
 
+  Future<void> _mergeImportedUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> importedPacks, {
+    required String libraryId,
+  }) async {
+    final validImported = importedPacks
+        .where((pack) => pack.validate().isValid)
+        .toList(growable: false);
+    if (validImported.isEmpty || _activeLibraryProfile.id != libraryId) {
+      return;
+    }
+
+    final nextPacks = [..._userAnnotationStampPacks];
+    var didChange = false;
+    for (final importedPack in validImported) {
+      final index = nextPacks.indexWhere((pack) => pack.id == importedPack.id);
+      if (index == -1) {
+        nextPacks.add(importedPack);
+        didChange = true;
+        continue;
+      }
+      final existingPack = nextPacks[index];
+      final existingStampIds = {
+        for (final stamp in existingPack.stamps) stamp.id,
+      };
+      final newStamps = [
+        for (final stamp in importedPack.stamps)
+          if (!existingStampIds.contains(stamp.id)) stamp,
+      ];
+      if (newStamps.isEmpty) {
+        continue;
+      }
+      didChange = true;
+      nextPacks[index] = SheetAnnotationStampPack(
+        id: existingPack.id,
+        name: existingPack.name,
+        version: existingPack.version,
+        createdAt: existingPack.createdAt,
+        updatedAt: DateTime.now(),
+        stamps: List<SheetAnnotationUserStamp>.unmodifiable([
+          ...existingPack.stamps,
+          ...newStamps,
+        ]),
+      );
+    }
+
+    if (!didChange) {
+      return;
+    }
+    await _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+  }
+
   Future<bool> _replaceUserAnnotationStampPacks(
     List<SheetAnnotationStampPack> packs, {
     required String libraryId,
@@ -3087,6 +3138,12 @@ class SheetLibraryController extends ChangeNotifier {
     _scores = <SheetScore>[...createdScores.reversed, ..._scores];
     _setlists = <SheetSetlist>[setlist, ..._setlists];
     await _saveScoresAndSetlistsChanges();
+    if (_activeLibraryProfile.id == libraryId) {
+      await _mergeImportedUserAnnotationStampPacks(
+        dryRun.userStampPacks,
+        libraryId: libraryId,
+      );
+    }
     return setlist;
   }
 

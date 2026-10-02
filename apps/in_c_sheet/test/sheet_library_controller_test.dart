@@ -572,6 +572,23 @@ void main() {
     await store.saveScores([existing]);
     final controller = SheetLibraryController(store: store);
     await controller.load();
+    final packageStampPack = SheetAnnotationStampPack(
+      id: 'user',
+      name: '사용자 스탬프',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      stamps: const <SheetAnnotationUserStamp>[
+        SheetAnnotationUserStamp(
+          id: 'repeat-cue',
+          packId: 'user',
+          label: 'Repeat cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.iconKind,
+          iconName: 'repeat',
+        ),
+      ],
+    );
     final package = SheetSetlistPackageArchive.decodeBytes(
       SheetSetlistPackageArchive.encodeBytes(
         manifestText: '''
@@ -598,6 +615,7 @@ Clef & Staff 세트리스트
         scoreFiles: const {
           'scores/new-sonata.pdf': [1, 2, 3],
         },
+        userStampPacks: [packageStampPack],
       ),
     );
     final dryRun = package.previewImport(currentScores: controller.scores);
@@ -620,10 +638,19 @@ Clef & Staff 세트리스트
     expect(newScore.customFields.single.key, '장르');
     expect(newScore.customFields.single.value, 'Sonata');
     expect(store.importedPdfBytes.single, [1, 2, 3]);
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.single.iconName,
+      'repeat',
+    );
 
     await controller.load();
     expect(controller.setlists.single.scoreIds, ['existing', 'package-pdf-0']);
     expect(controller.scoreById('package-pdf-0').title, 'New Sonata');
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.single.id,
+      'repeat-cue',
+    );
   });
 
   test(

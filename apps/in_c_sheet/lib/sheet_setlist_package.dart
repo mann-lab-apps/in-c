@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
+import 'sheet_annotation.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
@@ -11,16 +12,19 @@ import 'sheet_setlist_manifest.dart';
 const String sheetSetlistPackageScope = 'clef.setlist.package';
 const int sheetSetlistPackageVersion = 1;
 const String sheetSetlistPackageManifestFileName = 'clef-setlist-package.txt';
+const String sheetSetlistPackageUserStampsFileName = 'clef-user-stamps.json';
 const String sheetSetlistPackageScoreDirectory = 'scores/';
 
 class SheetSetlistPackageArchive {
   const SheetSetlistPackageArchive({
     required this.manifest,
     required this.packageFiles,
+    this.userStampPacks = const <SheetAnnotationStampPack>[],
   });
 
   final SheetSetlistShareManifest manifest;
   final List<SheetSetlistPackageFile> packageFiles;
+  final List<SheetAnnotationStampPack> userStampPacks;
 
   SheetSetlistPackageDryRun previewImport({
     required List<SheetScore> currentScores,
@@ -29,6 +33,7 @@ class SheetSetlistPackageArchive {
       manifest: manifest,
       currentScores: currentScores,
       packageFiles: packageFiles,
+      userStampPacks: userStampPacks,
     );
   }
 
@@ -65,11 +70,24 @@ class SheetSetlistPackageArchive {
       );
     }
 
+    final stampPackEntries = fileEntries
+        .where((entry) => entry.name == sheetSetlistPackageUserStampsFileName)
+        .toList(growable: false);
+    if (stampPackEntries.length > 1) {
+      throw const FormatException(
+        'Setlist package contains more than one user stamp metadata file.',
+      );
+    }
+    final userStampPacks = stampPackEntries.isEmpty
+        ? const <SheetAnnotationStampPack>[]
+        : _decodeUserStampPacks(stampPackEntries.single.content);
+
     final paths = <String>{};
     final packageFiles = <SheetSetlistPackageFile>[];
     for (final entry in fileEntries) {
       final path = entry.name.trim();
-      if (path == sheetSetlistPackageManifestFileName) {
+      if (path == sheetSetlistPackageManifestFileName ||
+          path == sheetSetlistPackageUserStampsFileName) {
         continue;
       }
       if (!_isSafePackageScoreZipEntryPath(path)) {
@@ -90,12 +108,15 @@ class SheetSetlistPackageArchive {
     return SheetSetlistPackageArchive(
       manifest: manifest,
       packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
+      userStampPacks: userStampPacks,
     );
   }
 
   static Uint8List encodeBytes({
     required String manifestText,
     required Map<String, List<int>> scoreFiles,
+    List<SheetAnnotationStampPack> userStampPacks =
+        const <SheetAnnotationStampPack>[],
   }) {
     final manifest = SheetSetlistShareManifest.tryParse(manifestText);
     if (manifest == null) {
@@ -108,6 +129,21 @@ class SheetSetlistPackageArchive {
     archive.addFile(
       ArchiveFile.string(sheetSetlistPackageManifestFileName, manifestText),
     );
+    final normalizedStampPacks = _normalizePackageUserStampPacks(
+      userStampPacks,
+    );
+    if (normalizedStampPacks.isNotEmpty) {
+      archive.addFile(
+        ArchiveFile.string(
+          sheetSetlistPackageUserStampsFileName,
+          const JsonEncoder.withIndent('  ').convert(
+            normalizedStampPacks
+                .map((pack) => pack.toJson())
+                .toList(growable: false),
+          ),
+        ),
+      );
+    }
     final paths = <String>{};
     for (final entry in scoreFiles.entries) {
       final path = entry.key.trim().replaceAll('\\', '/');
@@ -126,6 +162,8 @@ class SheetSetlistPackageArchive {
     required SheetSetlist setlist,
     required List<SheetScore> scores,
     required Future<List<int>?> Function(SheetScore score) readScoreBytes,
+    List<SheetAnnotationStampPack> userStampPacks =
+        const <SheetAnnotationStampPack>[],
   }) async {
     final orderedScores = _scoresInSetlistOrder(setlist, scores);
     final manifestText = _setlistPackageManifestText(setlist, orderedScores);
@@ -177,9 +215,16 @@ class SheetSetlistPackageArchive {
     }
 
     return SheetSetlistPackageExportResult(
-      bytes: encodeBytes(manifestText: manifestText, scoreFiles: scoreFiles),
+      bytes: encodeBytes(
+        manifestText: manifestText,
+        scoreFiles: scoreFiles,
+        userStampPacks: userStampPacks,
+      ),
       manifestText: manifestText,
       includedFileCount: scoreFiles.length,
+      includedUserStampPackCount: _normalizePackageUserStampPacks(
+        userStampPacks,
+      ).length,
       missingScores: const <SheetScore>[],
       unsupportedScores: const <SheetScore>[],
     );
@@ -193,11 +238,13 @@ class SheetSetlistPackageExportResult {
     required this.unsupportedScores,
     this.bytes,
     this.includedFileCount = 0,
+    this.includedUserStampPackCount = 0,
   });
 
   final Uint8List? bytes;
   final String manifestText;
   final int includedFileCount;
+  final int includedUserStampPackCount;
   final List<SheetScore> missingScores;
   final List<SheetScore> unsupportedScores;
 
@@ -251,22 +298,27 @@ class SheetSetlistPackageDryRun {
     required this.manifest,
     required this.entries,
     this.packageFiles = const <SheetSetlistPackageFile>[],
+    this.userStampPacks = const <SheetAnnotationStampPack>[],
   });
 
   final SheetSetlistShareManifest manifest;
   final List<SheetSetlistPackageEntry> entries;
   final List<SheetSetlistPackageFile> packageFiles;
+  final List<SheetAnnotationStampPack> userStampPacks;
 
   factory SheetSetlistPackageDryRun.preview({
     required SheetSetlistShareManifest manifest,
     required List<SheetScore> currentScores,
     required List<SheetSetlistPackageFile> packageFiles,
+    List<SheetAnnotationStampPack> userStampPacks =
+        const <SheetAnnotationStampPack>[],
   }) {
     final existingPreview = manifest.matchScores(currentScores);
     final matches = existingPreview.matches;
     return SheetSetlistPackageDryRun(
       manifest: manifest,
       packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
+      userStampPacks: _normalizePackageUserStampPacks(userStampPacks),
       entries: List<SheetSetlistPackageEntry>.unmodifiable([
         for (var index = 0; index < manifest.items.length; index++)
           SheetSetlistPackageEntry.resolve(
@@ -490,6 +542,41 @@ List<SheetScore> _scoresInSetlistOrder(
     for (final scoreId in setlist.scoreIds)
       if (scoresById[scoreId] != null) scoresById[scoreId]!,
   ];
+}
+
+List<SheetAnnotationStampPack> _decodeUserStampPacks(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! List) {
+      return const <SheetAnnotationStampPack>[];
+    }
+    return _normalizePackageUserStampPacks(
+      decoded
+          .whereType<Map>()
+          .map(
+            (json) => SheetAnnotationStampPack.fromJson(
+              json.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          )
+          .toList(growable: false),
+    );
+  } catch (_) {
+    return const <SheetAnnotationStampPack>[];
+  }
+}
+
+List<SheetAnnotationStampPack> _normalizePackageUserStampPacks(
+  List<SheetAnnotationStampPack> packs,
+) {
+  final normalized = <SheetAnnotationStampPack>[];
+  final seenPackIds = <String>{};
+  for (final pack in packs) {
+    if (!pack.validate().isValid || !seenPackIds.add(pack.id)) {
+      continue;
+    }
+    normalized.add(pack);
+  }
+  return List<SheetAnnotationStampPack>.unmodifiable(normalized);
 }
 
 String _setlistPackageManifestText(

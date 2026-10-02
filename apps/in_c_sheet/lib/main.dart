@@ -7447,7 +7447,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     : Icons.info_outline,
                 title: canImportLater ? '가져올 준비가 된 패키지입니다' : '확인이 필요합니다',
                 message:
-                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 확인 ${dryRun.unresolvedCount}개',
+                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 스탬프 pack ${dryRun.userStampPacks.length}개 · 확인 ${dryRun.unresolvedCount}개',
                 color: canImportLater
                     ? theme.colorScheme.secondary
                     : theme.colorScheme.tertiary,
@@ -7475,6 +7475,15 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     label: Text('확인 ${dryRun.unresolvedCount}개'),
                     visualDensity: VisualDensity.compact,
                   ),
+                  if (dryRun.userStampPacks.isNotEmpty)
+                    Chip(
+                      avatar: const Icon(
+                        Icons.collections_bookmark_outlined,
+                        size: 16,
+                      ),
+                      label: Text('스탬프 ${dryRun.userStampPacks.length}팩'),
+                      visualDensity: VisualDensity.compact,
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -7599,7 +7608,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$setlistTitle · PDF/JPG/PNG 원본과 Clef manifest를 ZIP으로 묶습니다.',
+                '$setlistTitle · PDF/JPG/PNG 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -7609,7 +7618,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
                 icon: canShare ? Icons.archive_outlined : Icons.error_outline,
                 title: canShare ? '공유할 패키지를 만들었습니다' : '패키지를 만들 수 없습니다',
                 message: canShare
-                    ? '곡 $scoreCount개 · 파일 ${result.includedFileCount}개 · 가져오기 전 preview에서 다시 확인합니다.'
+                    ? '곡 $scoreCount개 · 파일 ${result.includedFileCount}개 · 스탬프 pack ${result.includedUserStampPackCount}개 · 가져오기 전 preview에서 다시 확인합니다.'
                     : result.failureReason,
                 color: color,
               ),
@@ -7620,6 +7629,10 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
                 children: [
                   Chip(label: Text('곡 $scoreCount개')),
                   Chip(label: Text('파일 ${result.includedFileCount}개')),
+                  if (result.includedUserStampPackCount > 0)
+                    Chip(
+                      label: Text('스탬프 ${result.includedUserStampPackCount}팩'),
+                    ),
                   Chip(label: Text(canShare ? 'ZIP 준비 완료' : '확인 필요')),
                 ],
               ),
@@ -8681,6 +8694,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     final result = await SheetSetlistPackageArchive.exportSetlistBytes(
       setlist: currentSetlist,
       scores: scores,
+      userStampPacks: controller.userAnnotationStampPacks,
       readScoreBytes: (score) async {
         final file = File(score.filePath);
         if (!await file.exists()) {

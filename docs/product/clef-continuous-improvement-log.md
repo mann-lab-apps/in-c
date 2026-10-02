@@ -1906,3 +1906,11 @@ rendering path using a compact symbol fallback, and delete it without affecting 
 Controller coverage verifies create/reject/reload persistence for icon stamps, and widget coverage
 verifies picker creation and selection. Setlist package inclusion, image stamp import, multi-layer
 annotation and editable PDF annotation export remain follow-up work.
+
+S145 VERIFIED LOCAL: included text/icon custom stamp metadata in Clef setlist packages without
+bundling external image stamp assets. The package ZIP codec now writes and reads optional
+`clef-user-stamps.json`, filters invalid or image-gated packs, surfaces stamp pack counts in export
+and import previews, and merges new stamp ids into the active library after a successful package
+import. Codec and controller tests cover round-trip metadata and import persistence. Image stamp
+assets, package conflict review UI, multi-layer annotation and editable PDF annotation export remain
+follow-up work.

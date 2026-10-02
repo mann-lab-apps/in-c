@@ -1,5 +1,6 @@
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
@@ -201,6 +202,56 @@ Clef & Staff 세트리스트
     expect(dryRun.canImport, isTrue);
     expect(dryRun.existingScoreCount, 1);
     expect(dryRun.importableFileCount, 1);
+  });
+
+  test('codec preserves optional text and icon user stamp metadata', () {
+    final stampPack = SheetAnnotationStampPack(
+      id: 'user',
+      name: '사용자 스탬프',
+      version: 1,
+      createdAt: DateTime(2026, 10, 2, 12),
+      updatedAt: DateTime(2026, 10, 2, 12),
+      stamps: const <SheetAnnotationUserStamp>[
+        SheetAnnotationUserStamp(
+          id: 'bow-cue',
+          packId: 'user',
+          label: 'Bow cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.textKind,
+          text: 'BOW',
+        ),
+        SheetAnnotationUserStamp(
+          id: 'repeat-cue',
+          packId: 'user',
+          label: 'Repeat cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.iconKind,
+          iconName: 'repeat',
+        ),
+      ],
+    );
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Stamp Package
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''',
+      scoreFiles: const <String, List<int>>{},
+      userStampPacks: [stampPack],
+    );
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+
+    expect(package.userStampPacks, hasLength(1));
+    expect(package.userStampPacks.single.stamps.map((stamp) => stamp.id), [
+      'bow-cue',
+      'repeat-cue',
+    ]);
+    expect(dryRun.userStampPacks.single.stamps.last.iconName, 'repeat');
   });
 
   test('codec rejects packages without a Clef manifest', () {
