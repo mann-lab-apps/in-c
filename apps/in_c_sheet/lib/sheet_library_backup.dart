@@ -280,6 +280,41 @@ class SheetLibraryBackupExportResult {
   final String? failureReason;
 }
 
+enum SheetLibraryBackupExportKind { metadata, full }
+
+class SheetLibraryBackupExportRecord {
+  const SheetLibraryBackupExportRecord({
+    required this.kind,
+    required this.exportedAt,
+    required this.outputUri,
+  });
+
+  factory SheetLibraryBackupExportRecord.fromJson(Map<String, Object?> json) {
+    final rawKind = json['kind']?.toString();
+    final kind = SheetLibraryBackupExportKind.values.firstWhere(
+      (value) => value.name == rawKind,
+      orElse: () => SheetLibraryBackupExportKind.metadata,
+    );
+    return SheetLibraryBackupExportRecord(
+      kind: kind,
+      exportedAt: _dateFromJson(json['exportedAt']),
+      outputUri: json['outputUri']?.toString() ?? '',
+    );
+  }
+
+  final SheetLibraryBackupExportKind kind;
+  final DateTime exportedAt;
+  final String outputUri;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'kind': kind.name,
+      'exportedAt': exportedAt.toIso8601String(),
+      'outputUri': outputUri,
+    };
+  }
+}
+
 class SheetLibraryBackupRestoreResult {
   const SheetLibraryBackupRestoreResult({
     required this.status,

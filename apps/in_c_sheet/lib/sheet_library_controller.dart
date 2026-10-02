@@ -94,6 +94,7 @@ class SheetLibraryBackupHealth {
     this.automaticMetadataExportedAt,
     this.automaticMetadataScoreCount = 0,
     this.automaticMetadataSetlistCount = 0,
+    this.lastBackupExportRecord,
   });
 
   final int currentScoreCount;
@@ -108,6 +109,7 @@ class SheetLibraryBackupHealth {
   final DateTime? automaticMetadataExportedAt;
   final int automaticMetadataScoreCount;
   final int automaticMetadataSetlistCount;
+  final SheetLibraryBackupExportRecord? lastBackupExportRecord;
 
   int get currentExternalFileCount {
     return currentPdfScoreCount + linkedFileCount + fileBackedAnnotationCount;
@@ -3764,6 +3766,7 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetLibraryBackupHealth> loadBackupHealth() async {
     final automaticBackup = await store.loadAutomaticMetadataBackup();
+    final lastBackupExportRecord = await store.loadLastBackupExportRecord();
     var textScoreCount = 0;
     var pdfScoreCount = 0;
     var missingPrimaryFileCount = 0;
@@ -3796,6 +3799,7 @@ class SheetLibraryController extends ChangeNotifier {
       automaticMetadataExportedAt: automaticBackup?.exportedAt,
       automaticMetadataScoreCount: automaticBackup?.scores.length ?? 0,
       automaticMetadataSetlistCount: automaticBackup?.setlists.length ?? 0,
+      lastBackupExportRecord: lastBackupExportRecord,
     );
   }
 

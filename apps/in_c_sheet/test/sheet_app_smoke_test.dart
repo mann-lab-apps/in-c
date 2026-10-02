@@ -396,6 +396,11 @@ void main() {
         automaticMetadataExportedAt: DateTime(2026, 9, 27, 10),
         automaticMetadataScoreCount: 3,
         automaticMetadataSetlistCount: 1,
+        lastBackupExportRecord: SheetLibraryBackupExportRecord(
+          kind: SheetLibraryBackupExportKind.full,
+          exportedAt: DateTime(2026, 9, 27, 11),
+          outputUri: 'file:///tmp/clef-full-backup.zip',
+        ),
       ),
     );
     await controller.load();
@@ -411,7 +416,13 @@ void main() {
     expect(find.text('백업 상태'), findsWidgets);
     expect(find.text('자동 정보 백업 있음'), findsOneWidget);
     expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
-    expect(find.textContaining('동기화 완료 표시가 아닙니다'), findsOneWidget);
+    expect(find.text('최근 수동 백업'), findsOneWidget);
+    expect(find.textContaining('PDF 포함 전체 백업 ·'), findsOneWidget);
+    expect(find.textContaining('clef-full-backup.zip'), findsOneWidget);
+    expect(
+      find.textContaining('동기화 완료 표시가 아닙니다', skipOffstage: false),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

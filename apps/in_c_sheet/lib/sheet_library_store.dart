@@ -67,6 +67,7 @@ class SheetLibraryStore {
   static const _userAnnotationStampPacksKey =
       'clef_user_annotation_stamp_packs';
   static const _automaticMetadataBackupKey = 'clef_automatic_metadata_backup';
+  static const _lastBackupExportRecordKey = 'clef_last_backup_export_record';
   static const _libraryProfilesKey = 'clef_library_profiles';
   static const _activeLibraryProfileKey = 'clef_active_library_profile';
   static const _legacyScoresKey = 'in_c_sheet_scores';
@@ -243,6 +244,7 @@ class SheetLibraryStore {
       _scopedKey(_recentAnnotationStampsKey, libraryId): null,
       _scopedKey(_userAnnotationStampPacksKey, libraryId): null,
       _scopedKey(_automaticMetadataBackupKey, libraryId): null,
+      _scopedKey(_lastBackupExportRecordKey, libraryId): null,
     };
   }
 
@@ -723,6 +725,39 @@ class SheetLibraryStore {
     }
   }
 
+  Future<SheetLibraryBackupExportRecord?> loadLastBackupExportRecord() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    final json = _jsonMapFromString(
+      preferences.getString(
+        _scopedKey(_lastBackupExportRecordKey, activeLibraryId),
+      ),
+    );
+    if (json == null) {
+      return null;
+    }
+    try {
+      return SheetLibraryBackupExportRecord.fromJson(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveLastBackupExportRecord(
+    SheetLibraryBackupExportRecord record, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(
+        _lastBackupExportRecordKey,
+        activeLibraryId,
+      ): const JsonEncoder.withIndent('  ')
+          .convert(record.toJson()),
+    }, automaticBackupLibraryId: null);
+  }
+
   Future<SheetLibraryBackupRestoreResult>
   restoreAutomaticMetadataBackup() async {
     final value = await loadAutomaticMetadataBackupJson();
@@ -1194,7 +1229,8 @@ class SheetLibraryStore {
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() async {
     try {
       final backupJson = await exportMetadataBackupJson();
-      final fileName = _backupFileName(DateTime.now());
+      final exportedAt = DateTime.now();
+      final fileName = _backupFileName(exportedAt);
       final bytes = Uint8List.fromList(utf8.encode(backupJson));
       Uri? outputUri;
       try {
@@ -1210,6 +1246,17 @@ class SheetLibraryStore {
       }
 
       outputUri ??= Uri.file(await _writeInternalBackup(fileName, backupJson));
+      try {
+        await saveLastBackupExportRecord(
+          SheetLibraryBackupExportRecord(
+            kind: SheetLibraryBackupExportKind.metadata,
+            exportedAt: exportedAt,
+            outputUri: outputUri.toString(),
+          ),
+        );
+      } catch (_) {
+        // The backup itself succeeded; the status hint can be retried later.
+      }
       return SheetLibraryBackupExportResult(
         didExport: true,
         outputUri: outputUri,
@@ -1341,7 +1388,8 @@ class SheetLibraryStore {
   Future<SheetLibraryBackupExportResult> exportFullBackup() async {
     try {
       final bytes = await exportFullBackupZipBytes();
-      final fileName = _fullBackupFileName(DateTime.now());
+      final exportedAt = DateTime.now();
+      final fileName = _fullBackupFileName(exportedAt);
       Uri? outputUri;
       try {
         outputUri = await FilePicker.saveFile(
@@ -1356,6 +1404,17 @@ class SheetLibraryStore {
       }
 
       outputUri ??= Uri.file(await _writeInternalBackupBytes(fileName, bytes));
+      try {
+        await saveLastBackupExportRecord(
+          SheetLibraryBackupExportRecord(
+            kind: SheetLibraryBackupExportKind.full,
+            exportedAt: exportedAt,
+            outputUri: outputUri.toString(),
+          ),
+        );
+      } catch (_) {
+        // The backup itself succeeded; the status hint can be retried later.
+      }
       return SheetLibraryBackupExportResult(
         didExport: true,
         outputUri: outputUri,

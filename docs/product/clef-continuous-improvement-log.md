@@ -1961,3 +1961,10 @@ into concise Korean summary lines and separates review-needed cases such as remo
 file/link changes, annotation changes, setlist order changes and global settings changes. Unit
 coverage verifies no-op backups, mixed score/setlist changes and file/settings review warnings.
 Actual cloud-folder selection, side-by-side conflict UI and any merge/apply action remain follow-up.
+
+S152 VERIFIED LOCAL: closed one backup confidence gap before cloud sync by recording the most recent
+manual metadata/full backup export per active library. Successful metadata and PDF-including full
+backup exports now store the export kind, timestamp and output URI; the backup status sheet shows a
+`최근 수동 백업` card instead of only describing what should be backed up. Store/controller/widget
+tests cover record persistence and status surface display. This is still a local backup status hint,
+not cloud sync or a guarantee that the target provider retained the file.

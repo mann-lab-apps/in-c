@@ -174,8 +174,8 @@ Repo 포함 fixture:
 4. iOS TestFlight 또는 local no-codesign build에서 Files open-in, PDF/JPG/PNG import, viewer
    rotation/two-page rendering을 확인한다.
 5. PDF import/viewer/search/export/backup 기본 흐름을 `clef-v1-rc-qa-plan.md` 순서대로 실행한다.
-   백업 메뉴의 `백업 상태`에서 자동 정보 snapshot과 PDF 포함 전체 백업의 차이가 명확한지
-   확인하고, cloud sync 완료처럼 보이면 문구/위치를 기록한다.
+   백업 메뉴의 `백업 상태`에서 자동 정보 snapshot, 최근 수동 백업 기록, PDF 포함 전체 백업의
+   차이가 명확한지 확인하고, cloud sync 완료처럼 보이면 문구/위치를 기록한다.
 6. S Pen pressure, palm rejection, 필기/스크롤 충돌을 집중 확인한다.
 7. Bluetooth/USB 페달과 hardware keyboard를 연결해 predefined/custom/unknown inputId mapping을
    확인한다.

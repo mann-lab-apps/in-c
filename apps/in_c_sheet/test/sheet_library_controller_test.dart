@@ -1320,6 +1320,37 @@ Clef & Staff 세트리스트
     expect(health.currentTextScoreCount, 1);
     expect(health.userStampPackCount, 1);
     expect(health.missingPrimaryFileCount, 2);
+    expect(health.lastBackupExportRecord, isNull);
+  });
+
+  test('reports the last manual backup export record', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-09-27T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', filePath: '/tmp/score.pdf'),
+    ]);
+    await store.saveLastBackupExportRecord(
+      SheetLibraryBackupExportRecord(
+        kind: SheetLibraryBackupExportKind.full,
+        exportedAt: now,
+        outputUri: 'file:///tmp/clef-full-backup.zip',
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final health = await controller.loadBackupHealth();
+    expect(
+      health.lastBackupExportRecord?.kind,
+      SheetLibraryBackupExportKind.full,
+    );
+    expect(health.lastBackupExportRecord?.exportedAt, now);
+    expect(
+      health.lastBackupExportRecord?.outputUri,
+      'file:///tmp/clef-full-backup.zip',
+    );
   });
 
   test('updates and reloads global viewer action defaults', () async {

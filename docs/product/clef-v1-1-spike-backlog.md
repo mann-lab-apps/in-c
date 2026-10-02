@@ -336,8 +336,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
     조용히 잃을 수 있으므로 기본값으로 두지 않는다.
   - 파일 binary 충돌은 자동 덮어쓰기 금지. 두 사본을 모두 보존하고 사용자에게 교체/보관을 묻는다.
 - 구현 후보:
-  1. Backup health/status 화면: 자동 metadata snapshot과 현재 라이브러리 범위, PDF 포함 전체 백업
-     필요성을 보여주는 첫 화면은 구현됐다. 마지막 full backup/package export 기록은 후속이다.
+  1. Backup health/status 화면: 자동 metadata snapshot, 현재 라이브러리 범위, PDF 포함 전체 백업
+     필요성, 최근 수동 metadata/full backup export 기록을 보여주는 첫 화면은 구현됐다. Setlist
+     package export별 상세 이력은 후속이다.
   2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
   3. Sync dry-run: 두 metadata backup snapshot의 score/setlist/settings 변경과 file/annotation conflict
      후보를 계산하고 요약/검토 필요 문구로 바꾸는 core는 구현됐다. 사용자-facing conflict

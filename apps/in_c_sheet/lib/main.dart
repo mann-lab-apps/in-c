@@ -1461,6 +1461,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           : 'PDF ${health.currentPdfScoreCount}곡, 연결 파일 ${health.linkedFileCount}개, '
                                 '파일 기반 필기 ${health.fileBackedAnnotationCount}개를 포함하려면 전체 백업을 실행하세요.',
                     ),
+                    const SizedBox(height: 10),
+                    _BackupStatusCard(
+                      icon: health.lastBackupExportRecord == null
+                          ? Icons.cloud_off_outlined
+                          : Icons.backup_outlined,
+                      title: '최근 수동 백업',
+                      body: health.lastBackupExportRecord == null
+                          ? '아직 사용자가 저장한 백업 기록이 없습니다. 정보 백업 또는 PDF 포함 전체 백업을 만들어 파일 앱/클라우드에 보관하세요.'
+                          : _backupExportRecordLabel(
+                              health.lastBackupExportRecord!,
+                            ),
+                    ),
                     if (health.missingPrimaryFileCount > 0) ...[
                       const SizedBox(height: 10),
                       _BackupStatusCard(
@@ -1482,6 +1494,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         },
       ),
     );
+  }
+
+  String _backupExportRecordLabel(SheetLibraryBackupExportRecord record) {
+    final kind = switch (record.kind) {
+      SheetLibraryBackupExportKind.metadata => '정보 백업',
+      SheetLibraryBackupExportKind.full => 'PDF 포함 전체 백업',
+    };
+    return '$kind · ${_formatShortDateTime(record.exportedAt)}\n'
+        '${record.outputUri}';
   }
 
   String? _libraryAnnotationSummary() {
