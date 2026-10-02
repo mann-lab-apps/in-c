@@ -126,6 +126,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - 구현 상태: preview에서 선택된 항목을 `SheetExternalFolderCopyPlan`으로 검증하는 core는 구현됨.
      읽기 가능한 비중복 PDF만 copy candidate가 되며, 중복/읽기 실패/미지원/stale selection은 실제 import
      전에 차단된다. SAF byte read와 기존 import pipeline 연결, source metadata 저장은 후속.
+   - 구현 상태: `SheetExternalFolderCopySource`는 display/provider/folder/size/modified hint를 score/backup
+     metadata로 만들되 platform document token은 내보내지 않는다. 저장된 score metadata 연결은 후속.
 
 3. **Persistent direct reference**
    - 별도 score storage type을 추가해 앱 내부 사본 없이 tree URI를 직접 열 수 있게 한다.

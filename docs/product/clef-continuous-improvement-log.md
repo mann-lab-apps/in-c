@@ -2052,3 +2052,10 @@ non-duplicate PDF candidate. Empty, stale/unknown, duplicate, unreadable and uns
 stay blocked before any file bytes reach the existing import pipeline. Unit tests cover ready plans,
 blocked mixed selections and stale selection ids. Actual SAF byte reading, source-folder metadata and
 user-facing folder picker UI remain follow-up work.
+
+S164 VERIFIED LOCAL: added the safe source-metadata draft for future folder copy imports. The new
+`SheetExternalFolderCopySource` preserves user-facing hints such as display name, provider label,
+folder label, size and modified time, but keeps the platform document token out of score/backup JSON.
+Focused tests cover token redaction, ISO modified timestamps and omission of empty/invalid optional
+fields. Wiring this metadata into saved scores, SAF byte reads and the user-facing folder picker UI
+remain follow-up work.

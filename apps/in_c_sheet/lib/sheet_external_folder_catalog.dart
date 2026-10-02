@@ -278,3 +278,60 @@ class SheetExternalFolderCopyPlan {
 
   int get copyCount => copyCandidates.length;
 }
+
+class SheetExternalFolderCopySource {
+  const SheetExternalFolderCopySource({
+    required this.displayName,
+    this.platform = 'android-saf',
+    this.folderLabel,
+    this.providerLabel,
+    this.sizeBytes,
+    this.modifiedAt,
+    this.documentToken,
+  });
+
+  factory SheetExternalFolderCopySource.fromCandidate(
+    SheetExternalFolderImportCandidate candidate, {
+    String platform = 'android-saf',
+    String? folderLabel,
+    String? documentToken,
+  }) {
+    final entry = candidate.entry;
+    return SheetExternalFolderCopySource(
+      displayName: entry.displayName,
+      platform: platform,
+      folderLabel: folderLabel,
+      providerLabel: entry.providerLabel,
+      sizeBytes: entry.sizeBytes,
+      modifiedAt: entry.modifiedAt,
+      documentToken: documentToken ?? entry.documentId,
+    );
+  }
+
+  final String displayName;
+  final String platform;
+  final String? folderLabel;
+  final String? providerLabel;
+  final int? sizeBytes;
+  final DateTime? modifiedAt;
+  final String? documentToken;
+
+  bool get hasSensitiveToken => documentToken?.trim().isNotEmpty == true;
+
+  Map<String, Object?> toScoreMetadataJson() {
+    return <String, Object?>{
+      'platform': platform.trim(),
+      'displayName': displayName.trim(),
+      if (folderLabel?.trim().isNotEmpty == true)
+        'folderLabel': folderLabel!.trim(),
+      if (providerLabel?.trim().isNotEmpty == true)
+        'providerLabel': providerLabel!.trim(),
+      if (sizeBytes != null && sizeBytes! >= 0) 'sizeBytes': sizeBytes,
+      if (modifiedAt != null) 'modifiedAt': modifiedAt!.toIso8601String(),
+    };
+  }
+
+  Map<String, Object?> toBackupJson() {
+    return toScoreMetadataJson();
+  }
+}

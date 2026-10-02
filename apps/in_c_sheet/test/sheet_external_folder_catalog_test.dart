@@ -165,4 +165,50 @@ void main() {
     expect(stale.unknownSelectionCount, 1);
     expect(stale.copyCandidates, isEmpty);
   });
+
+  test('copy source metadata keeps display hints but redacts tokens', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Recital.pdf',
+          documentId: 'content://tree/secret/document/recital',
+          providerLabel: 'Drive',
+          sizeBytes: 2400,
+          modifiedAt: DateTime.utc(2026, 10, 2, 9),
+        ),
+      ],
+    );
+    final source = SheetExternalFolderCopySource.fromCandidate(
+      preview.candidates.single,
+      folderLabel: 'Recital Folder',
+    );
+
+    expect(source.hasSensitiveToken, isTrue);
+    expect(source.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Recital.pdf',
+      'folderLabel': 'Recital Folder',
+      'providerLabel': 'Drive',
+      'sizeBytes': 2400,
+      'modifiedAt': '2026-10-02T09:00:00.000Z',
+    });
+    expect(source.toBackupJson().values.join(' '), isNot(contains('secret')));
+    expect(source.toBackupJson().keys, isNot(contains('documentToken')));
+  });
+
+  test('copy source metadata omits empty and invalid optional fields', () {
+    const source = SheetExternalFolderCopySource(
+      displayName: '  Etude.pdf  ',
+      platform: '  android-saf  ',
+      folderLabel: ' ',
+      providerLabel: '',
+      sizeBytes: -1,
+    );
+
+    expect(source.hasSensitiveToken, isFalse);
+    expect(source.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Etude.pdf',
+    });
+  });
 }
