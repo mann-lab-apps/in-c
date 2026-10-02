@@ -1890,3 +1890,11 @@ packs, and the automatic metadata backup now includes them with the rest of the 
 settings. Focused store tests cover valid save/load, malformed storage fallback and metadata backup
 restore; text/icon custom stamp creation, setlist package inclusion and image stamp import remain
 follow-up work.
+
+S143 VERIFIED LOCAL: turned the custom stamp scaffold into a usable text-stamp flow while keeping
+image stamps closed. The annotation stamp picker can now create text-only user stamps, show them as
+chips, select them for the stamp tool, place their text through the existing `SheetTextAnnotation`
+path and delete them without breaking built-in stamps. Controller coverage verifies create/delete
+and reload persistence; widget coverage verifies picker creation, selection and deletion. Icon-only
+custom stamps, setlist package inclusion, image stamp import, multi-layer annotation and editable
+PDF annotation export remain follow-up work.

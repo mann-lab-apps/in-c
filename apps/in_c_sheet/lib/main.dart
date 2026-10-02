@@ -11060,6 +11060,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   DateTime? _lastViewerSheetDismissedAt;
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
+  SheetAnnotationUserStamp? _selectedUserAnnotationStamp;
   _AnnotationPreset? _favoriteAnnotationPreset;
   bool _isSavingFavoriteAnnotationPreset = false;
   Object? _annotationLayerSaveRequest;
@@ -15084,6 +15085,7 @@ setlist=$setlistLabel
       _annotationColor = preset.color;
       _annotationWidth = preset.width;
       _annotationStamp = preset.stamp;
+      _selectedUserAnnotationStamp = null;
     });
     _showSnackBar('즐겨찾기 필기 도구를 적용했습니다.');
   }
@@ -15101,11 +15103,22 @@ setlist=$setlistLabel
     return List<_AnnotationStamp>.unmodifiable(stamps);
   }
 
-  void _selectAnnotationStamp(_AnnotationStamp stamp) {
+  void _selectAnnotationStamp(_AnnotationStampSelection selection) {
     setState(() {
-      _annotationStamp = stamp;
+      final builtIn = selection.builtIn;
+      if (builtIn != null) {
+        _annotationStamp = builtIn;
+        _selectedUserAnnotationStamp = null;
+      } else {
+        _selectedUserAnnotationStamp = selection.userStamp;
+      }
     });
-    unawaited(widget.controller.recordRecentAnnotationStampName(stamp.name));
+    final builtIn = selection.builtIn;
+    if (builtIn != null) {
+      unawaited(
+        widget.controller.recordRecentAnnotationStampName(builtIn.name),
+      );
+    }
   }
 
   Future<void> _handleAnnotationPanStart(
@@ -15241,6 +15254,8 @@ setlist=$setlistLabel
 
     if (_annotationTool == _AnnotationToolbarTool.stamp) {
       final now = DateTime.now();
+      final userStamp = _selectedUserAnnotationStamp;
+      final stampText = userStamp?.text ?? _annotationStamp.label;
       try {
         await widget.controller.addTextAnnotation(
           score,
@@ -15248,7 +15263,7 @@ setlist=$setlistLabel
             id: '${now.microsecondsSinceEpoch}-stamp-$pageNumber',
             pageNumber: pageNumber,
             position: point,
-            text: _annotationStamp.label,
+            text: stampText,
             color: _annotationColor,
             fontSize: (_annotationWidth * 4.5).clamp(16.0, 54.0).toDouble(),
             createdAt: now,
@@ -17506,7 +17521,10 @@ setlist=$setlistLabel
                         child: _AnnotationToolbar(
                           selectedTool: _annotationTool,
                           selectedStamp: _annotationStamp,
+                          selectedUserStamp: _selectedUserAnnotationStamp,
                           recentStamps: _recentAnnotationStamps(),
+                          userStampPacks:
+                              widget.controller.userAnnotationStampPacks,
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
                           hasFavoritePreset: _favoriteAnnotationPreset != null,
@@ -17523,6 +17541,35 @@ setlist=$setlistLabel
                             });
                           },
                           onStampSelected: _selectAnnotationStamp,
+                          onCreateUserStamp: (label, text) async {
+                            final didSave = await widget.controller
+                                .createTextUserAnnotationStamp(
+                                  label: label,
+                                  text: text,
+                                );
+                            return didSave
+                                ? widget.controller.userAnnotationStampPacks
+                                : null;
+                          },
+                          onDeleteUserStamp: (packId, stampId) async {
+                            final didDelete = await widget.controller
+                                .deleteUserAnnotationStamp(
+                                  packId: packId,
+                                  stampId: stampId,
+                                );
+                            if (didDelete &&
+                                _selectedUserAnnotationStamp?.packId ==
+                                    packId &&
+                                _selectedUserAnnotationStamp?.id == stampId &&
+                                mounted) {
+                              setState(() {
+                                _selectedUserAnnotationStamp = null;
+                              });
+                            }
+                            return didDelete
+                                ? widget.controller.userAnnotationStampPacks
+                                : null;
+                          },
                           onColorSelected: (color) {
                             setState(() {
                               _annotationColor = color;
@@ -19950,11 +19997,24 @@ class _AnnotationPainter extends CustomPainter {
   }
 }
 
+typedef _UserStampPackMutation =
+    Future<List<SheetAnnotationStampPack>?> Function(String value, String text);
+
+class _AnnotationStampSelection {
+  const _AnnotationStampSelection.builtIn(this.builtIn) : userStamp = null;
+  const _AnnotationStampSelection.user(this.userStamp) : builtIn = null;
+
+  final _AnnotationStamp? builtIn;
+  final SheetAnnotationUserStamp? userStamp;
+}
+
 class _AnnotationToolbar extends StatelessWidget {
   const _AnnotationToolbar({
     required this.selectedTool,
     required this.selectedStamp,
+    required this.selectedUserStamp,
     required this.recentStamps,
+    required this.userStampPacks,
     required this.selectedColor,
     required this.selectedWidth,
     required this.hasFavoritePreset,
@@ -19963,6 +20023,8 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.isCompact,
     required this.onToolSelected,
     required this.onStampSelected,
+    required this.onCreateUserStamp,
+    required this.onDeleteUserStamp,
     required this.onColorSelected,
     required this.onWidthChanged,
     required this.onUndo,
@@ -19975,7 +20037,9 @@ class _AnnotationToolbar extends StatelessWidget {
 
   final _AnnotationToolbarTool selectedTool;
   final _AnnotationStamp selectedStamp;
+  final SheetAnnotationUserStamp? selectedUserStamp;
   final List<_AnnotationStamp> recentStamps;
+  final List<SheetAnnotationStampPack> userStampPacks;
   final int selectedColor;
   final double selectedWidth;
   final bool hasFavoritePreset;
@@ -19983,7 +20047,9 @@ class _AnnotationToolbar extends StatelessWidget {
   final bool includeLayerInExport;
   final bool isCompact;
   final ValueChanged<_AnnotationToolbarTool> onToolSelected;
-  final ValueChanged<_AnnotationStamp> onStampSelected;
+  final ValueChanged<_AnnotationStampSelection> onStampSelected;
+  final _UserStampPackMutation onCreateUserStamp;
+  final _UserStampPackMutation onDeleteUserStamp;
   final ValueChanged<int> onColorSelected;
   final ValueChanged<double> onWidthChanged;
   final VoidCallback onUndo;
@@ -20087,23 +20153,32 @@ class _AnnotationToolbar extends StatelessWidget {
             message: '스탬프 선택',
             child: OutlinedButton.icon(
               onPressed: () async {
-                final selected = await showModalBottomSheet<_AnnotationStamp>(
-                  context: context,
-                  isScrollControlled: true,
-                  showDragHandle: true,
-                  builder: (context) => SafeArea(
-                    child: _AnnotationStampPickerSheet(
-                      selectedStamp: selectedStamp,
-                      recentStamps: recentStamps,
-                    ),
-                  ),
-                );
+                final selected =
+                    await showModalBottomSheet<_AnnotationStampSelection>(
+                      context: context,
+                      isScrollControlled: true,
+                      showDragHandle: true,
+                      builder: (context) => SafeArea(
+                        child: _AnnotationStampPickerSheet(
+                          selectedStamp: selectedStamp,
+                          selectedUserStamp: selectedUserStamp,
+                          recentStamps: recentStamps,
+                          userStampPacks: userStampPacks,
+                          onCreateUserStamp: onCreateUserStamp,
+                          onDeleteUserStamp: onDeleteUserStamp,
+                        ),
+                      ),
+                    );
                 if (selected != null) {
                   onStampSelected(selected);
                 }
               },
-              icon: Icon(selectedStamp.icon),
-              label: Text(selectedStamp.label),
+              icon: Icon(
+                selectedUserStamp == null
+                    ? selectedStamp.icon
+                    : Icons.text_fields,
+              ),
+              label: Text(selectedUserStamp?.label ?? selectedStamp.label),
             ),
           ),
         for (final color in _colors)
@@ -20240,11 +20315,19 @@ class _AnnotationToolbar extends StatelessWidget {
 class _AnnotationStampPickerSheet extends StatefulWidget {
   const _AnnotationStampPickerSheet({
     required this.selectedStamp,
+    required this.selectedUserStamp,
     required this.recentStamps,
+    required this.userStampPacks,
+    required this.onCreateUserStamp,
+    required this.onDeleteUserStamp,
   });
 
   final _AnnotationStamp selectedStamp;
+  final SheetAnnotationUserStamp? selectedUserStamp;
   final List<_AnnotationStamp> recentStamps;
+  final List<SheetAnnotationStampPack> userStampPacks;
+  final _UserStampPackMutation onCreateUserStamp;
+  final _UserStampPackMutation onDeleteUserStamp;
 
   @override
   State<_AnnotationStampPickerSheet> createState() =>
@@ -20271,7 +20354,9 @@ class _AnnotationStampChipRow extends StatelessWidget {
             ActionChip(
               avatar: Icon(stamp.icon, size: 18),
               label: Text(stamp.label),
-              onPressed: () => Navigator.of(context).pop(stamp),
+              onPressed: () =>
+                  Navigator.of(context)
+                      .pop(_AnnotationStampSelection.builtIn(stamp)),
               backgroundColor: stamp == selectedStamp
                   ? Theme.of(context).colorScheme.secondaryContainer
                   : null,
@@ -20297,6 +20382,87 @@ class _AnnotationStampPickerSheetState
 
   String _query = '';
   String _category = _allCategoryLabel;
+  late List<SheetAnnotationStampPack> _userStampPacks;
+  bool _isSavingUserStamp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _userStampPacks = widget.userStampPacks;
+  }
+
+  Future<void> _createTextUserStamp() async {
+    final draft = await showDialog<_UserTextStampDraft>(
+      context: context,
+      builder: (context) => const _UserTextStampDialog(),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = true;
+    });
+    final nextPacks = await widget.onCreateUserStamp(draft.label, draft.text);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = false;
+      if (nextPacks != null) {
+        _userStampPacks = nextPacks;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nextPacks == null ? '사용자 스탬프를 저장하지 못했습니다.' : '사용자 스탬프를 저장했습니다.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteUserStamp(SheetAnnotationUserStamp stamp) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('사용자 스탬프 삭제'),
+        content: Text('${stamp.label} 스탬프를 삭제할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = true;
+    });
+    final nextPacks = await widget.onDeleteUserStamp(stamp.packId, stamp.id);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = false;
+      if (nextPacks != null) {
+        _userStampPacks = nextPacks;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nextPacks == null ? '사용자 스탬프를 삭제하지 못했습니다.' : '사용자 스탬프를 삭제했습니다.',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20390,7 +20556,12 @@ class _AnnotationStampPickerSheetState
             stamps: quickStamps,
             selectedStamp: widget.selectedStamp,
           ),
-          const _UserStampEmptySection(),
+          _UserStampSection(
+            packs: _userStampPacks,
+            isSaving: _isSavingUserStamp,
+            onCreateTextStamp: _createTextUserStamp,
+            onDeleteStamp: _deleteUserStamp,
+          ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -20433,7 +20604,9 @@ class _AnnotationStampPickerSheetState
                         ? const Icon(Icons.check_circle)
                         : const Icon(Icons.chevron_right),
                     selected: selected,
-                    onTap: () => Navigator.of(context).pop(stamp),
+                    onTap: () =>
+                        Navigator.of(context)
+                            .pop(_AnnotationStampSelection.builtIn(stamp)),
                   );
                 },
               ),
@@ -20444,13 +20617,26 @@ class _AnnotationStampPickerSheetState
   }
 }
 
-class _UserStampEmptySection extends StatelessWidget {
-  const _UserStampEmptySection();
+class _UserStampSection extends StatelessWidget {
+  const _UserStampSection({
+    required this.packs,
+    required this.isSaving,
+    required this.onCreateTextStamp,
+    required this.onDeleteStamp,
+  });
+
+  final List<SheetAnnotationStampPack> packs;
+  final bool isSaving;
+  final VoidCallback onCreateTextStamp;
+  final ValueChanged<SheetAnnotationUserStamp> onDeleteStamp;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final stamps = <SheetAnnotationUserStamp>[
+      for (final pack in packs) ...pack.stamps,
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: DecoratedBox(
@@ -20465,7 +20651,9 @@ class _UserStampEmptySection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                Icons.add_reaction_outlined,
+                stamps.isEmpty
+                    ? Icons.add_reaction_outlined
+                    : Icons.text_fields,
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
@@ -20481,10 +20669,47 @@ class _UserStampEmptySection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '추가된 사용자 스탬프가 없습니다.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                    if (stamps.isEmpty)
+                      Text(
+                        '추가된 사용자 스탬프가 없습니다.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final stamp in stamps)
+                            InputChip(
+                              avatar: const Icon(Icons.text_fields, size: 18),
+                              label: Text(stamp.label),
+                              tooltip: stamp.text,
+                              deleteIcon: const Icon(Icons.close, size: 18),
+                              onPressed: () => Navigator.of(context)
+                                  .pop(_AnnotationStampSelection.user(stamp)),
+                              onDeleted: isSaving
+                                  ? null
+                                  : () => onDeleteStamp(stamp),
+                            ),
+                        ],
+                      ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: isSaving ? null : onCreateTextStamp,
+                        icon: isSaving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add),
+                        label: const Text('텍스트 스탬프 추가'),
                       ),
                     ),
                   ],
@@ -20494,6 +20719,100 @@ class _UserStampEmptySection extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UserTextStampDraft {
+  const _UserTextStampDraft({required this.label, required this.text});
+
+  final String label;
+  final String text;
+}
+
+class _UserTextStampDialog extends StatefulWidget {
+  const _UserTextStampDialog();
+
+  @override
+  State<_UserTextStampDialog> createState() => _UserTextStampDialogState();
+}
+
+class _UserTextStampDialogState extends State<_UserTextStampDialog> {
+  final _labelController = TextEditingController();
+  final _textController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController.addListener(_handleChanged);
+    _textController.addListener(_handleChanged);
+  }
+
+  @override
+  void dispose() {
+    _labelController
+      ..removeListener(_handleChanged)
+      ..dispose();
+    _textController
+      ..removeListener(_handleChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _labelController.text.trim();
+    final text = _textController.text.trim();
+    final canSave = label.isNotEmpty && text.isNotEmpty;
+    return AlertDialog(
+      title: const Text('텍스트 스탬프 추가'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _labelController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: '이름',
+              hintText: '예: 활 표시',
+            ),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _textController,
+            decoration: const InputDecoration(
+              labelText: '악보에 찍을 글자',
+              hintText: '예: BOW',
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (canSave) {
+                Navigator.of(context)
+                    .pop(_UserTextStampDraft(label: label, text: text));
+              }
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: canSave
+              ? () =>
+                    Navigator.of(context)
+                        .pop(_UserTextStampDraft(label: label, text: text))
+              : null,
+          child: const Text('저장'),
+        ),
+      ],
     );
   }
 }
@@ -23343,33 +23662,59 @@ Widget buildTapZoneHintOverlayForTest() {
 @visibleForTesting
 Widget buildAnnotationToolbarForTest({
   List<String> recentStampNames = const [],
+  List<SheetAnnotationStampPack> userStampPacks =
+      const <SheetAnnotationStampPack>[],
+  Future<List<SheetAnnotationStampPack>?> Function(String, String)?
+  onCreateUserStamp,
+  Future<List<SheetAnnotationStampPack>?> Function(String, String)?
+  onDeleteUserStamp,
 }) {
   final recentStamps = recentStampNames
       .map(_AnnotationStamp.tryFromName)
       .nonNulls
       .toList(growable: false);
+  var selectedStamp = _AnnotationStamp.ok;
+  SheetAnnotationUserStamp? selectedUserStamp;
   return MaterialApp(
     home: Scaffold(
-      body: _AnnotationToolbar(
-        isCompact: false,
-        selectedTool: _AnnotationToolbarTool.stamp,
-        selectedColor: 0xff111111,
-        selectedWidth: 4,
-        selectedStamp: _AnnotationStamp.ok,
-        recentStamps: recentStamps,
-        isLayerVisible: true,
-        includeLayerInExport: true,
-        hasFavoritePreset: true,
-        onToolSelected: (_) {},
-        onColorSelected: (_) {},
-        onWidthChanged: (_) {},
-        onStampSelected: (_) {},
-        onUndo: () {},
-        onRedo: () {},
-        onToggleLayerVisibility: () {},
-        onToggleLayerExport: () {},
-        onSaveFavorite: () {},
-        onApplyFavorite: () {},
+      body: StatefulBuilder(
+        builder: (context, setState) => _AnnotationToolbar(
+          isCompact: false,
+          selectedTool: _AnnotationToolbarTool.stamp,
+          selectedColor: 0xff111111,
+          selectedWidth: 4,
+          selectedStamp: selectedStamp,
+          selectedUserStamp: selectedUserStamp,
+          recentStamps: recentStamps,
+          userStampPacks: userStampPacks,
+          isLayerVisible: true,
+          includeLayerInExport: true,
+          hasFavoritePreset: true,
+          onToolSelected: (_) {},
+          onColorSelected: (_) {},
+          onWidthChanged: (_) {},
+          onStampSelected: (selection) {
+            setState(() {
+              final builtIn = selection.builtIn;
+              if (builtIn != null) {
+                selectedStamp = builtIn;
+                selectedUserStamp = null;
+              } else {
+                selectedUserStamp = selection.userStamp;
+              }
+            });
+          },
+          onCreateUserStamp:
+              onCreateUserStamp ?? (_, _) async => userStampPacks,
+          onDeleteUserStamp:
+              onDeleteUserStamp ?? (_, _) async => userStampPacks,
+          onUndo: () {},
+          onRedo: () {},
+          onToggleLayerVisibility: () {},
+          onToggleLayerExport: () {},
+          onSaveFavorite: () {},
+          onApplyFavorite: () {},
+        ),
       ),
     ),
   );

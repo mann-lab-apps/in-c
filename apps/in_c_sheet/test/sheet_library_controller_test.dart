@@ -3069,6 +3069,46 @@ Clef & Staff 세트리스트
     ]);
   });
 
+  test('creates deletes and restores user annotation text stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.createTextUserAnnotationStamp(
+        label: 'Bow cue',
+        text: 'BOW',
+      ),
+      isTrue,
+    );
+
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    final pack = controller.userAnnotationStampPacks.single;
+    expect(pack.id, 'user');
+    expect(pack.stamps.single.label, 'Bow cue');
+    expect(pack.stamps.single.text, 'BOW');
+    expect(pack.stamps.single.kind, SheetAnnotationUserStamp.textKind);
+    expect((await store.loadUserAnnotationStampPacks()).single.id, 'user');
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(
+      nextController.userAnnotationStampPacks.single.stamps.single.text,
+      'BOW',
+    );
+
+    expect(
+      await nextController.deleteUserAnnotationStamp(
+        packId: 'user',
+        stampId: pack.stamps.single.id,
+      ),
+      isTrue,
+    );
+    expect(nextController.userAnnotationStampPacks, isEmpty);
+    expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+  });
+
   test('clears library query and filters for empty result recovery', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

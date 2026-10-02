@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
@@ -3331,6 +3332,7 @@ Clef & Staff 세트리스트
     expect(find.widgetWithText(ActionChip, '!'), findsOneWidget);
     expect(find.text('사용자 스탬프'), findsOneWidget);
     expect(find.text('추가된 사용자 스탬프가 없습니다.'), findsOneWidget);
+    expect(find.text('텍스트 스탬프 추가'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '전체'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '리허설 표시'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '반복/마침'), findsOneWidget);
@@ -3366,6 +3368,112 @@ Clef & Staff 세트리스트
 
     expect(find.byTooltip('스탬프 선택'), findsOneWidget);
     expect(find.text('빠른 선택'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker creates and deletes user stamps', (
+    tester,
+  ) async {
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'bow-cue',
+          'packId': 'user',
+          'label': 'Bow cue',
+          'category': '사용자',
+          'kind': 'text',
+          'text': 'BOW',
+        },
+      ],
+    });
+    var currentPacks = <SheetAnnotationStampPack>[];
+    var didCreate = false;
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: currentPacks,
+        onCreateUserStamp: (_, _) async {
+          didCreate = true;
+          currentPacks = <SheetAnnotationStampPack>[userPack];
+          return currentPacks;
+        },
+        onDeleteUserStamp: (_, _) async {
+          currentPacks = const <SheetAnnotationStampPack>[];
+          return currentPacks;
+        },
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('텍스트 스탬프 추가'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '이름'), 'Bow cue');
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, '악보에 찍을 글자'), 'BOW');
+    await tester.pump();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(didCreate, isTrue);
+    expect(find.text('Bow cue'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('삭제'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('추가된 사용자 스탬프가 없습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker selects a user text stamp', (
+    tester,
+  ) async {
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'bow-cue',
+          'packId': 'user',
+          'label': 'Bow cue',
+          'category': '사용자',
+          'kind': 'text',
+          'text': 'BOW',
+        },
+      ],
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[userPack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bow cue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Bow cue'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

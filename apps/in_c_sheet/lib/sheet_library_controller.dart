@@ -121,6 +121,9 @@ class SheetLibraryController extends ChangeNotifier {
   Object? _favoritePresetSaveRequest;
   List<String> _recentAnnotationStampNames = const <String>[];
   Object? _recentAnnotationStampsSaveRequest;
+  List<SheetAnnotationStampPack> _userAnnotationStampPacks =
+      const <SheetAnnotationStampPack>[];
+  Object? _userAnnotationStampPacksSaveRequest;
   Object? _viewSettingsSaveRequest;
   Object? _libraryLoadRequest;
   String _query = '';
@@ -148,6 +151,10 @@ class SheetLibraryController extends ChangeNotifier {
 
   List<String> get recentAnnotationStampNames {
     return _recentAnnotationStampNames;
+  }
+
+  List<SheetAnnotationStampPack> get userAnnotationStampPacks {
+    return _userAnnotationStampPacks;
   }
 
   String get query => _query;
@@ -350,6 +357,8 @@ class SheetLibraryController extends ChangeNotifier {
     final previousFavoriteRequest = _favoritePresetSaveRequest;
     final previousRecentStamps = _recentAnnotationStampNames;
     final previousRecentStampsRequest = _recentAnnotationStampsSaveRequest;
+    final previousUserStampPacks = _userAnnotationStampPacks;
+    final previousUserStampPacksRequest = _userAnnotationStampPacksSaveRequest;
     final previousError = _errorMessage;
     final profiles = await store.loadLibraryProfiles();
     final active = await store.loadActiveLibraryProfile();
@@ -363,6 +372,7 @@ class SheetLibraryController extends ChangeNotifier {
     final templates = await store.loadPerformancePresetTemplates();
     final favorite = await store.loadFavoriteAnnotationPreset();
     final recentStamps = await store.loadRecentAnnotationStampNames();
+    final userStampPacks = await store.loadUserAnnotationStampPacks();
     if (!identical(_libraryLoadRequest, request)) return;
     // Publish one completed load; superseded reads must never clean up newer data.
     final sameLibrary = active.id == previousActive.id;
@@ -409,6 +419,15 @@ class SheetLibraryController extends ChangeNotifier {
             ))) {
       _recentAnnotationStampNames = recentStamps;
       _recentAnnotationStampsSaveRequest = null;
+    }
+    if (!sameLibrary ||
+        (identical(_userAnnotationStampPacks, previousUserStampPacks) &&
+            identical(
+              _userAnnotationStampPacksSaveRequest,
+              previousUserStampPacksRequest,
+            ))) {
+      _userAnnotationStampPacks = userStampPacks;
+      _userAnnotationStampPacksSaveRequest = null;
     }
     if (!sameLibrary || _errorMessage == previousError) _errorMessage = null;
     await _removeMissingSetlistScores();
@@ -947,6 +966,7 @@ class SheetLibraryController extends ChangeNotifier {
     final viewSettings = _libraryViewSettings;
     final favoritePreset = _favoriteAnnotationPreset;
     final recentStamps = _recentAnnotationStampNames;
+    final userStampPacks = _userAnnotationStampPacks;
     final didClear = await store.clearLibraryProfile(id);
     if (!didClear) {
       return false;
@@ -966,6 +986,10 @@ class SheetLibraryController extends ChangeNotifier {
       if (identical(_recentAnnotationStampNames, recentStamps)) {
         _recentAnnotationStampNames = const <String>[];
         _recentAnnotationStampsSaveRequest = null;
+      }
+      if (identical(_userAnnotationStampPacks, userStampPacks)) {
+        _userAnnotationStampPacks = const <SheetAnnotationStampPack>[];
+        _userAnnotationStampPacksSaveRequest = null;
       }
     }
     notifyListeners();
@@ -1565,6 +1589,139 @@ class SheetLibraryController extends ChangeNotifier {
     }
     if (ownsState()) {
       _recentAnnotationStampsSaveRequest = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> createTextUserAnnotationStamp({
+    required String label,
+    required String text,
+  }) async {
+    final normalizedLabel = label.trim();
+    final normalizedText = text.trim();
+    if (normalizedLabel.isEmpty || normalizedText.isEmpty) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final stamp = SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: normalizedLabel,
+      category: '사용자',
+      kind: SheetAnnotationUserStamp.textKind,
+      text: normalizedText,
+      keywords: _normalizeTags(normalizedLabel),
+    );
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
+  Future<bool> deleteUserAnnotationStamp({
+    required String packId,
+    required String stampId,
+  }) async {
+    final normalizedPackId = packId.trim().toLowerCase();
+    final normalizedStampId = stampId.trim().toLowerCase();
+    if (normalizedPackId.isEmpty || normalizedStampId.isEmpty) {
+      return false;
+    }
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    var didRemove = false;
+    final nextPacks = <SheetAnnotationStampPack>[];
+    for (final pack in _userAnnotationStampPacks) {
+      if (pack.id != normalizedPackId) {
+        nextPacks.add(pack);
+        continue;
+      }
+      final nextStamps = <SheetAnnotationUserStamp>[];
+      for (final stamp in pack.stamps) {
+        if (stamp.id == normalizedStampId) {
+          didRemove = true;
+          continue;
+        }
+        nextStamps.add(stamp);
+      }
+      if (nextStamps.isNotEmpty) {
+        nextPacks.add(
+          SheetAnnotationStampPack(
+            id: pack.id,
+            name: pack.name,
+            version: pack.version,
+            createdAt: pack.createdAt,
+            updatedAt: now,
+            stamps: List<SheetAnnotationUserStamp>.unmodifiable(nextStamps),
+          ),
+        );
+      }
+    }
+    if (!didRemove) {
+      return false;
+    }
+    return _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+  }
+
+  Future<bool> _replaceUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    required String libraryId,
+  }) async {
+    final pendingPacks = List<SheetAnnotationStampPack>.unmodifiable(
+      packs.where((pack) => pack.validate().isValid),
+    );
+    final request = Object();
+    _userAnnotationStampPacksSaveRequest = request;
+    _userAnnotationStampPacks = pendingPacks;
+    bool ownsState() =>
+        identical(_userAnnotationStampPacksSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_userAnnotationStampPacks, pendingPacks);
+    try {
+      await store.saveUserAnnotationStampPacks(
+        pendingPacks,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadUserAnnotationStampPacks();
+          if (ownsState()) {
+            _userAnnotationStampPacks = persisted;
+            _userAnnotationStampPacksSaveRequest = null;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Keep built-in stamps usable even if custom stamp recovery fails.
+        }
+      }
+      return false;
+    }
+    if (ownsState()) {
+      _userAnnotationStampPacksSaveRequest = null;
     }
     notifyListeners();
     return true;
@@ -3876,6 +4033,23 @@ class SheetLibraryController extends ChangeNotifier {
 
   String _normalizeOptionalMetadata(String value) {
     return value.trim();
+  }
+
+  String _uniqueUserStampId(String label, Set<String> existingIds) {
+    final base = label
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    final fallback = DateTime.now().microsecondsSinceEpoch.toString();
+    final prefix = base.isEmpty ? 'stamp-$fallback' : base;
+    var candidate = prefix;
+    var suffix = 2;
+    while (existingIds.contains(candidate)) {
+      candidate = '$prefix-$suffix';
+      suffix += 1;
+    }
+    return candidate;
   }
 
   int _recentScoreCompare(SheetScore a, SheetScore b) {
