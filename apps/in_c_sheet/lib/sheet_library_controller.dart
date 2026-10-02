@@ -3866,11 +3866,14 @@ class SheetLibraryController extends ChangeNotifier {
       final currentBackup = SheetLibraryBackupCodec.decode(
         await store.exportMetadataBackupJson(),
       );
+      final diff = SheetLibraryBackupDiff.compare(
+        currentBackup,
+        incomingBackup,
+      );
       return SheetLibraryBackupImportPreview(
         status: SheetLibraryBackupPreviewStatus.ready,
-        report: SheetLibraryBackupDiffReport.fromDiff(
-          SheetLibraryBackupDiff.compare(currentBackup, incomingBackup),
-        ),
+        report: SheetLibraryBackupDiffReport.fromDiff(diff),
+        mergeReview: SheetLibraryBackupMergeReview.fromDiff(diff),
         scoreCount: incomingBackup.scores.length,
         setlistCount: incomingBackup.setlists.length,
         backupJson: value,
@@ -3919,6 +3922,10 @@ class SheetLibraryController extends ChangeNotifier {
       final currentBackup = SheetLibraryBackupCodec.decode(
         await store.exportMetadataBackupJson(),
       );
+      final diff = SheetLibraryBackupDiff.compare(
+        currentBackup,
+        incomingBackup,
+      );
       final sourcePathsByScoreId = <String, String>{
         for (final score in incomingBackup.scores) score.id: score.filePath,
       };
@@ -3935,9 +3942,8 @@ class SheetLibraryController extends ChangeNotifier {
           .length;
       return SheetLibraryFullBackupImportPreview(
         status: SheetLibraryBackupPreviewStatus.ready,
-        report: SheetLibraryBackupDiffReport.fromDiff(
-          SheetLibraryBackupDiff.compare(currentBackup, incomingBackup),
-        ),
+        report: SheetLibraryBackupDiffReport.fromDiff(diff),
+        mergeReview: SheetLibraryBackupMergeReview.fromDiff(diff),
         scoreCount: incomingBackup.scores.length,
         setlistCount: incomingBackup.setlists.length,
         fileMappingCount: fullBackup.fileMappings.length,

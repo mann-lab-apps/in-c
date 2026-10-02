@@ -1324,6 +1324,7 @@ Clef & Staff 세트리스트
     expect(preview.setlistCount, 0);
     expect(preview.report?.summaryLines, contains('새 악보 1개'));
     expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(preview.mergeReview?.risk, SheetLibraryBackupMergeRisk.destructive);
     expect(controller.scores.single.id, 'current-score');
   });
 
@@ -1381,6 +1382,7 @@ Clef & Staff 세트리스트
     expect(preview.missingFileCount, 1);
     expect(preview.report?.summaryLines, contains('새 악보 1개'));
     expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(preview.mergeReview?.risk, SheetLibraryBackupMergeRisk.destructive);
     expect(controller.scores.single.id, 'current-score');
   });
 

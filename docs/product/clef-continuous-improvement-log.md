@@ -2000,3 +2000,9 @@ missing-file warnings, and the dry-run change summary, then calls the existing f
 after confirmation. Controller tests cover ready and invalid previews, while existing widget restore
 coverage now exercises the preview-to-restore path. Merge resolution is still not implemented;
 restores remain whole-library replacement.
+
+S157 VERIFIED LOCAL: added a first merge-risk review layer on top of the backup diff model. Metadata
+JSON and full ZIP previews now classify selected backups as `변경 없음`, `새 항목 중심 변경`, `수정 포함
+전체 교체`, or `삭제 포함 전체 교체` and show the corresponding guidance in restore confirmation dialogs.
+This still does not perform field-level merge; it makes whole-library replacement risk explicit before
+the user confirms. Diff/controller/widget tests cover additive, destructive and review-required cases.

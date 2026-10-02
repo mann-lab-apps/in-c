@@ -66,6 +66,11 @@ void main() {
       ]),
     );
     expect(report.requiresReview, isTrue);
+
+    final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
+    expect(mergeReview.risk, SheetLibraryBackupMergeRisk.destructive);
+    expect(mergeReview.title, '삭제 포함 전체 교체');
+    expect(mergeReview.requiresManualReview, isTrue);
   });
 
   test('flags file and settings changes as dry-run conflict candidates', () {
@@ -105,6 +110,38 @@ void main() {
         '메트로놈, 튜너, 표시, 필기 preset 같은 전역 설정 변경을 확인하세요.',
       ]),
     );
+
+    final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
+    expect(mergeReview.risk, SheetLibraryBackupMergeRisk.review);
+    expect(mergeReview.title, '수정 포함 전체 교체');
+    expect(mergeReview.requiresManualReview, isTrue);
+  });
+
+  test('classifies additive-only backup changes separately', () {
+    final now = DateTime(2026, 10, 2, 10);
+    final base = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'A')],
+    );
+    final incoming = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'A'),
+        _score(now, id: 'score-b', title: 'B'),
+      ],
+      setlists: [
+        _setlist(now, id: 'setlist-1', scoreIds: ['score-a', 'score-b']),
+      ],
+    );
+
+    final diff = SheetLibraryBackupDiff.compare(base, incoming);
+    final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
+
+    expect(diff.addedScoreIds, ['score-b']);
+    expect(diff.addedSetlistIds, ['setlist-1']);
+    expect(mergeReview.risk, SheetLibraryBackupMergeRisk.additive);
+    expect(mergeReview.title, '새 항목 중심 변경');
+    expect(mergeReview.requiresManualReview, isFalse);
   });
 
   test('reports no changes for equivalent backups', () {
@@ -136,6 +173,11 @@ void main() {
     expect(report.summaryLines, ['두 백업의 악보, 세트리스트, 설정이 같습니다.']);
     expect(report.reviewLines, isEmpty);
     expect(report.requiresReview, isFalse);
+
+    final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
+    expect(mergeReview.risk, SheetLibraryBackupMergeRisk.none);
+    expect(mergeReview.title, '변경 없음');
+    expect(mergeReview.requiresManualReview, isFalse);
   });
 }
 

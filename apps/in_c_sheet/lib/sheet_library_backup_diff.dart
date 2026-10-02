@@ -192,6 +192,62 @@ class SheetLibraryBackupDiffReport {
   bool get requiresReview => reviewLines.isNotEmpty;
 }
 
+enum SheetLibraryBackupMergeRisk { none, additive, review, destructive }
+
+class SheetLibraryBackupMergeReview {
+  const SheetLibraryBackupMergeReview({
+    required this.risk,
+    required this.title,
+    required this.lines,
+  });
+
+  factory SheetLibraryBackupMergeReview.fromDiff(SheetLibraryBackupDiff diff) {
+    if (!diff.hasChanges) {
+      return const SheetLibraryBackupMergeReview(
+        risk: SheetLibraryBackupMergeRisk.none,
+        title: '변경 없음',
+        lines: <String>['현재 라이브러리와 선택한 백업의 정보가 같습니다.'],
+      );
+    }
+    if (diff.removedScoreIds.isNotEmpty || diff.removedSetlistIds.isNotEmpty) {
+      return const SheetLibraryBackupMergeReview(
+        risk: SheetLibraryBackupMergeRisk.destructive,
+        title: '삭제 포함 전체 교체',
+        lines: <String>[
+          '선택한 백업을 적용하면 현재 라이브러리에만 있는 항목이 사라질 수 있습니다.',
+          '자동 병합이 아니라 전체 복원입니다. 필요한 경우 먼저 현재 라이브러리를 백업하세요.',
+        ],
+      );
+    }
+    if (diff.changedScoreIds.isEmpty &&
+        diff.changedSetlistIds.isEmpty &&
+        !diff.settingsChanged) {
+      return const SheetLibraryBackupMergeReview(
+        risk: SheetLibraryBackupMergeRisk.additive,
+        title: '새 항목 중심 변경',
+        lines: <String>['현재 항목을 지우는 변경은 없지만, 복원은 여전히 전체 백업 기준으로 적용됩니다.'],
+      );
+    }
+    return const SheetLibraryBackupMergeReview(
+      risk: SheetLibraryBackupMergeRisk.review,
+      title: '수정 포함 전체 교체',
+      lines: <String>[
+        '같은 악보나 세트리스트의 정보가 달라 어느 쪽을 유지할지 확인이 필요합니다.',
+        '아직 field-level 병합은 지원하지 않으므로 복원 전 현재 라이브러리를 백업하세요.',
+      ],
+    );
+  }
+
+  final SheetLibraryBackupMergeRisk risk;
+  final String title;
+  final List<String> lines;
+
+  bool get requiresManualReview {
+    return risk == SheetLibraryBackupMergeRisk.review ||
+        risk == SheetLibraryBackupMergeRisk.destructive;
+  }
+}
+
 enum SheetLibraryBackupPreviewStatus {
   ready,
   invalid,
@@ -203,6 +259,7 @@ class SheetLibraryBackupImportPreview {
   const SheetLibraryBackupImportPreview({
     required this.status,
     this.report,
+    this.mergeReview,
     this.scoreCount = 0,
     this.setlistCount = 0,
     this.backupJson,
@@ -211,6 +268,7 @@ class SheetLibraryBackupImportPreview {
 
   final SheetLibraryBackupPreviewStatus status;
   final SheetLibraryBackupDiffReport? report;
+  final SheetLibraryBackupMergeReview? mergeReview;
   final int scoreCount;
   final int setlistCount;
   final String? backupJson;
@@ -223,6 +281,7 @@ class SheetLibraryFullBackupImportPreview {
   const SheetLibraryFullBackupImportPreview({
     required this.status,
     this.report,
+    this.mergeReview,
     this.scoreCount = 0,
     this.setlistCount = 0,
     this.fileMappingCount = 0,
@@ -233,6 +292,7 @@ class SheetLibraryFullBackupImportPreview {
 
   final SheetLibraryBackupPreviewStatus status;
   final SheetLibraryBackupDiffReport? report;
+  final SheetLibraryBackupMergeReview? mergeReview;
   final int scoreCount;
   final int setlistCount;
   final int fileMappingCount;

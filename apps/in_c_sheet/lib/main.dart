@@ -1675,6 +1675,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             for (final line in report.reviewLines) Text('• $line'),
           ],
         ],
+        ..._backupMergeReviewContent(preview.mergeReview),
       ],
     );
   }
@@ -2093,8 +2094,30 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             for (final line in report.reviewLines) Text('• $line'),
           ],
         ],
+        ..._backupMergeReviewContent(preview.mergeReview),
       ],
     );
+  }
+
+  List<Widget> _backupMergeReviewContent(
+    SheetLibraryBackupMergeReview? review,
+  ) {
+    if (review == null) {
+      return const <Widget>[];
+    }
+    final isHighRisk = review.requiresManualReview;
+    return <Widget>[
+      const SizedBox(height: 12),
+      Text(
+        review.title,
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: isHighRisk ? Theme.of(context).colorScheme.error : null,
+        ),
+      ),
+      const SizedBox(height: 4),
+      for (final line in review.lines) Text('• $line'),
+    ];
   }
 
   String _fullBackupPreviewFailureMessage(

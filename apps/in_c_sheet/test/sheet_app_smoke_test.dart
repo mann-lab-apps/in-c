@@ -896,6 +896,7 @@ void main() {
     expect(find.text('백업 변경 2종 감지'), findsOneWidget);
     expect(find.text('• 새 악보 1개'), findsOneWidget);
     expect(find.text('• 삭제된 악보 1개'), findsOneWidget);
+    expect(find.text('삭제 포함 전체 교체'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
