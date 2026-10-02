@@ -2085,3 +2085,8 @@ are still copied into normal text annotations when placed, and controller covera
 deleting the custom stamp definition leaves already placed stamp annotations intact after reload. Image
 stamp assets, large-pack performance, explicit conflict-resolution UI, multi-layer annotation and
 editable PDF annotation export remain follow-up work.
+
+S169 VERIFIED LOCAL: covered mixed Korean/English custom stamp discovery. The stamp picker regression
+now includes an English text stamp, an English icon stamp and a Korean text stamp, then verifies search
+and category filtering keep the right user stamp visible without breaking the built-in picker controls.
+Large stamp-pack performance, PDF export, S Pen picker use and image stamp asset policy remain follow-up.

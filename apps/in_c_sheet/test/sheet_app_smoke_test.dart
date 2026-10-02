@@ -3664,6 +3664,14 @@ Clef & Staff 세트리스트
             'kind': 'icon',
             'iconName': 'repeat',
           },
+          <String, Object?>{
+            'id': 'breath-cue',
+            'packId': 'user',
+            'label': '숨표',
+            'category': '한글 표시',
+            'kind': 'text',
+            'text': '숨',
+          },
         ],
       });
       await tester.pumpWidget(
@@ -3682,12 +3690,14 @@ Clef & Staff 세트리스트
 
       expect(find.text('Bow cue'), findsOneWidget);
       expect(find.text('Repeat cue'), findsOneWidget);
+      expect(find.text('숨표'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'bow');
       await tester.pumpAndSettle();
 
       expect(find.text('Bow cue'), findsOneWidget);
       expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsNothing);
 
       await tester.enterText(find.byType(TextField), '');
       await tester.pumpAndSettle();
@@ -3696,6 +3706,16 @@ Clef & Staff 세트리스트
 
       expect(find.text('Bow cue'), findsOneWidget);
       expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsNothing);
+
+      await tester.ensureVisible(find.widgetWithText(ChoiceChip, '한글 표시'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, '한글 표시'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsNothing);
+      expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
