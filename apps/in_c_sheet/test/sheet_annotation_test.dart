@@ -124,6 +124,37 @@ void main() {
     );
   });
 
+  test('user stamp pack validator rejects oversized packs', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Large Pack',
+      'stamps': [
+        for (
+          var index = 0;
+          index < SheetAnnotationStampPack.maxStampCount + 1;
+          index += 1
+        )
+          <String, Object?>{
+            'id': 'stamp-$index',
+            'label': 'Stamp $index',
+            'kind': 'text',
+            'text': '$index',
+          },
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      contains(
+        'pack.stamps must contain '
+        '${SheetAnnotationStampPack.maxStampCount} items or fewer',
+      ),
+    );
+  });
+
   test('image stamp validation is gated behind explicit allowance', () {
     final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
       'id': 'pack',

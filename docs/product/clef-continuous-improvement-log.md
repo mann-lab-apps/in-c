@@ -2090,3 +2090,8 @@ S169 VERIFIED LOCAL: covered mixed Korean/English custom stamp discovery. The st
 now includes an English text stamp, an English icon stamp and a Korean text stamp, then verifies search
 and category filtering keep the right user stamp visible without breaking the built-in picker controls.
 Large stamp-pack performance, PDF export, S Pen picker use and image stamp asset policy remain follow-up.
+
+S170 VERIFIED LOCAL: added a custom stamp pack size guard regression. The schema already capped user
+stamp packs at 128 entries; unit coverage now verifies that an oversized pack is rejected before it can
+reach picker/storage flows. Interactive performance with a near-limit pack, PDF export, S Pen picker use
+and image stamp asset policy remain follow-up.
