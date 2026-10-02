@@ -219,6 +219,30 @@ class SheetLibraryBackupImportPreview {
   bool get canRestore => status == SheetLibraryBackupPreviewStatus.ready;
 }
 
+class SheetLibraryFullBackupImportPreview {
+  const SheetLibraryFullBackupImportPreview({
+    required this.status,
+    this.report,
+    this.scoreCount = 0,
+    this.setlistCount = 0,
+    this.fileMappingCount = 0,
+    this.missingFileCount = 0,
+    this.backupBytes,
+    this.failureReason,
+  });
+
+  final SheetLibraryBackupPreviewStatus status;
+  final SheetLibraryBackupDiffReport? report;
+  final int scoreCount;
+  final int setlistCount;
+  final int fileMappingCount;
+  final int missingFileCount;
+  final List<int>? backupBytes;
+  final String? failureReason;
+
+  bool get canRestore => status == SheetLibraryBackupPreviewStatus.ready;
+}
+
 Map<String, SheetScore> _byId(List<SheetScore> scores) {
   return <String, SheetScore>{for (final score in scores) score.id: score};
 }

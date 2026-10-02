@@ -317,7 +317,8 @@ void main() {
     await tester.tap(find.byTooltip('백업/복원'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('전체 백업 복원'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.widgetWithText(FilledButton, '복원'));
     await tester.pump(const Duration(milliseconds: 350));
     final reply = Completer<void>();
@@ -4298,8 +4299,19 @@ class _DelayedRestoreStore extends SheetLibraryStore {
   @override
   Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() =>
       _restore();
+
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() => _restore();
+
+  @override
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    return await exportFullBackupZipBytes();
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) => _restore();
 }
 
 class _MetadataPreviewStore extends SheetLibraryStore {
@@ -4325,6 +4337,22 @@ class _BackupHealthController extends SheetLibraryController {
 class _PartialBackupStore extends SheetLibraryStore {
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
+    return _fullBackupResult();
+  }
+
+  @override
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    return await exportFullBackupZipBytes();
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    return _fullBackupResult();
+  }
+
+  SheetLibraryBackupRestoreResult _fullBackupResult() {
     return const SheetLibraryBackupRestoreResult(
       status: SheetLibraryBackupRestoreStatus.restored,
       restoredScoreCount: 3,

@@ -1356,6 +1356,46 @@ Clef & Staff 세트리스트
     expect(unsupported.canRestore, isFalse);
   });
 
+  test('previews full backup zip without restoring it', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final backupSource = SheetLibraryStore();
+    await backupSource.saveScores(<SheetScore>[
+      _score(now, id: 'incoming-score', title: 'Incoming Score'),
+    ]);
+    final zipBytes = await backupSource.exportFullBackupZipBytes();
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'current-score', title: 'Current Score'),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final preview = await controller.previewFullBackupZipBytes(zipBytes);
+    expect(preview.status, SheetLibraryBackupPreviewStatus.ready);
+    expect(preview.canRestore, isTrue);
+    expect(preview.scoreCount, 1);
+    expect(preview.setlistCount, 0);
+    expect(preview.fileMappingCount, 1);
+    expect(preview.missingFileCount, 1);
+    expect(preview.report?.summaryLines, contains('새 악보 1개'));
+    expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(controller.scores.single.id, 'current-score');
+  });
+
+  test('classifies invalid full backup preview input', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    final preview = await controller.previewFullBackupZipBytes(
+      utf8.encode('not a zip'),
+    );
+    expect(preview.status, SheetLibraryBackupPreviewStatus.invalid);
+    expect(preview.canRestore, isFalse);
+  });
+
   test('reports backup health without claiming cloud sync', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-09-27T10:00:00.000');

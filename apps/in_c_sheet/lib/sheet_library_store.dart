@@ -41,6 +41,16 @@ Map<String, Object?>? _jsonMapFromString(String? value) {
   }
 }
 
+class _DecodedSheetLibraryFullBackup {
+  const _DecodedSheetLibraryFullBackup({
+    required this.archive,
+    required this.backup,
+  });
+
+  final Archive archive;
+  final SheetLibraryFullBackup backup;
+}
+
 Map<String, Object?>? _jsonMapFromObject(Object? value) {
   if (value is! Map) {
     return null;
@@ -1458,23 +1468,35 @@ class SheetLibraryStore {
 
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: const <String>['zip'],
-      );
-      if (file == null) {
+      final bytes = await pickFullBackupZipBytes();
+      if (bytes == null) {
         return const SheetLibraryBackupRestoreResult(
           status: SheetLibraryBackupRestoreStatus.canceled,
         );
       }
 
-      return await restoreFullBackupZipBytes(await file.readAsBytes());
+      return await restoreFullBackupZipBytes(bytes);
     } catch (error) {
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
     }
+  }
+
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['zip'],
+    );
+    if (file == null) {
+      return null;
+    }
+    return Uint8List.fromList(await file.readAsBytes());
+  }
+
+  SheetLibraryFullBackup inspectFullBackupZipBytes(List<int> bytes) {
+    return _decodeFullBackupZipBytes(bytes).backup;
   }
 
   Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
@@ -1510,36 +1532,10 @@ class SheetLibraryStore {
     List<int> bytes,
   ) async {
     try {
-      final archive = ZipDecoder().decodeBytes(bytes);
-      final manifest = archive.findFile(
-        SheetLibraryFullBackup.manifestFileName,
-      );
-      if (manifest == null || !manifest.isFile) {
-        throw const FormatException('Full backup manifest is missing.');
-      }
-
-      final manifestJson = utf8.decode(manifest.content);
-      final decoded = jsonDecode(manifestJson);
-      if (decoded is! Map) {
-        throw const FormatException('Full backup manifest must be an object.');
-      }
-      final manifestMap = decoded.map(
-        (key, value) => MapEntry(key.toString(), value as Object?),
-      );
-      if (manifestMap['scope'] != SheetLibraryFullBackup.scope) {
-        throw const FormatException('Backup is not a full Clef backup.');
-      }
-
-      final backup = SheetLibraryBackup.fromJson(manifestMap);
-      final mappings = SheetLibraryFullBackupFileMapping.decodeList(
-        manifestMap['fileMappings'],
-      );
-      _validateFullBackupFiles(
-        archive,
-        backup,
-        manifestMap['fileMappings'],
-        mappings,
-      );
+      final decoded = _decodeFullBackupZipBytes(bytes);
+      final archive = decoded.archive;
+      final backup = decoded.backup.backup;
+      final mappings = decoded.backup.fileMappings;
       final scoreFileMappingsByScoreId =
           <String, SheetLibraryFullBackupFileMapping>{
             for (final mapping in mappings.where(
@@ -1687,6 +1683,46 @@ class SheetLibraryStore {
         failureReason: error.toString(),
       );
     }
+  }
+
+  _DecodedSheetLibraryFullBackup _decodeFullBackupZipBytes(List<int> bytes) {
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final manifest = archive.findFile(SheetLibraryFullBackup.manifestFileName);
+    if (manifest == null || !manifest.isFile) {
+      throw const FormatException('Full backup manifest is missing.');
+    }
+
+    final manifestJson = utf8.decode(manifest.content);
+    final decoded = jsonDecode(manifestJson);
+    if (decoded is! Map) {
+      throw const FormatException('Full backup manifest must be an object.');
+    }
+    final manifestMap = decoded.map(
+      (key, value) => MapEntry(key.toString(), value as Object?),
+    );
+    if (manifestMap['scope'] != SheetLibraryFullBackup.scope) {
+      throw const FormatException('Backup is not a full Clef backup.');
+    }
+
+    final backup = SheetLibraryBackup.fromJson(manifestMap);
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(
+      manifestMap['fileMappings'],
+    );
+    _validateFullBackupFiles(
+      archive,
+      backup,
+      manifestMap['fileMappings'],
+      mappings,
+    );
+    return _DecodedSheetLibraryFullBackup(
+      archive: archive,
+      backup: SheetLibraryFullBackup(
+        backup: backup,
+        fileMappings: List<SheetLibraryFullBackupFileMapping>.unmodifiable(
+          mappings,
+        ),
+      ),
+    );
   }
 
   Future<void> _restoreBackupMetadata(

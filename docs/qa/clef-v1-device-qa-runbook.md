@@ -180,6 +180,8 @@ Repo 포함 fixture:
    확인한다. 복원 확정 전에는 라이브러리 데이터가 바뀌지 않아야 한다.
    `정보 복원`은 JSON 선택 뒤 악보/세트리스트 수와 변경 요약을 먼저 보여야 하며, invalid/unsupported
    JSON은 복원을 시작하지 않아야 한다.
+   `전체 백업 복원`은 ZIP 선택 뒤 악보/세트리스트/파일 항목 수, 변경 요약, 누락 파일 경고를 먼저
+   보여야 하며, 손상 ZIP은 현재 라이브러리를 바꾸지 않아야 한다.
 6. S Pen pressure, palm rejection, 필기/스크롤 충돌을 집중 확인한다.
 7. Bluetooth/USB 페달과 hardware keyboard를 연결해 predefined/custom/unknown inputId mapping을
    확인한다.

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 
 import 'sheet_annotation.dart';
@@ -3894,6 +3895,82 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     final result = await store.importFullBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
+  Future<SheetLibraryFullBackupImportPreview?>
+  pickFullBackupImportPreview() async {
+    final bytes = await store.pickFullBackupZipBytes();
+    if (bytes == null) {
+      return null;
+    }
+    return previewFullBackupZipBytes(bytes);
+  }
+
+  Future<SheetLibraryFullBackupImportPreview> previewFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    try {
+      final fullBackup = store.inspectFullBackupZipBytes(bytes);
+      final incomingBackup = fullBackup.backup;
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      final sourcePathsByScoreId = <String, String>{
+        for (final score in incomingBackup.scores) score.id: score.filePath,
+      };
+      final missingFileCount = fullBackup.fileMappings
+          .where((mapping) => mapping.missing)
+          .map(
+            (mapping) =>
+                mapping.linkedFilePath ??
+                mapping.annotationStoragePath ??
+                sourcePathsByScoreId[mapping.scoreId] ??
+                mapping.originalFileName,
+          )
+          .toSet()
+          .length;
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.ready,
+        report: SheetLibraryBackupDiffReport.fromDiff(
+          SheetLibraryBackupDiff.compare(currentBackup, incomingBackup),
+        ),
+        scoreCount: incomingBackup.scores.length,
+        setlistCount: incomingBackup.setlists.length,
+        fileMappingCount: fullBackup.fileMappings.length,
+        missingFileCount: missingFileCount,
+        backupBytes: List<int>.unmodifiable(bytes),
+      );
+    } on UnsupportedError catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.unsupportedVersion,
+        failureReason: error.toString(),
+      );
+    } on ArchiveException catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } on FormatException catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.error,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    final result = await store.restoreFullBackupZipBytes(bytes);
     if (result.didRestore) {
       await load();
     }

@@ -1991,3 +1991,12 @@ metadata restore path after the user confirms. The old direct restore API remain
 and lower-level callers. Widget coverage verifies the selected-backup preview dialog; restore blocking
 coverage now exercises the preview-to-restore path. Full ZIP preview and merge resolution remain
 follow-up.
+
+S156 VERIFIED LOCAL: extended the same pre-restore safety surface to PDF-including full ZIP backups.
+The store now separates ZIP file picking, manifest/file validation, and destructive restore execution
+so the controller can inspect a selected ZIP without writing restored files. `전체 백업 복원` now reads
+the ZIP first, blocks invalid archives before restore, shows incoming score/setlist/file counts,
+missing-file warnings, and the dry-run change summary, then calls the existing full restore path only
+after confirmation. Controller tests cover ready and invalid previews, while existing widget restore
+coverage now exercises the preview-to-restore path. Merge resolution is still not implemented;
+restores remain whole-library replacement.
