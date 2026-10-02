@@ -15,6 +15,13 @@ enum SheetExternalFolderCandidateStatus {
   unreadable,
 }
 
+enum SheetExternalFolderCopyPlanStatus {
+  ready,
+  noSelection,
+  blockedSelection,
+  unknownSelection,
+}
+
 class SheetExternalFolderEntry {
   const SheetExternalFolderEntry({
     required this.displayName,
@@ -41,11 +48,13 @@ class SheetExternalFolderImportCandidate {
     required this.entry,
     required this.status,
     required this.message,
+    required this.selectionId,
   });
 
   final SheetExternalFolderEntry entry;
   final SheetExternalFolderCandidateStatus status;
   final String message;
+  final String selectionId;
 
   bool get isReadyToCopy =>
       status == SheetExternalFolderCandidateStatus.readyToCopy;
@@ -84,8 +93,14 @@ class SheetExternalFolderCatalogPreview {
         .where((name) => name.isNotEmpty)
         .toSet();
 
-    final candidates = visibleEntries
-        .map((entry) => _candidateFor(entry, existingNames: existingNames))
+    final candidates = visibleEntries.indexed
+        .map(
+          (indexedEntry) => _candidateFor(
+            indexedEntry.$2,
+            existingNames: existingNames,
+            visibleIndex: indexedEntry.$1,
+          ),
+        )
         .toList(growable: false);
 
     return SheetExternalFolderCatalogPreview._(
@@ -134,6 +149,64 @@ class SheetExternalFolderCatalogPreview {
 
   bool get isReadOnlyPreview => true;
 
+  SheetExternalFolderCopyPlan copyPlanForSelection(
+    Iterable<String> selectionIds,
+  ) {
+    final selectedIds = selectionIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (selectedIds.isEmpty) {
+      return const SheetExternalFolderCopyPlan._(
+        status: SheetExternalFolderCopyPlanStatus.noSelection,
+        copyCandidates: <SheetExternalFolderImportCandidate>[],
+        blockedCandidates: <SheetExternalFolderImportCandidate>[],
+        unknownSelectionCount: 0,
+        message: '가져올 PDF를 선택하세요.',
+      );
+    }
+
+    final selectedCandidates = candidates
+        .where((candidate) {
+          return selectedIds.contains(candidate.selectionId);
+        })
+        .toList(growable: false);
+    final unknownCount = selectedIds.length - selectedCandidates.length;
+    final copyCandidates = selectedCandidates
+        .where((candidate) => candidate.isReadyToCopy)
+        .toList(growable: false);
+    final blockedCandidates = selectedCandidates
+        .where((candidate) => !candidate.isReadyToCopy)
+        .toList(growable: false);
+
+    if (unknownCount > 0) {
+      return SheetExternalFolderCopyPlan._(
+        status: SheetExternalFolderCopyPlanStatus.unknownSelection,
+        copyCandidates: copyCandidates,
+        blockedCandidates: blockedCandidates,
+        unknownSelectionCount: unknownCount,
+        message: '선택한 항목 중 현재 미리보기에서 찾을 수 없는 파일이 있습니다. 폴더를 다시 확인해주세요.',
+      );
+    }
+    if (blockedCandidates.isNotEmpty || copyCandidates.isEmpty) {
+      return SheetExternalFolderCopyPlan._(
+        status: SheetExternalFolderCopyPlanStatus.blockedSelection,
+        copyCandidates: copyCandidates,
+        blockedCandidates: blockedCandidates,
+        unknownSelectionCount: 0,
+        message: '읽을 수 없거나 이미 있는 항목은 가져오기 전에 제외해야 합니다.',
+      );
+    }
+
+    return SheetExternalFolderCopyPlan._(
+      status: SheetExternalFolderCopyPlanStatus.ready,
+      copyCandidates: copyCandidates,
+      blockedCandidates: const <SheetExternalFolderImportCandidate>[],
+      unknownSelectionCount: 0,
+      message: '${copyCandidates.length}개 PDF를 Clef 라이브러리에 복사할 준비가 됐습니다.',
+    );
+  }
+
   static String normalizeName(String value) {
     return value.trim().toLowerCase();
   }
@@ -141,13 +214,16 @@ class SheetExternalFolderCatalogPreview {
   static SheetExternalFolderImportCandidate _candidateFor(
     SheetExternalFolderEntry entry, {
     required Set<String> existingNames,
+    required int visibleIndex,
   }) {
     final normalizedName = entry.normalizedName;
+    final selectionId = _selectionIdFor(entry, visibleIndex);
     if (!entry.canRead) {
       return SheetExternalFolderImportCandidate(
         entry: entry,
         status: SheetExternalFolderCandidateStatus.unreadable,
         message: '이 파일은 현재 기기에서 읽을 수 없습니다.',
+        selectionId: selectionId,
       );
     }
     if (!SheetFileImportPolicy.isPdfFileName(entry.displayName)) {
@@ -155,6 +231,7 @@ class SheetExternalFolderCatalogPreview {
         entry: entry,
         status: SheetExternalFolderCandidateStatus.unsupportedFormat,
         message: '폴더 가져오기는 먼저 PDF 파일만 복사 대상으로 보여줍니다.',
+        selectionId: selectionId,
       );
     }
     if (existingNames.contains(normalizedName)) {
@@ -162,12 +239,42 @@ class SheetExternalFolderCatalogPreview {
         entry: entry,
         status: SheetExternalFolderCandidateStatus.duplicateName,
         message: '같은 이름의 악보가 이미 라이브러리에 있습니다.',
+        selectionId: selectionId,
       );
     }
     return SheetExternalFolderImportCandidate(
       entry: entry,
       status: SheetExternalFolderCandidateStatus.readyToCopy,
       message: '선택하면 Clef 라이브러리에 복사됩니다.',
+      selectionId: selectionId,
     );
   }
+
+  static String _selectionIdFor(SheetExternalFolderEntry entry, int index) {
+    final documentId = entry.documentId?.trim();
+    if (documentId != null && documentId.isNotEmpty) {
+      return 'doc:$documentId';
+    }
+    return 'entry:$index:${entry.normalizedName}';
+  }
+}
+
+class SheetExternalFolderCopyPlan {
+  const SheetExternalFolderCopyPlan._({
+    required this.status,
+    required this.copyCandidates,
+    required this.blockedCandidates,
+    required this.unknownSelectionCount,
+    required this.message,
+  });
+
+  final SheetExternalFolderCopyPlanStatus status;
+  final List<SheetExternalFolderImportCandidate> copyCandidates;
+  final List<SheetExternalFolderImportCandidate> blockedCandidates;
+  final int unknownSelectionCount;
+  final String message;
+
+  bool get isReady => status == SheetExternalFolderCopyPlanStatus.ready;
+
+  int get copyCount => copyCandidates.length;
 }

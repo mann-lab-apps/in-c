@@ -123,6 +123,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.
    - folder source URI와 display path는 source metadata로 남겨 중복 탐지와 “원본 폴더에서 다시 가져오기”에 사용한다.
    - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
+   - 구현 상태: preview에서 선택된 항목을 `SheetExternalFolderCopyPlan`으로 검증하는 core는 구현됨.
+     읽기 가능한 비중복 PDF만 copy candidate가 되며, 중복/읽기 실패/미지원/stale selection은 실제 import
+     전에 차단된다. SAF byte read와 기존 import pipeline 연결, source metadata 저장은 후속.
 
 3. **Persistent direct reference**
    - 별도 score storage type을 추가해 앱 내부 사본 없이 tree URI를 직접 열 수 있게 한다.

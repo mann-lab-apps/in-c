@@ -2044,3 +2044,11 @@ denial, scan failure, empty folders and large-folder caps without mutating app d
 candidate classification, duplicate blocking, unreadable entries, empty/permission/scan states and
 large-folder caps. Android SAF picker UI, copy-on-select import, source-folder metadata and any
 persistent direct reference remain follow-up work.
+
+S163 VERIFIED LOCAL: reduced the next direct-folder risk by adding a copy-on-select plan model on top
+of the read-only catalog preview. Each folder candidate now has a preview-scoped selection id, and
+`copyPlanForSelection` only produces an import-ready plan when every selected item is a readable,
+non-duplicate PDF candidate. Empty, stale/unknown, duplicate, unreadable and unsupported selections
+stay blocked before any file bytes reach the existing import pipeline. Unit tests cover ready plans,
+blocked mixed selections and stale selection ids. Actual SAF byte reading, source-folder metadata and
+user-facing folder picker UI remain follow-up work.

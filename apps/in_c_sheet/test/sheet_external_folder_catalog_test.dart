@@ -24,6 +24,10 @@ void main() {
       preview.candidates.first.status,
       SheetExternalFolderCandidateStatus.readyToCopy,
     );
+    expect(
+      preview.candidates.first.selectionId,
+      'entry:0:bach cello suite.pdf',
+    );
     expect(preview.candidates.first.message, contains('복사'));
     expect(
       preview.candidates.last.status,
@@ -96,5 +100,69 @@ void main() {
     expect(preview.candidates, hasLength(3));
     expect(preview.readyCount, 3);
     expect(preview.message, contains('처음 3개'));
+  });
+
+  test('builds a copy-on-select plan only from ready PDF candidates', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(
+          displayName: 'Ready.pdf',
+          documentId: 'provider-ready',
+        ),
+        const SheetExternalFolderEntry(displayName: 'blocked.docx'),
+      ],
+    );
+
+    final plan = preview.copyPlanForSelection(<String>[
+      preview.candidates.first.selectionId,
+    ]);
+
+    expect(plan.status, SheetExternalFolderCopyPlanStatus.ready);
+    expect(plan.isReady, isTrue);
+    expect(plan.copyCount, 1);
+    expect(plan.copyCandidates.single.entry.displayName, 'Ready.pdf');
+    expect(plan.copyCandidates.single.selectionId, 'doc:provider-ready');
+    expect(plan.blockedCandidates, isEmpty);
+    expect(plan.message, contains('1개 PDF'));
+  });
+
+  test('copy plan blocks duplicate unsupported and unreadable selections', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(displayName: 'Existing.pdf'),
+        const SheetExternalFolderEntry(displayName: 'notes.docx'),
+        const SheetExternalFolderEntry(
+          displayName: 'Cloud.pdf',
+          canRead: false,
+        ),
+      ],
+      existingFileNames: <String>['existing.pdf'],
+    );
+
+    final plan = preview.copyPlanForSelection(
+      preview.candidates.map((candidate) => candidate.selectionId),
+    );
+
+    expect(plan.status, SheetExternalFolderCopyPlanStatus.blockedSelection);
+    expect(plan.isReady, isFalse);
+    expect(plan.copyCandidates, isEmpty);
+    expect(plan.blockedCandidates, hasLength(3));
+  });
+
+  test('copy plan rejects empty and stale selections', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(displayName: 'Ready.pdf'),
+      ],
+    );
+
+    final empty = preview.copyPlanForSelection(const <String>[]);
+    final stale = preview.copyPlanForSelection(<String>['entry:99:stale.pdf']);
+
+    expect(empty.status, SheetExternalFolderCopyPlanStatus.noSelection);
+    expect(empty.copyCandidates, isEmpty);
+    expect(stale.status, SheetExternalFolderCopyPlanStatus.unknownSelection);
+    expect(stale.unknownSelectionCount, 1);
+    expect(stale.copyCandidates, isEmpty);
   });
 }
