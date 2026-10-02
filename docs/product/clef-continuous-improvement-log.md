@@ -1931,3 +1931,11 @@ The user-stamp section distinguishes an empty library from a filtered-empty resu
 creation/deletion and built-in stamp search intact. Widget coverage verifies search and category
 filtering for user stamps. Image stamp assets, advanced stamp conflict resolution, multi-layer
 annotation and editable PDF annotation export remain follow-up work.
+
+S148 VERIFIED LOCAL: sharpened the direct-folder reference spike before opening SAF code. The
+v1.1 plan now explicitly limits the first implementation to Android folder catalog preview plus
+copy-on-select, keeping Clef's existing internal-copy backup/export guarantees intact. It separates
+allowed first-slice work from persistent direct-reference score storage, automatic folder sync,
+backup URI export and iOS Files parity, and records a risk matrix for permission loss, provider
+offline state, large folders, duplicate files and backup privacy. This was a docs-only slice; code
+implementation remains follow-up.

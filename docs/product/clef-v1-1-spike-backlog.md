@@ -68,6 +68,47 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   데이터 삭제 없이 재연결 안내를 표시한다.
 - Blocker 해제 조건: SAF/iOS Files policy 결정, 실기기 권한 유지 QA, data model migration plan.
 
+### 제품 판단
+
+- v1.1 첫 구현은 **direct reference가 아니라 folder catalog + copy-on-select**로 제한한다.
+- 이유:
+  - Clef의 현재 백업/복원, setlist package, PDF export/share는 앱 내부 사본을 전제로 안정화되어 있다.
+  - SAF/Files direct reference는 권한 만료와 provider offline 상태가 실제 공연 중 blocker가 될 수 있다.
+  - MobileSheets식 "폴더에서 빠르게 찾기" 체감은 read-only catalog와 선택 복사만으로도 상당 부분 얻을 수 있다.
+- 따라서 `Persistent direct reference`는 별도 migration과 Device QA 이후에만 연다.
+- 사용자-facing copy:
+  - "폴더를 둘러보고 가져오기"
+  - "선택한 파일은 Clef 라이브러리에 복사됩니다"
+  - "원본 폴더가 바뀌어도 이미 가져온 악보는 유지됩니다"
+  - direct reference 단계 전까지 "폴더와 자동 동기화"라고 표현하지 않는다.
+
+### 첫 구현 경계
+
+- 허용:
+  - Android 폴더 선택 권한 요청.
+  - PDF 후보 스캔 preview.
+  - display name, size, modified time, provider label 표시.
+  - 선택 파일만 기존 import pipeline으로 복사.
+  - source metadata에 원본 folder hint 저장.
+  - 권한 취소/빈 폴더/읽기 실패 안내.
+- 금지:
+  - 앱 내부 사본 없이 PDF를 여는 direct score.
+  - 폴더 변경 자동 감시/자동 동기화.
+  - 삭제된 원본 파일을 Clef 라이브러리 삭제로 해석.
+  - SAF URI/bookmark를 일반 backup에 그대로 포함.
+  - iOS Files parity를 Android와 동일하다고 가정.
+
+### 위험/대응 매트릭스
+
+| 위험 | 첫 구현 대응 | Direct reference 전 필요 조건 |
+| --- | --- | --- |
+| 권한 상실 | preview만 실패시키고 라이브러리 변경 없음 | score-level stale badge, reconnect flow |
+| 원본 rename/delete | 이미 복사한 악보 유지 | document URI 재해석 정책, 사용자 확인 |
+| provider offline | folder scan 실패 안내 | offline badge와 retry/backoff |
+| 대형 폴더 | scan count/size cap과 cancel | incremental scan, cache invalidation |
+| backup privacy | folder URI redaction | encrypted/export opt-in policy |
+| 중복 파일 | 기존 checksum/name dedupe 재사용 | source URI history와 duplicate review |
+
 ### 권장 단계
 
 1. **Read-only catalog preview**
