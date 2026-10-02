@@ -1914,3 +1914,12 @@ and import previews, and merges new stamp ids into the active library after a su
 import. Codec and controller tests cover round-trip metadata and import persistence. Image stamp
 assets, package conflict review UI, multi-layer annotation and editable PDF annotation export remain
 follow-up work.
+
+S146 VERIFIED LOCAL: reduced the remaining custom-stamp package conflict risk. Setlist package
+dry runs now compare incoming text/icon stamp packs with the active library and report new stamp
+counts separately from duplicate stamp ids, so import preview can say when local stamps will be
+preserved instead of overwritten. Package import still skips duplicate ids and only appends new
+stamps to existing packs. Codec and controller coverage now verify duplicate-preview counts and
+that a package stamp with the same id cannot replace the user's local stamp. Image stamp assets,
+explicit conflict-resolution UI, multi-layer annotation and editable PDF annotation export remain
+follow-up work.

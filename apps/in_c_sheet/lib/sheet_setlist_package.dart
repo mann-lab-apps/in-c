@@ -28,12 +28,15 @@ class SheetSetlistPackageArchive {
 
   SheetSetlistPackageDryRun previewImport({
     required List<SheetScore> currentScores,
+    List<SheetAnnotationStampPack> currentUserStampPacks =
+        const <SheetAnnotationStampPack>[],
   }) {
     return SheetSetlistPackageDryRun.preview(
       manifest: manifest,
       currentScores: currentScores,
       packageFiles: packageFiles,
       userStampPacks: userStampPacks,
+      currentUserStampPacks: currentUserStampPacks,
     );
   }
 
@@ -299,12 +302,14 @@ class SheetSetlistPackageDryRun {
     required this.entries,
     this.packageFiles = const <SheetSetlistPackageFile>[],
     this.userStampPacks = const <SheetAnnotationStampPack>[],
+    this.userStampPreview = const SheetSetlistPackageUserStampPreview.empty(),
   });
 
   final SheetSetlistShareManifest manifest;
   final List<SheetSetlistPackageEntry> entries;
   final List<SheetSetlistPackageFile> packageFiles;
   final List<SheetAnnotationStampPack> userStampPacks;
+  final SheetSetlistPackageUserStampPreview userStampPreview;
 
   factory SheetSetlistPackageDryRun.preview({
     required SheetSetlistShareManifest manifest,
@@ -312,13 +317,22 @@ class SheetSetlistPackageDryRun {
     required List<SheetSetlistPackageFile> packageFiles,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
+    List<SheetAnnotationStampPack> currentUserStampPacks =
+        const <SheetAnnotationStampPack>[],
   }) {
     final existingPreview = manifest.matchScores(currentScores);
     final matches = existingPreview.matches;
+    final normalizedUserStampPacks = _normalizePackageUserStampPacks(
+      userStampPacks,
+    );
     return SheetSetlistPackageDryRun(
       manifest: manifest,
       packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
-      userStampPacks: _normalizePackageUserStampPacks(userStampPacks),
+      userStampPacks: normalizedUserStampPacks,
+      userStampPreview: SheetSetlistPackageUserStampPreview.compare(
+        importedPacks: normalizedUserStampPacks,
+        currentPacks: currentUserStampPacks,
+      ),
       entries: List<SheetSetlistPackageEntry>.unmodifiable([
         for (var index = 0; index < manifest.items.length; index++)
           SheetSetlistPackageEntry.resolve(
@@ -368,6 +382,70 @@ class SheetSetlistPackageDryRun {
       for (final entry in unresolvedEntries) entry.warning,
     ].where((warning) => warning.trim().isNotEmpty).toList(growable: false);
   }
+}
+
+class SheetSetlistPackageUserStampPreview {
+  const SheetSetlistPackageUserStampPreview({
+    required this.packCount,
+    required this.totalStampCount,
+    required this.newPackCount,
+    required this.newStampCount,
+    required this.duplicateStampCount,
+  });
+
+  const SheetSetlistPackageUserStampPreview.empty()
+    : packCount = 0,
+      totalStampCount = 0,
+      newPackCount = 0,
+      newStampCount = 0,
+      duplicateStampCount = 0;
+
+  factory SheetSetlistPackageUserStampPreview.compare({
+    required List<SheetAnnotationStampPack> importedPacks,
+    required List<SheetAnnotationStampPack> currentPacks,
+  }) {
+    final currentById = {
+      for (final pack in _normalizePackageUserStampPacks(currentPacks))
+        pack.id: pack,
+    };
+    var totalStampCount = 0;
+    var newPackCount = 0;
+    var newStampCount = 0;
+    var duplicateStampCount = 0;
+    for (final pack in _normalizePackageUserStampPacks(importedPacks)) {
+      totalStampCount += pack.stamps.length;
+      final current = currentById[pack.id];
+      if (current == null) {
+        newPackCount += 1;
+        newStampCount += pack.stamps.length;
+        continue;
+      }
+      final currentStampIds = {for (final stamp in current.stamps) stamp.id};
+      for (final stamp in pack.stamps) {
+        if (currentStampIds.contains(stamp.id)) {
+          duplicateStampCount += 1;
+        } else {
+          newStampCount += 1;
+        }
+      }
+    }
+    return SheetSetlistPackageUserStampPreview(
+      packCount: importedPacks.length,
+      totalStampCount: totalStampCount,
+      newPackCount: newPackCount,
+      newStampCount: newStampCount,
+      duplicateStampCount: duplicateStampCount,
+    );
+  }
+
+  final int packCount;
+  final int totalStampCount;
+  final int newPackCount;
+  final int newStampCount;
+  final int duplicateStampCount;
+
+  bool get hasStamps => totalStampCount > 0;
+  bool get hasDuplicates => duplicateStampCount > 0;
 }
 
 class SheetSetlistPackageEntry {

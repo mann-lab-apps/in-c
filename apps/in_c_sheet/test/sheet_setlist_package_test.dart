@@ -245,6 +245,28 @@ Clef & Staff 세트리스트
 
     final package = SheetSetlistPackageArchive.decodeBytes(zip);
     final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+    final dryRunWithExisting = package.previewImport(
+      currentScores: const <SheetScore>[],
+      currentUserStampPacks: [
+        SheetAnnotationStampPack(
+          id: 'user',
+          name: '사용자 스탬프',
+          version: 1,
+          createdAt: DateTime(2026, 10, 1, 12),
+          updatedAt: DateTime(2026, 10, 1, 12),
+          stamps: const <SheetAnnotationUserStamp>[
+            SheetAnnotationUserStamp(
+              id: 'repeat-cue',
+              packId: 'user',
+              label: 'Local repeat cue',
+              category: '사용자',
+              kind: SheetAnnotationUserStamp.iconKind,
+              iconName: 'repeat',
+            ),
+          ],
+        ),
+      ],
+    );
 
     expect(package.userStampPacks, hasLength(1));
     expect(package.userStampPacks.single.stamps.map((stamp) => stamp.id), [
@@ -252,6 +274,14 @@ Clef & Staff 세트리스트
       'repeat-cue',
     ]);
     expect(dryRun.userStampPacks.single.stamps.last.iconName, 'repeat');
+    expect(dryRun.userStampPreview.packCount, 1);
+    expect(dryRun.userStampPreview.totalStampCount, 2);
+    expect(dryRun.userStampPreview.newPackCount, 1);
+    expect(dryRun.userStampPreview.newStampCount, 2);
+    expect(dryRun.userStampPreview.duplicateStampCount, 0);
+    expect(dryRunWithExisting.userStampPreview.newPackCount, 0);
+    expect(dryRunWithExisting.userStampPreview.newStampCount, 1);
+    expect(dryRunWithExisting.userStampPreview.duplicateStampCount, 1);
   });
 
   test('codec rejects packages without a Clef manifest', () {

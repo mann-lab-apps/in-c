@@ -7129,7 +7129,10 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       final package = SheetSetlistPackageArchive.decodeBytes(
         await file.readAsBytes(),
       );
-      final dryRun = package.previewImport(currentScores: controller.scores);
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
       if (!mounted) {
         return;
       }
@@ -7418,6 +7421,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final warnings = dryRun.warnings;
     final canImportLater = dryRun.canImport;
+    final stampPreview = dryRun.userStampPreview;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -7447,7 +7451,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     : Icons.info_outline,
                 title: canImportLater ? '가져올 준비가 된 패키지입니다' : '확인이 필요합니다',
                 message:
-                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 스탬프 pack ${dryRun.userStampPacks.length}개 · 확인 ${dryRun.unresolvedCount}개',
+                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 스탬프 ${stampPreview.newStampCount}개 추가 · 확인 ${dryRun.unresolvedCount}개',
                 color: canImportLater
                     ? theme.colorScheme.secondary
                     : theme.colorScheme.tertiary,
@@ -7475,13 +7479,19 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     label: Text('확인 ${dryRun.unresolvedCount}개'),
                     visualDensity: VisualDensity.compact,
                   ),
-                  if (dryRun.userStampPacks.isNotEmpty)
+                  if (stampPreview.hasStamps)
                     Chip(
                       avatar: const Icon(
                         Icons.collections_bookmark_outlined,
                         size: 16,
                       ),
-                      label: Text('스탬프 ${dryRun.userStampPacks.length}팩'),
+                      label: Text('스탬프 +${stampPreview.newStampCount}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (stampPreview.hasDuplicates)
+                    Chip(
+                      avatar: const Icon(Icons.shield_outlined, size: 16),
+                      label: Text('중복 ${stampPreview.duplicateStampCount}개 보존'),
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
@@ -7541,7 +7551,9 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     ? '가져오기 전에 한 번 더 확인하세요'
                     : '확인 필요 항목을 먼저 해결하세요',
                 message: canImportLater
-                    ? '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다.'
+                    ? stampPreview.hasDuplicates
+                          ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다.'
+                          : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다.'
                     : 'missing/ambiguous 항목이 남아 있으면 partial import를 하지 않습니다.',
                 color: canImportLater
                     ? theme.colorScheme.primary

@@ -570,6 +570,25 @@ void main() {
     );
     final store = _PackageImportStore(now);
     await store.saveScores([existing]);
+    await store.saveUserAnnotationStampPacks([
+      SheetAnnotationStampPack(
+        id: 'user',
+        name: '사용자 스탬프',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'repeat-cue',
+            packId: 'user',
+            label: 'Local repeat cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.iconKind,
+            iconName: 'repeat',
+          ),
+        ],
+      ),
+    ]);
     final controller = SheetLibraryController(store: store);
     await controller.load();
     final packageStampPack = SheetAnnotationStampPack(
@@ -582,10 +601,18 @@ void main() {
         SheetAnnotationUserStamp(
           id: 'repeat-cue',
           packId: 'user',
-          label: 'Repeat cue',
+          label: 'Package repeat cue',
           category: '사용자',
           kind: SheetAnnotationUserStamp.iconKind,
           iconName: 'repeat',
+        ),
+        SheetAnnotationUserStamp(
+          id: 'bow-cue',
+          packId: 'user',
+          label: 'Bow cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.textKind,
+          text: 'BOW',
         ),
       ],
     );
@@ -640,16 +667,28 @@ Clef & Staff 세트리스트
     expect(store.importedPdfBytes.single, [1, 2, 3]);
     expect(controller.userAnnotationStampPacks, hasLength(1));
     expect(
-      controller.userAnnotationStampPacks.single.stamps.single.iconName,
+      controller.userAnnotationStampPacks.single.stamps.map(
+        (stamp) => stamp.id,
+      ),
+      ['repeat-cue', 'bow-cue'],
+    );
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.first.iconName,
       'repeat',
+    );
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.first.label,
+      'Local repeat cue',
     );
 
     await controller.load();
     expect(controller.setlists.single.scoreIds, ['existing', 'package-pdf-0']);
     expect(controller.scoreById('package-pdf-0').title, 'New Sonata');
     expect(
-      controller.userAnnotationStampPacks.single.stamps.single.id,
-      'repeat-cue',
+      controller.userAnnotationStampPacks.single.stamps.map(
+        (stamp) => stamp.id,
+      ),
+      ['repeat-cue', 'bow-cue'],
     );
   });
 
