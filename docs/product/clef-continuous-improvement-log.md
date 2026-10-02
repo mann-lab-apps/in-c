@@ -1947,3 +1947,10 @@ stamp counts, and why PDF-including full backup is still a separate manual actio
 explicitly says it is not a cloud-sync completion indicator. Controller and widget tests cover
 health calculation and menu access. User-selected cloud folder export and sync dry-run remain the
 next cloud/sync slices.
+
+S150 VERIFIED LOCAL: added a local sync dry-run comparison core without performing any merge or
+remote write. `SheetLibraryBackupDiff.compare` now compares two metadata backup snapshots and
+reports added/removed/changed score ids, file-path/link candidates, annotation candidates,
+added/removed/changed setlists, setlist order changes and global settings changes. Unit coverage
+verifies score/setlist diffs, file-change conflict candidates, settings changes and no-op backups.
+User-facing import/export selection and conflict review UI remain follow-up work.

@@ -339,7 +339,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   1. Backup health/status 화면: 자동 metadata snapshot과 현재 라이브러리 범위, PDF 포함 전체 백업
      필요성을 보여주는 첫 화면은 구현됐다. 마지막 full backup/package export 기록은 후속이다.
   2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
-  3. Sync dry-run: 두 backup snapshot을 비교해 변경/충돌 report를 만든다. 실제 merge는 하지 않는다.
+  3. Sync dry-run: 두 metadata backup snapshot의 score/setlist/settings 변경과 file/annotation conflict
+     후보를 계산하는 core는 구현됐다. 사용자-facing conflict report와 실제 merge는 후속이다.
   4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
 - 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를
   엇갈리게 수정한 fixture, offline/online 전환, provider quota/권한 취소, iCloud/Drive/Dropbox provider smoke.
