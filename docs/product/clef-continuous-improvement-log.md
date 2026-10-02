@@ -1881,3 +1881,12 @@ built-in recent/quick/category/search rows, so the next text/icon-only creation 
 home without making built-in stamps harder to reach. Widget coverage verifies the empty state stays
 visible alongside existing quick stamps and category filters. Text/icon custom stamp creation,
 backup/restore fixtures and setlist package inclusion remain follow-up work.
+
+S142 VERIFIED LOCAL: wired the custom stamp pack schema into Clef's library-scoped metadata store
+and metadata backup/restore path before exposing creation UI. The store now saves only valid
+text/icon/image-reserved stamp packs, drops duplicate pack ids, ignores malformed JSON and clears
+empty pack lists without blocking built-in stamps. Metadata backup export/import round-trips valid
+packs, and the automatic metadata backup now includes them with the rest of the library-scoped
+settings. Focused store tests cover valid save/load, malformed storage fallback and metadata backup
+restore; text/icon custom stamp creation, setlist package inclusion and image stamp import remain
+follow-up work.

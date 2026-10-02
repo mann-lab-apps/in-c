@@ -21,6 +21,7 @@ class SheetLibraryBackup {
     this.globalViewerSettings = SheetViewerSettings.defaultSettings,
     this.performancePresetTemplates = const <SheetPerformancePresetTemplate>[],
     this.favoriteAnnotationPreset,
+    this.userAnnotationStampPacks = const <SheetAnnotationStampPack>[],
   });
 
   factory SheetLibraryBackup.fromJson(Map<String, Object?> json) {
@@ -71,6 +72,9 @@ class SheetLibraryBackup {
       favoriteAnnotationPreset: _annotationPresetFromJson(
         json['favoriteAnnotationPreset'],
       ),
+      userAnnotationStampPacks: _stampPacksFromJson(
+        json['userAnnotationStampPacks'],
+      ),
     );
   }
 
@@ -86,6 +90,8 @@ class SheetLibraryBackup {
     List<SheetPerformancePresetTemplate> performancePresetTemplates =
         const <SheetPerformancePresetTemplate>[],
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
+    List<SheetAnnotationStampPack> userAnnotationStampPacks =
+        const <SheetAnnotationStampPack>[],
     DateTime? exportedAt,
   }) {
     return SheetLibraryBackup(
@@ -102,6 +108,7 @@ class SheetLibraryBackup {
         performancePresetTemplates,
       ),
       favoriteAnnotationPreset: favoriteAnnotationPreset,
+      userAnnotationStampPacks: _normalizeStampPacks(userAnnotationStampPacks),
     );
   }
 
@@ -118,6 +125,7 @@ class SheetLibraryBackup {
   final SheetViewerSettings globalViewerSettings;
   final List<SheetPerformancePresetTemplate> performancePresetTemplates;
   final SheetAnnotationToolPreset? favoriteAnnotationPreset;
+  final List<SheetAnnotationStampPack> userAnnotationStampPacks;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -136,6 +144,10 @@ class SheetLibraryBackup {
           .toList(growable: false),
       if (favoriteAnnotationPreset != null)
         'favoriteAnnotationPreset': favoriteAnnotationPreset!.toJson(),
+      if (userAnnotationStampPacks.isNotEmpty)
+        'userAnnotationStampPacks': userAnnotationStampPacks
+            .map((pack) => pack.toJson())
+            .toList(growable: false),
       'notes':
           'PDF files are not embedded in this backup. Restored score file '
           'paths may require local files to still exist.',
@@ -345,4 +357,26 @@ DateTime _dateFromJson(Object? value) {
 SheetAnnotationToolPreset? _annotationPresetFromJson(Object? value) {
   final preset = SheetAnnotationToolPreset.fromJson(_asJsonMap(value));
   return preset.isValid ? preset : null;
+}
+
+List<SheetAnnotationStampPack> _stampPacksFromJson(Object? value) {
+  return _normalizeStampPacks(
+    _jsonList(value)
+        .map(_asJsonMap)
+        .whereType<Map<String, Object?>>()
+        .map(SheetAnnotationStampPack.fromJson),
+  );
+}
+
+List<SheetAnnotationStampPack> _normalizeStampPacks(
+  Iterable<SheetAnnotationStampPack> packs,
+) {
+  final seen = <String>{};
+  final normalized = <SheetAnnotationStampPack>[];
+  for (final pack in packs) {
+    if (pack.validate().isValid && seen.add(pack.id)) {
+      normalized.add(pack);
+    }
+  }
+  return List<SheetAnnotationStampPack>.unmodifiable(normalized);
 }

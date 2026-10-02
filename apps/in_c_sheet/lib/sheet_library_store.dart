@@ -41,6 +41,15 @@ Map<String, Object?>? _jsonMapFromString(String? value) {
   }
 }
 
+Map<String, Object?>? _jsonMapFromObject(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+  );
+}
+
 class SheetLibraryStore {
   // All instances share the preferences cache and automatic backup keys.
   static Future<void>? _metadataWrites;
@@ -55,6 +64,8 @@ class SheetLibraryStore {
       'clef_performance_preset_templates';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
   static const _recentAnnotationStampsKey = 'clef_recent_annotation_stamps';
+  static const _userAnnotationStampPacksKey =
+      'clef_user_annotation_stamp_packs';
   static const _automaticMetadataBackupKey = 'clef_automatic_metadata_backup';
   static const _libraryProfilesKey = 'clef_library_profiles';
   static const _activeLibraryProfileKey = 'clef_active_library_profile';
@@ -230,6 +241,7 @@ class SheetLibraryStore {
       _scopedKey(_libraryViewSettingsKey, libraryId): null,
       _scopedKey(_favoriteAnnotationPresetKey, libraryId): null,
       _scopedKey(_recentAnnotationStampsKey, libraryId): null,
+      _scopedKey(_userAnnotationStampPacksKey, libraryId): null,
       _scopedKey(_automaticMetadataBackupKey, libraryId): null,
     };
   }
@@ -269,6 +281,19 @@ class SheetLibraryStore {
       }
     }
     return List<String>.unmodifiable(normalized);
+  }
+
+  static List<SheetAnnotationStampPack> _normalizeUserAnnotationStampPacks(
+    Iterable<SheetAnnotationStampPack> packs,
+  ) {
+    final seen = <String>{};
+    final normalized = <SheetAnnotationStampPack>[];
+    for (final pack in packs) {
+      if (pack.validate().isValid && seen.add(pack.id)) {
+        normalized.add(pack);
+      }
+    }
+    return List<SheetAnnotationStampPack>.unmodifiable(normalized);
   }
 
   static String _normalizeLibraryName(String value) {
@@ -401,6 +426,32 @@ class SheetLibraryStore {
     }
   }
 
+  List<SheetAnnotationStampPack> _readUserAnnotationStampPacks(
+    SharedPreferences preferences,
+    String activeLibraryId,
+  ) {
+    final value = preferences.getString(
+      _scopedKey(_userAnnotationStampPacksKey, activeLibraryId),
+    );
+    if (value == null) {
+      return const <SheetAnnotationStampPack>[];
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List) {
+        return const <SheetAnnotationStampPack>[];
+      }
+      return _normalizeUserAnnotationStampPacks(
+        decoded
+            .map(_jsonMapFromObject)
+            .whereType<Map<String, Object?>>()
+            .map(SheetAnnotationStampPack.fromJson),
+      );
+    } catch (_) {
+      return const <SheetAnnotationStampPack>[];
+    }
+  }
+
   String _encodeAutomaticMetadataBackup(
     SharedPreferences preferences,
     String activeLibraryId,
@@ -435,6 +486,10 @@ class SheetLibraryStore {
         activeLibraryId,
       ),
       favoriteAnnotationPreset: _readFavoriteAnnotationPreset(
+        preferences,
+        activeLibraryId,
+      ),
+      userAnnotationStampPacks: _readUserAnnotationStampPacks(
         preferences,
         activeLibraryId,
       ),
@@ -622,6 +677,29 @@ class SheetLibraryStore {
     final key = _scopedKey(_recentAnnotationStampsKey, activeLibraryId);
     await _writeMetadataValues(preferences, {
       key: normalized.isEmpty ? null : jsonEncode(normalized),
+    }, automaticBackupLibraryId: activeLibraryId);
+  }
+
+  Future<List<SheetAnnotationStampPack>> loadUserAnnotationStampPacks() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    return _readUserAnnotationStampPacks(preferences, activeLibraryId);
+  }
+
+  Future<void> saveUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    final normalized = _normalizeUserAnnotationStampPacks(packs);
+    final key = _scopedKey(_userAnnotationStampPacksKey, activeLibraryId);
+    await _writeMetadataValues(preferences, {
+      key: normalized.isEmpty
+          ? null
+          : const JsonEncoder.withIndent('  ').convert(
+              normalized.map((pack) => pack.toJson()).toList(growable: false),
+            ),
     }, automaticBackupLibraryId: activeLibraryId);
   }
 
@@ -1108,6 +1186,7 @@ class SheetLibraryStore {
       globalViewerSettings: await loadGlobalViewerSettings(),
       performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
+      userAnnotationStampPacks: await loadUserAnnotationStampPacks(),
     );
     return SheetLibraryBackupCodec.encode(backup);
   }
@@ -1156,6 +1235,7 @@ class SheetLibraryStore {
       globalViewerSettings: await loadGlobalViewerSettings(),
       performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
+      userAnnotationStampPacks: await loadUserAnnotationStampPacks(),
       exportedAt: exportedAt,
     );
     final archive = Archive();
@@ -1559,6 +1639,7 @@ class SheetLibraryStore {
       globalViewerSettings: backup.globalViewerSettings,
       performancePresetTemplates: backup.performancePresetTemplates,
       favoriteAnnotationPreset: backup.favoriteAnnotationPreset,
+      userAnnotationStampPacks: backup.userAnnotationStampPacks,
     );
     final preset = restored.favoriteAnnotationPreset;
     final values = <String, String?>{
@@ -1588,6 +1669,16 @@ class SheetLibraryStore {
       ): preset != null && preset.isValid
           ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
           : null,
+      _scopedKey(
+        _userAnnotationStampPacksKey,
+        libraryId,
+      ): restored.userAnnotationStampPacks.isEmpty
+          ? null
+          : const JsonEncoder.withIndent('  ').convert(
+              restored.userAnnotationStampPacks
+                  .map((pack) => pack.toJson())
+                  .toList(growable: false),
+            ),
       _scopedKey(_automaticMetadataBackupKey, libraryId):
           SheetLibraryBackupCodec.encode(restored),
     };
