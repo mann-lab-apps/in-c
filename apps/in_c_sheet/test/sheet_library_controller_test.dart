@@ -8,6 +8,7 @@ import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_backup_diff.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -1291,6 +1292,68 @@ Clef & Staff 세트리스트
     expect(report?.headline, '백업 변경 1종 감지');
     expect(report?.summaryLines, contains('새 악보 1개'));
     expect(report?.requiresReview, isFalse);
+  });
+
+  test('previews external metadata backup JSON without restoring it', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'current-score', title: 'Current Score'),
+    ]);
+    final incomingJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: <SheetScore>[
+          _score(now, id: 'incoming-score', title: 'Incoming Score'),
+        ],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final preview = await controller.previewMetadataBackupJson(incomingJson);
+    expect(preview.status, SheetLibraryBackupPreviewStatus.ready);
+    expect(preview.canRestore, isTrue);
+    expect(preview.scoreCount, 1);
+    expect(preview.setlistCount, 0);
+    expect(preview.report?.summaryLines, contains('새 악보 1개'));
+    expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(controller.scores.single.id, 'current-score');
+  });
+
+  test('classifies invalid metadata backup preview input', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    final invalid = await controller.previewMetadataBackupJson('[]');
+    expect(invalid.status, SheetLibraryBackupPreviewStatus.invalid);
+    expect(invalid.canRestore, isFalse);
+
+    final unsupportedJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: const <SheetScore>[],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    ).replaceFirst('"version": 1', '"version": 999');
+    final unsupported = await controller.previewMetadataBackupJson(
+      unsupportedJson,
+    );
+    expect(
+      unsupported.status,
+      SheetLibraryBackupPreviewStatus.unsupportedVersion,
+    );
+    expect(unsupported.canRestore, isFalse);
   });
 
   test('reports backup health without claiming cloud sync', () async {

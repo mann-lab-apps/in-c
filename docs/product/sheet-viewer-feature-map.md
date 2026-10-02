@@ -125,7 +125,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
 | 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
 | 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
-| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | backup menu에 `백업 상태`를 추가해 자동 정보 snapshot 존재 여부, 최근 수동 백업 기록, 현재 라이브러리 범위, PDF 포함 전체 백업 필요성을 먼저 설명한다. 두 metadata backup snapshot의 added/removed/changed score/setlist, file-path conflict 후보, annotation 후보, setlist order, settings 변경을 계산하는 sync dry-run core와 요약/report model이 있다. 자동 정보 복원 dialog는 현재 metadata와 자동 snapshot의 변경 요약/검토 필요 문구를 복원 전 표시한다. v1.1 spike는 account 없는 cloud-folder export와 account-backed continuous sync를 분리했다. Conflict model은 metadata field merge, annotation object merge/tombstone, setlist order review, binary duplicate preservation을 기본 원칙으로 둔다 |
+| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | backup menu에 `백업 상태`를 추가해 자동 정보 snapshot 존재 여부, 최근 수동 백업 기록, 현재 라이브러리 범위, PDF 포함 전체 백업 필요성을 먼저 설명한다. 두 metadata backup snapshot의 added/removed/changed score/setlist, file-path conflict 후보, annotation 후보, setlist order, settings 변경을 계산하는 sync dry-run core와 요약/report model이 있다. 자동 정보 복원 dialog는 현재 metadata와 자동 snapshot의 변경 요약/검토 필요 문구를 복원 전 표시한다. 외부 metadata JSON backup도 복원 전 preview result core가 있어 ready/invalid/unsupported/error를 분리한다. v1.1 spike는 account 없는 cloud-folder export와 account-backed continuous sync를 분리했다. Conflict model은 metadata field merge, annotation object merge/tombstone, setlist order review, binary duplicate preservation을 기본 원칙으로 둔다 |
 | 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Leader/follower spike가 page/setlist event reducer, QR/code pairing, mismatch/disconnect UX, transport 선택을 분리했다. 실제 네트워크 구현 전 simulator와 two-device QA 필요 |
 | 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | Same setlist/page state를 follower에 보내되 missing score와 out-of-order page event를 안전하게 처리해야 한다. Transport/API는 별도 결정 |
 | 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | Cloud sync spike에서 annotation object-level additive merge와 deletion tombstone을 우선 원칙으로 둔다 |
@@ -353,7 +353,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 음악 키보드, 녹음기.
 - face gesture page turn.
 - MIDI registration/linking.
-- cloud library sync. Backup health/status 화면, 최근 수동 백업 기록, backup snapshot diff/report core, 자동 정보 복원 dry-run preview는 추가됐고, cloud-folder export와 external backup conflict review를 선행한다.
+- cloud library sync. Backup health/status 화면, 최근 수동 백업 기록, backup snapshot diff/report core, 자동 정보 복원 dry-run preview, 외부 metadata JSON preview result core는 추가됐고, cloud-folder export와 file-picker/full ZIP conflict review를 선행한다.
 - 기기 간 페이지 전환. Offline event model과 simulator를 선행한다.
 - leader/follower tablet 협업. QR/code pairing, mismatch/reconnect UX, two-device QA가 필요하다.
 - 주석 보존 sync. Annotation object merge/tombstone conflict model이 필요하다.

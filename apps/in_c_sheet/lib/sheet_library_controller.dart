@@ -3838,6 +3838,40 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetLibraryBackupImportPreview> previewMetadataBackupJson(
+    String value,
+  ) async {
+    try {
+      final incomingBackup = SheetLibraryBackupCodec.decode(value);
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.ready,
+        report: SheetLibraryBackupDiffReport.fromDiff(
+          SheetLibraryBackupDiff.compare(currentBackup, incomingBackup),
+        ),
+        scoreCount: incomingBackup.scores.length,
+        setlistCount: incomingBackup.setlists.length,
+      );
+    } on UnsupportedError catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.unsupportedVersion,
+        failureReason: error.toString(),
+      );
+    } on FormatException catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.error,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     final result = await store.importFullBackup();
     if (result.didRestore) {

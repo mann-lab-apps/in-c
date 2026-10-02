@@ -192,6 +192,31 @@ class SheetLibraryBackupDiffReport {
   bool get requiresReview => reviewLines.isNotEmpty;
 }
 
+enum SheetLibraryBackupPreviewStatus {
+  ready,
+  invalid,
+  unsupportedVersion,
+  error,
+}
+
+class SheetLibraryBackupImportPreview {
+  const SheetLibraryBackupImportPreview({
+    required this.status,
+    this.report,
+    this.scoreCount = 0,
+    this.setlistCount = 0,
+    this.failureReason,
+  });
+
+  final SheetLibraryBackupPreviewStatus status;
+  final SheetLibraryBackupDiffReport? report;
+  final int scoreCount;
+  final int setlistCount;
+  final String? failureReason;
+
+  bool get canRestore => status == SheetLibraryBackupPreviewStatus.ready;
+}
+
 Map<String, SheetScore> _byId(List<SheetScore> scores) {
   return <String, SheetScore>{for (final score in scores) score.id: score};
 }

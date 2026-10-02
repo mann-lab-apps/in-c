@@ -1976,3 +1976,10 @@ the destructive restore confirmation. The restore operation itself still uses th
 path; this slice only improves pre-restore visibility. Controller and widget tests cover the automatic
 backup diff report and dialog summary. External metadata JSON/full ZIP import previews and merge
 resolution remain follow-up.
+
+S154 VERIFIED LOCAL: added the controller-level preview result for external metadata backup JSON.
+`previewMetadataBackupJson` decodes an incoming backup, compares it with the current library snapshot,
+returns restore-safe status categories (`ready`, invalid, unsupported version, error), score/setlist
+counts and the existing dry-run report without mutating library state. Tests cover a ready preview,
+invalid JSON and unsupported backup version. User-facing file-picker preview UI and full ZIP preview
+remain follow-up.
