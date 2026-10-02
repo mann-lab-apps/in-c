@@ -1429,24 +1429,31 @@ class SheetLibraryStore {
 
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {
     try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: const <String>['json'],
-      );
-      if (file == null) {
+      final value = await pickMetadataBackupJson();
+      if (value == null) {
         return const SheetLibraryBackupRestoreResult(
           status: SheetLibraryBackupRestoreStatus.canceled,
         );
       }
 
-      final bytes = await file.readAsBytes();
-      return await restoreMetadataBackupJson(utf8.decode(bytes));
+      return await restoreMetadataBackupJson(value);
     } catch (error) {
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
     }
+  }
+
+  Future<String?> pickMetadataBackupJson() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['json'],
+    );
+    if (file == null) {
+      return null;
+    }
+    return utf8.decode(await file.readAsBytes());
   }
 
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {

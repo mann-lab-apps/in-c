@@ -1579,12 +1579,38 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _importBackup() async {
+    SheetLibraryBackupImportPreview? preview;
+    try {
+      preview = await controller.pickMetadataBackupImportPreview();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('백업 파일을 읽지 못했습니다.')));
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    if (preview == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('복원을 취소했습니다.')));
+      return;
+    }
+    if (!preview.canRestore || preview.backupJson == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_metadataBackupPreviewFailureMessage(preview))),
+      );
+      return;
+    }
+
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('정보 복원'),
-        content: const Text(
-          '백업 JSON의 악보 정보, 세트리스트, 도구 설정으로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+        content: SingleChildScrollView(
+          child: _metadataBackupRestoreContent(preview!),
         ),
         actions: [
           TextButton(
@@ -1602,7 +1628,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await _runBackupRestore(controller.importMetadataBackup);
+    final backupJson = preview.backupJson!;
+    final result = await _runBackupRestore(
+      () => controller.restoreMetadataBackupJson(backupJson),
+    );
     if (!mounted) {
       return;
     }
@@ -1616,6 +1645,49 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     };
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _metadataBackupRestoreContent(
+    SheetLibraryBackupImportPreview preview,
+  ) {
+    final report = preview.report;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '선택한 백업 JSON의 ${preview.scoreCount}개 악보와 ${preview.setlistCount}개 세트리스트 정보로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+        ),
+        const SizedBox(height: 12),
+        if (report == null)
+          const Text('변경 요약을 읽지 못했습니다. 복원 전 현재 라이브러리를 확인하세요.')
+        else ...[
+          Text(
+            report.headline,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          for (final line in report.summaryLines) Text('• $line'),
+          if (report.reviewLines.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text('확인 필요', style: TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            for (final line in report.reviewLines) Text('• $line'),
+          ],
+        ],
+      ],
+    );
+  }
+
+  String _metadataBackupPreviewFailureMessage(
+    SheetLibraryBackupImportPreview preview,
+  ) {
+    return switch (preview.status) {
+      SheetLibraryBackupPreviewStatus.unsupportedVersion => '지원하지 않는 백업 버전입니다.',
+      SheetLibraryBackupPreviewStatus.invalid => '올바른 백업 JSON이 아닙니다.',
+      SheetLibraryBackupPreviewStatus.error => '백업 변경 요약을 읽지 못했습니다.',
+      SheetLibraryBackupPreviewStatus.ready => '백업 변경 요약을 읽지 못했습니다.',
+    };
   }
 
   Future<void> _restoreAutomaticBackup() async {

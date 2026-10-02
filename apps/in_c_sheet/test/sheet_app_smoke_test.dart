@@ -17,6 +17,8 @@ import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
+import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -827,6 +829,72 @@ void main() {
     expect(find.text('자동 정보 복원'), findsOneWidget);
     expect(find.text('백업 변경 1종 감지'), findsOneWidget);
     expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('metadata restore dialog previews selected backup changes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 27, 10);
+    final store = _MetadataPreviewStore();
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'current-score',
+        title: 'Current Score',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/current-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    store.backupJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: <SheetScore>[
+          SheetScore(
+            id: 'incoming-score',
+            title: 'Incoming Score',
+            composer: 'Mozart',
+            tags: const <String>[],
+            note: '',
+            filePath: '/tmp/incoming-score.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const [],
+          ),
+        ],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('정보 복원'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('정보 복원'), findsOneWidget);
+    expect(find.textContaining('선택한 백업 JSON의 1개 악보'), findsOneWidget);
+    expect(find.text('백업 변경 2종 감지'), findsOneWidget);
+    expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(find.text('• 삭제된 악보 1개'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -4209,10 +4277,38 @@ class _DelayedRestoreStore extends SheetLibraryStore {
   @override
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() => _restore();
   @override
+  Future<String?> pickMetadataBackupJson() async {
+    return SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: const <SheetScore>[],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
+    String value,
+  ) => _restore();
+
+  @override
   Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() =>
       _restore();
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() => _restore();
+}
+
+class _MetadataPreviewStore extends SheetLibraryStore {
+  String? backupJson;
+
+  @override
+  Future<String?> pickMetadataBackupJson() async {
+    return backupJson;
+  }
 }
 
 class _BackupHealthController extends SheetLibraryController {

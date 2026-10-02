@@ -1983,3 +1983,11 @@ returns restore-safe status categories (`ready`, invalid, unsupported version, e
 counts and the existing dry-run report without mutating library state. Tests cover a ready preview,
 invalid JSON and unsupported backup version. User-facing file-picker preview UI and full ZIP preview
 remain follow-up.
+
+S155 VERIFIED LOCAL: wired the external metadata JSON preview into the user-facing `정보 복원` flow.
+The backup menu now reads the selected JSON first, blocks invalid/unsupported previews before restore,
+shows the incoming score/setlist counts plus dry-run change summary, and only calls the existing
+metadata restore path after the user confirms. The old direct restore API remains available for tests
+and lower-level callers. Widget coverage verifies the selected-backup preview dialog; restore blocking
+coverage now exercises the preview-to-restore path. Full ZIP preview and merge resolution remain
+follow-up.

@@ -205,6 +205,7 @@ class SheetLibraryBackupImportPreview {
     this.report,
     this.scoreCount = 0,
     this.setlistCount = 0,
+    this.backupJson,
     this.failureReason,
   });
 
@@ -212,6 +213,7 @@ class SheetLibraryBackupImportPreview {
   final SheetLibraryBackupDiffReport? report;
   final int scoreCount;
   final int setlistCount;
+  final String? backupJson;
   final String? failureReason;
 
   bool get canRestore => status == SheetLibraryBackupPreviewStatus.ready;

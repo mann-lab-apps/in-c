@@ -3812,6 +3812,25 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetLibraryBackupImportPreview?>
+  pickMetadataBackupImportPreview() async {
+    final value = await store.pickMetadataBackupJson();
+    if (value == null) {
+      return null;
+    }
+    return previewMetadataBackupJson(value);
+  }
+
+  Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
+    String value,
+  ) async {
+    final result = await store.restoreMetadataBackupJson(value);
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
   Future<SheetLibraryBackupRestoreResult>
   restoreAutomaticMetadataBackup() async {
     final result = await store.restoreAutomaticMetadataBackup();
@@ -3853,6 +3872,7 @@ class SheetLibraryController extends ChangeNotifier {
         ),
         scoreCount: incomingBackup.scores.length,
         setlistCount: incomingBackup.setlists.length,
+        backupJson: value,
       );
     } on UnsupportedError catch (error) {
       return SheetLibraryBackupImportPreview(
