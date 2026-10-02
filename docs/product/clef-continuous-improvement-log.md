@@ -2013,3 +2013,10 @@ merge. Changed score and setlist entries now aggregate changed top-level field l
 those labels before the user confirms a whole-library replacement. Diff tests cover score and setlist
 field-label summaries plus the existing file/settings review warnings. Actual conflict resolution,
 field-selective apply and remote sync remain follow-up work.
+
+S159 VERIFIED LOCAL: opened the leader/follower tablet gap with an offline reducer core instead of
+network transport. `SheetFollowerSyncState` applies leader page events only when the session id matches,
+the event sequence is newer and the follower already has the score. Missing-score events advance the
+leader sequence without moving to a wrong score, stale events cannot roll the page back, and disconnect
+keeps the last synced page visible. Unit tests cover synced, stale, missing score, session mismatch and
+disconnect states. QR pairing, local simulator UI, network transport and two-device QA remain follow-up.

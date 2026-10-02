@@ -366,14 +366,17 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   - leader page turn event는 idempotent sequence number를 가진다. 늦은 이벤트가 최신 page를 되돌리면 안 된다.
   - disconnect/reconnect 시 follower는 마지막 leader state를 표시하되 local page turn을 계속 허용할지 mode별로 결정한다.
 - 구현 후보:
-  1. Offline session event model과 reducer unit test.
+  1. Offline session event model과 reducer unit test. 구현됨: `SheetFollowerSyncState`는 leader page
+     event의 session id, sequence, score availability를 검증해 synced/missing/stale/disconnected 상태로
+     축약한다.
   2. QR pairing mock UI 또는 debug-only local session simulator.
   3. Same-device leader/follower simulator로 setlist/page mismatch UX 검증.
   4. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
 - 테스트/fixture/실기기 조건: Android tablet 2대, iPad/Android 혼합, 같은 setlist/다른 setlist,
   missing score, rapid page turns, disconnect/reconnect, screen sleep, pedal input while following.
 - Acceptance criteria: follower가 잘못된 악보로 넘어가지 않고, 연결 손실과 mismatch를 명확히 표시하며,
-  leader/follower state reducer가 out-of-order event를 안전하게 처리한다.
+  leader/follower state reducer가 out-of-order event를 안전하게 처리한다. 현재 unit test는 available score,
+  stale event, missing score, session mismatch, disconnect 상태를 검증한다.
 - Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
 
 ## 15. Custom Stamp Pack / Stamp Management
