@@ -41,6 +41,119 @@ void main() {
     expect(SheetAnnotationToolPreset.fromJson(null).isValid, isFalse);
   });
 
+  test('user stamp packs round-trip text and allow-listed icon stamps', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': ' Rehearsal ',
+      'name': ' Rehearsal Marks ',
+      'version': 2,
+      'createdAt': '2026-10-01T09:00:00.000',
+      'updatedAt': '2026-10-01T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': ' Cue ',
+          'label': 'Cue',
+          'category': 'Rehearsal',
+          'kind': ' Text ',
+          'text': 'CUE',
+          'keywords': <String>[' Cue ', 'cue', 'entry'],
+        },
+        <String, Object?>{
+          'id': ' Star ',
+          'packId': 'rehearsal',
+          'label': 'Favorite',
+          'category': 'Marker',
+          'kind': 'icon',
+          'iconName': 'star',
+          'licenseLabel': 'Original',
+          'sourceUrl': 'https://example.com/stamps',
+        },
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isTrue);
+    expect(result.warnings, isEmpty);
+    expect(pack.id, 'rehearsal');
+    expect(pack.name, 'Rehearsal Marks');
+    expect(pack.version, 2);
+    expect(pack.stamps.first.packId, 'rehearsal');
+    expect(pack.stamps.first.keywords, <String>['cue', 'entry']);
+    expect(
+      SheetAnnotationStampPack.fromJson(pack.toJson()).toJson(),
+      pack.toJson(),
+    );
+  });
+
+  test('user stamp pack validator blocks unsafe or ambiguous entries', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Custom',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{'id': 'duplicate', 'label': '', 'kind': 'text'},
+        <String, Object?>{
+          'id': 'duplicate',
+          'packId': 'other-pack',
+          'label': 'Other',
+          'kind': 'icon',
+          'iconName': 'unknown',
+        },
+        <String, Object?>{
+          'id': 'photo',
+          'label': 'Photo',
+          'kind': 'image',
+          'assetRef': 'stamps/photo.png',
+        },
+        <String, Object?>{'id': 'laser', 'label': 'Laser', 'kind': 'laser'},
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.duplicate.label is required',
+        'stamp.duplicate.id is duplicated',
+        'stamp.duplicate.packId must match pack.id',
+        'stamp.duplicate.iconName is not allow-listed',
+        'stamp.photo.kind image is reserved for a later slice',
+        'stamp.laser.kind is unsupported',
+      ]),
+    );
+  });
+
+  test('image stamp validation is gated behind explicit allowance', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Custom',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'photo',
+          'label': 'Photo',
+          'kind': 'image',
+          'assetRef': 'stamps/photo.png',
+          'sourceUrl': 'example.com/photo',
+        },
+      ],
+    });
+
+    final blocked = pack.validate();
+    final allowed = pack.validate(allowImageStamps: true);
+
+    expect(blocked.isValid, isFalse);
+    expect(
+      blocked.errors,
+      contains('stamp.photo.kind image is reserved for a later slice'),
+    );
+    expect(allowed.isValid, isTrue);
+    expect(
+      allowed.warnings,
+      contains('stamp.photo.sourceUrl is not an absolute URL'),
+    );
+  });
+
   test('annotation models normalize decimal JSON numbers', () {
     final preset = SheetAnnotationToolPreset.fromJson(<String, Object?>{
       'toolName': 'pen',

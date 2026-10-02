@@ -1865,3 +1865,12 @@ stamp import remains gated behind size/license/export compatibility decisions. T
 inventory and feature map now point to this schema-first path instead of treating custom stamps as
 a vague missing feature. This was a docs-only slice; git diff whitespace, trailing whitespace, tab
 and stale wording scans passed.
+
+S140 VERIFIED LOCAL: moved the custom stamp pack path from docs-only schema into code without
+opening picker UI or image asset import. `SheetAnnotationStampPack` and `SheetAnnotationUserStamp`
+now round-trip text/icon/image-reserved JSON, normalize keywords, validate duplicate ids, pack id
+mismatches, missing text/icon payloads, allow-listed icon names, malformed source URLs and the
+image-stamp gate. Focused annotation tests cover valid text/icon packs, unsafe/ambiguous entries
+and explicit image-stamp allowance. Next safe slice is a user-stamp empty state or text/icon-only
+creation flow; backup/restore and setlist package fixtures still need to be wired before external
+stamp pack sharing.

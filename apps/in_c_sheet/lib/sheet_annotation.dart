@@ -89,6 +89,225 @@ class SheetAnnotationToolPreset {
   }
 }
 
+class SheetAnnotationStampPackValidationResult {
+  const SheetAnnotationStampPackValidationResult({
+    this.errors = const <String>[],
+    this.warnings = const <String>[],
+  });
+
+  final List<String> errors;
+  final List<String> warnings;
+
+  bool get isValid => errors.isEmpty;
+}
+
+class SheetAnnotationUserStamp {
+  const SheetAnnotationUserStamp({
+    required this.id,
+    required this.packId,
+    required this.label,
+    required this.category,
+    required this.kind,
+    this.iconName = '',
+    this.text = '',
+    this.assetRef = '',
+    this.keywords = const <String>[],
+    this.licenseLabel = '',
+    this.sourceUrl = '',
+    this.checksum = '',
+  });
+
+  factory SheetAnnotationUserStamp.fromJson(
+    Map<String, Object?>? json, {
+    String fallbackPackId = '',
+  }) {
+    final rawPackId = _normalizeStampToken(json?['packId']);
+    return SheetAnnotationUserStamp(
+      id: _normalizeStampToken(json?['id']),
+      packId: rawPackId.isEmpty ? fallbackPackId : rawPackId,
+      label: _stringFromJson(json?['label']).trim(),
+      category: _stringFromJson(json?['category']).trim(),
+      kind: _normalizeStampToken(json?['kind']),
+      iconName: _normalizeStampToken(json?['iconName']),
+      text: _stringFromJson(json?['text']).trim(),
+      assetRef: _stringFromJson(json?['assetRef']).trim(),
+      keywords: _normalizeStampKeywords(json?['keywords']),
+      licenseLabel: _stringFromJson(json?['licenseLabel']).trim(),
+      sourceUrl: _stringFromJson(json?['sourceUrl']).trim(),
+      checksum: _stringFromJson(json?['checksum']).trim(),
+    );
+  }
+
+  static const String textKind = 'text';
+  static const String iconKind = 'icon';
+  static const String imageKind = 'image';
+  static const Set<String> supportedKinds = <String>{
+    textKind,
+    iconKind,
+    imageKind,
+  };
+
+  final String id;
+  final String packId;
+  final String label;
+  final String category;
+  final String kind;
+  final String iconName;
+  final String text;
+  final String assetRef;
+  final List<String> keywords;
+  final String licenseLabel;
+  final String sourceUrl;
+  final String checksum;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'packId': packId,
+      'label': label,
+      'category': category,
+      'kind': kind,
+      if (iconName.isNotEmpty) 'iconName': iconName,
+      if (text.isNotEmpty) 'text': text,
+      if (assetRef.isNotEmpty) 'assetRef': assetRef,
+      if (keywords.isNotEmpty) 'keywords': keywords,
+      if (licenseLabel.isNotEmpty) 'licenseLabel': licenseLabel,
+      if (sourceUrl.isNotEmpty) 'sourceUrl': sourceUrl,
+      if (checksum.isNotEmpty) 'checksum': checksum,
+    };
+  }
+}
+
+class SheetAnnotationStampPack {
+  const SheetAnnotationStampPack({
+    required this.id,
+    required this.name,
+    required this.version,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.stamps,
+  });
+
+  factory SheetAnnotationStampPack.fromJson(Map<String, Object?>? json) {
+    final id = _normalizeStampToken(json?['id']);
+    return SheetAnnotationStampPack(
+      id: id,
+      name: _stringFromJson(json?['name']).trim(),
+      version: _intFromJson(json?['version'], fallback: 1).clamp(1, 9999),
+      createdAt: _dateTimeFromJson(json?['createdAt']),
+      updatedAt: _dateTimeFromJson(json?['updatedAt']),
+      stamps: _jsonMaps(json?['stamps'])
+          .map(
+            (stampJson) => SheetAnnotationUserStamp.fromJson(
+              stampJson,
+              fallbackPackId: id,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  static const int maxStampCount = 128;
+  static const Set<String> defaultAllowedIconNames = <String>{
+    'check',
+    'star',
+    'flag',
+    'music-note',
+    'repeat',
+    'coda',
+    'segno',
+    'tempo',
+    'warning',
+  };
+
+  final String id;
+  final String name;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<SheetAnnotationUserStamp> stamps;
+
+  SheetAnnotationStampPackValidationResult validate({
+    Set<String>? allowedIconNames,
+    bool allowImageStamps = false,
+  }) {
+    final errors = <String>[];
+    final warnings = <String>[];
+    final allowedIcons = allowedIconNames ?? defaultAllowedIconNames;
+    final stampIds = <String>{};
+
+    if (id.isEmpty) {
+      errors.add('pack.id is required');
+    }
+    if (name.isEmpty) {
+      errors.add('pack.name is required');
+    }
+    if (stamps.length > maxStampCount) {
+      errors.add('pack.stamps must contain $maxStampCount items or fewer');
+    }
+
+    for (final stamp in stamps) {
+      final prefix = stamp.id.isEmpty ? 'stamp' : 'stamp.${stamp.id}';
+      if (stamp.id.isEmpty) {
+        errors.add('$prefix.id is required');
+      } else if (!stampIds.add(stamp.id)) {
+        errors.add('stamp.${stamp.id}.id is duplicated');
+      }
+      if (stamp.packId != id) {
+        errors.add('$prefix.packId must match pack.id');
+      }
+      if (stamp.label.isEmpty) {
+        errors.add('$prefix.label is required');
+      }
+      if (!SheetAnnotationUserStamp.supportedKinds.contains(stamp.kind)) {
+        errors.add('$prefix.kind is unsupported');
+        continue;
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.textKind &&
+          stamp.text.isEmpty) {
+        errors.add('$prefix.text is required for text stamps');
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
+        if (stamp.iconName.isEmpty) {
+          errors.add('$prefix.iconName is required for icon stamps');
+        } else if (!allowedIcons.contains(stamp.iconName)) {
+          errors.add('$prefix.iconName is not allow-listed');
+        }
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.imageKind) {
+        if (!allowImageStamps) {
+          errors.add('$prefix.kind image is reserved for a later slice');
+        } else if (stamp.assetRef.isEmpty) {
+          errors.add('$prefix.assetRef is required for image stamps');
+        }
+      }
+      if (stamp.sourceUrl.isNotEmpty &&
+          Uri.tryParse(stamp.sourceUrl)?.hasScheme != true) {
+        warnings.add('$prefix.sourceUrl is not an absolute URL');
+      }
+      if (stamp.licenseLabel.isEmpty && stamp.sourceUrl.isNotEmpty) {
+        warnings.add('$prefix.licenseLabel is recommended with sourceUrl');
+      }
+    }
+
+    return SheetAnnotationStampPackValidationResult(
+      errors: errors,
+      warnings: warnings,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'name': name,
+      'version': version,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'stamps': stamps.map((stamp) => stamp.toJson()).toList(),
+    };
+  }
+}
+
 class SheetAnnotationPoint {
   const SheetAnnotationPoint({
     required this.x,
@@ -1393,6 +1612,28 @@ Map<String, Object?>? _asJsonMap(Object? value) {
 
 List<dynamic> _jsonList(Object? value) {
   return value is List ? value : const <dynamic>[];
+}
+
+DateTime _dateTimeFromJson(Object? value) {
+  return DateTime.tryParse(_stringFromJson(value)) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+String _normalizeStampToken(Object? value) {
+  return _stringFromJson(value).trim().toLowerCase();
+}
+
+List<String> _normalizeStampKeywords(Object? value) {
+  final keywords = <String>[];
+  final seen = <String>{};
+  for (final keyword in _jsonList(value)) {
+    final normalized = _normalizeStampToken(keyword);
+    if (normalized.isEmpty || !seen.add(normalized)) {
+      continue;
+    }
+    keywords.add(normalized);
+  }
+  return keywords;
 }
 
 String _stringFromJson(Object? value) {
