@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+const String sheetCollaborationInviteScope = 'clef.collaboration.invite';
+const int sheetCollaborationInviteVersion = 1;
+
 enum SheetFollowerSyncStatus {
   idle,
   synced,
@@ -5,6 +10,129 @@ enum SheetFollowerSyncStatus {
   staleEvent,
   disconnected,
   sessionMismatch,
+}
+
+enum SheetCollaborationInviteStatus {
+  valid,
+  malformed,
+  unsupportedVersion,
+  expired,
+}
+
+class SheetCollaborationInvite {
+  const SheetCollaborationInvite({
+    required this.sessionId,
+    required this.leaderDeviceId,
+    required this.setlistId,
+    required this.createdAt,
+    required this.expiresAt,
+    this.version = sheetCollaborationInviteVersion,
+  });
+
+  final String sessionId;
+  final String leaderDeviceId;
+  final String setlistId;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+  final int version;
+
+  bool isExpired(DateTime now) => !now.isBefore(expiresAt);
+
+  String toPayload() {
+    return jsonEncode(<String, Object?>{
+      'scope': sheetCollaborationInviteScope,
+      'version': version,
+      'sessionId': sessionId,
+      'leaderDeviceId': leaderDeviceId,
+      'setlistId': setlistId,
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'expiresAt': expiresAt.toUtc().toIso8601String(),
+    });
+  }
+
+  static SheetCollaborationInviteDecodeResult decodePayload(
+    String payload, {
+    required DateTime now,
+  }) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(payload);
+    } on FormatException {
+      return const SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.malformed,
+        message: '초대 코드를 읽을 수 없습니다.',
+      );
+    }
+    if (decoded is! Map<String, Object?>) {
+      return const SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.malformed,
+        message: '초대 코드 형식이 올바르지 않습니다.',
+      );
+    }
+    if (decoded['scope'] != sheetCollaborationInviteScope) {
+      return const SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.malformed,
+        message: 'Clef 협업 초대 코드가 아닙니다.',
+      );
+    }
+    final version = decoded['version'];
+    if (version is! int || version != sheetCollaborationInviteVersion) {
+      return const SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.unsupportedVersion,
+        message: '지원하지 않는 협업 초대 버전입니다.',
+      );
+    }
+    final sessionId = _trimmedString(decoded['sessionId']);
+    final leaderDeviceId = _trimmedString(decoded['leaderDeviceId']);
+    final setlistId = _trimmedString(decoded['setlistId']);
+    final createdAt = _parseIsoDateTime(decoded['createdAt']);
+    final expiresAt = _parseIsoDateTime(decoded['expiresAt']);
+    if (sessionId == null ||
+        leaderDeviceId == null ||
+        setlistId == null ||
+        createdAt == null ||
+        expiresAt == null ||
+        !expiresAt.isAfter(createdAt)) {
+      return const SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.malformed,
+        message: '초대 코드에 필요한 공연 세션 정보가 없습니다.',
+      );
+    }
+
+    final invite = SheetCollaborationInvite(
+      sessionId: sessionId,
+      leaderDeviceId: leaderDeviceId,
+      setlistId: setlistId,
+      createdAt: createdAt,
+      expiresAt: expiresAt,
+      version: version,
+    );
+    if (invite.isExpired(now)) {
+      return SheetCollaborationInviteDecodeResult(
+        status: SheetCollaborationInviteStatus.expired,
+        message: '초대 코드가 만료되었습니다. 리더 기기에서 새 코드를 받으세요.',
+        invite: invite,
+      );
+    }
+    return SheetCollaborationInviteDecodeResult(
+      status: SheetCollaborationInviteStatus.valid,
+      invite: invite,
+    );
+  }
+}
+
+class SheetCollaborationInviteDecodeResult {
+  const SheetCollaborationInviteDecodeResult({
+    required this.status,
+    this.message,
+    this.invite,
+  });
+
+  final SheetCollaborationInviteStatus status;
+  final String? message;
+  final SheetCollaborationInvite? invite;
+
+  bool get isValid => status == SheetCollaborationInviteStatus.valid;
 }
 
 class SheetLeaderPageEvent {
@@ -128,4 +256,19 @@ class SheetFollowerSyncState {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+}
+
+String? _trimmedString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+DateTime? _parseIsoDateTime(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  return DateTime.tryParse(value)?.toUtc();
 }

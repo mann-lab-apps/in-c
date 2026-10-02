@@ -2020,3 +2020,11 @@ the event sequence is newer and the follower already has the score. Missing-scor
 leader sequence without moving to a wrong score, stale events cannot roll the page back, and disconnect
 keeps the last synced page visible. Unit tests cover synced, stale, missing score, session mismatch and
 disconnect states. QR pairing, local simulator UI, network transport and two-device QA remain follow-up.
+
+S160 VERIFIED LOCAL: added the offline QR/code pairing payload core for leader/follower sessions.
+`SheetCollaborationInvite` serializes the session id, leader device, setlist id and short-lived expiry
+into a versioned Clef invite payload before any network transport exists. Decode results distinguish
+valid, malformed, unsupported-version and expired invites, so a future pairing UI can reject stale or
+foreign codes without starting a follower session. Unit tests cover payload round trip, expiry, version
+gate and malformed/missing lifetime data. QR rendering, local simulator UI, transport and two-device QA
+remain follow-up.
