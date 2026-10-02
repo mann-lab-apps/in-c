@@ -1939,3 +1939,11 @@ allowed first-slice work from persistent direct-reference score storage, automat
 backup URI export and iOS Files parity, and records a risk matrix for permission loss, provider
 offline state, large folders, duplicate files and backup privacy. This was a docs-only slice; code
 implementation remains follow-up.
+
+S149 VERIFIED LOCAL: added the first backup health/status surface before attempting cloud sync.
+The backup menu now exposes `백업 상태`, which reports whether an automatic metadata snapshot is
+available, what library counts it covers, the current library's score/setlist/text-score/custom
+stamp counts, and why PDF-including full backup is still a separate manual action. The status copy
+explicitly says it is not a cloud-sync completion indicator. Controller and widget tests cover
+health calculation and menu access. User-selected cloud folder export and sync dry-run remain the
+next cloud/sync slices.

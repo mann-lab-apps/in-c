@@ -336,7 +336,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
     조용히 잃을 수 있으므로 기본값으로 두지 않는다.
   - 파일 binary 충돌은 자동 덮어쓰기 금지. 두 사본을 모두 보존하고 사용자에게 교체/보관을 묻는다.
 - 구현 후보:
-  1. Backup health/status 화면: 마지막 자동 snapshot/full backup/package export 상태를 한 곳에 보여준다.
+  1. Backup health/status 화면: 자동 metadata snapshot과 현재 라이브러리 범위, PDF 포함 전체 백업
+     필요성을 보여주는 첫 화면은 구현됐다. 마지막 full backup/package export 기록은 후속이다.
   2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
   3. Sync dry-run: 두 backup snapshot을 비교해 변경/충돌 report를 만든다. 실제 merge는 하지 않는다.
   4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.

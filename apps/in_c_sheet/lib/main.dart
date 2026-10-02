@@ -1389,6 +1389,101 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     );
   }
 
+  Future<void> _showBackupStatus() async {
+    final healthFuture = controller.loadBackupHealth();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => FutureBuilder<SheetLibraryBackupHealth>(
+        future: healthFuture,
+        builder: (context, snapshot) {
+          final health = snapshot.data;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Text(
+                    '백업 상태',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '자동 정보 백업은 악보 정보와 설정을 빠르게 되돌리기 위한 스냅샷입니다. PDF 파일까지 보관하려면 PDF 포함 전체 백업을 따로 만들어야 합니다.',
+                  ),
+                  const SizedBox(height: 16),
+                  if (snapshot.connectionState != ConnectionState.done)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (snapshot.hasError)
+                    _BackupStatusCard(
+                      icon: Icons.error_outline,
+                      title: '상태를 읽지 못했습니다',
+                      body: '잠시 뒤 다시 열어보거나 수동 백업을 만들어 주세요.',
+                    )
+                  else if (health != null) ...[
+                    _BackupStatusCard(
+                      icon: health.hasAutomaticMetadataBackup
+                          ? Icons.check_circle_outline
+                          : Icons.history_toggle_off_outlined,
+                      title: health.hasAutomaticMetadataBackup
+                          ? '자동 정보 백업 있음'
+                          : '자동 정보 백업 없음',
+                      body: health.hasAutomaticMetadataBackup
+                          ? '${_formatShortDateTime(health.automaticMetadataExportedAt!)} 기준 · '
+                                '${health.automaticMetadataScoreCount}곡 · '
+                                '${health.automaticMetadataSetlistCount}개 세트리스트'
+                          : '아직 되돌릴 자동 정보 스냅샷이 없습니다. 악보나 설정을 저장하면 자동 백업이 만들어집니다.',
+                    ),
+                    const SizedBox(height: 10),
+                    _BackupStatusCard(
+                      icon: Icons.library_music_outlined,
+                      title: '현재 라이브러리',
+                      body:
+                          '${health.currentScoreCount}곡 · '
+                          '${health.currentSetlistCount}개 세트리스트 · '
+                          '텍스트/ChordPro ${health.currentTextScoreCount}곡 · '
+                          '사용자 스탬프 팩 ${health.userStampPackCount}개',
+                    ),
+                    const SizedBox(height: 10),
+                    _BackupStatusCard(
+                      icon: Icons.archive_outlined,
+                      title: 'PDF 포함 전체 백업',
+                      body: health.currentExternalFileCount == 0
+                          ? '현재 외부 파일 참조가 없습니다. 그래도 배포 전에는 전체 백업을 만들어 두는 편이 안전합니다.'
+                          : 'PDF ${health.currentPdfScoreCount}곡, 연결 파일 ${health.linkedFileCount}개, '
+                                '파일 기반 필기 ${health.fileBackedAnnotationCount}개를 포함하려면 전체 백업을 실행하세요.',
+                    ),
+                    if (health.missingPrimaryFileCount > 0) ...[
+                      const SizedBox(height: 10),
+                      _BackupStatusCard(
+                        icon: Icons.warning_amber_outlined,
+                        title: '확인 필요한 파일',
+                        body:
+                            '${health.missingPrimaryFileCount}개 악보의 원본 파일을 현재 경로에서 찾지 못했습니다. 전체 백업 전 파일을 열어 확인하세요.',
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    const Text(
+                      '이 화면은 동기화 완료 표시가 아닙니다. 다른 기기나 클라우드에 보관하려면 정보 백업 또는 PDF 포함 전체 백업을 파일 앱/클라우드 위치로 저장하세요.',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   String? _libraryAnnotationSummary() {
     var strokes = 0;
     var texts = 0;
@@ -1811,6 +1906,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   Future<void> _selectBackupAction(_LibraryBackupAction action) async {
     if (controller.isImporting) return;
     switch (action) {
+      case _LibraryBackupAction.status:
+        await _showBackupStatus();
       case _LibraryBackupAction.exportMetadata:
         await _exportBackup();
       case _LibraryBackupAction.importMetadata:
@@ -2430,6 +2527,16 @@ List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
   bool enabled = true,
 }) => [
   PopupMenuItem(
+    value: _LibraryBackupAction.status,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.health_and_safety_outlined),
+      title: const Text('백업 상태'),
+    ),
+  ),
+  const PopupMenuDivider(),
+  PopupMenuItem(
     value: _LibraryBackupAction.exportMetadata,
     enabled: enabled,
     child: ListTile(
@@ -2478,6 +2585,7 @@ List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
 ];
 
 enum _LibraryBackupAction {
+  status,
   exportMetadata,
   importMetadata,
   restoreAutomaticMetadata,
@@ -4158,6 +4266,14 @@ String _formatShortDate(DateTime value) {
   return '${value.month}/${value.day} $hour:$minute';
 }
 
+String _formatShortDateTime(DateTime value) {
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '${value.year}.$month.$day $hour:$minute';
+}
+
 IconData _shareCandidateIcon(SheetScoreShareCandidate candidate) {
   if (candidate.isSanitizedCopy) {
     return Icons.link_off_outlined;
@@ -4251,6 +4367,52 @@ class _EmptyLibrary extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BackupStatusCard extends StatelessWidget {
+  const _BackupStatusCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(body),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

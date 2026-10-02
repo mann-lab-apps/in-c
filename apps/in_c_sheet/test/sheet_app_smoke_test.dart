@@ -378,6 +378,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('backup status explains automatic snapshot and full backup', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = _BackupHealthController(
+      SheetLibraryBackupHealth(
+        currentScoreCount: 3,
+        currentSetlistCount: 1,
+        currentTextScoreCount: 1,
+        currentPdfScoreCount: 2,
+        missingPrimaryFileCount: 1,
+        linkedFileCount: 2,
+        fileBackedAnnotationCount: 1,
+        userStampPackCount: 1,
+        hasAutomaticMetadataBackup: true,
+        automaticMetadataExportedAt: DateTime(2026, 9, 27, 10),
+        automaticMetadataScoreCount: 3,
+        automaticMetadataSetlistCount: 1,
+      ),
+    );
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('백업 상태'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('백업 상태'), findsWidgets);
+    expect(find.text('자동 정보 백업 있음'), findsOneWidget);
+    expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
+    expect(find.textContaining('동기화 완료 표시가 아닙니다'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in <double>[320, 360]) {
     testWidgets('compact selection actions preserve the count at $width', (
       tester,
@@ -4121,6 +4158,17 @@ class _DelayedRestoreStore extends SheetLibraryStore {
       _restore();
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() => _restore();
+}
+
+class _BackupHealthController extends SheetLibraryController {
+  _BackupHealthController(this.health) : super(store: SheetLibraryStore());
+
+  final SheetLibraryBackupHealth health;
+
+  @override
+  Future<SheetLibraryBackupHealth> loadBackupHealth() async {
+    return health;
+  }
 }
 
 class _PartialBackupStore extends SheetLibraryStore {

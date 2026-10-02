@@ -80,6 +80,40 @@ class SheetSongbookSplitResult {
   bool get didCreateAny => createdScores.isNotEmpty;
 }
 
+class SheetLibraryBackupHealth {
+  const SheetLibraryBackupHealth({
+    required this.currentScoreCount,
+    required this.currentSetlistCount,
+    required this.currentTextScoreCount,
+    required this.currentPdfScoreCount,
+    required this.missingPrimaryFileCount,
+    required this.linkedFileCount,
+    required this.fileBackedAnnotationCount,
+    required this.userStampPackCount,
+    required this.hasAutomaticMetadataBackup,
+    this.automaticMetadataExportedAt,
+    this.automaticMetadataScoreCount = 0,
+    this.automaticMetadataSetlistCount = 0,
+  });
+
+  final int currentScoreCount;
+  final int currentSetlistCount;
+  final int currentTextScoreCount;
+  final int currentPdfScoreCount;
+  final int missingPrimaryFileCount;
+  final int linkedFileCount;
+  final int fileBackedAnnotationCount;
+  final int userStampPackCount;
+  final bool hasAutomaticMetadataBackup;
+  final DateTime? automaticMetadataExportedAt;
+  final int automaticMetadataScoreCount;
+  final int automaticMetadataSetlistCount;
+
+  int get currentExternalFileCount {
+    return currentPdfScoreCount + linkedFileCount + fileBackedAnnotationCount;
+  }
+}
+
 const _setlistPackageKnownDetailKeys = <String>{
   '파일',
   '작곡가',
@@ -3726,6 +3760,43 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetLibraryBackupExportResult> exportFullBackup() {
     return store.exportFullBackup();
+  }
+
+  Future<SheetLibraryBackupHealth> loadBackupHealth() async {
+    final automaticBackup = await store.loadAutomaticMetadataBackup();
+    var textScoreCount = 0;
+    var pdfScoreCount = 0;
+    var missingPrimaryFileCount = 0;
+    var linkedFileCount = 0;
+    var fileBackedAnnotationCount = 0;
+    for (final score in _scores) {
+      if (SheetFileImportPolicy.isChordProFileName(score.filePath)) {
+        textScoreCount += 1;
+      } else {
+        pdfScoreCount += 1;
+      }
+      if (!await File(score.filePath).exists()) {
+        missingPrimaryFileCount += 1;
+      }
+      linkedFileCount += score.linkedFiles.length;
+      if (score.annotationStorage.isFileBacked) {
+        fileBackedAnnotationCount += 1;
+      }
+    }
+    return SheetLibraryBackupHealth(
+      currentScoreCount: _scores.length,
+      currentSetlistCount: _setlists.length,
+      currentTextScoreCount: textScoreCount,
+      currentPdfScoreCount: pdfScoreCount,
+      missingPrimaryFileCount: missingPrimaryFileCount,
+      linkedFileCount: linkedFileCount,
+      fileBackedAnnotationCount: fileBackedAnnotationCount,
+      userStampPackCount: _userAnnotationStampPacks.length,
+      hasAutomaticMetadataBackup: automaticBackup != null,
+      automaticMetadataExportedAt: automaticBackup?.exportedAt,
+      automaticMetadataScoreCount: automaticBackup?.scores.length ?? 0,
+      automaticMetadataSetlistCount: automaticBackup?.setlists.length ?? 0,
+    );
   }
 
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {

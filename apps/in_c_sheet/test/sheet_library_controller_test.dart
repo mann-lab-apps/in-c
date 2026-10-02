@@ -1270,6 +1270,58 @@ Clef & Staff 세트리스트
     },
   );
 
+  test('reports backup health without claiming cloud sync', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-09-27T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'pdf-score', filePath: '/tmp/missing-score.pdf'),
+      _score(now, id: 'text-score', filePath: '/tmp/text-score.chordpro'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['pdf-score', 'text-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    await store.saveUserAnnotationStampPacks(<SheetAnnotationStampPack>[
+      SheetAnnotationStampPack(
+        id: 'user-pack',
+        name: 'My stamps',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'user-ok',
+            packId: 'user-pack',
+            label: 'OK',
+            category: 'Marks',
+            kind: SheetAnnotationUserStamp.textKind,
+            text: 'OK',
+          ),
+        ],
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final health = await controller.loadBackupHealth();
+    expect(health.hasAutomaticMetadataBackup, isTrue);
+    expect(health.automaticMetadataScoreCount, 2);
+    expect(health.automaticMetadataSetlistCount, 1);
+    expect(health.currentScoreCount, 2);
+    expect(health.currentSetlistCount, 1);
+    expect(health.currentPdfScoreCount, 1);
+    expect(health.currentTextScoreCount, 1);
+    expect(health.userStampPackCount, 1);
+    expect(health.missingPrimaryFileCount, 2);
+  });
+
   test('updates and reloads global viewer action defaults', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
