@@ -45,6 +45,27 @@ void main() {
     expect(diff.setlistOrderChangedIds, ['setlist-1']);
     expect(diff.settingsChanged, isFalse);
     expect(diff.hasChanges, isTrue);
+
+    final report = SheetLibraryBackupDiffReport.fromDiff(diff);
+    expect(report.headline, '백업 변경 5종 감지');
+    expect(
+      report.summaryLines,
+      containsAll(<String>[
+        '새 악보 1개',
+        '삭제된 악보 1개',
+        '수정된 악보 1개',
+        '새 세트리스트 1개',
+        '수정된 세트리스트 1개',
+      ]),
+    );
+    expect(
+      report.reviewLines,
+      containsAll(<String>[
+        '삭제된 악보가 있어 복원할지 삭제를 유지할지 확인이 필요합니다.',
+        '세트리스트 순서가 달라 어느 순서를 사용할지 확인이 필요합니다.',
+      ]),
+    );
+    expect(report.requiresReview, isTrue);
   });
 
   test('flags file and settings changes as dry-run conflict candidates', () {
@@ -73,6 +94,17 @@ void main() {
     expect(diff.annotationChangedScoreIds, isEmpty);
     expect(diff.settingsChanged, isTrue);
     expect(diff.hasChanges, isTrue);
+
+    final report = SheetLibraryBackupDiffReport.fromDiff(diff);
+    expect(report.summaryLines, contains('수정된 악보 1개'));
+    expect(report.summaryLines, contains('앱/연습 도구 설정 변경'));
+    expect(
+      report.reviewLines,
+      containsAll(<String>[
+        '파일 경로나 연결 파일이 달라 원본 PDF/오디오 위치 확인이 필요합니다.',
+        '메트로놈, 튜너, 표시, 필기 preset 같은 전역 설정 변경을 확인하세요.',
+      ]),
+    );
   });
 
   test('reports no changes for equivalent backups', () {
@@ -98,6 +130,12 @@ void main() {
     expect(diff.addedScoreIds, isEmpty);
     expect(diff.changedScoreIds, isEmpty);
     expect(diff.changedSetlistIds, isEmpty);
+
+    final report = SheetLibraryBackupDiffReport.fromDiff(diff);
+    expect(report.headline, '변경 없음');
+    expect(report.summaryLines, ['두 백업의 악보, 세트리스트, 설정이 같습니다.']);
+    expect(report.reviewLines, isEmpty);
+    expect(report.requiresReview, isFalse);
   });
 }
 

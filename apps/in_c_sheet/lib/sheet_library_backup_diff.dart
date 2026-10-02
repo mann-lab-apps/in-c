@@ -107,6 +107,89 @@ class SheetLibraryBackupDiff {
         changedSetlistIds.isNotEmpty ||
         settingsChanged;
   }
+
+  int get changedGroupCount {
+    var count = 0;
+    if (addedScoreIds.isNotEmpty) {
+      count += 1;
+    }
+    if (removedScoreIds.isNotEmpty) {
+      count += 1;
+    }
+    if (changedScoreIds.isNotEmpty) {
+      count += 1;
+    }
+    if (addedSetlistIds.isNotEmpty) {
+      count += 1;
+    }
+    if (removedSetlistIds.isNotEmpty) {
+      count += 1;
+    }
+    if (changedSetlistIds.isNotEmpty) {
+      count += 1;
+    }
+    if (settingsChanged) {
+      count += 1;
+    }
+    return count;
+  }
+}
+
+class SheetLibraryBackupDiffReport {
+  const SheetLibraryBackupDiffReport({
+    required this.headline,
+    required this.summaryLines,
+    required this.reviewLines,
+  });
+
+  factory SheetLibraryBackupDiffReport.fromDiff(SheetLibraryBackupDiff diff) {
+    if (!diff.hasChanges) {
+      return const SheetLibraryBackupDiffReport(
+        headline: '변경 없음',
+        summaryLines: <String>['두 백업의 악보, 세트리스트, 설정이 같습니다.'],
+        reviewLines: <String>[],
+      );
+    }
+
+    final summaryLines = <String>[
+      if (diff.addedScoreIds.isNotEmpty) '새 악보 ${diff.addedScoreIds.length}개',
+      if (diff.removedScoreIds.isNotEmpty)
+        '삭제된 악보 ${diff.removedScoreIds.length}개',
+      if (diff.changedScoreIds.isNotEmpty)
+        '수정된 악보 ${diff.changedScoreIds.length}개',
+      if (diff.addedSetlistIds.isNotEmpty)
+        '새 세트리스트 ${diff.addedSetlistIds.length}개',
+      if (diff.removedSetlistIds.isNotEmpty)
+        '삭제된 세트리스트 ${diff.removedSetlistIds.length}개',
+      if (diff.changedSetlistIds.isNotEmpty)
+        '수정된 세트리스트 ${diff.changedSetlistIds.length}개',
+      if (diff.settingsChanged) '앱/연습 도구 설정 변경',
+    ];
+
+    final reviewLines = <String>[
+      if (diff.removedScoreIds.isNotEmpty)
+        '삭제된 악보가 있어 복원할지 삭제를 유지할지 확인이 필요합니다.',
+      if (diff.fileChangedScoreIds.isNotEmpty)
+        '파일 경로나 연결 파일이 달라 원본 PDF/오디오 위치 확인이 필요합니다.',
+      if (diff.annotationChangedScoreIds.isNotEmpty)
+        '필기 데이터가 달라 어느 필기를 보존할지 확인이 필요합니다.',
+      if (diff.setlistOrderChangedIds.isNotEmpty)
+        '세트리스트 순서가 달라 어느 순서를 사용할지 확인이 필요합니다.',
+      if (diff.settingsChanged) '메트로놈, 튜너, 표시, 필기 preset 같은 전역 설정 변경을 확인하세요.',
+    ];
+
+    return SheetLibraryBackupDiffReport(
+      headline: '백업 변경 ${diff.changedGroupCount}종 감지',
+      summaryLines: List<String>.unmodifiable(summaryLines),
+      reviewLines: List<String>.unmodifiable(reviewLines),
+    );
+  }
+
+  final String headline;
+  final List<String> summaryLines;
+  final List<String> reviewLines;
+
+  bool get requiresReview => reviewLines.isNotEmpty;
 }
 
 Map<String, SheetScore> _byId(List<SheetScore> scores) {

@@ -1954,3 +1954,10 @@ reports added/removed/changed score ids, file-path/link candidates, annotation c
 added/removed/changed setlists, setlist order changes and global settings changes. Unit coverage
 verifies score/setlist diffs, file-change conflict candidates, settings changes and no-op backups.
 User-facing import/export selection and conflict review UI remain follow-up work.
+
+S151 VERIFIED LOCAL: added the first human-readable sync dry-run report model on top of the
+backup snapshot diff. `SheetLibraryBackupDiffReport` turns changed score/setlist/settings groups
+into concise Korean summary lines and separates review-needed cases such as removed scores,
+file/link changes, annotation changes, setlist order changes and global settings changes. Unit
+coverage verifies no-op backups, mixed score/setlist changes and file/settings review warnings.
+Actual cloud-folder selection, side-by-side conflict UI and any merge/apply action remain follow-up.
