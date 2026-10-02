@@ -3411,6 +3411,58 @@ Clef & Staff 세트리스트
     );
   });
 
+  test('deleting a user stamp preserves placed stamp annotations', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-10-02T10:00:00.000');
+    final store = SheetLibraryStore();
+    final score = _score(now, id: 'solo', title: 'Solo');
+    await store.saveScores(<SheetScore>[score]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.createTextUserAnnotationStamp(
+        label: 'Bow cue',
+        text: 'BOW',
+      ),
+      isTrue,
+    );
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+    await controller.addTextAnnotation(
+      controller.scoreById(score.id),
+      SheetTextAnnotation(
+        id: 'placed-stamp',
+        pageNumber: 1,
+        position: const SheetAnnotationPoint(x: 0.32, y: 0.4),
+        text: stamp.text,
+        color: 0xff111111,
+        fontSize: 18,
+        createdAt: now,
+      ),
+    );
+
+    expect(
+      await controller.deleteUserAnnotationStamp(
+        packId: stamp.packId,
+        stampId: stamp.id,
+      ),
+      isTrue,
+    );
+
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(
+      controller.scoreById(score.id).annotationLayer.texts.single.text,
+      'BOW',
+    );
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    expect(restoredController.userAnnotationStampPacks, isEmpty);
+    expect(
+      restoredController.scoreById(score.id).annotationLayer.texts.single.text,
+      'BOW',
+    );
+  });
+
   test('clears library query and filters for empty result recovery', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

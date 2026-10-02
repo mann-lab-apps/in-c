@@ -2079,3 +2079,9 @@ instead of a single monospace text block, while keeping the existing read-only s
 display-only transpose/capo controls. Existing viewer smoke coverage still checks title/key, chord row
 updates and capo-shape display. A denser chord-grid layout, saved display preferences and editable
 ChordPro source remain follow-up work.
+
+S168 VERIFIED LOCAL: closed the safest remaining custom-stamp deletion fallback. User text/icon stamps
+are still copied into normal text annotations when placed, and controller coverage now verifies that
+deleting the custom stamp definition leaves already placed stamp annotations intact after reload. Image
+stamp assets, large-pack performance, explicit conflict-resolution UI, multi-layer annotation and
+editable PDF annotation export remain follow-up work.
