@@ -2035,3 +2035,12 @@ feeds them through the follower reducer with a controlled follower score set. Te
 sync, missing-score hold, recovery after the follower library gains the score and disconnect preserving
 the last visible page. This makes mismatch/reconnect behavior testable before QR UI, transport, local
 network permission and two-device QA.
+
+S162 VERIFIED LOCAL: opened the direct-folder gap with a read-only catalog preview core instead of
+persistent SAF references. `SheetExternalFolderCatalogPreview` classifies scanned folder entries into
+copy-ready PDF candidates, duplicate names, unreadable files and unsupported formats while preserving
+the product rule that selected files will be copied into the Clef library. It also models permission
+denial, scan failure, empty folders and large-folder caps without mutating app data. Unit tests cover
+candidate classification, duplicate blocking, unreadable entries, empty/permission/scan states and
+large-folder caps. Android SAF picker UI, copy-on-select import, source-folder metadata and any
+persistent direct reference remain follow-up work.

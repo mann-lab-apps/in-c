@@ -115,6 +115,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - Android `ACTION_OPEN_DOCUMENT_TREE`로 폴더 권한을 얻고 PDF 후보 목록만 보여준다.
    - 이 단계에서는 Clef 라이브러리에 항목을 만들지 않고, provider/display name/last modified/size만 기록한다.
    - Acceptance: 권한 승인/취소/권한 상실/빈 폴더/큰 폴더가 앱 데이터를 변경하지 않고 안내된다.
+   - 구현 상태: 순수 catalog preview core는 구현됨. `SheetExternalFolderCatalogPreview`는 scan 결과를
+     복사 가능한 PDF, 중복 이름, 읽기 불가, 미지원 형식으로 분류하고 권한 거부/scan 실패/빈 폴더/큰
+     폴더 cap을 라이브러리 변경 없이 표현한다. Android SAF picker UI와 실제 파일 scan bridge는 후속.
 
 2. **Copy-on-select bridge**
    - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.

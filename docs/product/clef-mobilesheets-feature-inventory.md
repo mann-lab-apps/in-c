@@ -63,7 +63,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Import / File Management | Text/ChordPro transpose/capo | official files page | ChordPro transpose core가 root, suffix, slash bass, key directive를 반음 단위로 변환하고 capo metadata를 읽는다. Concert chord 기준 capo shape 계산과 plain text rendering에 적용 가능하며, 저장된 ChordPro viewer에서 반음 올림/내림, 원래대로, 카포 운지 표시를 전환할 수 있다 | feature map `ChordPro transpose/capo`, `sheet_chordpro_test`, smoke viewer test | Partially Implemented | 저장형 transpose/capo 편집, styled renderer, ChordPro 전용 chord grid는 후속 |
 | Import / File Management | Multiple files per score | official files page | linkedFiles 관리와 viewer PDF 연결 파일 전환, audio linked file import가 있다. 연결 파일 목록은 PDF/이미지/오디오 라벨과 아이콘으로 구분한다 | feature map `한 곡에 여러 파일 연결`, tests | Implemented | 여러 audio track route/iOS parity는 QA 필요 |
 | Import / File Management | Cloud import/export browser | official site and files page | 시스템 file picker/provider 우선, 별도 cloud SDK 내장은 없다 | feature map `클라우드 파일 가져오기` | Partially Implemented | Dropbox/Drive/OneDrive 내장 browser는 Later |
-| Import / File Management | Direct file reference without copy on Android | official files page | 앱 내부 복사 정책이 기본이며, v1.1 spike는 direct reference 전 `폴더 catalog + 선택 복사`를 첫 단계로 제한했다 | spike backlog `기존 폴더 직접 참조` | Not Implemented | SAF/iOS Files direct reference는 권한/백업/공연 안정성 QA 후 결정 |
+| Import / File Management | Direct file reference without copy on Android | official files page | 앱 내부 복사 정책이 기본이며, v1.1 spike는 direct reference 전 `폴더 catalog + 선택 복사`를 첫 단계로 제한했다. Read-only catalog preview core는 PDF 복사 후보/중복/읽기 실패/미지원 형식을 분류한다 | spike backlog `기존 폴더 직접 참조`, `SheetExternalFolderCatalogPreview` | Partially Implemented | SAF picker UI, copy-on-select import, source-folder metadata, persistent direct reference는 후속 |
 | Import / File Management | CSV index / songbook split | official files page | CSV/PDF 북마크 기반 songbook 곡 항목 생성이 있다 | feature map `CSV index로 songbook 분할` | Implemented | 물리 PDF 분할은 후속 |
 | Import / File Management | File replacement / swapping files | user guide 목차 `Swapping Files` | viewer 도구의 `현재 PDF 교체`로 PDF 전용 replacement를 가져와 현재 파일로 승격하고 이전 PDF를 linked edited copy로 보존한다 | feature map linked files/page organize, controller/widget tests | Implemented | 외부 폴더 직접 참조/파일 provider live swap은 별도 spike |
 | Import / File Management | Export/share/print | user guide, collaboration page | PDF 공유/인쇄, 필기 포함 PDF 공유/인쇄, backup ZIP이 있다. OS 공유 시트에서 프린트 대상을 고르는 handoff이며 전용 native print 엔진은 없다 | feature map `PDF 공유/export/print handoff` | Partially Implemented | 별도 print intent/plugin은 사용자 요구와 플랫폼 UX 확인 후 판단 |
@@ -128,8 +128,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 상태 | 개수 | 대표 기능 |
 | --- | ---: | --- |
 | Implemented | 26 | 세트리스트, PDF/image import, songbook CSV, 보기 모드, 페이지 정리, 필기 기본 도구, 튜너, 드론, 백업/복원 |
-| Partially Implemented | 31 | 대형 라이브러리 성능, metadata depth, cloud import, crop/auto-crop, audio player, metronome depth, annotation layers, action box |
-| Not Implemented | 15 | direct folder reference, companion app, two-tablet book mode, MIDI, face gesture, smart buttons, cloud sync |
+| Partially Implemented | 32 | 대형 라이브러리 성능, metadata depth, cloud import, direct folder catalog preview, crop/auto-crop, audio player, metronome depth, annotation layers, action box |
+| Not Implemented | 14 | companion app, two-tablet book mode, MIDI, face gesture, smart buttons, cloud sync |
 | Intentionally Excluded | 0 | 이번 표에서는 명시적 제외보다 `Not Implemented` 또는 `Partially Implemented`로 분류 |
 | Needs Device QA | 1 | Bluetooth/USB pedal action mapping |
 | Unknown | 0 | 공식 자료 또는 기존 hands-on 문서로 1차 확인 완료 |
