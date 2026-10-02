@@ -230,6 +230,54 @@ Plain lyric line
     );
   });
 
+  test('renders structured display lines for styled ChordPro viewer', () {
+    final document = SheetChordProParser.parse('''
+{comment: Intro}
+[D]Home [A/C#]again
+
+Plain line
+''');
+
+    final lines = SheetChordProTextRenderer.renderDisplayLines(
+      document,
+      transposeSemitones: 2,
+    );
+
+    expect(lines.map((line) => line.kind), <SheetChordProDisplayLineKind>[
+      SheetChordProDisplayLineKind.directive,
+      SheetChordProDisplayLineKind.chordLyric,
+      SheetChordProDisplayLineKind.blank,
+      SheetChordProDisplayLineKind.lyric,
+    ]);
+    expect(lines.first.label, '[Intro]');
+    expect(lines[1].lyricText, 'Home again');
+    expect(lines[1].chords.map((chord) => chord.chord), <String>['E', 'B/D#']);
+    expect(lines[1].chords.map((chord) => chord.lyricColumn), <int>[0, 5]);
+    expect(lines[1].chords.map((chord) => chord.lyric), <String>[
+      'Home ',
+      'again',
+    ]);
+    expect(lines[2].hasChords, isFalse);
+    expect(lines[3].lyricText, 'Plain line');
+  });
+
+  test('structured display lines can expose capo chord shapes', () {
+    final document = SheetChordProParser.parse('''
+{capo: 2}
+[D]Home [A/C#]again
+''');
+
+    final lines = SheetChordProTextRenderer.renderDisplayLines(
+      document,
+      showCapoShapes: true,
+    );
+
+    expect(lines.single.chords.map((chord) => chord.chord), <String>[
+      'C',
+      'G/B',
+    ]);
+  });
+
   test('renders chord-only lines without adding empty lyric rows', () {
     final document = SheetChordProParser.parse('''
 [C][G][Am][F]

@@ -2065,3 +2065,10 @@ display controls. The text-score import sheet no longer says transpose/capo cont
 it points users to the saved ChordPro viewer for semitone transposition and capo-shape display while
 keeping DOCX direct reading as follow-up. The ChordPro preview sheet copy was updated the same way,
 and the import menu smoke test now asserts the current `ChordPro 표시 조정 지원` entry.
+
+S166 VERIFIED LOCAL: added the structured ChordPro display-line renderer as a safe bridge toward a
+styled code/lyric viewer. `SheetChordProTextRenderer.renderDisplayLines` now returns directive,
+blank, lyric and chord/lyric lines with chord cells, lyric columns and associated lyric fragments,
+while preserving the existing monospace plain-text output. Focused tests cover rehearsal directives,
+blank lines, transposed chord cells and capo-shape display cells. The user-facing viewer remains the
+current read-only text viewer; styled chord-grid UI and persisted transpose/capo edits remain follow-up.

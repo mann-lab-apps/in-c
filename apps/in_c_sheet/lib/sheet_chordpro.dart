@@ -262,6 +262,54 @@ class SheetChordProToken {
   }
 }
 
+enum SheetChordProDisplayLineKind { lyric, chordLyric, directive, blank }
+
+class SheetChordProDisplayChord {
+  const SheetChordProDisplayChord({
+    required this.chord,
+    required this.lyricColumn,
+    this.lyric = '',
+  });
+
+  final String chord;
+  final int lyricColumn;
+  final String lyric;
+}
+
+class SheetChordProDisplayLine {
+  const SheetChordProDisplayLine._({
+    required this.kind,
+    this.label = '',
+    this.lyricText = '',
+    this.chords = const <SheetChordProDisplayChord>[],
+  });
+
+  const SheetChordProDisplayLine.lyric(String lyricText)
+    : this._(kind: SheetChordProDisplayLineKind.lyric, lyricText: lyricText);
+
+  const SheetChordProDisplayLine.chordLyric({
+    required String lyricText,
+    required List<SheetChordProDisplayChord> chords,
+  }) : this._(
+         kind: SheetChordProDisplayLineKind.chordLyric,
+         lyricText: lyricText,
+         chords: chords,
+       );
+
+  const SheetChordProDisplayLine.directive(String label)
+    : this._(kind: SheetChordProDisplayLineKind.directive, label: label);
+
+  const SheetChordProDisplayLine.blank()
+    : this._(kind: SheetChordProDisplayLineKind.blank);
+
+  final SheetChordProDisplayLineKind kind;
+  final String label;
+  final String lyricText;
+  final List<SheetChordProDisplayChord> chords;
+
+  bool get hasChords => chords.isNotEmpty;
+}
+
 class SheetChordProParser {
   const SheetChordProParser._();
 
@@ -463,6 +511,53 @@ class SheetChordProTextRenderer {
     return rendered;
   }
 
+  static List<SheetChordProDisplayLine> renderDisplayLines(
+    SheetChordProDocument document, {
+    int transposeSemitones = 0,
+    int? capoFrets,
+    bool showCapoShapes = false,
+    bool preferFlats = false,
+  }) {
+    final source = transposeSemitones == 0
+        ? document
+        : document.transposedBy(transposeSemitones, preferFlats: preferFlats);
+    final effectiveCapoFrets = capoFrets ?? source.capo ?? 0;
+    final rendered = <SheetChordProDisplayLine>[];
+    for (var index = 0; index < source.lines.length; index += 1) {
+      final line = source.lines[index];
+      if (line.isDirective) {
+        final directiveLine = _renderDirectiveLine(line);
+        if (directiveLine != null) {
+          rendered.add(SheetChordProDisplayLine.directive(directiveLine));
+        }
+        continue;
+      }
+      if (!line.tokens.any((token) => token.chord != null)) {
+        if (line.lyricText.isEmpty && index == source.lines.length - 1) {
+          continue;
+        }
+        rendered.add(
+          line.lyricText.isEmpty
+              ? const SheetChordProDisplayLine.blank()
+              : SheetChordProDisplayLine.lyric(line.lyricText),
+        );
+        continue;
+      }
+      rendered.add(
+        SheetChordProDisplayLine.chordLyric(
+          lyricText: line.lyricText,
+          chords: _renderDisplayChords(
+            line.tokens,
+            capoFrets: effectiveCapoFrets,
+            showCapoShapes: showCapoShapes,
+            preferFlats: preferFlats,
+          ),
+        ),
+      );
+    }
+    return rendered;
+  }
+
   static String? _renderDirectiveLine(SheetChordProLine line) {
     final name = line.directiveName;
     final value = line.directiveValue?.trim() ?? '';
@@ -504,13 +599,12 @@ class SheetChordProTextRenderer {
     for (final token in tokens) {
       final chord = token.chord;
       if (chord != null) {
-        final renderedChord = showCapoShapes
-            ? SheetChordProTransposer.capoShapeForConcertChord(
-                chord,
-                capoFrets,
-                preferFlats: preferFlats,
-              )
-            : chord;
+        final renderedChord = _renderChord(
+          chord,
+          capoFrets: capoFrets,
+          showCapoShapes: showCapoShapes,
+          preferFlats: preferFlats,
+        );
         if (chordRow.length < lyricOffset) {
           chordRow += ' ' * (lyricOffset - chordRow.length);
         } else if (chordRow.length > lyricOffset && !chordRow.endsWith(' ')) {
@@ -521,6 +615,50 @@ class SheetChordProTextRenderer {
       lyricOffset += token.text.length;
     }
     return chordRow.trimRight();
+  }
+
+  static List<SheetChordProDisplayChord> _renderDisplayChords(
+    List<SheetChordProToken> tokens, {
+    required int capoFrets,
+    required bool showCapoShapes,
+    required bool preferFlats,
+  }) {
+    var lyricOffset = 0;
+    final rendered = <SheetChordProDisplayChord>[];
+    for (final token in tokens) {
+      final chord = token.chord;
+      if (chord != null) {
+        rendered.add(
+          SheetChordProDisplayChord(
+            chord: _renderChord(
+              chord,
+              capoFrets: capoFrets,
+              showCapoShapes: showCapoShapes,
+              preferFlats: preferFlats,
+            ),
+            lyricColumn: lyricOffset,
+            lyric: token.text,
+          ),
+        );
+      }
+      lyricOffset += token.text.length;
+    }
+    return rendered;
+  }
+
+  static String _renderChord(
+    String chord, {
+    required int capoFrets,
+    required bool showCapoShapes,
+    required bool preferFlats,
+  }) {
+    return showCapoShapes
+        ? SheetChordProTransposer.capoShapeForConcertChord(
+            chord,
+            capoFrets,
+            preferFlats: preferFlats,
+          )
+        : chord;
   }
 }
 
