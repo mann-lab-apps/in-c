@@ -2102,3 +2102,9 @@ pack, a duplicate pack id, an allow-list violating icon stamp and a reserved ima
 path keeps the valid text/icon pack and drops unsafe entries before saving them into the active library.
 Near-limit picker interaction, actual S Pen/stylus picker use, image stamp asset policy and editable PDF
 annotation export remain follow-up.
+
+S172 VERIFIED LOCAL: reduced near-limit custom stamp picker overflow risk. The user stamp section now
+shows a bounded first set of stamp chips with a count of hidden stamps and asks the user to narrow by
+name, role or category. A widget regression loads a max-size 128-stamp pack, verifies the hidden target
+does not overflow the sheet, then finds the final stamp through search. Actual S Pen/stylus picker use,
+image stamp asset policy, multi-layer annotation and editable PDF annotation export remain follow-up.

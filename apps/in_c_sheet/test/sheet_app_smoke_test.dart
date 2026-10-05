@@ -3720,6 +3720,54 @@ Clef & Staff 세트리스트
     },
   );
 
+  testWidgets('annotation stamp picker summarizes near-limit user stamps', (
+    tester,
+  ) async {
+    final targetIndex = SheetAnnotationStampPack.maxStampCount - 1;
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'large-user-pack',
+      'name': 'Large user pack',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': List<Map<String, Object?>>.generate(
+        SheetAnnotationStampPack.maxStampCount,
+        (index) => <String, Object?>{
+          'id': 'stamp-$index',
+          'packId': 'large-user-pack',
+          'label': index == targetIndex ? 'Target $index' : 'Bulk $index',
+          'category': index == targetIndex ? 'Target Category' : 'Bulk',
+          'kind': 'text',
+          'text': index == targetIndex ? 'TARGET' : 'B$index',
+        },
+      ),
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[userPack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bulk 0'), findsOneWidget);
+    expect(find.text('Target $targetIndex'), findsNothing);
+    expect(find.textContaining('122개 더 있습니다.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'target');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bulk 0'), findsNothing);
+    expect(find.text('Target $targetIndex'), findsOneWidget);
+    expect(find.textContaining('122개 더 있습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('annotation stamp picker creates and selects user icon stamps', (
     tester,
   ) async {

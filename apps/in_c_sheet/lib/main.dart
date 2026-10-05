@@ -21255,6 +21255,11 @@ class _UserStampSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    const maxVisibleStampChips = 6;
+    final visibleStamps = stamps
+        .take(maxVisibleStampChips)
+        .toList(growable: false);
+    final hiddenStampCount = stamps.length - visibleStamps.length;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: DecoratedBox(
@@ -21303,7 +21308,7 @@ class _UserStampSection extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          for (final stamp in stamps)
+                          for (final stamp in visibleStamps)
                             InputChip(
                               avatar: Icon(_userStampIconData(stamp), size: 18),
                               label: Text(stamp.label),
@@ -21317,6 +21322,15 @@ class _UserStampSection extends StatelessWidget {
                             ),
                         ],
                       ),
+                    if (hiddenStampCount > 0) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '$hiddenStampCount개 더 있습니다. 이름/역할 검색 또는 카테고리로 좁혀보세요.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
