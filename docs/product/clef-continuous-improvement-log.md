@@ -2108,3 +2108,10 @@ shows a bounded first set of stamp chips with a count of hidden stamps and asks 
 name, role or category. A widget regression loads a max-size 128-stamp pack, verifies the hidden target
 does not overflow the sheet, then finds the final stamp through search. Actual S Pen/stylus picker use,
 image stamp asset policy, multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S173 VERIFIED LOCAL: hardened setlist package user-stamp import coverage for unsafe external metadata.
+The package ZIP codec already normalizes optional `clef-user-stamps.json`; regression coverage now
+builds an external package with one valid text pack plus duplicate pack id, non-allow-listed icon and
+reserved image stamp data. Decode and dry-run keep only the safe text/icon metadata before package
+import preview can merge it into the active library. Actual image stamp assets, package annotation
+fidelity, multi-layer annotation and editable PDF annotation export remain follow-up.

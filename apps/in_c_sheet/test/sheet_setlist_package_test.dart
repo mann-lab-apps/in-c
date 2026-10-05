@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -282,6 +284,86 @@ Clef & Staff 세트리스트
     expect(dryRunWithExisting.userStampPreview.newPackCount, 0);
     expect(dryRunWithExisting.userStampPreview.newStampCount, 1);
     expect(dryRunWithExisting.userStampPreview.duplicateStampCount, 1);
+  });
+
+  test('codec skips unsafe optional user stamp metadata', () {
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile.string(sheetSetlistPackageManifestFileName, '''
+Clef & Staff 세트리스트
+제목: Stamp Safety
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+'''),
+      )
+      ..addFile(
+        ArchiveFile.string(
+          sheetSetlistPackageUserStampsFileName,
+          jsonEncode(<Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'rehearsal',
+              'name': 'Rehearsal',
+              'stamps': const <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'cue',
+                  'label': 'Cue',
+                  'kind': 'text',
+                  'text': 'CUE',
+                },
+              ],
+            },
+            <String, Object?>{
+              'id': 'rehearsal',
+              'name': 'Duplicate Rehearsal',
+              'stamps': const <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'other',
+                  'label': 'Other',
+                  'kind': 'text',
+                  'text': 'OTHER',
+                },
+              ],
+            },
+            <String, Object?>{
+              'id': 'unsafe-icon',
+              'name': 'Unsafe Icon',
+              'stamps': const <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'rocket',
+                  'label': 'Rocket',
+                  'kind': 'icon',
+                  'iconName': 'rocket',
+                },
+              ],
+            },
+            <String, Object?>{
+              'id': 'reserved-image',
+              'name': 'Reserved Image',
+              'stamps': const <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'photo',
+                  'label': 'Photo',
+                  'kind': 'image',
+                  'assetRef': 'stamps/photo.png',
+                },
+              ],
+            },
+          ]),
+        ),
+      );
+    final zip = ZipEncoder().encode(archive);
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+
+    expect(package.userStampPacks, hasLength(1));
+    expect(package.userStampPacks.single.id, 'rehearsal');
+    expect(package.userStampPacks.single.stamps.single.text, 'CUE');
+    expect(dryRun.userStampPreview.packCount, 1);
+    expect(dryRun.userStampPreview.totalStampCount, 1);
+    expect(dryRun.userStampPreview.newStampCount, 1);
   });
 
   test('codec rejects packages without a Clef manifest', () {
