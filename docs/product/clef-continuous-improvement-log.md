@@ -2115,3 +2115,10 @@ builds an external package with one valid text pack plus duplicate pack id, non-
 reserved image stamp data. Decode and dry-run keep only the safe text/icon metadata before package
 import preview can merge it into the active library. Actual image stamp assets, package annotation
 fidelity, multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S174 VERIFIED LOCAL: covered setlist package import when optional user-stamp merge storage fails. A
+controller regression now imports a resolved package, forces the custom stamp save to fail, and verifies
+the imported setlist remains durable while the existing local user-stamp pack is restored instead of
+being replaced by a partial merge. This keeps package sharing useful even when optional custom stamp
+metadata cannot be saved. Actual image stamp assets, package annotation fidelity and multi-layer
+annotation remain follow-up.

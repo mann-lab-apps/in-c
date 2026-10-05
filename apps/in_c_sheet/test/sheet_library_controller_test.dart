@@ -732,6 +732,107 @@ Clef & Staff 세트리스트
     },
   );
 
+  test(
+    'setlist package stamp merge failure preserves imported setlist',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 28, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now);
+      await store.saveScores([existing]);
+      await store.saveUserAnnotationStampPacks([
+        SheetAnnotationStampPack(
+          id: 'user',
+          name: '사용자 스탬프',
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          stamps: const <SheetAnnotationUserStamp>[
+            SheetAnnotationUserStamp(
+              id: 'repeat-cue',
+              packId: 'user',
+              label: 'Local repeat cue',
+              category: '사용자',
+              kind: SheetAnnotationUserStamp.iconKind,
+              iconName: 'repeat',
+            ),
+          ],
+        ),
+      ]);
+      store.failSaveUserStampPacks = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final packageStampPack = SheetAnnotationStampPack(
+        id: 'user',
+        name: '사용자 스탬프',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'repeat-cue',
+            packId: 'user',
+            label: 'Package repeat cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.iconKind,
+            iconName: 'repeat',
+          ),
+          SheetAnnotationUserStamp(
+            id: 'bow-cue',
+            packId: 'user',
+            label: 'Bow cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.textKind,
+            text: 'BOW',
+          ),
+        ],
+      );
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''',
+          scoreFiles: const <String, List<int>>{},
+          userStampPacks: [packageStampPack],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(controller.setlists.single.title, 'Package Recital');
+      expect(
+        controller.userAnnotationStampPacks.single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+      expect(
+        (await store.loadUserAnnotationStampPacks()).single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+      await controller.load();
+      expect(controller.setlists.single.title, 'Package Recital');
+      expect(
+        controller.userAnnotationStampPacks.single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+    },
+  );
+
   test('imports ChordPro text as a library score draft', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 9, 28, 16);
@@ -4652,6 +4753,7 @@ class _PackageImportStore extends SheetLibraryStore {
   var _pdfCount = 0;
   var _imageCount = 0;
   bool failSaveScoresAndSetlists = false;
+  bool failSaveUserStampPacks = false;
 
   @override
   Future<SheetScore> importPdfBytes({
@@ -4694,6 +4796,17 @@ class _PackageImportStore extends SheetLibraryStore {
       throw StateError('package import save failed');
     }
     await super.saveScoresAndSetlists(scores, setlists, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> saveUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    String? libraryId,
+  }) async {
+    if (failSaveUserStampPacks) {
+      throw StateError('user stamp save failed');
+    }
+    await super.saveUserAnnotationStampPacks(packs, libraryId: libraryId);
   }
 }
 
