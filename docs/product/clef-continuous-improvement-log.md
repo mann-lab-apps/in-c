@@ -2122,3 +2122,11 @@ the imported setlist remains durable while the existing local user-stamp pack is
 being replaced by a partial merge. This keeps package sharing useful even when optional custom stamp
 metadata cannot be saved. Actual image stamp assets, package annotation fidelity and multi-layer
 annotation remain follow-up.
+
+S175 VERIFIED LOCAL: reduced image stamp asset risk without opening image import UI. The custom stamp
+schema now preserves image asset size and dimensions, and the validator only accepts image stamps when
+the caller explicitly allows them and the asset manifest uses a `stamps/` relative path, PNG/JPEG/WebP
+extension, SHA-256 checksum, 2MB file cap and 2048px edge/pixel budget. Focused annotation tests cover
+the valid manifest path plus remote URLs, traversal paths, unsupported extensions, invalid checksums,
+oversized files and missing asset metadata. Actual image file storage, package asset round-trip,
+multi-layer annotation and editable PDF annotation export remain follow-up.

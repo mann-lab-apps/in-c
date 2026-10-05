@@ -404,14 +404,17 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 결정 필요사항:
   - built-in stamp와 user stamp를 같은 picker에 섞을지, 별도 섹션으로 둘지
   - v1.1 첫 범위를 text/icon-only preset으로 제한할지
-  - image stamp import를 허용할 경우 지원 포맷, 최대 크기, 투명 배경, 압축/보관 위치
+  - 완료: image stamp import를 허용하기 전 지원 포맷과 안전한 asset manifest 정책을 validator에 고정한다.
+    image asset은 `stamps/` 아래 상대 경로, PNG/JPEG/WebP, SHA-256 checksum, 2MB 이하,
+    2048px 이하 edge와 2048x2048 이하 pixel budget을 요구한다.
   - backup/export/setlist package/cloud sync에 user stamp asset을 포함할지
   - user stamp 삭제 시 기존 주석 rendering을 보존할지 fallback label로 바꿀지
   - 외부 stamp pack 공유를 허용할 경우 license/출처 표시와 악성/대용량 파일 방어
 - 제안 schema 초안:
   - `SheetAnnotationStampPack(id, name, version, createdAt, updatedAt, stamps)`
   - `SheetAnnotationUserStamp(id, packId, label, category, kind, iconName?, text?, assetRef?,
-    keywords, licenseLabel?, sourceUrl?, checksum?)`
+    keywords, licenseLabel?, sourceUrl?, checksum?, assetSizeBytes?, assetWidthPixels?,
+    assetHeightPixels?)`
   - `kind`: `text`, `icon`, `image` 중 하나. v1.1 첫 구현은 `text`와 allow-listed `icon`만
     허용하고 `image`는 schema reserved로 둔다.
   - 기존 annotation에는 `stampName` 대신 당장 `userStampId`를 추가하지 않는다. 첫 slice는 picker
@@ -428,9 +431,11 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   6. 완료: setlist package ZIP에 optional `clef-user-stamps.json` metadata를 포함하고, package
      import preview에서 신규/중복 stamp id 수를 구분한 뒤 성공 후 신규 text/icon stamp id만 active
      library에 병합한다.
-  7. image stamp import는 license/size/export QA 이후 별도 slice로 연다.
+  7. 완료: image stamp asset manifest policy를 code validator로 고정한다. 실제 이미지 선택/import UI는
+     license/export QA 이후 별도 slice로 연다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
-  allow-listed icon, malformed source URL warning, image stamp gate, metadata save/load, malformed
+  allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
+  size/dimension policy, metadata save/load, malformed
   storage fallback, metadata backup restore, text/icon stamp create/delete/reload, picker
   create/select/delete, user stamp search/category filtering, setlist package stamp metadata
   round-trip/import merge, package duplicate stamp preview and local-preservation merge, deleted
@@ -440,7 +445,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
   export path가 준비될 때까지 비활성이다.
-- Blocker 해제 조건: 권리/라이선스 copy 결정, image stamp asset policy.
+- Blocker 해제 조건: 권리/라이선스 copy 결정, image stamp asset storage/export implementation,
+  corrupt image fixture와 package/backup asset round-trip QA.
 
 ## RC 이후 추천 우선순위
 

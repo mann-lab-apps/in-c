@@ -164,8 +164,13 @@ void main() {
           'id': 'photo',
           'label': 'Photo',
           'kind': 'image',
-          'assetRef': 'stamps/photo.png',
-          'sourceUrl': 'example.com/photo',
+          'assetRef': 'stamps/pack/photo.png',
+          'sourceUrl': 'https://example.com/photo',
+          'licenseLabel': 'Original artwork',
+          'checksum': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'assetSizeBytes': 120000,
+          'assetWidthPixels': 512,
+          'assetHeightPixels': 512,
         },
       ],
     });
@@ -179,9 +184,91 @@ void main() {
       contains('stamp.photo.kind image is reserved for a later slice'),
     );
     expect(allowed.isValid, isTrue);
+    expect(allowed.warnings, isEmpty);
     expect(
-      allowed.warnings,
-      contains('stamp.photo.sourceUrl is not an absolute URL'),
+      SheetAnnotationStampPack.fromJson(pack.toJson()).toJson(),
+      pack.toJson(),
+    );
+  });
+
+  test('image stamp validation enforces asset policy before import UI', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Images',
+      'stamps': <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'remote',
+          'label': 'Remote',
+          'kind': 'image',
+          'assetRef': 'https://example.com/photo.png',
+          'checksum': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'traversal',
+          'label': 'Traversal',
+          'kind': 'image',
+          'assetRef': 'stamps/../photo.png',
+          'checksum': 'not-a-sha',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'gif',
+          'label': 'Gif',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/photo.gif',
+          'checksum': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'large',
+          'label': 'Large',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/large.webp',
+          'checksum': 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+          'assetSizeBytes': SheetAnnotationStampPack.maxImageAssetBytes + 1,
+          'assetWidthPixels':
+              SheetAnnotationStampPack.maxImageAssetDimensionPixels + 1,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'missing',
+          'label': 'Missing',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/missing.png',
+        },
+      ],
+    });
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.remote.assetRef must be a relative path under stamps/',
+        'stamp.traversal.assetRef must be a relative path under stamps/',
+        'stamp.traversal.checksum must be a SHA-256 hex digest',
+        'stamp.gif.assetRef extension is unsupported',
+        'stamp.large.assetSizeBytes must be '
+            '${SheetAnnotationStampPack.maxImageAssetBytes} bytes or fewer',
+        'stamp.large asset dimensions must be '
+            '${SheetAnnotationStampPack.maxImageAssetDimensionPixels} px '
+            'or smaller',
+        'stamp.missing.checksum is required for image stamps',
+        'stamp.missing.assetSizeBytes is required for image stamps',
+        'stamp.missing asset dimensions are required for image stamps',
+      ]),
+    );
+    expect(
+      result.warnings,
+      contains('stamp.remote.licenseLabel is recommended for image stamps'),
     );
   });
 

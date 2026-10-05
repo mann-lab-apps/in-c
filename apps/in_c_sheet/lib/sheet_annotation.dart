@@ -115,6 +115,9 @@ class SheetAnnotationUserStamp {
     this.licenseLabel = '',
     this.sourceUrl = '',
     this.checksum = '',
+    this.assetSizeBytes = 0,
+    this.assetWidthPixels = 0,
+    this.assetHeightPixels = 0,
   });
 
   factory SheetAnnotationUserStamp.fromJson(
@@ -135,6 +138,9 @@ class SheetAnnotationUserStamp {
       licenseLabel: _stringFromJson(json?['licenseLabel']).trim(),
       sourceUrl: _stringFromJson(json?['sourceUrl']).trim(),
       checksum: _stringFromJson(json?['checksum']).trim(),
+      assetSizeBytes: _intFromJson(json?['assetSizeBytes'], fallback: 0),
+      assetWidthPixels: _intFromJson(json?['assetWidthPixels'], fallback: 0),
+      assetHeightPixels: _intFromJson(json?['assetHeightPixels'], fallback: 0),
     );
   }
 
@@ -159,6 +165,9 @@ class SheetAnnotationUserStamp {
   final String licenseLabel;
   final String sourceUrl;
   final String checksum;
+  final int assetSizeBytes;
+  final int assetWidthPixels;
+  final int assetHeightPixels;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -174,6 +183,9 @@ class SheetAnnotationUserStamp {
       if (licenseLabel.isNotEmpty) 'licenseLabel': licenseLabel,
       if (sourceUrl.isNotEmpty) 'sourceUrl': sourceUrl,
       if (checksum.isNotEmpty) 'checksum': checksum,
+      if (assetSizeBytes > 0) 'assetSizeBytes': assetSizeBytes,
+      if (assetWidthPixels > 0) 'assetWidthPixels': assetWidthPixels,
+      if (assetHeightPixels > 0) 'assetHeightPixels': assetHeightPixels,
     };
   }
 }
@@ -208,6 +220,17 @@ class SheetAnnotationStampPack {
   }
 
   static const int maxStampCount = 128;
+  static const int maxImageAssetBytes = 2 * 1024 * 1024;
+  static const int maxImageAssetDimensionPixels = 2048;
+  static const int maxImageAssetPixels =
+      maxImageAssetDimensionPixels * maxImageAssetDimensionPixels;
+  static const String imageAssetPathPrefix = 'stamps/';
+  static const Set<String> allowedImageAssetExtensions = <String>{
+    'png',
+    'jpg',
+    'jpeg',
+    'webp',
+  };
   static const Set<String> defaultAllowedIconNames = <String>{
     'check',
     'star',
@@ -277,8 +300,8 @@ class SheetAnnotationStampPack {
       if (stamp.kind == SheetAnnotationUserStamp.imageKind) {
         if (!allowImageStamps) {
           errors.add('$prefix.kind image is reserved for a later slice');
-        } else if (stamp.assetRef.isEmpty) {
-          errors.add('$prefix.assetRef is required for image stamps');
+        } else {
+          _validateImageStampAsset(stamp, prefix, errors, warnings);
         }
       }
       if (stamp.sourceUrl.isNotEmpty &&
@@ -294,6 +317,72 @@ class SheetAnnotationStampPack {
       errors: errors,
       warnings: warnings,
     );
+  }
+
+  static void _validateImageStampAsset(
+    SheetAnnotationUserStamp stamp,
+    String prefix,
+    List<String> errors,
+    List<String> warnings,
+  ) {
+    final assetRef = stamp.assetRef.replaceAll('\\', '/');
+    if (assetRef.isEmpty) {
+      errors.add('$prefix.assetRef is required for image stamps');
+    } else {
+      final uri = Uri.tryParse(assetRef);
+      if (uri?.hasScheme == true ||
+          assetRef.startsWith('/') ||
+          !assetRef.startsWith(imageAssetPathPrefix) ||
+          assetRef.split('/').contains('..')) {
+        errors.add(
+          '$prefix.assetRef must be a relative path under '
+          '$imageAssetPathPrefix',
+        );
+      }
+      final extensionIndex = assetRef.lastIndexOf('.');
+      final extension = extensionIndex < 0
+          ? ''
+          : assetRef.substring(extensionIndex + 1).toLowerCase();
+      if (!allowedImageAssetExtensions.contains(extension)) {
+        errors.add('$prefix.assetRef extension is unsupported');
+      }
+    }
+
+    if (stamp.checksum.isEmpty) {
+      errors.add('$prefix.checksum is required for image stamps');
+    } else if (!RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(stamp.checksum)) {
+      errors.add('$prefix.checksum must be a SHA-256 hex digest');
+    }
+
+    if (stamp.assetSizeBytes <= 0) {
+      errors.add('$prefix.assetSizeBytes is required for image stamps');
+    } else if (stamp.assetSizeBytes > maxImageAssetBytes) {
+      errors.add(
+        '$prefix.assetSizeBytes must be $maxImageAssetBytes bytes or fewer',
+      );
+    }
+
+    if (stamp.assetWidthPixels <= 0 || stamp.assetHeightPixels <= 0) {
+      errors.add('$prefix asset dimensions are required for image stamps');
+    } else {
+      if (stamp.assetWidthPixels > maxImageAssetDimensionPixels ||
+          stamp.assetHeightPixels > maxImageAssetDimensionPixels) {
+        errors.add(
+          '$prefix asset dimensions must be '
+          '$maxImageAssetDimensionPixels px or smaller',
+        );
+      }
+      if (stamp.assetWidthPixels * stamp.assetHeightPixels >
+          maxImageAssetPixels) {
+        errors.add(
+          '$prefix asset pixel count must be $maxImageAssetPixels or fewer',
+        );
+      }
+    }
+
+    if (stamp.licenseLabel.isEmpty) {
+      warnings.add('$prefix.licenseLabel is recommended for image stamps');
+    }
   }
 
   Map<String, Object?> toJson() {
