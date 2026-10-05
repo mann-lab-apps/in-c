@@ -1137,6 +1137,77 @@ void main() {
     expect(restored.single.id, 'rehearsal');
   });
 
+  test(
+    'metadata backup restore skips unsafe user annotation stamp packs',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final validPack = _userStampPack('rehearsal');
+      await store.saveUserAnnotationStampPacks([validPack]);
+      final backupJson = await store.exportMetadataBackupJson();
+      final backup = jsonDecode(backupJson) as Map<String, Object?>;
+
+      backup['userAnnotationStampPacks'] = <Map<String, Object?>>[
+        validPack.toJson(),
+        <String, Object?>{
+          ...validPack.toJson(),
+          'name': 'Duplicate rehearsal pack',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'cue',
+              'label': 'Duplicate Cue',
+              'category': 'Rehearsal',
+              'kind': 'text',
+              'text': 'DUPLICATE',
+            },
+          ],
+        },
+        <String, Object?>{
+          'id': 'unsafe-icons',
+          'name': 'Unsafe icons',
+          'createdAt': '2026-10-02T10:00:00.000',
+          'updatedAt': '2026-10-02T10:00:00.000',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'rocket',
+              'label': 'Rocket',
+              'category': 'Icons',
+              'kind': 'icon',
+              'iconName': 'rocket',
+            },
+          ],
+        },
+        <String, Object?>{
+          'id': 'image-pack',
+          'name': 'Image stamps',
+          'createdAt': '2026-10-02T10:00:00.000',
+          'updatedAt': '2026-10-02T10:00:00.000',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'photo-cue',
+              'label': 'Photo Cue',
+              'category': 'Images',
+              'kind': 'image',
+              'assetRef': 'stamps/photo-cue.png',
+            },
+          ],
+        },
+      ];
+
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final restoreStore = SheetLibraryStore();
+      final result = await restoreStore.restoreMetadataBackupJson(
+        jsonEncode(backup),
+      );
+
+      expect(result.didRestore, isTrue);
+      final restored = await restoreStore.loadUserAnnotationStampPacks();
+      expect(restored, hasLength(1));
+      expect(restored.single.id, 'rehearsal');
+      expect(restored.single.stamps.single.text, 'CUE');
+    },
+  );
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(

@@ -2095,3 +2095,10 @@ S170 VERIFIED LOCAL: added a custom stamp pack size guard regression. The schema
 stamp packs at 128 entries; unit coverage now verifies that an oversized pack is rejected before it can
 reach picker/storage flows. Interactive performance with a near-limit pack, PDF export, S Pen picker use
 and image stamp asset policy remain follow-up.
+
+S171 VERIFIED LOCAL: hardened custom stamp backup restore coverage for unsafe external data. Metadata
+backup restore now has regression coverage for a mixed incoming stamp pack list containing one valid
+pack, a duplicate pack id, an allow-list violating icon stamp and a reserved image stamp. The restore
+path keeps the valid text/icon pack and drops unsafe entries before saving them into the active library.
+Near-limit picker interaction, actual S Pen/stylus picker use, image stamp asset policy and editable PDF
+annotation export remain follow-up.
