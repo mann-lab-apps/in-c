@@ -477,6 +477,59 @@ void main() {
     expect(visibleForExport.exportableTextsForPage(1), hasLength(1));
   });
 
+  test('annotation display layer helpers scaffold future multi-layer UI', () {
+    final rehearsalLayer = const SheetAnnotationDisplayLayer(
+      id: 'rehearsal',
+      label: '리허설 메모',
+      isVisible: false,
+      includeInExport: false,
+    );
+    final performanceLayer = const SheetAnnotationDisplayLayer(
+      id: 'performance',
+      label: '공연 표시',
+    );
+
+    final layer = SheetAnnotationLayer.empty
+        .withDisplayLayer(rehearsalLayer)
+        .withDisplayLayer(performanceLayer);
+
+    expect(layer.hasMultipleDisplayLayers, isTrue);
+    expect(layer.displayLayerCount, 3);
+    expect(layer.hiddenDisplayLayerCount, 1);
+    expect(layer.exportDisabledDisplayLayerCount, 1);
+    expect(layer.displayLayerLabels, <String>[
+      SheetAnnotationDisplayLayer.defaultLayerLabel,
+      '공연 표시',
+      '리허설 메모',
+    ]);
+
+    final replaced = layer.withDisplayLayer(
+      rehearsalLayer.copyWith(label: '리허설 전용', isVisible: true),
+    );
+    expect(replaced.displayLayerCount, 3);
+    expect(replaced.hiddenDisplayLayerCount, 0);
+    expect(replaced.displayLayerLabels, contains('리허설 전용'));
+    expect(replaced.displayLayerLabels, isNot(contains('리허설 메모')));
+
+    final removed = replaced.removeDisplayLayer('rehearsal');
+    expect(removed.displayLayerLabels, isNot(contains('리허설 전용')));
+    expect(
+      removed
+          .removeDisplayLayer(SheetAnnotationDisplayLayer.defaultLayerId)
+          .displayLayerLabels,
+      removed.displayLayerLabels,
+    );
+    expect(
+      identical(
+        removed.withDisplayLayer(
+          const SheetAnnotationDisplayLayer(id: '', label: ''),
+        ),
+        removed,
+      ),
+      isTrue,
+    );
+  });
+
   test('compacts redo stack without dropping annotations', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
     final stroke = _stroke(id: 'visible', pageNumber: 1, createdAt: now);

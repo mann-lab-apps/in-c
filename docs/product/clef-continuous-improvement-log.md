@@ -2130,3 +2130,10 @@ extension, SHA-256 checksum, 2MB file cap and 2048px edge/pixel budget. Focused 
 the valid manifest path plus remote URLs, traversal paths, unsupported extensions, invalid checksums,
 oversized files and missing asset metadata. Actual image file storage, package asset round-trip,
 multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S176 VERIFIED LOCAL: added a low-risk multi-layer annotation scaffold without opening layer UI or
+moving annotations between layers. `SheetAnnotationLayer` now exposes layer stack counts/labels and
+helpers to add, replace and remove non-default display layers while preserving the default layer and
+normalizing duplicate ids. Focused annotation tests cover hidden/export-disabled layer summaries,
+replacement, removal and invalid layer fallback. Annotation-level layer keys, layer management UI,
+package fidelity and editable PDF annotation export remain follow-up.

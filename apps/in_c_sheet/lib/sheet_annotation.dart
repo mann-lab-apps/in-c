@@ -912,6 +912,19 @@ class SheetAnnotationLayer {
 
   bool get includeDefaultLayerInExport => defaultLayer.includeInExport;
 
+  int get displayLayerCount => layers.length;
+
+  bool get hasMultipleDisplayLayers => displayLayerCount > 1;
+
+  int get hiddenDisplayLayerCount =>
+      layers.where((layer) => !layer.isVisible).length;
+
+  int get exportDisabledDisplayLayerCount =>
+      layers.where((layer) => !layer.includeInExport).length;
+
+  List<String> get displayLayerLabels =>
+      layers.map((layer) => layer.label).toList(growable: false);
+
   int get pointCount {
     var total = 0;
     for (final stroke in strokes) {
@@ -993,6 +1006,44 @@ class SheetAnnotationLayer {
           if (layer.id != SheetAnnotationDisplayLayer.defaultLayerId) layer,
         defaultLayer,
       ]),
+    );
+  }
+
+  SheetAnnotationLayer withDisplayLayer(SheetAnnotationDisplayLayer layer) {
+    if (!layer.isValid) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: strokes,
+      texts: texts,
+      redoStack: redoStack,
+      eraseUndoStack: eraseUndoStack,
+      layers: _normalizeLayerList(<SheetAnnotationDisplayLayer>[
+        for (final candidate in layers)
+          if (candidate.id != layer.id) candidate,
+        layer,
+      ]),
+    );
+  }
+
+  SheetAnnotationLayer removeDisplayLayer(String layerId) {
+    final normalizedLayerId = layerId.trim();
+    if (normalizedLayerId.isEmpty ||
+        normalizedLayerId == SheetAnnotationDisplayLayer.defaultLayerId) {
+      return this;
+    }
+    final nextLayers = layers
+        .where((layer) => layer.id != normalizedLayerId)
+        .toList(growable: false);
+    if (nextLayers.length == layers.length) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: strokes,
+      texts: texts,
+      redoStack: redoStack,
+      eraseUndoStack: eraseUndoStack,
+      layers: _normalizeLayerList(nextLayers),
     );
   }
 
