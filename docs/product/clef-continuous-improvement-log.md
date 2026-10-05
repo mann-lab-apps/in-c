@@ -2137,3 +2137,11 @@ helpers to add, replace and remove non-default display layers while preserving t
 normalizing duplicate ids. Focused annotation tests cover hidden/export-disabled layer summaries,
 replacement, removal and invalid layer fallback. Annotation-level layer keys, layer management UI,
 package fidelity and editable PDF annotation export remain follow-up.
+
+S177 VERIFIED LOCAL: clarified editable PDF annotation export capability before attempting a writer
+implementation. `SheetAnnotatedPdfExporter` now reports separate capability records for flattened
+rendered-stamp copies and unsupported standard editable annotation embedding, including supported
+rendered annotation types, unsupported editable object types and required spike items such as PDF
+writer API, annotation mapping, font embedding and viewer compatibility fixtures. Focused exporter
+tests cover the capability model and the existing unsupported standard export result remains unchanged.
+Actual standard Ink/FreeText/Stamp object writing and cross-viewer compatibility remain follow-up.

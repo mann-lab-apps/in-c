@@ -26,6 +26,36 @@ void main() {
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('숨 크게'), isTrue);
   });
 
+  test('reports PDF annotation export capabilities before editable export', () {
+    final rendered = SheetAnnotatedPdfExporter.capabilityFor(
+      SheetPdfAnnotationExportMode.renderedStamp,
+    );
+    final standard = SheetAnnotatedPdfExporter.capabilityFor(
+      SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+
+    expect(rendered.isSupported, isTrue);
+    expect(rendered.isRenderedStampCopy, isTrue);
+    expect(rendered.supportedAnnotationTypes, contains('pen'));
+    expect(rendered.supportedAnnotationTypes, contains('asciiText'));
+    expect(
+      rendered.unsupportedAnnotationTypes,
+      contains('editablePdfAnnotationObjects'),
+    );
+    expect(standard.isSupported, isFalse);
+    expect(standard.isStandardAnnotationEmbedding, isTrue);
+    expect(
+      standard.summary,
+      SheetAnnotatedPdfExportResult
+          .standardAnnotationEmbeddingUnsupportedReason,
+    );
+    expect(standard.requiredSpikeItems, contains('pdfWriterApi'));
+    expect(
+      standard.requiredSpikeItems,
+      contains('viewerCompatibilityFixtures'),
+    );
+  });
+
   test('creates an annotated PDF copy without changing the original', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
     final originalBytes = await input.readAsBytes();

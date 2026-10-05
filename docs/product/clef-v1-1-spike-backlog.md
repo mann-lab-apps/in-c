@@ -176,14 +176,15 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 5. PDF 표준 Annotation Embed/Export
 
-- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식이다. standard annotation
-  export mode는 explicit unsupported result로 분리되어 있다.
+- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식이다. export capability
+  report가 flattened copy 지원 범위와 standard annotation embedding 미지원 범위를 구분하며,
+  standard annotation export mode는 explicit unsupported result로 분리되어 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
   mapping, viewer 호환성 검증이 필요하다.
 - 결정 필요사항: `pdf_document` 확장 가능성, 다른 PDF writer 도입 여부, Ink/Text/FreeText/Stamp
   annotation mapping, opacity/pressure 처리, flatten vs editable export mode.
 - 구현 후보: standard export adapter interface, rendered fallback 유지, annotation object fixture
-  generator, export compatibility report.
+  generator, export compatibility fixture runner. Capability report는 구현됨.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered

@@ -8,6 +8,32 @@ import 'sheet_score.dart';
 
 enum SheetPdfAnnotationExportMode { renderedStamp, standardAnnotation }
 
+class SheetPdfAnnotationExportCapability {
+  const SheetPdfAnnotationExportCapability({
+    required this.mode,
+    required this.isSupported,
+    required this.summary,
+    this.supportedAnnotationTypes = const <String>[],
+    this.unsupportedAnnotationTypes = const <String>[],
+    this.requiredSpikeItems = const <String>[],
+  });
+
+  final SheetPdfAnnotationExportMode mode;
+  final bool isSupported;
+  final String summary;
+  final List<String> supportedAnnotationTypes;
+  final List<String> unsupportedAnnotationTypes;
+  final List<String> requiredSpikeItems;
+
+  bool get isRenderedStampCopy {
+    return mode == SheetPdfAnnotationExportMode.renderedStamp;
+  }
+
+  bool get isStandardAnnotationEmbedding {
+    return mode == SheetPdfAnnotationExportMode.standardAnnotation;
+  }
+}
+
 class SheetAnnotatedPdfExportResult {
   const SheetAnnotatedPdfExportResult({
     required this.inputPath,
@@ -63,6 +89,58 @@ class SheetAnnotatedPdfExporter {
   const SheetAnnotatedPdfExporter._();
 
   static const supportsStandardAnnotationEmbedding = false;
+  static const renderedStampExportCapability =
+      SheetPdfAnnotationExportCapability(
+        mode: SheetPdfAnnotationExportMode.renderedStamp,
+        isSupported: true,
+        summary:
+            'Creates a flattened PDF copy by drawing supported annotations '
+            'over the original pages without changing the source file.',
+        supportedAnnotationTypes: <String>[
+          'pen',
+          'highlighter',
+          'line',
+          'arrow',
+          'rectangle',
+          'crescendo',
+          'diminuendo',
+          'asciiText',
+        ],
+        unsupportedAnnotationTypes: <String>[
+          'unicodeTextWithoutEmbeddedFont',
+          'editablePdfAnnotationObjects',
+        ],
+      );
+  static const standardAnnotationExportCapability =
+      SheetPdfAnnotationExportCapability(
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        isSupported: false,
+        summary: SheetAnnotatedPdfExportResult
+            .standardAnnotationEmbeddingUnsupportedReason,
+        unsupportedAnnotationTypes: <String>[
+          'inkAnnotation',
+          'freeTextAnnotation',
+          'stampAnnotation',
+          'shapeAnnotation',
+        ],
+        requiredSpikeItems: <String>[
+          'pdfWriterApi',
+          'annotationObjectMapping',
+          'fontEmbedding',
+          'viewerCompatibilityFixtures',
+        ],
+      );
+
+  static SheetPdfAnnotationExportCapability capabilityFor(
+    SheetPdfAnnotationExportMode mode,
+  ) {
+    switch (mode) {
+      case SheetPdfAnnotationExportMode.renderedStamp:
+        return renderedStampExportCapability;
+      case SheetPdfAnnotationExportMode.standardAnnotation:
+        return standardAnnotationExportCapability;
+    }
+  }
 
   static bool textRequiresUnicodeFont(String text) {
     return text.runes.any((rune) => rune > 0x7f);
