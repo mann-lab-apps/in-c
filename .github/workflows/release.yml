@@ -50,6 +50,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      MACOS_CSC_NAME: "Developer ID Application: Jae-man Kim (ZRA4DHHKQ4)"
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
@@ -97,7 +98,7 @@ jobs:
       - name: Package app
         run: ${{ matrix.command }}
         env:
-          CSC_NAME: ${{ runner.os == 'macOS' && 'Developer ID Application: Jae-man Kim (ZRA4DHHKQ4)' || '' }}
+          CSC_NAME: ${{ runner.os == 'macOS' && env.MACOS_CSC_NAME || '' }}
           CSC_LINK: ${{ runner.os == 'macOS' && secrets.CSC_LINK || '' }}
           CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
           APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
