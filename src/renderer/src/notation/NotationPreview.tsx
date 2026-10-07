@@ -3105,14 +3105,92 @@ function drawGraceNotes(
   staffY: number,
   graceNotes: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>
 ): void {
-  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const startX = x - 24 - Math.max(0, graceNotes.length - 1) * 10
 
-  text.classList.add('notation-grace-notes')
-  text.setAttribute('data-event-id', eventId)
-  text.setAttribute('x', String(x - 22))
-  text.setAttribute('y', String(staffY + 2))
-  text.textContent = graceNotes.map((note) => note.pitch.step.toLowerCase()).join('')
-  svg.append(text)
+  group.classList.add('notation-grace-notes')
+  group.setAttribute('data-event-id', eventId)
+  group.setAttribute('x', String(startX))
+  group.setAttribute('y', String(staffY + 2))
+  group.setAttribute('aria-label', '꾸밈음')
+
+  const stemTops: Array<{ x: number; y: number }> = []
+
+  graceNotes.forEach((graceNote, index) => {
+    const noteX = startX + index * 12
+    const noteY = resolveGraceNoteY(staffY, graceNote.pitch)
+    const stemX = noteX + 3.5
+    const stemTopY = noteY - 22
+    const head = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse')
+    const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    head.classList.add('notation-grace-notehead')
+    head.setAttribute('data-event-id', eventId)
+    head.setAttribute('data-grace-index', String(index))
+    head.setAttribute('cx', String(noteX))
+    head.setAttribute('cy', String(noteY))
+    head.setAttribute('rx', '4.2')
+    head.setAttribute('ry', '3')
+    head.setAttribute('transform', `rotate(-20 ${noteX} ${noteY})`)
+    group.append(head)
+
+    stem.classList.add('notation-grace-stem')
+    stem.setAttribute('data-event-id', eventId)
+    stem.setAttribute('data-grace-index', String(index))
+    stem.setAttribute('x1', String(stemX))
+    stem.setAttribute('x2', String(stemX))
+    stem.setAttribute('y1', String(noteY - 1))
+    stem.setAttribute('y2', String(stemTopY))
+    group.append(stem)
+    stemTops.push({ x: stemX, y: stemTopY })
+
+    if (graceNote.slash) {
+      const slash = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+      slash.classList.add('notation-grace-slash')
+      slash.setAttribute('data-event-id', eventId)
+      slash.setAttribute('data-grace-index', String(index))
+      slash.setAttribute('x1', String(noteX - 3))
+      slash.setAttribute('y1', String(noteY - 9))
+      slash.setAttribute('x2', String(noteX + 8))
+      slash.setAttribute('y2', String(noteY - 19))
+      group.append(slash)
+    }
+  })
+
+  if (stemTops.length > 1) {
+    const beam = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    beam.classList.add('notation-grace-beam')
+    beam.setAttribute('data-event-id', eventId)
+    beam.setAttribute('x1', String(stemTops[0]!.x))
+    beam.setAttribute('x2', String(stemTops.at(-1)!.x))
+    beam.setAttribute('y1', String(stemTops[0]!.y))
+    beam.setAttribute('y2', String(stemTops.at(-1)!.y))
+    group.append(beam)
+  }
+
+  svg.append(group)
+}
+
+function resolveGraceNoteY(
+  staffY: number,
+  pitch: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number]['pitch']
+): number {
+  const stepIndex: Record<string, number> = {
+    C: 0,
+    D: 1,
+    E: 2,
+    F: 3,
+    G: 4,
+    A: 5,
+    B: 6
+  }
+  const diatonicIndex = stepIndex[pitch.step] + (pitch.octave - 4) * 7
+  const e4Index = stepIndex.E
+  const rawY = staffY + 40 - (diatonicIndex - e4Index) * 5
+
+  return Math.max(staffY - 14, Math.min(staffY + 54, rawY))
 }
 
 function drawLyrics(

@@ -122,6 +122,7 @@ export function buildRhythmEditCommand(
       })
     }
   } else if (replacementEndTick > currentEndTick) {
+    const growthTicks = replacementEndTick - currentEndTick
     const consumed = consumeFollowingRests({
       events: after,
       measure: location.measure,
@@ -130,12 +131,25 @@ export function buildRhythmEditCommand(
       createId: input.createId
     })
 
-    if (!consumed) {
-      return undefined
-    }
+    if (consumed) {
+      fillEvents = consumed.remainder
+      nextAfter = consumed.events
+    } else {
+      const shiftedAfter = shiftEvents(after, growthTicks)
+      const consumedTrailing = consumeMeasureEndRests({
+        events: shiftedAfter,
+        measure: location.measure,
+        startTick: measureEndTick,
+        endTick: measureEndTick + growthTicks,
+        createId: input.createId
+      })
 
-    fillEvents = consumed.remainder
-    nextAfter = consumed.events
+      if (!consumedTrailing) {
+        return undefined
+      }
+
+      nextAfter = consumedTrailing.events
+    }
   }
 
   const nextEvents = sortVoiceEvents([
@@ -686,6 +700,67 @@ function consumeFollowingRests(input: {
   return {
     events: input.events.slice(consumedCount),
     remainder
+  }
+}
+
+function consumeMeasureEndRests(input: {
+  events: VoiceEvent[]
+  measure: Measure
+  startTick: Tick
+  endTick: Tick
+  createId: () => string
+}): { events: VoiceEvent[] } | undefined {
+  let coveredFrom = input.endTick
+  let consumedStartIndex = input.events.length
+  let preservedRestPrefix: VoiceEvent[] = []
+
+  for (
+    let index = input.events.length - 1;
+    index >= 0 && coveredFrom > input.startTick;
+    index -= 1
+  ) {
+    const event = input.events[index]
+    const endTick = eventEndTick(event, input.measure)
+
+    if (
+      event.type !== 'rest' ||
+      event.duration.tuplet ||
+      endTick !== coveredFrom
+    ) {
+      return undefined
+    }
+
+    consumedStartIndex = index
+
+    if (event.position.tick < input.startTick) {
+      preservedRestPrefix = createRestsForSpan({
+        measure: input.measure,
+        startTick: event.position.tick,
+        endTick: input.startTick,
+        firstId: event.id,
+        createId: input.createId
+      })
+
+      if (preservedRestPrefix.length === 0) {
+        return undefined
+      }
+
+      coveredFrom = input.startTick
+      break
+    }
+
+    coveredFrom = event.position.tick
+  }
+
+  if (coveredFrom > input.startTick) {
+    return undefined
+  }
+
+  return {
+    events: [
+      ...input.events.slice(0, consumedStartIndex),
+      ...preservedRestPrefix
+    ]
   }
 }
 

@@ -1678,8 +1678,25 @@ h2 {
 }
 
 .notation-grace-notes {
-  font-size: 10px;
-  font-style: italic;
+  fill: #111827;
+  stroke: #111827;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.notation-grace-notehead {
+  stroke-width: 0;
+}
+
+.notation-grace-stem,
+.notation-grace-slash {
+  fill: none;
+  stroke-width: 1.15;
+}
+
+.notation-grace-beam {
+  fill: none;
+  stroke-width: 2.4;
 }
 
 .notation-lyric {
