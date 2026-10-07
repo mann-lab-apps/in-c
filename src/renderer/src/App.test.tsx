@@ -1653,6 +1653,48 @@ describe('App component shell', () => {
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
   })
 
+  it('measure.delete removes every measure touched by a range selection', async () => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Range delete', measureCount: 5, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const staff = project.score.parts[0]!.staves[0]!
+    const startEvent = staff.measures[1]!.voices[0]!.events[0]!
+    const endEvent = staff.measures[3]!.voices[0]!.events[0]!
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/range-delete.chromatics', fileName: 'range-delete.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/range-delete.chromatics', fileName: 'range-delete.chromatics' })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Range delete')
+    fireEvent.click(screen.getByRole('button', { name: `${startEvent.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: `${endEvent.id} 선택` }), { shiftKey: true })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-ids',
+      expect.stringContaining(startEvent.id)
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    fireEvent.click(screen.getByRole('button', { name: '마디 삭제' }))
+
+    expect(screen.getByText('3개 마디를 삭제했습니다.')).toBeInTheDocument()
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-measure-count', '2')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-measure-id', staff.measures[4]!.id)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await screen.findByText('range-delete.chromatics에 저장했습니다.')
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score.parts[0]!.staves[0]!.measures.map(measure => measure.id)).toEqual([
+      staff.measures[0]!.id,
+      staff.measures[4]!.id
+    ])
+
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-measure-count', '5')
+  })
+
   it('removing a staff preserves independent breaks and restores their original anchors on undo', async () => {
     window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')

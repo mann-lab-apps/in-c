@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseMusicXml } from '../musicxml/parse'
 import { createNewScore } from '../renderer/src/editor/new-score'
+import { TICKS_PER_QUARTER, createMeasure, createNote, createPart, createScore, createStaff, createTimePosition, createVoice } from '../score-core'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, MAX_PROJECT_BYTES, validateNativeProject } from './schema'
 
 const source = () => createNativeProject(parseMusicXml(readFileSync('src/musicxml/fixtures/expanded-v1-part-export.musicxml', 'utf8')))
@@ -82,6 +83,46 @@ describe('native project schema', () => {
     const events = duplicate.score.parts[1]!.staves[1]!.measures[0]!.voices[0]!.events
     events[1]!.id = events[0]!.id
     expect(() => validateNativeProject(duplicate)).toThrow(/Duplicate project ID/)
+  })
+
+  it('rejects invalid ties with musical location details', () => {
+    const project = createNativeProject(createScore({
+      parts: [
+        createPart({
+          name: 'Melody',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'broken-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'broken-stop',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    }))
+    const events = project.score.parts[0].staves[0].measures[0].voices[0].events
+    if (events[0].type === 'note') events[0].ties = { start: true }
+    if (events[1].type === 'note') events[1].ties = { stop: true }
+
+    expect(() => validateNativeProject(project)).toThrow(/마디 1.*Melody.*C4.*타이 시작.*broken-start/)
   })
 
   it('rejects a part layout pointing into another part and dangling measure marks', () => {

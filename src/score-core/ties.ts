@@ -3,8 +3,10 @@ import { sortVoiceEvents } from './timing'
 import type {
   Measure,
   Note,
+  Part,
   Score,
   ScoreCommand,
+  Staff,
   Voice,
   VoiceAddress,
   VoiceEvent
@@ -19,7 +21,28 @@ interface EventLocation {
   address: VoiceAddress
   event: VoiceEvent
   measure: Measure
+  measureIndex: number
+  part: Part
+  partIndex: number
+  staff: Staff
+  staffIndex: number
   voice: Voice
+  voiceIndex: number
+}
+
+export interface TieValidationIssue {
+  kind: 'start' | 'stop'
+  eventId: string
+  address: VoiceAddress
+  partName: string
+  partNumber: number
+  staffNumber: number
+  measureNumber: number
+  measureIndex: number
+  voiceNumber: number
+  tick: number
+  pitchLabel: string
+  reason: string
 }
 
 export function collectTiePairs(score: Score): TiePair[] {
@@ -52,8 +75,16 @@ export function collectTiePairs(score: Score): TiePair[] {
 }
 
 export function validateTieRelations(score: Score): string[] {
+  return validateTieRelationIssues(score).map((issue) =>
+    issue.kind === 'start'
+      ? `Invalid tie start: ${issue.eventId}`
+      : `Invalid tie stop: ${issue.eventId}`
+  )
+}
+
+export function validateTieRelationIssues(score: Score): TieValidationIssue[] {
   const events = flattenVoiceEvents(score)
-  const errors: string[] = []
+  const issues: TieValidationIssue[] = []
 
   events.forEach((location, index) => {
     const event = location.event
@@ -71,7 +102,7 @@ export function validateTieRelations(score: Score): string[] {
         !next.event.ties?.stop ||
         !isAdjacentEqualPitch(location, next)
       ) {
-        errors.push(`Invalid tie start: ${event.id}`)
+        issues.push(createTieValidationIssue(location, 'start'))
       }
     }
 
@@ -84,12 +115,131 @@ export function validateTieRelations(score: Score): string[] {
         !previous.event.ties?.start ||
         !isAdjacentEqualPitch(previous, location)
       ) {
-        errors.push(`Invalid tie stop: ${event.id}`)
+        issues.push(createTieValidationIssue(location, 'stop'))
       }
     }
   })
 
-  return errors
+  return issues
+}
+
+export function formatTieValidationIssues(
+  issues: readonly TieValidationIssue[]
+): string[] {
+  return issues.map((issue) => {
+    const direction = issue.kind === 'start' ? '타이 시작' : '타이 끝'
+    return [
+      `마디 ${issue.measureNumber}`,
+      `${issue.partName || `파트 ${issue.partNumber}`}`,
+      `보표 ${issue.staffNumber}`,
+      `성부 ${issue.voiceNumber}`,
+      `${issue.pitchLabel}`,
+      `${direction}`,
+      issue.reason,
+      `event ${issue.eventId}`
+    ].join(' · ')
+  })
+}
+
+export function buildInvalidTieRepairCommand(
+  score: Score
+): { command: ScoreCommand; issues: TieValidationIssue[] } | undefined {
+  const issues = validateTieRelationIssues(score)
+
+  if (issues.length === 0) {
+    return undefined
+  }
+
+  const events = flattenVoiceEvents(score)
+  const edits = new Map<
+    string,
+    { location: EventLocation; clearStart: boolean; clearStop: boolean }
+  >()
+
+  for (const issue of issues) {
+    const location = events.find(
+      (candidate) =>
+        candidate.event.id === issue.eventId &&
+        sameVoiceAddress(candidate.address, issue.address)
+    )
+
+    if (!location || location.event.type !== 'note') {
+      continue
+    }
+
+    const key = eventLocationKey(location)
+    const edit = edits.get(key) ?? {
+      location,
+      clearStart: false,
+      clearStop: false
+    }
+    if (issue.kind === 'start') edit.clearStart = true
+    else edit.clearStop = true
+    edits.set(key, edit)
+  }
+
+  const voiceEdits = new Map<
+    string,
+    {
+      location: EventLocation
+      eventEdits: Map<string, { clearStart: boolean; clearStop: boolean }>
+    }
+  >()
+
+  for (const edit of edits.values()) {
+    const key = voiceAddressKey(edit.location.address)
+    const voiceEdit =
+      voiceEdits.get(key) ??
+      {
+        location: edit.location,
+        eventEdits: new Map<string, { clearStart: boolean; clearStop: boolean }>()
+      }
+    voiceEdit.eventEdits.set(edit.location.event.id, {
+      clearStart: edit.clearStart,
+      clearStop: edit.clearStop
+    })
+    voiceEdits.set(key, voiceEdit)
+  }
+
+  const commands = [...voiceEdits.values()].map(({ location, eventEdits }) => ({
+    type: 'voice-events.replace' as const,
+    target: location.address,
+    events: sortVoiceEvents(
+      location.voice.events.map((event) => {
+        const edit = eventEdits.get(event.id)
+
+        if (!edit || event.type !== 'note') {
+          return event
+        }
+
+        const ties = {
+          ...event.ties,
+          ...(edit.clearStart ? { start: undefined } : {}),
+          ...(edit.clearStop ? { stop: undefined } : {})
+        }
+
+        return {
+          ...event,
+          ties: ties.start || ties.stop ? ties : undefined
+        }
+      })
+    )
+  }))
+
+  if (commands.length === 0) {
+    return undefined
+  }
+
+  return {
+    command:
+      commands.length === 1
+        ? commands[0]
+        : {
+            type: 'score.batch',
+            commands
+          },
+    issues
+  }
 }
 
 export function buildTieCommand(
@@ -296,13 +446,68 @@ function sameVoiceAddress(
   )
 }
 
+function voiceAddressKey(address: VoiceAddress): string {
+  return [
+    address.partId,
+    address.staffId,
+    address.measureId,
+    address.voiceId
+  ].join('\u0000')
+}
+
+function eventLocationKey(location: EventLocation): string {
+  return `${voiceAddressKey(location.address)}\u0000${location.event.id}`
+}
+
+function createTieValidationIssue(
+  location: EventLocation,
+  kind: TieValidationIssue['kind']
+): TieValidationIssue {
+  const pitch =
+    location.event.type === 'note'
+      ? resolveNotePitch(location.measure, location.voice, location.event)
+      : undefined
+  const direction = kind === 'start' ? '다음' : '이전'
+  const end = kind === 'start' ? '타이 끝' : '타이 시작'
+
+  return {
+    kind,
+    eventId: location.event.id,
+    address: location.address,
+    partName: location.part.name,
+    partNumber: location.partIndex + 1,
+    staffNumber: location.staffIndex + 1,
+    measureNumber: location.measure.number,
+    measureIndex: location.measureIndex,
+    voiceNumber: location.voiceIndex + 1,
+    tick: location.event.position.tick,
+    pitchLabel: pitch ? formatPitchLabel(pitch) : '알 수 없는 음',
+    reason: `${direction} 같은 음의 ${end}이 없습니다`
+  }
+}
+
+function formatPitchLabel(pitch: ReturnType<typeof resolveNotePitch>): string {
+  const accidental =
+    pitch.alter === -2
+      ? 'bb'
+      : pitch.alter === -1
+        ? 'b'
+        : pitch.alter === 1
+          ? '#'
+          : pitch.alter === 2
+            ? '##'
+            : ''
+
+  return `${pitch.step}${accidental}${pitch.octave}`
+}
+
 function flattenVoiceEvents(score: Score): EventLocation[] {
   const locations: EventLocation[] = []
 
-  for (const part of score.parts) {
-    for (const staff of part.staves) {
-      for (const measure of staff.measures) {
-        for (const voice of measure.voices) {
+  score.parts.forEach((part, partIndex) => {
+    part.staves.forEach((staff, staffIndex) => {
+      staff.measures.forEach((measure, measureIndex) => {
+        measure.voices.forEach((voice, voiceIndex) => {
           sortVoiceEvents(voice.events).forEach((event) => {
             locations.push({
               address: {
@@ -313,13 +518,19 @@ function flattenVoiceEvents(score: Score): EventLocation[] {
               },
               event,
               measure,
-              voice
+              measureIndex,
+              part,
+              partIndex,
+              staff,
+              staffIndex,
+              voice,
+              voiceIndex
             })
           })
-        }
-      }
-    }
-  }
+        })
+      })
+    })
+  })
 
   return locations
 }

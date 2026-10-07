@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   TICKS_PER_QUARTER,
   applyScoreCommand,
+  buildInvalidTieRepairCommand,
   buildTieCommand,
   collectTiePairs,
   createMeasure,
@@ -12,6 +13,8 @@ import {
   createStaff,
   createTimePosition,
   createVoice,
+  formatTieValidationIssues,
+  validateTieRelationIssues,
   validateTieRelations
 } from './index'
 
@@ -124,6 +127,35 @@ describe('score-core ties', () => {
     expect(command).toBeDefined()
     expect(validateTieRelations(result.score)).toEqual([])
     expect(collectTiePairs(result.score)).toEqual([])
+  })
+
+  it('describes invalid ties with musical locations', () => {
+    const issues = validateTieRelationIssues(tiedFixture(true, 'D'))
+    const formatted = formatTieValidationIssues(issues)
+
+    expect(issues).toHaveLength(2)
+    expect(formatted[0]).toContain('마디 1')
+    expect(formatted[0]).toContain('보표 1')
+    expect(formatted[0]).toContain('성부 1')
+    expect(formatted[0]).toContain('C4')
+    expect(formatted[0]).toContain('타이 시작')
+    expect(formatted[0]).toContain('note-1')
+    expect(formatted[1]).toContain('D4')
+    expect(formatted[1]).toContain('타이 끝')
+  })
+
+  it('builds a repair command that clears invalid tie flags', () => {
+    const score = tiedFixture(true, 'D')
+    const repair = buildInvalidTieRepairCommand(score)
+
+    expect(repair?.issues).toHaveLength(2)
+
+    const result = applyScoreCommand(score, repair!.command)
+    const events = result.score.parts[0].staves[0].measures[0].voices[0].events
+
+    expect(events[0].type === 'note' ? events[0].ties : undefined).toBeUndefined()
+    expect(events[1].type === 'note' ? events[1].ties : undefined).toBeUndefined()
+    expect(validateTieRelations(result.score)).toEqual([])
   })
 })
 

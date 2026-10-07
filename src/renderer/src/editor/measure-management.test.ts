@@ -20,6 +20,7 @@ import {
   buildInsertMeasureAfter,
   buildInsertMeasureBefore,
   buildRemoveMeasure,
+  buildRemoveMeasures,
   resolveActiveMeasureId
 } from './measure-management'
 import { createNoteInputState } from './note-input-state'
@@ -235,6 +236,30 @@ describe('measure management', () => {
     })
   })
 
+  it('removes a selected measure range as one undoable structural edit', () => {
+    const score = createFourMeasureScore()
+    const edit = buildRemoveMeasures(score, ['measure-2', 'measure-3'], inputState)
+    const result = applyScoreCommand(score, edit!.command)
+
+    expect(result.score.parts[0].staves[0].measures.map((measure) => measure.id)).toEqual([
+      'measure-1',
+      'measure-4'
+    ])
+    expect(result.score.parts[0].staves[0].measures.map((measure) => measure.number)).toEqual([1, 2])
+    expect(edit!.selection).toEqual({
+      type: 'measure',
+      measureId: 'measure-4',
+      address: { partId: 'part-1', staffId: 'staff-1', measureId: 'measure-4', voiceId: 'voice-1' }
+    })
+    expect(validateMeasureRhythm(result.score.parts[0].staves[0].measures[1]!).isExact).toBe(true)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('does not remove all measures in a range', () => {
+    expect(buildRemoveMeasures(createThreeMeasureScore(), ['measure-1', 'measure-2', 'measure-3'])).toBeUndefined()
+  })
+
   it('falls back to the previous measure when deleting the last measure', () => {
     const score = createThreeMeasureScore()
     const edit = buildRemoveMeasure(score, 'measure-3', {
@@ -281,18 +306,29 @@ describe('measure management', () => {
 })
 
 function createThreeMeasureScore() {
+  return createMeasureScore(3)
+}
+
+function createFourMeasureScore() {
+  return createMeasureScore(4)
+}
+
+function createMeasureScore(measureCount: number) {
   return createScore({
     parts: [
       createPart({
         staves: [
           createStaff({
-            measures: [1, 2, 3].map((number) =>
+            measures: Array.from({ length: measureCount }, (_, index) => index + 1).map((number) =>
               createMeasure({
                 id: `measure-${number}`,
                 number,
                 voices: [
                   createVoice({
-                    id: 'voice-1'
+                    id: 'voice-1',
+                    events: [
+                      createFullMeasureRest({ id: `event-${number}` })
+                    ]
                   })
                 ]
               })

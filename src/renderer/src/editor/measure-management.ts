@@ -116,15 +116,43 @@ export function buildRemoveMeasure(
   measureId: string,
   inputState?: NoteInputState
 ): MeasureEditResult | undefined {
-  const location = locateMeasureForEdit(score, measureId)
+  return buildRemoveMeasures(score, [measureId], inputState)
+}
 
-  if (!location || !hasAlignedMeasures(score) || location.staff.measures.length <= 1) {
+export function buildRemoveMeasures(
+  score: Score,
+  measureIds: readonly string[],
+  inputState?: NoteInputState
+): MeasureEditResult | undefined {
+  const uniqueMeasureIds = [...new Set(measureIds)]
+  if (uniqueMeasureIds.length === 0) {
     return undefined
   }
 
+  const location = locateMeasureForEdit(score, uniqueMeasureIds[0]!)
+
+  if (!location || !hasAlignedMeasures(score) || location.staff.measures.length <= uniqueMeasureIds.length) {
+    return undefined
+  }
+
+  const targetIndexes = uniqueMeasureIds
+    .map((id) => location.staff.measures.findIndex((measure) => measure.id === id))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)
+
+  if (targetIndexes.length !== uniqueMeasureIds.length) {
+    return undefined
+  }
+
+  const removedIndexes = new Set(targetIndexes)
+  const firstRemoved = targetIndexes[0]!
+  const lastRemoved = targetIndexes.at(-1)!
   const fallbackMeasure =
-    location.staff.measures[location.measureIndex + 1] ??
-    location.staff.measures[location.measureIndex - 1]
+    location.staff.measures.find((_, index) => index > lastRemoved && !removedIndexes.has(index)) ??
+    [...location.staff.measures].reverse().find((_, reverseIndex) => {
+      const index = location.staff.measures.length - 1 - reverseIndex
+      return index < firstRemoved && !removedIndexes.has(index)
+    })
   const fallbackVoice = fallbackMeasure?.voices.find(voice =>
     inputState?.target.partId === location.staffAddress.partId &&
     inputState.target.staffId === location.staffAddress.staffId && voice.id === inputState.target.voiceId
@@ -136,7 +164,7 @@ export function buildRemoveMeasure(
 
   return {
     command: buildStructuralCommand(score, score.parts.map(part => ({ ...part, staves: part.staves.map(staff => ({
-      ...staff, measures: removeMeasureKeepingVoltaRange(staff.measures, location.measureIndex)
+      ...staff, measures: removeMeasuresKeepingVoltaRange(staff.measures, removedIndexes)
     })) }))),
     selection: {
       type: 'measure',
@@ -157,8 +185,8 @@ export function buildRemoveMeasure(
   }
 }
 
-function removeMeasureKeepingVoltaRange(measures: Measure[], removedIndex: number): Measure[] {
-  const remaining = measures.filter((_, index) => index !== removedIndex)
+function removeMeasuresKeepingVoltaRange(measures: Measure[], removedIndexes: Set<number>): Measure[] {
+  const remaining = measures.filter((_, index) => !removedIndexes.has(index))
     .map((measure, index) => ({ ...measure, number: index + 1 }))
   let startIndex: number | undefined
   for (const [index, measure] of measures.entries()) {
@@ -166,9 +194,8 @@ function removeMeasureKeepingVoltaRange(measures: Measure[], removedIndex: numbe
     if (startIndex === undefined || !measure.volta?.end) continue
     const start = measures[startIndex]!
     if (start.volta?.number === measure.volta.number &&
-      (removedIndex === startIndex || removedIndex === index)) {
-      const surviving = measures.slice(startIndex, index + 1)
-        .filter(item => item.id !== measures[removedIndex]!.id)
+      (removedIndexes.has(startIndex) || removedIndexes.has(index))) {
+      const surviving = measures.slice(startIndex, index + 1).filter((_, offset) => !removedIndexes.has(startIndex! + offset))
       const first = remaining.find(item => item.id === surviving[0]?.id)
       const last = remaining.find(item => item.id === surviving.at(-1)?.id)
       if (first && last) {

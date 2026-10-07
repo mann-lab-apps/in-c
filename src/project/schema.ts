@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isSpanSegmentAddressValid, spanSegmentKey, validateMeasureRhythm, validateTieRelations, validateVoiceTuplets, type Score, type SpanEngraving } from '../score-core'
+import { formatTieValidationIssues, isSpanSegmentAddressValid, spanSegmentKey, validateMeasureRhythm, validateTieRelationIssues, validateVoiceTuplets, type Score, type SpanEngraving } from '../score-core'
 
 export const NATIVE_FORMAT = 'chromatics-project'
 export const NATIVE_VERSION = 4
@@ -243,6 +243,6 @@ function validateReferences(project: NativeProject): void {
     }
   }
   if (project.view.mode === 'part' && !partIds.has(project.view.partId)) throw new Error('Unknown selected project part.')
-  const ties = validateTieRelations(score)
-  if (ties.length) throw new Error(`Invalid project ties: ${ties.join('; ')}`)
+  const ties = validateTieRelationIssues(score)
+  if (ties.length) throw new Error(`Invalid project ties: ${formatTieValidationIssues(ties).join('; ')}`)
 }

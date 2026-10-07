@@ -54,6 +54,7 @@ import {
 
 import {
   applyScoreCommand,
+  buildInvalidTieRepairCommand,
   buildTieCommand,
   createFullMeasureRest,
   createMeasure,
@@ -68,6 +69,7 @@ import {
   sortVoiceEvents,
   timeSignatureDurationTicks,
   voiceEventDurationTicks,
+  type TieValidationIssue,
   type Duration,
   type DurationValue,
   type DynamicValue,
@@ -146,6 +148,7 @@ import {
   buildInsertMeasureAfter,
   buildInsertMeasureBefore,
   buildRemoveMeasure,
+  buildRemoveMeasures,
   resolveActiveMeasureId
 } from './editor/measure-management'
 import {
@@ -1029,6 +1032,10 @@ export const App = () => {
   const activeMeasureId = useMemo(
     () => resolveActiveMeasureId(score, selection, noteInputState),
     [noteInputState, score, selection]
+  )
+  const selectionMeasureIds = useMemo(
+    () => resolveSelectionMeasureIds(score, selection),
+    [score, selection]
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const measureCount = measures.length
@@ -3463,7 +3470,14 @@ export const App = () => {
   }, [executeCommand, measureCount, noteInputState, score])
 
   const removeMeasure = useCallback(() => {
-    if (!activeMeasureId) {
+    const targetMeasureIds =
+      selection.type === 'range' && selectionMeasureIds.length > 1
+        ? selectionMeasureIds
+        : activeMeasureId
+          ? [activeMeasureId]
+          : []
+
+    if (targetMeasureIds.length === 0) {
       setFileStatus({
         tone: 'error',
         message: '삭제할 마디를 선택해 주세요.'
@@ -3471,8 +3485,43 @@ export const App = () => {
       return
     }
 
-    removeMeasureById(activeMeasureId)
-  }, [activeMeasureId, removeMeasureById])
+    if (targetMeasureIds.length === 1) {
+      removeMeasureById(targetMeasureIds[0]!)
+      return
+    }
+
+    if (measureCount <= targetMeasureIds.length) {
+      setFileStatus({
+        tone: 'error',
+        message: '마지막 남은 마디는 삭제할 수 없습니다.'
+      })
+      return
+    }
+
+    const edit = buildRemoveMeasures(score, targetMeasureIds, noteInputState)
+
+    if (edit && executeCommand(edit.command)) {
+      setSelection(edit.selection)
+      setNoteInputState(edit.inputState)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message: `${targetMeasureIds.length}개 마디를 삭제했습니다.`
+      })
+      return
+    }
+
+    setFileStatus({ tone: 'error', message: '마디를 삭제할 수 없습니다. 선택 범위와 보표별 마디 수를 확인해 주세요.' })
+  }, [
+    activeMeasureId,
+    executeCommand,
+    measureCount,
+    noteInputState,
+    removeMeasureById,
+    score,
+    selection.type,
+    selectionMeasureIds
+  ])
 
   const cutMeasureSelection = useCallback(() => {
     const clipboard = buildMeasureClipboard(score, selection)
@@ -5360,25 +5409,31 @@ export const App = () => {
     const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision
     try {
       if (noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
-      const project = createNativeSnapshot(score, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
+      const tieRepair = repairInvalidTiesForSave(score)
+      const saveScore = tieRepair.score
+      const project = createNativeSnapshot(saveScore, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
       const contents = encodeNativeProject(project)
       const result = await window.inC.project.save({
         ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
-        suggestedName: `${toFileName(score.title)}.chromatics`, contents
+        suggestedName: `${toFileName(saveScore.title)}.chromatics`, contents
       })
       if (!result || !sameDocument()) return
+      const savedCurrentSnapshot = sameSnapshot()
       nativeFile.current = result
       nativeEnvelope.current ??= project
       currentMusicXmlFileRef.current = undefined
       const files = await window.inC.recentMusicXml.add({ ...result, format: 'native' })
       if (!sameDocument()) return
       setRecentMusicXmlFiles(files)
-      if (sameSnapshot()) {
+      if (savedCurrentSnapshot) {
         if (!recoveryPendingRef.current) await window.inC.autosave.clear()
-        if (sameSnapshot()) setAutosaveRevision(0)
+        if (sameSnapshot()) {
+          if (tieRepair.issues.length > 0) setScore(saveScore)
+          setAutosaveRevision(0)
+        }
         else await restoreDirtyRecoveryAfterClear()
       }
-      if (sameDocument()) setFileStatus({ tone: 'neutral', message: sameSnapshot() ? `${result.fileName}에 저장했습니다.` : `${result.fileName}에 저장했습니다. 저장 중 변경사항은 아직 저장되지 않았습니다.` })
+      if (sameDocument()) setFileStatus({ tone: 'neutral', message: savedCurrentSnapshot ? appendTieRepairMessage(`${result.fileName}에 저장했습니다.`, tieRepair.issues) : `${result.fileName}에 저장했습니다. 저장 중 변경사항은 아직 저장되지 않았습니다.` })
     } catch (error) {
       if (sameDocument()) setFileStatus({ tone: 'error', message: getErrorMessage(error) })
     } finally { saveInFlight.current = false; setSavingNative(false) }
@@ -5579,21 +5634,23 @@ export const App = () => {
         return
       }
 
-      const { contents, report } = serializeMusicXmlWithReport(score)
+      const tieRepair = repairInvalidTiesForSave(score)
+      const saveScore = tieRepair.score
+      const { contents, report } = serializeMusicXmlWithReport(saveScore)
       for (const [index, layout] of (nativeEnvelope.current?.partLayouts ?? []).entries()) {
         if (!layout.spanEngravings?.some(override =>
-          (override.kind === 'slur' ? score.slurs : score.hairpins)?.some(span => span.id === override.spanId)
+          (override.kind === 'slur' ? saveScore.slurs : saveScore.hairpins)?.some(span => span.id === override.spanId)
         )) continue
         report.warnings.push({ code: 'unsupported-layout', path: `project.partLayouts[${index}].spanEngravings`,
           message: 'Independent part span placement is preserved in Chromatics projects, not full-score MusicXML save.' })
       }
-      assertMusicXmlSaveSafe(score, contents)
+      assertMusicXmlSaveSafe(saveScore, contents)
       const currentMusicXmlFile = currentMusicXmlFileRef.current
       const result = await window.inC.musicXml.save({
         ...(currentMusicXmlFile
           ? { filePath: currentMusicXmlFile.filePath }
           : {}),
-        suggestedName: `${toFileName(score.title)}.musicxml`,
+        suggestedName: `${toFileName(saveScore.title)}.musicxml`,
         contents
       })
 
@@ -5605,6 +5662,7 @@ export const App = () => {
         throw new Error('MusicXML 저장 경로를 확인하지 못했습니다.')
       }
 
+      const savedCurrentSnapshot = sameSnapshot()
       currentMusicXmlFileRef.current = {
         filePath: result.filePath,
         fileName: result.fileName
@@ -5615,14 +5673,19 @@ export const App = () => {
       )
       writeStoredPartPageSetups(result.filePath, partPageSetupPreferences)
 
+      let cleanSavedSnapshot = savedCurrentSnapshot
       try {
-        if (sameSnapshot() && !nativeEnvelope.current) {
+        if (savedCurrentSnapshot && !nativeEnvelope.current) {
           if (!recoveryPendingRef.current) await window.inC.autosave.clear()
           if (sameSnapshot()) {
+            if (tieRepair.issues.length > 0) setScore(saveScore)
             setAutosaveRevision(0)
           } else {
+            cleanSavedSnapshot = false
             await restoreDirtyRecoveryAfterClear()
           }
+        } else if (savedCurrentSnapshot && tieRepair.issues.length > 0) {
+          setScore(saveScore)
         }
       } catch (autosaveError) {
         if (!sameDocument()) return
@@ -5658,8 +5721,8 @@ export const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: sameSnapshot()
-          ? describeMusicXmlExportResult(result.fileName, report)
+        message: cleanSavedSnapshot
+          ? appendTieRepairMessage(describeMusicXmlExportResult(result.fileName, report), tieRepair.issues)
           : `${result.fileName}에 저장했습니다. 저장 중 추가한 변경사항은 아직 저장되지 않았습니다.`
       })
       setMusicXmlReport(
@@ -5705,15 +5768,17 @@ export const App = () => {
             title: livePartLayout?.title ?? score.title
           }
         : score
-      const { contents, report } = serializeMusicXmlWithReport(exportScore)
-      assertMusicXmlSaveSafe(exportScore, contents)
+      const tieRepair = repairInvalidTiesForSave(exportScore)
+      const saveScore = tieRepair.score
+      const { contents, report } = serializeMusicXmlWithReport(saveScore)
+      assertMusicXmlSaveSafe(saveScore, contents)
       const name = selectedPart ? `${score.title}-${selectedPart.name}` : score.title
       const result = await window.inC.musicXml.exportCopy({
         suggestedName: `${toFileName(name)}.musicxml`,
         contents
       })
       if (!result || documentGeneration.current !== generation) return
-      setFileStatus({ tone: 'neutral', message: `${result.fileName}로 MusicXML을 내보냈습니다.` })
+      setFileStatus({ tone: 'neutral', message: appendTieRepairMessage(`${result.fileName}로 MusicXML을 내보냈습니다.`, tieRepair.issues) })
       setMusicXmlReport(createMusicXmlReportPanelState('export', result.fileName, report))
     } catch (error) {
       if (documentGeneration.current === generation) {
@@ -14604,6 +14669,45 @@ function describeMusicXmlExportResult(
     remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
 
   return `${baseMessage} MusicXML 내보내기 경고 ${report.warnings.length}개: ${samples.join('; ')}${remainingMessage}`
+}
+
+function repairInvalidTiesForSave(score: Score): {
+  score: Score
+  issues: TieValidationIssue[]
+} {
+  const repair = buildInvalidTieRepairCommand(score)
+
+  if (!repair) {
+    return { score, issues: [] }
+  }
+
+  return {
+    score: applyScoreCommand(score, repair.command).score,
+    issues: repair.issues
+  }
+}
+
+function appendTieRepairMessage(
+  message: string,
+  issues: readonly TieValidationIssue[]
+): string {
+  if (issues.length === 0) {
+    return message
+  }
+
+  return `${message} ${describeTieRepair(issues)}`
+}
+
+function describeTieRepair(issues: readonly TieValidationIssue[]): string {
+  const samples = issues.slice(0, 2).map((issue) => {
+    const direction = issue.kind === 'start' ? '시작' : '끝'
+
+    return `마디 ${issue.measureNumber} ${issue.partName || `파트 ${issue.partNumber}`} 보표 ${issue.staffNumber} 성부 ${issue.voiceNumber} ${issue.pitchLabel} 타이 ${direction}`
+  })
+  const remaining = issues.length - samples.length
+  const remainingMessage = remaining > 0 ? ` 외 ${remaining}개` : ''
+
+  return `깨진 타이 ${issues.length}개를 자동 정리했습니다: ${samples.join('; ')}${remainingMessage}`
 }
 
 function describeMidiExportResult(

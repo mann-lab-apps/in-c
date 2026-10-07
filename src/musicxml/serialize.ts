@@ -5,7 +5,8 @@ import {
   convertOctaveShiftPitches,
   shouldDisplayAccidental,
   sortVoiceEvents,
-  validateTieRelations,
+  formatTieValidationIssues,
+  validateTieRelationIssues,
   validateMeasureRhythm,
   validateVoiceTuplets,
   voiceEventDurationTicks,
@@ -37,7 +38,7 @@ type PrintBreaks = { system: Set<number>; page: Set<number> }
 
 export function serializeMusicXml(score: Score): string {
   score = convertOctaveShiftPitches(score, 'performed')
-  const tieErrors = validateTieRelations(score)
+  const tieIssues = validateTieRelationIssues(score)
   const slurBoundaries = createSlurBoundaries(score)
   const spanDirections = createSpanDirections(score)
   const printBreaks: PrintBreaks = {
@@ -45,8 +46,8 @@ export function serializeMusicXml(score: Score): string {
     page: new Set((score.layout?.pageBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id)))
   }
 
-  if (tieErrors.length > 0) {
-    throw new Error(`잘못된 타이 관계가 있습니다: ${tieErrors.join(', ')}`)
+  if (tieIssues.length > 0) {
+    throw new Error(`잘못된 타이 관계가 있습니다: ${formatTieValidationIssues(tieIssues).join('; ')}`)
   }
 
   score.parts.forEach((part) => {

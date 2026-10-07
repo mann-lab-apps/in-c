@@ -16,7 +16,8 @@ import {
   measureDurationTicks,
   voiceEventDurationTicks,
   sortVoiceEvents,
-  validateTieRelations,
+  formatTieValidationIssues,
+  validateTieRelationIssues,
   validateMeasureRhythm,
   validateVoiceTuplets,
   type Articulation,
@@ -265,10 +266,10 @@ function parseMusicXmlDocument(document: XmlNode): Score {
     layout: readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? []),
     parts: parsedParts
   }), 'display')
-  const tieErrors = validateTieRelations(score)
+  const tieIssues = validateTieRelationIssues(score)
 
-  if (tieErrors.length > 0) {
-    throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${tieErrors.join(', ')}`)
+  if (tieIssues.length > 0) {
+    throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${formatTieValidationIssues(tieIssues).join('; ')}`)
   }
 
   return score

@@ -630,6 +630,45 @@ describe('MusicXML MVP', () => {
     expect(roundTrip.staffTexts).toBeUndefined()
   })
 
+  it('validation.invalid-tie-error describes the musical location', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          name: 'Melody',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'broken-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          ties: { start: true }
+                        }),
+                        createNote({
+                          id: 'broken-stop',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 },
+                          ties: { stop: true }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(() => serializeMusicXml(score)).toThrow(/마디 1.*Melody.*C4.*타이 시작.*broken-start/)
+  })
+
   it('import-export.export-unsupported-musicxml-report warns about layout data not preserved by MusicXML', () => {
     const { contents, report } = serializeMusicXmlWithReport(
       createScore({
