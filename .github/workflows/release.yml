@@ -80,7 +80,33 @@ jobs:
       - if: github.event_name != 'pull_request'
         run: npm run verify:release-tag
       - run: npm test
-      - run: ${{ matrix.command }}
+      - name: Verify macOS signing secrets
+        if: runner.os == 'macOS' && github.event_name != 'pull_request'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          test -n "$CSC_LINK"
+          test -n "$CSC_KEY_PASSWORD"
+          test -n "$APPLE_API_KEY"
+          test -n "$APPLE_API_KEY_ID"
+          test -n "$APPLE_API_ISSUER"
+      - name: Package app
+        run: ${{ matrix.command }}
+        env:
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER_ID || '' }}
+      - name: Verify macOS Developer ID signing
+        if: runner.os == 'macOS' && github.event_name != 'pull_request'
+        run: |
+          codesign --verify --deep --strict --verbose=2 release/mac-universal/in-C.app
+          xcrun stapler validate release/mac-universal/in-C.app
       - run: npm run verify:artifacts
 
       - name: Verify packaged app

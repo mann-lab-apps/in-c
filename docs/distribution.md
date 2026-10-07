@@ -6,10 +6,10 @@
 - Windows: x64 NSIS installer와 portable EXE
 - Linux: x64 AppImage
 
-첫 공개 버전은 prerelease이며 코드 서명과 macOS 공증을 적용하지 않는다.
-따라서 macOS Gatekeeper와 Windows SmartScreen이 경고를 표시할 수 있다.
-정식 배포 전에 Developer ID와 Windows code signing 인증서를 GitHub Actions
-secret으로 추가하고 이 문서를 갱신한다.
+초기 prerelease는 미서명으로 배포했으나, macOS release job은 Developer ID
+Application 인증서와 App Store Connect API key가 GitHub Actions secret에
+등록된 경우 앱 서명과 notarization을 수행한다. Windows code signing은 아직
+후속 작업이며 SmartScreen 경고가 표시될 수 있다.
 
 ## 로컬 패키징
 
@@ -81,8 +81,9 @@ prerelease를 만든다.
 
 ### macOS
 
-미서명 prerelease는 Finder에서 Control-click 후 `Open`을 선택해야 할 수
-있다. 정식 배포에서는 Developer ID 서명과 notarization을 적용한다.
+macOS release artifact는 Developer ID 서명과 notarization을 적용한다. 로컬
+패키징이나 pull request package gate처럼 signing secret을 사용할 수 없는
+환경에서는 Gatekeeper 경고가 표시될 수 있다.
 
 ### Windows
 

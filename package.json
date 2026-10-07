@@ -2,7 +2,7 @@
   "name": "in-c",
   "productName": "in-C",
   "desktopName": "in-c.desktop",
-  "version": "0.1.0-alpha.23",
+  "version": "0.1.0-alpha.24",
   "description": "Electron-based notation editor inspired by modern scorewriting workflows.",
   "author": "mann-lab-apps",
   "homepage": "https://github.com/mann-lab-apps/in-c",
@@ -97,8 +97,8 @@
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.music",
-      "identity": null,
       "icon": "build/icon.icns",
+      "notarize": true,
       "target": [
         {
           "target": "dmg",
@@ -115,7 +115,7 @@
       ]
     },
     "dmg": {
-      "sign": false
+      "sign": true
     },
     "win": {
       "icon": "build/icon.png",
