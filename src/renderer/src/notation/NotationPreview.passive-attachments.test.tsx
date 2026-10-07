@@ -291,9 +291,16 @@ describe('NotationPreview passive lower-staff attachments', () => {
     const fermataY = numberAttribute('.notation-fermata', 'y')
     const breathX = numberAttribute('.notation-breath-mark', 'x')
     const ornamentY = numberAttribute('.notation-ornament', 'y')
+    const graceGroup = container.querySelector<SVGGElement>(
+      '.notation-grace-notes[data-event-id="lower-staff-marked-note"]'
+    )
 
     expect(ornamentY).toBeLessThanOrEqual(fermataY - 24)
     expect(breathX).toBeGreaterThanOrEqual(fermataX + 24)
+    expect(graceGroup?.textContent).toBe('')
+    expect(graceGroup?.querySelector('.notation-grace-notehead')).toBeInTheDocument()
+    expect(graceGroup?.querySelector('.notation-grace-stem')).toBeInTheDocument()
+    expect(graceGroup?.querySelector('.notation-grace-slash')).toBeInTheDocument()
   })
 
   it('renders short automatic voltas across their covered measures', async () => {

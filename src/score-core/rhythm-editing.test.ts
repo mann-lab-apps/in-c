@@ -636,6 +636,37 @@ describe('monophonic rhythm editing', () => {
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
   })
 
+  it('rhythm-duration.lengthen-event consumes trailing measure-end rests when later notes can shift', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      note('note-2', quarter, 'quarter'),
+      rest('tail-rest', quarter * 2, 'half')
+    ])
+    const command = buildRhythmEditCommand(score, {
+      target,
+      eventId: 'note-1',
+      event: note('note-1', 0, 'half'),
+      createId: idSequence('remaining-rest')
+    })
+    const result = applyScoreCommand(score, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      { id: 'note-1', duration: { value: 'half' } },
+      { id: 'note-2', position: { tick: quarter * 2 } },
+      {
+        id: 'tail-rest',
+        type: 'rest',
+        position: { tick: quarter * 3 },
+        duration: { value: 'quarter' }
+      }
+    ])
+    expect(command).toMatchObject({
+      editedEventId: 'note-1'
+    })
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
   it('grows a selected rest by consuming following rests and keeping its id', () => {
     const score = scoreWith([
       rest('rest-1', 0, 'quarter'),
@@ -679,7 +710,7 @@ describe('monophonic rhythm editing', () => {
     const blockedByNote = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', quarter, 'quarter'),
-      rest('rest-1', quarter * 2, 'half')
+      note('note-3', quarter * 2, 'half')
     ])
 
     expect(
