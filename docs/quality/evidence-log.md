@@ -3000,6 +3000,7 @@ switching remain reachable.
 | PR #778 / merge commit `002666b` | Pass | Alpha.22 trailing-rest duration growth and SVG grace-note engraving release prep merged to `main` after GitHub checks passed: CI test, Build site, Package Linux, Package macOS and Package Windows. |
 | `v0.1.0-alpha.22` release workflow `37587872227` | Pass | Tag `v0.1.0-alpha.22` points to version commit `58c5d6a`; the tag-triggered Release workflow completed Linux/macOS/Windows package jobs and published the GitHub prerelease at `https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.22`. Artifacts and `SHA256SUMS.txt` were present. This is still an unsigned/not-notarized prerelease, so macOS Gatekeeper and Windows SmartScreen warnings can remain. |
 | `npm run site:build`; `node scripts/verify-site-content.mjs` | Pass | Download manifest and static fallback links rebuilt for `0.1.0-alpha.22`; site content manifests, product relations and feature map paths verified after the alpha.22 release update. |
+| Site workflow `37589146650`; CI workflow `37589146635`; `curl -L https://in-c.mannlab.app/download-manifest.json`; `npm run verify:site-production` | Fail, then Pass | Main commit `64b632d` updated the production download manifest to alpha.22. Site workflow and GitHub Pages deploy passed, CI passed, and production manifest returned `0.1.0-alpha.22`. The first production verifier run failed under sandboxed Node DNS with `ENOTFOUND`; rerun with network access passed all production smoke checks. |
 
 ## Evidence Retention Rules
 
