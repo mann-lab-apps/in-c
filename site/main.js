@@ -13,12 +13,12 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.22',
-  releaseTag: 'v0.1.0-alpha.22',
+  version: '0.1.0-alpha.23',
+  releaseTag: 'v0.1.0-alpha.23',
   releaseDate: '2026-10-07',
   releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.22',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.22/SHA256SUMS.txt',
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.23',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/SHA256SUMS.txt',
   downloads: [
     {
       id: 'macos',
@@ -27,9 +27,9 @@ const fallbackManifest = {
       architecture: 'Universal',
       format: 'DMG',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.22-mac-universal.dmg',
+      fileName: 'in-C-0.1.0-alpha.23-mac-universal.dmg',
       size: '227.7 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.22/in-C-0.1.0-alpha.22-mac-universal.dmg'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/in-C-0.1.0-alpha.23-mac-universal.dmg'
     },
     {
       id: 'windows',
@@ -38,9 +38,9 @@ const fallbackManifest = {
       architecture: 'x64',
       format: 'NSIS installer',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.22-windows-x64-setup.exe',
+      fileName: 'in-C-0.1.0-alpha.23-windows-x64-setup.exe',
       size: '112.7 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.22/in-C-0.1.0-alpha.22-windows-x64-setup.exe'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/in-C-0.1.0-alpha.23-windows-x64-setup.exe'
     },
     {
       id: 'linux',
