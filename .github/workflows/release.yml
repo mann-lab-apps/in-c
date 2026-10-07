@@ -50,7 +50,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      MACOS_CSC_NAME: "Developer ID Application: Jae-man Kim (ZRA4DHHKQ4)"
+      MACOS_CSC_NAME: "Jae-man Kim (ZRA4DHHKQ4)"
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
