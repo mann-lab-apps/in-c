@@ -465,6 +465,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   14. 완료: full backup ZIP에 image stamp asset byte round-trip을 추가했다. Manifest는
       `stampAssetRef`와 `stamp-assets/` entry를 기록하고, 복원은 metadata 교체 전에 app-owned
       annotation stamp storage로 PNG/JPEG/WebP bytes를 되돌린다.
+  15. 완료: flattened annotated PDF export가 app-owned PNG/JPEG image stamp bytes를 읽어 PDF image
+      XObject로 찍는다. WebP/누락/깨진 asset은 label fallback으로 유지한다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -477,14 +479,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   asset ZIP round-trip and missing-asset filtering, image stamp picker selection and controller-level
   image stamp create/reload, placed image stamp metadata round-trip/hit-test, editable-PDF unsupported
   image stamp fixture, image stamp asset cleanup and placed annotation preservation, full-backup asset
-  byte round-trip.
-- 남은 테스트/fixture/실기기 조건: PDF bitmap rendering, large pack performance, S Pen picker use,
-  platform image picker provider behavior.
+  byte round-trip, flattened PDF PNG/JPEG image stamp drawing.
+- 남은 테스트/fixture/실기기 조건: editable standard PDF image appearance mapping, large pack
+  performance, S Pen picker use, platform image picker provider behavior.
 - Acceptance criteria: 사용자가 직접 만든 text/icon/image stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. Image stamp는 현재 metadata/asset
-  storage, package sharing, placed annotation metadata, viewer bitmap rendering을 지원하지만, PDF export는
-  아직 label/unsupported fallback을 명확히 둔다.
-- Blocker 해제 조건: flattened/editable PDF image appearance mapping.
+  storage, package sharing, placed annotation metadata, viewer bitmap rendering, flattened PDF PNG/JPEG
+  bitmap export를 지원한다. Editable standard PDF export는 아직 unsupported fallback을 명확히 둔다.
+- Blocker 해제 조건: editable PDF standard image appearance mapping and external viewer compatibility.
 
 ## 16. Annotation Layer Management
 

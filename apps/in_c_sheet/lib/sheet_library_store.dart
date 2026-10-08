@@ -1188,6 +1188,14 @@ class SheetLibraryStore {
       score: score,
       outputPath: outputPath,
       mode: mode,
+      readImageStampAssetBytes: (assetRef) async {
+        final file = await const SheetAnnotationStampAssetStore()
+            .assetFileForRef(assetRef);
+        if (!await file.exists()) {
+          return null;
+        }
+        return file.readAsBytes();
+      },
     );
   }
 

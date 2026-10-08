@@ -2263,3 +2263,13 @@ codec now normalizes validated image stamp packs consistently with the active li
 filtering them through the older text/icon-only gate. Focused full-backup tests cover image stamp asset
 byte round-trip. Flattened PDF bitmap drawing and editable PDF image stamp appearance mapping remain
 follow-up.
+
+S191 VERIFIED LOCAL: reduced the PDF export gap for image stamps in the flattened copy path. Annotated
+PDF export can now receive an image stamp asset reader, decode app-owned PNG/JPEG bytes as PDF image
+XObjects, and draw them at the placed stamp position with a small border. The library store wires this
+reader to `SheetAnnotationStampAssetStore`, so normal "필기 포함 PDF 공유/인쇄" flattened copies include
+supported bitmap image stamps instead of only their label. Missing, corrupt or currently unsupported
+WebP assets keep the label fallback, and editable standard PDF export still treats image stamps as an
+unsupported mapping rather than silently emitting `/FreeText`. Focused exporter tests cover flattened
+PNG image stamp output. External Acrobat/Preview/MobileSheets/Piascore compatibility and editable image
+stamp appearance streams remain follow-up.

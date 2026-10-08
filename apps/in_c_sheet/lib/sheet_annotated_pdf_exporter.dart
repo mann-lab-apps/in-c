@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:pdf_document/pdf_document.dart';
 
@@ -7,6 +8,10 @@ import 'sheet_annotation.dart';
 import 'sheet_score.dart';
 
 enum SheetPdfAnnotationExportMode { renderedStamp, standardAnnotation }
+
+typedef SheetPdfImageStampAssetReader = Future<List<int>?> Function(
+  String assetRef,
+);
 
 class SheetPdfAnnotationExportCapability {
   const SheetPdfAnnotationExportCapability({
@@ -162,6 +167,7 @@ class SheetAnnotatedPdfExporter {
           'crescendo',
           'diminuendo',
           'asciiText',
+          'pngJpegImageStamp',
         ],
         unsupportedAnnotationTypes: <String>[
           'unicodeTextWithoutEmbeddedFont',
@@ -281,6 +287,7 @@ class SheetAnnotatedPdfExporter {
     required String outputPath,
     SheetPdfAnnotationExportMode mode =
         SheetPdfAnnotationExportMode.renderedStamp,
+    SheetPdfImageStampAssetReader? readImageStampAssetBytes,
   }) async {
     final exportableStrokes = score.annotationLayer.strokes
         .where(
@@ -331,6 +338,10 @@ class SheetAnnotatedPdfExporter {
       final document = PdfDocument.open(inputBytes);
       final editor = PdfEditor(document);
       final pageCount = document.pageCount;
+      final imageStampAssets = await _loadImageStampAssets(
+        exportableTexts,
+        readImageStampAssetBytes,
+      );
       final drawableStrokeCount = exportableStrokes
           .where((stroke) => _isPageInRange(stroke.pageNumber, pageCount))
           .length;
@@ -338,13 +349,14 @@ class SheetAnnotatedPdfExporter {
           .where(
             (text) =>
                 _isPageInRange(text.pageNumber, pageCount) &&
-                !textRequiresUnicodeFont(text.text),
+                _canDrawRenderedTextAnnotation(text, imageStampAssets),
           )
           .length;
       final skippedUnicodeTextInRangeCount = exportableTexts
           .where(
             (text) =>
                 _isPageInRange(text.pageNumber, pageCount) &&
+                !text.isImageStamp &&
                 textRequiresUnicodeFont(text.text),
           )
           .length;
@@ -386,10 +398,10 @@ class SheetAnnotatedPdfExporter {
             _drawStroke(stamp, geometry, stroke);
           }
           for (final text in texts) {
-            if (textRequiresUnicodeFont(text.text)) {
+            if (!_canDrawRenderedTextAnnotation(text, imageStampAssets)) {
               continue;
             }
-            _drawText(stamp, geometry, text);
+            _drawText(stamp, geometry, text, imageStampAssets);
           }
         });
       }
@@ -672,6 +684,49 @@ class SheetAnnotatedPdfExporter {
     return 'clef-${safeId.isEmpty ? 'annotation' : safeId}';
   }
 
+  static Future<Map<String, PdfEmbeddableImage>> _loadImageStampAssets(
+    List<SheetTextAnnotation> texts,
+    SheetPdfImageStampAssetReader? readImageStampAssetBytes,
+  ) async {
+    if (readImageStampAssetBytes == null) {
+      return const <String, PdfEmbeddableImage>{};
+    }
+    final refs = <String>{
+      for (final text in texts)
+        if (text.isImageStamp) text.stampAssetRef.trim(),
+    }..removeWhere((ref) => ref.isEmpty);
+    if (refs.isEmpty) {
+      return const <String, PdfEmbeddableImage>{};
+    }
+    final images = <String, PdfEmbeddableImage>{};
+    for (final ref in refs) {
+      try {
+        final bytes = await readImageStampAssetBytes(ref);
+        if (bytes == null || bytes.isEmpty) {
+          continue;
+        }
+        images[ref] = PdfEmbeddableImage.decode(Uint8List.fromList(bytes));
+      } catch (_) {
+        // Missing, corrupt or currently unsupported image formats fall back
+        // to the stamp label in rendered export.
+      }
+    }
+    return Map.unmodifiable(images);
+  }
+
+  static bool _canDrawRenderedTextAnnotation(
+    SheetTextAnnotation text,
+    Map<String, PdfEmbeddableImage> imageStampAssets,
+  ) {
+    if (text.text.trim().isEmpty) {
+      return false;
+    }
+    if (text.isImageStamp && imageStampAssets.containsKey(text.stampAssetRef)) {
+      return true;
+    }
+    return !textRequiresUnicodeFont(text.text);
+  }
+
   static void _drawStroke(
     PdfStamp stamp,
     SheetPdfAnnotationGeometry geometry,
@@ -845,9 +900,20 @@ class SheetAnnotatedPdfExporter {
     PdfStamp stamp,
     SheetPdfAnnotationGeometry geometry,
     SheetTextAnnotation text,
+    Map<String, PdfEmbeddableImage> imageStampAssets,
   ) {
     if (text.text.trim().isEmpty) {
       return;
+    }
+    if (text.isImageStamp) {
+      final image = imageStampAssets[text.stampAssetRef];
+      if (image != null) {
+        _drawImageStamp(stamp, geometry, text, image);
+        return;
+      }
+      if (textRequiresUnicodeFont(text.text)) {
+        return;
+      }
     }
 
     final point = geometry.toPdfPoint(text.position);
@@ -857,6 +923,43 @@ class SheetAnnotatedPdfExporter {
       y: point.y - text.fontSize,
       size: text.fontSize,
       color: _rgb(text.color),
+    );
+  }
+
+  static void _drawImageStamp(
+    PdfStamp stamp,
+    SheetPdfAnnotationGeometry geometry,
+    SheetTextAnnotation text,
+    PdfEmbeddableImage image,
+  ) {
+    final point = geometry.toPdfPoint(text.position);
+    final base =
+        (text.fontSize *
+                (math.min(geometry.width, geometry.height) / 640) *
+                3.1)
+            .clamp(18.0, 96.0)
+            .toDouble();
+    final aspect = image.height == 0 ? 1.0 : image.width / image.height;
+    final width = (base * aspect).clamp(18.0, 120.0).toDouble();
+    final height = base;
+    final x = point.x;
+    final y = point.y - height;
+    stamp.rect(
+      x,
+      y,
+      width,
+      height,
+      fillColor: 0xffffff,
+      strokeColor: _rgb(text.color),
+      lineWidth: 0.75,
+    );
+    final inset = math.min(3.0, math.min(width, height) / 8);
+    stamp.image(
+      image,
+      x: x + inset,
+      y: y + inset,
+      width: math.max(1, width - (inset * 2)).toDouble(),
+      height: math.max(1, height - (inset * 2)).toDouble(),
     );
   }
 

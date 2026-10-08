@@ -394,7 +394,9 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
    확인한다.
 7. 가능하면 full backup ZIP을 만들고 새 설치/빈 라이브러리에 복원해 image stamp가 다시 bitmap으로
    보이는지 확인한다.
-8. editable PDF image stamp mapping과 PDF export bitmap rendering은 아직 follow-up으로 기록한다.
+8. `필기 포함 PDF 공유/인쇄`의 일반 고정 사본을 만들어 PNG/JPEG image stamp가 label만이 아니라
+   실제 bitmap으로 보이는지 확인한다. WebP asset은 현재 label fallback으로 기록한다.
+9. editable PDF image stamp mapping은 아직 follow-up으로 기록한다.
 
 ## Editable PDF annotation export QA
 
