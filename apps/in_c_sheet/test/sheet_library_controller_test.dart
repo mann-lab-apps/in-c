@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_annotation_stamp_asset_store.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
@@ -3512,6 +3515,50 @@ Clef & Staff 세트리스트
     );
   });
 
+  test('creates and restores image user annotation stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-controller-image-stamp-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final source = File('${root.path}/source/photo cue.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(_tinyPngBytes(), flush: true);
+    final store = SheetLibraryStore();
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+
+    expect(
+      await controller.createImageUserAnnotationStamp(
+        label: 'Photo cue',
+        sourceFile: source,
+      ),
+      isTrue,
+    );
+
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+    expect(stamp.kind, SheetAnnotationUserStamp.imageKind);
+    expect(stamp.label, 'Photo cue');
+    expect(stamp.assetRef, 'stamps/user/photo-cue.png');
+    expect(stamp.licenseLabel, '사용자 제공 이미지');
+    expect(await stampAssetStore.assetExists(stamp.assetRef), isTrue);
+
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    final restoredStamp =
+        restoredController.userAnnotationStampPacks.single.stamps.single;
+    expect(restoredStamp.kind, SheetAnnotationUserStamp.imageKind);
+    expect(restoredStamp.assetRef, stamp.assetRef);
+  });
+
   test('deleting a user stamp preserves placed stamp annotations', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-10-02T10:00:00.000');
@@ -4598,6 +4645,10 @@ Clef & Staff 세트리스트
       'score-b.PDF',
     ]);
   });
+}
+
+List<int> _tinyPngBytes() {
+  return image.encodePng(image.Image(width: 2, height: 1));
 }
 
 class _PageRotationCopyStore extends SheetLibraryStore {

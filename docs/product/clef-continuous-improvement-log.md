@@ -2225,3 +2225,13 @@ layer and leaves existing annotations intact so orphaned annotations fall back t
 instead of disappearing. Focused controller and widget tests verify rename, delete, fallback visibility,
 and the named toolbar affordances. Moving existing annotations between layers, per-layer undo and
 multi-select layer operations remain follow-up.
+
+S187 VERIFIED LOCAL: opened the user-facing image stamp import path on top of the existing asset
+storage and package codec. The stamp picker can now choose a PNG/JPEG/WebP file, ask for a display
+name, copy the image into app-owned `annotation-stamps/` storage, preserve SHA-256/size/dimension
+metadata in the active user stamp pack, and show/select the resulting image stamp alongside text/icon
+custom stamps. User stamp pack normalization now allows validated image stamps so they survive reload
+and metadata backup restore instead of being filtered out by the older text/icon-only gate. Focused
+controller and widget tests cover image asset creation/restore and picker selection. Rendering the
+bitmap directly onto the page/PDF, full-backup asset byte round-trip, orphan cleanup and external PDF
+image-stamp compatibility remain follow-up.

@@ -18274,6 +18274,17 @@ setlist=$setlistLabel
                                 ? widget.controller.userAnnotationStampPacks
                                 : null;
                           },
+                          onCreateImageUserStamp: (label, file) async {
+                            final didSave = await widget.controller
+                                .createImageUserAnnotationStamp(
+                                  label: label,
+                                  sourceFile: file,
+                                );
+                            return didSave
+                                ? widget.controller.userAnnotationStampPacks
+                                : null;
+                          },
+                          onPickImageStampFile: _pickUserImageStampFile,
                           onDeleteUserStamp: (packId, stampId) async {
                             final didDelete = await widget.controller
                                 .deleteUserAnnotationStamp(
@@ -20722,6 +20733,39 @@ class _AnnotationPainter extends CustomPainter {
 
 typedef _UserStampPackMutation =
     Future<List<SheetAnnotationStampPack>?> Function(String value, String text);
+typedef _UserImageStampPackMutation =
+    Future<List<SheetAnnotationStampPack>?> Function(String label, File file);
+typedef _PickUserImageStampFile = Future<PickedUserImageStampFile?> Function();
+
+class PickedUserImageStampFile {
+  const PickedUserImageStampFile({required this.name, required this.file});
+
+  final String name;
+  final File file;
+}
+
+@visibleForTesting
+PickedUserImageStampFile buildPickedUserImageStampFileForTest({
+  required String name,
+  required File file,
+}) {
+  return PickedUserImageStampFile(name: name, file: file);
+}
+
+Future<PickedUserImageStampFile?> _pickUserImageStampFile() async {
+  final file = await FilePicker.pickFile(
+    type: FileType.custom,
+    allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+  );
+  if (file == null) {
+    return null;
+  }
+  final path = file.path;
+  if (path == null || path.trim().isEmpty) {
+    return null;
+  }
+  return PickedUserImageStampFile(name: file.name, file: File(path));
+}
 
 const Map<String, IconData> _userStampIconDataByName = <String, IconData>{
   'check': Icons.check_circle_outline,
@@ -20751,12 +20795,18 @@ IconData _userStampIconData(SheetAnnotationUserStamp stamp) {
   if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
     return _userStampIconDataByName[stamp.iconName] ?? Icons.label_outline;
   }
+  if (stamp.kind == SheetAnnotationUserStamp.imageKind) {
+    return Icons.image_outlined;
+  }
   return Icons.text_fields;
 }
 
 String _userStampPrintableText(SheetAnnotationUserStamp stamp) {
   if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
     return _userStampIconTextByName[stamp.iconName] ?? stamp.label;
+  }
+  if (stamp.kind == SheetAnnotationUserStamp.imageKind) {
+    return stamp.label;
   }
   return stamp.text.isEmpty ? stamp.label : stamp.text;
 }
@@ -20812,6 +20862,8 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onStampSelected,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
+    required this.onCreateImageUserStamp,
+    required this.onPickImageStampFile,
     required this.onDeleteUserStamp,
     required this.onColorSelected,
     required this.onWidthChanged,
@@ -20842,6 +20894,8 @@ class _AnnotationToolbar extends StatelessWidget {
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
+  final _UserImageStampPackMutation onCreateImageUserStamp;
+  final _PickUserImageStampFile onPickImageStampFile;
   final _UserStampPackMutation onDeleteUserStamp;
   final ValueChanged<int> onColorSelected;
   final ValueChanged<double> onWidthChanged;
@@ -21083,6 +21137,8 @@ class _AnnotationToolbar extends StatelessWidget {
                           userStampPacks: userStampPacks,
                           onCreateUserStamp: onCreateUserStamp,
                           onCreateIconUserStamp: onCreateIconUserStamp,
+                          onCreateImageUserStamp: onCreateImageUserStamp,
+                          onPickImageStampFile: onPickImageStampFile,
                           onDeleteUserStamp: onDeleteUserStamp,
                         ),
                       ),
@@ -21240,6 +21296,8 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
     required this.userStampPacks,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
+    required this.onCreateImageUserStamp,
+    required this.onPickImageStampFile,
     required this.onDeleteUserStamp,
   });
 
@@ -21249,6 +21307,8 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
   final List<SheetAnnotationStampPack> userStampPacks;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
+  final _UserImageStampPackMutation onCreateImageUserStamp;
+  final _PickUserImageStampFile onPickImageStampFile;
   final _UserStampPackMutation onDeleteUserStamp;
 
   @override
@@ -21371,6 +21431,47 @@ class _AnnotationStampPickerSheetState
       SnackBar(
         content: Text(
           nextPacks == null ? '아이콘 스탬프를 저장하지 못했습니다.' : '아이콘 스탬프를 저장했습니다.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createImageUserStamp() async {
+    final picked = await widget.onPickImageStampFile();
+    if (picked == null || !mounted) {
+      return;
+    }
+    final draft = await showDialog<_UserImageStampDraft>(
+      context: context,
+      builder: (context) => _UserImageStampDialog(
+        initialLabel: _imageStampLabelFromFileName(picked.name),
+      ),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = true;
+    });
+    final nextPacks = await widget.onCreateImageUserStamp(
+      draft.label,
+      picked.file,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingUserStamp = false;
+      if (nextPacks != null) {
+        _userStampPacks = nextPacks;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nextPacks == null
+              ? '이미지 스탬프를 저장하지 못했습니다. PNG/JPEG/WebP, 2MB 이하인지 확인해주세요.'
+              : '이미지 스탬프를 저장했습니다.',
         ),
       ),
     );
@@ -21532,6 +21633,7 @@ class _AnnotationStampPickerSheetState
             isSaving: _isSavingUserStamp,
             onCreateTextStamp: _createTextUserStamp,
             onCreateIconStamp: _createIconUserStamp,
+            onCreateImageStamp: _createImageUserStamp,
             onDeleteStamp: _deleteUserStamp,
           ),
           SingleChildScrollView(
@@ -21597,6 +21699,7 @@ class _UserStampSection extends StatelessWidget {
     required this.isSaving,
     required this.onCreateTextStamp,
     required this.onCreateIconStamp,
+    required this.onCreateImageStamp,
     required this.onDeleteStamp,
   });
 
@@ -21606,6 +21709,7 @@ class _UserStampSection extends StatelessWidget {
   final bool isSaving;
   final VoidCallback onCreateTextStamp;
   final VoidCallback onCreateIconStamp;
+  final VoidCallback onCreateImageStamp;
   final ValueChanged<SheetAnnotationUserStamp> onDeleteStamp;
 
   @override
@@ -21689,29 +21793,39 @@ class _UserStampSection extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        TextButton.icon(
-                          onPressed: isSaving ? null : onCreateTextStamp,
-                          icon: isSaving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.add),
-                          label: const Text('텍스트 스탬프 추가'),
-                        ),
-                        TextButton.icon(
-                          onPressed: isSaving ? null : onCreateIconStamp,
-                          icon: const Icon(Icons.add_reaction_outlined),
-                          label: const Text('아이콘 스탬프 추가'),
-                        ),
-                      ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: isSaving ? null : onCreateTextStamp,
+                            icon: isSaving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.add),
+                            label: const Text('텍스트 스탬프 추가'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: isSaving ? null : onCreateIconStamp,
+                            icon: const Icon(Icons.add_reaction_outlined),
+                            label: const Text('아이콘 스탬프 추가'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: isSaving ? null : onCreateImageStamp,
+                            icon: const Icon(
+                              Icons.add_photo_alternate_outlined,
+                            ),
+                            label: const Text('이미지 스탬프 추가'),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -21949,6 +22063,105 @@ class _UserIconStampDialogState extends State<_UserIconStampDialog> {
       ],
     );
   }
+}
+
+class _UserImageStampDraft {
+  const _UserImageStampDraft({required this.label});
+
+  final String label;
+}
+
+class _UserImageStampDialog extends StatefulWidget {
+  const _UserImageStampDialog({required this.initialLabel});
+
+  final String initialLabel;
+
+  @override
+  State<_UserImageStampDialog> createState() => _UserImageStampDialogState();
+}
+
+class _UserImageStampDialogState extends State<_UserImageStampDialog> {
+  late final TextEditingController _labelController;
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController = TextEditingController(text: widget.initialLabel);
+    _labelController.addListener(_handleChanged);
+  }
+
+  @override
+  void dispose() {
+    _labelController
+      ..removeListener(_handleChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _labelController.text.trim();
+    final canSave = label.isNotEmpty;
+    return AlertDialog(
+      title: const Text('이미지 스탬프 추가'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _labelController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: '이름',
+              hintText: '예: 운지 사진',
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (canSave) {
+                Navigator.of(context).pop(_UserImageStampDraft(label: label));
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'PNG, JPEG, WebP 이미지를 앱 안에 복사합니다. 직접 만들었거나 사용할 권리가 있는 이미지만 추가하세요.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: canSave
+              ? () =>
+                    Navigator.of(context)
+                        .pop(_UserImageStampDraft(label: label))
+              : null,
+          child: const Text('저장'),
+        ),
+      ],
+    );
+  }
+}
+
+String _imageStampLabelFromFileName(String fileName) {
+  final normalized = fileName.replaceAll('\\', '/');
+  final slash = normalized.lastIndexOf('/');
+  final baseName = slash < 0 ? normalized : normalized.substring(slash + 1);
+  final dot = baseName.lastIndexOf('.');
+  final withoutExtension = dot <= 0 ? baseName : baseName.substring(0, dot);
+  final label = withoutExtension
+      .replaceAll(RegExp(r'[_-]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return label.isEmpty ? '이미지 스탬프' : label;
 }
 
 class _ViewerControls extends StatelessWidget {
@@ -24806,6 +25019,9 @@ Widget buildAnnotationToolbarForTest({
   onCreateUserStamp,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onCreateIconUserStamp,
+  Future<List<SheetAnnotationStampPack>?> Function(String, File)?
+  onCreateImageUserStamp,
+  Future<PickedUserImageStampFile?> Function()? onPickImageStampFile,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onDeleteUserStamp,
 }) {
@@ -24862,6 +25078,9 @@ Widget buildAnnotationToolbarForTest({
               onCreateUserStamp ?? (_, _) async => userStampPacks,
           onCreateIconUserStamp:
               onCreateIconUserStamp ?? (_, _) async => userStampPacks,
+          onCreateImageUserStamp:
+              onCreateImageUserStamp ?? (_, _) async => userStampPacks,
+          onPickImageStampFile: onPickImageStampFile ?? () async => null,
           onDeleteUserStamp:
               onDeleteUserStamp ?? (_, _) async => userStampPacks,
           onUndo: () {},

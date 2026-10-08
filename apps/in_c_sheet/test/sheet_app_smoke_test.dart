@@ -3860,6 +3860,53 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('annotation stamp picker selects image stamps', (tester) async {
+    final imagePack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'cue-photo',
+          'packId': 'user',
+          'label': 'Cue photo',
+          'category': '이미지',
+          'kind': 'image',
+          'assetRef': 'stamps/user/cue-photo.png',
+          'licenseLabel': '사용자 제공 이미지',
+          'checksum': '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'assetSizeBytes': 123,
+          'assetWidthPixels': 32,
+          'assetHeightPixels': 24,
+        },
+      ],
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[imagePack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('이미지 스탬프 추가'), findsOneWidget);
+    expect(find.text('Cue photo'), findsOneWidget);
+
+    await tester.tap(find.text('Cue photo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Cue photo'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'annotation stamp picker restores recent stamps without duplicates',
     (tester) async {

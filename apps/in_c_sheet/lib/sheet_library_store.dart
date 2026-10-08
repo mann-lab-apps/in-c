@@ -301,7 +301,7 @@ class SheetLibraryStore {
     final seen = <String>{};
     final normalized = <SheetAnnotationStampPack>[];
     for (final pack in packs) {
-      if (pack.validate().isValid && seen.add(pack.id)) {
+      if (pack.validate(allowImageStamps: true).isValid && seen.add(pack.id)) {
         normalized.add(pack);
       }
     }

@@ -6,6 +6,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 
 import 'sheet_annotation.dart';
+import 'sheet_annotation_stamp_asset_store.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_chordpro.dart';
@@ -133,9 +134,14 @@ const _setlistPackageKnownDetailKeys = <String>{
 };
 
 class SheetLibraryController extends ChangeNotifier {
-  SheetLibraryController({required this.store});
+  SheetLibraryController({
+    required this.store,
+    SheetAnnotationStampAssetStore? stampAssetStore,
+  }) : stampAssetStore =
+           stampAssetStore ?? const SheetAnnotationStampAssetStore();
 
   final SheetLibraryStore store;
+  final SheetAnnotationStampAssetStore stampAssetStore;
 
   List<SheetScore> _scores = const <SheetScore>[];
   List<SheetSetlist> _setlists = const <SheetSetlist>[];
@@ -1732,6 +1738,56 @@ class SheetLibraryController extends ChangeNotifier {
     return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
   }
 
+  Future<bool> createImageUserAnnotationStamp({
+    required String label,
+    required File sourceFile,
+  }) async {
+    final normalizedLabel = label.trim();
+    if (normalizedLabel.isEmpty) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final result = await stampAssetStore.importImageStampAsset(
+      sourceFile: sourceFile,
+      packId: packId,
+      stampId: stampId,
+      label: normalizedLabel,
+      category: '이미지',
+      licenseLabel: '사용자 제공 이미지',
+      keywords: _normalizeTags(normalizedLabel),
+    );
+    final stamp = result.userStamp;
+    if (!result.didStore || stamp == null) {
+      return false;
+    }
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
   Future<bool> deleteUserAnnotationStamp({
     required String packId,
     required String stampId,
@@ -1782,7 +1838,7 @@ class SheetLibraryController extends ChangeNotifier {
     required String libraryId,
   }) async {
     final validImported = importedPacks
-        .where((pack) => pack.validate().isValid)
+        .where((pack) => pack.validate(allowImageStamps: true).isValid)
         .toList(growable: false);
     if (validImported.isEmpty || _activeLibraryProfile.id != libraryId) {
       return;
@@ -1833,7 +1889,7 @@ class SheetLibraryController extends ChangeNotifier {
     required String libraryId,
   }) async {
     final pendingPacks = List<SheetAnnotationStampPack>.unmodifiable(
-      packs.where((pack) => pack.validate().isValid),
+      packs.where((pack) => pack.validate(allowImageStamps: true).isValid),
     );
     final request = Object();
     _userAnnotationStampPacksSaveRequest = request;

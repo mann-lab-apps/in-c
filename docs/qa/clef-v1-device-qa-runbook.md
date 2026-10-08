@@ -69,7 +69,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 북마크/리허설 `표시 지점` chip과 목록 row, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감, 원하는 지점 찾기 |
 | 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 복사 manifest 붙여넣기 import, ZIP package export/import, 이전/다음 곡, 다음 곡 제목 힌트 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 긴 manifest 요약, missing/ambiguous match 차단, 같은 제목 import suffix, package export가 공유 전 preview를 거치는지, package import가 preview 확인 뒤 새 악보/세트리스트를 만드는지, 진행 위치, 다음 곡 예측 가능성 |
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
-| 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/최근 사용/빠른 선택, active layer 선택/추가/표시/PDF 포함 토글, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 최근 스탬프 복원, layer 전환 뒤 새 필기 저장/재열기 |
+| 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/최근 사용/빠른 선택, text/icon/image 사용자 스탬프, active layer 선택/추가/표시/PDF 포함 토글, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, image picker provider, 최근 스탬프 복원, layer 전환 뒤 새 필기 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
 | 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장된 구간/새 구간 구분, 저장/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
@@ -378,6 +378,18 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 3. layer 이름을 변경하고, toolbar와 메뉴 label이 함께 갱신되는지 확인한다.
 4. non-default layer를 삭제하고, 해당 layer에 있던 annotation이 사라지지 않고 기본 필기로 보이는지 확인한다.
 5. 기본 필기는 삭제/이름 변경 대상이 아니어야 한다.
+
+## Image stamp import QA
+
+자동 테스트는 image stamp asset copy, metadata 저장/복원, picker 선택을 검증한다. 실기기에서는
+Android/iOS 파일 선택 provider와 권리 안내 copy가 자연스러운지 확인한다.
+
+1. 직접 만든 작은 PNG/JPEG/WebP 파일을 준비한다.
+2. 필기 toolbar에서 `스탬프` > `사용자 스탬프` > `이미지 스탬프 추가`를 연다.
+3. 파일 선택 후 이름 dialog가 뜨고, 저장하면 `사용자 스탬프` 섹션에 표시되는지 확인한다.
+4. 2MB 초과, 2048px 초과, GIF/unsupported 파일은 실패 안내를 보여야 하며 built-in stamp picker가 계속 동작해야 한다.
+5. 앱을 재시작하거나 같은 라이브러리를 다시 열어 image stamp metadata가 유지되는지 확인한다.
+6. 실제 악보 위 bitmap rendering과 editable PDF image stamp mapping은 아직 follow-up으로 기록한다.
 
 ## Editable PDF annotation export QA
 
