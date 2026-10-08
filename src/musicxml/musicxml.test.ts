@@ -2781,6 +2781,7 @@ describe('MusicXML MVP', () => {
                           graceNotes: [
                             {
                               pitch: { step: 'C', octave: 4 },
+                              duration: createDuration('16th', 1),
                               slash: true
                             }
                           ],
@@ -2814,6 +2815,7 @@ describe('MusicXML MVP', () => {
       graceNotes: [
         {
           pitch: { step: 'C', octave: 4 },
+          duration: { value: '16th', dots: 1 },
           slash: true
         }
       ],

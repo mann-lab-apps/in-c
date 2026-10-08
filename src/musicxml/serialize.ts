@@ -817,7 +817,10 @@ function buildGraceNote(
     },
     voice: voiceNumber,
     ...(staffNumber !== undefined ? { staff: staffNumber } : {}),
-    type: 'eighth'
+    type: graceNote.duration?.value ?? 'eighth',
+    ...(graceNote.duration?.dots
+      ? { dot: Array.from({ length: graceNote.duration.dots }, () => '') }
+      : {})
   }
 }
 

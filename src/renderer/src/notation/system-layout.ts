@@ -16,6 +16,12 @@ export interface MeasurePlacement {
   y: number
 }
 
+export interface LeadingNotationVisibility {
+  showsClef: boolean
+  showsKeySignature: boolean
+  showsTimeSignature: boolean
+}
+
 export interface SystemLayout {
   height: number
   measuresPerSystem: number
@@ -25,6 +31,7 @@ export interface SystemLayout {
 
 export interface SystemLayoutOptions {
   compactSpacing?: boolean
+  leadingGutter?: number
   layout?: ScoreLayout
   lyricScale?: number
   pageHeight?: number
@@ -99,7 +106,12 @@ export function createSystemLayout(
     }
   }
 
-  const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2)
+  const leadingGutter = Math.min(
+    options.leadingGutter ?? 0,
+    Math.max(0, renderWidth - HORIZONTAL_PADDING * 2 - MIN_MEASURE_WIDTH)
+  )
+  const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2 - leadingGutter)
+  const previousMeasures = previousMeasureMap(measures)
   const spacing = {
     minSparseMeasureWidth: options.compactSpacing
       ? COMPACT_SPARSE_MEASURE_WIDTH
@@ -123,7 +135,8 @@ export function createSystemLayout(
     measuresPerSystem,
     availableWidth,
     options.layout,
-    spacing
+    spacing,
+    previousMeasures
   )
   const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
@@ -152,9 +165,10 @@ export function createSystemLayout(
       systemMeasures,
       availableWidth,
       true,
-      spacing
+      spacing,
+      previousMeasures
     )
-    let x = HORIZONTAL_PADDING
+    let x = HORIZONTAL_PADDING + leadingGutter
 
     systemMeasures.forEach((measure, columnIndex) => {
       const width = widths[columnIndex]
@@ -208,7 +222,8 @@ function createSystemMeasureGroups(
   measuresPerSystem: number,
   availableWidth: number,
   layout: ScoreLayout | undefined,
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): Measure[][] {
   const manualBreaks = new Set([
     ...(layout?.systemBreakBeforeMeasureIds ?? []),
@@ -224,7 +239,8 @@ function createSystemMeasureGroups(
           segment,
           measuresPerSystem,
           availableWidth,
-          spacing
+          spacing,
+          previousMeasures
         )
       )
       segment = []
@@ -239,7 +255,8 @@ function createSystemMeasureGroups(
         segment,
         measuresPerSystem,
         availableWidth,
-        spacing
+        spacing,
+        previousMeasures
       )
     )
   }
@@ -251,7 +268,8 @@ function optimizeSystemMeasureGroups(
   measures: Measure[],
   measuresPerSystem: number,
   availableWidth: number,
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): Measure[][] {
   const plans: Array<SystemBreakPlan | undefined> = Array.from(
     { length: measures.length + 1 },
@@ -270,7 +288,7 @@ function optimizeSystemMeasureGroups(
     for (let end = index + 1; end <= maxEnd; end += 1) {
       const group = measures.slice(index, end)
 
-      if (!canFitSystemGroup(group, availableWidth, spacing)) {
+      if (!canFitSystemGroup(group, availableWidth, spacing, previousMeasures)) {
         continue
       }
 
@@ -281,7 +299,9 @@ function optimizeSystemMeasureGroups(
       }
 
       const systemCount = 1 + nextPlan.systemCount
-      const cost = systemBadness(group, availableWidth, spacing) + nextPlan.cost
+      const cost =
+        systemBadness(group, availableWidth, spacing, previousMeasures) +
+        nextPlan.cost
       const candidate = {
         cost,
         groups: [group, ...nextPlan.groups],
@@ -302,22 +322,24 @@ function optimizeSystemMeasureGroups(
 function canFitSystemGroup(
   measures: Measure[],
   availableWidth: number,
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): boolean {
   return (
     measures.length === 1 ||
-    systemMinimumWidth(measures, spacing) <= availableWidth
+    systemMinimumWidth(measures, spacing, previousMeasures) <= availableWidth
   )
 }
 
 function systemBadness(
   measures: Measure[],
   availableWidth: number,
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): number {
   const leftover = Math.max(
     0,
-    availableWidth - systemMinimumWidth(measures, spacing)
+    availableWidth - systemMinimumWidth(measures, spacing, previousMeasures)
   )
 
   return leftover ** 2
@@ -444,14 +466,20 @@ function distributeSystemWidths(
   measures: Measure[],
   availableWidth: number,
   justifySystem: boolean,
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): number[] {
   if (measures.length === 0) {
     return []
   }
 
   const minimumWidths = measures.map((measure, index) =>
-    measureMinimumWidth(measure, measures[index - 1], index === 0, spacing)
+    measureMinimumWidth(
+      measure,
+      previousMeasures.get(measure.id) ?? measures[index - 1],
+      index === 0,
+      spacing
+    )
   )
   const totalMinimumWidth = minimumWidths.reduce((sum, width) => sum + width, 0)
   const scale = totalMinimumWidth > availableWidth
@@ -476,11 +504,18 @@ function distributeSystemWidths(
 
 function systemMinimumWidth(
   measures: Measure[],
-  spacing: LayoutSpacing
+  spacing: LayoutSpacing,
+  previousMeasures: Map<string, Measure>
 ): number {
   return measures.reduce(
     (sum, measure, index) =>
-      sum + measureMinimumWidth(measure, measures[index - 1], index === 0, spacing),
+      sum +
+        measureMinimumWidth(
+          measure,
+          previousMeasures.get(measure.id) ?? measures[index - 1],
+          index === 0,
+          spacing
+        ),
     0
   )
 }
@@ -502,14 +537,10 @@ function measureMinimumWidth(
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
   const notationComplexityWidth = measureNotationComplexityWidth(measure)
-  const leadingModifierWidth = leadingNotationPadding(measure, {
-    showsClef:
-      isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
-    showsKeySignature:
-      isSystemStart || !previousMeasure || !sameKeySignature(previousMeasure, measure),
-    showsTimeSignature:
-      isSystemStart || !previousMeasure || !sameTimeSignature(previousMeasure, measure)
-  })
+  const leadingModifierWidth = leadingNotationPadding(
+    measure,
+    resolveLeadingNotationVisibility(measure, previousMeasure, isSystemStart)
+  )
 
   return (
     baseWidth +
@@ -555,11 +586,7 @@ function measureNotationComplexityWidth(measure: Measure): number {
 
 export function leadingNotationPadding(
   measure: Measure,
-  leadingNotation: {
-    showsClef: boolean
-    showsKeySignature: boolean
-    showsTimeSignature: boolean
-  }
+  leadingNotation: LeadingNotationVisibility
 ): number {
   if (
     !leadingNotation.showsClef &&
@@ -581,10 +608,42 @@ export function leadingNotationPadding(
   return Math.min(MAX_LEADING_NOTATION_PADDING, padding)
 }
 
+export function resolveLeadingNotationVisibility(
+  measure: Measure,
+  previousMeasure: Measure | undefined,
+  isSystemStart: boolean
+): LeadingNotationVisibility {
+  return {
+    showsClef:
+      isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
+    showsKeySignature:
+      isSystemStart ||
+      !previousMeasure ||
+      !sameKeySignature(previousMeasure, measure),
+    showsTimeSignature:
+      !previousMeasure || !sameTimeSignature(previousMeasure, measure)
+  }
+}
+
+function previousMeasureMap(measures: Measure[]): Map<string, Measure> {
+  const previousMeasures = new Map<string, Measure>()
+
+  measures.forEach((measure, index) => {
+    const previousMeasure = measures[index - 1]
+
+    if (previousMeasure) {
+      previousMeasures.set(measure.id, previousMeasure)
+    }
+  })
+
+  return previousMeasures
+}
+
 function sameClef(previous: Measure, current: Measure): boolean {
   return (
     previous.clef.sign === current.clef.sign &&
-    previous.clef.line === current.clef.line
+    previous.clef.line === current.clef.line &&
+    previous.clef.octaveChange === current.clef.octaveChange
   )
 }
 

@@ -15,7 +15,8 @@ import { parseMusicXml } from '../../../musicxml'
 import {
   createSystemLayout,
   leadingNotationPadding,
-  pitchStaffLine
+  pitchStaffLine,
+  resolveLeadingNotationVisibility
 } from './system-layout'
 
 const releaseQaFixture = readFileSync(
@@ -279,6 +280,48 @@ describe('system layout', () => {
     expect(layout.placements[0].width).toBeGreaterThan(
       layout.placements[1].width
     )
+  })
+
+  it('does not treat an unchanged time signature as a repeated system-start symbol', () => {
+    const measures = createMeasures(9)
+    const layout = createSystemLayout(measures, 900)
+    const secondSystemMeasure = layout.placements.find(
+      (placement) => placement.systemIndex === 1
+    )
+
+    expect(secondSystemMeasure).toBeDefined()
+    expect(
+      resolveLeadingNotationVisibility(
+        secondSystemMeasure!.measure,
+        measures[7],
+        true
+      )
+    ).toMatchObject({
+      showsClef: true,
+      showsKeySignature: true,
+      showsTimeSignature: false
+    })
+  })
+
+  it('reserves a time signature at a system start when the meter actually changes', () => {
+    const measures = createMeasures(9)
+    measures[8] = createMeasure({
+      id: 'measure-9',
+      number: 9,
+      timeSignature: { beats: 3, beatType: 4 }
+    })
+
+    const visibility = resolveLeadingNotationVisibility(
+      measures[8],
+      measures[7],
+      true
+    )
+
+    expect(visibility).toMatchObject({
+      showsClef: true,
+      showsKeySignature: true,
+      showsTimeSignature: true
+    })
   })
 
   it('scales leading notation padding with the visible key signature', () => {

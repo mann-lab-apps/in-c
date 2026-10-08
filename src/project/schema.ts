@@ -30,7 +30,7 @@ const event = z.discriminatedUnion('type', [
     articulations: z.array(z.enum(['staccato', 'accent', 'tenuto', 'marcato'])).max(4).optional(),
     tremolo: z.strictObject({ type: z.literal('single'), marks: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).optional(),
     lyrics: z.array(z.strictObject({ number: positive.optional(), syllabic: z.enum(['single', 'begin', 'middle', 'end']).optional(), text, extend: z.boolean().optional() })).max(100).optional(),
-    graceNotes: z.array(z.strictObject({ pitch, slash: z.boolean().optional() })).max(128).optional(),
+    graceNotes: z.array(z.strictObject({ pitch, duration: duration.optional(), slash: z.boolean().optional() })).max(128).optional(),
     ornaments: z.array(z.enum(['trill', 'mordent', 'turn'])).max(3).optional()
   }),
   z.strictObject({ ...eventBase, type: z.literal('rest'), fullMeasure: z.boolean().optional() })

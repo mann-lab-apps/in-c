@@ -1530,9 +1530,18 @@ function readPitch(node: XmlNode): Pitch {
 
 function readGraceNote(node: XmlNode): GraceNote {
   const grace = readOptionalNode(node, 'grace')
+  const type = readOptionalString(node, 'type')
+  const duration =
+    type && isDurationValue(type)
+      ? {
+          value: type,
+          dots: toArray(node.dot as XmlNode | XmlNode[] | undefined).length
+        }
+      : undefined
 
   return {
     pitch: readPitch(node),
+    duration,
     slash: grace ? readOptionalString(grace, '@_slash') === 'yes' : undefined
   }
 }
