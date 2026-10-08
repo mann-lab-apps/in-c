@@ -192,11 +192,9 @@ class SheetAnnotatedPdfExporter {
           'freeTextAnnotation',
           'imageStampAnnotation',
           'hairpinAnnotation',
-        ],
-        unsupportedAnnotationTypes: <String>[
-          'stampAnnotation',
           'staffGridAnnotation',
         ],
+        unsupportedAnnotationTypes: <String>['stampAnnotation'],
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
           'mobileSheetsPiascoreFixture',
@@ -647,8 +645,70 @@ class SheetAnnotatedPdfExporter {
         );
       case SheetAnnotationTool.staff:
       case SheetAnnotationTool.grid:
-        return false;
+        return _addStandardGuideAnnotation(editor, pageIndex, geometry, stroke);
     }
+  }
+
+  static bool _addStandardGuideAnnotation(
+    PdfEditor editor,
+    int pageIndex,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    if (stroke.points.length < 2) {
+      return false;
+    }
+    final first = geometry.toPdfPoint(stroke.points.first);
+    final second = geometry.toPdfPoint(stroke.points.last);
+    final left = math.min(first.x, second.x);
+    final right = math.max(first.x, second.x);
+    final bottom = math.min(first.y, second.y);
+    final top = math.max(first.y, second.y);
+    if (left == right || bottom == top) {
+      return false;
+    }
+
+    final color = _rgb(stroke.color);
+    final width = _guidePdfLineWidth(stroke);
+    final name = _standardAnnotationName(stroke.id);
+    var wroteLine = false;
+    void addGuideLine(
+      String suffix,
+      (double, double) start,
+      (double, double) end,
+    ) {
+      editor.addLine(
+        pageIndex,
+        start,
+        end,
+        strokeColor: color,
+        strokeWidth: width,
+        contents: stroke.tool.name,
+        name: '$name-$suffix',
+      );
+      wroteLine = true;
+    }
+
+    if (stroke.tool == SheetAnnotationTool.staff) {
+      final height = top - bottom;
+      final lineGap = height <= 1 ? 6.0 : height / 4;
+      final startY = height <= 1 ? top + (lineGap * 2) : top;
+      for (var index = 0; index < 5; index += 1) {
+        final y = startY - (lineGap * index);
+        addGuideLine('staff-$index', (left, y), (right, y));
+      }
+      return wroteLine;
+    }
+
+    const divisions = 4;
+    for (var index = 0; index <= divisions; index += 1) {
+      final t = index / divisions;
+      final x = left + ((right - left) * t);
+      final y = bottom + ((top - bottom) * t);
+      addGuideLine('grid-v-$index', (x, bottom), (x, top));
+      addGuideLine('grid-h-$index', (left, y), (right, y));
+    }
+    return wroteLine;
   }
 
   static bool _addStandardHairpinAnnotation(
@@ -1082,6 +1142,14 @@ class SheetAnnotatedPdfExporter {
   static double _pdfLineWidth(SheetAnnotationStroke stroke) {
     final base = stroke.width.clamp(1.0, 18.0).toDouble();
     return stroke.tool == SheetAnnotationTool.highlighter ? base * 1.8 : base;
+  }
+
+  static double _guidePdfLineWidth(SheetAnnotationStroke stroke) {
+    final base = _pdfLineWidth(stroke);
+    if (stroke.tool == SheetAnnotationTool.grid) {
+      return base.clamp(0.8, 2.4).toDouble();
+    }
+    return base.clamp(1.0, 4.0).toDouble();
   }
 
   static bool _hasPressureVariation(SheetAnnotationStroke stroke) {

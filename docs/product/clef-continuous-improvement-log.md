@@ -2295,3 +2295,10 @@ instead of rejecting hairpins as an unsupported object mapping. The capability m
 inspection test were updated so hairpins are covered by the same malformed-export guard as ink, line,
 rectangle, text and image stamp annotations. Staff/grid standard mapping and external
 Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S195 VERIFIED LOCAL: reduced the remaining music-guide gap in editable PDF export. Standard annotation
+export now maps staff and grid guide tools to editable `/Line` annotation groups with generated
+appearances instead of forcing those guides through the rendered-only path. Staff guides export as five
+parallel line annotations; grid guides export as a 4x4 guide line set. The local inspection fixture now
+verifies the resulting Clef `/Line` annotations, contents and generated appearances. Text-template
+stamp mapping and external Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.

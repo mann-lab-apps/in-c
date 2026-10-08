@@ -49,6 +49,7 @@ void main() {
     expect(standard.supportedAnnotationTypes, contains('freeTextAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('imageStampAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('hairpinAnnotation'));
+    expect(standard.supportedAnnotationTypes, contains('staffGridAnnotation'));
     expect(
       standard.unsupportedAnnotationTypes,
       isNot(contains('imageStampAnnotation')),
@@ -56,6 +57,10 @@ void main() {
     expect(
       standard.unsupportedAnnotationTypes,
       isNot(contains('hairpinAnnotation')),
+    );
+    expect(
+      standard.unsupportedAnnotationTypes,
+      isNot(contains('staffGridAnnotation')),
     );
     expect(standard.requiredSpikeItems, contains('acrobatPreviewFixture'));
   });
@@ -692,6 +697,89 @@ void main() {
     expect(inspection.containsClefSubtype('Line'), isTrue);
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
+
+  test(
+    'writes standard staff and grid annotations as editable lines',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-standard-guide-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final outputPath = '${outputDir.path}/short-score-guides.pdf';
+      final now = DateTime.parse('2026-08-23T10:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            SheetAnnotationStroke(
+              id: 'staff-1',
+              pageNumber: 1,
+              tool: SheetAnnotationTool.staff,
+              color: 0xff111111,
+              width: 3,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.2, y: 0.2),
+                SheetAnnotationPoint(x: 0.7, y: 0.35),
+              ],
+              createdAt: now,
+            ),
+            SheetAnnotationStroke(
+              id: 'grid-1',
+              pageNumber: 1,
+              tool: SheetAnnotationTool.grid,
+              color: 0xff1d5fd1,
+              width: 2,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.25, y: 0.45),
+                SheetAnnotationPoint(x: 0.65, y: 0.7),
+              ],
+              createdAt: now.add(const Duration(seconds: 1)),
+            ),
+          ],
+        ),
+      );
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+      final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+      final annotations = exported.page(0).annotations;
+      final inspection =
+          await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+            outputPath,
+          );
+
+      expect(result.didWrite, isTrue);
+      expect(annotations, hasLength(15));
+      expect(
+        annotations.map((annotation) => annotation.subtype),
+        everyElement('Line'),
+      );
+      expect(inspection.clefAnnotationCount, 15);
+      expect(inspection.containsClefSubtype('Line'), isTrue);
+      expect(inspection.clefAnnotationContents, contains('staff'));
+      expect(inspection.clefAnnotationContents, contains('grid'));
+      expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    },
+  );
 
   test(
     'writes standard image stamp annotations when asset bytes are available',
