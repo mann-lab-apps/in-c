@@ -2168,3 +2168,12 @@ whose layer is marked for export, Unicode text detection follows the same per-la
 export layers still share correctly even when the default layer is excluded. Focused exporter coverage
 verifies default-excluded, export-enabled and export-disabled layer combinations. Standard Ink/FreeText/
 Stamp object writing, cross-viewer compatibility fixtures and active layer UI remain follow-up.
+
+S181 VERIFIED LOCAL: implemented the first actual image stamp asset storage slice without exposing the
+image picker UI yet. `SheetAnnotationStampAssetStore` now reads local PNG/JPEG/WebP files, enforces the
+existing 2MB and 2048px image policy, computes a SHA-256 checksum, creates a deterministic
+`stamps/<pack>/<stamp>.<ext>` metadata plan and copies bytes into the app-owned `annotation-stamps/`
+directory via a temp-file replace path. Focused tests cover safe path normalization, identical asset
+reuse, changed asset replacement, missing files, unsupported extensions, corrupt image bytes, oversized
+files and unsafe stored refs. Picker UI, package/backup asset round-trip, cleanup and image rendering
+remain follow-up.
