@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
+import 'sheet_annotation_stamp_asset_store.dart';
 import 'sheet_bookmark_import.dart';
 import 'sheet_chordpro.dart';
 import 'sheet_library_backup.dart';
@@ -1380,6 +1381,46 @@ class SheetLibraryStore {
         }
       }
     }
+    final stampAssetStore = const SheetAnnotationStampAssetStore();
+    final stampAssetRefs = <String>{};
+    for (final pack in backup.userAnnotationStampPacks) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind != SheetAnnotationUserStamp.imageKind ||
+            stamp.assetRef.isEmpty ||
+            !stampAssetRefs.add(stamp.assetRef)) {
+          continue;
+        }
+        final originalFileName = stamp.assetRef
+            .replaceAll('\\', '/')
+            .split('/')
+            .last;
+        final entryPath = 'stamp-assets/${stamp.assetRef}';
+        var exists = false;
+        File? sourceFile;
+        try {
+          if (_isSafeStampAssetZipEntryPath(entryPath)) {
+            sourceFile = await stampAssetStore.assetFileForRef(stamp.assetRef);
+            exists = await sourceFile.exists();
+          }
+        } catch (_) {
+          exists = false;
+        }
+        mappings.add(
+          SheetLibraryFullBackupFileMapping(
+            scoreId: '',
+            entryPath: entryPath,
+            originalFileName: _safeFileName(originalFileName),
+            missing: !exists,
+            stampAssetRef: stamp.assetRef,
+          ),
+        );
+        if (exists && sourceFile != null) {
+          archive.addFile(
+            ArchiveFile.bytes(entryPath, await sourceFile.readAsBytes()),
+          );
+        }
+      }
+    }
 
     final fullBackup = SheetLibraryFullBackup(
       backup: backup,
@@ -1565,6 +1606,13 @@ class SheetLibraryStore {
             ))
               mapping.scoreId: mapping,
           };
+      final stampAssetMappingsByRef =
+          <String, SheetLibraryFullBackupFileMapping>{
+            for (final mapping in mappings.where(
+              (mapping) => mapping.isStampAsset,
+            ))
+              mapping.stampAssetRef!: mapping,
+          };
       final restoredScores = <SheetScore>[];
       final restoredScorePathsByEntry = <String, String>{};
 
@@ -1646,6 +1694,25 @@ class SheetLibraryStore {
         restoredScores.add(restoredScore);
       }
 
+      final stampAssetStore = const SheetAnnotationStampAssetStore();
+      for (final mapping in stampAssetMappingsByRef.values) {
+        if (mapping.missing ||
+            !_isSafeStampAssetZipEntryPath(mapping.entryPath)) {
+          continue;
+        }
+        final stampEntry = archive.findFile(mapping.entryPath);
+        if (stampEntry == null || !stampEntry.isFile) {
+          continue;
+        }
+        final didRestoreAsset = await stampAssetStore.restoreImageStampAsset(
+          assetRef: mapping.stampAssetRef!,
+          bytes: stampEntry.content,
+        );
+        if (!didRestoreAsset) {
+          throw const FormatException('Invalid image stamp asset.');
+        }
+      }
+
       await _restoreBackupMetadata(backup, restoredScores: restoredScores);
       final sourcePathsByScoreId = <String, String>{
         for (final score in backup.scores) score.id: score.filePath,
@@ -1660,6 +1727,7 @@ class SheetLibraryStore {
               (mapping) =>
                   mapping.linkedFilePath ??
                   mapping.annotationStoragePath ??
+                  mapping.stampAssetRef ??
                   sourcePathsByScoreId[mapping.scoreId]!,
             )
             .toSet()
@@ -1912,11 +1980,26 @@ class SheetLibraryStore {
         expected.add((score.id, 'annotation', score.annotationStorage.path));
       }
     }
+    for (final pack in backup.userAnnotationStampPacks) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+            stamp.assetRef.isNotEmpty) {
+          expected.add(('', 'stampAsset', stamp.assetRef));
+        }
+      }
+    }
     for (final mapping in mappings) {
-      if (mapping.isLinkedFile && mapping.isAnnotationFile) {
+      final typeCount = [
+        mapping.isLinkedFile,
+        mapping.isAnnotationFile,
+        mapping.isStampAsset,
+      ].where((value) => value).length;
+      if (typeCount > 1) {
         throw const FormatException('Ambiguous backup file mapping.');
       }
-      final key = mapping.isLinkedFile
+      final key = mapping.isStampAsset
+          ? ('', 'stampAsset', mapping.stampAssetRef!)
+          : mapping.isLinkedFile
           ? (mapping.scoreId, 'linked', mapping.linkedFilePath!)
           : mapping.isAnnotationFile
           ? (mapping.scoreId, 'annotation', mapping.annotationStoragePath!)
@@ -1926,7 +2009,9 @@ class SheetLibraryStore {
           'Unexpected or duplicate backup file mapping.',
         );
       }
-      final safePath = mapping.isLinkedFile
+      final safePath = mapping.isStampAsset
+          ? _isSafeStampAssetZipEntryPath(mapping.entryPath)
+          : mapping.isLinkedFile
           ? _isSafeLinkedZipEntryPath(mapping.entryPath)
           : mapping.isAnnotationFile
           ? _isSafeAnnotationZipEntryPath(mapping.entryPath)
@@ -2188,6 +2273,10 @@ class SheetLibraryStore {
 
   bool _isSafeAnnotationZipEntryPath(String path) {
     return _isSafeZipEntryPath(path, requiredPrefix: 'annotations/');
+  }
+
+  bool _isSafeStampAssetZipEntryPath(String path) {
+    return _isSafeZipEntryPath(path, requiredPrefix: 'stamp-assets/stamps/');
   }
 
   bool _isSafeZipEntryPath(String path, {required String requiredPrefix}) {

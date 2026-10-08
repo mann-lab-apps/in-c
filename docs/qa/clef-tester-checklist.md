@@ -64,6 +64,7 @@
    내장 스탬프 선택을 방해하지 않는지 확인한다. image stamp는 직접 만든 PNG/JPEG/WebP만 추가하고,
    2MB/2048px 제한 안내와 실패 snackbar가 자연스러운지 확인한다. 추가한 image stamp를 악보 위에 찍었을 때
    bitmap으로 보이고, asset을 읽지 못하는 상황에서는 label fallback으로 남는지 기록한다.
+   full backup ZIP을 복원할 수 있는 환경이라면 image stamp asset도 함께 돌아와 bitmap으로 보이는지 확인한다.
    필기 layer 메뉴에서 새 layer를 추가하고, 이름 변경/표시/PDF 포함 토글/삭제가 가능한지 확인한다.
    layer 삭제 후 해당 layer에 있던 주석은 사라지지 않고 기본 필기로 보이는지 확인한다.
    스탬프를 다시 탭해 상/하/좌/우 미세 이동 후 복원되는지도 확인한다.

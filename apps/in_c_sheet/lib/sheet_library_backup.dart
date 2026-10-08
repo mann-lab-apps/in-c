@@ -191,6 +191,7 @@ class SheetLibraryFullBackupFileMapping {
     required this.missing,
     this.linkedFilePath,
     this.annotationStoragePath,
+    this.stampAssetRef,
   });
 
   factory SheetLibraryFullBackupFileMapping.fromJson(
@@ -198,7 +199,8 @@ class SheetLibraryFullBackupFileMapping {
   ) {
     final scoreId = _stringFromJson(json['scoreId']).trim();
     final entryPath = _stringFromJson(json['entryPath']).trim();
-    if (scoreId.isEmpty || entryPath.isEmpty) {
+    final stampAssetRef = _stringFromJson(json['stampAssetRef']).trim();
+    if ((scoreId.isEmpty && stampAssetRef.isEmpty) || entryPath.isEmpty) {
       throw const FormatException('Invalid backup file mapping.');
     }
     final linkedFilePath = _stringFromJson(json['linkedFilePath']).trim();
@@ -213,6 +215,7 @@ class SheetLibraryFullBackupFileMapping {
       annotationStoragePath: annotationStoragePath.isEmpty
           ? null
           : annotationStoragePath,
+      stampAssetRef: stampAssetRef.isEmpty ? null : stampAssetRef,
     );
   }
 
@@ -222,10 +225,13 @@ class SheetLibraryFullBackupFileMapping {
   final bool missing;
   final String? linkedFilePath;
   final String? annotationStoragePath;
+  final String? stampAssetRef;
 
   bool get isLinkedFile => linkedFilePath?.isNotEmpty == true;
 
   bool get isAnnotationFile => annotationStoragePath?.isNotEmpty == true;
+
+  bool get isStampAsset => stampAssetRef?.isNotEmpty == true;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -236,6 +242,7 @@ class SheetLibraryFullBackupFileMapping {
       if (linkedFilePath?.isNotEmpty == true) 'linkedFilePath': linkedFilePath,
       if (annotationStoragePath?.isNotEmpty == true)
         'annotationStoragePath': annotationStoragePath,
+      if (stampAssetRef?.isNotEmpty == true) 'stampAssetRef': stampAssetRef,
     };
   }
 
@@ -409,7 +416,7 @@ List<SheetAnnotationStampPack> _normalizeStampPacks(
   final seen = <String>{};
   final normalized = <SheetAnnotationStampPack>[];
   for (final pack in packs) {
-    if (pack.validate().isValid && seen.add(pack.id)) {
+    if (pack.validate(allowImageStamps: true).isValid && seen.add(pack.id)) {
       normalized.add(pack);
     }
   }

@@ -2254,3 +2254,12 @@ existing score markings. Unsafe cleanup refs are ignored and cleanup failures do
 delete path. Focused asset-store and controller tests cover unreferenced deletion, referenced
 preservation, and placed annotation preservation. Full backup asset byte round-trip and PDF bitmap
 appearance export remain follow-up.
+
+S190 VERIFIED LOCAL: closed the full-backup gap for image stamp asset bytes. Full backup ZIP manifests
+now include `stampAssetRef` file mappings under `stamp-assets/` for validated image user stamps, export
+the app-owned PNG/JPEG/WebP bytes when present, restore them back into annotation stamp storage before
+metadata replacement, and count missing stamp assets without dropping the stamp metadata. The backup
+codec now normalizes validated image stamp packs consistently with the active library store instead of
+filtering them through the older text/icon-only gate. Focused full-backup tests cover image stamp asset
+byte round-trip. Flattened PDF bitmap drawing and editable PDF image stamp appearance mapping remain
+follow-up.

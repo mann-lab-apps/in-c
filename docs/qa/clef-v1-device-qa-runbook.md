@@ -381,8 +381,8 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 
 ## Image stamp import QA
 
-자동 테스트는 image stamp asset copy, metadata 저장/복원, picker 선택을 검증한다. 실기기에서는
-Android/iOS 파일 선택 provider와 권리 안내 copy가 자연스러운지 확인한다.
+자동 테스트는 image stamp asset copy, metadata 저장/복원, full backup asset byte round-trip,
+picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 provider와 권리 안내 copy가 자연스러운지 확인한다.
 
 1. 직접 만든 작은 PNG/JPEG/WebP 파일을 준비한다.
 2. 필기 toolbar에서 `스탬프` > `사용자 스탬프` > `이미지 스탬프 추가`를 연다.
@@ -392,7 +392,9 @@ Android/iOS 파일 선택 provider와 권리 안내 copy가 자연스러운지 �
    읽히지 않는 경우 label fallback으로 보이는지 기록한다.
 6. 앱을 재시작하거나 같은 라이브러리를 다시 열어 image stamp metadata와 배치된 annotation이 유지되는지
    확인한다.
-7. editable PDF image stamp mapping과 PDF export bitmap rendering은 아직 follow-up으로 기록한다.
+7. 가능하면 full backup ZIP을 만들고 새 설치/빈 라이브러리에 복원해 image stamp가 다시 bitmap으로
+   보이는지 확인한다.
+8. editable PDF image stamp mapping과 PDF export bitmap rendering은 아직 follow-up으로 기록한다.
 
 ## Editable PDF annotation export QA
 

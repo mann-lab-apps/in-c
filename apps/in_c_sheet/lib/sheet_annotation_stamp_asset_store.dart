@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as image;
@@ -76,7 +77,8 @@ class SheetAnnotationStampAssetStore {
       );
     }
 
-    final decoded = image.decodeImage(bytes);
+    final assetBytes = Uint8List.fromList(bytes);
+    final decoded = image.decodeImage(assetBytes);
     if (decoded == null) {
       return const SheetImageStampAssetImportResult(
         didStore: false,
@@ -153,7 +155,7 @@ class SheetAnnotationStampAssetStore {
 
     await destination.parent.create(recursive: true);
     final tempFile = File('${destination.path}.tmp');
-    await tempFile.writeAsBytes(bytes, flush: true);
+    await tempFile.writeAsBytes(assetBytes, flush: true);
     if (destination.existsSync()) {
       await destination.delete();
       await tempFile.rename(destination.path);
@@ -182,6 +184,36 @@ class SheetAnnotationStampAssetStore {
 
   Future<bool> assetExists(String assetRef) async {
     return (await assetFileForRef(assetRef)).exists();
+  }
+
+  Future<bool> restoreImageStampAsset({
+    required String assetRef,
+    required List<int> bytes,
+  }) async {
+    if (bytes.length > SheetAnnotationStampPack.maxImageAssetBytes) {
+      return false;
+    }
+    final assetBytes = Uint8List.fromList(bytes);
+    final decoded = image.decodeImage(assetBytes);
+    if (decoded == null ||
+        decoded.width <= 0 ||
+        decoded.height <= 0 ||
+        decoded.width > SheetAnnotationStampPack.maxImageAssetDimensionPixels ||
+        decoded.height >
+            SheetAnnotationStampPack.maxImageAssetDimensionPixels ||
+        decoded.width * decoded.height >
+            SheetAnnotationStampPack.maxImageAssetPixels) {
+      return false;
+    }
+    final destination = await assetFileForRef(assetRef);
+    await destination.parent.create(recursive: true);
+    final tempFile = File('${destination.path}.restore-tmp');
+    await tempFile.writeAsBytes(assetBytes, flush: true);
+    if (await destination.exists()) {
+      await destination.delete();
+    }
+    await tempFile.rename(destination.path);
+    return true;
   }
 
   Future<bool> deleteAssetIfUnreferenced({

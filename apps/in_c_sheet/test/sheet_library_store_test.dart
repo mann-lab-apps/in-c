@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_annotation_stamp_asset_store.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
@@ -20,6 +21,7 @@ import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
+import 'package:image/image.dart' as image;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
@@ -2259,6 +2261,22 @@ void main() {
     expect(SheetLibraryFullBackupFileMapping.decodeList('bad'), isEmpty);
   });
 
+  test('decodes full backup stamp asset mappings', () {
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(<dynamic>[
+      <String, dynamic>{
+        'scoreId': '',
+        'entryPath': 'stamp-assets/stamps/photos/photo-cue.png',
+        'originalFileName': 'photo-cue.png',
+        'missing': false,
+        'stampAssetRef': 'stamps/photos/photo-cue.png',
+      },
+    ]);
+
+    expect(mappings, hasLength(1));
+    expect(mappings.single.isStampAsset, isTrue);
+    expect(mappings.single.stampAssetRef, 'stamps/photos/photo-cue.png');
+  });
+
   test('skips invalid full backup file mappings', () {
     final mappings = SheetLibraryFullBackupFileMapping.decodeList(<dynamic>[
       <String, dynamic>{
@@ -2781,6 +2799,84 @@ void main() {
     expect(
       restoredTemplates.single.viewerSettings.pageScale,
       SheetViewerSettings.fullscreenScale,
+    );
+  });
+
+  test('full backup restores image stamp asset bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final source = File('${documentsDir.path}/photo-cue.png');
+    final imageBytes = image.encodePng(image.Image(width: 2, height: 1));
+    await source.writeAsBytes(imageBytes, flush: true);
+    final assetStore = SheetAnnotationStampAssetStore();
+    final importResult = await assetStore.importImageStampAsset(
+      sourceFile: source,
+      packId: 'photos',
+      stampId: 'photo-cue',
+      label: 'Photo cue',
+    );
+    final stamp = importResult.userStamp!;
+    await store.saveUserAnnotationStampPacks([
+      SheetAnnotationStampPack(
+        id: 'photos',
+        name: 'Photos',
+        version: 1,
+        createdAt: DateTime.utc(2026, 10, 8),
+        updatedAt: DateTime.utc(2026, 10, 8),
+        stamps: <SheetAnnotationUserStamp>[stamp],
+      ),
+    ]);
+    expect(
+      (await store.loadUserAnnotationStampPacks())
+          .single
+          .stamps
+          .single
+          .assetRef,
+      stamp.assetRef,
+    );
+    final dryBackup = SheetLibraryBackup.fromState(
+      scores: const <SheetScore>[],
+      setlists: const <SheetSetlist>[],
+      metronomeSettings: SheetMetronomeSettings.defaultSettings,
+      tunerSettings: SheetTunerSettings.defaultSettings,
+      libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      userAnnotationStampPacks: await store.loadUserAnnotationStampPacks(),
+    );
+    expect(dryBackup.userAnnotationStampPacks, hasLength(1));
+
+    final zipBytes = await store.exportFullBackupZipBytes();
+    final archive = ZipDecoder().decodeBytes(zipBytes);
+    final manifest = jsonDecode(
+      utf8.decode(
+        archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+      ),
+    ) as Map;
+    final mappings = (manifest['fileMappings'] as List).cast<Map>();
+    final stampMapping = mappings.singleWhere(
+      (mapping) => mapping.containsKey('stampAssetRef'),
+    );
+    expect(stampMapping['stampAssetRef'], stamp.assetRef);
+    expect(
+      archive.findFile(stampMapping['entryPath'] as String)?.content,
+      imageBytes,
+    );
+
+    final oldDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-stamp-restore-');
+    await oldDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final restoreStore = SheetLibraryStore();
+    final result = await restoreStore.restoreFullBackupZipBytes(zipBytes);
+
+    expect(result.didRestore, isTrue);
+    final restoredPacks = await restoreStore.loadUserAnnotationStampPacks();
+    expect(restoredPacks.single.stamps.single.assetRef, stamp.assetRef);
+    final restoredAssetStore = SheetAnnotationStampAssetStore();
+    expect(await restoredAssetStore.assetExists(stamp.assetRef), isTrue);
+    expect(
+      await (await restoredAssetStore.assetFileForRef(stamp.assetRef))
+          .readAsBytes(),
+      imageBytes,
     );
   });
 
