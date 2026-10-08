@@ -67,6 +67,7 @@ class SheetStandardPdfAnnotationInspection {
     'Line',
     'Square',
     'FreeText',
+    'Stamp',
   };
 
   bool get hasClefAnnotations => clefAnnotationCount > 0;
@@ -189,10 +190,10 @@ class SheetAnnotatedPdfExporter {
           'arrowLineAnnotation',
           'squareAnnotation',
           'freeTextAnnotation',
+          'imageStampAnnotation',
         ],
         unsupportedAnnotationTypes: <String>[
           'stampAnnotation',
-          'imageStampAnnotation',
           'staffGridAnnotation',
           'hairpinAnnotation',
         ],
@@ -318,6 +319,7 @@ class SheetAnnotatedPdfExporter {
         exportableTexts: exportableTexts,
         strokeCount: strokeCount,
         textCount: textCount,
+        readImageStampAssetBytes: readImageStampAssetBytes,
       );
     }
     if (strokeCount + textCount == 0) {
@@ -444,6 +446,7 @@ class SheetAnnotatedPdfExporter {
     required List<SheetTextAnnotation> exportableTexts,
     required int strokeCount,
     required int textCount,
+    SheetPdfImageStampAssetReader? readImageStampAssetBytes,
   }) async {
     if (strokeCount + textCount == 0) {
       return SheetAnnotatedPdfExportResult(
@@ -464,6 +467,10 @@ class SheetAnnotatedPdfExporter {
       final document = PdfDocument.open(inputBytes);
       final editor = PdfEditor(document);
       final pageCount = document.pageCount;
+      final imageStampAssets = await _loadImageStampAssets(
+        exportableTexts,
+        readImageStampAssetBytes,
+      );
       var wroteAnnotation = false;
       var inRangeAnnotationCount = 0;
       var exportedTextCount = 0;
@@ -486,7 +493,13 @@ class SheetAnnotatedPdfExporter {
         }
         for (final text in texts) {
           inRangeAnnotationCount += 1;
-          if (_addStandardTextAnnotation(editor, pageIndex, geometry, text)) {
+          if (_addStandardTextAnnotation(
+            editor,
+            pageIndex,
+            geometry,
+            text,
+            imageStampAssets,
+          )) {
             exportedTextCount += 1;
             wroteAnnotation = true;
           }
@@ -637,9 +650,25 @@ class SheetAnnotatedPdfExporter {
     int pageIndex,
     SheetPdfAnnotationGeometry geometry,
     SheetTextAnnotation text,
+    Map<String, PdfEmbeddableImage> imageStampAssets,
   ) {
     if (text.isImageStamp) {
-      return false;
+      final image = imageStampAssets[text.stampAssetRef];
+      if (image == null) {
+        return false;
+      }
+      final rect = _imageStampPdfRect(geometry, text, image);
+      if (rect.width <= 0 || rect.height <= 0) {
+        return false;
+      }
+      editor.addImageStamp(
+        pageIndex,
+        rect,
+        image,
+        author: 'Clef & Staff',
+        name: _standardAnnotationName(text.id),
+      );
+      return true;
     }
     final trimmedText = text.text.trim();
     if (trimmedText.isEmpty) {
@@ -674,6 +703,21 @@ class SheetAnnotatedPdfExporter {
       name: _standardAnnotationName(text.id),
     );
     return true;
+  }
+
+  static PdfRect _imageStampPdfRect(
+    SheetPdfAnnotationGeometry geometry,
+    SheetTextAnnotation text,
+    PdfEmbeddableImage image,
+  ) {
+    final point = geometry.toPdfPoint(text.position);
+    final size = _imageStampPdfSize(geometry, text, image);
+    return PdfRect(
+      point.x,
+      point.y - size.height,
+      point.x + size.width,
+      point.y,
+    );
   }
 
   static String _standardAnnotationName(String id) {
@@ -932,18 +976,11 @@ class SheetAnnotatedPdfExporter {
     SheetTextAnnotation text,
     PdfEmbeddableImage image,
   ) {
-    final point = geometry.toPdfPoint(text.position);
-    final base =
-        (text.fontSize *
-                (math.min(geometry.width, geometry.height) / 640) *
-                3.1)
-            .clamp(18.0, 96.0)
-            .toDouble();
-    final aspect = image.height == 0 ? 1.0 : image.width / image.height;
-    final width = (base * aspect).clamp(18.0, 120.0).toDouble();
-    final height = base;
-    final x = point.x;
-    final y = point.y - height;
+    final rect = _imageStampPdfRect(geometry, text, image);
+    final width = rect.width;
+    final height = rect.height;
+    final x = rect.left;
+    final y = rect.bottom;
     stamp.rect(
       x,
       y,
@@ -961,6 +998,21 @@ class SheetAnnotatedPdfExporter {
       width: math.max(1, width - (inset * 2)).toDouble(),
       height: math.max(1, height - (inset * 2)).toDouble(),
     );
+  }
+
+  static ({double width, double height}) _imageStampPdfSize(
+    SheetPdfAnnotationGeometry geometry,
+    SheetTextAnnotation text,
+    PdfEmbeddableImage image,
+  ) {
+    final base =
+        (text.fontSize *
+                (math.min(geometry.width, geometry.height) / 640) *
+                3.1)
+            .clamp(18.0, 96.0)
+            .toDouble();
+    final aspect = image.height == 0 ? 1.0 : image.width / image.height;
+    return (width: (base * aspect).clamp(18.0, 120.0).toDouble(), height: base);
   }
 
   static int _rgb(int color) => color & 0x00ffffff;

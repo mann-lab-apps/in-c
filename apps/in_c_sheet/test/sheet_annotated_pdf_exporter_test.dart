@@ -47,7 +47,12 @@ void main() {
     expect(standard.isStandardAnnotationEmbedding, isTrue);
     expect(standard.supportedAnnotationTypes, contains('inkAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('freeTextAnnotation'));
+    expect(standard.supportedAnnotationTypes, contains('imageStampAnnotation'));
     expect(standard.unsupportedAnnotationTypes, contains('hairpinAnnotation'));
+    expect(
+      standard.unsupportedAnnotationTypes,
+      isNot(contains('imageStampAnnotation')),
+    );
     expect(standard.requiredSpikeItems, contains('acrobatPreviewFixture'));
   });
 
@@ -671,50 +676,77 @@ void main() {
     },
   );
 
-  test('does not write standard export when only image stamps match', () async {
-    final input = File('test-fixtures/pdfs/short-score.pdf');
-    final now = DateTime.parse('2026-10-08T10:00:00.000');
-    final score = SheetScore(
-      id: 'score-1',
-      title: 'Short Score',
-      composer: '',
-      tags: const <String>[],
-      note: '',
-      filePath: input.path,
-      importedAt: now,
-      updatedAt: now,
-      lastOpenedAt: null,
-      lastPage: 1,
-      isFavorite: false,
-      bookmarks: const <SheetBookmark>[],
-      annotationLayer: SheetAnnotationLayer(
-        strokes: const <SheetAnnotationStroke>[],
-        texts: <SheetTextAnnotation>[
-          SheetTextAnnotation(
-            id: 'image-stamp-1',
-            pageNumber: 1,
-            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
-            text: 'Cue photo',
-            color: 0xff111111,
-            fontSize: 18,
-            createdAt: now,
-            stampKind: SheetAnnotationUserStamp.imageKind,
-            stampAssetRef: 'stamps/user/cue-photo.png',
-          ),
-        ],
-      ),
-    );
+  test(
+    'writes standard image stamp annotations when asset bytes are available',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-standard-image-stamp-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final outputPath =
+          '${outputDir.path}/short-score-standard-image-stamp.pdf';
+      final pngBytes = image.encodePng(image.Image(width: 8, height: 8));
+      final now = DateTime.parse('2026-10-08T10:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'image-stamp-1',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+              text: 'Cue photo',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+              stampKind: SheetAnnotationUserStamp.imageKind,
+              stampAssetRef: 'stamps/user/cue-photo.png',
+            ),
+          ],
+        ),
+      );
 
-    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
-      score: score,
-      outputPath: '/tmp/unused-clef-standard-image-stamp.pdf',
-      mode: SheetPdfAnnotationExportMode.standardAnnotation,
-    );
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        readImageStampAssetBytes: (assetRef) async =>
+            assetRef == 'stamps/user/cue-photo.png' ? pngBytes : null,
+      );
+      final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+      final annotation = exported.page(0).annotations.single;
+      final inspection =
+          await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+            outputPath,
+          );
 
-    expect(result.didWrite, isFalse);
-    expect(result.hasUnsupportedStandardAnnotationObjectMapping, isTrue);
-    expect(result.textCount, 1);
-  });
+      expect(result.didWrite, isTrue);
+      expect(result.textCount, 1);
+      expect(result.exportedTextCount, 1);
+      expect(annotation.subtype, 'Stamp');
+      expect(annotation.isImageStamp, isTrue);
+      expect(inspection.clefAnnotationCount, 1);
+      expect(inspection.containsClefSubtype('Stamp'), isTrue);
+      expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    },
+  );
 
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');

@@ -2273,3 +2273,10 @@ WebP assets keep the label fallback, and editable standard PDF export still trea
 unsupported mapping rather than silently emitting `/FreeText`. Focused exporter tests cover flattened
 PNG image stamp output. External Acrobat/Preview/MobileSheets/Piascore compatibility and editable image
 stamp appearance streams remain follow-up.
+
+S192 VERIFIED LOCAL: closed the local editable PDF image stamp mapping gap. Standard annotation export
+now reuses the same image stamp asset reader and emits PNG/JPEG image stamps as `/Stamp` annotations
+with generated image appearances instead of rejecting them or degrading them to `/FreeText`. The local
+inspection fixture now treats Clef `Stamp` annotations as supported and verifies the image stamp flag
+after reopening the exported PDF. WebP remains a rendered-label fallback until the PDF embedding layer
+supports it. Acrobat/Preview/MobileSheets/Piascore compatibility still needs external viewer QA.

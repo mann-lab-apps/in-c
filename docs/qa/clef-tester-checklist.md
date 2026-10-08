@@ -66,7 +66,8 @@
    bitmap으로 보이고, asset을 읽지 못하는 상황에서는 label fallback으로 남는지 기록한다.
    full backup ZIP을 복원할 수 있는 환경이라면 image stamp asset도 함께 돌아와 bitmap으로 보이는지 확인한다.
    PNG/JPEG image stamp가 포함된 `필기 포함 PDF 공유/인쇄` 일반 고정 사본도 만들어, 외부 PDF 앱에서
-   label만이 아니라 실제 이미지로 보이는지 확인한다.
+   label만이 아니라 실제 이미지로 보이는지 확인한다. 편집 가능한 PDF 주석 사본에서는 같은 image stamp가
+   `/Stamp` annotation처럼 선택/이동 가능한지 확인하고, 호환되지 않는 앱을 기록한다.
    필기 layer 메뉴에서 새 layer를 추가하고, 이름 변경/표시/PDF 포함 토글/삭제가 가능한지 확인한다.
    layer 삭제 후 해당 layer에 있던 주석은 사라지지 않고 기본 필기로 보이는지 확인한다.
    스탬프를 다시 탭해 상/하/좌/우 미세 이동 후 복원되는지도 확인한다.
@@ -460,9 +461,9 @@
 - 샘플 파일 공유 가능 여부.
 - 테스트 영역: import, viewer, search, annotation export, backup, pedal, S Pen, tuner, audio 등.
 - annotation export를 볼 때는 flattened PDF 사본과 editable standard annotation 사본을 구분해 적는다.
-  Standard 사본은 pen/highlighter, line/arrow, rectangle, text note가 외부 viewer에서 보이는지와
-  선택/편집 가능한지를 기록한다. Hairpin/staff/grid/stamp/image stamp는 아직 follow-up으로 본다.
-  Image stamp는 standard editable export에서 FreeText로 오인되지 않아야 한다.
+  Standard 사본은 pen/highlighter, line/arrow, rectangle, text note, image stamp가 외부 viewer에서
+  보이는지와 선택/편집 가능한지를 기록한다. Hairpin/staff/grid/text-template stamp는 아직 follow-up으로 본다.
+  Image stamp는 standard editable export에서 FreeText로 오인되지 않고 `/Stamp`로 남아야 한다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.

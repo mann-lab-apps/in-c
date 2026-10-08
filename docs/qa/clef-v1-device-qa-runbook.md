@@ -396,7 +396,8 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
    보이는지 확인한다.
 8. `필기 포함 PDF 공유/인쇄`의 일반 고정 사본을 만들어 PNG/JPEG image stamp가 label만이 아니라
    실제 bitmap으로 보이는지 확인한다. WebP asset은 현재 label fallback으로 기록한다.
-9. editable PDF image stamp mapping은 아직 follow-up으로 기록한다.
+9. 편집 가능한 PDF 주석 사본도 만들어 PNG/JPEG image stamp가 `/Stamp` annotation으로 남는지 확인한다.
+   Acrobat/Preview/MobileSheets/Piascore에서 보이지 않거나 선택/이동이 이상하면 호환성 ISSUE로 기록한다.
 
 ## Editable PDF annotation export QA
 
@@ -408,7 +409,7 @@ annotation subtype, Clef `/NM` 이름, contents, generated appearance를 포함�
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
-5. hairpin/staff/grid/stamp/image stamp는 아직 editable standard mapping 완료로 보지 않고 rendered fallback 또는 follow-up으로 기록한다. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않는지도 확인한다.
+5. hairpin/staff/grid/text-template stamp는 아직 editable standard mapping 완료로 보지 않고 rendered fallback 또는 follow-up으로 기록한다. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지도 확인한다.
 
 기록:
 
