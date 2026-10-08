@@ -3558,6 +3558,13 @@ Clef & Staff 세트리스트
 
     expect(find.text('리허설 메모'), findsOneWidget);
     expect(find.byTooltip('리허설 메모 layer 숨기기'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('필기 layer 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('현재 layer 이름 변경'), findsOneWidget);
+    expect(find.text('현재 layer 삭제'), findsOneWidget);
+    expect(find.text('주석은 기본 필기로 유지'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

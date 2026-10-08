@@ -368,6 +368,17 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 - v1.1 spike: OCR, HEIC native conversion, PDF standard annotation external-viewer compatibility, HID capture wizard,
   SAF/iOS Files direct folder, iOS Share Extension, font embedding, cloud sync, page별 live rotation.
 
+## Annotation layer management QA
+
+자동 테스트는 active layer 선택/추가/이름 변경/삭제와 삭제 후 annotation fallback을 검증한다.
+실기기에서는 stylus 입력 중 layer를 바꾸는 손맛과 실수 가능성을 확인한다.
+
+1. 필기 toolbar의 layer 메뉴에서 새 layer를 만들고 선택한다.
+2. 새 layer에 펜/텍스트/스탬프를 하나씩 추가한 뒤 표시/숨김과 PDF 포함/제외 토글을 확인한다.
+3. layer 이름을 변경하고, toolbar와 메뉴 label이 함께 갱신되는지 확인한다.
+4. non-default layer를 삭제하고, 해당 layer에 있던 annotation이 사라지지 않고 기본 필기로 보이는지 확인한다.
+5. 기본 필기는 삭제/이름 변경 대상이 아니어야 한다.
+
 ## Editable PDF annotation export QA
 
 앱 내부 자동 테스트는 standard export PDF가 다시 열리고 `/Ink`, `/Line`, `/Square`, `/FreeText`

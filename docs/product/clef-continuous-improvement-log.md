@@ -2217,3 +2217,11 @@ through decode and import dry-run preview. Focused tests cover image metadata pl
 assets being dropped, and export-side asset inclusion. This is still a codec/export slice: local image
 stamp creation UI, metadata backup asset round-trip, orphan cleanup, and PDF image-stamp appearance
 mapping remain follow-up.
+
+S186 VERIFIED LOCAL: completed the first active annotation layer management UI slice. The annotation
+toolbar layer menu now exposes rename and delete actions for non-default layers, while keeping the
+default layer protected. Rename reuses the existing layer update path; delete removes only the display
+layer and leaves existing annotations intact so orphaned annotations fall back to the default layer
+instead of disappearing. Focused controller and widget tests verify rename, delete, fallback visibility,
+and the named toolbar affordances. Moving existing annotations between layers, per-layer undo and
+multi-select layer operations remain follow-up.

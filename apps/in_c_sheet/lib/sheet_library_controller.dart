@@ -3034,6 +3034,23 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> removeAnnotationDisplayLayer(
+    SheetScore score,
+    String layerId,
+  ) async {
+    final nextLayer = score.annotationLayer.removeDisplayLayer(layerId);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
   Future<SheetSetlist> createSetlist(String title) async {
     final now = DateTime.now();
     final setlist = SheetSetlist(

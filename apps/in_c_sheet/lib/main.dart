@@ -15719,6 +15719,79 @@ setlist=$setlistLabel
     _showSnackBar('${layer.label} layer를 추가했습니다.');
   }
 
+  Future<void> _renameAnnotationDisplayLayer() async {
+    final displayLayer = _activeAnnotationDisplayLayer(score.annotationLayer);
+    if (displayLayer.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+      _showSnackBar('기본 필기 layer 이름은 바꿀 수 없습니다.');
+      return;
+    }
+    final label = await _showTextEntryDialog(
+      context: context,
+      title: '필기 layer 이름 변경',
+      label: 'layer 이름',
+      initialValue: displayLayer.label,
+    );
+    final trimmedLabel = label?.trim();
+    if (trimmedLabel == null ||
+        trimmedLabel.isEmpty ||
+        trimmedLabel == displayLayer.label) {
+      return;
+    }
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() {
+      return widget.controller.updateAnnotationDisplayLayer(
+        score,
+        displayLayer.copyWith(label: trimmedLabel),
+      );
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
+    setState(() {
+      _activeAnnotationLayerId = displayLayer.id;
+    });
+    _showSnackBar('$trimmedLabel layer로 이름을 바꿨습니다.');
+  }
+
+  Future<void> _deleteAnnotationDisplayLayer() async {
+    final displayLayer = _activeAnnotationDisplayLayer(score.annotationLayer);
+    if (displayLayer.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+      _showSnackBar('기본 필기 layer는 삭제할 수 없습니다.');
+      return;
+    }
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('필기 layer 삭제'),
+        content: Text(
+          '"${displayLayer.label}" layer를 삭제할까요?\n\n'
+          '이 layer에 있던 주석은 삭제하지 않고 기본 필기로 표시됩니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (didConfirm != true) return;
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() {
+      return widget.controller.removeAnnotationDisplayLayer(
+        score,
+        displayLayer.id,
+      );
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
+    setState(() {
+      _activeAnnotationLayerId = SheetAnnotationDisplayLayer.defaultLayerId;
+    });
+    _showSnackBar('${displayLayer.label} layer를 삭제했습니다.');
+  }
+
   List<_AnnotationStamp> _recentAnnotationStamps() {
     final seen = <_AnnotationStamp>{};
     final stamps = <_AnnotationStamp>[];
@@ -18178,6 +18251,8 @@ setlist=$setlistLabel
                           },
                           onLayerSelected: _selectAnnotationDisplayLayer,
                           onCreateLayer: _createAnnotationDisplayLayer,
+                          onRenameLayer: _renameAnnotationDisplayLayer,
+                          onDeleteLayer: _deleteAnnotationDisplayLayer,
                           onStampSelected: _selectAnnotationStamp,
                           onCreateUserStamp: (label, text) async {
                             final didSave = await widget.controller
@@ -20732,6 +20807,8 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onToolSelected,
     required this.onLayerSelected,
     required this.onCreateLayer,
+    required this.onRenameLayer,
+    required this.onDeleteLayer,
     required this.onStampSelected,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
@@ -20760,6 +20837,8 @@ class _AnnotationToolbar extends StatelessWidget {
   final ValueChanged<_AnnotationToolbarTool> onToolSelected;
   final ValueChanged<String> onLayerSelected;
   final VoidCallback onCreateLayer;
+  final VoidCallback onRenameLayer;
+  final VoidCallback onDeleteLayer;
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
@@ -20812,6 +20891,14 @@ class _AnnotationToolbar extends StatelessWidget {
               onCreateLayer();
               return;
             }
+            if (value == '__rename_layer__') {
+              onRenameLayer();
+              return;
+            }
+            if (value == '__delete_layer__') {
+              onDeleteLayer();
+              return;
+            }
             onLayerSelected(value);
           },
           itemBuilder: (context) => <PopupMenuEntry<String>>[
@@ -20843,6 +20930,25 @@ class _AnnotationToolbar extends StatelessWidget {
                 title: Text('새 layer 추가'),
               ),
             ),
+            if (activeLayer.id != SheetAnnotationDisplayLayer.defaultLayerId)
+              const PopupMenuItem<String>(
+                value: '__rename_layer__',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.edit_outlined),
+                  title: Text('현재 layer 이름 변경'),
+                ),
+              ),
+            if (activeLayer.id != SheetAnnotationDisplayLayer.defaultLayerId)
+              const PopupMenuItem<String>(
+                value: '__delete_layer__',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.delete_outline),
+                  title: Text('현재 layer 삭제'),
+                  subtitle: Text('주석은 기본 필기로 유지'),
+                ),
+              ),
           ],
           child: Semantics(
             button: true,
@@ -24737,6 +24843,8 @@ Widget buildAnnotationToolbarForTest({
             selectedLayerId = layerId;
           }),
           onCreateLayer: () {},
+          onRenameLayer: () {},
+          onDeleteLayer: () {},
           onColorSelected: (_) {},
           onWidthChanged: (_) {},
           onStampSelected: (selection) {

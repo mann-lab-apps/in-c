@@ -3843,11 +3843,36 @@ Clef & Staff 세트리스트
     expect(layer.exportableTextsForPage(1), isEmpty);
     expect(layer.texts.single.layerId, 'rehearsal');
 
-    final persisted = (await store.loadScores()).single.annotationLayer;
-    expect(persisted.displayLayerForAnnotation('rehearsal').isVisible, isFalse);
+    final didRename = await controller.updateAnnotationDisplayLayer(
+      controller.scores.single,
+      layer.displayLayerForAnnotation('rehearsal').copyWith(label: '공연 메모'),
+    );
+    expect(didRename, isTrue);
     expect(
-      persisted.displayLayerForAnnotation('rehearsal').includeInExport,
-      isFalse,
+      controller.scores.single.annotationLayer
+          .displayLayerForAnnotation('rehearsal')
+          .label,
+      '공연 메모',
+    );
+
+    final didDelete = await controller.removeAnnotationDisplayLayer(
+      controller.scores.single,
+      'rehearsal',
+    );
+    expect(didDelete, isTrue);
+    final afterDelete = controller.scores.single.annotationLayer;
+    expect(afterDelete.displayLayerLabels, isNot(contains('공연 메모')));
+    expect(
+      afterDelete.texts.single.layerId,
+      'rehearsal',
+      reason: 'Deleting a display layer must not delete existing annotations.',
+    );
+    expect(afterDelete.visibleTextsForPage(1), hasLength(1));
+
+    final persisted = (await store.loadScores()).single.annotationLayer;
+    expect(
+      persisted.displayLayerForAnnotation('rehearsal').id,
+      SheetAnnotationDisplayLayer.defaultLayerId,
     );
   });
 
