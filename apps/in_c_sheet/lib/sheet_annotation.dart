@@ -190,6 +190,100 @@ class SheetAnnotationUserStamp {
   }
 }
 
+class SheetAnnotationImageStampAssetPlan {
+  const SheetAnnotationImageStampAssetPlan({
+    required this.packId,
+    required this.stampId,
+    required this.assetRef,
+    required this.checksum,
+    required this.assetSizeBytes,
+    required this.assetWidthPixels,
+    required this.assetHeightPixels,
+  });
+
+  factory SheetAnnotationImageStampAssetPlan.forImport({
+    required String packId,
+    required String stampId,
+    required String sourceFileName,
+    required String checksum,
+    required int assetSizeBytes,
+    required int assetWidthPixels,
+    required int assetHeightPixels,
+  }) {
+    final normalizedPackId = _safeImageAssetPathSegment(
+      packId,
+      fallback: 'pack',
+    );
+    final normalizedStampId = _safeImageAssetPathSegment(
+      stampId,
+      fallback: 'stamp',
+    );
+    final extension = _imageAssetExtension(sourceFileName);
+    final assetRef =
+        '${SheetAnnotationStampPack.imageAssetPathPrefix}'
+        '$normalizedPackId/$normalizedStampId$extension';
+    return SheetAnnotationImageStampAssetPlan(
+      packId: normalizedPackId,
+      stampId: normalizedStampId,
+      assetRef: assetRef,
+      checksum: checksum.trim(),
+      assetSizeBytes: assetSizeBytes,
+      assetWidthPixels: assetWidthPixels,
+      assetHeightPixels: assetHeightPixels,
+    );
+  }
+
+  final String packId;
+  final String stampId;
+  final String assetRef;
+  final String checksum;
+  final int assetSizeBytes;
+  final int assetWidthPixels;
+  final int assetHeightPixels;
+
+  bool get hasSupportedExtension {
+    return SheetAnnotationStampPack.allowedImageAssetExtensions.contains(
+      assetExtension,
+    );
+  }
+
+  String get assetExtension {
+    final dot = assetRef.lastIndexOf('.');
+    if (dot < 0 || dot == assetRef.length - 1) {
+      return '';
+    }
+    return assetRef.substring(dot + 1).toLowerCase();
+  }
+
+  SheetAnnotationUserStamp toUserStamp({
+    required String label,
+    String category = '',
+    String licenseLabel = '',
+    String sourceUrl = '',
+    List<String> keywords = const <String>[],
+  }) {
+    return SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: label.trim(),
+      category: category.trim(),
+      kind: SheetAnnotationUserStamp.imageKind,
+      assetRef: assetRef,
+      keywords: keywords
+          .map((keyword) => keyword.trim().toLowerCase())
+          .where((keyword) => keyword.isNotEmpty)
+          .toSet()
+          .toList(growable: false),
+      licenseLabel: licenseLabel.trim(),
+      sourceUrl: sourceUrl.trim(),
+      checksum: checksum,
+      assetSizeBytes: assetSizeBytes,
+      assetWidthPixels: assetWidthPixels,
+      assetHeightPixels: assetHeightPixels,
+    );
+  }
+}
+
 class SheetAnnotationStampPack {
   const SheetAnnotationStampPack({
     required this.id,
@@ -1761,6 +1855,32 @@ DateTime _dateTimeFromJson(Object? value) {
 
 String _normalizeStampToken(Object? value) {
   return _stringFromJson(value).trim().toLowerCase();
+}
+
+String _safeImageAssetPathSegment(String value, {required String fallback}) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_-]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  if (normalized.isEmpty || normalized == '.' || normalized == '..') {
+    return fallback;
+  }
+  return normalized;
+}
+
+String _imageAssetExtension(String sourceFileName) {
+  final normalized = sourceFileName
+      .trim()
+      .replaceAll('\\', '/')
+      .split('/')
+      .last;
+  final dot = normalized.lastIndexOf('.');
+  if (dot < 0 || dot == normalized.length - 1) {
+    return '';
+  }
+  return '.${normalized.substring(dot + 1).toLowerCase()}';
 }
 
 List<String> _normalizeStampKeywords(Object? value) {

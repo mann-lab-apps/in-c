@@ -2145,3 +2145,11 @@ rendered annotation types, unsupported editable object types and required spike 
 writer API, annotation mapping, font embedding and viewer compatibility fixtures. Focused exporter
 tests cover the capability model and the existing unsupported standard export result remains unchanged.
 Actual standard Ink/FreeText/Stamp object writing and cross-viewer compatibility remain follow-up.
+
+S178 VERIFIED LOCAL: reduced image stamp import/export risk by adding a deterministic internal asset
+planning model without opening the file picker or package asset round-trip yet. `SheetAnnotationImageStampAssetPlan`
+normalizes incoming pack/stamp IDs into a safe `stamps/<pack>/<stamp>.<ext>` asset reference, preserves
+checksum, byte size and pixel dimensions, and can create an image `SheetAnnotationUserStamp` that reuses
+the existing allow-image validation policy. Focused annotation tests cover a safe PNG source path with
+deduplicated keywords and an unsupported GIF/invalid checksum/oversized file path that remains rejected.
+Actual file copy/storage, image preview UI, backup/package asset inclusion and cleanup remain follow-up.

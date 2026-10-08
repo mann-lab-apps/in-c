@@ -408,6 +408,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   - 완료: image stamp import를 허용하기 전 지원 포맷과 안전한 asset manifest 정책을 validator에 고정한다.
     image asset은 `stamps/` 아래 상대 경로, PNG/JPEG/WebP, SHA-256 checksum, 2MB 이하,
     2048px 이하 edge와 2048x2048 이하 pixel budget을 요구한다.
+  - 완료: image stamp 파일을 실제로 복사하기 전 내부 저장 경로 계획 모델을 추가한다. Import plan은
+    외부 파일명 경로를 신뢰하지 않고 pack/stamp id로 `stamps/<pack>/<stamp>.<ext>` assetRef를 만들며,
+    checksum/byte size/dimensions를 stamp metadata로 넘긴다.
   - backup/export/setlist package/cloud sync에 user stamp asset을 포함할지
   - user stamp 삭제 시 기존 주석 rendering을 보존할지 fallback label로 바꿀지
   - 외부 stamp pack 공유를 허용할 경우 license/출처 표시와 악성/대용량 파일 방어
@@ -434,6 +437,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      library에 병합한다.
   7. 완료: image stamp asset manifest policy를 code validator로 고정한다. 실제 이미지 선택/import UI는
      license/export QA 이후 별도 slice로 연다.
+  8. 완료: image stamp asset import plan을 추가해 picker/storage/package가 재사용할 내부 assetRef 규칙을
+     고정한다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -441,12 +446,13 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   create/select/delete, user stamp search/category filtering, setlist package stamp metadata
   round-trip/import merge, package duplicate stamp preview and local-preservation merge, deleted
   custom stamp definition preserving already placed text annotations, mixed Korean/English label
-  search and category filtering.
-- 남은 테스트/fixture/실기기 조건: large pack performance, PDF export, S Pen picker use.
+  search and category filtering, image asset import plan safe/unsupported path validation.
+- 남은 테스트/fixture/실기기 조건: actual image file copy, corrupt image fixture, package/backup asset
+  round-trip, large pack performance, PDF export, S Pen picker use.
 - Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
   export path가 준비될 때까지 비활성이다.
-- Blocker 해제 조건: 권리/라이선스 copy 결정, image stamp asset storage/export implementation,
+- Blocker 해제 조건: 권리/라이선스 copy 결정, image stamp asset file copy/storage/export implementation,
   corrupt image fixture와 package/backup asset round-trip QA.
 
 ## RC 이후 추천 우선순위

@@ -272,6 +272,83 @@ void main() {
     );
   });
 
+  test('image stamp import plan creates safe internal asset metadata', () {
+    final plan = SheetAnnotationImageStampAssetPlan.forImport(
+      packId: ' My Pack ',
+      stampId: 'Photo Cue!',
+      sourceFileName: '../unsafe/Concert Photo.PNG',
+      checksum:
+          'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+      assetSizeBytes: 320000,
+      assetWidthPixels: 1024,
+      assetHeightPixels: 768,
+    );
+    final stamp = plan.toUserStamp(
+      label: 'Concert Photo',
+      category: 'Reference',
+      licenseLabel: 'Original',
+      sourceUrl: 'https://example.com/photo',
+      keywords: const <String>['Photo', 'photo', 'Cue'],
+    );
+    final pack = SheetAnnotationStampPack(
+      id: plan.packId,
+      name: 'Images',
+      version: 1,
+      createdAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      updatedAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      stamps: <SheetAnnotationUserStamp>[stamp],
+    );
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(plan.packId, 'my-pack');
+    expect(plan.stampId, 'photo-cue');
+    expect(plan.assetRef, 'stamps/my-pack/photo-cue.png');
+    expect(plan.assetExtension, 'png');
+    expect(plan.hasSupportedExtension, isTrue);
+    expect(stamp.assetRef, plan.assetRef);
+    expect(stamp.keywords, <String>['photo', 'cue']);
+    expect(result.isValid, isTrue);
+    expect(result.warnings, isEmpty);
+  });
+
+  test('image stamp import plan leaves unsupported files invalid', () {
+    final plan = SheetAnnotationImageStampAssetPlan.forImport(
+      packId: '',
+      stampId: '',
+      sourceFileName: '/tmp/photo.gif',
+      checksum: 'not-a-sha',
+      assetSizeBytes: SheetAnnotationStampPack.maxImageAssetBytes + 1,
+      assetWidthPixels: 64,
+      assetHeightPixels: 64,
+    );
+    final stamp = plan.toUserStamp(label: 'Gif');
+    final pack = SheetAnnotationStampPack(
+      id: plan.packId,
+      name: 'Images',
+      version: 1,
+      createdAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      updatedAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      stamps: <SheetAnnotationUserStamp>[stamp],
+    );
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(plan.packId, 'pack');
+    expect(plan.stampId, 'stamp');
+    expect(plan.assetRef, 'stamps/pack/stamp.gif');
+    expect(plan.hasSupportedExtension, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.stamp.assetRef extension is unsupported',
+        'stamp.stamp.checksum must be a SHA-256 hex digest',
+        'stamp.stamp.assetSizeBytes must be '
+            '${SheetAnnotationStampPack.maxImageAssetBytes} bytes or fewer',
+      ]),
+    );
+  });
+
   test('annotation models normalize decimal JSON numbers', () {
     final preset = SheetAnnotationToolPreset.fromJson(<String, Object?>{
       'toolName': 'pen',
