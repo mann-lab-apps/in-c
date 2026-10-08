@@ -104,6 +104,47 @@ void main() {
     },
   );
 
+  test('deletes image stamp assets only when unreferenced', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'clef-stamp-assets-cleanup-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final store = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final source = File('${root.path}/source/photo.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(_pngBytes(), flush: true);
+    final result = await store.importImageStampAsset(
+      sourceFile: source,
+      packId: 'pack',
+      stampId: 'photo',
+      label: 'Photo',
+      licenseLabel: 'Original',
+    );
+    final assetRef = result.plan!.assetRef;
+
+    expect(
+      await store.deleteAssetIfUnreferenced(
+        assetRef: assetRef,
+        referencedAssetRefs: <String>[assetRef],
+      ),
+      isFalse,
+    );
+    expect(await store.assetExists(assetRef), isTrue);
+
+    expect(
+      await store.deleteAssetIfUnreferenced(
+        assetRef: assetRef,
+        referencedAssetRefs: const <String>[],
+      ),
+      isTrue,
+    );
+    expect(await store.assetExists(assetRef), isFalse);
+  });
+
   test(
     'rejects unsafe or unsupported image stamp assets before writing',
     () async {

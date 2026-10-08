@@ -1800,6 +1800,7 @@ class SheetLibraryController extends ChangeNotifier {
     final libraryId = _activeLibraryProfile.id;
     final now = DateTime.now();
     var didRemove = false;
+    final removedImageAssetRefs = <String>[];
     final nextPacks = <SheetAnnotationStampPack>[];
     for (final pack in _userAnnotationStampPacks) {
       if (pack.id != normalizedPackId) {
@@ -1810,6 +1811,10 @@ class SheetLibraryController extends ChangeNotifier {
       for (final stamp in pack.stamps) {
         if (stamp.id == normalizedStampId) {
           didRemove = true;
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+              stamp.assetRef.isNotEmpty) {
+            removedImageAssetRefs.add(stamp.assetRef);
+          }
           continue;
         }
         nextStamps.add(stamp);
@@ -1830,7 +1835,47 @@ class SheetLibraryController extends ChangeNotifier {
     if (!didRemove) {
       return false;
     }
-    return _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+    final didSave = await _replaceUserAnnotationStampPacks(
+      nextPacks,
+      libraryId: libraryId,
+    );
+    if (didSave && _activeLibraryProfile.id == libraryId) {
+      await _deleteUnusedImageStampAssets(removedImageAssetRefs, nextPacks);
+    }
+    return didSave;
+  }
+
+  Future<void> _deleteUnusedImageStampAssets(
+    Iterable<String> assetRefs,
+    List<SheetAnnotationStampPack> remainingPacks,
+  ) async {
+    final candidates = assetRefs
+        .map((assetRef) => assetRef.trim())
+        .where((assetRef) => assetRef.isNotEmpty)
+        .toSet();
+    if (candidates.isEmpty) {
+      return;
+    }
+    final referenced = <String>{
+      for (final pack in remainingPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+              stamp.assetRef.isNotEmpty)
+            stamp.assetRef,
+      for (final score in _scores)
+        for (final text in score.annotationLayer.texts)
+          if (text.isImageStamp) text.stampAssetRef,
+    };
+    for (final assetRef in candidates) {
+      try {
+        await stampAssetStore.deleteAssetIfUnreferenced(
+          assetRef: assetRef,
+          referencedAssetRefs: referenced,
+        );
+      } catch (_) {
+        // Asset cleanup must not block stamp deletion or built-in stamps.
+      }
+    }
   }
 
   Future<void> _mergeImportedUserAnnotationStampPacks(

@@ -2246,3 +2246,11 @@ has a label fallback until bitmap PDF drawing is implemented. Focused tests cove
 metadata and the editable-PDF unsupported-image fixture. Full backup asset byte round-trip, orphan
 cleanup, flattened/exported bitmap drawing, and external Acrobat/Preview/MobileSheets/Piascore
 compatibility remain follow-up.
+
+S189 VERIFIED LOCAL: tightened image stamp asset lifecycle after custom stamp deletion. Deleting an
+unused image user stamp now removes its app-owned asset file, but the cleanup scans remaining user stamp
+packs and already placed image stamp annotations first so a deleted stamp definition cannot break
+existing score markings. Unsafe cleanup refs are ignored and cleanup failures do not block the stamp
+delete path. Focused asset-store and controller tests cover unreferenced deletion, referenced
+preservation, and placed annotation preservation. Full backup asset byte round-trip and PDF bitmap
+appearance export remain follow-up.

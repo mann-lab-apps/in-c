@@ -184,6 +184,30 @@ class SheetAnnotationStampAssetStore {
     return (await assetFileForRef(assetRef)).exists();
   }
 
+  Future<bool> deleteAssetIfUnreferenced({
+    required String assetRef,
+    required Iterable<String> referencedAssetRefs,
+  }) async {
+    final normalized = _normalizeAssetRef(assetRef);
+    final references = <String>{};
+    for (final reference in referencedAssetRefs) {
+      try {
+        references.add(_normalizeAssetRef(reference));
+      } catch (_) {
+        // Ignore stale or unsafe references; they cannot own this asset.
+      }
+    }
+    if (references.contains(normalized)) {
+      return false;
+    }
+    final file = await assetFileForRef(normalized);
+    if (!await file.exists()) {
+      return false;
+    }
+    await file.delete();
+    return true;
+  }
+
   Future<Directory> _assetRoot() async {
     final root = rootDirectory ?? await getApplicationDocumentsDirectory();
     return Directory('${root.path}/annotation-stamps');

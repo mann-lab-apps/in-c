@@ -3559,6 +3559,106 @@ Clef & Staff 세트리스트
     expect(restoredStamp.assetRef, stamp.assetRef);
   });
 
+  test('deleting unused image user stamp cleans up its asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-controller-image-stamp-delete-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final source = File('${root.path}/source/photo.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(_tinyPngBytes(), flush: true);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: SheetLibraryStore(),
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    await controller.createImageUserAnnotationStamp(
+      label: 'Photo cue',
+      sourceFile: source,
+    );
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+
+    expect(
+      await controller.deleteUserAnnotationStamp(
+        packId: stamp.packId,
+        stampId: stamp.id,
+      ),
+      isTrue,
+    );
+
+    expect(await stampAssetStore.assetExists(stamp.assetRef), isFalse);
+  });
+
+  test(
+    'deleting image user stamp preserves placed image annotations',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-controller-image-stamp-placed-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime.parse('2026-10-08T12:00:00.000');
+      final source = File('${root.path}/source/photo.png');
+      await source.parent.create(recursive: true);
+      await source.writeAsBytes(_tinyPngBytes(), flush: true);
+      final store = SheetLibraryStore();
+      final score = _score(now, id: 'solo', title: 'Solo');
+      await store.saveScores(<SheetScore>[score]);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      await controller.createImageUserAnnotationStamp(
+        label: 'Photo cue',
+        sourceFile: source,
+      );
+      final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+      await controller.addTextAnnotation(
+        controller.scores.single,
+        SheetTextAnnotation(
+          id: 'placed-image',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+          text: stamp.label,
+          color: 0xff111111,
+          fontSize: 18,
+          createdAt: now,
+          stampKind: SheetAnnotationUserStamp.imageKind,
+          stampAssetRef: stamp.assetRef,
+        ),
+      );
+
+      expect(
+        await controller.deleteUserAnnotationStamp(
+          packId: stamp.packId,
+          stampId: stamp.id,
+        ),
+        isTrue,
+      );
+
+      expect(await stampAssetStore.assetExists(stamp.assetRef), isTrue);
+      expect(controller.userAnnotationStampPacks, isEmpty);
+      expect(
+        controller.scores.single.annotationLayer.texts.single.stampAssetRef,
+        stamp.assetRef,
+      );
+    },
+  );
+
   test('deleting a user stamp preserves placed stamp annotations', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-10-02T10:00:00.000');

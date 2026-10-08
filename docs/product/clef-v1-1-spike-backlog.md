@@ -459,6 +459,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
       보존하고, viewer overlay가 app-owned image asset을 decode/cache해 bitmap으로 렌더링한다.
       asset이 없거나 읽을 수 없으면 label fallback으로 표시한다. Editable standard PDF export는 image
       stamp를 `/FreeText`로 오인하지 않고 unsupported mapping으로 남긴다.
+  13. 완료: image stamp definition 삭제 후 asset cleanup을 추가했다. 남은 user stamp pack이나 이미
+      악보에 배치된 image stamp annotation이 같은 assetRef를 참조하면 파일을 보존하고, 아무도 참조하지
+      않을 때만 app-owned asset 파일을 삭제한다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -470,15 +473,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   file copy/reuse/replace, corrupt image fixture and oversized file rejection, setlist package image
   asset ZIP round-trip and missing-asset filtering, image stamp picker selection and controller-level
   image stamp create/reload, placed image stamp metadata round-trip/hit-test, editable-PDF unsupported
-  image stamp fixture.
+  image stamp fixture, image stamp asset cleanup and placed annotation preservation.
 - 남은 테스트/fixture/실기기 조건: PDF bitmap rendering, metadata/full backup asset byte round-trip,
-  orphan cleanup, large pack performance, S Pen picker use, platform image picker provider behavior.
+  large pack performance, S Pen picker use, platform image picker provider behavior.
 - Acceptance criteria: 사용자가 직접 만든 text/icon/image stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. Image stamp는 현재 metadata/asset
   storage, package sharing, placed annotation metadata, viewer bitmap rendering을 지원하지만, PDF export는
   아직 label/unsupported fallback을 명확히 둔다.
-- Blocker 해제 조건: package/backup asset round-trip QA, orphan cleanup, flattened/editable PDF image
-  appearance mapping.
+- Blocker 해제 조건: package/backup asset round-trip QA, flattened/editable PDF image appearance mapping.
 
 ## 16. Annotation Layer Management
 
