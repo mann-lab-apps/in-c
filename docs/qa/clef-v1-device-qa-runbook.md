@@ -388,8 +388,11 @@ Android/iOS 파일 선택 provider와 권리 안내 copy가 자연스러운지 �
 2. 필기 toolbar에서 `스탬프` > `사용자 스탬프` > `이미지 스탬프 추가`를 연다.
 3. 파일 선택 후 이름 dialog가 뜨고, 저장하면 `사용자 스탬프` 섹션에 표시되는지 확인한다.
 4. 2MB 초과, 2048px 초과, GIF/unsupported 파일은 실패 안내를 보여야 하며 built-in stamp picker가 계속 동작해야 한다.
-5. 앱을 재시작하거나 같은 라이브러리를 다시 열어 image stamp metadata가 유지되는지 확인한다.
-6. 실제 악보 위 bitmap rendering과 editable PDF image stamp mapping은 아직 follow-up으로 기록한다.
+5. 악보 위를 탭해 image stamp를 배치하고 실제 bitmap으로 보이는지 확인한다. 이미지 파일이 삭제되거나
+   읽히지 않는 경우 label fallback으로 보이는지 기록한다.
+6. 앱을 재시작하거나 같은 라이브러리를 다시 열어 image stamp metadata와 배치된 annotation이 유지되는지
+   확인한다.
+7. editable PDF image stamp mapping과 PDF export bitmap rendering은 아직 follow-up으로 기록한다.
 
 ## Editable PDF annotation export QA
 
@@ -401,7 +404,7 @@ annotation subtype, Clef `/NM` 이름, contents, generated appearance를 포함�
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
-5. hairpin/staff/grid/stamp/image stamp는 아직 editable standard mapping 완료로 보지 않고 rendered fallback 또는 follow-up으로 기록한다.
+5. hairpin/staff/grid/stamp/image stamp는 아직 editable standard mapping 완료로 보지 않고 rendered fallback 또는 follow-up으로 기록한다. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않는지도 확인한다.
 
 기록:
 

@@ -609,6 +609,51 @@ void main() {
     },
   );
 
+  test('does not write standard export when only image stamps match', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'image-stamp-1',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: 'Cue photo',
+            color: 0xff111111,
+            fontSize: 18,
+            createdAt: now,
+            stampKind: SheetAnnotationUserStamp.imageKind,
+            stampAssetRef: 'stamps/user/cue-photo.png',
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: '/tmp/unused-clef-standard-image-stamp.pdf',
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+
+    expect(result.didWrite, isFalse);
+    expect(result.hasUnsupportedStandardAnnotationObjectMapping, isTrue);
+    expect(result.textCount, 1);
+  });
+
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
     final outputDir = await Directory.systemTemp.createTemp(

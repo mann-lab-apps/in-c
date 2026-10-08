@@ -382,6 +382,33 @@ void main() {
     expect(text.color, 0xff445566);
   });
 
+  test('image stamp annotations preserve asset metadata', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final text = SheetTextAnnotation(
+      id: 'image-stamp-1',
+      pageNumber: 2,
+      position: const SheetAnnotationPoint(x: 0.24, y: 0.42),
+      text: 'Cue photo',
+      color: 0xff224466,
+      fontSize: 24,
+      createdAt: now,
+      layerId: 'solo',
+      stampKind: SheetAnnotationUserStamp.imageKind,
+      stampAssetRef: 'stamps/user/cue-photo.png',
+    );
+
+    final decoded = SheetTextAnnotation.fromJson(text.toJson());
+
+    expect(decoded.isImageStamp, isTrue);
+    expect(decoded.stampKind, SheetAnnotationUserStamp.imageKind);
+    expect(decoded.stampAssetRef, 'stamps/user/cue-photo.png');
+    expect(decoded.layerId, 'solo');
+    expect(
+      decoded.hitTest(const SheetAnnotationPoint(x: 0.36, y: 0.52)),
+      isTrue,
+    );
+  });
+
   test('undo and redo annotation entries preserve operation order', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
     final stroke = SheetAnnotationStroke(

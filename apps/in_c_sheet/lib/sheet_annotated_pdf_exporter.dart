@@ -626,6 +626,9 @@ class SheetAnnotatedPdfExporter {
     SheetPdfAnnotationGeometry geometry,
     SheetTextAnnotation text,
   ) {
+    if (text.isImageStamp) {
+      return false;
+    }
     final trimmedText = text.text.trim();
     if (trimmedText.isEmpty) {
       return false;

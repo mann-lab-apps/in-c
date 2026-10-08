@@ -62,7 +62,8 @@
    스탬프가 복원되는지 보고, `사용자 스탬프`에서 text/icon/image stamp를 하나씩 추가해 선택/삭제할 수 있고
    사용자 스탬프가 많을 때 일부 chip과 숨김 개수 안내가 표시되며 검색으로 원하는 stamp를 찾을 수 있는지,
    내장 스탬프 선택을 방해하지 않는지 확인한다. image stamp는 직접 만든 PNG/JPEG/WebP만 추가하고,
-   2MB/2048px 제한 안내와 실패 snackbar가 자연스러운지 확인한다.
+   2MB/2048px 제한 안내와 실패 snackbar가 자연스러운지 확인한다. 추가한 image stamp를 악보 위에 찍었을 때
+   bitmap으로 보이고, asset을 읽지 못하는 상황에서는 label fallback으로 남는지 기록한다.
    필기 layer 메뉴에서 새 layer를 추가하고, 이름 변경/표시/PDF 포함 토글/삭제가 가능한지 확인한다.
    layer 삭제 후 해당 layer에 있던 주석은 사라지지 않고 기본 필기로 보이는지 확인한다.
    스탬프를 다시 탭해 상/하/좌/우 미세 이동 후 복원되는지도 확인한다.
@@ -458,6 +459,7 @@
 - annotation export를 볼 때는 flattened PDF 사본과 editable standard annotation 사본을 구분해 적는다.
   Standard 사본은 pen/highlighter, line/arrow, rectangle, text note가 외부 viewer에서 보이는지와
   선택/편집 가능한지를 기록한다. Hairpin/staff/grid/stamp/image stamp는 아직 follow-up으로 본다.
+  Image stamp는 standard editable export에서 FreeText로 오인되지 않아야 한다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.

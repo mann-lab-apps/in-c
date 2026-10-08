@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' as ui show Canvas;
+import 'dart:ui' as ui show Canvas, Image, decodeImageFromList;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/foundation.dart';
@@ -11593,6 +11593,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   Offset? _tapZonePointerDown;
   DateTime? _tapZonePointerDownAt;
   _ViewerMiniTool? _miniTool;
+  final Map<String, ui.Image> _annotationImageStampCache = <String, ui.Image>{};
+  final Set<String> _annotationImageStampLoading = <String>{};
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
 
@@ -11608,6 +11610,49 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
       score,
       setlistId: widget.setlistId,
     );
+  }
+
+  void _precacheAnnotationImageStamps(List<SheetTextAnnotation> texts) {
+    for (final text in texts) {
+      if (!text.isImageStamp ||
+          _annotationImageStampCache.containsKey(text.stampAssetRef) ||
+          !_annotationImageStampLoading.add(text.stampAssetRef)) {
+        continue;
+      }
+      unawaited(_loadAnnotationImageStamp(text.stampAssetRef));
+    }
+  }
+
+  Future<void> _loadAnnotationImageStamp(String assetRef) async {
+    try {
+      final file = await widget.controller.stampAssetStore.assetFileForRef(
+        assetRef,
+      );
+      if (!await file.exists()) {
+        return;
+      }
+      final image = await _decodeAnnotationImageStamp(await file.readAsBytes());
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _annotationImageStampCache[assetRef] = image;
+      });
+    } catch (_) {
+      // Missing or unreadable user image stamps fall back to the label.
+    } finally {
+      _annotationImageStampLoading.remove(assetRef);
+    }
+  }
+
+  Future<ui.Image> _decodeAnnotationImageStamp(Uint8List bytes) {
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromList(bytes, (image) {
+      if (!completer.isCompleted) {
+        completer.complete(image);
+      }
+    });
+    return completer.future;
   }
 
   int get _initialViewerPage {
@@ -11842,6 +11887,11 @@ setlist=$setlistLabel
       textSearcher.removeListener(_handleTextSearchChanged);
       textSearcher.dispose();
     }
+    for (final image in _annotationImageStampCache.values) {
+      image.dispose();
+    }
+    _annotationImageStampCache.clear();
+    _annotationImageStampLoading.clear();
     _pdfController.removeListener(_handleViewerChanged);
     HardwareKeyboard.instance.removeHandler(_handleViewerHardwareKeyEvent);
     _keyboardFocusNode.dispose();
@@ -15975,6 +16025,10 @@ setlist=$setlistLabel
             fontSize: (_annotationWidth * 4.5).clamp(16.0, 54.0).toDouble(),
             createdAt: now,
             layerId: layerId,
+            stampKind: userStamp?.kind ?? '',
+            stampAssetRef: userStamp?.kind == SheetAnnotationUserStamp.imageKind
+                ? userStamp?.assetRef ?? ''
+                : '',
           ),
         );
       } catch (_) {
@@ -18109,6 +18163,10 @@ setlist=$setlistLabel
                                       pageNumber,
                                       orderIndex: orderIndex,
                                     );
+                                final visibleTexts = currentScore
+                                    .annotationLayer
+                                    .visibleTextsForPage(pageNumber);
+                                _precacheAnnotationImageStamps(visibleTexts);
                                 final rehearsalMarks =
                                     currentScore.pageSettings.rehearsalMarks;
                                 final bookmarks = currentScore.bookmarks;
@@ -18119,8 +18177,8 @@ setlist=$setlistLabel
                                       pageNumber: pageNumber,
                                       strokes: currentScore.annotationLayer
                                           .visibleStrokesForPage(pageNumber),
-                                      texts: currentScore.annotationLayer
-                                          .visibleTextsForPage(pageNumber),
+                                      texts: visibleTexts,
+                                      imageStamps: _annotationImageStampCache,
                                       draftPoints:
                                           _draftAnnotationPageNumber ==
                                               pageNumber
@@ -20182,6 +20240,7 @@ class _AnnotationPageOverlay extends StatefulWidget {
     required this.pageNumber,
     required this.strokes,
     required this.texts,
+    required this.imageStamps,
     required this.draftPoints,
     required this.draftTool,
     required this.draftColor,
@@ -20196,6 +20255,7 @@ class _AnnotationPageOverlay extends StatefulWidget {
   final int pageNumber;
   final List<SheetAnnotationStroke> strokes;
   final List<SheetTextAnnotation> texts;
+  final Map<String, ui.Image> imageStamps;
   final List<SheetAnnotationPoint> draftPoints;
   final _AnnotationToolbarTool draftTool;
   final int draftColor;
@@ -20357,6 +20417,7 @@ class _AnnotationPageOverlayState extends State<_AnnotationPageOverlay> {
                 painter: _AnnotationPainter(
                   strokes: widget.strokes,
                   texts: widget.texts,
+                  imageStamps: widget.imageStamps,
                   draftStroke: _draftStroke,
                 ),
                 size: Size.infinite,
@@ -20390,11 +20451,13 @@ class _AnnotationPainter extends CustomPainter {
   const _AnnotationPainter({
     required this.strokes,
     required this.texts,
+    required this.imageStamps,
     required this.draftStroke,
   });
 
   final List<SheetAnnotationStroke> strokes;
   final List<SheetTextAnnotation> texts;
+  final Map<String, ui.Image> imageStamps;
   final SheetAnnotationStroke? draftStroke;
 
   @override
@@ -20700,6 +20763,10 @@ class _AnnotationPainter extends CustomPainter {
     if (annotation.text.trim().isEmpty) {
       return;
     }
+    if (annotation.isImageStamp) {
+      _paintImageStamp(canvas, size, annotation);
+      return;
+    }
     final fontSize = (annotation.fontSize * (size.shortestSide / 640))
         .clamp(8.0, 42.0)
         .toDouble();
@@ -20723,10 +20790,92 @@ class _AnnotationPainter extends CustomPainter {
     painter.paint(canvas, offset);
   }
 
+  void _paintImageStamp(
+    Canvas canvas,
+    Size size,
+    SheetTextAnnotation annotation,
+  ) {
+    final image = imageStamps[annotation.stampAssetRef];
+    final base = (annotation.fontSize * (size.shortestSide / 640) * 3.1)
+        .clamp(34.0, 128.0)
+        .toDouble();
+    final aspect = image == null || image.height == 0
+        ? 1.0
+        : image.width / image.height;
+    final width = (base * aspect).clamp(34.0, 160.0).toDouble();
+    final height = base;
+    final rect = Rect.fromLTWH(
+      annotation.position.x * size.width,
+      annotation.position.y * size.height,
+      width,
+      height,
+    );
+    final borderPaint = Paint()
+      ..color = Color(annotation.color).withValues(alpha: 0.78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final backgroundPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.72)
+      ..style = PaintingStyle.fill;
+    final rounded = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+    canvas.drawRRect(rounded, backgroundPaint);
+    if (image == null) {
+      _paintImageStampFallback(canvas, rect, annotation);
+    } else {
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        rect.deflate(3),
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+    }
+    canvas.drawRRect(rounded, borderPaint);
+  }
+
+  void _paintImageStampFallback(
+    Canvas canvas,
+    Rect rect,
+    SheetTextAnnotation annotation,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: annotation.text,
+        style: TextStyle(
+          color: Color(annotation.color).withValues(alpha: 0.9),
+          fontSize: (rect.height * 0.18).clamp(9.0, 14.0).toDouble(),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 2,
+      ellipsis: '...',
+    )..layout(maxWidth: rect.width - 12);
+    final iconPaint = Paint()
+      ..color = Color(annotation.color).withValues(alpha: 0.42)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final iconRect = Rect.fromCenter(
+      center: Offset(rect.center.dx, rect.top + rect.height * 0.38),
+      width: rect.width * 0.36,
+      height: rect.height * 0.28,
+    );
+    canvas.drawRect(iconRect, iconPaint);
+    canvas.drawCircle(
+      Offset(iconRect.left + iconRect.width * 0.72, iconRect.top + 5),
+      2.5,
+      iconPaint,
+    );
+    painter.paint(
+      canvas,
+      Offset(rect.left + 6, rect.bottom - painter.height - 5),
+    );
+  }
+
   @override
   bool shouldRepaint(covariant _AnnotationPainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.texts != texts ||
+        oldDelegate.imageStamps != imageStamps ||
         oldDelegate.draftStroke != draftStroke;
   }
 }

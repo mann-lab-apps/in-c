@@ -2235,3 +2235,14 @@ and metadata backup restore instead of being filtered out by the older text/icon
 controller and widget tests cover image asset creation/restore and picker selection. Rendering the
 bitmap directly onto the page/PDF, full-backup asset byte round-trip, orphan cleanup and external PDF
 image-stamp compatibility remain follow-up.
+
+S188 VERIFIED LOCAL: connected image stamp selection to placed annotations instead of flattening it
+down to plain text metadata. `SheetTextAnnotation` now preserves `stampKind` and `stampAssetRef`, image
+stamps hit-test with a stamp-sized region, and the PDF viewer overlay decodes app-owned image stamp
+assets into a small cache so selected image stamps render as bitmaps on the score page with a safe label
+fallback when the asset is missing. Standard editable PDF export now treats image stamps as an
+unsupported object mapping instead of silently writing them as `/FreeText`, while flattened export still
+has a label fallback until bitmap PDF drawing is implemented. Focused tests cover JSON/hit-test
+metadata and the editable-PDF unsupported-image fixture. Full backup asset byte round-trip, orphan
+cleanup, flattened/exported bitmap drawing, and external Acrobat/Preview/MobileSheets/Piascore
+compatibility remain follow-up.

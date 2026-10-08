@@ -761,6 +761,8 @@ class SheetTextAnnotation {
     required this.fontSize,
     required this.createdAt,
     this.layerId = SheetAnnotationDisplayLayer.defaultLayerId,
+    this.stampKind = '',
+    this.stampAssetRef = '',
   });
 
   factory SheetTextAnnotation.fromJson(Map<String, Object?> json) {
@@ -778,6 +780,8 @@ class SheetTextAnnotation {
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
       layerId: _normalizeAnnotationLayerId(json['layerId']),
+      stampKind: _normalizeStampToken(json['stampKind']),
+      stampAssetRef: _stringFromJson(json['stampAssetRef']).trim(),
     );
   }
 
@@ -789,6 +793,12 @@ class SheetTextAnnotation {
   final double fontSize;
   final DateTime createdAt;
   final String layerId;
+  final String stampKind;
+  final String stampAssetRef;
+
+  bool get isImageStamp =>
+      stampKind == SheetAnnotationUserStamp.imageKind &&
+      stampAssetRef.trim().isNotEmpty;
 
   SheetTextAnnotation copyWith({
     String? id,
@@ -799,6 +809,8 @@ class SheetTextAnnotation {
     double? fontSize,
     DateTime? createdAt,
     String? layerId,
+    String? stampKind,
+    String? stampAssetRef,
   }) {
     return SheetTextAnnotation(
       id: id ?? this.id,
@@ -811,6 +823,12 @@ class SheetTextAnnotation {
       layerId: layerId == null
           ? this.layerId
           : _normalizeAnnotationLayerId(layerId),
+      stampKind: stampKind == null
+          ? this.stampKind
+          : _normalizeStampToken(stampKind),
+      stampAssetRef: stampAssetRef == null
+          ? this.stampAssetRef
+          : stampAssetRef.trim(),
     );
   }
 
@@ -827,6 +845,14 @@ class SheetTextAnnotation {
   bool hitTest(SheetAnnotationPoint point, {double tolerance = 0.025}) {
     if (text.trim().isEmpty) {
       return false;
+    }
+    if (isImageStamp) {
+      const estimatedWidth = 0.16;
+      const estimatedHeight = 0.16;
+      return point.x >= position.x - tolerance &&
+          point.x <= position.x + estimatedWidth + tolerance &&
+          point.y >= position.y - tolerance &&
+          point.y <= position.y + estimatedHeight + tolerance;
     }
     final estimatedWidth = (text.runes.length * fontSize / 720)
         .clamp(0.08, 0.5)
@@ -849,6 +875,8 @@ class SheetTextAnnotation {
       'createdAt': createdAt.toIso8601String(),
       if (layerId != SheetAnnotationDisplayLayer.defaultLayerId)
         'layerId': layerId,
+      if (stampKind.isNotEmpty) 'stampKind': stampKind,
+      if (stampAssetRef.isNotEmpty) 'stampAssetRef': stampAssetRef,
     };
   }
 
