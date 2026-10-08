@@ -2288,3 +2288,10 @@ only happened to fall back at read time. This keeps JSON, backup/export and futu
 consistent with the UI promise that deleted-layer annotations remain as default handwriting. Focused
 model and controller tests cover current annotations plus redo/erase payloads. Moving selected
 annotations between existing layers, per-layer undo and multi-select layer operations remain follow-up.
+
+S194 VERIFIED LOCAL: expanded the editable PDF writer for hairpin annotations. Standard annotation
+export now maps crescendo/diminuendo strokes to paired `/Line` annotations with generated appearances
+instead of rejecting hairpins as an unsupported object mapping. The capability model and local
+inspection test were updated so hairpins are covered by the same malformed-export guard as ink, line,
+rectangle, text and image stamp annotations. Staff/grid standard mapping and external
+Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.

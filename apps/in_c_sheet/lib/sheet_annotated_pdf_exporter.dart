@@ -191,11 +191,11 @@ class SheetAnnotatedPdfExporter {
           'squareAnnotation',
           'freeTextAnnotation',
           'imageStampAnnotation',
+          'hairpinAnnotation',
         ],
         unsupportedAnnotationTypes: <String>[
           'stampAnnotation',
           'staffGridAnnotation',
-          'hairpinAnnotation',
         ],
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
@@ -637,12 +637,74 @@ class SheetAnnotatedPdfExporter {
           name: _standardAnnotationName(stroke.id),
         );
         return true;
-      case SheetAnnotationTool.staff:
-      case SheetAnnotationTool.grid:
       case SheetAnnotationTool.crescendo:
       case SheetAnnotationTool.diminuendo:
+        return _addStandardHairpinAnnotation(
+          editor,
+          pageIndex,
+          geometry,
+          stroke,
+        );
+      case SheetAnnotationTool.staff:
+      case SheetAnnotationTool.grid:
         return false;
     }
+  }
+
+  static bool _addStandardHairpinAnnotation(
+    PdfEditor editor,
+    int pageIndex,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    if (stroke.points.length < 2) {
+      return false;
+    }
+    final start = geometry.toPdfPoint(stroke.points.first);
+    final end = geometry.toPdfPoint(stroke.points.last);
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final length = math.sqrt((dx * dx) + (dy * dy));
+    if (length == 0) {
+      return false;
+    }
+    final normalX = -dy / length;
+    final normalY = dx / length;
+    final opening = (_pdfLineWidth(stroke) * 5).clamp(12.0, 36.0).toDouble();
+    final halfOpening = opening / 2;
+    final isCrescendo = stroke.tool == SheetAnnotationTool.crescendo;
+    final closed = isCrescendo ? start : end;
+    final open = isCrescendo ? end : start;
+    final upper = (
+      open.x + (normalX * halfOpening),
+      open.y + (normalY * halfOpening),
+    );
+    final lower = (
+      open.x - (normalX * halfOpening),
+      open.y - (normalY * halfOpening),
+    );
+    final color = _rgb(stroke.color);
+    final width = _pdfLineWidth(stroke);
+    final name = _standardAnnotationName(stroke.id);
+    editor.addLine(
+      pageIndex,
+      (closed.x, closed.y),
+      upper,
+      strokeColor: color,
+      strokeWidth: width,
+      contents: stroke.tool.name,
+      name: '$name-upper',
+    );
+    editor.addLine(
+      pageIndex,
+      (closed.x, closed.y),
+      lower,
+      strokeColor: color,
+      strokeWidth: width,
+      contents: stroke.tool.name,
+      name: '$name-lower',
+    );
+    return true;
   }
 
   static bool _addStandardTextAnnotation(

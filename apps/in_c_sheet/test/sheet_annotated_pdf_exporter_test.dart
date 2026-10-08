@@ -48,10 +48,14 @@ void main() {
     expect(standard.supportedAnnotationTypes, contains('inkAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('freeTextAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('imageStampAnnotation'));
-    expect(standard.unsupportedAnnotationTypes, contains('hairpinAnnotation'));
+    expect(standard.supportedAnnotationTypes, contains('hairpinAnnotation'));
     expect(
       standard.unsupportedAnnotationTypes,
       isNot(contains('imageStampAnnotation')),
+    );
+    expect(
+      standard.unsupportedAnnotationTypes,
+      isNot(contains('hairpinAnnotation')),
     );
     expect(standard.requiredSpikeItems, contains('acrobatPreviewFixture'));
   });
@@ -624,57 +628,70 @@ void main() {
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
 
-  test(
-    'does not write standard export when only unsupported tools match',
-    () async {
-      final input = File('test-fixtures/pdfs/short-score.pdf');
-      final now = DateTime.parse('2026-08-23T10:00:00.000');
-      final score = SheetScore(
-        id: 'score-1',
-        title: 'Short Score',
-        composer: '',
-        tags: const <String>[],
-        note: '',
-        filePath: input.path,
-        importedAt: now,
-        updatedAt: now,
-        lastOpenedAt: null,
-        lastPage: 1,
-        isFavorite: false,
-        bookmarks: const <SheetBookmark>[],
-        annotationLayer: SheetAnnotationLayer(
-          strokes: <SheetAnnotationStroke>[
-            SheetAnnotationStroke(
-              id: 'hairpin-1',
-              pageNumber: 1,
-              tool: SheetAnnotationTool.crescendo,
-              color: 0xff111111,
-              width: 3,
-              points: const <SheetAnnotationPoint>[
-                SheetAnnotationPoint(x: 0.2, y: 0.7),
-                SheetAnnotationPoint(x: 0.6, y: 0.7),
-              ],
-              createdAt: now,
-            ),
-          ],
-        ),
-      );
+  test('writes standard hairpin annotations as editable lines', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-hairpin-export-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-hairpin.pdf';
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'hairpin-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.crescendo,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.2, y: 0.7),
+              SheetAnnotationPoint(x: 0.6, y: 0.7),
+            ],
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
 
-      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
-        score: score,
-        outputPath: '/tmp/unused-clef-standard-unsupported.pdf',
-        mode: SheetPdfAnnotationExportMode.standardAnnotation,
-      );
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
 
-      expect(result.didWrite, isFalse);
-      expect(result.hasUnsupportedStandardAnnotationObjectMapping, isTrue);
-      expect(
-        result.failureReason,
-        SheetAnnotatedPdfExportResult
-            .standardAnnotationObjectMappingUnavailableReason,
-      );
-    },
-  );
+    expect(result.didWrite, isTrue);
+    expect(exported.page(0).annotations, hasLength(2));
+    expect(
+      exported.page(0).annotations.map((annotation) => annotation.subtype),
+      everyElement('Line'),
+    );
+    expect(inspection.clefAnnotationCount, 2);
+    expect(inspection.containsClefSubtype('Line'), isTrue);
+    expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+  });
 
   test(
     'writes standard image stamp annotations when asset bytes are available',

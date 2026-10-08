@@ -178,15 +178,16 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 - 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식을 계속 지원한다. export capability
   report는 flattened copy와 editable standard annotation export를 구분한다. Standard mode는
-  pen/highlighter를 `/Ink`, line/arrow를 `/Line`, rectangle을 `/Square`, text를 `/FreeText` 객체로
-  쓰는 1차 writer가 있으며, 생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated
-  appearance를 확인하는 local inspection fixture가 있다.
+  pen/highlighter를 `/Ink`, line/arrow와 crescendo/diminuendo hairpin을 `/Line`, rectangle을
+  `/Square`, text를 `/FreeText`, PNG/JPEG image stamp를 `/Stamp` 객체로 쓰는 1차 writer가 있으며,
+  생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
+  inspection fixture가 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
-  mapping의 1차 경로는 생겼지만, stamp/image stamp/hairpin/staff/grid mapping과 외부 viewer
+  mapping의 1차 경로는 생겼지만, staff/grid/text-template stamp mapping과 외부 viewer
   호환성 검증이 필요하다.
-- 결정 필요사항: Stamp/ImageStamp appearance mapping, music-specific hairpin/staff/grid의 표준
+- 결정 필요사항: music-specific staff/grid와 text-template stamp의 표준
   PDF annotation 표현 여부, flatten vs editable export mode UI, 외부 viewer compatibility gate.
-- 구현 후보: Acrobat/Preview/MobileSheets/Piascore manual matrix, image stamp appearance stream,
+- 구현 후보: Acrobat/Preview/MobileSheets/Piascore manual matrix,
   music-symbol fallback policy, external viewer evidence package.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.
@@ -470,6 +471,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   16. 완료: editable standard PDF export도 app-owned PNG/JPEG image stamp bytes를 `/Stamp`
       annotation appearance로 내보낸다. Local inspection fixture는 `Stamp` subtype과 image stamp flag를
       확인한다.
+  17. 완료: editable standard PDF export가 crescendo/diminuendo hairpin을 paired `/Line`
+      annotation으로 내보낸다. Local inspection fixture는 두 Line annotation을 확인한다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -483,14 +486,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   image stamp create/reload, placed image stamp metadata round-trip/hit-test, editable-PDF unsupported
   image stamp fixture, image stamp asset cleanup and placed annotation preservation, full-backup asset
   byte round-trip, flattened PDF PNG/JPEG image stamp drawing, editable standard PDF image stamp
-  annotation output.
+  annotation output, editable standard PDF hairpin line-pair output.
 - 남은 테스트/fixture/실기기 조건: external PDF viewer compatibility, large pack performance, S Pen
   picker use, platform image picker provider behavior.
 - Acceptance criteria: 사용자가 직접 만든 text/icon/image stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. Image stamp는 현재 metadata/asset
   storage, package sharing, placed annotation metadata, viewer bitmap rendering, flattened PDF PNG/JPEG
   bitmap export, editable standard PDF image stamp export를 지원한다.
-- Blocker 해제 조건: external viewer compatibility matrix for PDF image stamps.
+- Blocker 해제 조건: external viewer compatibility matrix for PDF image stamps and hairpins.
 
 ## 16. Annotation Layer Management
 
