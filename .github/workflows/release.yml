@@ -49,6 +49,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     env:
+      MACOS_CSC_NAME: "Jae-man Kim (ZRA4DHHKQ4)"
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
@@ -93,12 +94,22 @@ jobs:
           test -n "$APPLE_API_KEY"
           test -n "$APPLE_API_KEY_ID"
           test -n "$APPLE_API_ISSUER"
+      - name: Prepare macOS notarization key
+        if: runner.os == 'macOS' && github.event_name != 'pull_request'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "$APPLE_API_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          echo "APPLE_API_KEY=$key_path" >> "$GITHUB_ENV"
       - name: Package app
         run: ${{ matrix.command }}
         env:
+          CSC_NAME: ${{ runner.os == 'macOS' && env.MACOS_CSC_NAME || '' }}
           CSC_LINK: ${{ runner.os == 'macOS' && secrets.CSC_LINK || '' }}
           CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
-          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
           APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
           APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER_ID || '' }}
       - name: Verify macOS Developer ID signing
