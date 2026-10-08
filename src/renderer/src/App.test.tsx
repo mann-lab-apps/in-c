@@ -277,6 +277,27 @@ vi.mock('./notation/NotationPreview', () => ({
           )
         )
         .join(',')}
+      data-event-positions={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) => `${event.id}:${event.position.tick}`)
+          )
+        )
+        .join(',')}
+      data-event-grace-notes={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.flatMap((event) =>
+              event.type === 'note'
+                ? (event.graceNotes ?? []).map(
+                    (graceNote) =>
+                      `${event.id}:${graceNote.pitch.step}${graceNote.pitch.alter ?? ''}${graceNote.pitch.octave}:${graceNote.duration?.value ?? 'eighth'}:${graceNote.duration?.dots ?? 0}`
+                  )
+                : []
+            )
+          )
+        )
+        .join(',')}
       data-event-pitches={score.parts[0]?.staves[0]?.measures
         .flatMap((measure) =>
           measure.voices.flatMap((voice) =>
@@ -1030,10 +1051,13 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 단위'), {
+    const pickupGroup = within(dialog).getByRole('group', {
+      name: '못갖춘마디'
+    })
+    fireEvent.change(within(pickupGroup).getByLabelText('못갖춘마디 단위'), {
       target: { value: '16th' }
     })
-    fireEvent.change(within(dialog).getByLabelText('못갖춘마디 개수'), {
+    fireEvent.change(within(pickupGroup).getByLabelText('못갖춘마디 개수'), {
       target: { value: '3' }
     })
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
@@ -2639,8 +2663,16 @@ describe('App component shell', () => {
     fireEvent.click(recoveryButton)
 
     expect(screen.getByText('복구한 연습곡')).toBeInTheDocument()
-    expect(screen.getByLabelText('조표')).toHaveValue('g-major')
-    expect(screen.getByLabelText('박자표')).toHaveValue('3-4')
+    expect(
+      screen
+        .getAllByLabelText('선택 마디부터 조표')
+        .find((control) => !control.hasAttribute('disabled'))
+    ).toHaveValue('g-major')
+    expect(
+      screen
+        .getAllByLabelText('선택 마디 박자표')
+        .find((control) => !control.hasAttribute('disabled'))
+    ).toHaveValue('3-4')
     expect(screen.getByTestId('notation-preview')).toHaveTextContent('note-c4')
   })
 
@@ -3156,9 +3188,21 @@ describe('App component shell', () => {
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
     expect(within(contextStrip).getByText('악보')).toBeInTheDocument()
-    expect(screen.getByLabelText('조표')).toBeVisible()
-    expect(screen.getByLabelText('박자표')).toBeVisible()
-    expect(screen.getByLabelText('선택 마디 음자리표')).not.toBeVisible()
+    const visibleControl = (label: string) => {
+      const control = screen
+        .getAllByLabelText(label)
+        .find((candidate) => !candidate.closest('[hidden]'))
+      expect(control).toBeDefined()
+      return control as HTMLElement
+    }
+    expect(visibleControl('선택 마디부터 조표')).toBeVisible()
+    expect(visibleControl('선택 마디 박자표')).toBeVisible()
+    expect(screen.getByRole('region', { name: '악보 편집' })).toBeVisible()
+    expect(
+      screen
+        .queryAllByLabelText('선택 마디 음자리표')
+        .some((control) => !control.closest('[hidden]'))
+    ).toBe(false)
     expect(screen.getByLabelText('위치별 빠르기 BPM')).toBeVisible()
     expect(screen.getByLabelText('PDF 설정 프리셋')).not.toBeVisible()
     const tempoInput = screen.getByRole('slider', { name: '빠르기' })
@@ -6044,8 +6088,31 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
     const notationObjects = screen.getByRole('region', { name: '표기 객체' })
     expect(notationObjects).toBeVisible()
+    expect(screen.getByRole('region', { name: '표기 객체 검색' })).toBeVisible()
+    expect(within(notationObjects).getByLabelText('기호 검색')).toBeVisible()
+    expect(screen.getByRole('region', { name: '라인과 범위 기호' })).toBeVisible()
     expect(screen.getByRole('region', { name: '마디 표기' })).toBeVisible()
     expect(screen.getByRole('region', { name: '반복과 볼타' })).toBeVisible()
+    expect(within(notationObjects).getAllByText('연습표').length).toBeGreaterThan(0)
+    expect(within(notationObjects).getByText('텍스트')).toBeInTheDocument()
+    expect(within(notationObjects).getByText('마디 설정')).toBeInTheDocument()
+    expect(within(notationObjects).getByLabelText('마디 설정 적용 범위')).toHaveTextContent(
+      '선택 마디 기준'
+    )
+    expect(within(notationObjects).getByLabelText('선택 마디부터 조표')).toHaveValue('g-major')
+    expect(within(notationObjects).getByLabelText('선택 마디 박자표')).toHaveValue('4-4')
+    expect(within(notationObjects).getByLabelText('선택 마디 음자리표')).toHaveValue('treble')
+
+    fireEvent.change(within(notationObjects).getByLabelText('선택 마디부터 조표'), {
+      target: { value: 'c-major' }
+    })
+    expect(screen.getByText('선택한 마디부터 조표를 바꿨습니다.')).toBeInTheDocument()
+    fireEvent.change(within(notationObjects).getByLabelText('선택 마디 박자표'), {
+      target: { value: '3-4' }
+    })
+    expect(
+      screen.getByText('선택한 마디의 리듬이 새 박자표에 맞지 않습니다.')
+    ).toBeInTheDocument()
 
     fireEvent.change(within(notationObjects).getByLabelText('연습표'), {
       target: { value: 'B' }
@@ -6064,6 +6131,40 @@ describe('App component shell', () => {
       'data-measure-id',
       'measure-1'
     )
+
+    const notationSearch = within(notationObjects).getByLabelText('기호 검색')
+    fireEvent.change(notationSearch, { target: { value: '셈여림' } })
+    expect(screen.queryByRole('region', { name: '라인과 범위 기호' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: '반복과 볼타' })).not.toBeInTheDocument()
+    expect(within(notationObjects).queryByLabelText('연습표')).not.toBeInTheDocument()
+    expect(within(notationObjects).getByLabelText('셈여림')).toBeVisible()
+    fireEvent.change(notationSearch, { target: { value: 'zzzz' } })
+    expect(screen.getByRole('region', { name: '표기 객체 검색 결과' })).toBeVisible()
+    expect(screen.getByText('일치하는 표기 객체가 없습니다.')).toBeInTheDocument()
+    fireEvent.click(within(notationObjects).getByRole('button', { name: '표기 객체 검색 지우기' }))
+    expect(notationSearch).toHaveValue('')
+    expect(screen.getByRole('region', { name: '라인과 범위 기호' })).toBeVisible()
+
+    fireEvent.click(
+      within(notationObjects).getByRole('button', {
+        name: '라인과 범위 기호 접기'
+      })
+    )
+    const linePalette = screen.getByRole('region', { name: '라인과 범위 기호' })
+    expect(linePalette).toHaveAttribute('data-collapsed', 'true')
+    expect(
+      within(linePalette).queryByRole('button', { name: '슬러 추가 또는 해제' })
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(notationSearch, { target: { value: '슬러' } })
+    expect(
+      within(linePalette).getByRole('button', { name: '슬러 추가 또는 해제' })
+    ).toBeVisible()
+    expect(
+      within(linePalette).getByRole('button', {
+        name: '라인과 범위 기호 접기'
+      })
+    ).toBeDisabled()
   })
 
   it('palette.notation-applicability disables measure text and dynamics for range selection', async () => {
@@ -8048,12 +8149,50 @@ describe('App component shell', () => {
     )).toEqual([
       undefined,
       [
-        { pitch: { step: 'B', alter: undefined, octave: 3 }, slash: true },
-        { pitch: { step: 'C', alter: undefined, octave: 4 }, slash: undefined }
+        {
+          pitch: { step: 'B', alter: undefined, octave: 3 },
+          duration: { value: 'eighth', dots: 0 },
+          slash: true
+        },
+        {
+          pitch: { step: 'C', alter: undefined, octave: 4 },
+          duration: { value: 'eighth', dots: 0 },
+          slash: undefined
+        }
       ],
       undefined,
       undefined
     ])
+  })
+
+  it('grace-note command converts the selected note into a non-rhythmic grace note on the following note', async () => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    expect(screen.queryByRole('button', { name: '짧은 꾸밈음' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '꾸밈음' }))
+
+    const preview = screen.getByTestId('notation-preview')
+    expect(screen.getByText('꾸밈음으로 변환했습니다.')).toBeInTheDocument()
+    expect(preview).toHaveAttribute('data-selected-event-id', 'm1-d4')
+    expect(preview.getAttribute('data-event-pitches')).not.toContain('m1-c4:C4')
+    expect(preview.getAttribute('data-event-pitches')).toContain('m1-d4:D4')
+    expect(preview.getAttribute('data-event-grace-notes')).toContain(
+      'm1-d4:C4:quarter:0'
+    )
+    expect(preview.getAttribute('data-event-positions')).toContain('m1-d4:0')
+    expect(preview.getAttribute('data-event-positions')).toContain(
+      `m1-e4:${TICKS_PER_QUARTER}`
+    )
+    expect(preview.getAttribute('data-event-positions')).toContain(
+      `m1-f-sharp-4:${TICKS_PER_QUARTER * 2}`
+    )
+    expect(within(preview).getByText('장식음 c')).toHaveAttribute(
+      'data-event-id',
+      'm1-d4'
+    )
   })
 
   it('grace note object filter copies and deletes ranges while clearing stale target grace notes', async () => {
@@ -8120,7 +8259,18 @@ describe('App component shell', () => {
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
     expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
       event.type === 'note' ? event.graceNotes : undefined
-    )).toEqual([undefined, undefined, [{ pitch: { step: 'B', octave: 3 }, slash: true }], undefined])
+    )).toEqual([
+      undefined,
+      undefined,
+      [
+        {
+          pitch: { step: 'B', alter: undefined, octave: 3 },
+          duration: { value: 'eighth', dots: 0 },
+          slash: true
+        }
+      ],
+      undefined
+    ])
   })
 
   it('grace note object filter copies and deletes measure grace notes without replacing unrelated voices', async () => {
@@ -8196,10 +8346,32 @@ describe('App component shell', () => {
     const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
     expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
       event.type === 'note' ? event.graceNotes : undefined
-    )).toEqual([undefined, [{ pitch: { step: 'B', octave: 3 }, slash: true }], undefined, undefined])
+    )).toEqual([
+      undefined,
+      [
+        {
+          pitch: { step: 'B', alter: undefined, octave: 3 },
+          duration: { value: 'eighth', dots: 0 },
+          slash: true
+        }
+      ],
+      undefined,
+      undefined
+    ])
     expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
       event.type === 'note' ? event.graceNotes : undefined
-    )).toEqual([undefined, [{ pitch: { step: 'F', alter: undefined, octave: 4 }, slash: undefined }], undefined, undefined])
+    )).toEqual([
+      undefined,
+      [
+        {
+          pitch: { step: 'F', alter: undefined, octave: 4 },
+          duration: { value: 'eighth', dots: 0 },
+          slash: undefined
+        }
+      ],
+      undefined,
+      undefined
+    ])
   })
 
   it.each([false, true])('global rehearsal editing preserves scope and local objects (part=%s)', async partView => {
@@ -8814,7 +8986,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const palette = screen.getByRole('region', { name: '범위 기호' })
+    const palette = screen.getByRole('region', { name: '라인과 범위 기호' })
     expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toBeDisabled()
     expect(within(palette).getByRole('button', { name: '8va' })).toBeDisabled()
 
@@ -8830,13 +9002,16 @@ describe('App component shell', () => {
     expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    expect(screen.queryByRole('region', { name: '범위 기호' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: '라인과 범위 기호' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: '음표 편집' })).queryByLabelText('크레셴도 헤어핀')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
     expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toBeEnabled()
     fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
     expect(palette).toBeVisible()
-    for (const button of within(palette).getAllByRole('button')) expect(button).toBeDisabled()
+    for (const button of within(palette).getAllByRole('button')) {
+      if (button.classList.contains('inspector-properties__collapse')) continue
+      expect(button).toBeDisabled()
+    }
   })
 
   it.each(['slur', 'hairpin'] as const)('independent %s object clipboard keeps destination notes and supports native history', async kind => {

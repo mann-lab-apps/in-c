@@ -22,6 +22,7 @@ import {
   type RhythmFeelMarking,
   shouldDisplayAccidental,
   sortVoiceEvents,
+  type DurationValue,
   type Measure,
   type Clef,
   type Score,
@@ -42,6 +43,7 @@ import type { SpanReference } from '../editor/span-editing'
 import {
   createSystemLayout,
   leadingNotationPadding,
+  resolveLeadingNotationVisibility,
   type MeasurePlacement
 } from './system-layout'
 import {
@@ -143,6 +145,7 @@ const STABLE_BEAM_MAX_SLOPE = 0.12
 const STABLE_BEAM_SLOPE_COST = 220
 const SINGLE_STAFF_SYSTEM_HEIGHT = 154
 const DEFAULT_SYSTEM_TOP = 72
+const SYSTEM_LABEL_GUTTER = 84
 const MEASURE_STAFF_VERTICAL_PADDING = 18
 const LYRIC_EDITOR_WIDTH = 148
 const LYRIC_EDITOR_HEIGHT = 34
@@ -313,6 +316,7 @@ export function NotationPreview({
     const visibleStaffCount = Math.max(1, renderedStaffTargets.length)
     const layout = createSystemLayout(measures, effectiveRenderWidth, {
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
+      leadingGutter: SYSTEM_LABEL_GUTTER,
       layout: score.layout,
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
@@ -424,10 +428,7 @@ export function NotationPreview({
         placement.y
       )
       const previousPlacement = layout.placements[placementIndex - 1]
-      const previousMeasure =
-        previousPlacement?.systemIndex === placement.systemIndex
-          ? previousPlacement.measure
-          : undefined
+      const previousMeasure = previousPlacement?.measure
       const stave = new Stave(
         placement.x,
         placement.y,
@@ -469,18 +470,15 @@ export function NotationPreview({
         svg.append(selectionTarget)
       }
 
-      const showsClef =
-        placement.isSystemStart ||
-        !previousMeasure ||
-        !sameClef(previousMeasure, measure)
-      const showsKeySignature =
-        placement.isSystemStart ||
-        !previousMeasure ||
-        !sameKeySignature(previousMeasure, measure)
-      const showsTimeSignature =
-        placement.isSystemStart ||
-        !previousMeasure ||
-        !sameTimeSignature(previousMeasure, measure)
+      const {
+        showsClef,
+        showsKeySignature,
+        showsTimeSignature
+      } = resolveLeadingNotationVisibility(
+        measure,
+        previousMeasure,
+        placement.isSystemStart
+      )
 
       if (showsClef) {
         stave.addClef(clef)
@@ -1609,18 +1607,15 @@ function drawPassiveStaffMeasure(
     })
     svg.append(selectionTarget)
   }
-  const showsClef =
-    placement.isSystemStart ||
-    !previousMeasure ||
-    !sameClef(previousMeasure, measure)
-  const showsKeySignature =
-    placement.isSystemStart ||
-    !previousMeasure ||
-    !sameKeySignature(previousMeasure, measure)
-  const showsTimeSignature =
-    placement.isSystemStart ||
-    !previousMeasure ||
-    !sameTimeSignature(previousMeasure, measure)
+  const {
+    showsClef,
+    showsKeySignature,
+    showsTimeSignature
+  } = resolveLeadingNotationVisibility(
+    measure,
+    previousMeasure,
+    placement.isSystemStart
+  )
 
   if (measure.repeat?.start) {
     stave.setBegBarType(BarlineType.REPEAT_BEGIN)
@@ -2243,13 +2238,15 @@ function drawStaffLabel(
   x: number,
   y: number,
   label: string,
-  target: RenderedStaffTarget
+  target: RenderedStaffTarget,
+  anchor: 'start' | 'end' = 'start'
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-staff-label')
   text.setAttribute('data-part-id', target.partId)
   text.setAttribute('data-staff-id', target.staffId)
+  text.setAttribute('text-anchor', anchor)
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
@@ -2300,6 +2297,7 @@ function drawSystemPartLabels(
   staffOffsets: number[]
 ): void {
   const firstPartTargets = targets.filter((target) => target.staffIndex === 0)
+  const showsPartLabel = placement.systemIndex === 0
 
   for (const target of firstPartTargets) {
     const partTargets = targets.filter(
@@ -2311,24 +2309,34 @@ function drawSystemPartLabels(
       const bottomTarget = partTargets.at(-1)!
       const bottomY =
         placement.y + (staffOffsets[bottomTarget.globalStaffIndex] ?? 0) + 40
+      const braceX = placement.x - 32
+      const labelX = braceX - 10
 
-      drawGrandStaffBrace(svg, placement.x + 1, topY - 3, bottomY + 3, target)
-      drawStaffLabel(
-        svg,
-        placement.x + 4,
-        (topY + bottomY) / 2,
-        target.partName,
-        target
-      )
+      drawGrandStaffBrace(svg, braceX, topY - 3, bottomY + 3, target)
+      if (showsPartLabel) {
+        drawStaffLabel(
+          svg,
+          labelX,
+          (topY + bottomY) / 2,
+          target.partName,
+          target,
+          'end'
+        )
+      }
+      continue
+    }
+
+    if (!showsPartLabel) {
       continue
     }
 
     drawStaffLabel(
       svg,
-      placement.x + 4,
+      placement.x - 12,
       placement.y + (staffOffsets[target.globalStaffIndex] ?? 0) + 22,
       target.partName,
-      target
+      target,
+      'end'
     )
   }
 }
@@ -3127,6 +3135,7 @@ function drawGraceNotes(
     head.classList.add('notation-grace-notehead')
     head.setAttribute('data-event-id', eventId)
     head.setAttribute('data-grace-index', String(index))
+    head.setAttribute('data-grace-duration', graceNote.duration?.value ?? 'eighth')
     head.setAttribute('cx', String(noteX))
     head.setAttribute('cy', String(noteY))
     head.setAttribute('rx', '4.2')
@@ -3144,6 +3153,36 @@ function drawGraceNotes(
     group.append(stem)
     stemTops.push({ x: stemX, y: stemTopY })
 
+    const flagCount = graceNoteFlagCount(graceNote.duration?.value ?? 'eighth')
+
+    if (flagCount > 0 && graceNotes.length === 1) {
+      for (let flagIndex = 0; flagIndex < flagCount; flagIndex += 1) {
+        const flag = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        const flagY = stemTopY + flagIndex * 5
+
+        flag.classList.add('notation-grace-flag')
+        flag.setAttribute('data-event-id', eventId)
+        flag.setAttribute('data-grace-index', String(index))
+        flag.setAttribute(
+          'd',
+          `M ${stemX} ${flagY} C ${stemX + 8} ${flagY + 2}, ${stemX + 9} ${flagY + 8}, ${stemX + 2} ${flagY + 11}`
+        )
+        group.append(flag)
+      }
+    }
+
+    for (let dotIndex = 0; dotIndex < (graceNote.duration?.dots ?? 0); dotIndex += 1) {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+
+      dot.classList.add('notation-grace-dot')
+      dot.setAttribute('data-event-id', eventId)
+      dot.setAttribute('data-grace-index', String(index))
+      dot.setAttribute('cx', String(noteX + 8 + dotIndex * 4))
+      dot.setAttribute('cy', String(noteY - 1))
+      dot.setAttribute('r', '1.3')
+      group.append(dot)
+    }
+
     if (graceNote.slash) {
       const slash = document.createElementNS('http://www.w3.org/2000/svg', 'line')
 
@@ -3159,18 +3198,44 @@ function drawGraceNotes(
   })
 
   if (stemTops.length > 1) {
-    const beam = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    const beamCount = Math.max(
+      1,
+      ...graceNotes.map((graceNote) =>
+        graceNoteFlagCount(graceNote.duration?.value ?? 'eighth')
+      )
+    )
 
-    beam.classList.add('notation-grace-beam')
-    beam.setAttribute('data-event-id', eventId)
-    beam.setAttribute('x1', String(stemTops[0]!.x))
-    beam.setAttribute('x2', String(stemTops.at(-1)!.x))
-    beam.setAttribute('y1', String(stemTops[0]!.y))
-    beam.setAttribute('y2', String(stemTops.at(-1)!.y))
-    group.append(beam)
+    for (let beamIndex = 0; beamIndex < beamCount; beamIndex += 1) {
+      const beam = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+      beam.classList.add('notation-grace-beam')
+      beam.setAttribute('data-event-id', eventId)
+      beam.setAttribute('x1', String(stemTops[0]!.x))
+      beam.setAttribute('x2', String(stemTops.at(-1)!.x))
+      beam.setAttribute('y1', String(stemTops[0]!.y + beamIndex * 4))
+      beam.setAttribute('y2', String(stemTops.at(-1)!.y + beamIndex * 4))
+      group.append(beam)
+    }
   }
 
   svg.append(group)
+}
+
+function graceNoteFlagCount(duration: DurationValue): number {
+  switch (duration) {
+    case '64th':
+      return 4
+    case '32nd':
+      return 3
+    case '16th':
+      return 2
+    case 'eighth':
+      return 1
+    case 'whole':
+    case 'half':
+    case 'quarter':
+      return 0
+  }
 }
 
 function resolveGraceNoteY(
@@ -3403,28 +3468,6 @@ function isNotationBeamable(event: VoiceEvent): boolean {
 
 function getVisibleNoteX(note: StaveNote): number {
   return note.getAbsoluteX() + note.getXShift()
-}
-
-function sameClef(previous: Measure, current: Measure): boolean {
-  return (
-    previous.clef.sign === current.clef.sign &&
-    previous.clef.line === current.clef.line &&
-    previous.clef.octaveChange === current.clef.octaveChange
-  )
-}
-
-function sameKeySignature(previous: Measure, current: Measure): boolean {
-  return (
-    previous.keySignature.fifths === current.keySignature.fifths &&
-    previous.keySignature.mode === current.keySignature.mode
-  )
-}
-
-function sameTimeSignature(previous: Measure, current: Measure): boolean {
-  return (
-    previous.timeSignature.beats === current.timeSignature.beats &&
-    previous.timeSignature.beatType === current.timeSignature.beatType
-  )
 }
 
 function dragAnchorMatchesVoiceAddress(

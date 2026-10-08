@@ -3002,6 +3002,77 @@ switching remain reachable.
 | `npm run site:build`; `node scripts/verify-site-content.mjs` | Pass | Download manifest and static fallback links rebuilt for `0.1.0-alpha.22`; site content manifests, product relations and feature map paths verified after the alpha.22 release update. |
 | Site workflow `37589146650`; CI workflow `37589146635`; `curl -L https://in-c.mannlab.app/download-manifest.json`; `npm run verify:site-production` | Fail, then Pass | Main commit `64b632d` updated the production download manifest to alpha.22. Site workflow and GitHub Pages deploy passed, CI passed, and production manifest returned `0.1.0-alpha.22`. The first production verifier run failed under sandboxed Node DNS with `ENOTFOUND`; rerun with network access passed all production smoke checks. |
 
+## 2026-10-08 Chromatics Wizard And System Notation Polish
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/notation/system-layout.test.ts -t "time signature\|notation symbols"` | Pass | 3 focused layout tests passed. Coverage confirms unchanged time signatures are not treated as repeated system-start symbols, while actual meter changes still reserve and display a time signature. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "part-layout"` | Pass | 2 focused renderer tests passed. Coverage confirms grand-staff braces remain on repeated systems, but the part label renders only on the first system. |
+| `npm test -- src/renderer/src/App.test.tsx -t "pickup-measure creates"` | Pass | 1 focused App test passed. The new-score wizard now exposes pickup unit/count controls inside one `못갖춘마디` group while preserving 3x16th pickup MusicXML creation. |
+| `npm run typecheck`; `npm run verify:chromatics-v1-work-queue`; `git diff --check` | Pass | TypeScript, work-queue verifier and whitespace gates passed after the wizard pickup grouping, toolbar separator CSS and system-start notation policy updates. Queue verifier reported 75 rows, 16 Required umbrellas and `automationQueueDrained: false`. Visual/PDF engraving QA remains recommended for the system-label/time-signature presentation change. |
+
+## 2026-10-08 Chromatics Grace Note Entry UX
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "grace-note command\|grace note object filter"` | Fail, then Pass | First run exposed two follow-ups: the new direct command test needed a fixture route instead of the start screen, and legacy grace notes without explicit duration reopened from MusicXML as default eighth grace notes. The final run passed 4 focused App tests. Coverage confirms the button is now `꾸밈음`, no `짧은 꾸밈음` button remains, a selected rhythmic note is converted into a non-rhythmic grace note on the following main note, later events shift left, a tail rest preserves the measure, and existing grace-note object clipboard workflows still round-trip native/MusicXML. |
+| `npm test -- src/musicxml/musicxml.test.ts -t "grace-notes"` | Pass | 1 focused MusicXML test passed. Grace notes now preserve optional duration/dots through MusicXML while older grace notes without duration normalize to the default eighth value on save validation. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "passive markers"` | Pass | 2 focused renderer tests still pass after adding grace-note duration metadata plus flag/dot drawing hooks to the SVG mini-note renderer. |
+
+## 2026-10-08 Chromatics Measure Settings And Staff Label UX
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/notation/system-layout.test.ts src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` | Fail, then Pass | The first broader renderer/layout run exposed that the left system gutter had been added to the core default layout, changing measure-per-system contracts. The final run passed 45 tests after making the gutter an explicit NotationPreview render option. Coverage confirms the grand-staff part label and brace render to the left of the first staff x coordinate, the label is end-anchored, lower staves still do not show generated `Staff 2` labels, braces repeat on later systems, and inline clefs still render on passive staves. |
+| `npm test -- src/renderer/src/App.test.tsx -t "start-recovery\|toolbar state follows"` | Pass | 5 focused App tests passed after renaming the context-strip controls to `선택 마디부터 조표` and `선택 마디 박자표`; recovery and toolbar state still expose the selected-measure settings. |
+| `npm test -- src/renderer/src/App.test.tsx -t "clef.change-selected-measure"` | Pass | 1 focused App test passed. The existing selected-measure clef command path still changes only the selected measure after making the visible label explicit as `선택 마디 음자리표`. |
+
+## 2026-10-08 Chromatics Notation Palette IA Slice
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| MuseScore handbook reference | Reviewed | MuseScore Studio documents Palettes, Instruments and Properties as main side-panel tabs, and the palette model groups notation elements by category. This informed the Chromatics first slice of grouping notation-object controls by line/span, text, dynamics, measure settings and repeats while keeping existing command handlers. |
+| `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level-notation\|palette.range-notation\|palette.notation-applicability"` | Fail, then Pass | First run exposed an accessibility-name collision from adding `aria-label` to purely visual cluster wrappers. The final run passed 3 focused App tests after removing wrapper labels. Coverage confirms the notation-object toolbar exposes `라인과 범위 기호`, `마디 표기`, `반복과 볼타`, visible group headings for text/measure settings, keeps measure marking edits working, and still disables measure text/dynamics on range selections. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the notation palette grouping CSS/JSX/test updates. |
+
+## 2026-10-08 Chromatics Menu IA Inventory And Palette Search
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Official notation-app UI references | Reviewed | MuseScore Studio handbook: Palettes / Instruments / Properties are default left-sidebar tabs; palette items are grouped by symbol family and can be searched. MuseScore palette customization also documents palette menu actions such as collapse/expand, one-palette-at-a-time and palette properties. Dorico properties reference confirms a selected notation item drives grouped properties. |
+| Current Chromatics inventory | Reviewed | Code/test inventory shows top work modes: `파일`, `악보`, `음표`, `표기 객체`, `가사`, `내보내기`, `재생`. Context strip shows task/input/target/duration/playback status. Selection toolbars host File actions, Score setup/tempo, Note editing, Notation objects, Lyrics/Chord symbols, Export settings and Playback transport/mixer. Side docks already expose fixed palettes and properties. |
+| First implementation slice | Implemented | Added a `기호 검색` search field to the `표기 객체` toolbar. Search terms narrow visible notation groups across `라인/범위`, `연습표`, `텍스트`, `셈여림`, `마디 설정` and `반복/볼타`; unmatched searches show a compact no-results panel. Existing command handlers and labels remain unchanged. |
+| `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level-notation\|palette.range-notation\|palette.notation-applicability"` | Fail, then Pass | First run exposed an accessibility-name collision between the search region and search input. The input is now labelled `기호 검색`, while the region remains `표기 객체 검색`. Final focused run passed 3 App tests, including search filtering, clearing and no-results coverage. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after adding notation palette search state, filtering helpers and styles. |
+| `npm run verify:visual-regression` | Fail, then Pass | First run failed because notation snapshot coordinates changed after the intentional left system gutter and label/brace positioning update. The 960px/1400px screenshots were inspected, `npm run verify:notation-snapshots:update` refreshed `docs/testing/notation-snapshot-baseline.json`, and the final visual regression run passed with 91 MusicXML/layout tests plus notation snapshots. |
+
+## 2026-10-08 Chromatics MuseScore Palette Accordion Follow-up
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Local MuseScore Studio 4 reference | Reviewed | `/Applications/MuseScore 4.app` was launched. The visible UI confirms MuseScore keeps main modes simple while placing score-building tools in left-side navigation and score notation tools in `팔레트 / 레이아웃 / 속성` tabs; the palette view uses searchable, collapsible symbol-family categories such as clefs, key signatures, time signatures, accidentals, dynamics, text and repeat/jump symbols. |
+| `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level-notation\|palette.range-notation\|palette.notation-applicability"` | Fail, then Pass | The first run exposed that the pre-existing range-palette disabled-state test treated the new category collapse button as a notation command. The final run passed 3 focused App tests after excluding the UI-only collapse control from command disabled assertions. Coverage confirms notation sections can collapse, collapsed commands disappear, and active search automatically reopens a matching collapsed section while disabling the collapse toggle during search. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after adding collapsible notation-palette section state, header controls and CSS. |
+| `npm run verify:visual-regression` | Pass | Visual regression passed without a baseline update after the palette accordion follow-up: MusicXML/layout tests passed with 91 tests, production build passed and notation snapshots verified at 960px and 1400px. |
+
+## 2026-10-08 Chromatics Measure Settings Palette Scope Follow-up
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level-notation\|clef.change-selected-measure\|toolbar state follows\|command-palette runs key and time signature"` | Fail, then Pass | The first run showed the release-test fixture starts in G major, not C major, and that changing its fully occupied first measure to 3/4 correctly follows the existing incompatible-meter error path. The final focused run passed 2 App tests. Coverage confirms `표기 객체 > 마디 설정` now exposes `마디 설정 적용 범위`, `선택 마디부터 조표`, `선택 마디 박자표` and `선택 마디 음자리표` together, reuses the existing key/time/clef handlers, and preserves invalid meter validation. |
+| `npm test -- src/renderer/src/notation/system-layout.test.ts -t "time signature\|notation symbols"` | Pass | 3 focused layout tests passed after moving key/time entry points into the notation-object measure settings cluster. Unchanged time signatures still do not repeat at every system, and real meter changes still reserve/display time signatures. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the measure-settings palette scope follow-up. |
+
+## 2026-10-08 Chromatics Alpha.30 Local Release Prep
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note"` | Fail, then Pass | Full-suite rehearsal exposed an ambiguous label lookup after moving selected-measure key/time controls into the notation-object measure settings palette. The focused rerun passed after scoping the test to visible controls instead of hidden palette duplicates. |
+| `npm test -- --reporter=dot` | Pass | Full local suite passed before alpha.30 release prep: 62 files passed / 1 skipped; 817 tests passed / 1 skipped. |
+| `npm run typecheck`; `npm run verify:chromatics-v1-work-queue`; `npm run verify:musicxml-fixtures`; `npm run verify:midi-fixtures`; `git diff --check` | Pass | TypeScript, work-queue schema/status, external-app MusicXML fixture QA, V1 MIDI fixture QA and whitespace gates passed. Work-queue verifier reported 78 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `npm run verify:visual-regression` | Pass | Visual regression passed before alpha.30 release prep: MusicXML/layout tests passed with 91 tests, production build passed and notation snapshots verified at 960px and 1400px. |
+| `npm run package:dir`; `npm run verify:package` | Pass | Local macOS arm64 unpacked package built at `release/mac-arm64`; electron-builder signed the app with Developer ID Application `Jae-man Kim (ZRA4DHHKQ4)` and skipped local notarization because notarization options were not generated. Packaged app smoke completed with `PACKAGED_APP_SMOKE_OK`; the expected guarded same-path export warning was logged during the smoke. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

@@ -59,7 +59,9 @@ import {
   createFullMeasureRest,
   createMeasure,
   createPart,
+  createRest,
   createStaff,
+  createTimePosition,
   createVoice,
   durationToTicks,
   MAX_AUGMENTATION_DOTS,
@@ -736,6 +738,23 @@ const ornamentOptions = [
   ['mordent', 'mord.'],
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
+const notationPaletteGroups = {
+  lines: ['라인', '범위', '헤어핀', '크레셴도', '디미누엔도', '슬러', '옥타브', '8va', '8vb', '15ma', '15mb'],
+  rehearsal: ['연습표', '리허설', 'rehearsal', 'A', 'B'],
+  text: ['텍스트', '보표 글자', '시스템 텍스트', '표현 텍스트', 'dolce', 'espressivo', 'Chorus'],
+  dynamics: ['셈여림', '다이내믹', 'dynamic', 'p', 'mf', 'ff', 'sfz'],
+  measureSettings: ['마디 설정', '음자리표', 'clef', '못갖춘마디', 'pickup', '박자표', '조표'],
+  repeats: ['반복', '볼타', '도돌이표', 'repeat', 'volta', '1번', '2번']
+} as const
+type NotationPaletteSectionId = keyof typeof notationPaletteGroups
+const defaultNotationPaletteSectionCollapse = {
+  lines: false,
+  rehearsal: false,
+  text: false,
+  dynamics: false,
+  measureSettings: false,
+  repeats: false
+} as const satisfies Record<NotationPaletteSectionId, boolean>
 const lyricVerseOptions = [1, 2, 3, 4] as const
 const selectionFilterOptions = [
   ['notes-and-rests', '전체'],
@@ -864,6 +883,13 @@ export const App = () => {
     useState<ToolbarCategory>('note')
   const [paletteCategory, setPaletteCategory] =
     useState<ToolbarCategory>('note')
+  const [notationPaletteQuery, setNotationPaletteQuery] = useState('')
+  const [
+    collapsedNotationPaletteSections,
+    setCollapsedNotationPaletteSections
+  ] = useState<Record<NotationPaletteSectionId, boolean>>(
+    defaultNotationPaletteSectionCollapse
+  )
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
     useState<PdfTargetPagesValue>('2')
@@ -1175,6 +1201,45 @@ export const App = () => {
   const activeToolbarCategoryLabel =
     toolbarCategories.find((category) => category.id === toolbarCategory)
       ?.label ?? '음표'
+  const normalizedNotationPaletteQuery = normalizePaletteQuery(notationPaletteQuery)
+  const notationPaletteMatches = {
+    lines: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.lines),
+    rehearsal: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.rehearsal),
+    text: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.text),
+    dynamics: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.dynamics),
+    measureSettings: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.measureSettings),
+    repeats: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.repeats)
+  }
+  const hasNotationPaletteMatches = Object.values(notationPaletteMatches).some(Boolean)
+  const hasMeasureNotationPaletteMatches =
+    notationPaletteMatches.rehearsal ||
+    notationPaletteMatches.text ||
+    notationPaletteMatches.dynamics ||
+    notationPaletteMatches.measureSettings
+  const notationPaletteSearchActive = normalizedNotationPaletteQuery.length > 0
+  const notationPaletteSectionsExpanded = {
+    lines: notationPaletteSearchActive || !collapsedNotationPaletteSections.lines,
+    rehearsal: notationPaletteSearchActive || !collapsedNotationPaletteSections.rehearsal,
+    text: notationPaletteSearchActive || !collapsedNotationPaletteSections.text,
+    dynamics: notationPaletteSearchActive || !collapsedNotationPaletteSections.dynamics,
+    measureSettings:
+      notationPaletteSearchActive || !collapsedNotationPaletteSections.measureSettings,
+    repeats: notationPaletteSearchActive || !collapsedNotationPaletteSections.repeats
+  }
+  const isMeasureNotationPaletteExpanded =
+    notationPaletteSectionsExpanded.rehearsal ||
+    notationPaletteSectionsExpanded.text ||
+    notationPaletteSectionsExpanded.dynamics ||
+    notationPaletteSectionsExpanded.measureSettings
+  const toggleNotationPaletteSection = useCallback(
+    (sectionId: NotationPaletteSectionId) => {
+      setCollapsedNotationPaletteSections((current) => ({
+        ...current,
+        [sectionId]: !current[sectionId]
+      }))
+    },
+    []
+  )
   const selectedSpanObject = activeSpanReference && findSpan(score, activeSpanReference)
   const activeScopeLabel = resolveActiveScopeLabel(score, activeSpanReference
     ? selectedSpanObject && locateEvent(score, selectedSpanObject.startEventId)?.address
@@ -4414,26 +4479,150 @@ export const App = () => {
     [replaceSelectedNote]
   )
 
-  const toggleGraceNote = useCallback(() => {
-    replaceSelectedNote((note) => {
-      const graceNotes = note.graceNotes ?? []
+  const convertSelectedNoteToGraceNote = useCallback(() => {
+    if (!eventLocation || eventLocation.event.type !== 'note') {
+      setFileStatus({
+        tone: 'error',
+        message: '꾸밈음으로 바꿀 음표를 선택해 주세요.'
+      })
+      return false
+    }
 
-      return {
-        ...note,
-        graceNotes:
-          graceNotes.length > 0
-            ? undefined
-            : [
-                {
-                  pitch: transposeChordPitch(note.pitch, -1),
-                  slash: true
-                }
-              ]
+    const selectedNote = eventLocation.event
+
+    if (selectedNote.duration.tuplet) {
+      setFileStatus({
+        tone: 'error',
+        message: '셋잇단음표 안의 음표는 아직 꾸밈음으로 바꿀 수 없습니다.'
+      })
+      return false
+    }
+
+    if (selectedNote.ties?.start || selectedNote.ties?.stop) {
+      setFileStatus({
+        tone: 'error',
+        message: '타이가 연결된 음표는 먼저 타이를 해제해 주세요.'
+      })
+      return false
+    }
+
+    if (selectedNote.pitches?.length) {
+      setFileStatus({
+        tone: 'error',
+        message: '화음 음표는 아직 꾸밈음으로 바꿀 수 없습니다.'
+      })
+      return false
+    }
+
+    const voice = eventLocation.measure.voices.find(
+      (candidate) => candidate.id === eventLocation.address.voiceId
+    )
+
+    if (!voice) {
+      setFileStatus({
+        tone: 'error',
+        message: '선택한 성부를 찾을 수 없습니다.'
+      })
+      return false
+    }
+
+    if (voice.tuplets?.length) {
+      setFileStatus({
+        tone: 'error',
+        message: '셋잇단음표가 있는 성부는 아직 꾸밈음 변환을 지원하지 않습니다.'
+      })
+      return false
+    }
+
+    const events = sortVoiceEvents(voice.events)
+    const sourceIndex = events.findIndex((event) => event.id === selectedNote.id)
+    const targetIndex = events.findIndex(
+      (event, index) => index > sourceIndex && event.type === 'note'
+    )
+
+    if (sourceIndex < 0 || targetIndex < 0) {
+      setFileStatus({
+        tone: 'error',
+        message: '선택 음표 뒤에 꾸밈음을 붙일 본음이 필요합니다.'
+      })
+      return false
+    }
+
+    const selectedTicks = voiceEventDurationTicks(
+      selectedNote,
+      eventLocation.measure
+    )
+    const measureTicks = measureDurationTicks(eventLocation.measure)
+    const graceDuration = {
+      value: selectedNote.duration.value,
+      dots: selectedNote.duration.dots
+    }
+    const graceNotes: GraceNote[] = [
+      ...(selectedNote.graceNotes ?? []),
+      {
+        pitch: selectedNote.pitch,
+        duration: graceDuration
       }
-    }, eventLocation?.event.type === 'note' && eventLocation.event.graceNotes?.length
-      ? '꾸밈음을 제거했습니다.'
-      : '꾸밈음을 추가했습니다.')
-  }, [eventLocation, replaceSelectedNote])
+    ]
+    const fillRestId = `grace-fill-${crypto.randomUUID()}`
+    const fillRest = createRest({
+      id: fillRestId,
+      position: createTimePosition(measureTicks - selectedTicks),
+      duration: graceDuration
+    })
+    const nextEvents = [
+      ...events.flatMap((event, index) => {
+        if (index === sourceIndex) {
+          return []
+        }
+
+        const shiftedEvent =
+          index > sourceIndex
+            ? {
+                ...event,
+                position: createTimePosition(event.position.tick - selectedTicks)
+              }
+            : event
+
+        if (index === targetIndex && shiftedEvent.type === 'note') {
+          return [
+            {
+              ...shiftedEvent,
+              graceNotes: [
+                ...(shiftedEvent.graceNotes ?? []),
+                ...graceNotes
+              ]
+            }
+          ]
+        }
+
+        return [shiftedEvent]
+      }),
+      fillRest
+    ]
+
+    if (
+      executeCommand({
+        type: 'voice-events.replace',
+        target: eventLocation.address,
+        events: nextEvents,
+        editedEventId: events[targetIndex].id
+      })
+    ) {
+      setSelection({
+        type: 'event',
+        eventId: events[targetIndex].id,
+        address: eventLocation.address
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: '꾸밈음으로 변환했습니다.'
+      })
+      return true
+    }
+
+    return false
+  }, [eventLocation, executeCommand])
 
   const updateLyric = useCallback(
     (
@@ -7027,15 +7216,11 @@ export const App = () => {
                           </button>
                         ))}
                         <button
-                          aria-label="짧은 꾸밈음"
-                          aria-pressed={Boolean(selectedNote.graceNotes?.length)}
-                          className={
-                            selectedNote.graceNotes?.length ? 'is-active' : undefined
-                          }
-                          onClick={toggleGraceNote}
+                          aria-label="꾸밈음"
+                          onClick={convertSelectedNoteToGraceNote}
                           type="button"
                         >
-                          짧은 꾸밈음
+                          꾸밈음
                         </button>
                       </div>
                     </div>
@@ -7057,8 +7242,62 @@ export const App = () => {
         aria-label="표기 객체"
         hidden={toolbarsCollapsed || toolbarCategory !== 'notation'}
       >
-            <section className="inspector-properties range-notation-palette" aria-label="범위 기호">
-              <h3>범위 기호</h3>
+            <section className="inspector-properties inspector-properties--search" aria-label="표기 객체 검색">
+              <h3>찾기</h3>
+              <label>
+                <span>기호 검색</span>
+                <input
+                  aria-label="기호 검색"
+                  onChange={(event) => setNotationPaletteQuery(event.currentTarget.value)}
+                  placeholder="슬러, 셈여림, 볼타..."
+                  type="search"
+                  value={notationPaletteQuery}
+                />
+              </label>
+              {notationPaletteQuery ? (
+                <button
+                  aria-label="표기 객체 검색 지우기"
+                  onClick={() => setNotationPaletteQuery('')}
+                  type="button"
+                >
+                  지우기
+                </button>
+              ) : null}
+            </section>
+        {notationPaletteMatches.lines ? (
+            <section
+              className="inspector-properties inspector-properties--compact range-notation-palette"
+              aria-label="라인과 범위 기호"
+              data-collapsed={!notationPaletteSectionsExpanded.lines}
+            >
+              <div className="inspector-properties__header">
+                <h3>라인/범위</h3>
+                <button
+                  aria-expanded={notationPaletteSectionsExpanded.lines}
+                  aria-label={
+                    notationPaletteSectionsExpanded.lines
+                      ? '라인과 범위 기호 접기'
+                      : '라인과 범위 기호 펼치기'
+                  }
+                  className="inspector-properties__collapse"
+                  disabled={notationPaletteSearchActive}
+                  onClick={() => toggleNotationPaletteSection('lines')}
+                  title={
+                    notationPaletteSearchActive
+                      ? '검색 중에는 결과가 자동으로 펼쳐집니다'
+                      : undefined
+                  }
+                  type="button"
+                >
+                  {notationPaletteSectionsExpanded.lines ? (
+                    <ChevronsUp aria-hidden="true" size={14} />
+                  ) : (
+                    <ChevronsDown aria-hidden="true" size={14} />
+                  )}
+                </button>
+              </div>
+              {notationPaletteSectionsExpanded.lines ? (
+              <>
               <div className="inspector-properties__row">
                 <span>헤어핀</span>
                 <div className="inspector-properties__buttons">
@@ -7112,17 +7351,50 @@ export const App = () => {
                   ))}
                 </div>
               </div>
+              </>
+              ) : null}
             </section>
-        {activeMeasureId ? (
+        ) : null}
+        {activeMeasureId && hasMeasureNotationPaletteMatches ? (
           <section
-            className="inspector-properties"
+            className="inspector-properties inspector-properties--grouped"
             aria-label="마디 표기"
             data-applicability={
               canEditMeasureNotation ? 'active-measure' : 'range-disabled'
             }
+            data-collapsed={!isMeasureNotationPaletteExpanded}
           >
-            <h3>마디 표기</h3>
-            <div className="inspector-properties__grid">
+            <div className="inspector-properties__header">
+              <h3>마디 표기</h3>
+              <button
+                aria-expanded={isMeasureNotationPaletteExpanded}
+                aria-label={
+                  isMeasureNotationPaletteExpanded
+                    ? '마디 표기 접기'
+                    : '마디 표기 펼치기'
+                }
+                className="inspector-properties__collapse"
+                disabled={notationPaletteSearchActive}
+                onClick={() => toggleNotationPaletteSection('measureSettings')}
+                title={
+                  notationPaletteSearchActive
+                    ? '검색 중에는 결과가 자동으로 펼쳐집니다'
+                    : undefined
+                }
+                type="button"
+              >
+                {isMeasureNotationPaletteExpanded ? (
+                  <ChevronsUp aria-hidden="true" size={14} />
+                ) : (
+                  <ChevronsDown aria-hidden="true" size={14} />
+                )}
+              </button>
+            </div>
+            {isMeasureNotationPaletteExpanded ? (
+            <div className="inspector-properties__grid inspector-properties__grid--grouped">
+              {notationPaletteMatches.rehearsal ? (
+              <div className="inspector-properties__cluster">
+                <span className="inspector-properties__cluster-title">연습표</span>
               <label>
                 <span>연습표 선택</span>
                 <select aria-label="연습표 객체 선택" disabled={!canEditMeasureNotation}
@@ -7160,7 +7432,12 @@ export const App = () => {
                   type="text"
                 />
               </label>
+              </div>
+              ) : null}
 
+              {notationPaletteMatches.text ? (
+              <div className="inspector-properties__cluster inspector-properties__cluster--text">
+                <span className="inspector-properties__cluster-title">텍스트</span>
               <label>
                 <span>보표 글자 선택</span>
                 <select aria-label="보표 글자 객체 선택" disabled={!canEditMeasureNotation}
@@ -7279,7 +7556,12 @@ export const App = () => {
                   type="text"
                 />
               </label>
+              </div>
+              ) : null}
 
+              {notationPaletteMatches.dynamics ? (
+              <div className="inspector-properties__cluster">
+                <span className="inspector-properties__cluster-title">셈여림</span>
               <label>
                 <span>셈여림 선택</span>
                 <select aria-label="셈여림 객체 선택" disabled={!canEditMeasureNotation}
@@ -7308,9 +7590,48 @@ export const App = () => {
                   ))}
                 </select>
               </label>
+              </div>
+              ) : null}
 
+              {notationPaletteMatches.measureSettings ? (
+              <div className="inspector-properties__cluster inspector-properties__cluster--measure-settings">
+                <span className="inspector-properties__cluster-title">마디 설정</span>
               <label>
-                <span>마디 음자리표</span>
+                <span>적용 범위</span>
+                <output aria-label="마디 설정 적용 범위">선택 마디 기준</output>
+              </label>
+              <label>
+                <span>선택 마디부터 조표</span>
+                <select
+                  aria-label="선택 마디부터 조표"
+                  disabled={!measureLocation}
+                  onChange={(event) => changeKeySignature(event.target.value)}
+                  value={activeKeySignatureId}
+                >
+                  {keySignaturePresets.map((keySignature) => (
+                    <option key={keySignature.id} value={keySignature.id}>
+                      {keySignature.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>선택 마디 박자표</span>
+                <select
+                  aria-label="선택 마디 박자표"
+                  disabled={!measureLocation}
+                  onChange={(event) => changeTimeSignature(event.target.value)}
+                  value={activeTimeSignatureId}
+                >
+                  {timeSignaturePresets.map((timeSignature) => (
+                    <option key={timeSignature.id} value={timeSignature.id}>
+                      {timeSignature.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>선택 마디 음자리표</span>
                 <select
                   aria-label="선택 마디 음자리표"
                   disabled={!measureLocation}
@@ -7362,20 +7683,54 @@ export const App = () => {
                   value={activeMeasurePickupControls.count}
                 />
               </label>
+              </div>
+              ) : null}
             </div>
+            ) : null}
           </section>
-        ) : (
+        ) : !activeMeasureId && hasMeasureNotationPaletteMatches ? (
           <section className="inspector-properties" aria-label="마디 표기">
             <h3>마디 표기</h3>
             <p className="inspector-properties__empty">
               음표나 마디를 선택하면 마디 단위 표기 항목이 표시됩니다.
             </p>
           </section>
-        )}
+        ) : null}
 
-        {activeMeasureId ? (
-          <section className="inspector-properties" aria-label="반복과 볼타">
-            <h3>반복/볼타</h3>
+        {activeMeasureId && notationPaletteMatches.repeats ? (
+          <section
+            className="inspector-properties inspector-properties--compact"
+            aria-label="반복과 볼타"
+            data-collapsed={!notationPaletteSectionsExpanded.repeats}
+          >
+            <div className="inspector-properties__header">
+              <h3>반복/볼타</h3>
+              <button
+                aria-expanded={notationPaletteSectionsExpanded.repeats}
+                aria-label={
+                  notationPaletteSectionsExpanded.repeats
+                    ? '반복과 볼타 접기'
+                    : '반복과 볼타 펼치기'
+                }
+                className="inspector-properties__collapse"
+                disabled={notationPaletteSearchActive}
+                onClick={() => toggleNotationPaletteSection('repeats')}
+                title={
+                  notationPaletteSearchActive
+                    ? '검색 중에는 결과가 자동으로 펼쳐집니다'
+                    : undefined
+                }
+                type="button"
+              >
+                {notationPaletteSectionsExpanded.repeats ? (
+                  <ChevronsUp aria-hidden="true" size={14} />
+                ) : (
+                  <ChevronsDown aria-hidden="true" size={14} />
+                )}
+              </button>
+            </div>
+            {notationPaletteSectionsExpanded.repeats ? (
+            <>
             <div className="inspector-properties__row">
               <span>도돌이표</span>
               <div className="inspector-properties__buttons">
@@ -7452,6 +7807,16 @@ export const App = () => {
                 </button>
               </div>
             </div>
+            </>
+            ) : null}
+          </section>
+        ) : null}
+        {!hasNotationPaletteMatches ? (
+          <section className="inspector-properties inspector-properties--compact" aria-label="표기 객체 검색 결과">
+            <h3>검색 결과</h3>
+            <p className="inspector-properties__empty">
+              일치하는 표기 객체가 없습니다.
+            </p>
           </section>
         ) : null}
       </section>
@@ -8383,9 +8748,9 @@ export const App = () => {
               className="key-signature-control"
               hidden={toolbarCategory !== 'measure'}
             >
-              <span>조표</span>
+              <span>선택 마디부터 조표</span>
               <select
-                aria-label="조표"
+                aria-label="선택 마디부터 조표"
                 disabled={!activeMeasureId}
                 onChange={(event) => changeKeySignature(event.target.value)}
                 value={activeKeySignatureId}
@@ -8402,9 +8767,9 @@ export const App = () => {
               className="time-signature-control"
               hidden={toolbarCategory !== 'measure'}
             >
-              <span>박자표</span>
+              <span>선택 마디 박자표</span>
               <select
-                aria-label="박자표"
+                aria-label="선택 마디 박자표"
                 disabled={!activeMeasureId}
                 onChange={(event) => changeTimeSignature(event.target.value)}
                 value={activeTimeSignatureId}
@@ -9260,53 +9625,56 @@ export const App = () => {
                 />
               </label>
 
-              <label>
-                <span>못갖춘마디 단위</span>
-                <select
-                  aria-label="못갖춘마디 단위"
-                  onChange={(event) =>
-                    setNewScoreDraft({
-                      ...newScoreDraft,
-                      pickupMeasureUnit: event.target.value as DurationValue,
-                      pickupMeasureCount: normalizePickupMeasureCount(
-                        newScoreDraft.timeSignatureId,
-                        event.target.value as DurationValue,
-                        newScoreDraft.pickupMeasureCount
-                      )
-                    })
-                  }
-                  value={newScoreDraft.pickupMeasureUnit}
-                >
-                  <option value="quarter">4분음표</option>
-                  <option value="eighth">8분음표</option>
-                  <option value="16th">16분음표</option>
-                </select>
-              </label>
+              <fieldset className="new-score-form__pickup">
+                <legend>못갖춘마디</legend>
+                <label>
+                  <span>단위</span>
+                  <select
+                    aria-label="못갖춘마디 단위"
+                    onChange={(event) =>
+                      setNewScoreDraft({
+                        ...newScoreDraft,
+                        pickupMeasureUnit: event.target.value as DurationValue,
+                        pickupMeasureCount: normalizePickupMeasureCount(
+                          newScoreDraft.timeSignatureId,
+                          event.target.value as DurationValue,
+                          newScoreDraft.pickupMeasureCount
+                        )
+                      })
+                    }
+                    value={newScoreDraft.pickupMeasureUnit}
+                  >
+                    <option value="quarter">4분음표</option>
+                    <option value="eighth">8분음표</option>
+                    <option value="16th">16분음표</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>못갖춘마디 개수</span>
-                <input
-                  aria-label="못갖춘마디 개수"
-                  max={resolvePickupMeasureMaxCount(
-                    newScoreDraft.timeSignatureId,
-                    newScoreDraft.pickupMeasureUnit
-                  )}
-                  min="0"
-                  onChange={(event) =>
-                    setNewScoreDraft({
-                      ...newScoreDraft,
-                      pickupMeasureBeats: 0,
-                      pickupMeasureCount: normalizePickupMeasureCount(
-                        newScoreDraft.timeSignatureId,
-                        newScoreDraft.pickupMeasureUnit,
-                        event.target.valueAsNumber
-                      )
-                    })
-                  }
-                  type="number"
-                  value={newScoreDraft.pickupMeasureCount}
-                />
-              </label>
+                <label>
+                  <span>개수</span>
+                  <input
+                    aria-label="못갖춘마디 개수"
+                    max={resolvePickupMeasureMaxCount(
+                      newScoreDraft.timeSignatureId,
+                      newScoreDraft.pickupMeasureUnit
+                    )}
+                    min="0"
+                    onChange={(event) =>
+                      setNewScoreDraft({
+                        ...newScoreDraft,
+                        pickupMeasureBeats: 0,
+                        pickupMeasureCount: normalizePickupMeasureCount(
+                          newScoreDraft.timeSignatureId,
+                          newScoreDraft.pickupMeasureUnit,
+                          event.target.valueAsNumber
+                        )
+                      })
+                    }
+                    type="number"
+                    value={newScoreDraft.pickupMeasureCount}
+                  />
+                </label>
+              </fieldset>
 
               <label>
                 <span>{koreanMusicTerms.tempo}</span>
@@ -14272,6 +14640,10 @@ function createEventSaveSignature(
           articulations: event.articulations ?? [],
           graceNotes: (event.graceNotes ?? []).map((graceNote) => ({
             pitch: normalizePitch(graceNote.pitch),
+            duration: {
+              value: graceNote.duration?.value ?? 'eighth',
+              dots: graceNote.duration?.dots ?? 0
+            },
             slash: Boolean(graceNote.slash)
           })),
           lyrics: event.lyrics ? sortLyricsByNumber(event.lyrics) : [],
@@ -14800,6 +15172,23 @@ function parseStoredPartMixerSettings(
     solo: settings.solo === true,
     volume: Number.isFinite(volume) ? volume : 1
   })
+}
+
+function normalizePaletteQuery(query: string): string {
+  return query.trim().toLocaleLowerCase('ko-KR')
+}
+
+function matchesNotationPaletteGroup(
+  query: string,
+  terms: readonly string[]
+): boolean {
+  if (!query) {
+    return true
+  }
+
+  return terms.some((term) =>
+    term.toLocaleLowerCase('ko-KR').includes(query)
+  )
 }
 
 function parsePdfTargetPages(value: PdfTargetPagesValue): number | undefined {

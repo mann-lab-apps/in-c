@@ -404,6 +404,7 @@ h2 {
 }
 
 .inspector-properties {
+  position: relative;
   display: flex;
   flex: 1 1 300px;
   flex-wrap: wrap;
@@ -415,9 +416,35 @@ h2 {
   margin: 0;
   padding: 0 12px;
   border: 0;
-  border-right: 1px solid #d8d2c5;
   background: transparent;
   white-space: normal;
+}
+
+.inspector-properties--compact {
+  flex: 0 1 auto;
+  align-items: flex-start;
+}
+
+.inspector-properties--grouped {
+  flex: 1 1 640px;
+  align-items: flex-start;
+}
+
+.inspector-properties--search {
+  flex: 0 1 260px;
+  align-items: flex-start;
+}
+
+.inspector-properties::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 1px;
+  height: var(--toolbar-section-separator-height, 30px);
+  max-height: calc(100% - 8px);
+  background: #d8d2c5;
+  content: '';
+  transform: translateY(-50%);
 }
 
 .inspector-properties:first-child {
@@ -425,7 +452,11 @@ h2 {
 }
 
 .inspector-properties:last-child {
-  border-right: 0;
+  --toolbar-section-separator-height: 0;
+}
+
+.inspector-properties:last-child::after {
+  display: none;
 }
 
 .inspector-properties h3 {
@@ -438,6 +469,36 @@ h2 {
   text-transform: uppercase;
 }
 
+.inspector-properties__header {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+
+.inspector-properties__header h3 {
+  flex: 0 0 auto;
+}
+
+.inspector-properties__collapse {
+  display: inline-grid;
+  width: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  color: #536066;
+  place-items: center;
+}
+
+.inspector-properties__collapse:disabled {
+  opacity: 0.45;
+}
+
+.inspector-properties[data-collapsed="true"] {
+  flex: 0 1 auto;
+}
+
 .inspector-properties__grid {
   display: flex;
   flex: 1 1 auto;
@@ -446,6 +507,45 @@ h2 {
   gap: 7px;
   min-width: 0;
   max-width: 100%;
+}
+
+.inspector-properties__grid--grouped {
+  align-items: stretch;
+  gap: 8px;
+}
+
+.inspector-properties__cluster {
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 8px 4px 0;
+  border-right: 1px solid rgba(216, 210, 197, 0.72);
+}
+
+.inspector-properties__cluster:last-child {
+  border-right: 0;
+}
+
+.inspector-properties__cluster--text {
+  flex: 1 1 420px;
+}
+
+.inspector-properties__cluster--measure-settings {
+  flex: 1 1 420px;
+}
+
+.inspector-properties__cluster-title {
+  flex: 0 0 100%;
+  color: #4f5b61;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .inspector-properties label,
@@ -464,6 +564,24 @@ h2 {
   color: #647076;
   font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.inspector-properties label > output {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  max-width: 150px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid #d8d2c5;
+  border-radius: 6px;
+  color: #283035;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -490,6 +608,10 @@ h2 {
 
 .inspector-properties input[type="number"] {
   width: 58px;
+}
+
+.inspector-properties input[type="search"] {
+  width: min(164px, 100%);
 }
 
 .inspector-properties input[type="range"] {
@@ -1395,6 +1517,7 @@ h2 {
 }
 
 .notation-grand-staff-brace {
+  fill: none;
   stroke: #14171a;
   stroke-width: 2.5;
   stroke-linecap: round;
@@ -1689,9 +1812,14 @@ h2 {
 }
 
 .notation-grace-stem,
-.notation-grace-slash {
+.notation-grace-slash,
+.notation-grace-flag {
   fill: none;
   stroke-width: 1.15;
+}
+
+.notation-grace-dot {
+  stroke-width: 0;
 }
 
 .notation-grace-beam {
@@ -2043,6 +2171,34 @@ h2 {
   color: #59646a;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.new-score-form__pickup {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(72px, 0.7fr);
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.new-score-form__pickup legend {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0 0 6px;
+  color: #59646a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.new-score-form__pickup label {
+  min-width: 0;
+}
+
+.new-score-form__pickup label > span {
+  color: #7a858b;
+  font-size: 0.74rem;
 }
 
 .new-score-form input,

@@ -75,6 +75,7 @@ export type Ornament = 'trill' | 'mordent' | 'turn'
 
 export interface GraceNote {
   pitch: Pitch
+  duration?: Duration
   slash?: boolean
 }
 
