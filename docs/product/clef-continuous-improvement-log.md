@@ -2161,3 +2161,10 @@ target layer visibility/export flags. Unknown or deleted layer ids fall back to 
 older annotations do not disappear if a layer is removed. Focused annotation coverage verifies hidden,
 export-disabled and removed-layer behavior. Active-layer UI, layer rename/delete UX and per-layer undo
 controls remain follow-up.
+
+S180 VERIFIED LOCAL: aligned flattened annotated PDF export with annotation-level layer keys before
+attempting standard editable PDF annotation writing. The export preflight now counts only strokes/texts
+whose layer is marked for export, Unicode text detection follows the same per-layer rule, and non-default
+export layers still share correctly even when the default layer is excluded. Focused exporter coverage
+verifies default-excluded, export-enabled and export-disabled layer combinations. Standard Ink/FreeText/
+Stamp object writing, cross-viewer compatibility fixtures and active layer UI remain follow-up.

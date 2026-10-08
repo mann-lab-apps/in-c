@@ -151,11 +151,12 @@ class SheetAnnotatedPdfExporter {
   }
 
   static bool scoreContainsUnicodeTextAnnotations(SheetScore score) {
-    if (!score.annotationLayer.includeDefaultLayerInExport) {
-      return false;
-    }
     return score.annotationLayer.texts.any(
-      (text) => textRequiresUnicodeFont(text.text),
+      (text) =>
+          score.annotationLayer.isAnnotationLayerIncludedInExport(
+            text.layerId,
+          ) &&
+          textRequiresUnicodeFont(text.text),
     );
   }
 
@@ -165,12 +166,20 @@ class SheetAnnotatedPdfExporter {
     SheetPdfAnnotationExportMode mode =
         SheetPdfAnnotationExportMode.renderedStamp,
   }) async {
-    final exportableStrokes = score.annotationLayer.includeDefaultLayerInExport
-        ? score.annotationLayer.strokes
-        : const <SheetAnnotationStroke>[];
-    final exportableTexts = score.annotationLayer.includeDefaultLayerInExport
-        ? score.annotationLayer.texts
-        : const <SheetTextAnnotation>[];
+    final exportableStrokes = score.annotationLayer.strokes
+        .where(
+          (stroke) => score.annotationLayer.isAnnotationLayerIncludedInExport(
+            stroke.layerId,
+          ),
+        )
+        .toList(growable: false);
+    final exportableTexts = score.annotationLayer.texts
+        .where(
+          (text) => score.annotationLayer.isAnnotationLayerIncludedInExport(
+            text.layerId,
+          ),
+        )
+        .toList(growable: false);
     final strokeCount = exportableStrokes.length;
     final textCount = exportableTexts.length;
     final skippedUnicodeTextCount = exportableTexts
