@@ -2198,3 +2198,13 @@ result when only music-specific hairpins/staff/grid/stamp objects are present. F
 cover capability reporting, editable object creation, Unicode FreeText, unsupported-only tools, and the
 existing flattened fallback. External Acrobat/Preview/MobileSheets/Piascore compatibility, image stamp
 PDF appearances, and richer layer management remain Device QA/follow-up.
+
+S184 VERIFIED LOCAL: added a local editable-PDF export inspection fixture before claiming external
+viewer compatibility. `SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy` reopens an exported
+PDF and reports total annotations, Clef-owned `/NM` names, subtype counts, annotation contents and
+missing generated appearances. Focused tests now verify that Clef-created `/Ink`, `/Line`, `/Square`
+and `/FreeText` objects are locally inspectable, named with the `clef-` prefix, retain Unicode FreeText
+contents, and include generated appearance dictionaries. This does not replace Acrobat, Preview,
+MobileSheets or Piascore manual QA; it prevents obviously malformed editable exports from entering that
+manual compatibility pass. Image stamp appearances, layer rename/delete and richer external fixtures
+remain follow-up.

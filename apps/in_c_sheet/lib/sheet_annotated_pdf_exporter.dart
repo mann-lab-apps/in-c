@@ -34,6 +34,57 @@ class SheetPdfAnnotationExportCapability {
   }
 }
 
+class SheetStandardPdfAnnotationInspection {
+  const SheetStandardPdfAnnotationInspection({
+    required this.path,
+    required this.pageCount,
+    required this.totalAnnotationCount,
+    required this.clefAnnotationCount,
+    required this.subtypeCounts,
+    required this.clefSubtypeCounts,
+    required this.clefAnnotationNames,
+    required this.clefAnnotationContents,
+    required this.missingGeneratedAppearanceNames,
+  });
+
+  final String path;
+  final int pageCount;
+  final int totalAnnotationCount;
+  final int clefAnnotationCount;
+  final Map<String, int> subtypeCounts;
+  final Map<String, int> clefSubtypeCounts;
+  final List<String> clefAnnotationNames;
+  final List<String> clefAnnotationContents;
+  final List<String> missingGeneratedAppearanceNames;
+
+  static const editableClefSubtypes = <String>{
+    'Ink',
+    'Line',
+    'Square',
+    'FreeText',
+  };
+
+  bool get hasClefAnnotations => clefAnnotationCount > 0;
+
+  bool get hasOnlyLocallySupportedClefSubtypes {
+    return clefSubtypeCounts.keys.every(editableClefSubtypes.contains);
+  }
+
+  bool get hasGeneratedAppearances {
+    return missingGeneratedAppearanceNames.isEmpty;
+  }
+
+  bool get isLocallyInspectableEditableFixture {
+    return hasClefAnnotations &&
+        hasOnlyLocallySupportedClefSubtypes &&
+        hasGeneratedAppearances;
+  }
+
+  bool containsClefSubtype(String subtype) {
+    return (clefSubtypeCounts[subtype] ?? 0) > 0;
+  }
+}
+
 class SheetAnnotatedPdfExportResult {
   const SheetAnnotatedPdfExportResult({
     required this.inputPath,
@@ -155,6 +206,56 @@ class SheetAnnotatedPdfExporter {
       case SheetPdfAnnotationExportMode.standardAnnotation:
         return standardAnnotationExportCapability;
     }
+  }
+
+  static Future<SheetStandardPdfAnnotationInspection>
+  inspectStandardAnnotationCopy(String pdfPath) async {
+    final document = PdfDocument.open(await File(pdfPath).readAsBytes());
+    final subtypeCounts = <String, int>{};
+    final clefSubtypeCounts = <String, int>{};
+    final clefAnnotationNames = <String>[];
+    final clefAnnotationContents = <String>[];
+    final missingGeneratedAppearanceNames = <String>[];
+    var totalAnnotationCount = 0;
+    var clefAnnotationCount = 0;
+
+    for (var pageIndex = 0; pageIndex < document.pageCount; pageIndex++) {
+      for (final annotation in document.page(pageIndex).annotations) {
+        totalAnnotationCount += 1;
+        subtypeCounts[annotation.subtype] =
+            (subtypeCounts[annotation.subtype] ?? 0) + 1;
+
+        final name = annotation.name;
+        if (name == null || !name.startsWith('clef-')) {
+          continue;
+        }
+        clefAnnotationCount += 1;
+        clefAnnotationNames.add(name);
+        clefSubtypeCounts[annotation.subtype] =
+            (clefSubtypeCounts[annotation.subtype] ?? 0) + 1;
+        final contents = annotation.contents;
+        if (contents != null && contents.trim().isNotEmpty) {
+          clefAnnotationContents.add(contents);
+        }
+        if (!annotation.dict.containsKey('AP')) {
+          missingGeneratedAppearanceNames.add(name);
+        }
+      }
+    }
+
+    return SheetStandardPdfAnnotationInspection(
+      path: pdfPath,
+      pageCount: document.pageCount,
+      totalAnnotationCount: totalAnnotationCount,
+      clefAnnotationCount: clefAnnotationCount,
+      subtypeCounts: Map.unmodifiable(subtypeCounts),
+      clefSubtypeCounts: Map.unmodifiable(clefSubtypeCounts),
+      clefAnnotationNames: List.unmodifiable(clefAnnotationNames),
+      clefAnnotationContents: List.unmodifiable(clefAnnotationContents),
+      missingGeneratedAppearanceNames: List.unmodifiable(
+        missingGeneratedAppearanceNames,
+      ),
+    );
   }
 
   static bool textRequiresUnicodeFont(String text) {

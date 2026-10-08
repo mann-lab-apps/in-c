@@ -403,7 +403,8 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 카메라로 종이 악보를 직접 촬영해 PDF로 만드는 내장 스캐너는 v1 범위가 아니다. v1에서는 이미
   만들어진 PDF/JPG/PNG를 가져오고, JPG/PNG 여러 장을 PDF 악보로 묶는 흐름을 확인한다.
-- 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
+- 필기 포함 PDF 공유는 일반 고정 사본과 편집 가능한 표준 PDF 주석 사본을 구분한다. 표준 사본은
+  pen/line/rectangle/text 중심이며, 스탬프/이미지 스탬프/음악 기호는 아직 일반 사본 fallback 또는 후속이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
 - URL link 제거는 synthetic link PDF fixture 기준으로 검증되어 있다. 실제 CamScanner/object stream
   PDF는 샘플 확보 후 별도 QA가 필요하다.

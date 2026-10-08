@@ -371,7 +371,8 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 ## Editable PDF annotation export QA
 
 앱 내부 자동 테스트는 standard export PDF가 다시 열리고 `/Ink`, `/Line`, `/Square`, `/FreeText`
-annotation subtype을 포함하는지 확인한다. 실제 상용 호환성은 아래 viewer에서 별도 확인한다.
+annotation subtype, Clef `/NM` 이름, contents, generated appearance를 포함하는지 확인한다.
+실제 상용 호환성은 아래 viewer에서 별도 확인한다.
 
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
@@ -391,6 +392,7 @@ FreeText visible/editable:
 Unicode text visible:
 Layer export flag 반영:
 원본 PDF 보존:
+Local inspection PASS:
 문제/스크린샷:
 ```
 

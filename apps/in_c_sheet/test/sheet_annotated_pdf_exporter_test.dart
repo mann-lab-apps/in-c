@@ -449,6 +449,10 @@ void main() {
         .annotations
         .map((annotation) => annotation.subtype)
         .toList(growable: false);
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
 
     expect(
       SheetAnnotatedPdfExporter.supportsStandardAnnotationEmbedding,
@@ -464,6 +468,23 @@ void main() {
     expect(subtypes, contains('Line'));
     expect(subtypes, contains('Square'));
     expect(subtypes, contains('FreeText'));
+    expect(inspection.pageCount, 3);
+    expect(inspection.clefAnnotationCount, 4);
+    expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    expect(inspection.containsClefSubtype('Ink'), isTrue);
+    expect(inspection.containsClefSubtype('Line'), isTrue);
+    expect(inspection.containsClefSubtype('Square'), isTrue);
+    expect(inspection.containsClefSubtype('FreeText'), isTrue);
+    expect(inspection.missingGeneratedAppearanceNames, isEmpty);
+    expect(
+      inspection.clefAnnotationNames,
+      containsAll(<String>[
+        'clef-stroke-1',
+        'clef-arrow-1',
+        'clef-rect-1',
+        'clef-text-1',
+      ]),
+    );
     expect(await input.readAsBytes(), originalBytes);
   });
 
@@ -515,6 +536,10 @@ void main() {
     );
     final exported = PdfDocument.open(await File(outputPath).readAsBytes());
     final annotations = exported.page(0).annotations;
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
 
     expect(result.didWrite, isTrue);
     expect(result.textCount, 1);
@@ -528,6 +553,8 @@ void main() {
       annotations.any((annotation) => annotation.contents == '숨 크게'),
       isTrue,
     );
+    expect(inspection.clefAnnotationContents, contains('숨 크게'));
+    expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
 
   test(
