@@ -191,12 +191,14 @@ function verifyDownloadManifest() {
     siteMain.includes('manifest.signing?.[download.platform]'),
     'download page must render the signing notice for each platform'
   )
-  for (const platform of ['macOS', 'Windows']) {
-    assert(
-      source.signing?.[platform]?.includes('미서명'),
-      `download manifest must show the unsigned ${platform} notice`
-    )
-  }
+  assert(
+    /Developer ID|공증/.test(source.signing?.macOS ?? ''),
+    'download manifest must show the signed and notarized macOS notice'
+  )
+  assert(
+    source.signing?.Windows?.includes('미서명'),
+    'download manifest must show the unsigned Windows notice'
+  )
   assert(
     /post-v1|후속/i.test(source.signing?.Linux ?? ''),
     'download manifest must show Linux as a post-V1 target'

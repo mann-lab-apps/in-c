@@ -13,12 +13,17 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.23',
-  releaseTag: 'v0.1.0-alpha.23',
-  releaseDate: '2026-10-07',
+  version: '0.1.0-alpha.29',
+  releaseTag: 'v0.1.0-alpha.29',
+  releaseDate: '2026-10-08',
   releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.23',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/SHA256SUMS.txt',
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.29',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.29/SHA256SUMS.txt',
+  signing: {
+    macOS: 'Developer ID 서명 및 Apple 공증 완료.',
+    Windows: '미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.',
+    Linux: 'V1 public release target이 아닙니다. Linux package는 post-V1 follow-up입니다.'
+  },
   downloads: [
     {
       id: 'macos',
@@ -27,9 +32,9 @@ const fallbackManifest = {
       architecture: 'Universal',
       format: 'DMG',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.23-mac-universal.dmg',
-      size: '227.7 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/in-C-0.1.0-alpha.23-mac-universal.dmg'
+      fileName: 'in-C-0.1.0-alpha.29-mac-universal.dmg',
+      size: '230.1 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.29/in-C-0.1.0-alpha.29-mac-universal.dmg'
     },
     {
       id: 'windows',
@@ -38,9 +43,9 @@ const fallbackManifest = {
       architecture: 'x64',
       format: 'NSIS installer',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.23-windows-x64-setup.exe',
+      fileName: 'in-C-0.1.0-alpha.29-windows-x64-setup.exe',
       size: '112.7 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.23/in-C-0.1.0-alpha.23-windows-x64-setup.exe'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.29/in-C-0.1.0-alpha.29-windows-x64-setup.exe'
     },
     {
       id: 'linux',
