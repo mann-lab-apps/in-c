@@ -2208,3 +2208,12 @@ contents, and include generated appearance dictionaries. This does not replace A
 MobileSheets or Piascore manual QA; it prevents obviously malformed editable exports from entering that
 manual compatibility pass. Image stamp appearances, layer rename/delete and richer external fixtures
 remain follow-up.
+
+S185 VERIFIED LOCAL: reduced the actual image stamp sharing gap without opening the image stamp
+picker UI. Clef setlist package ZIPs can now carry referenced image stamp assets under safe `stamps/`
+paths, and the codec only preserves image stamp metadata when the matching PNG/JPEG/WebP asset bytes
+are present. Export can read user stamp asset bytes, count included image assets, and round-trip them
+through decode and import dry-run preview. Focused tests cover image metadata plus bytes, missing
+assets being dropped, and export-side asset inclusion. This is still a codec/export slice: local image
+stamp creation UI, metadata backup asset round-trip, orphan cleanup, and PDF image-stamp appearance
+mapping remain follow-up.

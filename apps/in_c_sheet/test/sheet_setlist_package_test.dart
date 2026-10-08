@@ -286,6 +286,102 @@ Clef & Staff 세트리스트
     expect(dryRunWithExisting.userStampPreview.duplicateStampCount, 1);
   });
 
+  test('codec preserves image user stamp metadata with asset bytes', () {
+    final stampPack = SheetAnnotationStampPack(
+      id: 'photos',
+      name: '사진 스탬프',
+      version: 1,
+      createdAt: DateTime(2026, 10, 8, 12),
+      updatedAt: DateTime(2026, 10, 8, 12),
+      stamps: const <SheetAnnotationUserStamp>[
+        SheetAnnotationUserStamp(
+          id: 'photo-cue',
+          packId: 'photos',
+          label: 'Photo cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.imageKind,
+          assetRef: 'stamps/photos/photo-cue.png',
+          checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          assetSizeBytes: 3,
+          assetWidthPixels: 16,
+          assetHeightPixels: 16,
+          licenseLabel: 'User provided',
+        ),
+      ],
+    );
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Image Stamp Package
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''',
+      scoreFiles: const <String, List<int>>{},
+      userStampPacks: [stampPack],
+      stampAssetFiles: const <String, List<int>>{
+        'stamps/photos/photo-cue.png': [1, 2, 3],
+      },
+    );
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+
+    expect(package.stampAssetFiles, hasLength(1));
+    expect(package.stampAssetFiles.single.path, 'stamps/photos/photo-cue.png');
+    expect(package.stampAssetFiles.single.mediaType, 'image/png');
+    expect(package.stampAssetFiles.single.bytes, [1, 2, 3]);
+    expect(package.userStampPacks, hasLength(1));
+    expect(
+      package.userStampPacks.single.stamps.single.kind,
+      SheetAnnotationUserStamp.imageKind,
+    );
+    expect(dryRun.stampAssetFiles, hasLength(1));
+    expect(dryRun.userStampPreview.totalStampCount, 1);
+  });
+
+  test('codec drops image user stamp metadata when asset is missing', () {
+    final stampPack = SheetAnnotationStampPack(
+      id: 'photos',
+      name: '사진 스탬프',
+      version: 1,
+      createdAt: DateTime(2026, 10, 8, 12),
+      updatedAt: DateTime(2026, 10, 8, 12),
+      stamps: const <SheetAnnotationUserStamp>[
+        SheetAnnotationUserStamp(
+          id: 'photo-cue',
+          packId: 'photos',
+          label: 'Photo cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.imageKind,
+          assetRef: 'stamps/photos/photo-cue.png',
+          checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          assetSizeBytes: 3,
+          assetWidthPixels: 16,
+          assetHeightPixels: 16,
+        ),
+      ],
+    );
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Missing Image Stamp Asset
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''',
+      scoreFiles: const <String, List<int>>{},
+      userStampPacks: [stampPack],
+    );
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+
+    expect(package.stampAssetFiles, isEmpty);
+    expect(package.userStampPacks, isEmpty);
+  });
+
   test('codec skips unsafe optional user stamp metadata', () {
     final archive = Archive()
       ..addFile(
@@ -479,6 +575,65 @@ Clef & Staff 세트리스트
     expect(dryRun.canImport, isTrue);
     expect(dryRun.importableFileCount, 2);
   });
+
+  test(
+    'export package includes image user stamp assets when readable',
+    () async {
+      final now = DateTime(2026, 10, 8, 15);
+      final score = _score(
+        id: 'goedicke',
+        title: 'Goedicke Concert Etude',
+        filePath: '/library/goedicke-concert-etude.pdf',
+      );
+      final setlist = SheetSetlist(
+        id: 'recital',
+        title: 'Image Stamp Recital',
+        scoreIds: const ['goedicke'],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final stampPack = SheetAnnotationStampPack(
+        id: 'photos',
+        name: '사진 스탬프',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'photo-cue',
+            packId: 'photos',
+            label: 'Photo cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.imageKind,
+            assetRef: 'stamps/photos/photo-cue.png',
+            checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            assetSizeBytes: 3,
+            assetWidthPixels: 16,
+            assetHeightPixels: 16,
+          ),
+        ],
+      );
+
+      final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: setlist,
+        scores: [score],
+        readScoreBytes: (_) async => [9, 8, 7],
+        userStampPacks: [stampPack],
+        readUserStampAssetBytes: (assetRef) async =>
+            assetRef == 'stamps/photos/photo-cue.png' ? [1, 2, 3] : null,
+      );
+
+      expect(result.didExport, isTrue);
+      expect(result.includedUserStampPackCount, 1);
+      expect(result.includedUserStampAssetCount, 1);
+      final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+      expect(
+        package.userStampPacks.single.stamps.single.assetRef,
+        'stamps/photos/photo-cue.png',
+      );
+      expect(package.stampAssetFiles.single.bytes, [1, 2, 3]);
+    },
+  );
 
   test('export stores a shared source file once', () async {
     final now = DateTime(2026, 9, 28, 15);

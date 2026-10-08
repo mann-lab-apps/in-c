@@ -14,17 +14,20 @@ const int sheetSetlistPackageVersion = 1;
 const String sheetSetlistPackageManifestFileName = 'clef-setlist-package.txt';
 const String sheetSetlistPackageUserStampsFileName = 'clef-user-stamps.json';
 const String sheetSetlistPackageScoreDirectory = 'scores/';
+const String sheetSetlistPackageStampAssetDirectory = 'stamps/';
 
 class SheetSetlistPackageArchive {
   const SheetSetlistPackageArchive({
     required this.manifest,
     required this.packageFiles,
     this.userStampPacks = const <SheetAnnotationStampPack>[],
+    this.stampAssetFiles = const <SheetSetlistPackageStampAssetFile>[],
   });
 
   final SheetSetlistShareManifest manifest;
   final List<SheetSetlistPackageFile> packageFiles;
   final List<SheetAnnotationStampPack> userStampPacks;
+  final List<SheetSetlistPackageStampAssetFile> stampAssetFiles;
 
   SheetSetlistPackageDryRun previewImport({
     required List<SheetScore> currentScores,
@@ -36,6 +39,7 @@ class SheetSetlistPackageArchive {
       currentScores: currentScores,
       packageFiles: packageFiles,
       userStampPacks: userStampPacks,
+      stampAssetFiles: stampAssetFiles,
       currentUserStampPacks: currentUserStampPacks,
     );
   }
@@ -81,37 +85,62 @@ class SheetSetlistPackageArchive {
         'Setlist package contains more than one user stamp metadata file.',
       );
     }
-    final userStampPacks = stampPackEntries.isEmpty
-        ? const <SheetAnnotationStampPack>[]
-        : _decodeUserStampPacks(stampPackEntries.single.content);
 
     final paths = <String>{};
     final packageFiles = <SheetSetlistPackageFile>[];
+    final stampAssetFiles = <SheetSetlistPackageStampAssetFile>[];
     for (final entry in fileEntries) {
       final path = entry.name.trim();
       if (path == sheetSetlistPackageManifestFileName ||
           path == sheetSetlistPackageUserStampsFileName) {
         continue;
       }
+      if (_isSafePackageScoreZipEntryPath(path)) {
+        if (!paths.add(path)) {
+          throw FormatException('Duplicate setlist package entry: $path');
+        }
+        packageFiles.add(
+          SheetSetlistPackageFile(
+            path: path,
+            mediaType: _mediaTypeForScoreFile(path),
+            bytes: Uint8List.fromList(entry.content),
+          ),
+        );
+        continue;
+      }
+      if (_isSafePackageStampAssetZipEntryPath(path)) {
+        if (!paths.add(path)) {
+          throw FormatException('Duplicate setlist package entry: $path');
+        }
+        stampAssetFiles.add(
+          SheetSetlistPackageStampAssetFile(
+            path: path,
+            mediaType: _mediaTypeForStampAssetFile(path),
+            bytes: Uint8List.fromList(entry.content),
+          ),
+        );
+        continue;
+      }
       if (!_isSafePackageScoreZipEntryPath(path)) {
         throw FormatException('Unsafe setlist package entry: $path');
       }
-      if (!paths.add(path)) {
-        throw FormatException('Duplicate setlist package entry: $path');
-      }
-      packageFiles.add(
-        SheetSetlistPackageFile(
-          path: path,
-          mediaType: _mediaTypeForScoreFile(path),
-          bytes: Uint8List.fromList(entry.content),
-        ),
-      );
     }
+    final stampAssetRefs = {for (final asset in stampAssetFiles) asset.path};
+    final userStampPacks = stampPackEntries.isEmpty
+        ? const <SheetAnnotationStampPack>[]
+        : _decodeUserStampPacks(
+            stampPackEntries.single.content,
+            allowImageStamps: true,
+            availableImageAssetRefs: stampAssetRefs,
+          );
 
     return SheetSetlistPackageArchive(
       manifest: manifest,
       packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
       userStampPacks: userStampPacks,
+      stampAssetFiles: List<SheetSetlistPackageStampAssetFile>.unmodifiable(
+        stampAssetFiles,
+      ),
     );
   }
 
@@ -120,6 +149,7 @@ class SheetSetlistPackageArchive {
     required Map<String, List<int>> scoreFiles,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
+    Map<String, List<int>> stampAssetFiles = const <String, List<int>>{},
   }) {
     final manifest = SheetSetlistShareManifest.tryParse(manifestText);
     if (manifest == null) {
@@ -132,8 +162,13 @@ class SheetSetlistPackageArchive {
     archive.addFile(
       ArchiveFile.string(sheetSetlistPackageManifestFileName, manifestText),
     );
+    final normalizedStampAssetFiles = _normalizePackageStampAssetFiles(
+      stampAssetFiles,
+    );
     final normalizedStampPacks = _normalizePackageUserStampPacks(
       userStampPacks,
+      allowImageStamps: normalizedStampAssetFiles.isNotEmpty,
+      availableImageAssetRefs: normalizedStampAssetFiles.keys.toSet(),
     );
     if (normalizedStampPacks.isNotEmpty) {
       archive.addFile(
@@ -147,11 +182,22 @@ class SheetSetlistPackageArchive {
         ),
       );
     }
+    final referencedStampAssetRefs = _imageStampAssetRefs(normalizedStampPacks);
     final paths = <String>{};
     for (final entry in scoreFiles.entries) {
       final path = entry.key.trim().replaceAll('\\', '/');
       if (!_isSafePackageScoreZipEntryPath(path)) {
         throw FormatException('Unsafe setlist package entry: $path');
+      }
+      if (!paths.add(path)) {
+        throw FormatException('Duplicate setlist package entry: $path');
+      }
+      archive.addFile(ArchiveFile.bytes(path, entry.value));
+    }
+    for (final entry in normalizedStampAssetFiles.entries) {
+      final path = entry.key;
+      if (!referencedStampAssetRefs.contains(path)) {
+        continue;
       }
       if (!paths.add(path)) {
         throw FormatException('Duplicate setlist package entry: $path');
@@ -167,6 +213,7 @@ class SheetSetlistPackageArchive {
     required Future<List<int>?> Function(SheetScore score) readScoreBytes,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
+    Future<List<int>?> Function(String assetRef)? readUserStampAssetBytes,
   }) async {
     final orderedScores = _scoresInSetlistOrder(setlist, scores);
     final manifestText = _setlistPackageManifestText(setlist, orderedScores);
@@ -216,17 +263,32 @@ class SheetSetlistPackageArchive {
         unsupportedScores: List<SheetScore>.unmodifiable(unsupportedScores),
       );
     }
+    final stampAssetFiles = <String, List<int>>{};
+    if (readUserStampAssetBytes != null) {
+      for (final assetRef in _imageStampAssetRefs(userStampPacks)) {
+        final bytes = await readUserStampAssetBytes(assetRef);
+        if (bytes != null) {
+          stampAssetFiles[assetRef] = bytes;
+        }
+      }
+    }
 
     return SheetSetlistPackageExportResult(
       bytes: encodeBytes(
         manifestText: manifestText,
         scoreFiles: scoreFiles,
         userStampPacks: userStampPacks,
+        stampAssetFiles: stampAssetFiles,
       ),
       manifestText: manifestText,
       includedFileCount: scoreFiles.length,
       includedUserStampPackCount: _normalizePackageUserStampPacks(
         userStampPacks,
+        allowImageStamps: stampAssetFiles.isNotEmpty,
+        availableImageAssetRefs: stampAssetFiles.keys.toSet(),
+      ).length,
+      includedUserStampAssetCount: _normalizePackageStampAssetFiles(
+        stampAssetFiles,
       ).length,
       missingScores: const <SheetScore>[],
       unsupportedScores: const <SheetScore>[],
@@ -242,12 +304,14 @@ class SheetSetlistPackageExportResult {
     this.bytes,
     this.includedFileCount = 0,
     this.includedUserStampPackCount = 0,
+    this.includedUserStampAssetCount = 0,
   });
 
   final Uint8List? bytes;
   final String manifestText;
   final int includedFileCount;
   final int includedUserStampPackCount;
+  final int includedUserStampAssetCount;
   final List<SheetScore> missingScores;
   final List<SheetScore> unsupportedScores;
 
@@ -266,6 +330,20 @@ class SheetSetlistPackageExportResult {
     }
     return '세트리스트에 내보낼 악보가 없습니다.';
   }
+}
+
+class SheetSetlistPackageStampAssetFile {
+  const SheetSetlistPackageStampAssetFile({
+    required this.path,
+    this.mediaType = '',
+    this.bytes,
+  });
+
+  final String path;
+  final String mediaType;
+  final Uint8List? bytes;
+
+  String get fileName => _fileName(path);
 }
 
 class SheetSetlistPackageFile {
@@ -302,6 +380,7 @@ class SheetSetlistPackageDryRun {
     required this.entries,
     this.packageFiles = const <SheetSetlistPackageFile>[],
     this.userStampPacks = const <SheetAnnotationStampPack>[],
+    this.stampAssetFiles = const <SheetSetlistPackageStampAssetFile>[],
     this.userStampPreview = const SheetSetlistPackageUserStampPreview.empty(),
   });
 
@@ -309,6 +388,7 @@ class SheetSetlistPackageDryRun {
   final List<SheetSetlistPackageEntry> entries;
   final List<SheetSetlistPackageFile> packageFiles;
   final List<SheetAnnotationStampPack> userStampPacks;
+  final List<SheetSetlistPackageStampAssetFile> stampAssetFiles;
   final SheetSetlistPackageUserStampPreview userStampPreview;
 
   factory SheetSetlistPackageDryRun.preview({
@@ -317,21 +397,30 @@ class SheetSetlistPackageDryRun {
     required List<SheetSetlistPackageFile> packageFiles,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
+    List<SheetSetlistPackageStampAssetFile> stampAssetFiles =
+        const <SheetSetlistPackageStampAssetFile>[],
     List<SheetAnnotationStampPack> currentUserStampPacks =
         const <SheetAnnotationStampPack>[],
   }) {
     final existingPreview = manifest.matchScores(currentScores);
     final matches = existingPreview.matches;
+    final stampAssetRefs = {for (final asset in stampAssetFiles) asset.path};
     final normalizedUserStampPacks = _normalizePackageUserStampPacks(
       userStampPacks,
+      allowImageStamps: stampAssetFiles.isNotEmpty,
+      availableImageAssetRefs: stampAssetRefs,
     );
     return SheetSetlistPackageDryRun(
       manifest: manifest,
       packageFiles: List<SheetSetlistPackageFile>.unmodifiable(packageFiles),
       userStampPacks: normalizedUserStampPacks,
+      stampAssetFiles: List<SheetSetlistPackageStampAssetFile>.unmodifiable(
+        stampAssetFiles,
+      ),
       userStampPreview: SheetSetlistPackageUserStampPreview.compare(
         importedPacks: normalizedUserStampPacks,
         currentPacks: currentUserStampPacks,
+        importedImageAssetRefs: stampAssetRefs,
       ),
       entries: List<SheetSetlistPackageEntry>.unmodifiable([
         for (var index = 0; index < manifest.items.length; index++)
@@ -403,16 +492,26 @@ class SheetSetlistPackageUserStampPreview {
   factory SheetSetlistPackageUserStampPreview.compare({
     required List<SheetAnnotationStampPack> importedPacks,
     required List<SheetAnnotationStampPack> currentPacks,
+    Set<String> importedImageAssetRefs = const <String>{},
   }) {
+    final currentImageAssetRefs = _imageStampAssetRefs(currentPacks);
     final currentById = {
-      for (final pack in _normalizePackageUserStampPacks(currentPacks))
+      for (final pack in _normalizePackageUserStampPacks(
+        currentPacks,
+        allowImageStamps: currentImageAssetRefs.isNotEmpty,
+        availableImageAssetRefs: currentImageAssetRefs,
+      ))
         pack.id: pack,
     };
     var totalStampCount = 0;
     var newPackCount = 0;
     var newStampCount = 0;
     var duplicateStampCount = 0;
-    for (final pack in _normalizePackageUserStampPacks(importedPacks)) {
+    for (final pack in _normalizePackageUserStampPacks(
+      importedPacks,
+      allowImageStamps: importedImageAssetRefs.isNotEmpty,
+      availableImageAssetRefs: importedImageAssetRefs,
+    )) {
       totalStampCount += pack.stamps.length;
       final current = currentById[pack.id];
       if (current == null) {
@@ -622,7 +721,11 @@ List<SheetScore> _scoresInSetlistOrder(
   ];
 }
 
-List<SheetAnnotationStampPack> _decodeUserStampPacks(List<int> bytes) {
+List<SheetAnnotationStampPack> _decodeUserStampPacks(
+  List<int> bytes, {
+  bool allowImageStamps = false,
+  Set<String> availableImageAssetRefs = const <String>{},
+}) {
   try {
     final decoded = jsonDecode(utf8.decode(bytes));
     if (decoded is! List) {
@@ -637,6 +740,8 @@ List<SheetAnnotationStampPack> _decodeUserStampPacks(List<int> bytes) {
             ),
           )
           .toList(growable: false),
+      allowImageStamps: allowImageStamps,
+      availableImageAssetRefs: availableImageAssetRefs,
     );
   } catch (_) {
     return const <SheetAnnotationStampPack>[];
@@ -644,17 +749,63 @@ List<SheetAnnotationStampPack> _decodeUserStampPacks(List<int> bytes) {
 }
 
 List<SheetAnnotationStampPack> _normalizePackageUserStampPacks(
-  List<SheetAnnotationStampPack> packs,
-) {
+  List<SheetAnnotationStampPack> packs, {
+  bool allowImageStamps = false,
+  Set<String> availableImageAssetRefs = const <String>{},
+}) {
   final normalized = <SheetAnnotationStampPack>[];
   final seenPackIds = <String>{};
   for (final pack in packs) {
-    if (!pack.validate().isValid || !seenPackIds.add(pack.id)) {
+    if (!seenPackIds.add(pack.id)) {
       continue;
     }
-    normalized.add(pack);
+    final filteredStamps = <SheetAnnotationUserStamp>[
+      for (final stamp in pack.stamps)
+        if (stamp.kind != SheetAnnotationUserStamp.imageKind ||
+            (allowImageStamps &&
+                availableImageAssetRefs.contains(stamp.assetRef)))
+          stamp,
+    ];
+    if (filteredStamps.isEmpty) {
+      continue;
+    }
+    final filteredPack = SheetAnnotationStampPack(
+      id: pack.id,
+      name: pack.name,
+      version: pack.version,
+      createdAt: pack.createdAt,
+      updatedAt: pack.updatedAt,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(filteredStamps),
+    );
+    if (!filteredPack.validate(allowImageStamps: allowImageStamps).isValid) {
+      continue;
+    }
+    normalized.add(filteredPack);
   }
   return List<SheetAnnotationStampPack>.unmodifiable(normalized);
+}
+
+Map<String, List<int>> _normalizePackageStampAssetFiles(
+  Map<String, List<int>> stampAssetFiles,
+) {
+  final normalized = <String, List<int>>{};
+  for (final entry in stampAssetFiles.entries) {
+    final path = entry.key.trim().replaceAll('\\', '/');
+    if (!_isSafePackageStampAssetZipEntryPath(path) || entry.value.isEmpty) {
+      continue;
+    }
+    normalized[path] = List<int>.unmodifiable(entry.value);
+  }
+  return Map<String, List<int>>.unmodifiable(normalized);
+}
+
+Set<String> _imageStampAssetRefs(List<SheetAnnotationStampPack> packs) {
+  return {
+    for (final pack in packs)
+      for (final stamp in pack.stamps)
+        if (stamp.kind == SheetAnnotationUserStamp.imageKind)
+          stamp.assetRef.trim().replaceAll('\\', '/'),
+  }..remove('');
 }
 
 String _setlistPackageManifestText(
@@ -783,6 +934,17 @@ bool _isSafePackageScoreZipEntryPath(String path) {
       _fileName(path).isNotEmpty;
 }
 
+bool _isSafePackageStampAssetZipEntryPath(String path) {
+  return path.startsWith(sheetSetlistPackageStampAssetDirectory) &&
+      !path.contains('..') &&
+      !path.startsWith('/') &&
+      !path.contains('\\') &&
+      _fileName(path).isNotEmpty &&
+      SheetAnnotationStampPack.allowedImageAssetExtensions.contains(
+        _fileExtension(path).replaceFirst('.', ''),
+      );
+}
+
 String _mediaTypeForScoreFile(String path) {
   switch (_fileExtension(path)) {
     case '.pdf':
@@ -792,6 +954,19 @@ String _mediaTypeForScoreFile(String path) {
       return 'image/jpeg';
     case '.png':
       return 'image/png';
+  }
+  return '';
+}
+
+String _mediaTypeForStampAssetFile(String path) {
+  switch (_fileExtension(path)) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
   }
   return '';
 }

@@ -449,6 +449,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      고정한다.
   9. 완료: image stamp asset storage helper를 추가해 실제 file copy/reuse/replace와 corrupt/oversized/
      unsupported input rejection을 검증했다.
+  10. 완료: setlist package ZIP codec/export가 참조된 image stamp asset bytes를 `stamps/` 아래 포함하고,
+      asset이 없는 image stamp metadata는 decode/import preview에서 제외한다. 이는 공유 package codec
+      경로만 열어둔 것이며 사용자-facing image stamp picker와 metadata backup asset round-trip은 별도다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -457,8 +460,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   round-trip/import merge, package duplicate stamp preview and local-preservation merge, deleted
   custom stamp definition preserving already placed text annotations, mixed Korean/English label
   search and category filtering, image asset import plan safe/unsupported path validation, actual image
-  file copy/reuse/replace, corrupt image fixture and oversized file rejection.
-- 남은 테스트/fixture/실기기 조건: package/backup asset round-trip, large pack performance, PDF export,
+  file copy/reuse/replace, corrupt image fixture and oversized file rejection, setlist package image
+  asset ZIP round-trip and missing-asset filtering.
+- 남은 테스트/fixture/실기기 조건: metadata backup asset round-trip, large pack performance, PDF export,
   S Pen picker use, platform image picker provider behavior.
 - Acceptance criteria: 사용자가 직접 만든 text/icon stamp를 picker에서 찾고 재사용할 수 있으며,
   저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. 외부 이미지/에셋 stamp는 license와
