@@ -15387,9 +15387,14 @@ setlist=$setlistLabel
       await _shareCurrentScorePdf();
       return;
     }
-    if (SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
-      currentScore,
-    )) {
+    final exportMode = await _selectAnnotatedPdfExportMode();
+    if (exportMode == null || !mounted) {
+      return;
+    }
+    if (exportMode == SheetPdfAnnotationExportMode.renderedStamp &&
+        SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
+          currentScore,
+        )) {
       _showSnackBar('한글 텍스트 주석은 PDF 사본에서 표시가 제한될 수 있습니다.');
     }
     if (annotationSummary.estimatedJsonBytes > 512 * 1024 ||
@@ -15397,8 +15402,15 @@ setlist=$setlistLabel
       _showSnackBar('${annotationSummary.compactLabel}를 사본에 포함합니다.');
     }
 
-    _showSnackBar('필기 포함 PDF 사본을 만드는 중입니다.');
-    final result = await widget.controller.createAnnotatedPdfCopy(currentScore);
+    _showSnackBar(
+      exportMode == SheetPdfAnnotationExportMode.standardAnnotation
+          ? '편집 가능한 PDF 주석 사본을 만드는 중입니다.'
+          : '필기 포함 PDF 사본을 만드는 중입니다.',
+    );
+    final result = await widget.controller.createAnnotatedPdfCopy(
+      currentScore,
+      mode: exportMode,
+    );
     if (!mounted) {
       return;
     }
@@ -15412,6 +15424,10 @@ setlist=$setlistLabel
         _showSnackBar('현재 PDF 페이지 범위 안에 내보낼 필기가 없습니다.');
         return;
       }
+      if (result.hasUnsupportedStandardAnnotationObjectMapping) {
+        _showSnackBar('편집 가능한 PDF 주석으로 내보낼 수 있는 필기가 없습니다. 일반 사본을 선택해주세요.');
+        return;
+      }
       _showSnackBar('필기 포함 PDF를 만들지 못했습니다. 원본 PDF와 앱 안 필기는 유지됩니다.');
       return;
     }
@@ -15419,6 +15435,9 @@ setlist=$setlistLabel
       _showSnackBar(
         '${result.skippedUnicodeTextCount}개 한글 텍스트 주석은 PDF 사본에서 제외했습니다.',
       );
+    }
+    if (result.mode == SheetPdfAnnotationExportMode.standardAnnotation) {
+      _showSnackBar('일부 음악 기호/스탬프는 편집 가능한 PDF 주석에서 제외될 수 있습니다.');
     }
 
     try {
@@ -15429,7 +15448,9 @@ setlist=$setlistLabel
             XFile(
               result.outputPath!,
               name: SheetScoreSharePolicy.exportFileName(
-                title: '${currentScore.displayTitle} annotated',
+                title:
+                    '${currentScore.displayTitle} '
+                    '${result.mode == SheetPdfAnnotationExportMode.standardAnnotation ? 'editable annotations' : 'annotated'}',
                 composer: currentScore.composer,
               ),
               mimeType: 'application/pdf',
@@ -15440,6 +15461,40 @@ setlist=$setlistLabel
     } catch (_) {
       _showSnackBar('필기 포함 PDF를 공유하지 못했습니다.');
     }
+  }
+
+  Future<SheetPdfAnnotationExportMode?> _selectAnnotatedPdfExportMode() async {
+    if (!SheetAnnotatedPdfExporter.supportsStandardAnnotationEmbedding) {
+      return SheetPdfAnnotationExportMode.renderedStamp;
+    }
+    return showModalBottomSheet<SheetPdfAnnotationExportMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: const Text('일반 PDF 사본'),
+              subtitle: const Text('대부분 앱에서 보이는 고정된 필기 사본'),
+              onTap: () =>
+                  Navigator.of(context)
+                      .pop(SheetPdfAnnotationExportMode.renderedStamp),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_document),
+              title: const Text('편집 가능한 PDF 주석'),
+              subtitle: const Text('펜, 선, 사각형, 텍스트를 표준 PDF 주석으로 내보냅니다'),
+              onTap: () =>
+                  Navigator.of(context)
+                      .pop(SheetPdfAnnotationExportMode.standardAnnotation),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<SheetScoreShareCandidate?> _selectViewerShareCandidate(

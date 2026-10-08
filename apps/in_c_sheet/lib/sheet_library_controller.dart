@@ -1892,9 +1892,11 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<SheetAnnotatedPdfExportResult> createAnnotatedPdfCopy(
-    SheetScore score,
-  ) {
-    return store.createAnnotatedPdfCopy(score);
+    SheetScore score, {
+    SheetPdfAnnotationExportMode mode =
+        SheetPdfAnnotationExportMode.renderedStamp,
+  }) {
+    return store.createAnnotatedPdfCopy(score, mode: mode);
   }
 
   Future<SheetPdfPageRotationResult> createPageRotationAppliedCopy(

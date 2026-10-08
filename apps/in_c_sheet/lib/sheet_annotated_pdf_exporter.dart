@@ -65,6 +65,8 @@ class SheetAnnotatedPdfExportResult {
       'annotationsOutsideDocumentPages';
   static const standardAnnotationEmbeddingUnsupportedReason =
       'standardAnnotationEmbeddingUnsupported';
+  static const standardAnnotationObjectMappingUnavailableReason =
+      'standardAnnotationObjectMappingUnavailable';
 
   bool get hasAnnotations => strokeCount + textCount > 0;
 
@@ -83,12 +85,16 @@ class SheetAnnotatedPdfExportResult {
   bool get hasUnsupportedStandardAnnotationEmbedding {
     return failureReason == standardAnnotationEmbeddingUnsupportedReason;
   }
+
+  bool get hasUnsupportedStandardAnnotationObjectMapping {
+    return failureReason == standardAnnotationObjectMappingUnavailableReason;
+  }
 }
 
 class SheetAnnotatedPdfExporter {
   const SheetAnnotatedPdfExporter._();
 
-  static const supportsStandardAnnotationEmbedding = false;
+  static const supportsStandardAnnotationEmbedding = true;
   static const renderedStampExportCapability =
       SheetPdfAnnotationExportCapability(
         mode: SheetPdfAnnotationExportMode.renderedStamp,
@@ -114,20 +120,29 @@ class SheetAnnotatedPdfExporter {
   static const standardAnnotationExportCapability =
       SheetPdfAnnotationExportCapability(
         mode: SheetPdfAnnotationExportMode.standardAnnotation,
-        isSupported: false,
-        summary: SheetAnnotatedPdfExportResult
-            .standardAnnotationEmbeddingUnsupportedReason,
-        unsupportedAnnotationTypes: <String>[
+        isSupported: true,
+        summary:
+            'Embeds supported Clef annotations as editable PDF annotation '
+            'objects with generated appearances. Complex music-specific '
+            'symbols still fall back to the rendered copy path.',
+        supportedAnnotationTypes: <String>[
           'inkAnnotation',
+          'highlightInkAnnotation',
+          'lineAnnotation',
+          'arrowLineAnnotation',
+          'squareAnnotation',
           'freeTextAnnotation',
+        ],
+        unsupportedAnnotationTypes: <String>[
           'stampAnnotation',
-          'shapeAnnotation',
+          'imageStampAnnotation',
+          'staffGridAnnotation',
+          'hairpinAnnotation',
         ],
         requiredSpikeItems: <String>[
-          'pdfWriterApi',
-          'annotationObjectMapping',
-          'fontEmbedding',
-          'viewerCompatibilityFixtures',
+          'acrobatPreviewFixture',
+          'mobileSheetsPiascoreFixture',
+          'stampAppearanceMapping',
         ],
       );
 
@@ -182,23 +197,19 @@ class SheetAnnotatedPdfExporter {
         .toList(growable: false);
     final strokeCount = exportableStrokes.length;
     final textCount = exportableTexts.length;
-    final skippedUnicodeTextCount = exportableTexts
+    final renderedSkippedUnicodeTextCount = exportableTexts
         .where((text) => textRequiresUnicodeFont(text.text))
         .length;
-    final exportedTextCount = textCount - skippedUnicodeTextCount;
+    final renderedExportedTextCount =
+        textCount - renderedSkippedUnicodeTextCount;
     if (mode == SheetPdfAnnotationExportMode.standardAnnotation) {
-      return SheetAnnotatedPdfExportResult(
-        inputPath: score.filePath,
-        outputPath: null,
-        pageCount: 0,
+      return _createStandardAnnotationCopy(
+        score: score,
+        outputPath: outputPath,
+        exportableStrokes: exportableStrokes,
+        exportableTexts: exportableTexts,
         strokeCount: strokeCount,
         textCount: textCount,
-        exportedTextCount: 0,
-        skippedUnicodeTextCount: skippedUnicodeTextCount,
-        didWrite: false,
-        mode: mode,
-        failureReason: SheetAnnotatedPdfExportResult
-            .standardAnnotationEmbeddingUnsupportedReason,
       );
     }
     if (strokeCount + textCount == 0) {
@@ -250,8 +261,8 @@ class SheetAnnotatedPdfExporter {
           pageCount: pageCount,
           strokeCount: strokeCount,
           textCount: textCount,
-          exportedTextCount: exportedTextCount,
-          skippedUnicodeTextCount: skippedUnicodeTextCount,
+          exportedTextCount: renderedExportedTextCount,
+          skippedUnicodeTextCount: renderedSkippedUnicodeTextCount,
           didWrite: false,
           mode: mode,
           failureReason: failureReason,
@@ -292,8 +303,8 @@ class SheetAnnotatedPdfExporter {
         pageCount: pageCount,
         strokeCount: strokeCount,
         textCount: textCount,
-        exportedTextCount: exportedTextCount,
-        skippedUnicodeTextCount: skippedUnicodeTextCount,
+        exportedTextCount: renderedExportedTextCount,
+        skippedUnicodeTextCount: renderedSkippedUnicodeTextCount,
         didWrite: true,
         mode: mode,
       );
@@ -304,13 +315,257 @@ class SheetAnnotatedPdfExporter {
         pageCount: 0,
         strokeCount: strokeCount,
         textCount: textCount,
-        exportedTextCount: exportedTextCount,
-        skippedUnicodeTextCount: skippedUnicodeTextCount,
+        exportedTextCount: renderedExportedTextCount,
+        skippedUnicodeTextCount: renderedSkippedUnicodeTextCount,
         didWrite: false,
         mode: mode,
         failureReason: error.toString(),
       );
     }
+  }
+
+  static Future<SheetAnnotatedPdfExportResult> _createStandardAnnotationCopy({
+    required SheetScore score,
+    required String outputPath,
+    required List<SheetAnnotationStroke> exportableStrokes,
+    required List<SheetTextAnnotation> exportableTexts,
+    required int strokeCount,
+    required int textCount,
+  }) async {
+    if (strokeCount + textCount == 0) {
+      return SheetAnnotatedPdfExportResult(
+        inputPath: score.filePath,
+        outputPath: null,
+        pageCount: 0,
+        strokeCount: 0,
+        textCount: 0,
+        exportedTextCount: 0,
+        skippedUnicodeTextCount: 0,
+        didWrite: false,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+    }
+
+    try {
+      final inputBytes = await File(score.filePath).readAsBytes();
+      final document = PdfDocument.open(inputBytes);
+      final editor = PdfEditor(document);
+      final pageCount = document.pageCount;
+      var wroteAnnotation = false;
+      var inRangeAnnotationCount = 0;
+      var exportedTextCount = 0;
+
+      for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+        final pageNumber = pageIndex + 1;
+        final page = document.page(pageIndex);
+        final geometry = SheetPdfAnnotationGeometry.fromPage(page);
+        final strokes = score.annotationLayer.exportableStrokesForPage(
+          pageNumber,
+        );
+        final texts = score.annotationLayer.exportableTextsForPage(pageNumber);
+
+        for (final stroke in strokes) {
+          inRangeAnnotationCount += 1;
+          wroteAnnotation =
+              _addStandardStrokeAnnotation(editor, pageIndex, geometry, stroke)
+              ? true
+              : wroteAnnotation;
+        }
+        for (final text in texts) {
+          inRangeAnnotationCount += 1;
+          if (_addStandardTextAnnotation(editor, pageIndex, geometry, text)) {
+            exportedTextCount += 1;
+            wroteAnnotation = true;
+          }
+        }
+      }
+
+      if (!wroteAnnotation) {
+        final failureReason = inRangeAnnotationCount == 0
+            ? SheetAnnotatedPdfExportResult
+                  .annotationsOutsideDocumentPagesReason
+            : SheetAnnotatedPdfExportResult
+                  .standardAnnotationObjectMappingUnavailableReason;
+        return SheetAnnotatedPdfExportResult(
+          inputPath: score.filePath,
+          outputPath: null,
+          pageCount: pageCount,
+          strokeCount: strokeCount,
+          textCount: textCount,
+          exportedTextCount: 0,
+          skippedUnicodeTextCount: 0,
+          didWrite: false,
+          mode: SheetPdfAnnotationExportMode.standardAnnotation,
+          failureReason: failureReason,
+        );
+      }
+
+      final outputBytes = editor.save();
+      final outputFile = File(outputPath);
+      await outputFile.parent.create(recursive: true);
+      await outputFile.writeAsBytes(outputBytes, flush: true);
+      return SheetAnnotatedPdfExportResult(
+        inputPath: score.filePath,
+        outputPath: outputPath,
+        pageCount: pageCount,
+        strokeCount: strokeCount,
+        textCount: textCount,
+        exportedTextCount: exportedTextCount,
+        skippedUnicodeTextCount: 0,
+        didWrite: true,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+    } catch (error) {
+      return SheetAnnotatedPdfExportResult(
+        inputPath: score.filePath,
+        outputPath: null,
+        pageCount: 0,
+        strokeCount: strokeCount,
+        textCount: textCount,
+        exportedTextCount: 0,
+        skippedUnicodeTextCount: 0,
+        didWrite: false,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
+  static bool _addStandardStrokeAnnotation(
+    PdfEditor editor,
+    int pageIndex,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    if (stroke.points.isEmpty) {
+      return false;
+    }
+
+    final color = _rgb(stroke.color);
+    final width = _pdfLineWidth(stroke);
+    switch (stroke.tool) {
+      case SheetAnnotationTool.pen:
+      case SheetAnnotationTool.highlighter:
+        final points = [
+          for (final point in stroke.points)
+            () {
+              final pdfPoint = geometry.toPdfPoint(point);
+              return (pdfPoint.x, pdfPoint.y);
+            }(),
+        ];
+        editor.addInk(
+          pageIndex,
+          <List<(double, double)>>[points],
+          color: color,
+          strokeWidth: width,
+          opacity: stroke.tool == SheetAnnotationTool.highlighter ? 0.35 : 1,
+          pressures: _hasPressureVariation(stroke)
+              ? <List<double>?>[
+                  [for (final point in stroke.points) point.pressure],
+                ]
+              : null,
+          contents: stroke.tool.name,
+          name: _standardAnnotationName(stroke.id),
+        );
+        return true;
+      case SheetAnnotationTool.line:
+      case SheetAnnotationTool.arrow:
+        if (stroke.points.length < 2) {
+          return false;
+        }
+        final start = geometry.toPdfPoint(stroke.points.first);
+        final end = geometry.toPdfPoint(stroke.points.last);
+        if (start.x == end.x && start.y == end.y) {
+          return false;
+        }
+        editor.addLine(
+          pageIndex,
+          (start.x, start.y),
+          (end.x, end.y),
+          strokeColor: color,
+          strokeWidth: width,
+          endEnding: stroke.tool == SheetAnnotationTool.arrow
+              ? PdfLineEnding.openArrow
+              : PdfLineEnding.none,
+          contents: stroke.tool.name,
+          name: _standardAnnotationName(stroke.id),
+        );
+        return true;
+      case SheetAnnotationTool.rectangle:
+        if (stroke.points.length < 2) {
+          return false;
+        }
+        final first = geometry.toPdfPoint(stroke.points.first);
+        final second = geometry.toPdfPoint(stroke.points.last);
+        final rect = PdfRect.normalized(first.x, first.y, second.x, second.y);
+        if (rect.width == 0 || rect.height == 0) {
+          return false;
+        }
+        editor.addSquare(
+          pageIndex,
+          rect,
+          strokeColor: color,
+          strokeWidth: width,
+          fillColor: null,
+          contents: stroke.tool.name,
+          name: _standardAnnotationName(stroke.id),
+        );
+        return true;
+      case SheetAnnotationTool.staff:
+      case SheetAnnotationTool.grid:
+      case SheetAnnotationTool.crescendo:
+      case SheetAnnotationTool.diminuendo:
+        return false;
+    }
+  }
+
+  static bool _addStandardTextAnnotation(
+    PdfEditor editor,
+    int pageIndex,
+    SheetPdfAnnotationGeometry geometry,
+    SheetTextAnnotation text,
+  ) {
+    final trimmedText = text.text.trim();
+    if (trimmedText.isEmpty) {
+      return false;
+    }
+    final point = geometry.toPdfPoint(text.position);
+    final estimatedWidth = (trimmedText.runes.length * text.fontSize * 0.65)
+        .clamp(text.fontSize * 3.5, geometry.width * 0.75)
+        .toDouble();
+    final estimatedHeight = (text.fontSize * 1.6)
+        .clamp(text.fontSize * 1.3, geometry.height * 0.25)
+        .toDouble();
+    final rect = PdfRect(
+      point.x,
+      point.y - estimatedHeight,
+      (point.x + estimatedWidth)
+          .clamp(geometry.left, geometry.left + geometry.width)
+          .toDouble(),
+      point.y,
+    );
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false;
+    }
+    editor.addFreeText(
+      pageIndex,
+      rect,
+      trimmedText,
+      fontSize: text.fontSize,
+      color: _rgb(text.color),
+      borderColor: null,
+      borderWidth: 0,
+      name: _standardAnnotationName(text.id),
+    );
+    return true;
+  }
+
+  static String _standardAnnotationName(String id) {
+    final safeId = id
+        .trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-');
+    return 'clef-${safeId.isEmpty ? 'annotation' : safeId}';
   }
 
   static void _drawStroke(

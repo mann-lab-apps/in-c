@@ -365,8 +365,34 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 - high: 주요 기능은 가능하지만 반복 재현되는 UX/성능/입력 문제.
 - medium: workaround가 있는 혼동, 오류 문구, 특정 PDF/provider 문제.
 - low: copy polish, edge-case 표시 문제.
-- v1.1 spike: OCR, HEIC native conversion, PDF standard annotation embed, HID capture wizard,
+- v1.1 spike: OCR, HEIC native conversion, PDF standard annotation external-viewer compatibility, HID capture wizard,
   SAF/iOS Files direct folder, iOS Share Extension, font embedding, cloud sync, page별 live rotation.
+
+## Editable PDF annotation export QA
+
+앱 내부 자동 테스트는 standard export PDF가 다시 열리고 `/Ink`, `/Line`, `/Square`, `/FreeText`
+annotation subtype을 포함하는지 확인한다. 실제 상용 호환성은 아래 viewer에서 별도 확인한다.
+
+1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
+2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
+3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
+4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
+5. hairpin/staff/grid/stamp/image stamp는 아직 editable standard mapping 완료로 보지 않고 rendered fallback 또는 follow-up으로 기록한다.
+
+기록:
+
+```text
+Export mode: flattened / standard
+Viewer: Acrobat / Preview / MobileSheets / Piascore / Android viewer / 기타
+Ink visible/editable:
+Line/arrow visible/editable:
+Rectangle visible/editable:
+FreeText visible/editable:
+Unicode text visible:
+Layer export flag 반영:
+원본 PDF 보존:
+문제/스크린샷:
+```
 
 ## QA 후 정리
 

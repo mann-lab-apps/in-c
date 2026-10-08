@@ -1178,12 +1178,15 @@ class SheetLibraryStore {
   }
 
   Future<SheetAnnotatedPdfExportResult> createAnnotatedPdfCopy(
-    SheetScore score,
-  ) async {
+    SheetScore score, {
+    SheetPdfAnnotationExportMode mode =
+        SheetPdfAnnotationExportMode.renderedStamp,
+  }) async {
     final outputPath = await _annotatedPdfPath(score);
     return SheetAnnotatedPdfExporter.createAnnotatedCopy(
       score: score,
       outputPath: outputPath,
+      mode: mode,
     );
   }
 

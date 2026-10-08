@@ -450,6 +450,9 @@
 - 페이지 수와 파일 크기.
 - 샘플 파일 공유 가능 여부.
 - 테스트 영역: import, viewer, search, annotation export, backup, pedal, S Pen, tuner, audio 등.
+- annotation export를 볼 때는 flattened PDF 사본과 editable standard annotation 사본을 구분해 적는다.
+  Standard 사본은 pen/highlighter, line/arrow, rectangle, text note가 외부 viewer에서 보이는지와
+  선택/편집 가능한지를 기록한다. Hairpin/staff/grid/stamp/image stamp는 아직 follow-up으로 본다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.

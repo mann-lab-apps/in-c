@@ -176,15 +176,17 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 5. PDF 표준 Annotation Embed/Export
 
-- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식이다. export capability
-  report가 flattened copy 지원 범위와 standard annotation embedding 미지원 범위를 구분하며,
-  standard annotation export mode는 explicit unsupported result로 분리되어 있다.
+- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식을 계속 지원한다. export capability
+  report는 flattened copy와 editable standard annotation export를 구분한다. Standard mode는
+  pen/highlighter를 `/Ink`, line/arrow를 `/Line`, rectangle을 `/Square`, text를 `/FreeText` 객체로
+  쓰는 1차 writer가 있으며, 생성 PDF를 다시 열어 subtype을 확인하는 fixture가 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
-  mapping, viewer 호환성 검증이 필요하다.
-- 결정 필요사항: `pdf_document` 확장 가능성, 다른 PDF writer 도입 여부, Ink/Text/FreeText/Stamp
-  annotation mapping, opacity/pressure 처리, flatten vs editable export mode.
-- 구현 후보: standard export adapter interface, rendered fallback 유지, annotation object fixture
-  generator, export compatibility fixture runner. Capability report는 구현됨.
+  mapping의 1차 경로는 생겼지만, stamp/image stamp/hairpin/staff/grid mapping과 외부 viewer
+  호환성 검증이 필요하다.
+- 결정 필요사항: Stamp/ImageStamp appearance mapping, music-specific hairpin/staff/grid의 표준
+  PDF annotation 표현 여부, flatten vs editable export mode UI, 외부 viewer compatibility gate.
+- 구현 후보: external viewer fixture package, Acrobat/Preview/MobileSheets/Piascore manual matrix,
+  image stamp appearance stream, music-symbol fallback policy, export compatibility fixture runner.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered

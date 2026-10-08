@@ -42,18 +42,12 @@ void main() {
       rendered.unsupportedAnnotationTypes,
       contains('editablePdfAnnotationObjects'),
     );
-    expect(standard.isSupported, isFalse);
+    expect(standard.isSupported, isTrue);
     expect(standard.isStandardAnnotationEmbedding, isTrue);
-    expect(
-      standard.summary,
-      SheetAnnotatedPdfExportResult
-          .standardAnnotationEmbeddingUnsupportedReason,
-    );
-    expect(standard.requiredSpikeItems, contains('pdfWriterApi'));
-    expect(
-      standard.requiredSpikeItems,
-      contains('viewerCompatibilityFixtures'),
-    );
+    expect(standard.supportedAnnotationTypes, contains('inkAnnotation'));
+    expect(standard.supportedAnnotationTypes, contains('freeTextAnnotation'));
+    expect(standard.unsupportedAnnotationTypes, contains('hairpinAnnotation'));
+    expect(standard.requiredSpikeItems, contains('acrobatPreviewFixture'));
   });
 
   test('creates an annotated PDF copy without changing the original', () async {
@@ -365,8 +359,18 @@ void main() {
     },
   );
 
-  test('reports standard PDF annotation export as unsupported', () async {
+  test('creates editable standard PDF annotation objects', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
+    final originalBytes = await input.readAsBytes();
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-annotation-export-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-editable.pdf';
     final now = DateTime.parse('2026-08-23T10:00:00.000');
     final score = SheetScore(
       id: 'score-1',
@@ -395,29 +399,188 @@ void main() {
             ],
             createdAt: now,
           ),
+          SheetAnnotationStroke(
+            id: 'arrow-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.arrow,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.2, y: 0.8),
+              SheetAnnotationPoint(x: 0.4, y: 0.65),
+            ],
+            createdAt: now.add(const Duration(seconds: 1)),
+          ),
+          SheetAnnotationStroke(
+            id: 'rect-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.rectangle,
+            color: 0xff1d5fd1,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.45, y: 0.35),
+              SheetAnnotationPoint(x: 0.75, y: 0.55),
+            ],
+            createdAt: now.add(const Duration(seconds: 2)),
+          ),
+        ],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'text-1',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: 'Cue',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
         ],
       ),
     );
 
     final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
       score: score,
-      outputPath: '/tmp/unused-clef-standard-annotation.pdf',
+      outputPath: outputPath,
       mode: SheetPdfAnnotationExportMode.standardAnnotation,
     );
+    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+    final subtypes = exported
+        .page(0)
+        .annotations
+        .map((annotation) => annotation.subtype)
+        .toList(growable: false);
 
     expect(
       SheetAnnotatedPdfExporter.supportsStandardAnnotationEmbedding,
-      isFalse,
+      isTrue,
     );
-    expect(result.didWrite, isFalse);
+    expect(result.didWrite, isTrue);
     expect(result.requestedStandardAnnotationEmbedding, isTrue);
-    expect(result.hasUnsupportedStandardAnnotationEmbedding, isTrue);
+    expect(result.strokeCount, 3);
+    expect(result.textCount, 1);
+    expect(result.exportedTextCount, 1);
+    expect(result.skippedUnicodeTextCount, 0);
+    expect(subtypes, contains('Ink'));
+    expect(subtypes, contains('Line'));
+    expect(subtypes, contains('Square'));
+    expect(subtypes, contains('FreeText'));
+    expect(await input.readAsBytes(), originalBytes);
+  });
+
+  test('writes Unicode FreeText in standard annotation mode', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-unicode-annotation-export-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-editable.pdf';
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'text-kr',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: '숨 크게',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+    final annotations = exported.page(0).annotations;
+
+    expect(result.didWrite, isTrue);
+    expect(result.textCount, 1);
+    expect(result.exportedTextCount, 1);
+    expect(result.skippedUnicodeTextCount, 0);
     expect(
-      result.failureReason,
-      SheetAnnotatedPdfExportResult
-          .standardAnnotationEmbeddingUnsupportedReason,
+      annotations.map((annotation) => annotation.subtype),
+      contains('FreeText'),
+    );
+    expect(
+      annotations.any((annotation) => annotation.contents == '숨 크게'),
+      isTrue,
     );
   });
+
+  test(
+    'does not write standard export when only unsupported tools match',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final now = DateTime.parse('2026-08-23T10:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            SheetAnnotationStroke(
+              id: 'hairpin-1',
+              pageNumber: 1,
+              tool: SheetAnnotationTool.crescendo,
+              color: 0xff111111,
+              width: 3,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.2, y: 0.7),
+                SheetAnnotationPoint(x: 0.6, y: 0.7),
+              ],
+              createdAt: now,
+            ),
+          ],
+        ),
+      );
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: '/tmp/unused-clef-standard-unsupported.pdf',
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+
+      expect(result.didWrite, isFalse);
+      expect(result.hasUnsupportedStandardAnnotationObjectMapping, isTrue);
+      expect(
+        result.failureReason,
+        SheetAnnotatedPdfExportResult
+            .standardAnnotationObjectMappingUnavailableReason,
+      );
+    },
+  );
 
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');

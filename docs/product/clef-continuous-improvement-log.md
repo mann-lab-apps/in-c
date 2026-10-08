@@ -2186,3 +2186,15 @@ fall back to the default layer for safety. Focused widget/controller/model tests
 UI, non-default layer state persistence and layer-aware visibility/export filtering. Layer rename/delete,
 moving existing annotations between layers, per-layer undo controls and editable PDF annotation export
 remain follow-up.
+
+S183 VERIFIED LOCAL: added the first editable PDF standard annotation writer while keeping the
+flattened rendered-stamp export path and exposing both choices from `필기 포함 PDF 공유/인쇄`.
+`SheetAnnotatedPdfExporter` can now write export-enabled Clef
+pen/highlighter strokes as `/Ink`, line/arrow tools as `/Line`, rectangles as `/Square`, and text notes
+as `/FreeText` annotation objects with generated appearances via the existing `pdf_document` editor.
+The standard export result reopens as a PDF with the expected annotation subtypes, preserves the source
+PDF bytes, supports Unicode FreeText through the writer path, and returns a clear unsupported-mapping
+result when only music-specific hairpins/staff/grid/stamp objects are present. Focused exporter tests
+cover capability reporting, editable object creation, Unicode FreeText, unsupported-only tools, and the
+existing flattened fallback. External Acrobat/Preview/MobileSheets/Piascore compatibility, image stamp
+PDF appearances, and richer layer management remain Device QA/follow-up.
