@@ -552,6 +552,7 @@ class SheetAnnotationStroke {
     required this.width,
     required this.points,
     required this.createdAt,
+    this.layerId = SheetAnnotationDisplayLayer.defaultLayerId,
   });
 
   factory SheetAnnotationStroke.fromJson(Map<String, Object?> json) {
@@ -566,6 +567,7 @@ class SheetAnnotationStroke {
       createdAt:
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      layerId: _normalizeAnnotationLayerId(json['layerId']),
     );
   }
 
@@ -576,6 +578,7 @@ class SheetAnnotationStroke {
   final double width;
   final List<SheetAnnotationPoint> points;
   final DateTime createdAt;
+  final String layerId;
 
   SheetAnnotationStroke shiftedBy({required double dx, required double dy}) {
     return SheetAnnotationStroke(
@@ -588,6 +591,7 @@ class SheetAnnotationStroke {
           .map((point) => point.shiftedBy(dx: dx, dy: dy))
           .toList(growable: false),
       createdAt: createdAt,
+      layerId: layerId,
     );
   }
 
@@ -639,6 +643,8 @@ class SheetAnnotationStroke {
       'width': width,
       'points': points.map((point) => point.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
+      if (layerId != SheetAnnotationDisplayLayer.defaultLayerId)
+        'layerId': layerId,
     };
   }
 
@@ -754,6 +760,7 @@ class SheetTextAnnotation {
     required this.color,
     required this.fontSize,
     required this.createdAt,
+    this.layerId = SheetAnnotationDisplayLayer.defaultLayerId,
   });
 
   factory SheetTextAnnotation.fromJson(Map<String, Object?> json) {
@@ -770,6 +777,7 @@ class SheetTextAnnotation {
       createdAt:
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      layerId: _normalizeAnnotationLayerId(json['layerId']),
     );
   }
 
@@ -780,6 +788,7 @@ class SheetTextAnnotation {
   final int color;
   final double fontSize;
   final DateTime createdAt;
+  final String layerId;
 
   SheetTextAnnotation copyWith({
     String? id,
@@ -789,6 +798,7 @@ class SheetTextAnnotation {
     int? color,
     double? fontSize,
     DateTime? createdAt,
+    String? layerId,
   }) {
     return SheetTextAnnotation(
       id: id ?? this.id,
@@ -798,6 +808,9 @@ class SheetTextAnnotation {
       color: color ?? this.color,
       fontSize: fontSize ?? this.fontSize,
       createdAt: createdAt ?? this.createdAt,
+      layerId: layerId == null
+          ? this.layerId
+          : _normalizeAnnotationLayerId(layerId),
     );
   }
 
@@ -834,6 +847,8 @@ class SheetTextAnnotation {
       'color': color,
       'fontSize': fontSize,
       'createdAt': createdAt.toIso8601String(),
+      if (layerId != SheetAnnotationDisplayLayer.defaultLayerId)
+        'layerId': layerId,
     };
   }
 
@@ -1019,6 +1034,24 @@ class SheetAnnotationLayer {
   List<String> get displayLayerLabels =>
       layers.map((layer) => layer.label).toList(growable: false);
 
+  SheetAnnotationDisplayLayer displayLayerForAnnotation(String layerId) {
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    for (final layer in layers) {
+      if (layer.id == normalizedLayerId) {
+        return layer;
+      }
+    }
+    return defaultLayer;
+  }
+
+  bool isAnnotationLayerVisible(String layerId) {
+    return displayLayerForAnnotation(layerId).isVisible;
+  }
+
+  bool isAnnotationLayerIncludedInExport(String layerId) {
+    return displayLayerForAnnotation(layerId).includeInExport;
+  }
+
   int get pointCount {
     var total = 0;
     for (final stroke in strokes) {
@@ -1059,27 +1092,27 @@ class SheetAnnotationLayer {
   }
 
   List<SheetAnnotationStroke> visibleStrokesForPage(int pageNumber) {
-    return isDefaultLayerVisible
-        ? strokesForPage(pageNumber)
-        : const <SheetAnnotationStroke>[];
+    return strokesForPage(pageNumber)
+        .where((stroke) => isAnnotationLayerVisible(stroke.layerId))
+        .toList(growable: false);
   }
 
   List<SheetTextAnnotation> visibleTextsForPage(int pageNumber) {
-    return isDefaultLayerVisible
-        ? textsForPage(pageNumber)
-        : const <SheetTextAnnotation>[];
+    return textsForPage(pageNumber)
+        .where((text) => isAnnotationLayerVisible(text.layerId))
+        .toList(growable: false);
   }
 
   List<SheetAnnotationStroke> exportableStrokesForPage(int pageNumber) {
-    return includeDefaultLayerInExport
-        ? strokesForPage(pageNumber)
-        : const <SheetAnnotationStroke>[];
+    return strokesForPage(pageNumber)
+        .where((stroke) => isAnnotationLayerIncludedInExport(stroke.layerId))
+        .toList(growable: false);
   }
 
   List<SheetTextAnnotation> exportableTextsForPage(int pageNumber) {
-    return includeDefaultLayerInExport
-        ? textsForPage(pageNumber)
-        : const <SheetTextAnnotation>[];
+    return textsForPage(pageNumber)
+        .where((text) => isAnnotationLayerIncludedInExport(text.layerId))
+        .toList(growable: false);
   }
 
   SheetAnnotationLayer withDefaultLayerState({
@@ -1855,6 +1888,11 @@ DateTime _dateTimeFromJson(Object? value) {
 
 String _normalizeStampToken(Object? value) {
   return _stringFromJson(value).trim().toLowerCase();
+}
+
+String _normalizeAnnotationLayerId(Object? value) {
+  final layerId = _stringFromJson(value).trim();
+  return layerId.isEmpty ? SheetAnnotationDisplayLayer.defaultLayerId : layerId;
 }
 
 String _safeImageAssetPathSegment(String value, {required String fallback}) {

@@ -2153,3 +2153,11 @@ checksum, byte size and pixel dimensions, and can create an image `SheetAnnotati
 the existing allow-image validation policy. Focused annotation tests cover a safe PNG source path with
 deduplicated keywords and an unsupported GIF/invalid checksum/oversized file path that remains rejected.
 Actual file copy/storage, image preview UI, backup/package asset inclusion and cleanup remain follow-up.
+
+S179 VERIFIED LOCAL: added annotation-level layer keys before opening layer management UI. Stroke and
+text annotations now carry an optional `layerId`, old metadata falls back to the default layer, shifted/
+rebased/cropped annotations preserve their layer id, and visible/exportable page filters now honor the
+target layer visibility/export flags. Unknown or deleted layer ids fall back to the default layer so
+older annotations do not disappear if a layer is removed. Focused annotation coverage verifies hidden,
+export-disabled and removed-layer behavior. Active-layer UI, layer rename/delete UX and per-layer undo
+controls remain follow-up.

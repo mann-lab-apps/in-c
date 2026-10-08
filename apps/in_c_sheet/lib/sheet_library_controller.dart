@@ -2154,6 +2154,7 @@ class SheetLibraryController extends ChangeNotifier {
           width: stroke.width,
           points: stroke.points,
           createdAt: stroke.createdAt,
+          layerId: stroke.layerId,
         ),
     ];
   }
@@ -2219,6 +2220,7 @@ class SheetLibraryController extends ChangeNotifier {
         stroke.points.map((point) => _rebasePointForAppliedCrop(point, crop)),
       ),
       createdAt: stroke.createdAt,
+      layerId: stroke.layerId,
     );
   }
 

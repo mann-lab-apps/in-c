@@ -607,6 +607,79 @@ void main() {
     );
   });
 
+  test('annotation layer keys filter visible and exportable annotations', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[
+        _stroke(id: 'default-stroke', pageNumber: 1, createdAt: now),
+        _stroke(
+          id: 'hidden-stroke',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 1)),
+          layerId: 'rehearsal',
+        ),
+        _stroke(
+          id: 'unknown-stroke',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 2)),
+          layerId: 'deleted-layer',
+        ),
+      ],
+      texts: <SheetTextAnnotation>[
+        _text(
+          id: 'export-disabled-text',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 3)),
+          layerId: 'private',
+        ),
+      ],
+      layers: <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        const SheetAnnotationDisplayLayer(
+          id: 'rehearsal',
+          label: '리허설',
+          isVisible: false,
+        ),
+        const SheetAnnotationDisplayLayer(
+          id: 'private',
+          label: '개인 메모',
+          includeInExport: false,
+        ),
+      ],
+    );
+
+    final decoded = SheetAnnotationLayer.fromJson(layer.toJson());
+
+    expect(
+      decoded.strokes
+          .singleWhere((stroke) => stroke.id == 'hidden-stroke')
+          .layerId,
+      'rehearsal',
+    );
+    expect(decoded.texts.single.layerId, 'private');
+    expect(
+      decoded.visibleStrokesForPage(1).map((stroke) => stroke.id),
+      <String>['default-stroke', 'unknown-stroke'],
+    );
+    expect(
+      decoded.exportableStrokesForPage(1).map((stroke) => stroke.id),
+      <String>['default-stroke', 'hidden-stroke', 'unknown-stroke'],
+    );
+    expect(decoded.visibleTextsForPage(1), hasLength(1));
+    expect(decoded.exportableTextsForPage(1), isEmpty);
+    expect(
+      decoded.displayLayerForAnnotation('deleted-layer').id,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      decoded
+          .removeDisplayLayer('rehearsal')
+          .visibleStrokesForPage(1)
+          .map((stroke) => stroke.id),
+      <String>['default-stroke', 'hidden-stroke', 'unknown-stroke'],
+    );
+  });
+
   test('compacts redo stack without dropping annotations', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
     final stroke = _stroke(id: 'visible', pageNumber: 1, createdAt: now);
@@ -1309,6 +1382,7 @@ SheetAnnotationStroke _stroke({
   required int pageNumber,
   required DateTime createdAt,
   SheetAnnotationTool tool = SheetAnnotationTool.pen,
+  String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
   List<SheetAnnotationPoint> points = const <SheetAnnotationPoint>[
     SheetAnnotationPoint(x: 0.1, y: 0.1),
     SheetAnnotationPoint(x: 0.2, y: 0.2),
@@ -1322,6 +1396,7 @@ SheetAnnotationStroke _stroke({
     width: 3,
     points: points,
     createdAt: createdAt,
+    layerId: layerId,
   );
 }
 
@@ -1330,6 +1405,7 @@ SheetTextAnnotation _text({
   required int pageNumber,
   required DateTime createdAt,
   SheetAnnotationPoint position = const SheetAnnotationPoint(x: 0.25, y: 0.5),
+  String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
 }) {
   return SheetTextAnnotation(
     id: id,
@@ -1339,5 +1415,6 @@ SheetTextAnnotation _text({
     color: 0xff111111,
     fontSize: 18,
     createdAt: createdAt,
+    layerId: layerId,
   );
 }

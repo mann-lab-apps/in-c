@@ -455,6 +455,31 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - Blocker 해제 조건: 권리/라이선스 copy 결정, image stamp asset file copy/storage/export implementation,
   corrupt image fixture와 package/backup asset round-trip QA.
 
+## 16. Annotation Layer Management
+
+- 현재 v1 상태: 기본 필기 layer visibility/export flag가 있고, stroke/text annotation은 optional
+  `layerId`를 저장한다. 과거 metadata와 알 수 없는 layer id는 default layer로 fallback한다.
+- 왜 v1.1 spike인지: active layer 선택, layer 삭제/이름 변경, hidden layer hit-test, undo/redo 범위,
+  PDF export 포함 여부, stylus 작업 중 실수 방지가 모두 UI와 데이터 보존에 영향을 준다.
+- 결정 필요사항:
+  - hidden layer annotation을 hit-test/eraser/nudge 대상에서 제외할지
+  - layer 삭제 시 annotation을 default로 이동할지, 삭제를 차단할지
+  - active layer를 악보별로 저장할지, viewer session local 상태로 둘지
+  - layer별 export, backup/restore, package export 정책
+- 구현 후보:
+  1. 완료: layer stack metadata helper와 summary를 추가했다.
+  2. 완료: stroke/text annotation별 `layerId` 저장과 visible/exportable filtering을 추가했다.
+  3. active layer 선택 상태와 새 annotation 생성 연결.
+  4. viewer 필기 도구의 `레이어` sheet: 추가/이름 변경/숨김/export 포함/삭제.
+  5. layer 삭제/이름 변경 실패 recovery와 기존 annotation 보존 회귀.
+- 검증 완료: 기존 annotation default fallback, hidden layer visible filter, export-disabled layer export
+  filter, removed/unknown layer default fallback.
+- 남은 테스트/fixture/실기기 조건: active layer UI, layer deletion policy, stylus drawing while switching
+  layers, PDF export with multiple layers, large annotation layer performance.
+- Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는
+  선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
+- Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.
+
 ## RC 이후 추천 우선순위
 
 1. Android/iPad 실기기 QA에서 S Pen/stylus, audio, pedal, 장시간 연주 결과를 먼저 닫는다.

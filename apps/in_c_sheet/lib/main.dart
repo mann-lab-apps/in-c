@@ -15890,6 +15890,7 @@ setlist=$setlistLabel
               width: annotation.width,
               points: const <SheetAnnotationPoint>[],
               createdAt: annotation.createdAt,
+              layerId: annotation.layerId,
             ),
           ),
         );
