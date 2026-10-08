@@ -605,6 +605,22 @@ void main() {
       ),
       isTrue,
     );
+
+    final hiddenPerformance = layer.withDisplayLayerState(
+      'performance',
+      isVisible: false,
+      includeInExport: false,
+    );
+    expect(
+      hiddenPerformance.displayLayerForAnnotation('performance').isVisible,
+      isFalse,
+    );
+    expect(
+      hiddenPerformance
+          .displayLayerForAnnotation('performance')
+          .includeInExport,
+      isFalse,
+    );
   });
 
   test('annotation layer keys filter visible and exportable annotations', () {

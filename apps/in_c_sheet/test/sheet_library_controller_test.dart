@@ -3801,6 +3801,56 @@ Clef & Staff 세트리스트
     expect(persisted.annotationLayer.includeDefaultLayerInExport, isFalse);
   });
 
+  test('creates and updates non-default annotation display layers', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final didCreate = await controller.updateAnnotationDisplayLayer(
+      controller.scores.single,
+      const SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+    );
+    expect(didCreate, isTrue);
+
+    await controller.addTextAnnotation(
+      controller.scores.single,
+      SheetTextAnnotation(
+        id: 'text-layer',
+        pageNumber: 1,
+        position: const SheetAnnotationPoint(x: 0.2, y: 0.2),
+        text: '리허설 확인',
+        color: 0xff111111,
+        fontSize: 18,
+        createdAt: now,
+        layerId: 'rehearsal',
+      ),
+    );
+
+    await controller.updateAnnotationLayerState(
+      controller.scores.single,
+      layerId: 'rehearsal',
+      isVisible: false,
+      includeInExport: false,
+    );
+
+    final layer = controller.scores.single.annotationLayer;
+    expect(layer.displayLayerForAnnotation('rehearsal').label, '리허설');
+    expect(layer.visibleTextsForPage(1), isEmpty);
+    expect(layer.exportableTextsForPage(1), isEmpty);
+    expect(layer.texts.single.layerId, 'rehearsal');
+
+    final persisted = (await store.loadScores()).single.annotationLayer;
+    expect(persisted.displayLayerForAnnotation('rehearsal').isVisible, isFalse);
+    expect(
+      persisted.displayLayerForAnnotation('rehearsal').includeInExport,
+      isFalse,
+    );
+  });
+
   test('sorts and filters library scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

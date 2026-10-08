@@ -2177,3 +2177,12 @@ directory via a temp-file replace path. Focused tests cover safe path normalizat
 reuse, changed asset replacement, missing files, unsupported extensions, corrupt image bytes, oversized
 files and unsafe stored refs. Picker UI, package/backup asset round-trip, cleanup and image rendering
 remain follow-up.
+
+S182 VERIFIED LOCAL: opened the first active annotation layer UI without attempting full layer
+management yet. The annotation toolbar now has a named layer selector, can add a new layer, and applies
+visibility/export toggles to the active layer instead of only the default layer. New pen/highlighter/
+shape strokes, text notes and stamps store the selected `layerId`, while old or deleted layer ids still
+fall back to the default layer for safety. Focused widget/controller/model tests cover layer selection
+UI, non-default layer state persistence and layer-aware visibility/export filtering. Layer rename/delete,
+moving existing annotations between layers, per-layer undo controls and editable PDF annotation export
+remain follow-up.

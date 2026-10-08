@@ -2996,13 +2996,15 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<void> updateAnnotationLayerState(
     SheetScore score, {
+    String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
     bool? isVisible,
     bool? includeInExport,
   }) async {
     await _replace(
       score.copyWith(
         annotationLayer: _guardAnnotationLayer(
-          score.annotationLayer.withDefaultLayerState(
+          score.annotationLayer.withDisplayLayerState(
+            layerId,
             isVisible: isVisible,
             includeInExport: includeInExport,
           ),
@@ -3010,6 +3012,24 @@ class SheetLibraryController extends ChangeNotifier {
         updatedAt: DateTime.now(),
       ),
     );
+  }
+
+  Future<bool> updateAnnotationDisplayLayer(
+    SheetScore score,
+    SheetAnnotationDisplayLayer displayLayer,
+  ) async {
+    if (!displayLayer.isValid) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(
+          score.annotationLayer.withDisplayLayer(displayLayer),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
   }
 
   Future<SheetSetlist> createSetlist(String title) async {

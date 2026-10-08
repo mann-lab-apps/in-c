@@ -475,13 +475,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 구현 후보:
   1. 완료: layer stack metadata helper와 summary를 추가했다.
   2. 완료: stroke/text annotation별 `layerId` 저장과 visible/exportable filtering을 추가했다.
-  3. active layer 선택 상태와 새 annotation 생성 연결.
-  4. viewer 필기 도구의 `레이어` sheet: 추가/이름 변경/숨김/export 포함/삭제.
-  5. layer 삭제/이름 변경 실패 recovery와 기존 annotation 보존 회귀.
+  3. 완료: viewer 필기 toolbar에서 active layer 선택/추가와 새 annotation 생성 연결을 추가했다.
+  4. 완료: 현재 active layer의 숨김/export 포함 토글을 기본 layer 외에도 적용한다.
+  5. viewer 필기 도구의 layer rename/delete, 기존 annotation layer 이동.
+  6. layer 삭제/이름 변경 실패 recovery와 기존 annotation 보존 회귀.
 - 검증 완료: 기존 annotation default fallback, hidden layer visible filter, export-disabled layer export
-  filter, removed/unknown layer default fallback.
-- 남은 테스트/fixture/실기기 조건: active layer UI, layer deletion policy, stylus drawing while switching
-  layers, PDF export with multiple layers, large annotation layer performance.
+  filter, removed/unknown layer default fallback, active layer selector UI, non-default layer state persistence.
+- 남은 테스트/fixture/실기기 조건: layer deletion policy, stylus drawing while switching layers,
+  PDF export with multiple layers on device, large annotation layer performance.
 - Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는
   선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
 - Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.

@@ -11573,6 +11573,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _AnnotationPreset? _favoriteAnnotationPreset;
   bool _isSavingFavoriteAnnotationPreset = false;
   Object? _annotationLayerSaveRequest;
+  String _activeAnnotationLayerId = SheetAnnotationDisplayLayer.defaultLayerId;
   int _annotationColor = 0xff111111;
   double _annotationWidth = 3.5;
   int? _draftAnnotationPageNumber;
@@ -15512,35 +15513,50 @@ setlist=$setlistLabel
   }
 
   Future<void> _toggleAnnotationLayerVisibility() async {
-    final nextValue = !score.annotationLayer.isDefaultLayerVisible;
+    final displayLayer = _activeAnnotationDisplayLayer(score.annotationLayer);
+    final nextValue = !displayLayer.isVisible;
     final request = _annotationLayerSaveRequest = Object();
     final saved = await _saveAnnotationChange(() async {
       await widget.controller.updateAnnotationLayerState(
         score,
+        layerId: displayLayer.id,
         isVisible: nextValue,
       );
       return true;
     }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
     if (saved != true) return;
     setState(() {});
-    _showSnackBar(nextValue ? '필기 layer를 표시합니다.' : '필기 layer를 숨깁니다.');
+    final label = displayLayer.id == SheetAnnotationDisplayLayer.defaultLayerId
+        ? '필기'
+        : displayLayer.label;
+    _showSnackBar(nextValue ? '$label layer를 표시합니다.' : '$label layer를 숨깁니다.');
   }
 
   Future<void> _toggleAnnotationLayerExport() async {
-    final nextValue = !score.annotationLayer.includeDefaultLayerInExport;
+    final displayLayer = _activeAnnotationDisplayLayer(score.annotationLayer);
+    final nextValue = !displayLayer.includeInExport;
     final request = _annotationLayerSaveRequest = Object();
     final saved = await _saveAnnotationChange(() async {
       await widget.controller.updateAnnotationLayerState(
         score,
+        layerId: displayLayer.id,
         includeInExport: nextValue,
       );
       return true;
     }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
     if (saved != true) return;
     setState(() {});
-    _showSnackBar(
-      nextValue ? '필기를 PDF 공유/인쇄에 포함합니다.' : '필기를 PDF 공유/인쇄에서 제외합니다.',
-    );
+    if (displayLayer.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+      _showSnackBar(
+        nextValue ? '필기를 PDF 공유/인쇄에 포함합니다.' : '필기를 PDF 공유/인쇄에서 제외합니다.',
+      );
+    } else {
+      _showSnackBar(
+        nextValue
+            ? '${displayLayer.label} layer를 PDF 공유/인쇄에 포함합니다.'
+            : '${displayLayer.label} layer를 PDF 공유/인쇄에서 제외합니다.',
+      );
+    }
   }
 
   Future<void> _saveFavoriteAnnotationPreset() async {
@@ -15597,6 +15613,55 @@ setlist=$setlistLabel
       _selectedUserAnnotationStamp = null;
     });
     _showSnackBar('즐겨찾기 필기 도구를 적용했습니다.');
+  }
+
+  SheetAnnotationDisplayLayer _activeAnnotationDisplayLayer(
+    SheetAnnotationLayer layer,
+  ) {
+    for (final displayLayer in layer.layers) {
+      if (displayLayer.id == _activeAnnotationLayerId) {
+        return displayLayer;
+      }
+    }
+    return layer.defaultLayer;
+  }
+
+  String _activeAnnotationLayerIdFor(SheetScore score) {
+    return _activeAnnotationDisplayLayer(score.annotationLayer).id;
+  }
+
+  void _selectAnnotationDisplayLayer(String layerId) {
+    setState(() {
+      _activeAnnotationLayerId = layerId.trim().isEmpty
+          ? SheetAnnotationDisplayLayer.defaultLayerId
+          : layerId.trim();
+    });
+  }
+
+  Future<void> _createAnnotationDisplayLayer() async {
+    final label = await _showTextEntryDialog(
+      context: context,
+      title: '필기 layer 추가',
+      label: 'layer 이름',
+      initialValue: '',
+    );
+    final trimmedLabel = label?.trim();
+    if (trimmedLabel == null || trimmedLabel.isEmpty) {
+      return;
+    }
+    final layer = _newAnnotationDisplayLayer(
+      score.annotationLayer.layers,
+      trimmedLabel,
+    );
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() async {
+      return widget.controller.updateAnnotationDisplayLayer(score, layer);
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
+    setState(() {
+      _activeAnnotationLayerId = layer.id;
+    });
+    _showSnackBar('${layer.label} layer를 추가했습니다.');
   }
 
   List<_AnnotationStamp> _recentAnnotationStamps() {
@@ -15709,6 +15774,7 @@ setlist=$setlistLabel
     }
 
     final now = DateTime.now();
+    final layerId = _activeAnnotationLayerIdFor(score);
     final stroke = SheetAnnotationStroke(
       id: '${now.microsecondsSinceEpoch}-$pageNumber',
       pageNumber: pageNumber,
@@ -15717,6 +15783,7 @@ setlist=$setlistLabel
       width: _annotationWidth,
       points: List<SheetAnnotationPoint>.unmodifiable(points),
       createdAt: now,
+      layerId: layerId,
     );
     try {
       await widget.controller.addAnnotationStroke(score, stroke);
@@ -15763,6 +15830,7 @@ setlist=$setlistLabel
 
     if (_annotationTool == _AnnotationToolbarTool.stamp) {
       final now = DateTime.now();
+      final layerId = _activeAnnotationLayerIdFor(score);
       final userStamp = _selectedUserAnnotationStamp;
       final stampText = userStamp == null
           ? _annotationStamp.label
@@ -15778,6 +15846,7 @@ setlist=$setlistLabel
             color: _annotationColor,
             fontSize: (_annotationWidth * 4.5).clamp(16.0, 54.0).toDouble(),
             createdAt: now,
+            layerId: layerId,
           ),
         );
       } catch (_) {
@@ -15798,6 +15867,7 @@ setlist=$setlistLabel
     }
 
     final now = DateTime.now();
+    final layerId = _activeAnnotationLayerIdFor(score);
     try {
       await widget.controller.addTextAnnotation(
         score,
@@ -15809,6 +15879,7 @@ setlist=$setlistLabel
           color: _annotationColor,
           fontSize: (_annotationWidth * 3.5).clamp(12.0, 48.0).toDouble(),
           createdAt: now,
+          layerId: layerId,
         ),
       );
     } catch (_) {
@@ -18040,18 +18111,18 @@ setlist=$setlistLabel
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
                           hasFavoritePreset: _favoriteAnnotationPreset != null,
-                          isLayerVisible: currentScore
-                              .annotationLayer
-                              .isDefaultLayerVisible,
-                          includeLayerInExport: currentScore
-                              .annotationLayer
-                              .includeDefaultLayerInExport,
+                          displayLayers: currentScore.annotationLayer.layers,
+                          activeLayer: _activeAnnotationDisplayLayer(
+                            currentScore.annotationLayer,
+                          ),
                           isCompact: isCompactViewer,
                           onToolSelected: (tool) {
                             setState(() {
                               _annotationTool = tool;
                             });
                           },
+                          onLayerSelected: _selectAnnotationDisplayLayer,
+                          onCreateLayer: _createAnnotationDisplayLayer,
                           onStampSelected: _selectAnnotationStamp,
                           onCreateUserStamp: (label, text) async {
                             final didSave = await widget.controller
@@ -20560,6 +20631,28 @@ String _userStampPrintableText(SheetAnnotationUserStamp stamp) {
   return stamp.text.isEmpty ? stamp.label : stamp.text;
 }
 
+SheetAnnotationDisplayLayer _newAnnotationDisplayLayer(
+  List<SheetAnnotationDisplayLayer> existingLayers,
+  String label,
+) {
+  final normalizedLabel = label.trim().isEmpty ? '새 layer' : label.trim();
+  final existingLabels = existingLayers.map((layer) => layer.label).toSet();
+  var displayLabel = normalizedLabel;
+  var suffix = 2;
+  while (existingLabels.contains(displayLabel)) {
+    displayLabel = '$normalizedLabel $suffix';
+    suffix += 1;
+  }
+  final existingIds = existingLayers.map((layer) => layer.id).toSet();
+  var id = 'layer-${DateTime.now().microsecondsSinceEpoch}';
+  suffix = 2;
+  while (existingIds.contains(id)) {
+    id = 'layer-${DateTime.now().microsecondsSinceEpoch}-$suffix';
+    suffix += 1;
+  }
+  return SheetAnnotationDisplayLayer(id: id, label: displayLabel);
+}
+
 class _AnnotationStampSelection {
   const _AnnotationStampSelection.builtIn(this.builtIn) : userStamp = null;
   const _AnnotationStampSelection.user(this.userStamp) : builtIn = null;
@@ -20578,10 +20671,12 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.selectedColor,
     required this.selectedWidth,
     required this.hasFavoritePreset,
-    required this.isLayerVisible,
-    required this.includeLayerInExport,
+    required this.displayLayers,
+    required this.activeLayer,
     required this.isCompact,
     required this.onToolSelected,
+    required this.onLayerSelected,
+    required this.onCreateLayer,
     required this.onStampSelected,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
@@ -20604,10 +20699,12 @@ class _AnnotationToolbar extends StatelessWidget {
   final int selectedColor;
   final double selectedWidth;
   final bool hasFavoritePreset;
-  final bool isLayerVisible;
-  final bool includeLayerInExport;
+  final List<SheetAnnotationDisplayLayer> displayLayers;
+  final SheetAnnotationDisplayLayer activeLayer;
   final bool isCompact;
   final ValueChanged<_AnnotationToolbarTool> onToolSelected;
+  final ValueChanged<String> onLayerSelected;
+  final VoidCallback onCreateLayer;
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
@@ -20633,11 +20730,107 @@ class _AnnotationToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userStamp = selectedUserStamp;
+    final layerVisibilityTooltip =
+        activeLayer.id == SheetAnnotationDisplayLayer.defaultLayerId
+        ? (activeLayer.isVisible ? '필기 layer 숨기기' : '필기 layer 표시')
+        : (activeLayer.isVisible
+              ? '${activeLayer.label} layer 숨기기'
+              : '${activeLayer.label} layer 표시');
+    final layerExportTooltip =
+        activeLayer.id == SheetAnnotationDisplayLayer.defaultLayerId
+        ? (activeLayer.includeInExport
+              ? 'PDF 공유/인쇄에서 필기 제외'
+              : 'PDF 공유/인쇄에 필기 포함')
+        : (activeLayer.includeInExport
+              ? 'PDF 공유/인쇄에서 ${activeLayer.label} layer 제외'
+              : 'PDF 공유/인쇄에 ${activeLayer.label} layer 포함');
     final toolbarContent = Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: isCompact ? 6 : 10,
       runSpacing: 8,
       children: [
+        PopupMenuButton<String>(
+          tooltip: '필기 layer 선택',
+          initialValue: activeLayer.id,
+          onSelected: (value) {
+            if (value == '__new_layer__') {
+              onCreateLayer();
+              return;
+            }
+            onLayerSelected(value);
+          },
+          itemBuilder: (context) => <PopupMenuEntry<String>>[
+            for (final layer in displayLayers)
+              PopupMenuItem<String>(
+                value: layer.id,
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(
+                    layer.id == activeLayer.id
+                        ? Icons.radio_button_checked
+                        : Icons.layers_outlined,
+                  ),
+                  title: Text(layer.label),
+                  subtitle: Text(
+                    [
+                      layer.isVisible ? '표시' : '숨김',
+                      layer.includeInExport ? 'PDF 포함' : 'PDF 제외',
+                    ].join(' · '),
+                  ),
+                ),
+              ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: '__new_layer__',
+              child: ListTile(
+                dense: true,
+                leading: Icon(Icons.add),
+                title: Text('새 layer 추가'),
+              ),
+            ),
+          ],
+          child: Semantics(
+            button: true,
+            label: '필기 layer ${activeLayer.label}',
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: activeLayer.isVisible
+                    ? theme.colorScheme.tertiaryContainer.withValues(
+                        alpha: 0.58,
+                      )
+                    : theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 10 : 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      activeLayer.isVisible
+                          ? Icons.layers
+                          : Icons.layers_clear_outlined,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      activeLayer.label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         PopupMenuButton<_AnnotationToolbarTool>(
           tooltip: '필기 도구 선택',
           initialValue: selectedTool,
@@ -20823,17 +21016,19 @@ class _AnnotationToolbar extends StatelessWidget {
           icon: const Icon(Icons.redo),
         ),
         IconButton(
-          tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
+          tooltip: layerVisibilityTooltip,
           onPressed: onToggleLayerVisibility,
-          icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
+          icon: Icon(
+            activeLayer.isVisible ? Icons.visibility : Icons.visibility_off,
+          ),
         ),
         IconButton(
-          tooltip: includeLayerInExport
-              ? 'PDF 공유/인쇄에서 필기 제외'
-              : 'PDF 공유/인쇄에 필기 포함',
+          tooltip: layerExportTooltip,
           onPressed: onToggleLayerExport,
           icon: Icon(
-            includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
+            activeLayer.includeInExport
+                ? Icons.file_upload_outlined
+                : Icons.block,
           ),
         ),
         IconButton(
@@ -24442,6 +24637,10 @@ Widget buildAnnotationToolbarForTest({
   List<String> recentStampNames = const [],
   List<SheetAnnotationStampPack> userStampPacks =
       const <SheetAnnotationStampPack>[],
+  List<SheetAnnotationDisplayLayer> displayLayers = const [
+    SheetAnnotationDisplayLayer.defaultLayer,
+  ],
+  String activeLayerId = SheetAnnotationDisplayLayer.defaultLayerId,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onCreateUserStamp,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
@@ -24455,6 +24654,14 @@ Widget buildAnnotationToolbarForTest({
       .toList(growable: false);
   var selectedStamp = _AnnotationStamp.ok;
   SheetAnnotationUserStamp? selectedUserStamp;
+  var selectedLayerId = activeLayerId;
+  SheetAnnotationDisplayLayer activeLayer() {
+    for (final layer in displayLayers) {
+      if (layer.id == selectedLayerId) return layer;
+    }
+    return SheetAnnotationDisplayLayer.defaultLayer;
+  }
+
   return MaterialApp(
     home: Scaffold(
       body: StatefulBuilder(
@@ -24467,10 +24674,14 @@ Widget buildAnnotationToolbarForTest({
           selectedUserStamp: selectedUserStamp,
           recentStamps: recentStamps,
           userStampPacks: userStampPacks,
-          isLayerVisible: true,
-          includeLayerInExport: true,
+          displayLayers: displayLayers,
+          activeLayer: activeLayer(),
           hasFavoritePreset: true,
           onToolSelected: (_) {},
+          onLayerSelected: (layerId) => setState(() {
+            selectedLayerId = layerId;
+          }),
+          onCreateLayer: () {},
           onColorSelected: (_) {},
           onWidthChanged: (_) {},
           onStampSelected: (selection) {

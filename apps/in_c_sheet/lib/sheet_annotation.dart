@@ -1119,21 +1119,26 @@ class SheetAnnotationLayer {
     bool? isVisible,
     bool? includeInExport,
   }) {
-    final defaultLayer = this.defaultLayer.copyWith(
+    return withDisplayLayerState(
+      SheetAnnotationDisplayLayer.defaultLayerId,
       isVisible: isVisible,
       includeInExport: includeInExport,
     );
-    return SheetAnnotationLayer(
-      strokes: strokes,
-      texts: texts,
-      redoStack: redoStack,
-      eraseUndoStack: eraseUndoStack,
-      layers: _normalizeLayerList(<SheetAnnotationDisplayLayer>[
-        for (final layer in layers)
-          if (layer.id != SheetAnnotationDisplayLayer.defaultLayerId) layer,
-        defaultLayer,
-      ]),
+  }
+
+  SheetAnnotationLayer withDisplayLayerState(
+    String layerId, {
+    bool? isVisible,
+    bool? includeInExport,
+  }) {
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    final currentLayer = displayLayerForAnnotation(normalizedLayerId);
+    final nextLayer = currentLayer.copyWith(
+      id: normalizedLayerId,
+      isVisible: isVisible,
+      includeInExport: includeInExport,
     );
+    return withDisplayLayer(nextLayer);
   }
 
   SheetAnnotationLayer withDisplayLayer(SheetAnnotationDisplayLayer layer) {
