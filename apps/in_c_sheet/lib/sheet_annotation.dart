@@ -1187,7 +1187,7 @@ class SheetAnnotationLayer {
   }
 
   SheetAnnotationLayer removeDisplayLayer(String layerId) {
-    final normalizedLayerId = layerId.trim();
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
     if (normalizedLayerId.isEmpty ||
         normalizedLayerId == SheetAnnotationDisplayLayer.defaultLayerId) {
       return this;
@@ -1199,10 +1199,22 @@ class SheetAnnotationLayer {
       return this;
     }
     return SheetAnnotationLayer(
-      strokes: strokes,
-      texts: texts,
-      redoStack: redoStack,
-      eraseUndoStack: eraseUndoStack,
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        strokes.map((stroke) => _rekeyStrokeLayer(stroke, normalizedLayerId)),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        texts.map((text) => _rekeyTextLayer(text, normalizedLayerId)),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        redoStack.map(
+          (entry) => _rekeyRedoEntryLayer(entry, normalizedLayerId),
+        ),
+      ),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        eraseUndoStack.map(
+          (entry) => _rekeyRedoEntryLayer(entry, normalizedLayerId),
+        ),
+      ),
       layers: _normalizeLayerList(nextLayers),
     );
   }
@@ -1753,6 +1765,61 @@ class SheetAnnotationLayer {
       }
     }
     return true;
+  }
+
+  static SheetAnnotationStroke _rekeyStrokeLayer(
+    SheetAnnotationStroke stroke,
+    String removedLayerId,
+  ) {
+    if (stroke.layerId != removedLayerId) {
+      return stroke;
+    }
+    return SheetAnnotationStroke(
+      id: stroke.id,
+      pageNumber: stroke.pageNumber,
+      tool: stroke.tool,
+      color: stroke.color,
+      width: stroke.width,
+      points: stroke.points,
+      createdAt: stroke.createdAt,
+    );
+  }
+
+  static SheetTextAnnotation _rekeyTextLayer(
+    SheetTextAnnotation text,
+    String removedLayerId,
+  ) {
+    if (text.layerId != removedLayerId) {
+      return text;
+    }
+    return text.copyWith(layerId: SheetAnnotationDisplayLayer.defaultLayerId);
+  }
+
+  static SheetAnnotationRedoEntry _rekeyRedoEntryLayer(
+    SheetAnnotationRedoEntry entry,
+    String removedLayerId,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      final nextStroke = _rekeyStrokeLayer(stroke, removedLayerId);
+      if (identical(nextStroke, stroke)) {
+        return entry;
+      }
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseStroke(nextStroke)
+          : SheetAnnotationRedoEntry.stroke(nextStroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      final nextText = _rekeyTextLayer(text, removedLayerId);
+      if (identical(nextText, text)) {
+        return entry;
+      }
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseText(nextText)
+          : SheetAnnotationRedoEntry.text(nextText);
+    }
+    return entry;
   }
 }
 

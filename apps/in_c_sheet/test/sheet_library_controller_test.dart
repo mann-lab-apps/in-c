@@ -4011,12 +4011,18 @@ Clef & Staff 세트리스트
     expect(afterDelete.displayLayerLabels, isNot(contains('공연 메모')));
     expect(
       afterDelete.texts.single.layerId,
-      'rehearsal',
-      reason: 'Deleting a display layer must not delete existing annotations.',
+      SheetAnnotationDisplayLayer.defaultLayerId,
+      reason:
+          'Deleting a display layer must keep existing annotations on the '
+          'default layer.',
     );
     expect(afterDelete.visibleTextsForPage(1), hasLength(1));
 
     final persisted = (await store.loadScores()).single.annotationLayer;
+    expect(
+      persisted.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
     expect(
       persisted.displayLayerForAnnotation('rehearsal').id,
       SheetAnnotationDisplayLayer.defaultLayerId,

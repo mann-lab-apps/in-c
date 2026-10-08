@@ -377,6 +377,7 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 2. 새 layer에 펜/텍스트/스탬프를 하나씩 추가한 뒤 표시/숨김과 PDF 포함/제외 토글을 확인한다.
 3. layer 이름을 변경하고, toolbar와 메뉴 label이 함께 갱신되는지 확인한다.
 4. non-default layer를 삭제하고, 해당 layer에 있던 annotation이 사라지지 않고 기본 필기로 보이는지 확인한다.
+   앱 재시작 후에도 삭제된 layer 이름이 다시 나타나지 않고 해당 annotation이 기본 필기로 남아야 한다.
 5. 기본 필기는 삭제/이름 변경 대상이 아니어야 한다.
 
 ## Image stamp import QA

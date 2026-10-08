@@ -721,6 +721,55 @@ void main() {
           .map((stroke) => stroke.id),
       <String>['default-stroke', 'hidden-stroke', 'unknown-stroke'],
     );
+    expect(
+      decoded
+          .removeDisplayLayer('rehearsal')
+          .strokes
+          .singleWhere((stroke) => stroke.id == 'hidden-stroke')
+          .layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+  });
+
+  test('removing a display layer rekeys undo payloads to default', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'redo-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final rehearsalText = _text(
+      id: 'redo-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'rehearsal',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke],
+      texts: <SheetTextAnnotation>[rehearsalText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.text(rehearsalText),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseStroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.eraseText(rehearsalText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final removed = layer.removeDisplayLayer('rehearsal');
+
+    expect(removed.strokes.single.layerId, 'default');
+    expect(removed.texts.single.layerId, 'default');
+    expect(removed.redoStack[0].stroke!.layerId, 'default');
+    expect(removed.redoStack[1].text!.layerId, 'default');
+    expect(removed.eraseUndoStack[0].stroke!.layerId, 'default');
+    expect(removed.eraseUndoStack[1].text!.layerId, 'default');
   });
 
   test('compacts redo stack without dropping annotations', () {

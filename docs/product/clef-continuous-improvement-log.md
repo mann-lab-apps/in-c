@@ -2280,3 +2280,11 @@ with generated image appearances instead of rejecting them or degrading them to 
 inspection fixture now treats Clef `Stamp` annotations as supported and verifies the image stamp flag
 after reopening the exported PDF. WebP remains a rendered-label fallback until the PDF embedding layer
 supports it. Acrobat/Preview/MobileSheets/Piascore compatibility still needs external viewer QA.
+
+S193 VERIFIED LOCAL: tightened annotation layer deletion semantics before adding deeper multi-layer
+editing. Removing a non-default display layer now rekeys strokes, text/image stamp annotations and
+undo/erase payloads from that layer onto the default layer, rather than leaving orphan layer ids that
+only happened to fall back at read time. This keeps JSON, backup/export and future layer operations
+consistent with the UI promise that deleted-layer annotations remain as default handwriting. Focused
+model and controller tests cover current annotations plus redo/erase payloads. Moving selected
+annotations between existing layers, per-layer undo and multi-select layer operations remain follow-up.
