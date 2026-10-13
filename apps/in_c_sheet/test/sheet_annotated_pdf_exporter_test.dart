@@ -948,6 +948,187 @@ void main() {
     },
   );
 
+  test('writes a mixed editable annotation compatibility fixture', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-compatibility-fixture-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath =
+        '${outputDir.path}/clef-editable-annotation-compatibility.pdf';
+    final pngBytes = image.encodePng(image.Image(width: 12, height: 12));
+    final now = DateTime.parse('2026-10-13T11:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Compatibility Fixture',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          _stroke(
+            'compat-pen',
+            SheetAnnotationTool.pen,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.12, y: 0.18),
+              SheetAnnotationPoint(x: 0.20, y: 0.24),
+              SheetAnnotationPoint(x: 0.31, y: 0.20),
+            ],
+            now,
+          ),
+          _stroke(
+            'compat-highlighter',
+            SheetAnnotationTool.highlighter,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.15, y: 0.33),
+              SheetAnnotationPoint(x: 0.45, y: 0.33),
+            ],
+            now.add(const Duration(seconds: 1)),
+          ),
+          _stroke(
+            'compat-line',
+            SheetAnnotationTool.line,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.55, y: 0.18),
+              SheetAnnotationPoint(x: 0.80, y: 0.23),
+            ],
+            now.add(const Duration(seconds: 2)),
+          ),
+          _stroke(
+            'compat-arrow',
+            SheetAnnotationTool.arrow,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.55, y: 0.33),
+              SheetAnnotationPoint(x: 0.82, y: 0.29),
+            ],
+            now.add(const Duration(seconds: 3)),
+          ),
+          _stroke(
+            'compat-square',
+            SheetAnnotationTool.rectangle,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.12, y: 0.46),
+              SheetAnnotationPoint(x: 0.34, y: 0.58),
+            ],
+            now.add(const Duration(seconds: 4)),
+          ),
+          _stroke(
+            'compat-crescendo',
+            SheetAnnotationTool.crescendo,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.46, y: 0.50),
+              SheetAnnotationPoint(x: 0.72, y: 0.50),
+            ],
+            now.add(const Duration(seconds: 5)),
+          ),
+          _stroke(
+            'compat-diminuendo',
+            SheetAnnotationTool.diminuendo,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.46, y: 0.58),
+              SheetAnnotationPoint(x: 0.72, y: 0.58),
+            ],
+            now.add(const Duration(seconds: 6)),
+          ),
+          _stroke(
+            'compat-staff',
+            SheetAnnotationTool.staff,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.10, y: 0.68),
+              SheetAnnotationPoint(x: 0.42, y: 0.77),
+            ],
+            now.add(const Duration(seconds: 7)),
+          ),
+          _stroke(
+            'compat-grid',
+            SheetAnnotationTool.grid,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.52, y: 0.66),
+              SheetAnnotationPoint(x: 0.84, y: 0.81),
+            ],
+            now.add(const Duration(seconds: 8)),
+          ),
+        ],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'compat-free-text',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.12, y: 0.86),
+            text: 'Cue',
+            color: 0xff111111,
+            fontSize: 16,
+            createdAt: now.add(const Duration(seconds: 9)),
+          ),
+          SheetTextAnnotation(
+            id: 'compat-text-stamp',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.32, y: 0.86),
+            text: '숨 크게',
+            color: 0xff0d47a1,
+            fontSize: 16,
+            createdAt: now.add(const Duration(seconds: 10)),
+            stampKind: SheetAnnotationUserStamp.textKind,
+          ),
+          SheetTextAnnotation(
+            id: 'compat-icon-stamp',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.55, y: 0.86),
+            text: '♪',
+            color: 0xffd32f2f,
+            fontSize: 18,
+            createdAt: now.add(const Duration(seconds: 11)),
+            stampKind: SheetAnnotationUserStamp.iconKind,
+          ),
+          SheetTextAnnotation(
+            id: 'compat-image-stamp',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.75, y: 0.87),
+            text: 'Image stamp',
+            color: 0xff111111,
+            fontSize: 16,
+            createdAt: now.add(const Duration(seconds: 12)),
+            stampKind: SheetAnnotationUserStamp.imageKind,
+            stampAssetRef: 'stamps/compatibility/cue-photo.png',
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      readImageStampAssetBytes: (assetRef) async =>
+          assetRef == 'stamps/compatibility/cue-photo.png' ? pngBytes : null,
+    );
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
+
+    expect(result.didWrite, isTrue);
+    expect(inspection.clefAnnotationCount, 28);
+    expect(inspection.clefSubtypeCounts['Ink'], 2);
+    expect(inspection.clefSubtypeCounts['Line'], 21);
+    expect(inspection.clefSubtypeCounts['Square'], 1);
+    expect(inspection.clefSubtypeCounts['FreeText'], 3);
+    expect(inspection.clefSubtypeCounts['Stamp'], 1);
+    expect(inspection.clefAnnotationContents, contains('숨 크게'));
+    expect(inspection.clefAnnotationContents, contains('♪'));
+    expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+  });
+
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
     final outputDir = await Directory.systemTemp.createTemp(
@@ -1139,4 +1320,21 @@ void main() {
     expect(exported.pageCount, 3);
     expect(await input.readAsBytes(), originalBytes);
   });
+}
+
+SheetAnnotationStroke _stroke(
+  String id,
+  SheetAnnotationTool tool,
+  List<SheetAnnotationPoint> points,
+  DateTime createdAt,
+) {
+  return SheetAnnotationStroke(
+    id: id,
+    pageNumber: 1,
+    tool: tool,
+    color: 0xff111111,
+    width: tool == SheetAnnotationTool.highlighter ? 10 : 3,
+    points: points,
+    createdAt: createdAt,
+  );
 }

@@ -2309,3 +2309,14 @@ annotations, including Unicode music-symbol text and Korean stamp text. The expo
 generated PDF and verifies subtype, contents and generated appearances so these stamps are no longer
 tracked as an unmapped standard-export gap. Rich non-text stamp appearances and external
 Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S197 VERIFIED LOCAL: added a generated editable-PDF compatibility fixture path before asking testers
+to compare external viewers. `dart run tool/generate_pdf_annotation_compatibility_fixture.dart` now
+creates `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf` with Clef
+pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp and PNG image
+stamp annotations. The tool inspects the generated file and requires locally supported `/Ink`,
+`/Line`, `/Square`, `/FreeText` and `/Stamp` subtypes plus generated appearances before reporting the
+fixture path. A mixed exporter regression test locks the expected 28 Clef annotations. Local Poppler
+rendering confirmed the fixture draws the geometry/image paths, but also showed Korean FreeText can
+render as missing glyph boxes despite preserved `/Contents`; external Acrobat/Preview/MobileSheets/
+Piascore compatibility and font fallback policy remain Device QA/follow-up work.

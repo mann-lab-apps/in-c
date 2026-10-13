@@ -182,13 +182,16 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   rectangle을 `/Square`, text와 text/icon stamp를 `/FreeText`, PNG/JPEG image stamp를 `/Stamp`
   객체로 쓰는 1차 writer가 있으며,
   생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
-  inspection fixture가 있다.
+  inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
+  모두 포함한 manual QA용 PDF를 `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection
+  통과 후 Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
-  mapping의 1차 경로는 생겼지만, rich non-text stamp appearance와 외부 viewer 호환성 검증이 필요하다.
+  mapping의 1차 경로는 생겼지만, rich non-text stamp appearance, Unicode FreeText appearance/font
+  fallback과 외부 viewer 호환성 검증이 필요하다.
 - 결정 필요사항: rich stamp appearance를 표준 PDF annotation으로 유지할지, flatten vs editable export
   mode UI를 어떻게 둘지, 외부 viewer compatibility gate를 어떻게 수집할지.
 - 구현 후보: Acrobat/Preview/MobileSheets/Piascore manual matrix,
-  music-symbol fallback policy, external viewer evidence package.
+  music-symbol/Unicode FreeText fallback policy, external viewer evidence package.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered
@@ -478,6 +481,10 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   19. 완료: built-in text stamps와 user text/icon stamps를 editable `/FreeText` annotation으로
       내보낸다. Local inspection fixture는 Korean text stamp와 music-symbol text stamp contents를
       확인한다.
+  20. 완료: external viewer QA용 editable annotation compatibility fixture generator를 추가했다.
+      Fixture는 `/Ink`, `/Line`, `/Square`, `/FreeText`, `/Stamp` subtype을 모두 포함하고 local
+      inspection을 통과해야 출력 경로를 보고한다. Poppler 렌더에서 Korean FreeText appearance glyph
+      box가 관찰되어 Unicode font fallback은 별도 정책으로 남긴다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
@@ -492,7 +499,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   image stamp fixture, image stamp asset cleanup and placed annotation preservation, full-backup asset
   byte round-trip, flattened PDF PNG/JPEG image stamp drawing, editable standard PDF image stamp
   annotation output, editable standard PDF hairpin line-pair output, editable standard PDF staff/grid
-  line-group output, editable standard PDF text/icon stamp FreeText output.
+  line-group output, editable standard PDF text/icon stamp FreeText output, mixed compatibility fixture
+  generator output.
 - 남은 테스트/fixture/실기기 조건: external PDF viewer compatibility, large pack performance, S Pen
   picker use, platform image picker provider behavior.
 - Acceptance criteria: 사용자가 직접 만든 text/icon/image stamp를 picker에서 찾고 재사용할 수 있으며,
