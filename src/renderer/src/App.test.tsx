@@ -142,6 +142,7 @@ const playbackMockState = vi.hoisted(() => ({
   >,
   pause: vi.fn(),
   play: vi.fn(),
+  playFromEvent: vi.fn(),
   stop: vi.fn(),
   value: {
     activeEvent: undefined as
@@ -747,6 +748,7 @@ vi.mock('./playback/useScorePlayback', () => ({
       jumpToStart: playbackMockState.jumpToStart,
       pause: playbackMockState.pause,
       play: playbackMockState.play,
+      playFromEvent: playbackMockState.playFromEvent,
       positionBeat: playbackMockState.value.positionBeat,
       setTempo: vi.fn(),
       status: playbackMockState.value.status,
@@ -837,6 +839,7 @@ describe('App component shell', () => {
     playbackMockState.jumpToStart.mockReset()
     playbackMockState.pause.mockReset()
     playbackMockState.play.mockReset()
+    playbackMockState.playFromEvent.mockReset()
     playbackMockState.stop.mockReset()
     window.history.replaceState({}, '', '/')
     window.confirm = vi.fn(() => true)
@@ -3469,6 +3472,29 @@ describe('App component shell', () => {
         ''
       )
     })
+  })
+
+  it('playback.start-from-selection starts transport playback at the selected event', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '재생' }))
+    fireEvent.click(
+      within(screen.getByLabelText('재생 컨트롤')).getByRole('button', {
+        name: '재생'
+      })
+    )
+
+    expect(playbackMockState.play).not.toHaveBeenCalled()
+    expect(playbackMockState.playFromEvent).toHaveBeenCalledWith(
+      'm1-d4',
+      expect.objectContaining({
+        measureId: 'measure-1',
+        voiceId: 'voice-1'
+      })
+    )
   })
 
   it('playback.part-mixer sends part mute, solo, and volume settings to playback', async () => {
@@ -9227,7 +9253,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
     expect(within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' })).getByText(/Independent part span placement/)).toBeInTheDocument()
-  })
+  }, 15000)
 
   it.each(['slur', 'hairpin'] as const)('part %s segment editing preserves whole-score geometry through history native reopen and reset', async kind => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')

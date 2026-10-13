@@ -1048,6 +1048,14 @@ export const App = () => {
     },
     [activeSpanReference, score, selection]
   )
+  const playFromSelection = useCallback(() => {
+    if (eventLocation) {
+      playback.playFromEvent(eventLocation.event.id, eventLocation.address)
+      return
+    }
+
+    playback.play()
+  }, [eventLocation, playback.play, playback.playFromEvent])
   const measureLocation = useMemo(
     () =>
       selection.type === 'measure'
@@ -2536,7 +2544,7 @@ export const App = () => {
         label: playback.status === 'playing' ? '재생 일시정지' : '재생 시작',
         run: () => {
           if (playback.status === 'playing') playback.pause()
-          else playback.play()
+          else playFromSelection()
           closeCommandPalette()
         },
         shortcut: 'Space'
@@ -2568,6 +2576,7 @@ export const App = () => {
     dockVisibility.properties,
     openNewScoreWizard,
     playback,
+    playFromSelection,
     redo,
     switchActiveVoice,
     undo
@@ -6097,7 +6106,7 @@ export const App = () => {
         else if (usesCommandKey && !event.altKey && event.code === 'KeyC') { event.preventDefault(); copySelection() }
         else if (event.key === 'Escape') { event.preventDefault(); setSpanSelection(undefined) }
         else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSpan() }
-        else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playback.play() }
+        else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playFromSelection() }
         else if (event.key !== 'Tab' && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)) event.preventDefault()
         return
       }
@@ -6324,7 +6333,7 @@ export const App = () => {
           if (playback.status === 'playing') {
             playback.pause()
           } else {
-            playback.play()
+            playFromSelection()
           }
           break
         case 't':
@@ -6409,7 +6418,7 @@ export const App = () => {
     eventLocation,
     measureContextMenu,
     playback.pause,
-    playback.play,
+    playFromSelection,
     playback.status,
     pasteSelection,
     pendingSlurAnchorEventId,
@@ -8964,7 +8973,7 @@ export const App = () => {
               aria-label="재생"
               className="icon-button"
               disabled={playback.status === 'playing'}
-              onClick={playback.play}
+              onClick={playFromSelection}
               title="재생"
               type="button"
             >

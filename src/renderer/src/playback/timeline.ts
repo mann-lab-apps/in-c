@@ -14,7 +14,8 @@ import {
   type DynamicValue,
   type Note,
   type Score,
-  type TempoMarking
+  type TempoMarking,
+  type VoiceAddress
 } from '../../../score-core'
 
 const DEFAULT_VELOCITY = 0.16
@@ -49,6 +50,7 @@ export interface PlaybackEvent {
   trillFrequency?: number
   velocityStart: number
   velocityEnd: number
+  sourceEventStarts?: PlaybackSourceEventStart[]
 }
 
 export interface PlaybackTempoEvent {
@@ -64,6 +66,11 @@ export interface PlaybackTimeline {
   events: PlaybackEvent[]
   tempoEvents: PlaybackTempoEvent[]
   totalBeats: number
+}
+
+export interface PlaybackSourceEventStart {
+  eventId: string
+  startBeat: number
 }
 
 type StaffMeasures = NonNullable<
@@ -113,7 +120,11 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
     ).map((event) => ({
       ...event,
       startBeat: performedBeat(event.startBeat),
-      durationBeats: performedBeat(event.startBeat + event.durationBeats) - performedBeat(event.startBeat)
+      durationBeats: performedBeat(event.startBeat + event.durationBeats) - performedBeat(event.startBeat),
+      sourceEventStarts: event.sourceEventStarts?.map((source) => ({
+        ...source,
+        startBeat: performedBeat(source.startBeat)
+      }))
     })),
     tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan).map((event) => ({
       ...event, startBeat: performedBeat(event.startBeat)
@@ -190,7 +201,15 @@ function createStaffPlaybackEvents(
               ? eventTrillFrequency(measure, voice, event)
               : undefined,
           velocityStart: resolveMeasureVelocity(score, measure.id),
-          velocityEnd: resolveMeasureVelocity(score, measure.id)
+          velocityEnd: resolveMeasureVelocity(score, measure.id),
+          sourceEventStarts: [
+            {
+              eventId: event.id,
+              startBeat:
+                scoreBeat +
+                event.position.tick / TICKS_PER_QUARTER
+            }
+          ]
         }
         const pendingTieEvent = pendingTieEventByVoiceId.get(voice.id)
         const continuesPendingTie =
@@ -204,6 +223,10 @@ function createStaffPlaybackEvents(
         if (continuesPendingTie) {
           pendingTieEvent.durationBeats += playbackEvent.durationBeats
           pendingTieEvent.velocityEnd = playbackEvent.velocityEnd
+          pendingTieEvent.sourceEventStarts = [
+            ...(pendingTieEvent.sourceEventStarts ?? []),
+            ...(playbackEvent.sourceEventStarts ?? [])
+          ]
         } else {
           events.push(playbackEvent)
         }
@@ -700,6 +723,34 @@ export function findPlaybackEvent(
       beat >= event.startBeat &&
       beat < event.startBeat + event.durationBeats
   )
+}
+
+export function findPlaybackEventStartBeat(
+  timeline: PlaybackTimeline,
+  eventId: string,
+  address?: VoiceAddress
+): number | undefined {
+  const matchesAddress = (event: PlaybackEvent) =>
+    !address ||
+    (event.partId === address.partId &&
+      event.staffId === address.staffId &&
+      event.measureId === address.measureId &&
+      event.voiceId === address.voiceId)
+  const findSourceStart = (event: PlaybackEvent) =>
+    event.sourceEventStarts?.find((source) => source.eventId === eventId)
+      ?.startBeat
+  const event =
+    timeline.events.find(
+      (candidate) =>
+        matchesAddress(candidate) &&
+        (candidate.eventId === eventId || findSourceStart(candidate) !== undefined)
+    ) ??
+    timeline.events.find(
+      (candidate) =>
+        candidate.eventId === eventId || findSourceStart(candidate) !== undefined
+    )
+
+  return event ? findSourceStart(event) ?? event.startBeat : undefined
 }
 
 function resolveMeasureVelocity(score: Score, measureId: string): number {

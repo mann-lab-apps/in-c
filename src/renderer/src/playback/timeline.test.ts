@@ -19,6 +19,7 @@ import {
   durationToBeats,
   elapsedSecondsToBeat,
   findPlaybackEvent,
+  findPlaybackEventStartBeat,
   pitchToFrequency,
   resolveQuarterBpmAtBeat,
   tempoMarkingToQuarterBpm
@@ -95,6 +96,21 @@ describe('playback timeline', () => {
       durationBeats: 2,
       frequency: undefined
     })
+  })
+
+  it('playback.start-from-selection resolves the selected event start beat', () => {
+    const timeline = createPlaybackTimeline(demoScore)
+
+    expect(findPlaybackEventStartBeat(timeline, 'note-a4')).toBe(4.5)
+    expect(
+      findPlaybackEventStartBeat(timeline, 'rest-half', {
+        partId: 'piano',
+        staffId: 'piano-staff',
+        measureId: 'measure-2',
+        voiceId: 'voice-1'
+      })
+    ).toBe(6)
+    expect(findPlaybackEventStartBeat(timeline, 'missing-event')).toBeUndefined()
   })
 
   it('playback.tempo-map maps positioned tempo events onto the playback timeline', () => {
@@ -1273,6 +1289,11 @@ describe('playback timeline', () => {
       startBeat: 0,
       durationBeats: 2
     })
+    expect(timeline.events[0].sourceEventStarts).toEqual([
+      { eventId: 'tie-start', startBeat: 0 },
+      { eventId: 'tie-stop', startBeat: 1 }
+    ])
+    expect(findPlaybackEventStartBeat(timeline, 'tie-stop')).toBe(1)
   })
 
   it('playback.tie-and-triplet-duration keeps cross-measure ties addressable per voice on one staff', () => {
@@ -1365,6 +1386,7 @@ describe('playback timeline', () => {
     expect(
       timeline.events.some((event) => event.eventId === 'upper-tie-stop')
     ).toBe(false)
+    expect(findPlaybackEventStartBeat(timeline, 'upper-tie-stop')).toBe(4)
     expect(
       timeline.events.find((event) => event.eventId === 'lower-sustained-note')
     ).toMatchObject({
