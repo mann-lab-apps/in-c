@@ -25,13 +25,23 @@ Future<void> main(List<String> args) async {
   output.parent.createSync(recursive: true);
 
   final pngBytes = image.encodePng(image.Image(width: 24, height: 24));
+  final webpBytes = image.encodeWebP(
+    image.Image(width: 24, height: 18)..clear(image.ColorRgb8(60, 120, 210)),
+  );
   final score = _compatibilityScore(input.path);
   final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
     score: score,
     outputPath: output.path,
     mode: SheetPdfAnnotationExportMode.standardAnnotation,
-    readImageStampAssetBytes: (assetRef) async =>
-        assetRef == _imageStampAssetRef ? pngBytes : null,
+    readImageStampAssetBytes: (assetRef) async {
+      if (assetRef == _pngImageStampAssetRef) {
+        return pngBytes;
+      }
+      if (assetRef == _webpImageStampAssetRef) {
+        return webpBytes;
+      }
+      return null;
+    },
   );
   if (!result.didWrite) {
     stderr.writeln(
@@ -116,7 +126,8 @@ const _defaultOutputPath =
 const _defaultReportPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-editable-annotation-compatibility-report.md';
-const _imageStampAssetRef = 'stamps/compatibility/cue-photo.png';
+const _pngImageStampAssetRef = 'stamps/compatibility/cue-photo.png';
+const _webpImageStampAssetRef = 'stamps/compatibility/webp-cue.webp';
 
 bool _containsRequiredSubtypes(
   SheetStandardPdfAnnotationInspection inspection,
@@ -288,15 +299,26 @@ SheetScore _compatibilityScore(String inputPath) {
           stampKind: SheetAnnotationUserStamp.iconKind,
         ),
         SheetTextAnnotation(
-          id: 'compat-image-stamp',
+          id: 'compat-png-image-stamp',
           pageNumber: 1,
-          position: const SheetAnnotationPoint(x: 0.75, y: 0.87),
-          text: 'Image stamp',
+          position: const SheetAnnotationPoint(x: 0.72, y: 0.87),
+          text: 'PNG stamp',
           color: 0xff111111,
           fontSize: 16,
           createdAt: now.add(const Duration(seconds: 12)),
           stampKind: SheetAnnotationUserStamp.imageKind,
-          stampAssetRef: _imageStampAssetRef,
+          stampAssetRef: _pngImageStampAssetRef,
+        ),
+        SheetTextAnnotation(
+          id: 'compat-webp-image-stamp',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.84, y: 0.87),
+          text: 'WebP stamp',
+          color: 0xff111111,
+          fontSize: 16,
+          createdAt: now.add(const Duration(seconds: 13)),
+          stampKind: SheetAnnotationUserStamp.imageKind,
+          stampAssetRef: _webpImageStampAssetRef,
         ),
       ],
     ),

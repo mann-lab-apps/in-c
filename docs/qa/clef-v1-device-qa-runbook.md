@@ -401,10 +401,10 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
    확인한다.
 7. 가능하면 full backup ZIP을 만들고 새 설치/빈 라이브러리에 복원해 image stamp가 다시 bitmap으로
    보이는지 확인한다.
-8. `필기 포함 PDF 공유/인쇄`의 일반 고정 사본을 만들어 PNG/JPEG image stamp가 label만이 아니라
-   실제 bitmap으로 보이는지 확인한다. WebP asset은 현재 label fallback으로 기록한다.
-9. 편집 가능한 PDF 주석 사본도 만들어 PNG/JPEG image stamp가 `/Stamp` annotation으로 남는지 확인한다.
-   WebP/누락/깨진 image stamp만 있는 경우에는 편집 가능한 사본을 만들지 않고 일반 사본 선택 안내가
+8. `필기 포함 PDF 공유/인쇄`의 일반 고정 사본을 만들어 PNG/JPEG/WebP image stamp가 label만이 아니라
+   실제 bitmap으로 보이는지 확인한다. 누락/깨진 asset은 label fallback으로 기록한다.
+9. 편집 가능한 PDF 주석 사본도 만들어 PNG/JPEG/WebP image stamp가 `/Stamp` annotation으로 남는지 확인한다.
+   누락/깨진 image stamp만 있는 경우에는 편집 가능한 사본을 만들지 않고 일반 사본 선택 안내가
    나와야 한다. Acrobat/Preview/MobileSheets/Piascore에서 보이지 않거나 선택/이동이 이상하면
    호환성 ISSUE로 기록한다.
 
@@ -416,7 +416,7 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart`로 생성한다. 기본 출력은
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`와
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
-pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG image stamp를 포함한다.
+pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG/WebP image stamp를 포함한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
 로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
 
@@ -433,6 +433,8 @@ pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/ico
    다시 확인할 수 있다. 이 명령이 `NOT READY`를 출력하면 릴리즈 노트에는 외부 뷰어 호환성 미확인/이슈로 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
+   별도 WebP image stamp 사본을 만들 수 있으면, PDF 안에서는 PNG appearance로 보이더라도 `/Stamp`
+   annotation으로 남는지 함께 확인한다.
 7. 한글 FreeText/text stamp와 음악 기호가 실제 viewer에서 깨지지 않는지 확인한다. 로컬 Poppler 렌더는
    Helvetica/Identity encoding 경고와 한글 glyph box가 나올 수 있으므로 contents 보존 PASS와 표시
    호환성 ISSUE를 분리해 기록한다.

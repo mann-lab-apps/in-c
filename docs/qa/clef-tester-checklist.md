@@ -66,9 +66,9 @@
    2MB/2048px 제한 안내와 실패 snackbar가 자연스러운지 확인한다. 추가한 image stamp를 악보 위에 찍었을 때
    bitmap으로 보이고, asset을 읽지 못하는 상황에서는 label fallback으로 남는지 기록한다.
    full backup ZIP을 복원할 수 있는 환경이라면 image stamp asset도 함께 돌아와 bitmap으로 보이는지 확인한다.
-   PNG/JPEG image stamp가 포함된 `필기 포함 PDF 공유/인쇄` 일반 고정 사본도 만들어, 외부 PDF 앱에서
-   label만이 아니라 실제 이미지로 보이는지 확인한다. 편집 가능한 PDF 주석 사본에서는 PNG/JPEG image
-   stamp가 `/Stamp` annotation처럼 선택/이동 가능한지 확인하고, WebP/누락/깨진 image stamp만 있는 경우
+   PNG/JPEG/WebP image stamp가 포함된 `필기 포함 PDF 공유/인쇄` 일반 고정 사본도 만들어, 외부 PDF 앱에서
+   label만이 아니라 실제 이미지로 보이는지 확인한다. 편집 가능한 PDF 주석 사본에서는 PNG/JPEG/WebP image
+   stamp가 `/Stamp` annotation처럼 선택/이동 가능한지 확인하고, 누락/깨진 image stamp만 있는 경우
    일반 사본을 선택하라는 안내가 나오는지 본다. 호환되지 않는 앱은 기록한다.
    필기 layer 메뉴에서 새 layer를 추가하고, 이름 변경/표시/PDF 포함 토글/삭제가 가능한지 확인한다.
    layer 삭제 후 해당 layer에 있던 주석은 사라지지 않고 기본 필기로 보이며, 앱 재시작 뒤에도 삭제된

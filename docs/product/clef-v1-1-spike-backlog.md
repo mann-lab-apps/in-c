@@ -180,7 +180,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식을 계속 지원한다. export capability
   report는 flattened copy와 editable standard annotation export를 구분한다. Standard mode는
   pen/highlighter를 `/Ink`, line/arrow와 crescendo/diminuendo hairpin, staff/grid guide를 `/Line`,
-  rectangle을 `/Square`, text와 text/icon stamp를 `/FreeText`, PNG/JPEG image stamp를 `/Stamp`
+  rectangle을 `/Square`, text와 text/icon stamp를 `/FreeText`, PNG/JPEG/WebP image stamp를 `/Stamp`
   객체로 쓰는 1차 writer가 있으며,
   생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
   inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
@@ -494,12 +494,13 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   14. 완료: full backup ZIP에 image stamp asset byte round-trip을 추가했다. Manifest는
       `stampAssetRef`와 `stamp-assets/` entry를 기록하고, 복원은 metadata 교체 전에 app-owned
       annotation stamp storage로 PNG/JPEG/WebP bytes를 되돌린다.
-  15. 완료: flattened annotated PDF export가 app-owned PNG/JPEG image stamp bytes를 읽어 PDF image
-      XObject로 찍는다. WebP/누락/깨진 asset은 label fallback으로 유지한다.
-  16. 완료: editable standard PDF export도 app-owned PNG/JPEG image stamp bytes를 `/Stamp`
+  15. 완료: flattened annotated PDF export가 app-owned PNG/JPEG/WebP image stamp bytes를 읽어 PDF
+      image XObject로 찍는다. WebP는 PNG appearance로 변환하고, 누락/깨진 asset은 label fallback으로
+      유지한다.
+  16. 완료: editable standard PDF export도 app-owned PNG/JPEG/WebP image stamp bytes를 `/Stamp`
       annotation appearance로 내보낸다. Local inspection fixture는 `Stamp` subtype과 image stamp flag를
-      확인한다. WebP/누락/깨진 image stamp는 unsupported mapping으로 분리해 일반 사본 fallback 안내를
-      유지하며, WebP editable image appearance는 후속이다.
+      확인한다. WebP는 PNG appearance로 변환하고, 누락/깨진 image stamp는 unsupported mapping으로
+      분리해 일반 사본 fallback 안내를 유지한다.
   17. 완료: editable standard PDF export가 crescendo/diminuendo hairpin을 paired `/Line`
       annotation으로 내보낸다. Local inspection fixture는 두 Line annotation을 확인한다.
   18. 완료: editable standard PDF export가 staff/grid guide를 editable `/Line` annotation group으로
@@ -523,7 +524,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   asset ZIP round-trip and missing-asset filtering, image stamp picker selection and controller-level
   image stamp create/reload, placed image stamp metadata round-trip/hit-test, editable-PDF unsupported
   image stamp fixture, image stamp asset cleanup and placed annotation preservation, full-backup asset
-  byte round-trip, flattened PDF PNG/JPEG image stamp drawing, editable standard PDF image stamp
+  byte round-trip, flattened PDF PNG/JPEG/WebP image stamp drawing, editable standard PDF image stamp
   annotation output, editable standard PDF hairpin line-pair output, editable standard PDF staff/grid
   line-group output, editable standard PDF text/icon stamp FreeText output, mixed compatibility fixture
   generator output.

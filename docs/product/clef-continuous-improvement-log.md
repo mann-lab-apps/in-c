@@ -2467,3 +2467,13 @@ missing viewer rows, NOT_TESTED cells, ISSUE cells and BLOCKED cells, and return
 exit until the gate is ready. This keeps external viewer QA evidence easy to pass back without
 treating screenshots or local inspection as enough by themselves. Focused report parser tests,
 manual NOT_READY review-mode run, full analyze, 1,607-test suite and RC release checks passed.
+
+S220 VERIFIED LOCAL: closed the local WebP image stamp PDF export gap. PNG/JPEG/WebP image stamp
+bytes now share the same export path: PDF-native image bytes are embedded directly and WebP bytes are
+decoded with the app image pipeline, converted to a PNG appearance, then written as flattened bitmap
+content or editable standard `/Stamp` annotations. Missing or corrupt assets still keep the existing
+rendered-label fallback / standard-export block. The compatibility fixture now includes both PNG and
+WebP image stamps, local inspection reports two `Stamp` annotations, and Poppler rendering showed both
+bitmap stamps while preserving the known Unicode FreeText font fallback warnings. Focused exporter and
+compatibility report tests, fixture generation, `pdfinfo`, Poppler first-page render, full analyze,
+1,608-test suite and RC release checks passed.

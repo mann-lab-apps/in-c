@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:image/image.dart' as image;
 import 'package:pdf_document/pdf_document.dart';
 
 import 'sheet_annotation.dart';
@@ -174,7 +175,7 @@ class SheetAnnotatedPdfExporter {
           'crescendo',
           'diminuendo',
           'asciiText',
-          'pngJpegImageStamp',
+          'pngJpegWebpImageStamp',
         ],
         unsupportedAnnotationTypes: <String>[
           'unicodeTextWithoutEmbeddedFont',
@@ -198,13 +199,13 @@ class SheetAnnotatedPdfExporter {
           'freeTextAnnotation',
           'textStampAnnotation',
           'iconTextStampAnnotation',
-          'pngJpegImageStampAnnotation',
+          'pngJpegWebpImageStampAnnotation',
           'hairpinAnnotation',
           'staffGridAnnotation',
         ],
         unsupportedAnnotationTypes: <String>[
           'richStampAppearanceAnnotation',
-          'webpOrMissingImageStampAnnotation',
+          'missingOrCorruptImageStampAnnotation',
         ],
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
@@ -887,13 +888,38 @@ class SheetAnnotatedPdfExporter {
         if (bytes == null || bytes.isEmpty) {
           continue;
         }
-        images[ref] = PdfEmbeddableImage.decode(Uint8List.fromList(bytes));
+        final decoded = _decodeImageStampAsset(bytes);
+        if (decoded != null) {
+          images[ref] = decoded;
+        }
       } catch (_) {
-        // Missing, corrupt or currently unsupported image formats fall back
-        // to the stamp label in rendered export.
+        // Missing or corrupt image assets fall back to the stamp label in
+        // rendered export and are skipped in standard annotation export.
       }
     }
     return Map.unmodifiable(images);
+  }
+
+  static PdfEmbeddableImage? _decodeImageStampAsset(List<int> bytes) {
+    final data = Uint8List.fromList(bytes);
+    try {
+      return PdfEmbeddableImage.decode(data);
+    } catch (_) {
+      // Continue to a broader decoder below. Some user stamp formats such as
+      // WebP are accepted by Clef storage but need a PDF-friendly appearance.
+    }
+
+    final decoded = image.decodeImage(data);
+    if (decoded == null) {
+      return null;
+    }
+    try {
+      return PdfEmbeddableImage.decode(
+        Uint8List.fromList(image.encodePng(decoded)),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   static bool _canDrawRenderedTextAnnotation(

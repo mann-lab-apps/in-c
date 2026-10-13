@@ -54,13 +54,13 @@ void main() {
     );
     expect(
       standard.supportedAnnotationTypes,
-      contains('pngJpegImageStampAnnotation'),
+      contains('pngJpegWebpImageStampAnnotation'),
     );
     expect(standard.supportedAnnotationTypes, contains('hairpinAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('staffGridAnnotation'));
     expect(
       standard.unsupportedAnnotationTypes,
-      contains('webpOrMissingImageStampAnnotation'),
+      contains('missingOrCorruptImageStampAnnotation'),
     );
     expect(
       standard.unsupportedAnnotationTypes,
@@ -954,6 +954,80 @@ void main() {
   );
 
   test(
+    'writes standard WebP image stamp annotations as PDF image stamps',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-standard-webp-image-stamp-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final outputPath =
+          '${outputDir.path}/short-score-standard-webp-image-stamp.pdf';
+      final webpImage = image.Image(width: 10, height: 8)
+        ..clear(image.ColorRgb8(60, 120, 210));
+      final webpBytes = image.encodeWebP(webpImage);
+      final now = DateTime.parse('2026-10-13T12:30:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'image-stamp-webp',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+              text: 'WebP stamp',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+              stampKind: SheetAnnotationUserStamp.imageKind,
+              stampAssetRef: 'stamps/user/webp-stamp.webp',
+            ),
+          ],
+        ),
+      );
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        readImageStampAssetBytes: (assetRef) async =>
+            assetRef == 'stamps/user/webp-stamp.webp' ? webpBytes : null,
+      );
+      final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+      final annotation = exported.page(0).annotations.single;
+      final inspection =
+          await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+            outputPath,
+          );
+
+      expect(result.didWrite, isTrue);
+      expect(result.textCount, 1);
+      expect(result.exportedTextCount, 1);
+      expect(annotation.subtype, 'Stamp');
+      expect(annotation.isImageStamp, isTrue);
+      expect(inspection.clefAnnotationCount, 1);
+      expect(inspection.containsClefSubtype('Stamp'), isTrue);
+      expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    },
+  );
+
+  test(
     'does not write standard image stamp annotations without embeddable bytes',
     () async {
       final input = File('test-fixtures/pdfs/short-score.pdf');
@@ -985,15 +1059,15 @@ void main() {
           strokes: const <SheetAnnotationStroke>[],
           texts: <SheetTextAnnotation>[
             SheetTextAnnotation(
-              id: 'image-stamp-webp',
+              id: 'image-stamp-corrupt',
               pageNumber: 1,
               position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
-              text: 'WebP stamp',
+              text: 'Corrupt stamp',
               color: 0xff111111,
               fontSize: 18,
               createdAt: now,
               stampKind: SheetAnnotationUserStamp.imageKind,
-              stampAssetRef: 'stamps/user/webp-stamp.webp',
+              stampAssetRef: 'stamps/user/corrupt-stamp.png',
             ),
           ],
         ),
