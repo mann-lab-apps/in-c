@@ -426,6 +426,7 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
+   한글/음악 기호 주석이 있는 경우 앱이 PDF 앱마다 표시가 다를 수 있다는 안내를 보여주는지 확인한다.
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore, Android PDF viewer 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
    생성된 report template의 viewer matrix를 `PASS` / `ISSUE` / `BLOCKED` / `NOT_TESTED`로 채운 뒤 결과를 공유한다.
    report의 `Required external checks`에는 viewer별로 꼭 확인할 항목이 분리되어 있으므로, 보이는지만 확인하지 말고

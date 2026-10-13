@@ -2567,3 +2567,10 @@ treating local `/Contents` preservation as proof of glyph compatibility. The Uni
 rendered locally with Poppler and reproduced the expected missing-glyph risk, so font fallback policy
 and real viewer compatibility remain follow-up. Focused exporter/report tests, fixture generation,
 full analyze, the 1,610-test suite and RC release checks passed.
+
+S234 VERIFIED LOCAL: aligned the user-facing editable PDF export copy with the remaining Unicode/font
+fallback risk. Standard PDF annotation export can write text and music-symbol stamps as editable
+FreeText objects, but external PDF apps may render glyphs differently until a font fallback policy is
+chosen. The export mode sheet and snackbar copy now warn about viewer variation instead of implying
+currently supported stamps are simply excluded. Full analyze, the 1,610-test suite and RC release
+checks passed.

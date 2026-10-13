@@ -15516,6 +15516,11 @@ setlist=$setlistLabel
           currentScore,
         )) {
       _showSnackBar('한글 텍스트 주석은 PDF 사본에서 표시가 제한될 수 있습니다.');
+    } else if (exportMode == SheetPdfAnnotationExportMode.standardAnnotation &&
+        SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
+          currentScore,
+        )) {
+      _showSnackBar('한글/음악 기호 주석은 PDF 앱마다 다르게 보일 수 있습니다.');
     }
     if (annotationSummary.estimatedJsonBytes > 512 * 1024 ||
         annotationSummary.redoCount > 20) {
@@ -15557,7 +15562,7 @@ setlist=$setlistLabel
       );
     }
     if (result.mode == SheetPdfAnnotationExportMode.standardAnnotation) {
-      _showSnackBar('일부 음악 기호/스탬프는 편집 가능한 PDF 주석에서 제외될 수 있습니다.');
+      _showSnackBar('편집 가능한 PDF 주석은 PDF 앱마다 표시/편집 방식이 다를 수 있습니다.');
     }
 
     try {
@@ -15606,7 +15611,7 @@ setlist=$setlistLabel
             ListTile(
               leading: const Icon(Icons.edit_document),
               title: const Text('편집 가능한 PDF 주석'),
-              subtitle: const Text('지원되는 필기와 PNG/JPEG 스탬프를 표준 PDF 주석으로 내보냅니다'),
+              subtitle: const Text('지원되는 필기와 스탬프를 표준 PDF 주석으로 내보냅니다'),
               onTap: () =>
                   Navigator.of(context)
                       .pop(SheetPdfAnnotationExportMode.standardAnnotation),
