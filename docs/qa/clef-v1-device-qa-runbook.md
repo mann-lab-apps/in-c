@@ -409,10 +409,11 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 
 앱 내부 자동 테스트는 standard export PDF가 다시 열리고 `/Ink`, `/Line`, `/Square`, `/FreeText`,
 `/Stamp` annotation subtype, Clef `/NM` 이름, contents, generated appearance를 포함하는지 확인한다.
-실제 상용 호환성은 아래 viewer에서 별도 확인한다. 수동 확인용 PDF는 `apps/in_c_sheet`에서
+실제 상용 호환성은 아래 viewer에서 별도 확인한다. 수동 확인용 PDF와 report template은 `apps/in_c_sheet`에서
 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart`로 생성한다. 기본 출력은
-`.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`이며 pen/highlighter,
-line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG image stamp를 포함한다.
+`.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`와
+`.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
+pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG image stamp를 포함한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
 로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
 
@@ -420,6 +421,7 @@ line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG imag
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
+   생성된 report template의 viewer matrix를 PASS/ISSUE/BLOCKED로 채운 뒤 결과를 공유한다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
 7. 한글 FreeText/text stamp와 음악 기호가 실제 viewer에서 깨지지 않는지 확인한다. 로컬 Poppler 렌더는

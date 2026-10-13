@@ -2348,3 +2348,10 @@ longer imply every image stamp can become a standard `/Stamp`. PNG/JPEG image st
 supported editable path; WebP, missing or corrupt image stamp bytes stay on the general flattened-copy
 fallback path with a clear unsupported mapping result. Focused exporter tests cover unsupported image
 bytes, and full format, analyze, 1,578-test suite and RC release checks passed.
+
+S202 VERIFIED LOCAL: extended the editable PDF compatibility fixture workflow so manual Acrobat,
+Preview, MobileSheets, Piascore and Android viewer results can be collected in a consistent report
+instead of scattered notes. The generator now writes a Markdown matrix next to the fixture PDF,
+prints both paths, carries local inspection counts into the report, and flags Unicode FreeText
+contents as a separate viewer-risk row. Generated the fixture/report locally, and full format,
+analyze, 1,578-test suite and RC release checks passed.

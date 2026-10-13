@@ -484,8 +484,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
       확인한다.
   20. 완료: external viewer QA용 editable annotation compatibility fixture generator를 추가했다.
       Fixture는 `/Ink`, `/Line`, `/Square`, `/FreeText`, `/Stamp` subtype을 모두 포함하고 local
-      inspection을 통과해야 출력 경로를 보고한다. Poppler 렌더에서 Korean FreeText appearance glyph
-      box가 관찰되어 Unicode font fallback은 별도 정책으로 남긴다.
+      inspection을 통과해야 fixture PDF와 viewer matrix report template 경로를 보고한다. Poppler
+      렌더에서 Korean FreeText appearance glyph box가 관찰되어 Unicode font fallback은 별도 정책으로 남긴다.
 - 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
   allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
   size/dimension policy, metadata save/load, malformed
