@@ -63,11 +63,16 @@ void main() {
     expect(markdown, contains('| Piascore | NOT_TESTED |'));
     expect(markdown, contains('| Android PDF viewer | NOT_TESTED |'));
     expect(markdown, contains('Required external checks:'));
+    expect(markdown, contains('text and music-symbol stamp rendering'));
+    expect(markdown, contains('text and music-symbol stamp handling'));
+    expect(markdown, contains('Text stamp'));
+    expect(markdown, contains('Music-symbol stamp'));
     expect(markdown, contains('PNG and WebP image stamp handling'));
     expect(markdown, contains('PNG image stamp'));
     expect(markdown, contains('WebP image stamp'));
     expect(markdown, contains('Known local limits:'));
     expect(markdown, contains('generated appearances exist'));
+    expect(markdown, contains('checked separately'));
   });
 
   test('renders none when Unicode FreeText contents are absent', () {
@@ -114,7 +119,8 @@ void main() {
             'Hairpin': SheetPdfViewerCompatibilityStatus.pass,
             'Staff/grid': SheetPdfViewerCompatibilityStatus.pass,
             'FreeText': SheetPdfViewerCompatibilityStatus.pass,
-            'Text/icon stamp': SheetPdfViewerCompatibilityStatus.pass,
+            'Text stamp': SheetPdfViewerCompatibilityStatus.pass,
+            'Music-symbol stamp': SheetPdfViewerCompatibilityStatus.pass,
             'PNG image stamp': SheetPdfViewerCompatibilityStatus.pass,
             'WebP image stamp': SheetPdfViewerCompatibilityStatus.pass,
             'Unicode text': SheetPdfViewerCompatibilityStatus.notTested,
@@ -182,13 +188,13 @@ void main() {
 
 Viewer matrix:
 
-| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | screenshot A |
-| macOS Preview | PASS | ISSUE | PASS | PASS | PASS | PASS | PASS | PASS | NOT_TESTED | NOT_TESTED | PASS | line moved |
-| MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
-| Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
-| Android PDF viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | BLOCKED | PASS | unavailable |
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | screenshot A |
+| macOS Preview | PASS | ISSUE | PASS | PASS | PASS | PASS | PASS | NOT_TESTED | PASS | NOT_TESTED | NOT_TESTED | PASS | line moved |
+| MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Android PDF viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | BLOCKED | PASS | unavailable |
 ''';
 
     final entries =
@@ -214,12 +220,17 @@ Viewer matrix:
       SheetPdfViewerCompatibilityStatus.notTested,
     );
     expect(
+      preview.statuses['Music-symbol stamp'],
+      SheetPdfViewerCompatibilityStatus.notTested,
+    );
+    expect(
       android.statuses['Unicode text'],
       SheetPdfViewerCompatibilityStatus.blocked,
     );
     expect(gate.canClaimExternalCompatibility, isFalse);
     expect(gate.issueCells['preview'], contains('Line/arrow'));
     expect(gate.untestedCells['preview'], contains('WebP image stamp'));
+    expect(gate.untestedCells['preview'], contains('Music-symbol stamp'));
     expect(gate.blockedCells['android-pdf-viewer'], contains('Unicode text'));
   });
 }

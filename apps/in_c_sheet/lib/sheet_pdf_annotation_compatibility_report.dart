@@ -188,7 +188,8 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
     'Hairpin',
     'Staff/grid',
     'FreeText',
-    'Text/icon stamp',
+    'Text stamp',
+    'Music-symbol stamp',
     'PNG image stamp',
     'WebP image stamp',
     'Unicode text',
@@ -203,6 +204,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'visible/editable annotation objects',
         'generated appearances',
         'Unicode FreeText rendering',
+        'text and music-symbol stamp rendering',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -212,6 +214,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'visible annotation objects',
         'select/edit behavior',
         'Unicode FreeText rendering',
+        'text and music-symbol stamp rendering',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -220,6 +223,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
+        'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
       ],
     ),
@@ -229,6 +233,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
+        'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
       ],
     ),
@@ -237,6 +242,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       label: 'Android PDF viewer',
       requiredChecks: <String>[
         'basic visible rendering',
+        'text and music-symbol stamp rendering',
         'PNG and WebP image stamp rendering',
         'Unicode FreeText rendering',
       ],
@@ -258,7 +264,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
               .join('\n');
     final viewerRows = [
       for (final target in viewerTargets)
-        '| ${target.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | |',
+        '| ${target.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | |',
     ].join('\n');
     final requiredCheckRows = [
       for (final target in viewerTargets)
@@ -301,8 +307,8 @@ $subtypeRows
 
 Viewer matrix:
 
-| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 $viewerRows
 
 Required external checks:
@@ -316,6 +322,8 @@ Known local limits:
 - Local inspection proves PDF annotation objects, `/NM` names, contents and generated appearances exist.
 - Local inspection does not prove viewer rendering fidelity or edit behavior.
 - Unicode text may preserve `/Contents` while still rendering with missing glyph boxes.
+- Text and music-symbol stamps are exported as editable FreeText-style annotations and must be
+  checked separately because viewer font fallback can differ.
 - Attach screenshots for every `${SheetPdfViewerCompatibilityStatus.issue.label}` and keep the generated PDF path with the report.
 ''';
   }

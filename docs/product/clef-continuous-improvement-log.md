@@ -2484,3 +2484,10 @@ WebP image stamps; the manual viewer matrix now splits PNG and WebP image-stamp 
 external checks for music-app viewers and Android PDF viewers call out both formats, and report
 parsing/gating treats an unfilled WebP cell as not ready. Focused report tests, regenerated report
 inspection, full analyze, 1,608-test suite and RC release checks passed.
+
+S222 VERIFIED LOCAL: split editable PDF text-stamp and music-symbol stamp compatibility claims.
+Both stamp styles export as FreeText-style PDF annotations today, but external viewers can render
+Korean text and music symbols differently depending on font fallback. The manual viewer matrix now
+requires separate text-stamp and music-symbol stamp evidence, required checks call out both classes,
+and the local report keeps them distinct from generic FreeText and Unicode text. Focused report tests
+and regenerated report inspection passed, with full analyze, 1,608-test suite and RC release checks.
