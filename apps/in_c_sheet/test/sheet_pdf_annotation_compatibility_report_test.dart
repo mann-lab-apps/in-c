@@ -101,6 +101,10 @@ void main() {
     expect(markdown, contains('`mobileSheetsPiascoreFixture`'));
     expect(markdown, contains('`androidPdfViewerFixture`'));
     expect(markdown, contains('`unicodeFontFallbackPolicy`'));
+    expect(markdown, contains('Acrobat and macOS Preview'));
+    expect(markdown, contains('MobileSheets and Piascore'));
+    expect(markdown, contains('Android PDF viewer used by testers'));
+    expect(markdown, contains('licensed font fallback/embedding policy'));
     expect(markdown, contains('Unicode appearance fixture:'));
     expect(markdown, contains('Fixture: `/tmp/clef-unicode.pdf`'));
     expect(markdown, contains('Clef FreeText annotations: 4'));

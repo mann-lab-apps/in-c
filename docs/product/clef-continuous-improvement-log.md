@@ -2580,3 +2580,8 @@ marked PASS with only generic viewer evidence. The report review now tracks miss
 evidence separately from generic screenshot/notes evidence, and the QA docs require Unicode/glyph/font
 proof whenever a viewer row marks `Unicode text` as PASS. Focused report tests, full analyze, the
 1,611-test suite and RC release checks passed.
+
+S236 VERIFIED LOCAL: made the editable PDF report's remaining spike list human-readable. The report kept
+raw capability IDs such as `unicodeFontFallbackPolicy`, but testers and future implementation passes
+need the corresponding viewer/font action beside each ID. Focused report tests, full analyze, the
+1,611-test suite and RC release checks passed.

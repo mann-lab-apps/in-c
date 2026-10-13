@@ -335,7 +335,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
     final requiredSpikeRows = SheetAnnotatedPdfExporter
         .standardAnnotationExportCapability
         .requiredSpikeItems
-        .map((item) => '- `$item`')
+        .map((item) => '- `$item`: ${_requiredSpikeItemDescription(item)}')
         .join('\n');
     final unicodeFixtureSection =
         unicodeFixturePath == null || unicodeInspection == null
@@ -411,6 +411,22 @@ Known local limits:
   checked separately because viewer font fallback can differ.
 - Attach screenshots for every `${SheetPdfViewerCompatibilityStatus.issue.label}` and keep the generated PDF path with the report.
 ''';
+  }
+
+  static String _requiredSpikeItemDescription(String item) {
+    switch (item) {
+      case 'acrobatPreviewFixture':
+        return 'verify the generated fixture in Acrobat and macOS Preview.';
+      case 'mobileSheetsPiascoreFixture':
+        return 'verify the generated fixture in MobileSheets and Piascore.';
+      case 'androidPdfViewerFixture':
+        return 'verify the generated fixture in the Android PDF viewer used '
+            'by testers.';
+      case 'unicodeFontFallbackPolicy':
+        return 'choose a licensed font fallback/embedding policy before '
+            'claiming Unicode glyph fidelity.';
+    }
+    return 'document and clear this remaining compatibility dependency.';
   }
 }
 
