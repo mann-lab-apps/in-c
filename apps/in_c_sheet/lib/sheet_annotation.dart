@@ -580,18 +580,35 @@ class SheetAnnotationStroke {
   final DateTime createdAt;
   final String layerId;
 
-  SheetAnnotationStroke shiftedBy({required double dx, required double dy}) {
+  SheetAnnotationStroke copyWith({
+    String? id,
+    int? pageNumber,
+    SheetAnnotationTool? tool,
+    int? color,
+    double? width,
+    List<SheetAnnotationPoint>? points,
+    DateTime? createdAt,
+    String? layerId,
+  }) {
     return SheetAnnotationStroke(
-      id: id,
-      pageNumber: pageNumber,
-      tool: tool,
-      color: color,
-      width: width,
+      id: id ?? this.id,
+      pageNumber: pageNumber ?? this.pageNumber,
+      tool: tool ?? this.tool,
+      color: color ?? this.color,
+      width: width ?? this.width,
+      points: points ?? this.points,
+      createdAt: createdAt ?? this.createdAt,
+      layerId: layerId == null
+          ? this.layerId
+          : _normalizeAnnotationLayerId(layerId),
+    );
+  }
+
+  SheetAnnotationStroke shiftedBy({required double dx, required double dy}) {
+    return copyWith(
       points: points
           .map((point) => point.shiftedBy(dx: dx, dy: dy))
           .toList(growable: false),
-      createdAt: createdAt,
-      layerId: layerId,
     );
   }
 
@@ -1216,6 +1233,56 @@ class SheetAnnotationLayer {
         ),
       ),
       layers: _normalizeLayerList(nextLayers),
+    );
+  }
+
+  SheetAnnotationLayer moveAnnotationToDisplayLayer({
+    required String annotationId,
+    required String layerId,
+  }) {
+    final normalizedAnnotationId = annotationId.trim();
+    if (normalizedAnnotationId.isEmpty) {
+      return this;
+    }
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    final targetLayerExists = layers.any(
+      (layer) => layer.id == normalizedLayerId,
+    );
+    if (!targetLayerExists) {
+      return this;
+    }
+
+    var didUpdate = false;
+    final nextStrokes = strokes
+        .map((stroke) {
+          if (stroke.id != normalizedAnnotationId ||
+              stroke.layerId == normalizedLayerId) {
+            return stroke;
+          }
+          didUpdate = true;
+          return stroke.copyWith(layerId: normalizedLayerId);
+        })
+        .toList(growable: false);
+    final nextTexts = texts
+        .map((text) {
+          if (text.id != normalizedAnnotationId ||
+              text.layerId == normalizedLayerId) {
+            return text;
+          }
+          didUpdate = true;
+          return text.copyWith(layerId: normalizedLayerId);
+        })
+        .toList(growable: false);
+
+    if (!didUpdate) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
+      texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 

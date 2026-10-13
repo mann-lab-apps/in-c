@@ -3976,6 +3976,21 @@ Clef & Staff 세트리스트
         layerId: 'rehearsal',
       ),
     );
+    await controller.addAnnotationStroke(
+      controller.scores.single,
+      SheetAnnotationStroke(
+        id: 'stroke-default',
+        pageNumber: 1,
+        tool: SheetAnnotationTool.arrow,
+        color: 0xff111111,
+        width: 4,
+        points: const <SheetAnnotationPoint>[
+          SheetAnnotationPoint(x: 0.2, y: 0.2),
+          SheetAnnotationPoint(x: 0.4, y: 0.4),
+        ],
+        createdAt: now.add(const Duration(seconds: 1)),
+      ),
+    );
 
     await controller.updateAnnotationLayerState(
       controller.scores.single,
@@ -3989,6 +4004,25 @@ Clef & Staff 세트리스트
     expect(layer.visibleTextsForPage(1), isEmpty);
     expect(layer.exportableTextsForPage(1), isEmpty);
     expect(layer.texts.single.layerId, 'rehearsal');
+
+    final didMove = await controller.moveAnnotationToDisplayLayer(
+      controller.scores.single,
+      annotationId: 'stroke-default',
+      layerId: 'rehearsal',
+    );
+    expect(didMove, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      'rehearsal',
+    );
+    expect(
+      await controller.moveAnnotationToDisplayLayer(
+        controller.scores.single,
+        annotationId: 'stroke-default',
+        layerId: 'missing-layer',
+      ),
+      isFalse,
+    );
 
     final didRename = await controller.updateAnnotationDisplayLayer(
       controller.scores.single,
@@ -4016,11 +4050,19 @@ Clef & Staff 세트리스트
           'Deleting a display layer must keep existing annotations on the '
           'default layer.',
     );
+    expect(
+      afterDelete.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
     expect(afterDelete.visibleTextsForPage(1), hasLength(1));
 
     final persisted = (await store.loadScores()).single.annotationLayer;
     expect(
       persisted.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      persisted.strokes.single.layerId,
       SheetAnnotationDisplayLayer.defaultLayerId,
     );
     expect(

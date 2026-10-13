@@ -2327,3 +2327,11 @@ standard PDF annotation inspector now records non-ASCII `/FreeText` contents sep
 external glyph rendering still needs Acrobat/Preview/MobileSheets/Piascore QA. Focused exporter tests
 cover Korean text and music-symbol stamp contents. This does not claim font fallback or embedding is
 solved; it makes the remaining risk visible before manual compatibility checks.
+
+S199 VERIFIED LOCAL: closed the model/controller side of the remaining annotation layer organization
+gap by adding a safe path for moving existing stroke/text/stamp annotations to another existing display
+layer. Missing annotation ids, missing target layers and same-layer moves stay no-op, while successful
+moves clear redo/erase redo stacks like other annotation edits to avoid stale replay payloads. Focused
+model and controller tests verify stroke/text moves, persistence, missing-layer rejection and deleted
+layer fallback. User-facing move-to-layer menu, per-layer undo and multi-select operations remain
+follow-up.

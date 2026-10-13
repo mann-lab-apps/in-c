@@ -731,6 +731,84 @@ void main() {
     );
   });
 
+  test('annotations can move to an existing display layer', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final stroke = _stroke(id: 'line-1', pageNumber: 1, createdAt: now);
+    final text = _text(
+      id: 'stamp-1',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[stroke],
+      texts: <SheetTextAnnotation>[text],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(stroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(text),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final movedStroke = layer.moveAnnotationToDisplayLayer(
+      annotationId: 'line-1',
+      layerId: 'rehearsal',
+    );
+    final movedText = movedStroke.moveAnnotationToDisplayLayer(
+      annotationId: 'stamp-1',
+      layerId: 'rehearsal',
+    );
+
+    expect(movedStroke.strokes.single.layerId, 'rehearsal');
+    expect(movedStroke.texts.single.layerId, 'default');
+    expect(movedStroke.redoStack, isEmpty);
+    expect(movedStroke.eraseUndoStack, isEmpty);
+    expect(movedText.strokes.single.layerId, 'rehearsal');
+    expect(movedText.texts.single.layerId, 'rehearsal');
+  });
+
+  test('annotation layer move ignores missing annotations and layers', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final layer = SheetAnnotationLayer.empty.addText(
+      _text(id: 'stamp-1', pageNumber: 1, createdAt: now),
+    );
+
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'stamp-1',
+          layerId: 'missing-layer',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'missing-stamp',
+          layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'stamp-1',
+          layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+  });
+
   test('removing a display layer rekeys undo payloads to default', () {
     final now = DateTime.parse('2026-10-08T10:00:00.000');
     final rehearsalStroke = _stroke(

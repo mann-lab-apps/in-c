@@ -370,7 +370,8 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 
 ## Annotation layer management QA
 
-자동 테스트는 active layer 선택/추가/이름 변경/삭제와 삭제 후 annotation fallback을 검증한다.
+자동 테스트는 active layer 선택/추가/이름 변경/삭제, 기존 annotation의 layer 재키잉 helper,
+삭제 후 annotation fallback을 검증한다.
 실기기에서는 stylus 입력 중 layer를 바꾸는 손맛과 실수 가능성을 확인한다.
 
 1. 필기 toolbar의 layer 메뉴에서 새 layer를 만들고 선택한다.
