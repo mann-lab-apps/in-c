@@ -923,6 +923,89 @@ void main() {
     expect(restoreVisibleErase.strokes, isEmpty);
   });
 
+  test('annotation undo and redo can target the active display layer', () {
+    final now = DateTime.parse('2026-10-13T12:10:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'rehearsal-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final rehearsalText = _text(
+      id: 'rehearsal-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'rehearsal',
+    );
+    final defaultStroke = _stroke(
+      id: 'default-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final defaultText = _text(
+      id: 'default-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke, defaultStroke],
+      texts: <SheetTextAnnotation>[rehearsalText, defaultText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final undoRehearsalAnnotation = layer.undoLastAnnotation(
+      1,
+      layerId: 'rehearsal',
+    );
+    expect(undoRehearsalAnnotation.texts.map((text) => text.id), <String>[
+      'default-text',
+    ]);
+    expect(undoRehearsalAnnotation.strokes.map((stroke) => stroke.id), <String>[
+      'rehearsal-stroke',
+      'default-stroke',
+    ]);
+
+    final undoRehearsalStroke = layer.undoLastStroke(1, layerId: 'rehearsal');
+    expect(undoRehearsalStroke.strokes.map((stroke) => stroke.id), <String>[
+      'default-stroke',
+    ]);
+    expect(undoRehearsalStroke.texts.map((text) => text.id), <String>[
+      'rehearsal-text',
+      'default-text',
+    ]);
+
+    final redoLayer = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.text(rehearsalText),
+        SheetAnnotationRedoEntry.text(defaultText),
+      ],
+      layers: layer.layers,
+    );
+    final redoRehearsal = redoLayer.redoLastAnnotation(1, layerId: 'rehearsal');
+    expect(redoRehearsal.texts.single.id, 'rehearsal-text');
+    expect(redoRehearsal.redoStack.single.text?.id, 'default-text');
+
+    final restoreLayer = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.text(defaultText),
+      ],
+      layers: layer.layers,
+    );
+    final restoreRehearsal = restoreLayer.undoLastAnnotation(
+      1,
+      layerId: 'rehearsal',
+    );
+    expect(restoreRehearsal.strokes.single.id, 'rehearsal-stroke');
+    expect(restoreRehearsal.texts, isEmpty);
+    expect(restoreRehearsal.eraseUndoStack.single.text?.id, 'default-text');
+  });
+
   test('annotations can move to an existing display layer', () {
     final now = DateTime.parse('2026-10-08T10:00:00.000');
     final stroke = _stroke(id: 'line-1', pageNumber: 1, createdAt: now);

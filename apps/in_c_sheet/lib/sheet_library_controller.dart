@@ -3026,9 +3026,13 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<bool> undoLastAnnotationStroke(
     SheetScore score,
-    int pageNumber,
-  ) async {
-    final nextLayer = score.annotationLayer.undoLastStroke(pageNumber);
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.undoLastStroke(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }
@@ -3089,8 +3093,15 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> undoLastAnnotation(SheetScore score, int pageNumber) async {
-    final nextLayer = score.annotationLayer.undoLastAnnotation(pageNumber);
+  Future<bool> undoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.undoLastAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }
@@ -3104,8 +3115,15 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> redoLastAnnotation(SheetScore score, int pageNumber) async {
-    final nextLayer = score.annotationLayer.redoLastAnnotation(pageNumber);
+  Future<bool> redoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.redoLastAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }

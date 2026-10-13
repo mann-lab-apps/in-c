@@ -146,10 +146,16 @@ class _AnnotationOutcomeController extends SheetLibraryController {
   final result = Completer<bool>();
 
   @override
-  Future<bool> undoLastAnnotation(SheetScore score, int pageNumber) =>
-      result.future;
+  Future<bool> undoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) => result.future;
 
   @override
-  Future<bool> redoLastAnnotation(SheetScore score, int pageNumber) =>
-      result.future;
+  Future<bool> redoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) => result.future;
 }

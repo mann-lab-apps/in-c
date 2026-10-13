@@ -380,7 +380,9 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 3. layer 이름을 변경하고, toolbar와 메뉴 label이 함께 갱신되는지 확인한다.
 4. 기존 텍스트/스탬프/도형을 탭해 `다른 layer로 이동`을 열고 현재 layer가 아닌 대상만 보이는지 확인한다.
    이동 뒤 대상 layer의 표시/숨김과 PDF 포함/제외 상태가 기존 규칙대로 적용되어야 한다.
-5. non-default layer를 삭제하고, 해당 layer에 있던 annotation이 사라지지 않고 기본 필기로 보이는지 확인한다.
+5. 서로 다른 두 layer에 필기/스탬프를 추가한 뒤 현재 선택한 layer에서 undo/redo를 실행한다.
+   다른 표시 layer의 annotation이 바뀌지 않아야 하고, 숨긴 layer annotation은 undo/redo 대상이 아니어야 한다.
+6. non-default layer를 삭제하고, 해당 layer에 있던 annotation이 사라지지 않고 기본 필기로 보이는지 확인한다.
    앱 재시작 후에도 삭제된 layer 이름이 다시 나타나지 않고 해당 annotation이 기본 필기로 남아야 한다.
 6. 기본 필기는 삭제/이름 변경 대상이 아니어야 한다.
 

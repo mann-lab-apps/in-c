@@ -1501,21 +1501,30 @@ class SheetAnnotationLayer {
     return hits.last;
   }
 
-  SheetAnnotationLayer undoLastStroke(int pageNumber) {
-    final pageStrokes = visibleStrokesForPage(pageNumber);
+  SheetAnnotationLayer undoLastStroke(int pageNumber, {String? layerId}) {
+    final pageStrokes = visibleStrokesForPage(pageNumber)
+        .where((stroke) => _annotationMatchesLayer(stroke.layerId, layerId))
+        .toList(growable: false);
     if (pageStrokes.isEmpty) {
       return this;
     }
     return _removeStrokeForUndo(pageStrokes.last);
   }
 
-  SheetAnnotationLayer undoLastAnnotation(int pageNumber) {
-    final eraseRestored = _restoreLastErasedAnnotation(pageNumber);
+  SheetAnnotationLayer undoLastAnnotation(int pageNumber, {String? layerId}) {
+    final eraseRestored = _restoreLastErasedAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (!identical(eraseRestored, this)) {
       return eraseRestored;
     }
-    final pageStrokes = visibleStrokesForPage(pageNumber);
-    final pageTexts = visibleTextsForPage(pageNumber);
+    final pageStrokes = visibleStrokesForPage(pageNumber)
+        .where((stroke) => _annotationMatchesLayer(stroke.layerId, layerId))
+        .toList(growable: false);
+    final pageTexts = visibleTextsForPage(pageNumber)
+        .where((text) => _annotationMatchesLayer(text.layerId, layerId))
+        .toList(growable: false);
     final lastStroke = pageStrokes.isEmpty ? null : pageStrokes.last;
     final lastText = pageTexts.isEmpty ? null : pageTexts.last;
     if (lastStroke == null && lastText == null) {
@@ -1529,13 +1538,16 @@ class SheetAnnotationLayer {
     return _removeTextForUndo(lastText);
   }
 
-  SheetAnnotationLayer redoLastAnnotation(int pageNumber) {
+  SheetAnnotationLayer redoLastAnnotation(int pageNumber, {String? layerId}) {
     for (var index = redoStack.length - 1; index >= 0; index -= 1) {
       final entry = redoStack[index];
       if (entry.pageNumber != pageNumber) {
         continue;
       }
       if (!_redoEntryTargetsVisibleLayer(entry)) {
+        continue;
+      }
+      if (!_redoEntryMatchesLayer(entry, layerId)) {
         continue;
       }
       final remainingRedo = <SheetAnnotationRedoEntry>[
@@ -1684,13 +1696,19 @@ class SheetAnnotationLayer {
     );
   }
 
-  SheetAnnotationLayer _restoreLastErasedAnnotation(int pageNumber) {
+  SheetAnnotationLayer _restoreLastErasedAnnotation(
+    int pageNumber, {
+    String? layerId,
+  }) {
     for (var index = eraseUndoStack.length - 1; index >= 0; index -= 1) {
       final entry = eraseUndoStack[index];
       if (entry.pageNumber != pageNumber) {
         continue;
       }
       if (!_redoEntryTargetsVisibleLayer(entry)) {
+        continue;
+      }
+      if (!_redoEntryMatchesLayer(entry, layerId)) {
         continue;
       }
       final remainingEraseUndo = <SheetAnnotationRedoEntry>[
@@ -1905,6 +1923,26 @@ class SheetAnnotationLayer {
       return isAnnotationLayerVisible(textLayerId);
     }
     return true;
+  }
+
+  bool _redoEntryMatchesLayer(SheetAnnotationRedoEntry entry, String? layerId) {
+    final strokeLayerId = entry.stroke?.layerId;
+    if (strokeLayerId != null) {
+      return _annotationMatchesLayer(strokeLayerId, layerId);
+    }
+    final textLayerId = entry.text?.layerId;
+    if (textLayerId != null) {
+      return _annotationMatchesLayer(textLayerId, layerId);
+    }
+    return layerId == null;
+  }
+
+  bool _annotationMatchesLayer(String annotationLayerId, String? layerId) {
+    if (layerId == null) {
+      return true;
+    }
+    return displayLayerForAnnotation(annotationLayerId).id ==
+        displayLayerForAnnotation(layerId).id;
   }
 }
 

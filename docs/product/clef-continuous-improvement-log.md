@@ -2445,3 +2445,9 @@ their undo/redo stacks, but are skipped while the layer is hidden so toolbar und
 invisible annotations. Focused annotation tests, full analyze, 1,603-test suite and RC release checks
 passed. True active-layer-only undo remains a separate UX decision because the current toolbar undo is
 page scoped rather than layer scoped.
+
+S217 VERIFIED LOCAL: narrowed annotation undo/redo to the active display layer. The viewer already
+tracks the selected layer for new strokes/text/stamps, so toolbar undo/redo now routes through the
+same layer id instead of operating across every visible layer on the page. This keeps ensemble or
+private layers from being changed while the user is editing a different layer. Focused annotation
+tests, full analyze, 1,604-test suite and RC release checks passed.

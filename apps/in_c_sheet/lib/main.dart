@@ -15669,8 +15669,13 @@ setlist=$setlistLabel
     final pageNumber = _pdfController.isReady
         ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
         : _pageNumber ?? score.lastPage;
+    final layerId = _activeAnnotationLayerIdFor(score);
     final didUndo = await _saveAnnotationChange(
-      () => widget.controller.undoLastAnnotation(score, pageNumber),
+      () => widget.controller.undoLastAnnotation(
+        score,
+        pageNumber,
+        layerId: layerId,
+      ),
     );
     if (didUndo == null) return;
     _showSnackBar(didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.');
@@ -15680,8 +15685,13 @@ setlist=$setlistLabel
     final pageNumber = _pdfController.isReady
         ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
         : _pageNumber ?? score.lastPage;
+    final layerId = _activeAnnotationLayerIdFor(score);
     final didRedo = await _saveAnnotationChange(
-      () => widget.controller.redoLastAnnotation(score, pageNumber),
+      () => widget.controller.redoLastAnnotation(
+        score,
+        pageNumber,
+        layerId: layerId,
+      ),
     );
     if (didRedo == null) return;
     _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');

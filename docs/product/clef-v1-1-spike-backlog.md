@@ -552,12 +552,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   5. 완료: viewer 필기 도구에서 non-default layer rename/delete UI를 추가하고 default layer를 보호한다.
   6. 완료: layer 삭제 시 기존 annotation을 삭제하지 않고 default fallback으로 유지하는 회귀를 검증했다.
   7. 완료: 기존 annotation layer 이동과 hidden layer hit-test/eraser/undo/redo 차단.
-  8. active-layer-only undo/redo UX.
+  8. 완료: toolbar undo/redo를 active display layer로 좁힌다. 숨김 layer entry는 보존하지만 숨김 중에는
+     계속 건너뛴다.
 - 검증 완료: 기존 annotation default fallback, hidden layer visible filter, hidden layer hit-test/eraser/undo/redo
-  exclusion, export-disabled layer export filter, removed/unknown layer default fallback, active layer selector UI,
-  non-default layer state persistence, layer rename/delete UI와 삭제 후 annotation fallback.
+  exclusion, active-layer undo/redo targeting, export-disabled layer export filter, removed/unknown layer default
+  fallback, active layer selector UI, non-default layer state persistence, layer rename/delete UI와 삭제 후
+  annotation fallback.
 - 남은 테스트/fixture/실기기 조건: stylus drawing while switching layers,
-  PDF export with multiple layers on device, large annotation layer performance, active-layer-only undo/redo UX.
+  PDF export with multiple layers on device, large annotation layer performance.
 - Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는
   선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
 - Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.
