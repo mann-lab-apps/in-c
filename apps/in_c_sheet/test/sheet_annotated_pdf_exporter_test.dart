@@ -47,6 +47,11 @@ void main() {
     expect(standard.isStandardAnnotationEmbedding, isTrue);
     expect(standard.supportedAnnotationTypes, contains('inkAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('freeTextAnnotation'));
+    expect(standard.supportedAnnotationTypes, contains('textStampAnnotation'));
+    expect(
+      standard.supportedAnnotationTypes,
+      contains('iconTextStampAnnotation'),
+    );
     expect(standard.supportedAnnotationTypes, contains('imageStampAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('hairpinAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('staffGridAnnotation'));
@@ -632,6 +637,96 @@ void main() {
     expect(inspection.clefAnnotationContents, contains('숨 크게'));
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
+
+  test(
+    'writes text and icon stamps as standard FreeText annotations',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-standard-text-stamp-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final outputPath = '${outputDir.path}/short-score-text-stamps.pdf';
+      final now = DateTime.parse('2026-10-13T10:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'built-in-coda',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+              text: 'Coda',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+            ),
+            SheetTextAnnotation(
+              id: 'user-text-cue',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.3, y: 0.4),
+              text: '숨 크게',
+              color: 0xff1d5fd1,
+              fontSize: 18,
+              createdAt: now.add(const Duration(seconds: 1)),
+              stampKind: SheetAnnotationUserStamp.textKind,
+            ),
+            SheetTextAnnotation(
+              id: 'user-icon-note',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.4, y: 0.5),
+              text: '♪',
+              color: 0xffd32f2f,
+              fontSize: 20,
+              createdAt: now.add(const Duration(seconds: 2)),
+              stampKind: SheetAnnotationUserStamp.iconKind,
+            ),
+          ],
+        ),
+      );
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+      final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+      final inspection =
+          await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+            outputPath,
+          );
+
+      expect(result.didWrite, isTrue);
+      expect(result.textCount, 3);
+      expect(result.exportedTextCount, 3);
+      expect(
+        exported.page(0).annotations.map((annotation) => annotation.subtype),
+        everyElement('FreeText'),
+      );
+      expect(inspection.clefAnnotationCount, 3);
+      expect(inspection.containsClefSubtype('FreeText'), isTrue);
+      expect(inspection.clefAnnotationContents, contains('Coda'));
+      expect(inspection.clefAnnotationContents, contains('숨 크게'));
+      expect(inspection.clefAnnotationContents, contains('♪'));
+      expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    },
+  );
 
   test('writes standard hairpin annotations as editable lines', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');

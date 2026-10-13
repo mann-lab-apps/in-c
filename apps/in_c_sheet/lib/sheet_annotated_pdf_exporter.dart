@@ -190,15 +190,16 @@ class SheetAnnotatedPdfExporter {
           'arrowLineAnnotation',
           'squareAnnotation',
           'freeTextAnnotation',
+          'textStampAnnotation',
+          'iconTextStampAnnotation',
           'imageStampAnnotation',
           'hairpinAnnotation',
           'staffGridAnnotation',
         ],
-        unsupportedAnnotationTypes: <String>['stampAnnotation'],
+        unsupportedAnnotationTypes: <String>['richStampAppearanceAnnotation'],
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
           'mobileSheetsPiascoreFixture',
-          'stampAppearanceMapping',
         ],
       );
 

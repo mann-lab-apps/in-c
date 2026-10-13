@@ -2302,3 +2302,10 @@ appearances instead of forcing those guides through the rendered-only path. Staf
 parallel line annotations; grid guides export as a 4x4 guide line set. The local inspection fixture now
 verifies the resulting Clef `/Line` annotations, contents and generated appearances. Text-template
 stamp mapping and external Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S196 VERIFIED LOCAL: clarified and locked the editable PDF mapping for text-template stamps. Built-in
+text stamps plus user text/icon stamps now have explicit capability coverage as editable `/FreeText`
+annotations, including Unicode music-symbol text and Korean stamp text. The exporter test reopens the
+generated PDF and verifies subtype, contents and generated appearances so these stamps are no longer
+tracked as an unmapped standard-export gap. Rich non-text stamp appearances and external
+Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
