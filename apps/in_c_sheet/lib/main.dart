@@ -8343,8 +8343,10 @@ class SheetChordProViewerScreen extends StatefulWidget {
 class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   Future<_ChordProViewerData>? _viewerDataFuture;
   String _loadedPath = '';
+  String _loadedDisplayScoreId = '';
   int _transposeSemitones = 0;
   bool _showCapoShapes = false;
+  String _displaySettingsSaveError = '';
 
   @override
   Widget build(BuildContext context) {
@@ -8355,6 +8357,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
         body: const Center(child: Text('악보를 찾을 수 없습니다.')),
       );
     }
+    _syncDisplaySettings(score);
     return Scaffold(
       appBar: AppBar(title: Text(score.displayTitle)),
       body: FutureBuilder<_ChordProViewerData>(
@@ -8405,11 +8408,16 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                   canReset: _transposeSemitones != 0 || _showCapoShapes,
                   canShowCapoShapes: (data.document.capo ?? 0) > 0,
                   showCapoShapes: _showCapoShapes,
+                  saveError: _displaySettingsSaveError,
                   onTransposeDown: () => _shiftTranspose(-1),
                   onTransposeUp: () => _shiftTranspose(1),
                   onReset: _resetDisplay,
                   onShowCapoShapesChanged: (value) {
-                    setState(() => _showCapoShapes = value);
+                    setState(() {
+                      _showCapoShapes = value;
+                      _displaySettingsSaveError = '';
+                    });
+                    unawaited(_persistDisplaySettings());
                   },
                 ),
                 const SizedBox(height: 12),
@@ -8428,6 +8436,17 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       _viewerDataFuture = _loadChordProViewerData(score);
     }
     return _viewerDataFuture!;
+  }
+
+  void _syncDisplaySettings(SheetScore score) {
+    if (_loadedDisplayScoreId == score.id) {
+      return;
+    }
+    final settings = score.chordProDisplaySettings;
+    _loadedDisplayScoreId = score.id;
+    _transposeSemitones = settings.transposeSemitones;
+    _showCapoShapes = settings.showCapoShapes;
+    _displaySettingsSaveError = '';
   }
 
   SheetChordProDocument _displayDocument(SheetChordProDocument document) {
@@ -8452,14 +8471,39 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
         -11,
         math.min(11, _transposeSemitones + delta),
       );
+      _displaySettingsSaveError = '';
     });
+    unawaited(_persistDisplaySettings());
   }
 
   void _resetDisplay() {
     setState(() {
       _transposeSemitones = 0;
       _showCapoShapes = false;
+      _displaySettingsSaveError = '';
     });
+    unawaited(_persistDisplaySettings());
+  }
+
+  Future<void> _persistDisplaySettings() async {
+    final score = widget.controller.scoreByIdOrNull(widget.scoreId);
+    if (score == null) {
+      return;
+    }
+    final settings = SheetChordProDisplaySettings(
+      transposeSemitones: _transposeSemitones,
+      showCapoShapes: _showCapoShapes,
+    );
+    try {
+      await widget.controller.updateChordProDisplaySettings(score, settings);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _displaySettingsSaveError = '표시 설정을 저장하지 못했습니다. 현재 화면 조정은 유지됩니다.';
+      });
+    }
   }
 }
 
@@ -8579,6 +8623,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
     required this.canReset,
     required this.canShowCapoShapes,
     required this.showCapoShapes,
+    required this.saveError,
     required this.onTransposeDown,
     required this.onTransposeUp,
     required this.onReset,
@@ -8589,6 +8634,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
   final bool canReset;
   final bool canShowCapoShapes;
   final bool showCapoShapes;
+  final String saveError;
   final VoidCallback onTransposeDown;
   final VoidCallback onTransposeUp;
   final VoidCallback onReset;
@@ -8604,37 +8650,53 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Text(
+                  '표시 조정',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                IconButton.outlined(
+                  tooltip: '반음 내림',
+                  onPressed: onTransposeDown,
+                  icon: const Icon(Icons.remove),
+                ),
+                Chip(label: Text('이조 $transposeLabel')),
+                IconButton.outlined(
+                  tooltip: '반음 올림',
+                  onPressed: onTransposeUp,
+                  icon: const Icon(Icons.add),
+                ),
+                FilterChip(
+                  label: const Text('카포 운지'),
+                  selected: showCapoShapes,
+                  onSelected: canShowCapoShapes
+                      ? onShowCapoShapesChanged
+                      : null,
+                ),
+                TextButton.icon(
+                  onPressed: canReset ? onReset : null,
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('원래대로'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             Text(
-              '표시 조정',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              saveError.isEmpty ? '이 악보를 다시 열어도 표시 조정이 유지됩니다.' : saveError,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: saveError.isEmpty
+                    ? theme.colorScheme.onSurfaceVariant
+                    : theme.colorScheme.error,
               ),
-            ),
-            IconButton.outlined(
-              tooltip: '반음 내림',
-              onPressed: onTransposeDown,
-              icon: const Icon(Icons.remove),
-            ),
-            Chip(label: Text('이조 $transposeLabel')),
-            IconButton.outlined(
-              tooltip: '반음 올림',
-              onPressed: onTransposeUp,
-              icon: const Icon(Icons.add),
-            ),
-            FilterChip(
-              label: const Text('카포 운지'),
-              selected: showCapoShapes,
-              onSelected: canShowCapoShapes ? onShowCapoShapesChanged : null,
-            ),
-            TextButton.icon(
-              onPressed: canReset ? onReset : null,
-              icon: const Icon(Icons.restart_alt),
-              label: const Text('원래대로'),
             ),
           ],
         ),

@@ -1315,6 +1315,28 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateChordProDisplaySettings(
+    SheetScore score,
+    SheetChordProDisplaySettings settings,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) {
+      return;
+    }
+    if (current.chordProDisplaySettings.transposeSemitones ==
+            settings.transposeSemitones &&
+        current.chordProDisplaySettings.showCapoShapes ==
+            settings.showCapoShapes) {
+      return;
+    }
+    await _replace(
+      current.copyWith(
+        chordProDisplaySettings: settings,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
   Future<SheetPerformancePresetTemplate> savePerformancePresetTemplate({
     required String name,
     required SheetViewerSettings viewerSettings,

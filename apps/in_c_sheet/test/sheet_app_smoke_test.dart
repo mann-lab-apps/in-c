@@ -1413,17 +1413,59 @@ Clef & Staff 세트리스트
 
     expect(find.text('조성: E'), findsOneWidget);
     expect(find.textContaining('E  B'), findsOneWidget);
+    expect(find.text('이 악보를 다시 열어도 표시 조정이 유지됩니다.'), findsOneWidget);
 
     await tester.tap(find.byTooltip('반음 올림'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
     await tester.pump();
 
     expect(find.text('조성: F'), findsOneWidget);
     expect(find.text('이조: +1'), findsOneWidget);
     expect(find.textContaining('F  C'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .transposeSemitones,
+      1,
+    );
 
     await tester.tap(find.text('원래대로'));
     await tester.pump();
     await tester.tap(find.text('카포 운지'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('카포 운지 표시'), findsOneWidget);
+    expect(find.textContaining('D  A'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .showCapoShapes,
+      isTrue,
+    );
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-capo-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
     await tester.pump();
 
     expect(find.text('카포 운지 표시'), findsOneWidget);

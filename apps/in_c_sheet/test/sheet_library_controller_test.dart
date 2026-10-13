@@ -935,6 +935,64 @@ Clef & Staff 세트리스트
     expect((await store.loadScores()).map((score) => score.id), ['existing']);
   });
 
+  test('persists ChordPro display settings per score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 13, 11);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      _score(now, id: 'chordpro-score', filePath: '/tmp/tune.chordpro'),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateChordProDisplaySettings(
+      controller.scoreById('chordpro-score'),
+      const SheetChordProDisplaySettings(
+        transposeSemitones: 2,
+        showCapoShapes: true,
+      ),
+    );
+
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.chordProDisplaySettings.transposeSemitones, 2);
+    expect(persisted.chordProDisplaySettings.showCapoShapes, isTrue);
+  });
+
+  test(
+    'ChordPro display settings save failure restores previous score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 13, 11);
+      final store = _ChordProImportStore(now);
+      await store.saveScores([
+        _score(now, id: 'chordpro-score', filePath: '/tmp/tune.chordpro'),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updateChordProDisplaySettings(
+          controller.scoreById('chordpro-score'),
+          const SheetChordProDisplaySettings(transposeSemitones: -3),
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        controller
+            .scoreById('chordpro-score')
+            .chordProDisplaySettings
+            .isDefault,
+        isTrue,
+      );
+      expect(
+        (await store.loadScores()).single.chordProDisplaySettings.isDefault,
+        isTrue,
+      );
+    },
+  );
+
   test(
     'appends another setlist while preserving target performance settings',
     () async {

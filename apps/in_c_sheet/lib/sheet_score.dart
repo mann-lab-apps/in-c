@@ -452,6 +452,56 @@ class SheetCropSettings {
   }
 }
 
+class SheetChordProDisplaySettings {
+  const SheetChordProDisplaySettings({
+    this.transposeSemitones = 0,
+    this.showCapoShapes = false,
+  });
+
+  factory SheetChordProDisplaySettings.fromJson(Map<String, Object?>? json) {
+    return SheetChordProDisplaySettings(
+      transposeSemitones: _normalizeTransposeSemitones(
+        json?['transposeSemitones'],
+      ),
+      showCapoShapes: _boolFromJson(json?['showCapoShapes'], fallback: false),
+    );
+  }
+
+  static const defaultSettings = SheetChordProDisplaySettings();
+
+  final int transposeSemitones;
+  final bool showCapoShapes;
+
+  bool get isDefault => transposeSemitones == 0 && !showCapoShapes;
+
+  SheetChordProDisplaySettings copyWith({
+    int? transposeSemitones,
+    bool? showCapoShapes,
+  }) {
+    return SheetChordProDisplaySettings(
+      transposeSemitones: _clampTransposeSemitones(
+        transposeSemitones ?? this.transposeSemitones,
+      ),
+      showCapoShapes: showCapoShapes ?? this.showCapoShapes,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'transposeSemitones': transposeSemitones,
+      'showCapoShapes': showCapoShapes,
+    };
+  }
+
+  static int _normalizeTransposeSemitones(Object? value) {
+    return _clampTransposeSemitones(_intFromJson(value, fallback: 0));
+  }
+
+  static int _clampTransposeSemitones(int value) {
+    return value.clamp(-11, 11).toInt();
+  }
+}
+
 class SheetCropPreset {
   const SheetCropPreset({
     required this.id,
@@ -2341,6 +2391,7 @@ class SheetScore {
     this.pdfLinkSanitization = SheetPdfLinkSanitization.empty,
     this.autoScrollSettings = SheetAutoScrollSettings.defaultSettings,
     this.metronomeSettings,
+    this.chordProDisplaySettings = SheetChordProDisplaySettings.defaultSettings,
   });
 
   factory SheetScore.fromJson(Map<String, Object?> json) {
@@ -2395,6 +2446,9 @@ class SheetScore {
         _asJsonMap(json['autoScrollSettings']),
       ),
       metronomeSettings: _metronomeSettingsFromJson(json['metronomeSettings']),
+      chordProDisplaySettings: SheetChordProDisplaySettings.fromJson(
+        _asJsonMap(json['chordProDisplaySettings']),
+      ),
     );
   }
 
@@ -2458,6 +2512,7 @@ class SheetScore {
   final SheetPdfLinkSanitization pdfLinkSanitization;
   final SheetAutoScrollSettings autoScrollSettings;
   final SheetMetronomeSettings? metronomeSettings;
+  final SheetChordProDisplaySettings chordProDisplaySettings;
 
   String get displayTitle =>
       title.trim().isEmpty ? sourceFileDisplayName : title.trim();
@@ -2527,6 +2582,7 @@ class SheetScore {
     SheetPdfLinkSanitization? pdfLinkSanitization,
     SheetAutoScrollSettings? autoScrollSettings,
     SheetMetronomeSettings? metronomeSettings,
+    SheetChordProDisplaySettings? chordProDisplaySettings,
     bool clearMetronomeSettings = false,
   }) {
     return SheetScore(
@@ -2562,6 +2618,8 @@ class SheetScore {
       metronomeSettings: clearMetronomeSettings
           ? null
           : metronomeSettings ?? this.metronomeSettings,
+      chordProDisplaySettings:
+          chordProDisplaySettings ?? this.chordProDisplaySettings,
     );
   }
 
@@ -2594,6 +2652,7 @@ class SheetScore {
       'autoScrollSettings': autoScrollSettings.toJson(),
       if (metronomeSettings != null)
         'metronomeSettings': metronomeSettings!.toJson(),
+      'chordProDisplaySettings': chordProDisplaySettings.toJson(),
     };
   }
 

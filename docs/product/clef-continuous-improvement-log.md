@@ -2355,3 +2355,10 @@ instead of scattered notes. The generator now writes a Markdown matrix next to t
 prints both paths, carries local inspection counts into the report, and flags Unicode FreeText
 contents as a separate viewer-risk row. Generated the fixture/report locally, and full format,
 analyze, 1,578-test suite and RC release checks passed.
+
+S203 VERIFIED LOCAL: reduced the ChordPro transpose/capo gap by making display adjustments persist
+per score instead of resetting on every viewer reopen. The model now carries normalized ChordPro
+display settings, the controller saves them through the normal score replacement path with rollback on
+save failure, and the viewer saves semitone and capo-shape display changes without modifying the
+original `.chordpro` source. Focused model/controller/smoke tests, full analyze, 1,581-test suite and
+RC release checks passed.

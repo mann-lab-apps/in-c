@@ -54,7 +54,8 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 - 같은 안내에서 `ChordPro 파일 선택 가져오기`를 실행해 `.chordpro` 또는 `.onsong` 샘플을 고른다.
   성공 후 라이브러리 카드가 생기고 읽기 전용 ChordPro viewer로 열려야 한다. DOCX parsing은 후속이다.
 - 저장된 ChordPro viewer에서 `반음 올림`/`반음 내림`, `원래대로`, `카포 운지`를 눌러 조성 chip과
-  코드 표시가 바뀌는지 확인한다. 원본 파일 내용이 바뀌는 저장형 편집은 아직 지원하지 않는다.
+  코드 표시가 바뀌는지 확인한다. 앱을 닫았다가 같은 ChordPro 악보를 다시 열었을 때 표시 조정이
+  유지되어야 한다. 원본 파일 내용이 바뀌는 저장형 편집은 아직 지원하지 않는다.
 
 ## 10-15분 RC Smoke 결과표
 
@@ -149,7 +150,7 @@ Repo 포함 fixture:
 - HEIC/HEIF 이미지 1장.
 - Text/ChordPro/DOCX 악보 샘플 1개씩. Text/DOCX는 PDF 변환 안내가 자연스러운지 확인하고,
   ChordPro는 붙여넣기와 파일 선택 모두에서 metadata/preview 또는 저장/카드 노출/읽기 viewer 진입,
-  표시 전용 transpose/capo shape 전환까지 확인한다.
+  곡별 저장형 transpose/capo shape 전환까지 확인한다.
 - Drive, iCloud, Dropbox 등 cloud provider에만 있는 PDF 1개.
 - MP3/M4A/WAV local audio file 각 1개 이상.
 

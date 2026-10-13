@@ -164,6 +164,10 @@ void main() {
           SheetAutoScrollCuePoint(pageNumber: 5, measureNumber: 12, label: 'B'),
         ],
       ),
+      chordProDisplaySettings: const SheetChordProDisplaySettings(
+        transposeSemitones: 3,
+        showCapoShapes: true,
+      ),
     );
 
     final encoded = SheetScore.encodeList(<SheetScore>[score]);
@@ -277,6 +281,20 @@ void main() {
       decoded.single.autoScrollSettings.cuePoints.single.measureNumber,
       12,
     );
+    expect(decoded.single.chordProDisplaySettings.transposeSemitones, 3);
+    expect(decoded.single.chordProDisplaySettings.showCapoShapes, isTrue);
+  });
+
+  test('normalizes ChordPro display settings safely', () {
+    final decoded = SheetChordProDisplaySettings.fromJson(<String, Object?>{
+      'transposeSemitones': 48,
+      'showCapoShapes': true,
+    });
+
+    expect(decoded.transposeSemitones, 11);
+    expect(decoded.showCapoShapes, isTrue);
+    expect(decoded.copyWith(transposeSemitones: -48).transposeSemitones, -11);
+    expect(SheetChordProDisplaySettings.defaultSettings.isDefault, isTrue);
   });
 
   test('normalizes custom metadata fields safely', () {
