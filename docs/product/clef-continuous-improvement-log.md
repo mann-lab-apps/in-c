@@ -2320,3 +2320,10 @@ fixture path. A mixed exporter regression test locks the expected 28 Clef annota
 rendering confirmed the fixture draws the geometry/image paths, but also showed Korean FreeText can
 render as missing glyph boxes despite preserved `/Contents`; external Acrobat/Preview/MobileSheets/
 Piascore compatibility and font fallback policy remain Device QA/follow-up work.
+
+S198 VERIFIED LOCAL: tightened the local inspection signal for Unicode FreeText compatibility. The
+standard PDF annotation inspector now records non-ASCII `/FreeText` contents separately and exposes
+`hasUnicodeFreeTextContents`, so fixture generation can warn testers that structure/content passed but
+external glyph rendering still needs Acrobat/Preview/MobileSheets/Piascore QA. Focused exporter tests
+cover Korean text and music-symbol stamp contents. This does not claim font fallback or embedding is
+solved; it makes the remaining risk visible before manual compatibility checks.

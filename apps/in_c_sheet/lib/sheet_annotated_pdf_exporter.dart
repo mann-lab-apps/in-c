@@ -49,6 +49,7 @@ class SheetStandardPdfAnnotationInspection {
     required this.clefSubtypeCounts,
     required this.clefAnnotationNames,
     required this.clefAnnotationContents,
+    required this.unicodeFreeTextContents,
     required this.missingGeneratedAppearanceNames,
   });
 
@@ -60,6 +61,7 @@ class SheetStandardPdfAnnotationInspection {
   final Map<String, int> clefSubtypeCounts;
   final List<String> clefAnnotationNames;
   final List<String> clefAnnotationContents;
+  final List<String> unicodeFreeTextContents;
   final List<String> missingGeneratedAppearanceNames;
 
   static const editableClefSubtypes = <String>{
@@ -78,6 +80,10 @@ class SheetStandardPdfAnnotationInspection {
 
   bool get hasGeneratedAppearances {
     return missingGeneratedAppearanceNames.isEmpty;
+  }
+
+  bool get hasUnicodeFreeTextContents {
+    return unicodeFreeTextContents.isNotEmpty;
   }
 
   bool get isLocallyInspectableEditableFixture {
@@ -221,6 +227,7 @@ class SheetAnnotatedPdfExporter {
     final clefSubtypeCounts = <String, int>{};
     final clefAnnotationNames = <String>[];
     final clefAnnotationContents = <String>[];
+    final unicodeFreeTextContents = <String>[];
     final missingGeneratedAppearanceNames = <String>[];
     var totalAnnotationCount = 0;
     var clefAnnotationCount = 0;
@@ -242,6 +249,10 @@ class SheetAnnotatedPdfExporter {
         final contents = annotation.contents;
         if (contents != null && contents.trim().isNotEmpty) {
           clefAnnotationContents.add(contents);
+          if (annotation.subtype == 'FreeText' &&
+              contents.runes.any((rune) => rune > 0x7f)) {
+            unicodeFreeTextContents.add(contents);
+          }
         }
         if (!annotation.dict.containsKey('AP')) {
           missingGeneratedAppearanceNames.add(name);
@@ -258,6 +269,7 @@ class SheetAnnotatedPdfExporter {
       clefSubtypeCounts: Map.unmodifiable(clefSubtypeCounts),
       clefAnnotationNames: List.unmodifiable(clefAnnotationNames),
       clefAnnotationContents: List.unmodifiable(clefAnnotationContents),
+      unicodeFreeTextContents: List.unmodifiable(unicodeFreeTextContents),
       missingGeneratedAppearanceNames: List.unmodifiable(
         missingGeneratedAppearanceNames,
       ),

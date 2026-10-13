@@ -54,7 +54,19 @@ Future<void> main(List<String> args) async {
     ..writeln(output.absolute.path)
     ..writeln('Pages: ${inspection.pageCount}')
     ..writeln('Clef annotations: ${inspection.clefAnnotationCount}')
-    ..writeln('Subtype counts: ${inspection.clefSubtypeCounts}')
+    ..writeln('Subtype counts: ${inspection.clefSubtypeCounts}');
+  if (inspection.hasUnicodeFreeTextContents) {
+    stdout
+      ..writeln(
+        'Unicode FreeText contents require external render QA: '
+        '${inspection.unicodeFreeTextContents}',
+      )
+      ..writeln(
+        'Local inspection preserves contents, but generated appearances may '
+        'depend on viewer font fallback.',
+      );
+  }
+  stdout
     ..writeln('Manual viewer QA:')
     ..writeln('- Acrobat')
     ..writeln('- macOS Preview')

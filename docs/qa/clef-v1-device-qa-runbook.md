@@ -408,6 +408,8 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart`로 생성한다. 기본 출력은
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`이며 pen/highlighter,
 line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG image stamp를 포함한다.
+도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
+로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
 
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.

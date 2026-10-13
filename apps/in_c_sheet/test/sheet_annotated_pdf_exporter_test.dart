@@ -635,6 +635,8 @@ void main() {
       isTrue,
     );
     expect(inspection.clefAnnotationContents, contains('숨 크게'));
+    expect(inspection.hasUnicodeFreeTextContents, isTrue);
+    expect(inspection.unicodeFreeTextContents, contains('숨 크게'));
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
 
@@ -1126,6 +1128,11 @@ void main() {
     expect(inspection.clefSubtypeCounts['Stamp'], 1);
     expect(inspection.clefAnnotationContents, contains('숨 크게'));
     expect(inspection.clefAnnotationContents, contains('♪'));
+    expect(inspection.hasUnicodeFreeTextContents, isTrue);
+    expect(
+      inspection.unicodeFreeTextContents,
+      containsAll(<String>['숨 크게', '♪']),
+    );
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
 
