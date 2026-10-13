@@ -371,4 +371,36 @@ Required external checks:
     expect(preview.evidence, isEmpty);
     expect(gate.canClaimExternalCompatibility, isTrue);
   });
+
+  test('accepts common viewer label aliases in hand-filled reports', () {
+    const markdown = '''
+# Clef Editable Annotation Compatibility Report
+
+Viewer matrix:
+
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Adobe Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Preview | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Mobile Sheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Piascore app | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Android viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+''';
+
+    final entries =
+        SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(markdown);
+    final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
+
+    expect(
+      entries.map((entry) => entry.viewerId),
+      containsAll(<String>[
+        'acrobat',
+        'preview',
+        'mobilesheets',
+        'piascore',
+        'android-pdf-viewer',
+      ]),
+    );
+    expect(gate.canClaimExternalCompatibility, isTrue);
+  });
 }

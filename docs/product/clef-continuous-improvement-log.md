@@ -2585,3 +2585,9 @@ S236 VERIFIED LOCAL: made the editable PDF report's remaining spike list human-r
 raw capability IDs such as `unicodeFontFallbackPolicy`, but testers and future implementation passes
 need the corresponding viewer/font action beside each ID. Focused report tests, full analyze, the
 1,611-test suite and RC release checks passed.
+
+S237 VERIFIED LOCAL: made hand-filled editable PDF compatibility reports more forgiving without weakening
+the gate. The generated report uses exact viewer labels, but testers may shorten them to "Preview",
+"Mobile Sheets" or "Android viewer"; the parser now normalizes common aliases back to the same target
+IDs before checking evidence and PASS/ISSUE/BLOCKED cells. Focused report tests, full analyze, the
+1,612-test suite and RC release checks passed.

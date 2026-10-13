@@ -436,11 +436,6 @@ class SheetPdfAnnotationCompatibilityReportParser {
   static List<SheetPdfViewerCompatibilityEntry> parseViewerMatrix(
     String markdown,
   ) {
-    final targetIdByLabel = <String, String>{
-      for (final target
-          in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
-        target.label: target.id,
-    };
     final tableRows = [
       for (final rawLine in markdown.split('\n')) _parseTableRow(rawLine),
     ].whereType<List<String>>().toList(growable: false);
@@ -449,7 +444,7 @@ class SheetPdfAnnotationCompatibilityReportParser {
       if (cells.length != 3) {
         continue;
       }
-      final viewerId = targetIdByLabel[cells.first];
+      final viewerId = _viewerIdForLabel(cells.first);
       if (viewerId == null) {
         continue;
       }
@@ -469,7 +464,7 @@ class SheetPdfAnnotationCompatibilityReportParser {
         continue;
       }
       final viewerLabel = cells.first;
-      final viewerId = targetIdByLabel[viewerLabel];
+      final viewerId = _viewerIdForLabel(viewerLabel);
       if (viewerId == null) {
         continue;
       }
@@ -508,6 +503,36 @@ class SheetPdfAnnotationCompatibilityReportParser {
     }
     return entries;
   }
+
+  static String? _viewerIdForLabel(String label) {
+    final normalized = _normalizeViewerLabel(label);
+    for (final target
+        in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets) {
+      if (_normalizeViewerLabel(target.label) == normalized) {
+        return target.id;
+      }
+    }
+    return _viewerLabelAliases[normalized];
+  }
+
+  static String _normalizeViewerLabel(String label) {
+    return label.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  static const _viewerLabelAliases = <String, String>{
+    'adobeacrobat': 'acrobat',
+    'acrobatreader': 'acrobat',
+    'preview': 'preview',
+    'previewapp': 'preview',
+    'macpreview': 'preview',
+    'macospreviewapp': 'preview',
+    'mobilesheet': 'mobilesheets',
+    'mobilesheetspro': 'mobilesheets',
+    'piascoreapp': 'piascore',
+    'androidviewer': 'android-pdf-viewer',
+    'androidpdf': 'android-pdf-viewer',
+    'androidpdfviewerapp': 'android-pdf-viewer',
+  };
 
   static List<String>? _parseTableRow(String rawLine) {
     final line = rawLine.trim();
