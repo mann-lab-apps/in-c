@@ -281,6 +281,8 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
   static String markdown({
     required String fixturePath,
     required SheetStandardPdfAnnotationInspection inspection,
+    String? unicodeFixturePath,
+    SheetStandardPdfAnnotationInspection? unicodeInspection,
   }) {
     final subtypeRows = [
       for (final entry in inspection.clefSubtypeCounts.entries)
@@ -305,6 +307,18 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         .requiredSpikeItems
         .map((item) => '- `$item`')
         .join('\n');
+    final unicodeFixtureSection =
+        unicodeFixturePath == null || unicodeInspection == null
+        ? ''
+        : '''
+
+Unicode appearance fixture:
+
+- Fixture: `$unicodeFixturePath`
+- Clef FreeText annotations: ${unicodeInspection.clefSubtypeCounts['FreeText'] ?? 0}
+- Unicode contents:
+${unicodeInspection.unicodeFreeTextContents.map((content) => '  - `$content`').join('\n')}
+''';
 
     return '''
 # Clef Editable Annotation Compatibility Report
@@ -333,6 +347,7 @@ Completion gate:
 Required spike items:
 
 $requiredSpikeRows
+$unicodeFixtureSection
 
 Unicode FreeText contents:
 

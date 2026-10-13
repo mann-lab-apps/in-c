@@ -2558,3 +2558,12 @@ S232 VERIFIED LOCAL: polished editable PDF compatibility review output for human
 still tracks viewer IDs internally, but `--review-report` summaries now render missing/evidence/issue
 summaries with the same visible labels shown in the report, such as Android PDF viewer and macOS
 Preview. Focused report tests, full analyze, the 1,610-test suite and RC release checks passed.
+
+S233 VERIFIED LOCAL: added a dedicated Unicode FreeText appearance fixture to reduce the remaining
+editable PDF export handoff risk. The mixed compatibility fixture still covers every editable
+annotation class, and the generator now also emits a Unicode-focused PDF/report section so external
+viewer QA can compare Korean text, text-stamp Unicode and music-symbol FreeText rendering without
+treating local `/Contents` preservation as proof of glyph compatibility. The Unicode fixture was
+rendered locally with Poppler and reproduced the expected missing-glyph risk, so font fallback policy
+and real viewer compatibility remain follow-up. Focused exporter/report tests, fixture generation,
+full analyze, the 1,610-test suite and RC release checks passed.

@@ -76,10 +76,7 @@ void main() {
       contains('mobileSheetsPiascoreFixture'),
     );
     expect(standard.requiredSpikeItems, contains('androidPdfViewerFixture'));
-    expect(
-      standard.requiredSpikeItems,
-      contains('unicodeFreeTextAppearanceFixture'),
-    );
+    expect(standard.requiredSpikeItems, contains('unicodeFontFallbackPolicy'));
   });
 
   test('creates an annotated PDF copy without changing the original', () async {

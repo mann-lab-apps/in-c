@@ -418,6 +418,8 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
 pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
 music-symbol stamp, PNG/WebP image stamp를 포함한다.
+같은 도구는 한글/음악 기호 FreeText 표시만 따로 볼 수 있는
+`.dart_tool/clef-pdf-compatibility/clef-unicode-freetext-appearance.pdf`도 생성한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
 로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
 

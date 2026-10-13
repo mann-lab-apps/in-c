@@ -39,6 +39,24 @@ void main() {
     final markdown = SheetPdfAnnotationCompatibilityReportTemplate.markdown(
       fixturePath: '/tmp/clef-fixture.pdf',
       inspection: inspection,
+      unicodeFixturePath: '/tmp/clef-unicode.pdf',
+      unicodeInspection: const SheetStandardPdfAnnotationInspection(
+        path: 'unicode.pdf',
+        pageCount: 1,
+        totalAnnotationCount: 4,
+        clefAnnotationCount: 4,
+        subtypeCounts: <String, int>{'FreeText': 4},
+        clefSubtypeCounts: <String, int>{'FreeText': 4},
+        clefAnnotationNames: <String>[
+          'clef-unicode-ascii',
+          'clef-unicode-korean',
+          'clef-unicode-stamp',
+          'clef-unicode-symbol',
+        ],
+        clefAnnotationContents: <String>['Cue', '숨 크게', '느리게', '♪'],
+        unicodeFreeTextContents: <String>['숨 크게', '느리게', '♪'],
+        missingGeneratedAppearanceNames: <String>[],
+      ),
     );
 
     expect(markdown, contains('Fixture: `/tmp/clef-fixture.pdf`'));
@@ -81,7 +99,11 @@ void main() {
     expect(markdown, contains('`acrobatPreviewFixture`'));
     expect(markdown, contains('`mobileSheetsPiascoreFixture`'));
     expect(markdown, contains('`androidPdfViewerFixture`'));
-    expect(markdown, contains('`unicodeFreeTextAppearanceFixture`'));
+    expect(markdown, contains('`unicodeFontFallbackPolicy`'));
+    expect(markdown, contains('Unicode appearance fixture:'));
+    expect(markdown, contains('Fixture: `/tmp/clef-unicode.pdf`'));
+    expect(markdown, contains('Clef FreeText annotations: 4'));
+    expect(markdown, contains('- `느리게`'));
     expect(markdown, contains('Known local limits:'));
     expect(markdown, contains('generated appearances exist'));
     expect(markdown, contains('checked separately'));
@@ -108,6 +130,7 @@ void main() {
 
     expect(markdown, contains('Generated appearances missing: clef-ink-1'));
     expect(markdown, contains('Unicode FreeText contents:\n\n- none'));
+    expect(markdown, isNot(contains('Unicode appearance fixture:')));
   });
 
   test('marks external compatibility gate not ready for missing checks', () {

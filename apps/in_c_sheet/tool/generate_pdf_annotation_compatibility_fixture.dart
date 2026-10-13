@@ -15,14 +15,18 @@ Future<void> main(List<String> args) async {
 
   final input = File(_valueAfter(args, '--input') ?? _defaultInputPath);
   final outputPath = _valueAfter(args, '--output') ?? _defaultOutputPath;
+  final unicodeOutputPath =
+      _valueAfter(args, '--unicode-output') ?? _defaultUnicodeOutputPath;
   final reportPath = _valueAfter(args, '--report') ?? _defaultReportPath;
   final output = File(outputPath);
+  final unicodeOutput = File(unicodeOutputPath);
   if (!input.existsSync()) {
     stderr.writeln('Input PDF not found: ${input.path}');
     exitCode = 64;
     return;
   }
   output.parent.createSync(recursive: true);
+  unicodeOutput.parent.createSync(recursive: true);
 
   final pngBytes = image.encodePng(image.Image(width: 24, height: 24));
   final webpBytes = image.encodeWebP(
@@ -66,6 +70,13 @@ Future<void> main(List<String> args) async {
     exitCode = 1;
     return;
   }
+  final unicodeInspection = await _generateUnicodeAppearanceFixture(
+    input: input,
+    output: unicodeOutput,
+  );
+  if (unicodeInspection == null) {
+    return;
+  }
 
   stdout
     ..writeln('Generated Clef editable annotation compatibility fixture:')
@@ -84,12 +95,21 @@ Future<void> main(List<String> args) async {
         'depend on viewer font fallback.',
       );
   }
+  stdout
+    ..writeln('Generated Clef Unicode FreeText appearance fixture:')
+    ..writeln(unicodeOutput.absolute.path)
+    ..writeln(
+      'Unicode FreeText contents: '
+      '${unicodeInspection.unicodeFreeTextContents}',
+    );
   final report = File(reportPath);
   await report.parent.create(recursive: true);
   await report.writeAsString(
     SheetPdfAnnotationCompatibilityReportTemplate.markdown(
       fixturePath: output.absolute.path,
       inspection: inspection,
+      unicodeFixturePath: unicodeOutput.absolute.path,
+      unicodeInspection: unicodeInspection,
     ),
   );
   stdout
@@ -130,6 +150,9 @@ const _defaultInputPath = 'test-fixtures/pdfs/short-score.pdf';
 const _defaultOutputPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-editable-annotation-compatibility.pdf';
+const _defaultUnicodeOutputPath =
+    '.dart_tool/clef-pdf-compatibility/'
+    'clef-unicode-freetext-appearance.pdf';
 const _defaultReportPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-editable-annotation-compatibility-report.md';
@@ -144,6 +167,44 @@ bool _containsRequiredSubtypes(
       inspection.containsClefSubtype('Square') &&
       inspection.containsClefSubtype('FreeText') &&
       inspection.containsClefSubtype('Stamp');
+}
+
+Future<SheetStandardPdfAnnotationInspection?>
+_generateUnicodeAppearanceFixture({
+  required File input,
+  required File output,
+}) async {
+  final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+    score: _unicodeAppearanceScore(input.path),
+    outputPath: output.path,
+    mode: SheetPdfAnnotationExportMode.standardAnnotation,
+  );
+  if (!result.didWrite) {
+    stderr.writeln(
+      'Could not generate Unicode FreeText appearance fixture: '
+      '${result.failureReason ?? 'unknown failure'}',
+    );
+    exitCode = 1;
+    return null;
+  }
+
+  final inspection =
+      await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+        output.path,
+      );
+  final freeTextCount = inspection.clefSubtypeCounts['FreeText'] ?? 0;
+  if (!inspection.isLocallyInspectableEditableFixture ||
+      freeTextCount < 4 ||
+      inspection.unicodeFreeTextContents.length < 3) {
+    stderr.writeln('Generated Unicode fixture failed local PDF inspection.');
+    stderr.writeln('Subtype counts: ${inspection.clefSubtypeCounts}');
+    stderr.writeln(
+      'Unicode FreeText contents: ${inspection.unicodeFreeTextContents}',
+    );
+    exitCode = 1;
+    return null;
+  }
+  return inspection;
 }
 
 String? _valueAfter(List<String> args, String flag) {
@@ -330,6 +391,69 @@ SheetScore _compatibilityScore(String inputPath) {
           createdAt: now.add(const Duration(seconds: 13)),
           stampKind: SheetAnnotationUserStamp.imageKind,
           stampAssetRef: _webpImageStampAssetRef,
+        ),
+      ],
+    ),
+  );
+}
+
+SheetScore _unicodeAppearanceScore(String inputPath) {
+  final now = DateTime.parse('2026-10-13T11:30:00.000');
+  return SheetScore(
+    id: 'pdf-unicode-freetext-appearance',
+    title: 'Clef Unicode FreeText Appearance',
+    composer: '',
+    tags: const <String>['qa', 'pdf-export', 'unicode'],
+    note:
+        'Dedicated fixture for external viewer Unicode FreeText appearance '
+        'checks.',
+    filePath: inputPath,
+    importedAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    lastPage: 1,
+    isFavorite: false,
+    bookmarks: const <SheetBookmark>[],
+    annotationLayer: SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      texts: <SheetTextAnnotation>[
+        SheetTextAnnotation(
+          id: 'unicode-ascii-control',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.12, y: 0.20),
+          text: 'Cue: breathe',
+          color: 0xff111111,
+          fontSize: 16,
+          createdAt: now,
+        ),
+        SheetTextAnnotation(
+          id: 'unicode-korean-note',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.12, y: 0.32),
+          text: '숨 크게',
+          color: 0xff0d47a1,
+          fontSize: 18,
+          createdAt: now.add(const Duration(seconds: 1)),
+        ),
+        SheetTextAnnotation(
+          id: 'unicode-korean-stamp',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.12, y: 0.44),
+          text: '느리게',
+          color: 0xff6a1b9a,
+          fontSize: 18,
+          createdAt: now.add(const Duration(seconds: 2)),
+          stampKind: SheetAnnotationUserStamp.textKind,
+        ),
+        SheetTextAnnotation(
+          id: 'unicode-music-symbol',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.12, y: 0.56),
+          text: '♪',
+          color: 0xffd32f2f,
+          fontSize: 22,
+          createdAt: now.add(const Duration(seconds: 3)),
+          stampKind: SheetAnnotationUserStamp.iconKind,
         ),
       ],
     ),
