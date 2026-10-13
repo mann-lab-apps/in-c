@@ -473,7 +473,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
       XObject로 찍는다. WebP/누락/깨진 asset은 label fallback으로 유지한다.
   16. 완료: editable standard PDF export도 app-owned PNG/JPEG image stamp bytes를 `/Stamp`
       annotation appearance로 내보낸다. Local inspection fixture는 `Stamp` subtype과 image stamp flag를
-      확인한다.
+      확인한다. WebP/누락/깨진 image stamp는 unsupported mapping으로 분리해 일반 사본 fallback 안내를
+      유지하며, WebP editable image appearance는 후속이다.
   17. 완료: editable standard PDF export가 crescendo/diminuendo hairpin을 paired `/Line`
       annotation으로 내보낸다. Local inspection fixture는 두 Line annotation을 확인한다.
   18. 완료: editable standard PDF export가 staff/grid guide를 editable `/Line` annotation group으로

@@ -52,12 +52,15 @@ void main() {
       standard.supportedAnnotationTypes,
       contains('iconTextStampAnnotation'),
     );
-    expect(standard.supportedAnnotationTypes, contains('imageStampAnnotation'));
+    expect(
+      standard.supportedAnnotationTypes,
+      contains('pngJpegImageStampAnnotation'),
+    );
     expect(standard.supportedAnnotationTypes, contains('hairpinAnnotation'));
     expect(standard.supportedAnnotationTypes, contains('staffGridAnnotation'));
     expect(
       standard.unsupportedAnnotationTypes,
-      isNot(contains('imageStampAnnotation')),
+      contains('webpOrMissingImageStampAnnotation'),
     );
     expect(
       standard.unsupportedAnnotationTypes,
@@ -947,6 +950,73 @@ void main() {
       expect(inspection.clefAnnotationCount, 1);
       expect(inspection.containsClefSubtype('Stamp'), isTrue);
       expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+    },
+  );
+
+  test(
+    'does not write standard image stamp annotations without embeddable bytes',
+    () async {
+      final input = File('test-fixtures/pdfs/short-score.pdf');
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-standard-missing-image-stamp-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final outputPath =
+          '${outputDir.path}/short-score-standard-missing-image-stamp.pdf';
+      final now = DateTime.parse('2026-10-13T12:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Short Score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'image-stamp-webp',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+              text: 'WebP stamp',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+              stampKind: SheetAnnotationUserStamp.imageKind,
+              stampAssetRef: 'stamps/user/webp-stamp.webp',
+            ),
+          ],
+        ),
+      );
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        readImageStampAssetBytes: (_) async => <int>[0, 1, 2, 3],
+      );
+
+      expect(result.didWrite, isFalse);
+      expect(result.outputPath, isNull);
+      expect(result.textCount, 1);
+      expect(result.exportedTextCount, 0);
+      expect(
+        result.failureReason,
+        SheetAnnotatedPdfExportResult
+            .standardAnnotationObjectMappingUnavailableReason,
+      );
+      expect(result.hasUnsupportedStandardAnnotationObjectMapping, isTrue);
+      expect(await File(outputPath).exists(), isFalse);
     },
   );
 

@@ -198,11 +198,14 @@ class SheetAnnotatedPdfExporter {
           'freeTextAnnotation',
           'textStampAnnotation',
           'iconTextStampAnnotation',
-          'imageStampAnnotation',
+          'pngJpegImageStampAnnotation',
           'hairpinAnnotation',
           'staffGridAnnotation',
         ],
-        unsupportedAnnotationTypes: <String>['richStampAppearanceAnnotation'],
+        unsupportedAnnotationTypes: <String>[
+          'richStampAppearanceAnnotation',
+          'webpOrMissingImageStampAnnotation',
+        ],
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
           'mobileSheetsPiascoreFixture',

@@ -2342,3 +2342,9 @@ then show a target layer picker that excludes the current layer and includes vis
 state. The action reuses the S199 controller path and reports save failures without moving unrelated
 annotations. Widget coverage verifies the target picker, and full format, analyze, 1,577-test suite
 and RC release checks passed.
+
+S201 VERIFIED LOCAL: tightened the editable PDF image stamp policy so the UI and capability model no
+longer imply every image stamp can become a standard `/Stamp`. PNG/JPEG image stamp bytes remain the
+supported editable path; WebP, missing or corrupt image stamp bytes stay on the general flattened-copy
+fallback path with a clear unsupported mapping result. Focused exporter tests cover unsupported image
+bytes, and full format, analyze, 1,578-test suite and RC release checks passed.

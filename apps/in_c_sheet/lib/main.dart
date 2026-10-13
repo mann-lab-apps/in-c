@@ -15544,7 +15544,7 @@ setlist=$setlistLabel
             ListTile(
               leading: const Icon(Icons.edit_document),
               title: const Text('편집 가능한 PDF 주석'),
-              subtitle: const Text('펜, 선, 사각형, 텍스트를 표준 PDF 주석으로 내보냅니다'),
+              subtitle: const Text('지원되는 필기와 PNG/JPEG 스탬프를 표준 PDF 주석으로 내보냅니다'),
               onTap: () =>
                   Navigator.of(context)
                       .pop(SheetPdfAnnotationExportMode.standardAnnotation),

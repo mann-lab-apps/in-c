@@ -401,7 +401,9 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 8. `필기 포함 PDF 공유/인쇄`의 일반 고정 사본을 만들어 PNG/JPEG image stamp가 label만이 아니라
    실제 bitmap으로 보이는지 확인한다. WebP asset은 현재 label fallback으로 기록한다.
 9. 편집 가능한 PDF 주석 사본도 만들어 PNG/JPEG image stamp가 `/Stamp` annotation으로 남는지 확인한다.
-   Acrobat/Preview/MobileSheets/Piascore에서 보이지 않거나 선택/이동이 이상하면 호환성 ISSUE로 기록한다.
+   WebP/누락/깨진 image stamp만 있는 경우에는 편집 가능한 사본을 만들지 않고 일반 사본 선택 안내가
+   나와야 한다. Acrobat/Preview/MobileSheets/Piascore에서 보이지 않거나 선택/이동이 이상하면
+   호환성 ISSUE로 기록한다.
 
 ## Editable PDF annotation export QA
 
