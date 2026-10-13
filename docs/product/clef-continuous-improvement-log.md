@@ -2525,3 +2525,10 @@ which could drift from the template target list and omit Android PDF viewer. Tho
 now derive from `viewerTargets`, so the report body and fixture metadata include Android PDF viewer
 whenever the target list does. Focused compatibility report tests, fixture generation, full analyze,
 the 1,610-test suite and RC release checks passed.
+
+S228 VERIFIED LOCAL: aligned current product and QA docs with the editable PDF compatibility target
+set. The generator/report template now includes Android PDF viewer, but several current docs still
+described only Acrobat/Preview/MobileSheets/Piascore as the external viewer set. The current runbook,
+feature map, MobileSheets inventory and spike backlog now include Android PDF viewer in the external
+compatibility target wording while older historical log entries remain unchanged. `git diff --check`,
+targeted trailing whitespace/tab scans and a PCRE stale target wording scan passed.

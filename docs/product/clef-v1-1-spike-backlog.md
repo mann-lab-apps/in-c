@@ -186,7 +186,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
   모두 포함한 manual QA용 PDF와 PASS/ISSUE/BLOCKED/NOT_TESTED report template을
   `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection 통과 후
-  Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다. Report review gate는 viewer row
+  Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer 확인 대상으로 넘긴다. Report review gate는 viewer row
   누락, evidence 없는 row, NOT_TESTED cell, ISSUE, BLOCKED를 별도로 요약하며 모두 해소되기
   전에는 external compatibility 완료로 보지 않는다. 채운 report는 같은 도구의 `--review-report`
   mode로 다시 검사할 수 있다.
@@ -195,7 +195,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   fallback과 외부 viewer 호환성 검증이 필요하다.
 - 결정 필요사항: rich stamp appearance를 표준 PDF annotation으로 유지할지, flatten vs editable export
   mode UI를 어떻게 둘지, 외부 viewer evidence를 어떤 릴리즈 기준으로 통과시킬지.
-- 구현 후보: Acrobat/Preview/MobileSheets/Piascore manual matrix result 수집,
+- 구현 후보: Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer manual matrix result 수집,
   music-symbol/Unicode FreeText fallback policy, external viewer evidence package.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.

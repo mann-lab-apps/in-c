@@ -405,7 +405,7 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
    실제 bitmap으로 보이는지 확인한다. 누락/깨진 asset은 label fallback으로 기록한다.
 9. 편집 가능한 PDF 주석 사본도 만들어 PNG/JPEG/WebP image stamp가 `/Stamp` annotation으로 남는지 확인한다.
    누락/깨진 image stamp만 있는 경우에는 편집 가능한 사본을 만들지 않고 일반 사본 선택 안내가
-   나와야 한다. Acrobat/Preview/MobileSheets/Piascore에서 보이지 않거나 선택/이동이 이상하면
+   나와야 한다. Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer에서 보이지 않거나 선택/이동이 이상하면
    호환성 ISSUE로 기록한다.
 
 ## Editable PDF annotation export QA
@@ -424,7 +424,7 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
-4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
+4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore, Android PDF viewer 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
    생성된 report template의 viewer matrix를 `PASS` / `ISSUE` / `BLOCKED` / `NOT_TESTED`로 채운 뒤 결과를 공유한다.
    report의 `Required external checks`에는 viewer별로 꼭 확인할 항목이 분리되어 있으므로, 보이는지만 확인하지 말고
    선택/이동/편집 가능 여부, text stamp, music-symbol stamp, PNG image stamp, WebP image stamp와
