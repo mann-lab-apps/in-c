@@ -2335,3 +2335,10 @@ moves clear redo/erase redo stacks like other annotation edits to avoid stale re
 model and controller tests verify stroke/text moves, persistence, missing-layer rejection and deleted
 layer fallback. User-facing move-to-layer menu, per-layer undo and multi-select operations remain
 follow-up.
+
+S200 VERIFIED LOCAL: opened the user-facing move-to-layer path for existing annotations. Tapped
+stroke/text/stamp action sheets now expose `다른 layer로 이동` only when multiple display layers exist,
+then show a target layer picker that excludes the current layer and includes visibility/PDF export
+state. The action reuses the S199 controller path and reports save failures without moving unrelated
+annotations. Widget coverage verifies the target picker, and full format, analyze, 1,577-test suite
+and RC release checks passed.

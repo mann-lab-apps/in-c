@@ -10711,10 +10711,18 @@ enum _TextAnnotationAction {
   moveDown,
   moveLeft,
   moveRight,
+  moveLayer,
   delete,
 }
 
-enum _StrokeAnnotationAction { moveUp, moveDown, moveLeft, moveRight, delete }
+enum _StrokeAnnotationAction {
+  moveUp,
+  moveDown,
+  moveLeft,
+  moveRight,
+  moveLayer,
+  delete,
+}
 
 enum _PageOrderAction { moveUp, moveDown, duplicate, reset }
 
@@ -16103,6 +16111,19 @@ setlist=$setlistLabel
               onTap: () =>
                   Navigator.of(context).pop(_StrokeAnnotationAction.moveRight),
             ),
+            if (score.annotationLayer.hasMultipleDisplayLayers)
+              ListTile(
+                leading: const Icon(Icons.layers_outlined),
+                title: const Text('다른 layer로 이동'),
+                subtitle: Text(
+                  score.annotationLayer
+                      .displayLayerForAnnotation(annotation.layerId)
+                      .label,
+                ),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_StrokeAnnotationAction.moveLayer),
+              ),
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.delete_outline),
@@ -16130,6 +16151,13 @@ setlist=$setlistLabel
         return;
       case _StrokeAnnotationAction.moveRight:
         await _nudgeStrokeAnnotation(annotation, dx: 0.015, dy: 0);
+        return;
+      case _StrokeAnnotationAction.moveLayer:
+        await _moveAnnotationToDisplayLayer(
+          annotation.id,
+          currentLayerId: annotation.layerId,
+          annotationLabel: '필기/도형',
+        );
         return;
       case _StrokeAnnotationAction.delete:
         final didRemove = await _saveAnnotationChange(
@@ -16195,6 +16223,18 @@ setlist=$setlistLabel
               onTap: () =>
                   Navigator.of(context).pop(_TextAnnotationAction.moveRight),
             ),
+            if (score.annotationLayer.hasMultipleDisplayLayers)
+              ListTile(
+                leading: const Icon(Icons.layers_outlined),
+                title: const Text('다른 layer로 이동'),
+                subtitle: Text(
+                  score.annotationLayer
+                      .displayLayerForAnnotation(annotation.layerId)
+                      .label,
+                ),
+                onTap: () =>
+                    Navigator.of(context).pop(_TextAnnotationAction.moveLayer),
+              ),
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.delete_outline),
@@ -16251,6 +16291,13 @@ setlist=$setlistLabel
       case _TextAnnotationAction.moveRight:
         await _nudgeTextAnnotation(annotation, dx: 0.015, dy: 0);
         return;
+      case _TextAnnotationAction.moveLayer:
+        await _moveAnnotationToDisplayLayer(
+          annotation.id,
+          currentLayerId: annotation.layerId,
+          annotationLabel: annotation.isImageStamp ? '스탬프' : '텍스트/스탬프',
+        );
+        return;
       case _TextAnnotationAction.delete:
         final didRemove = await _saveAnnotationChange(
           () => widget.controller.removeTextAnnotation(score, annotation.id),
@@ -16289,6 +16336,44 @@ setlist=$setlistLabel
     );
     if (didUpdate == null) return;
     _showSnackBar(didUpdate ? '필기/도형 위치를 조정했습니다.' : '이동할 필기/도형이 없습니다.');
+  }
+
+  Future<void> _moveAnnotationToDisplayLayer(
+    String annotationId, {
+    required String currentLayerId,
+    required String annotationLabel,
+  }) async {
+    final layers = score.annotationLayer.layers;
+    final currentLayer = score.annotationLayer.displayLayerForAnnotation(
+      currentLayerId,
+    );
+    final targetLayerId = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _AnnotationMoveLayerSheet(
+        layers: layers,
+        currentLayerId: currentLayer.id,
+      ),
+    );
+    if (targetLayerId == null || !mounted) {
+      return;
+    }
+    final targetLayer = score.annotationLayer.displayLayerForAnnotation(
+      targetLayerId,
+    );
+    final didMove = await _saveAnnotationChange(
+      () => widget.controller.moveAnnotationToDisplayLayer(
+        score,
+        annotationId: annotationId,
+        layerId: targetLayer.id,
+      ),
+    );
+    if (didMove == null) return;
+    _showSnackBar(
+      didMove
+          ? '$annotationLabel을 ${targetLayer.label} layer로 이동했습니다.'
+          : '이동할 주석이나 대상 layer를 찾지 못했습니다.',
+    );
   }
 
   Future<void> _eraseAnnotationAt(
@@ -20960,6 +21045,57 @@ String _userStampPrintableText(SheetAnnotationUserStamp stamp) {
   return stamp.text.isEmpty ? stamp.label : stamp.text;
 }
 
+class _AnnotationMoveLayerSheet extends StatelessWidget {
+  const _AnnotationMoveLayerSheet({
+    required this.layers,
+    required this.currentLayerId,
+  });
+
+  final List<SheetAnnotationDisplayLayer> layers;
+  final String currentLayerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final targetLayers = layers
+        .where((layer) => layer.id != currentLayerId)
+        .toList(growable: false);
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.only(bottom: 12),
+        children: [
+          const ListTile(
+            leading: Icon(Icons.layers_outlined),
+            title: Text('다른 layer로 이동'),
+            subtitle: Text('선택한 주석만 대상 layer로 옮깁니다.'),
+          ),
+          if (targetLayers.isEmpty)
+            const ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('이동할 다른 layer가 없습니다.'),
+              subtitle: Text('필기 layer를 하나 더 만든 뒤 다시 시도하세요.'),
+            )
+          else
+            for (final layer in targetLayers)
+              ListTile(
+                leading: Icon(
+                  layer.isVisible ? Icons.layers : Icons.layers_clear_outlined,
+                ),
+                title: Text(layer.label),
+                subtitle: Text(
+                  [
+                    layer.isVisible ? '표시' : '숨김',
+                    layer.includeInExport ? 'PDF 포함' : 'PDF 제외',
+                  ].join(' · '),
+                ),
+                onTap: () => Navigator.of(context).pop(layer.id),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 SheetAnnotationDisplayLayer _newAnnotationDisplayLayer(
   List<SheetAnnotationDisplayLayer> existingLayers,
   String label,
@@ -25238,6 +25374,26 @@ Widget buildAnnotationToolbarForTest({
           onToggleLayerExport: () {},
           onSaveFavorite: () {},
           onApplyFavorite: () {},
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildAnnotationMoveLayerSheetForTest({
+  List<SheetAnnotationDisplayLayer> layers = const [
+    SheetAnnotationDisplayLayer.defaultLayer,
+    SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+  ],
+  String currentLayerId = SheetAnnotationDisplayLayer.defaultLayerId,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Builder(
+        builder: (context) => _AnnotationMoveLayerSheet(
+          layers: layers,
+          currentLayerId: currentLayerId,
         ),
       ),
     ),

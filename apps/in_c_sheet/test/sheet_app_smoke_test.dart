@@ -3568,6 +3568,34 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('annotation move layer sheet shows only target layers', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildAnnotationMoveLayerSheetForTest(
+        currentLayerId: 'rehearsal',
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+          SheetAnnotationDisplayLayer(
+            id: 'private',
+            label: '개인 메모',
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('다른 layer로 이동'), findsOneWidget);
+    expect(find.text('선택한 주석만 대상 layer로 옮깁니다.'), findsOneWidget);
+    expect(find.text('기본 필기'), findsOneWidget);
+    expect(find.text('개인 메모'), findsOneWidget);
+    expect(find.text('숨김 · PDF 제외'), findsOneWidget);
+    expect(find.text('리허설 메모'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('annotation stamp picker creates and deletes user stamps', (
     tester,
   ) async {
