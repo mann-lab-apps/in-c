@@ -2387,3 +2387,9 @@ module matrix and keeps the raw copy fallback available when the payload is too 
 fails. This narrows the next UI slice to rendering/copying an already validated invite, while still
 leaving camera scanning, transport and two-device QA as follow-up work. Focused collaboration session
 tests, full analyze, 1,588-test suite and RC release checks passed.
+
+S208 VERIFIED LOCAL: moved leader/follower QR pairing from pure model toward reusable UI without
+enabling a network session yet. `SheetCollaborationInviteQrView` renders a validated QR module matrix,
+keeps a named copy-code action, and falls back to selectable invite payload text when QR generation is
+blocked. Widget coverage checks the scannable QR view and the copy fallback view before any route is
+added to the app. Focused QR view tests, full analyze, 1,590-test suite and RC release checks passed.
