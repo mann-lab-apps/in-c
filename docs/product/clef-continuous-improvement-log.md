@@ -2380,3 +2380,10 @@ S206 VERIFIED LOCAL: reduced the leader/follower tablet risk before choosing a n
 reports ready, missing-score and empty-setlist states, so a future pairing UI can block sessions that
 would otherwise leave the follower on the wrong score. Focused collaboration session tests, full
 analyze, 1,586-test suite and RC release checks passed.
+
+S207 VERIFIED LOCAL: prepared QR pairing UI without opening network transport yet.
+`SheetCollaborationInviteQrPlan` turns the versioned collaboration invite payload into a portable QR
+module matrix and keeps the raw copy fallback available when the payload is too large or QR generation
+fails. This narrows the next UI slice to rendering/copying an already validated invite, while still
+leaving camera scanning, transport and two-device QA as follow-up work. Focused collaboration session
+tests, full analyze, 1,588-test suite and RC release checks passed.

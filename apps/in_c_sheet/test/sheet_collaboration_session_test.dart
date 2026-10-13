@@ -138,6 +138,58 @@ void main() {
     expect(decoded.message, contains('필요한 공연 세션 정보'));
   });
 
+  test('collaboration invite QR plan renders a scannable module matrix', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final invite = SheetCollaborationInvite(
+      sessionId: 'session-1',
+      leaderDeviceId: 'leader-a',
+      setlistId: 'setlist-a',
+      createdAt: now,
+      expiresAt: now.add(const Duration(minutes: 5)),
+    );
+
+    final plan = SheetCollaborationInviteQrPlan.forInvite(invite);
+
+    expect(plan.canRenderQr, isTrue);
+    expect(plan.payloadBytes, greaterThan(0));
+    expect(plan.moduleCount, greaterThanOrEqualTo(21));
+    expect(plan.minimumPixelSize, plan.moduleCount * 4);
+    expect(plan.darkModuleCount, greaterThan(0));
+    expect(plan.modules, hasLength(plan.moduleCount));
+    expect(plan.modules.first, hasLength(plan.moduleCount));
+    expect(plan.modules.first.first, isTrue);
+    expect(plan.reviewLines, contains(contains('QR')));
+
+    final decoded = SheetCollaborationInvite.decodePayload(
+      plan.copyFallbackPayload,
+      now: now.add(const Duration(minutes: 1)),
+    );
+    expect(decoded.isValid, isTrue);
+    expect(decoded.invite?.setlistId, 'setlist-a');
+  });
+
+  test(
+    'collaboration invite QR plan falls back to copy for large payloads',
+    () {
+      final now = DateTime.utc(2026, 10, 2, 12);
+      final invite = SheetCollaborationInvite(
+        sessionId: 'session-${'x' * 950}',
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        createdAt: now,
+        expiresAt: now.add(const Duration(minutes: 5)),
+      );
+
+      final plan = SheetCollaborationInviteQrPlan.forInvite(invite);
+
+      expect(plan.canRenderQr, isFalse);
+      expect(plan.moduleCount, 0);
+      expect(plan.modules, isEmpty);
+      expect(plan.copyFallbackPayload, invite.toPayload());
+      expect(plan.reviewLines, contains(contains('코드 복사')));
+    },
+  );
+
   test('local simulator applies leader pages through the follower reducer', () {
     final now = DateTime.utc(2026, 10, 2, 12);
     final simulator = SheetCollaborationLocalSimulator(

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:qr/qr.dart';
+
 const String sheetCollaborationInviteScope = 'clef.collaboration.invite';
 const int sheetCollaborationInviteVersion = 1;
 
@@ -209,6 +211,102 @@ class SheetCollaborationInviteDecodeResult {
   final SheetCollaborationInvite? invite;
 
   bool get isValid => status == SheetCollaborationInviteStatus.valid;
+}
+
+class SheetCollaborationInviteQrPlan {
+  const SheetCollaborationInviteQrPlan({
+    required this.payload,
+    required this.payloadBytes,
+    required this.canRenderQr,
+    required this.moduleCount,
+    required this.minimumPixelSize,
+    required this.darkModuleCount,
+    required this.modules,
+    required this.reviewLines,
+  });
+
+  factory SheetCollaborationInviteQrPlan.forInvite(
+    SheetCollaborationInvite invite, {
+    int errorCorrectLevel = QrErrorCorrectLevel.M,
+    int maxPayloadBytes = 900,
+    int minPixelsPerModule = 4,
+  }) {
+    final payload = invite.toPayload();
+    final payloadBytes = utf8.encode(payload).length;
+    if (payloadBytes > maxPayloadBytes) {
+      return SheetCollaborationInviteQrPlan(
+        payload: payload,
+        payloadBytes: payloadBytes,
+        canRenderQr: false,
+        moduleCount: 0,
+        minimumPixelSize: 0,
+        darkModuleCount: 0,
+        modules: const <List<bool>>[],
+        reviewLines: const <String>[
+          '초대 코드가 QR로 표시하기엔 깁니다.',
+          '코드 복사로 전달하거나 새 초대를 만들어주세요.',
+        ],
+      );
+    }
+
+    try {
+      final qrCode = QrCode.fromData(
+        data: payload,
+        errorCorrectLevel: errorCorrectLevel,
+      );
+      final qrImage = QrImage(qrCode);
+      var darkModuleCount = 0;
+      final modules = List<List<bool>>.generate(qrImage.moduleCount, (row) {
+        return List<bool>.unmodifiable(
+          List<bool>.generate(qrImage.moduleCount, (column) {
+            final dark = qrImage.isDark(row, column);
+            if (dark) {
+              darkModuleCount += 1;
+            }
+            return dark;
+          }),
+        );
+      });
+      return SheetCollaborationInviteQrPlan(
+        payload: payload,
+        payloadBytes: payloadBytes,
+        canRenderQr: true,
+        moduleCount: qrImage.moduleCount,
+        minimumPixelSize: qrImage.moduleCount * minPixelsPerModule,
+        darkModuleCount: darkModuleCount,
+        modules: List<List<bool>>.unmodifiable(modules),
+        reviewLines: <String>[
+          'QR ${qrImage.moduleCount}x${qrImage.moduleCount} 모듈을 표시할 수 있습니다.',
+          '인식 실패 시 코드 복사를 대체 경로로 제공합니다.',
+        ],
+      );
+    } on Object {
+      return SheetCollaborationInviteQrPlan(
+        payload: payload,
+        payloadBytes: payloadBytes,
+        canRenderQr: false,
+        moduleCount: 0,
+        minimumPixelSize: 0,
+        darkModuleCount: 0,
+        modules: const <List<bool>>[],
+        reviewLines: const <String>[
+          '초대 QR을 만들지 못했습니다.',
+          '코드 복사로 전달하거나 새 초대를 만들어주세요.',
+        ],
+      );
+    }
+  }
+
+  final String payload;
+  final int payloadBytes;
+  final bool canRenderQr;
+  final int moduleCount;
+  final int minimumPixelSize;
+  final int darkModuleCount;
+  final List<List<bool>> modules;
+  final List<String> reviewLines;
+
+  String get copyFallbackPayload => payload;
 }
 
 class SheetCollaborationLocalSimulator {
