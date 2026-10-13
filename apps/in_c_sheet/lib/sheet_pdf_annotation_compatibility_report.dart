@@ -4,6 +4,14 @@ enum SheetPdfViewerCompatibilityStatus { notTested, pass, issue, blocked }
 
 extension SheetPdfViewerCompatibilityStatusLabel
     on SheetPdfViewerCompatibilityStatus {
+  bool get isKnown {
+    return this != SheetPdfViewerCompatibilityStatus.notTested;
+  }
+
+  bool get isReady {
+    return this == SheetPdfViewerCompatibilityStatus.pass;
+  }
+
   String get label {
     switch (this) {
       case SheetPdfViewerCompatibilityStatus.notTested:
@@ -30,8 +38,151 @@ class SheetPdfViewerCompatibilityTarget {
   final List<String> requiredChecks;
 }
 
+class SheetPdfViewerCompatibilityEntry {
+  const SheetPdfViewerCompatibilityEntry({
+    required this.viewerId,
+    required this.statuses,
+    this.notes = '',
+    this.evidence = '',
+  });
+
+  final String viewerId;
+  final Map<String, SheetPdfViewerCompatibilityStatus> statuses;
+  final String notes;
+  final String evidence;
+
+  List<String> untestedColumns(Iterable<String> columns) {
+    return [
+      for (final column in columns)
+        if ((statuses[column] ?? SheetPdfViewerCompatibilityStatus.notTested) ==
+            SheetPdfViewerCompatibilityStatus.notTested)
+          column,
+    ];
+  }
+
+  List<String> issueColumns(Iterable<String> columns) {
+    return [
+      for (final column in columns)
+        if (statuses[column] == SheetPdfViewerCompatibilityStatus.issue) column,
+    ];
+  }
+
+  List<String> blockedColumns(Iterable<String> columns) {
+    return [
+      for (final column in columns)
+        if (statuses[column] == SheetPdfViewerCompatibilityStatus.blocked)
+          column,
+    ];
+  }
+}
+
+class SheetPdfViewerCompatibilityGate {
+  const SheetPdfViewerCompatibilityGate._({
+    required this.missingViewerIds,
+    required this.untestedCells,
+    required this.issueCells,
+    required this.blockedCells,
+  });
+
+  factory SheetPdfViewerCompatibilityGate.review({
+    required List<SheetPdfViewerCompatibilityEntry> entries,
+    Iterable<SheetPdfViewerCompatibilityTarget> targets =
+        SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets,
+    Iterable<String> columns =
+        SheetPdfAnnotationCompatibilityReportTemplate.viewerMatrixColumns,
+  }) {
+    final entryByViewer = {for (final entry in entries) entry.viewerId: entry};
+    final missingViewerIds = <String>[];
+    final untestedCells = <String, List<String>>{};
+    final issueCells = <String, List<String>>{};
+    final blockedCells = <String, List<String>>{};
+    for (final target in targets) {
+      final entry = entryByViewer[target.id];
+      if (entry == null) {
+        missingViewerIds.add(target.id);
+        untestedCells[target.id] = List<String>.from(columns);
+        continue;
+      }
+      final untested = entry.untestedColumns(columns);
+      if (untested.isNotEmpty) {
+        untestedCells[target.id] = untested;
+      }
+      final issues = entry.issueColumns(columns);
+      if (issues.isNotEmpty) {
+        issueCells[target.id] = issues;
+      }
+      final blocked = entry.blockedColumns(columns);
+      if (blocked.isNotEmpty) {
+        blockedCells[target.id] = blocked;
+      }
+    }
+    return SheetPdfViewerCompatibilityGate._(
+      missingViewerIds: missingViewerIds,
+      untestedCells: untestedCells,
+      issueCells: issueCells,
+      blockedCells: blockedCells,
+    );
+  }
+
+  final List<String> missingViewerIds;
+  final Map<String, List<String>> untestedCells;
+  final Map<String, List<String>> issueCells;
+  final Map<String, List<String>> blockedCells;
+
+  bool get hasMissingViewers => missingViewerIds.isNotEmpty;
+  bool get hasUntestedCells => untestedCells.isNotEmpty;
+  bool get hasIssues => issueCells.isNotEmpty;
+  bool get hasBlockedCells => blockedCells.isNotEmpty;
+
+  bool get canClaimExternalCompatibility {
+    return !hasMissingViewers &&
+        !hasUntestedCells &&
+        !hasIssues &&
+        !hasBlockedCells;
+  }
+
+  String markdownSummary() {
+    if (canClaimExternalCompatibility) {
+      return '- External viewer compatibility gate: PASS';
+    }
+    final lines = <String>['- External viewer compatibility gate: NOT READY'];
+    if (missingViewerIds.isNotEmpty) {
+      lines.add('- Missing viewer rows: ${missingViewerIds.join(', ')}');
+    }
+    if (untestedCells.isNotEmpty) {
+      lines.add('- NOT_TESTED cells: ${_cellSummary(untestedCells)}');
+    }
+    if (issueCells.isNotEmpty) {
+      lines.add('- ISSUE cells: ${_cellSummary(issueCells)}');
+    }
+    if (blockedCells.isNotEmpty) {
+      lines.add('- BLOCKED cells: ${_cellSummary(blockedCells)}');
+    }
+    return lines.join('\n');
+  }
+
+  static String _cellSummary(Map<String, List<String>> cells) {
+    return cells.entries
+        .map((entry) => '${entry.key}(${entry.value.join(', ')})')
+        .join('; ');
+  }
+}
+
 class SheetPdfAnnotationCompatibilityReportTemplate {
   const SheetPdfAnnotationCompatibilityReportTemplate._();
+
+  static const viewerMatrixColumns = <String>[
+    'Ink',
+    'Line/arrow',
+    'Rectangle',
+    'Hairpin',
+    'Staff/grid',
+    'FreeText',
+    'Text/icon stamp',
+    'Image stamp',
+    'Unicode text',
+    'Select/edit',
+  ];
 
   static const viewerTargets = <SheetPdfViewerCompatibilityTarget>[
     SheetPdfViewerCompatibilityTarget(
@@ -120,6 +271,12 @@ Result legend:
 - `${SheetPdfViewerCompatibilityStatus.issue.label}`: viewer opens the PDF but rendering, glyphs, selection or editing is wrong.
 - `${SheetPdfViewerCompatibilityStatus.blocked.label}`: viewer cannot open the file or the device/app is unavailable.
 - `${SheetPdfViewerCompatibilityStatus.notTested.label}`: not checked yet.
+
+Completion gate:
+
+- Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has evidence.
+- Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
+- Treat local inspection as a fixture sanity check, not as proof of Acrobat/Preview/MobileSheets/Piascore behavior.
 
 Unicode FreeText contents:
 

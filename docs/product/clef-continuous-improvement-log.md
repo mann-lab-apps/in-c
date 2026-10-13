@@ -2451,3 +2451,12 @@ tracks the selected layer for new strokes/text/stamps, so toolbar undo/redo now 
 same layer id instead of operating across every visible layer on the page. This keeps ensemble or
 private layers from being changed while the user is editing a different layer. Focused annotation
 tests, full analyze, 1,604-test suite and RC release checks passed.
+
+S218 VERIFIED LOCAL: tightened the editable PDF external-viewer compatibility gate. The generated
+compatibility report now has an explicit completion gate: every Acrobat/Preview/MobileSheets/Piascore/
+Android viewer matrix cell must move out of NOT_TESTED and no ISSUE/BLOCKED cells can remain before
+external compatibility is claimed. A reusable review model summarizes missing viewer rows, untested
+cells, issues and blockers, so manual QA evidence cannot be confused with local PDF inspection alone.
+Focused compatibility report tests, fixture generation/report inspection, Poppler first-page render,
+full analyze, 1,606-test suite and RC release checks passed. External viewer behavior remains
+Device QA.

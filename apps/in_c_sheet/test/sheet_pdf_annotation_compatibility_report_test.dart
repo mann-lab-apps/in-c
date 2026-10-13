@@ -49,6 +49,11 @@ void main() {
     expect(markdown, contains('`ISSUE`'));
     expect(markdown, contains('`BLOCKED`'));
     expect(markdown, contains('`NOT_TESTED`'));
+    expect(markdown, contains('Completion gate:'));
+    expect(
+      markdown,
+      contains('Do not claim external compatibility while any required cell'),
+    );
     expect(markdown, contains('- `숨 크게`'));
     expect(markdown, contains('| `Ink` | 1 | |'));
     expect(markdown, contains('| `Line` | 2 | |'));
@@ -84,5 +89,87 @@ void main() {
 
     expect(markdown, contains('Generated appearances missing: clef-ink-1'));
     expect(markdown, contains('Unicode FreeText contents:\n\n- none'));
+  });
+
+  test('marks external compatibility gate not ready for missing checks', () {
+    final gate = SheetPdfViewerCompatibilityGate.review(
+      entries: <SheetPdfViewerCompatibilityEntry>[
+        SheetPdfViewerCompatibilityEntry(
+          viewerId: 'acrobat',
+          statuses: <String, SheetPdfViewerCompatibilityStatus>{
+            for (final column
+                in SheetPdfAnnotationCompatibilityReportTemplate
+                    .viewerMatrixColumns)
+              column: SheetPdfViewerCompatibilityStatus.pass,
+          },
+        ),
+        SheetPdfViewerCompatibilityEntry(
+          viewerId: 'preview',
+          statuses: <String, SheetPdfViewerCompatibilityStatus>{
+            'Ink': SheetPdfViewerCompatibilityStatus.pass,
+            'Line/arrow': SheetPdfViewerCompatibilityStatus.issue,
+            'Rectangle': SheetPdfViewerCompatibilityStatus.pass,
+            'Hairpin': SheetPdfViewerCompatibilityStatus.pass,
+            'Staff/grid': SheetPdfViewerCompatibilityStatus.pass,
+            'FreeText': SheetPdfViewerCompatibilityStatus.pass,
+            'Text/icon stamp': SheetPdfViewerCompatibilityStatus.pass,
+            'Image stamp': SheetPdfViewerCompatibilityStatus.pass,
+            'Unicode text': SheetPdfViewerCompatibilityStatus.notTested,
+            'Select/edit': SheetPdfViewerCompatibilityStatus.pass,
+          },
+        ),
+        SheetPdfViewerCompatibilityEntry(
+          viewerId: 'mobilesheets',
+          statuses: <String, SheetPdfViewerCompatibilityStatus>{
+            for (final column
+                in SheetPdfAnnotationCompatibilityReportTemplate
+                    .viewerMatrixColumns)
+              column: SheetPdfViewerCompatibilityStatus.pass,
+          },
+        ),
+        SheetPdfViewerCompatibilityEntry(
+          viewerId: 'piascore',
+          statuses: <String, SheetPdfViewerCompatibilityStatus>{
+            for (final column
+                in SheetPdfAnnotationCompatibilityReportTemplate
+                    .viewerMatrixColumns)
+              column: SheetPdfViewerCompatibilityStatus.pass,
+          },
+        ),
+      ],
+    );
+
+    expect(gate.canClaimExternalCompatibility, isFalse);
+    expect(gate.missingViewerIds, contains('android-pdf-viewer'));
+    expect(gate.untestedCells['preview'], contains('Unicode text'));
+    expect(gate.issueCells['preview'], contains('Line/arrow'));
+    expect(
+      gate.markdownSummary(),
+      contains('External viewer compatibility gate: NOT READY'),
+    );
+    expect(gate.markdownSummary(), contains('android-pdf-viewer'));
+    expect(gate.markdownSummary(), contains('preview(Unicode text)'));
+    expect(gate.markdownSummary(), contains('preview(Line/arrow)'));
+  });
+
+  test('allows external compatibility claim only when every cell passes', () {
+    final gate = SheetPdfViewerCompatibilityGate.review(
+      entries: <SheetPdfViewerCompatibilityEntry>[
+        for (final target
+            in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
+          SheetPdfViewerCompatibilityEntry(
+            viewerId: target.id,
+            statuses: <String, SheetPdfViewerCompatibilityStatus>{
+              for (final column
+                  in SheetPdfAnnotationCompatibilityReportTemplate
+                      .viewerMatrixColumns)
+                column: SheetPdfViewerCompatibilityStatus.pass,
+            },
+          ),
+      ],
+    );
+
+    expect(gate.canClaimExternalCompatibility, isTrue);
+    expect(gate.markdownSummary(), contains('gate: PASS'));
   });
 }
