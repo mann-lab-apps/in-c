@@ -166,11 +166,12 @@ class SheetPdfViewerCompatibilityGate {
     }
     final lines = <String>['- External viewer compatibility gate: NOT READY'];
     if (missingViewerIds.isNotEmpty) {
-      lines.add('- Missing viewer rows: ${missingViewerIds.join(', ')}');
+      lines.add('- Missing viewer rows: ${_viewerSummary(missingViewerIds)}');
     }
     if (missingEvidenceViewerIds.isNotEmpty) {
       lines.add(
-        '- Missing viewer evidence: ${missingEvidenceViewerIds.join(', ')}',
+        '- Missing viewer evidence: '
+        '${_viewerSummary(missingEvidenceViewerIds)}',
       );
     }
     if (untestedCells.isNotEmpty) {
@@ -187,8 +188,22 @@ class SheetPdfViewerCompatibilityGate {
 
   static String _cellSummary(Map<String, List<String>> cells) {
     return cells.entries
-        .map((entry) => '${entry.key}(${entry.value.join(', ')})')
+        .map((entry) => '${_viewerLabel(entry.key)}(${entry.value.join(', ')})')
         .join('; ');
+  }
+
+  static String _viewerSummary(List<String> viewerIds) {
+    return viewerIds.map(_viewerLabel).join(', ');
+  }
+
+  static String _viewerLabel(String viewerId) {
+    for (final target
+        in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets) {
+      if (target.id == viewerId) {
+        return target.label;
+      }
+    }
+    return viewerId;
   }
 }
 

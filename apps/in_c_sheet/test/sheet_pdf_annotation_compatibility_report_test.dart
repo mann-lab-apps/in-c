@@ -169,10 +169,10 @@ void main() {
       gate.markdownSummary(),
       contains('External viewer compatibility gate: NOT READY'),
     );
-    expect(gate.markdownSummary(), contains('android-pdf-viewer'));
+    expect(gate.markdownSummary(), contains('Android PDF viewer'));
     expect(gate.markdownSummary(), contains('Missing viewer evidence'));
-    expect(gate.markdownSummary(), contains('preview(Unicode text)'));
-    expect(gate.markdownSummary(), contains('preview(Line/arrow)'));
+    expect(gate.markdownSummary(), contains('macOS Preview(Unicode text)'));
+    expect(gate.markdownSummary(), contains('macOS Preview(Line/arrow)'));
   });
 
   test(

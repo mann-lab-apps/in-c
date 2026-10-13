@@ -2553,3 +2553,8 @@ report template and generator explained manual viewer checks, but they did not s
 Unicode FreeText appearance fixtures. This slice prints the required spike list in both places and
 locks the markdown template with compatibility report tests. Focused report tests, fixture
 generation, full analyze, the 1,610-test suite and RC release checks passed.
+
+S232 VERIFIED LOCAL: polished editable PDF compatibility review output for human handoff. The gate
+still tracks viewer IDs internally, but `--review-report` summaries now render missing/evidence/issue
+summaries with the same visible labels shown in the report, such as Android PDF viewer and macOS
+Preview. Focused report tests, full analyze, the 1,610-test suite and RC release checks passed.
