@@ -2491,3 +2491,10 @@ Korean text and music symbols differently depending on font fallback. The manual
 requires separate text-stamp and music-symbol stamp evidence, required checks call out both classes,
 and the local report keeps them distinct from generic FreeText and Unicode text. Focused report tests
 and regenerated report inspection passed, with full analyze, 1,608-test suite and RC release checks.
+
+S223 VERIFIED LOCAL: made the editable PDF external compatibility gate enforce the report's evidence
+rule. The report has said every viewer row needs evidence, but the local gate could still pass rows
+that only changed cells to PASS and left result notes blank. The gate now tracks missing viewer
+evidence, blocks external compatibility claims until each row includes notes/evidence, and summarizes
+the missing viewer ids during report review. Focused report tests, a NOT_READY generated-report
+review, full analyze, 1,609-test suite and RC release checks passed.

@@ -89,6 +89,7 @@ class SheetPdfViewerCompatibilityEntry {
 class SheetPdfViewerCompatibilityGate {
   const SheetPdfViewerCompatibilityGate._({
     required this.missingViewerIds,
+    required this.missingEvidenceViewerIds,
     required this.untestedCells,
     required this.issueCells,
     required this.blockedCells,
@@ -103,6 +104,7 @@ class SheetPdfViewerCompatibilityGate {
   }) {
     final entryByViewer = {for (final entry in entries) entry.viewerId: entry};
     final missingViewerIds = <String>[];
+    final missingEvidenceViewerIds = <String>[];
     final untestedCells = <String, List<String>>{};
     final issueCells = <String, List<String>>{};
     final blockedCells = <String, List<String>>{};
@@ -112,6 +114,9 @@ class SheetPdfViewerCompatibilityGate {
         missingViewerIds.add(target.id);
         untestedCells[target.id] = List<String>.from(columns);
         continue;
+      }
+      if (entry.notes.trim().isEmpty && entry.evidence.trim().isEmpty) {
+        missingEvidenceViewerIds.add(target.id);
       }
       final untested = entry.untestedColumns(columns);
       if (untested.isNotEmpty) {
@@ -128,6 +133,7 @@ class SheetPdfViewerCompatibilityGate {
     }
     return SheetPdfViewerCompatibilityGate._(
       missingViewerIds: missingViewerIds,
+      missingEvidenceViewerIds: missingEvidenceViewerIds,
       untestedCells: untestedCells,
       issueCells: issueCells,
       blockedCells: blockedCells,
@@ -135,17 +141,20 @@ class SheetPdfViewerCompatibilityGate {
   }
 
   final List<String> missingViewerIds;
+  final List<String> missingEvidenceViewerIds;
   final Map<String, List<String>> untestedCells;
   final Map<String, List<String>> issueCells;
   final Map<String, List<String>> blockedCells;
 
   bool get hasMissingViewers => missingViewerIds.isNotEmpty;
+  bool get hasMissingEvidence => missingEvidenceViewerIds.isNotEmpty;
   bool get hasUntestedCells => untestedCells.isNotEmpty;
   bool get hasIssues => issueCells.isNotEmpty;
   bool get hasBlockedCells => blockedCells.isNotEmpty;
 
   bool get canClaimExternalCompatibility {
     return !hasMissingViewers &&
+        !hasMissingEvidence &&
         !hasUntestedCells &&
         !hasIssues &&
         !hasBlockedCells;
@@ -158,6 +167,11 @@ class SheetPdfViewerCompatibilityGate {
     final lines = <String>['- External viewer compatibility gate: NOT READY'];
     if (missingViewerIds.isNotEmpty) {
       lines.add('- Missing viewer rows: ${missingViewerIds.join(', ')}');
+    }
+    if (missingEvidenceViewerIds.isNotEmpty) {
+      lines.add(
+        '- Missing viewer evidence: ${missingEvidenceViewerIds.join(', ')}',
+      );
     }
     if (untestedCells.isNotEmpty) {
       lines.add('- NOT_TESTED cells: ${_cellSummary(untestedCells)}');

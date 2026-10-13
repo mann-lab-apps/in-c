@@ -150,6 +150,7 @@ void main() {
 
     expect(gate.canClaimExternalCompatibility, isFalse);
     expect(gate.missingViewerIds, contains('android-pdf-viewer'));
+    expect(gate.missingEvidenceViewerIds, contains('acrobat'));
     expect(gate.untestedCells['preview'], contains('Unicode text'));
     expect(gate.issueCells['preview'], contains('Line/arrow'));
     expect(
@@ -157,11 +158,37 @@ void main() {
       contains('External viewer compatibility gate: NOT READY'),
     );
     expect(gate.markdownSummary(), contains('android-pdf-viewer'));
+    expect(gate.markdownSummary(), contains('Missing viewer evidence'));
     expect(gate.markdownSummary(), contains('preview(Unicode text)'));
     expect(gate.markdownSummary(), contains('preview(Line/arrow)'));
   });
 
-  test('allows external compatibility claim only when every cell passes', () {
+  test(
+    'allows external compatibility claim only with pass cells and evidence',
+    () {
+      final gate = SheetPdfViewerCompatibilityGate.review(
+        entries: <SheetPdfViewerCompatibilityEntry>[
+          for (final target
+              in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
+            SheetPdfViewerCompatibilityEntry(
+              viewerId: target.id,
+              statuses: <String, SheetPdfViewerCompatibilityStatus>{
+                for (final column
+                    in SheetPdfAnnotationCompatibilityReportTemplate
+                        .viewerMatrixColumns)
+                  column: SheetPdfViewerCompatibilityStatus.pass,
+              },
+              notes: '${target.label} screenshot and edit notes',
+            ),
+        ],
+      );
+
+      expect(gate.canClaimExternalCompatibility, isTrue);
+      expect(gate.markdownSummary(), contains('gate: PASS'));
+    },
+  );
+
+  test('keeps external compatibility blocked when pass rows lack evidence', () {
     final gate = SheetPdfViewerCompatibilityGate.review(
       entries: <SheetPdfViewerCompatibilityEntry>[
         for (final target
@@ -178,8 +205,12 @@ void main() {
       ],
     );
 
-    expect(gate.canClaimExternalCompatibility, isTrue);
-    expect(gate.markdownSummary(), contains('gate: PASS'));
+    expect(gate.canClaimExternalCompatibility, isFalse);
+    expect(
+      gate.missingEvidenceViewerIds,
+      containsAll(<String>['acrobat', 'mobilesheets']),
+    );
+    expect(gate.markdownSummary(), contains('Missing viewer evidence'));
   });
 
   test('parses filled viewer matrix rows for report review', () {
@@ -231,6 +262,8 @@ Viewer matrix:
     expect(gate.issueCells['preview'], contains('Line/arrow'));
     expect(gate.untestedCells['preview'], contains('WebP image stamp'));
     expect(gate.untestedCells['preview'], contains('Music-symbol stamp'));
+    expect(gate.missingEvidenceViewerIds, contains('mobilesheets'));
+    expect(gate.missingEvidenceViewerIds, contains('piascore'));
     expect(gate.blockedCells['android-pdf-viewer'], contains('Unicode text'));
   });
 }
