@@ -210,6 +210,7 @@ class SheetAnnotatedPdfExporter {
         requiredSpikeItems: <String>[
           'acrobatPreviewFixture',
           'mobileSheetsPiascoreFixture',
+          'androidPdfViewerFixture',
         ],
       );
 

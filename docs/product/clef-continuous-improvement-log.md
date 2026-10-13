@@ -2532,3 +2532,10 @@ described only Acrobat/Preview/MobileSheets/Piascore as the external viewer set.
 feature map, MobileSheets inventory and spike backlog now include Android PDF viewer in the external
 compatibility target wording while older historical log entries remain unchanged. `git diff --check`,
 targeted trailing whitespace/tab scans and a PCRE stale target wording scan passed.
+
+S229 VERIFIED LOCAL: aligned the standard PDF annotation capability model with the same external
+compatibility target set. The report/template/docs include Android PDF viewer, but the capability's
+required spike item list still only named Acrobat/Preview and MobileSheets/Piascore fixtures. The
+capability now includes an explicit Android PDF viewer fixture requirement, and exporter capability
+tests lock all three external fixture requirements. Focused exporter tests, full analyze, the
+1,610-test suite and RC release checks passed.

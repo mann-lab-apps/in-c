@@ -71,6 +71,11 @@ void main() {
       isNot(contains('staffGridAnnotation')),
     );
     expect(standard.requiredSpikeItems, contains('acrobatPreviewFixture'));
+    expect(
+      standard.requiredSpikeItems,
+      contains('mobileSheetsPiascoreFixture'),
+    );
+    expect(standard.requiredSpikeItems, contains('androidPdfViewerFixture'));
   });
 
   test('creates an annotated PDF copy without changing the original', () async {
