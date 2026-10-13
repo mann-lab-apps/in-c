@@ -2477,3 +2477,10 @@ WebP image stamps, local inspection reports two `Stamp` annotations, and Poppler
 bitmap stamps while preserving the known Unicode FreeText font fallback warnings. Focused exporter and
 compatibility report tests, fixture generation, `pdfinfo`, Poppler first-page render, full analyze,
 1,608-test suite and RC release checks passed.
+
+S221 VERIFIED LOCAL: tightened the external compatibility report so WebP image stamp support cannot
+be claimed through the older generic image-stamp column. The fixture already includes both PNG and
+WebP image stamps; the manual viewer matrix now splits PNG and WebP image-stamp checks, the required
+external checks for music-app viewers and Android PDF viewers call out both formats, and report
+parsing/gating treats an unfilled WebP cell as not ready. Focused report tests, regenerated report
+inspection, full analyze, 1,608-test suite and RC release checks passed.

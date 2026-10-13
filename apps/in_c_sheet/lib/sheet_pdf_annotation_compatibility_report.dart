@@ -189,7 +189,8 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
     'Staff/grid',
     'FreeText',
     'Text/icon stamp',
-    'Image stamp',
+    'PNG image stamp',
+    'WebP image stamp',
     'Unicode text',
     'Select/edit',
   ];
@@ -219,7 +220,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
-        'image stamp handling',
+        'PNG and WebP image stamp handling',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -228,7 +229,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
-        'image stamp handling',
+        'PNG and WebP image stamp handling',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -236,7 +237,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       label: 'Android PDF viewer',
       requiredChecks: <String>[
         'basic visible rendering',
-        'image stamp rendering',
+        'PNG and WebP image stamp rendering',
         'Unicode FreeText rendering',
       ],
     ),
@@ -257,7 +258,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
               .join('\n');
     final viewerRows = [
       for (final target in viewerTargets)
-        '| ${target.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | |',
+        '| ${target.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | ${SheetPdfViewerCompatibilityStatus.notTested.label} | |',
     ].join('\n');
     final requiredCheckRows = [
       for (final target in viewerTargets)
@@ -300,8 +301,8 @@ $subtypeRows
 
 Viewer matrix:
 
-| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | Image stamp | Unicode text | Select/edit | Result notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 $viewerRows
 
 Required external checks:
