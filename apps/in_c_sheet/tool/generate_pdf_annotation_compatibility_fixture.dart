@@ -95,7 +95,14 @@ Future<void> main(List<String> args) async {
   stdout
     ..writeln('Manual QA report template:')
     ..writeln(report.absolute.path)
-    ..writeln('Manual viewer QA:');
+    ..writeln('Required spike items:');
+  for (final item
+      in SheetAnnotatedPdfExporter
+          .standardAnnotationExportCapability
+          .requiredSpikeItems) {
+    stdout.writeln('- $item');
+  }
+  stdout.writeln('Manual viewer QA:');
   for (final target
       in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets) {
     stdout.writeln('- ${target.label}');

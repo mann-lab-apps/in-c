@@ -285,6 +285,11 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         '| ${target.label} | ${target.requiredChecks.join('<br>')} | |',
     ].join('\n');
     final viewerLabels = viewerTargets.map((target) => target.label).join('/');
+    final requiredSpikeRows = SheetAnnotatedPdfExporter
+        .standardAnnotationExportCapability
+        .requiredSpikeItems
+        .map((item) => '- `$item`')
+        .join('\n');
 
     return '''
 # Clef Editable Annotation Compatibility Report
@@ -309,6 +314,10 @@ Completion gate:
 - Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has `Result notes` or a required-check evidence link.
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
 - Treat local inspection as a fixture sanity check, not as proof of $viewerLabels behavior.
+
+Required spike items:
+
+$requiredSpikeRows
 
 Unicode FreeText contents:
 

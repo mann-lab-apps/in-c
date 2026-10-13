@@ -77,6 +77,11 @@ void main() {
     expect(markdown, contains('PNG and WebP image stamp handling'));
     expect(markdown, contains('PNG image stamp'));
     expect(markdown, contains('WebP image stamp'));
+    expect(markdown, contains('Required spike items:'));
+    expect(markdown, contains('`acrobatPreviewFixture`'));
+    expect(markdown, contains('`mobileSheetsPiascoreFixture`'));
+    expect(markdown, contains('`androidPdfViewerFixture`'));
+    expect(markdown, contains('`unicodeFreeTextAppearanceFixture`'));
     expect(markdown, contains('Known local limits:'));
     expect(markdown, contains('generated appearances exist'));
     expect(markdown, contains('checked separately'));

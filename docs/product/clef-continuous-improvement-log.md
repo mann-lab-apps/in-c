@@ -2546,3 +2546,10 @@ viewer rendering still needs a font fallback/appearance fixture. This slice adds
 `unicodeFreeTextAppearanceFixture` required spike item and updates the current product docs so the
 capability model matches the known manual QA gap. Focused exporter tests, full analyze, the
 1,610-test suite and RC release checks passed.
+
+S231 VERIFIED LOCAL: kept editable PDF compatibility handoff tied to the capability model. The
+report template and generator explained manual viewer checks, but they did not surface the
+`standardAnnotationExportCapability.requiredSpikeItems` list that now includes external viewer and
+Unicode FreeText appearance fixtures. This slice prints the required spike list in both places and
+locks the markdown template with compatibility report tests. Focused report tests, fixture
+generation, full analyze, the 1,610-test suite and RC release checks passed.
