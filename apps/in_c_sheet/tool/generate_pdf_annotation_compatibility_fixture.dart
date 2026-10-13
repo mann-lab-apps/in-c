@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_pdf_annotation_compatibility_report.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 
 Future<void> main(List<String> args) async {
@@ -68,10 +69,12 @@ Future<void> main(List<String> args) async {
       );
   }
   final report = File(reportPath);
-  await _writeCompatibilityReport(
-    report,
-    fixturePath: output.absolute.path,
-    inspection: inspection,
+  await report.parent.create(recursive: true);
+  await report.writeAsString(
+    SheetPdfAnnotationCompatibilityReportTemplate.markdown(
+      fixturePath: output.absolute.path,
+      inspection: inspection,
+    ),
   );
   stdout
     ..writeln('Manual QA report template:')
@@ -109,61 +112,6 @@ String? _valueAfter(List<String> args, String flag) {
   }
   final value = args[index + 1].trim();
   return value.isEmpty ? null : value;
-}
-
-Future<void> _writeCompatibilityReport(
-  File report, {
-  required String fixturePath,
-  required SheetStandardPdfAnnotationInspection inspection,
-}) async {
-  await report.parent.create(recursive: true);
-  final subtypeRows = [
-    for (final entry in inspection.clefSubtypeCounts.entries)
-      '| `${entry.key}` | ${entry.value} | |',
-  ].join('\n');
-  final unicodeRows = inspection.unicodeFreeTextContents.isEmpty
-      ? '- none'
-      : inspection.unicodeFreeTextContents
-            .map((content) => '- `$content`')
-            .join('\n');
-  await report.writeAsString('''
-# Clef Editable Annotation Compatibility Report
-
-Fixture: `$fixturePath`
-
-Local inspection:
-
-- Pages: ${inspection.pageCount}
-- Clef annotations: ${inspection.clefAnnotationCount}
-- Generated appearances missing: ${inspection.missingGeneratedAppearanceNames.isEmpty ? 'none' : inspection.missingGeneratedAppearanceNames.join(', ')}
-
-Unicode FreeText contents:
-
-$unicodeRows
-
-Subtype checklist:
-
-| Subtype | Count | External viewer notes |
-| --- | ---: | --- |
-$subtypeRows
-
-Viewer matrix:
-
-| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | Image stamp | Unicode text | Select/edit | Result |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Acrobat | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
-| macOS Preview | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
-| MobileSheets | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
-| Piascore | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
-| Android PDF viewer | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
-
-Notes:
-
-- Mark PASS / ISSUE / BLOCKED per viewer.
-- Local inspection proves PDF objects exist; it does not prove viewer rendering fidelity.
-- Unicode text may preserve `/Contents` while still rendering with missing glyph boxes.
-- Attach screenshots for any ISSUE.
-''');
 }
 
 SheetScore _compatibilityScore(String inputPath) {

@@ -184,8 +184,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   객체로 쓰는 1차 writer가 있으며,
   생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
   inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
-  모두 포함한 manual QA용 PDF를 `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection
-  통과 후 Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다.
+  모두 포함한 manual QA용 PDF와 PASS/ISSUE/BLOCKED/NOT_TESTED report template을
+  `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection 통과 후
+  Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
   mapping의 1차 경로는 생겼지만, rich non-text stamp appearance, Unicode FreeText appearance/font
   fallback과 외부 viewer 호환성 검증이 필요하다.

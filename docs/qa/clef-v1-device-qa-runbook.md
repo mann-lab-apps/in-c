@@ -422,7 +422,9 @@ pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/ico
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
-   생성된 report template의 viewer matrix를 PASS/ISSUE/BLOCKED로 채운 뒤 결과를 공유한다.
+   생성된 report template의 viewer matrix를 `PASS` / `ISSUE` / `BLOCKED` / `NOT_TESTED`로 채운 뒤 결과를 공유한다.
+   report의 `Required external checks`에는 viewer별로 꼭 확인할 항목이 분리되어 있으므로, 보이는지만 확인하지 말고
+   선택/이동/편집 가능 여부와 Unicode glyph 표시를 별도 열로 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
 7. 한글 FreeText/text stamp와 음악 기호가 실제 viewer에서 깨지지 않는지 확인한다. 로컬 Poppler 렌더는

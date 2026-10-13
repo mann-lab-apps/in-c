@@ -2424,3 +2424,12 @@ adding a route. `SheetCollaborationSimulationReportView` shows the report headli
 per-step follower status and final disconnect/missing-score attention states so the eventual simulator
 screen can reuse tested UI. Focused QR/report widget tests, full analyze, 1,599-test suite and RC
 release checks passed.
+
+S214 VERIFIED LOCAL: tightened the editable PDF compatibility evidence path instead of claiming
+external viewer compatibility from local inspection alone. The compatibility report Markdown now comes
+from a reusable template with explicit PASS/ISSUE/BLOCKED/NOT_TESTED states, viewer-specific required
+checks and known local limits so Acrobat/Preview/MobileSheets/Piascore results can be collected
+consistently. The generator still creates and locally inspects the PDF fixture, and a Poppler render
+confirmed the geometry/image paths while preserving the known Unicode glyph-box risk. Focused report
+tests, full analyze, 1,601-test suite and RC release checks passed. External viewer
+rendering/editability remains Device QA.
