@@ -95,11 +95,11 @@ Future<void> main(List<String> args) async {
   stdout
     ..writeln('Manual QA report template:')
     ..writeln(report.absolute.path)
-    ..writeln('Manual viewer QA:')
-    ..writeln('- Acrobat')
-    ..writeln('- macOS Preview')
-    ..writeln('- MobileSheets')
-    ..writeln('- Piascore');
+    ..writeln('Manual viewer QA:');
+  for (final target
+      in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets) {
+    stdout.writeln('- ${target.label}');
+  }
 }
 
 Future<void> _reviewReport(String reportPath) async {

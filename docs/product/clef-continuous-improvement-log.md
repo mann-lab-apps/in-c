@@ -2504,3 +2504,9 @@ code now separates text stamp, music-symbol stamp, PNG image stamp, WebP image s
 viewer evidence before claiming external compatibility, so the runbook, tester checklist, feature
 map and MobileSheets inventory now use the same wording. `git diff --check`, targeted trailing
 whitespace scan, tab scan and stale wording scan passed.
+
+S225 VERIFIED LOCAL: kept the editable PDF fixture handoff list in sync with the compatibility
+template. The template includes Android PDF viewer rows and required checks, but the generator stdout
+only listed Acrobat, Preview, MobileSheets and Piascore. The generator now prints manual viewer QA
+targets from the template, including Android PDF viewer, so future target changes cannot drift.
+Fixture generation, full analyze and RC release checks with the 1,609-test suite passed.
