@@ -731,6 +731,103 @@ void main() {
     );
   });
 
+  test('hidden annotation layers are not hit-test or eraser targets', () {
+    final now = DateTime.parse('2026-10-13T12:00:00.000');
+    final visibleStroke = _stroke(
+      id: 'visible-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+        SheetAnnotationPoint(x: 0.8, y: 0.2),
+      ],
+    );
+    final hiddenStroke = _stroke(
+      id: 'hidden-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'hidden',
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.4),
+        SheetAnnotationPoint(x: 0.8, y: 0.4),
+      ],
+    );
+    final visibleText = _text(
+      id: 'visible-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+      position: const SheetAnnotationPoint(x: 0.3, y: 0.65),
+    );
+    final hiddenText = _text(
+      id: 'hidden-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+      layerId: 'hidden',
+      position: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(
+          id: 'hidden',
+          label: '숨김',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    expect(
+      layer.strokeAt(
+        pageNumber: 1,
+        point: const SheetAnnotationPoint(x: 0.5, y: 0.4),
+        tolerance: 0.02,
+      ),
+      isNull,
+    );
+    expect(
+      layer.textAt(
+        pageNumber: 1,
+        point: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+      ),
+      isNull,
+    );
+
+    final erasedHiddenStroke = layer.eraseAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.5, y: 0.4),
+      tolerance: 0.02,
+    );
+    final erasedHiddenText = layer.eraseAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+      tolerance: 0.03,
+    );
+
+    expect(identical(erasedHiddenStroke, layer), isTrue);
+    expect(identical(erasedHiddenText, layer), isTrue);
+    expect(
+      layer
+          .strokeAt(
+            pageNumber: 1,
+            point: const SheetAnnotationPoint(x: 0.5, y: 0.2),
+            tolerance: 0.02,
+          )
+          ?.id,
+      'visible-stroke',
+    );
+    expect(
+      layer
+          .textAt(
+            pageNumber: 1,
+            point: const SheetAnnotationPoint(x: 0.3, y: 0.65),
+          )
+          ?.id,
+      'visible-text',
+    );
+  });
+
   test('annotations can move to an existing display layer', () {
     final now = DateTime.parse('2026-10-08T10:00:00.000');
     final stroke = _stroke(id: 'line-1', pageNumber: 1, createdAt: now);

@@ -2433,3 +2433,9 @@ consistently. The generator still creates and locally inspects the PDF fixture, 
 confirmed the geometry/image paths while preserving the known Unicode glyph-box risk. Focused report
 tests, full analyze, 1,601-test suite and RC release checks passed. External viewer
 rendering/editability remains Device QA.
+
+S215 VERIFIED LOCAL: reduced the hidden annotation layer editing risk. Rendering and export already
+respected layer visibility/export flags; model hit-test and eraser paths now also use visible layer
+filters so a hidden layer cannot be selected, nudged or erased by tapping an invisible annotation.
+Focused annotation tests, full analyze, 1,602-test suite and RC release checks passed. Per-layer undo
+and multi-select layer operations remain follow-up.

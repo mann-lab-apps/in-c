@@ -1462,7 +1462,7 @@ class SheetAnnotationLayer {
     required SheetAnnotationPoint point,
     required double tolerance,
   }) {
-    final hitStroke = strokesForPage(pageNumber)
+    final hitStroke = visibleStrokesForPage(pageNumber)
         .where((stroke) => stroke.hitTest(point, tolerance: tolerance));
     if (hitStroke.isEmpty) {
       final hitText = textAt(
@@ -1480,7 +1480,7 @@ class SheetAnnotationLayer {
     required SheetAnnotationPoint point,
     double tolerance = 0.025,
   }) {
-    final hits = textsForPage(pageNumber)
+    final hits = visibleTextsForPage(pageNumber)
         .where((text) => text.hitTest(point, tolerance: tolerance));
     if (hits.isEmpty) {
       return null;
@@ -1493,7 +1493,7 @@ class SheetAnnotationLayer {
     required SheetAnnotationPoint point,
     required double tolerance,
   }) {
-    final hits = strokesForPage(pageNumber)
+    final hits = visibleStrokesForPage(pageNumber)
         .where((stroke) => stroke.hitTest(point, tolerance: tolerance));
     if (hits.isEmpty) {
       return null;
