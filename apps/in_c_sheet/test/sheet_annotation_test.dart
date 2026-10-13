@@ -828,6 +828,101 @@ void main() {
     );
   });
 
+  test('hidden annotation layers are not undo or redo targets', () {
+    final now = DateTime.parse('2026-10-13T12:05:00.000');
+    final visibleStroke = _stroke(
+      id: 'visible-stroke',
+      pageNumber: 1,
+      createdAt: now,
+    );
+    final hiddenStroke = _stroke(
+      id: 'hidden-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'hidden',
+    );
+    final visibleText = _text(
+      id: 'visible-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final hiddenText = _text(
+      id: 'hidden-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+      layerId: 'hidden',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(
+          id: 'hidden',
+          label: '숨김',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    final undoText = layer.undoLastAnnotation(1);
+    expect(undoText.texts.map((text) => text.id), <String>['hidden-text']);
+    expect(undoText.strokes.map((stroke) => stroke.id), <String>[
+      'visible-stroke',
+      'hidden-stroke',
+    ]);
+
+    final undoStroke = layer.undoLastStroke(1);
+    expect(undoStroke.strokes.map((stroke) => stroke.id), <String>[
+      'hidden-stroke',
+    ]);
+
+    final redoLayer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(
+          hiddenStroke.copyWith(id: 'redo-hidden'),
+        ),
+        SheetAnnotationRedoEntry.stroke(
+          visibleStroke.copyWith(id: 'redo-visible'),
+        ),
+      ],
+      layers: layer.layers,
+    );
+
+    final redoVisible = redoLayer.redoLastAnnotation(1);
+    expect(redoVisible.strokes.map((stroke) => stroke.id), <String>[
+      'visible-stroke',
+      'redo-visible',
+      'hidden-stroke',
+    ]);
+    expect(redoVisible.redoStack.single.stroke?.id, 'redo-hidden');
+
+    final hiddenOnlyRedo = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(hiddenStroke),
+      ],
+      layers: layer.layers,
+    );
+    expect(
+      identical(hiddenOnlyRedo.redoLastAnnotation(1), hiddenOnlyRedo),
+      isTrue,
+    );
+
+    final restoreVisibleErase = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(hiddenStroke),
+        SheetAnnotationRedoEntry.text(visibleText),
+      ],
+      layers: layer.layers,
+    ).undoLastAnnotation(1);
+    expect(restoreVisibleErase.texts.single.id, 'visible-text');
+    expect(restoreVisibleErase.strokes, isEmpty);
+  });
+
   test('annotations can move to an existing display layer', () {
     final now = DateTime.parse('2026-10-08T10:00:00.000');
     final stroke = _stroke(id: 'line-1', pageNumber: 1, createdAt: now);

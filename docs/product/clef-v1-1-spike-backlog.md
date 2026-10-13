@@ -540,7 +540,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 왜 v1.1 spike인지: active layer 선택, layer 삭제/이름 변경, hidden layer hit-test, undo/redo 범위,
   PDF export 포함 여부, stylus 작업 중 실수 방지가 모두 UI와 데이터 보존에 영향을 준다.
 - 결정 필요사항:
-  - 완료: hidden layer annotation은 hit-test/eraser/nudge 대상에서 제외한다.
+  - 완료: hidden layer annotation은 hit-test/eraser/nudge와 toolbar undo/redo 대상에서 제외한다.
   - 완료: layer 삭제 시 display layer만 제거하고 기존 annotation은 default fallback으로 보이게 둔다.
   - active layer를 악보별로 저장할지, viewer session local 상태로 둘지
   - layer별 export, backup/restore, package export 정책
@@ -551,13 +551,13 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   4. 완료: 현재 active layer의 숨김/export 포함 토글을 기본 layer 외에도 적용한다.
   5. 완료: viewer 필기 도구에서 non-default layer rename/delete UI를 추가하고 default layer를 보호한다.
   6. 완료: layer 삭제 시 기존 annotation을 삭제하지 않고 default fallback으로 유지하는 회귀를 검증했다.
-  7. 완료: 기존 annotation layer 이동과 hidden layer hit-test/eraser 차단.
-  8. per-layer undo/redo.
-- 검증 완료: 기존 annotation default fallback, hidden layer visible filter, hidden layer hit-test/eraser
+  7. 완료: 기존 annotation layer 이동과 hidden layer hit-test/eraser/undo/redo 차단.
+  8. active-layer-only undo/redo UX.
+- 검증 완료: 기존 annotation default fallback, hidden layer visible filter, hidden layer hit-test/eraser/undo/redo
   exclusion, export-disabled layer export filter, removed/unknown layer default fallback, active layer selector UI,
   non-default layer state persistence, layer rename/delete UI와 삭제 후 annotation fallback.
 - 남은 테스트/fixture/실기기 조건: stylus drawing while switching layers,
-  PDF export with multiple layers on device, large annotation layer performance, per-layer undo.
+  PDF export with multiple layers on device, large annotation layer performance, active-layer-only undo/redo UX.
 - Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는
   선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
 - Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.

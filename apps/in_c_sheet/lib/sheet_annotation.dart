@@ -1502,7 +1502,7 @@ class SheetAnnotationLayer {
   }
 
   SheetAnnotationLayer undoLastStroke(int pageNumber) {
-    final pageStrokes = strokesForPage(pageNumber);
+    final pageStrokes = visibleStrokesForPage(pageNumber);
     if (pageStrokes.isEmpty) {
       return this;
     }
@@ -1514,8 +1514,8 @@ class SheetAnnotationLayer {
     if (!identical(eraseRestored, this)) {
       return eraseRestored;
     }
-    final pageStrokes = strokesForPage(pageNumber);
-    final pageTexts = textsForPage(pageNumber);
+    final pageStrokes = visibleStrokesForPage(pageNumber);
+    final pageTexts = visibleTextsForPage(pageNumber);
     final lastStroke = pageStrokes.isEmpty ? null : pageStrokes.last;
     final lastText = pageTexts.isEmpty ? null : pageTexts.last;
     if (lastStroke == null && lastText == null) {
@@ -1533,6 +1533,9 @@ class SheetAnnotationLayer {
     for (var index = redoStack.length - 1; index >= 0; index -= 1) {
       final entry = redoStack[index];
       if (entry.pageNumber != pageNumber) {
+        continue;
+      }
+      if (!_redoEntryTargetsVisibleLayer(entry)) {
         continue;
       }
       final remainingRedo = <SheetAnnotationRedoEntry>[
@@ -1685,6 +1688,9 @@ class SheetAnnotationLayer {
     for (var index = eraseUndoStack.length - 1; index >= 0; index -= 1) {
       final entry = eraseUndoStack[index];
       if (entry.pageNumber != pageNumber) {
+        continue;
+      }
+      if (!_redoEntryTargetsVisibleLayer(entry)) {
         continue;
       }
       final remainingEraseUndo = <SheetAnnotationRedoEntry>[
@@ -1887,6 +1893,18 @@ class SheetAnnotationLayer {
           : SheetAnnotationRedoEntry.text(nextText);
     }
     return entry;
+  }
+
+  bool _redoEntryTargetsVisibleLayer(SheetAnnotationRedoEntry entry) {
+    final strokeLayerId = entry.stroke?.layerId;
+    if (strokeLayerId != null) {
+      return isAnnotationLayerVisible(strokeLayerId);
+    }
+    final textLayerId = entry.text?.layerId;
+    if (textLayerId != null) {
+      return isAnnotationLayerVisible(textLayerId);
+    }
+    return true;
   }
 }
 

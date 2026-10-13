@@ -2439,3 +2439,9 @@ respected layer visibility/export flags; model hit-test and eraser paths now als
 filters so a hidden layer cannot be selected, nudged or erased by tapping an invisible annotation.
 Focused annotation tests, full analyze, 1,602-test suite and RC release checks passed. Per-layer undo
 and multi-select layer operations remain follow-up.
+
+S216 VERIFIED LOCAL: reduced the hidden annotation layer undo/redo risk. Hidden layer entries stay in
+their undo/redo stacks, but are skipped while the layer is hidden so toolbar undo/redo cannot mutate
+invisible annotations. Focused annotation tests, full analyze, 1,603-test suite and RC release checks
+passed. True active-layer-only undo remains a separate UX decision because the current toolbar undo is
+page scoped rather than layer scoped.
