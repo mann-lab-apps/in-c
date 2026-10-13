@@ -376,6 +376,84 @@ void main() {
     expect(disconnected.message, contains('현재 쪽'));
   });
 
+  test('local simulation report summarizes recovery after missing scores', () {
+    final now = DateTime.utc(2026, 10, 13, 12);
+    final report = SheetCollaborationLocalSimulationReport.run(
+      invite: SheetCollaborationInvite(
+        sessionId: 'session-1',
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        createdAt: now,
+        expiresAt: now.add(const Duration(minutes: 5)),
+      ),
+      initialFollowerScoreIds: {'score-a'},
+      actions: <SheetCollaborationSimulationAction>[
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-a',
+          page: 1,
+          timestamp: now.add(const Duration(seconds: 1)),
+        ),
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-b',
+          page: 1,
+          timestamp: now.add(const Duration(seconds: 2)),
+        ),
+        SheetCollaborationSimulationAction.replaceFollowerScores(
+          scoreIds: {'score-a', 'score-b'},
+          timestamp: now.add(const Duration(seconds: 3)),
+        ),
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-b',
+          page: 2,
+          timestamp: now.add(const Duration(seconds: 4)),
+        ),
+      ],
+    );
+
+    expect(report.steps, hasLength(4));
+    expect(report.steps[1].state.status, SheetFollowerSyncStatus.missingScore);
+    expect(report.steps[1].requiresAttention, isTrue);
+    expect(report.attentionStepCount, 2);
+    expect(report.finalState.status, SheetFollowerSyncStatus.synced);
+    expect(report.finalState.scoreId, 'score-b');
+    expect(report.finalState.page, 2);
+    expect(report.finalRequiresAttention, isFalse);
+    expect(report.headline, '중간에 확인할 상태가 있었지만 마지막 상태는 동기화되었습니다.');
+    expect(report.reviewLines, contains('확인 필요 2단계'));
+  });
+
+  test('local simulation report keeps disconnect as final attention state', () {
+    final now = DateTime.utc(2026, 10, 13, 12);
+    final report = SheetCollaborationLocalSimulationReport.run(
+      invite: SheetCollaborationInvite(
+        sessionId: 'session-1',
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        createdAt: now,
+        expiresAt: now.add(const Duration(minutes: 5)),
+      ),
+      initialFollowerScoreIds: {'score-a'},
+      actions: <SheetCollaborationSimulationAction>[
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-a',
+          page: 3,
+          timestamp: now.add(const Duration(seconds: 1)),
+        ),
+        SheetCollaborationSimulationAction.disconnect(
+          timestamp: now.add(const Duration(seconds: 2)),
+        ),
+      ],
+    );
+
+    expect(report.steps, hasLength(2));
+    expect(report.finalState.status, SheetFollowerSyncStatus.disconnected);
+    expect(report.finalState.scoreId, 'score-a');
+    expect(report.finalState.page, 3);
+    expect(report.finalRequiresAttention, isTrue);
+    expect(report.headline, '마지막 상태에 확인이 필요합니다.');
+    expect(report.reviewLines, contains('연결 끊김'));
+  });
+
   test('follower applies newer leader page events for available scores', () {
     final now = DateTime(2026, 10, 2, 20);
     final state = SheetFollowerSyncState.idle('session-1');

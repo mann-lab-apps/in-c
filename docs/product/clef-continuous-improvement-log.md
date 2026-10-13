@@ -2412,3 +2412,9 @@ app route or network transport. `SheetCollaborationSessionPreviewView` shows fol
 current follower state, blocking reasons, QR/copy fallback and a disabled/enabled local simulation
 action from the already validated preview model. Focused QR/preview widget tests, full analyze,
 1,595-test suite and RC release checks passed.
+
+S212 VERIFIED LOCAL: added a local collaboration simulation report model before exposing any simulator
+route. The report replays leader page moves, follower library refreshes and disconnects through the
+existing reducer, then summarizes attention steps and the final follower state so a future same-device
+simulator can show missing-score recovery and disconnect risk without opening real network transport.
+Focused collaboration tests, full analyze, 1,597-test suite and RC release checks passed.

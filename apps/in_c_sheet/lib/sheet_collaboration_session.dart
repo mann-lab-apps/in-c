@@ -421,6 +421,163 @@ class SheetCollaborationLocalSimulator {
   }
 }
 
+enum SheetCollaborationSimulationActionType {
+  leaderPage,
+  replaceFollowerScores,
+  disconnect,
+}
+
+class SheetCollaborationSimulationAction {
+  const SheetCollaborationSimulationAction.leaderPage({
+    required this.scoreId,
+    required this.page,
+    required this.timestamp,
+  }) : type = SheetCollaborationSimulationActionType.leaderPage,
+       scoreIds = const <String>{},
+       assert(scoreId != null),
+       assert(page != null);
+
+  SheetCollaborationSimulationAction.replaceFollowerScores({
+    required Set<String> scoreIds,
+    required this.timestamp,
+  }) : type = SheetCollaborationSimulationActionType.replaceFollowerScores,
+       scoreId = null,
+       page = null,
+       scoreIds = Set<String>.unmodifiable(scoreIds);
+
+  const SheetCollaborationSimulationAction.disconnect({required this.timestamp})
+    : type = SheetCollaborationSimulationActionType.disconnect,
+      scoreId = null,
+      page = null,
+      scoreIds = const <String>{};
+
+  final SheetCollaborationSimulationActionType type;
+  final String? scoreId;
+  final int? page;
+  final Set<String> scoreIds;
+  final DateTime timestamp;
+}
+
+class SheetCollaborationSimulationStep {
+  const SheetCollaborationSimulationStep({
+    required this.label,
+    required this.state,
+    required this.review,
+  });
+
+  final String label;
+  final SheetFollowerSyncState state;
+  final SheetFollowerSyncReview review;
+
+  bool get requiresAttention => review.requiresAttention;
+
+  List<String> get reviewLines {
+    return List<String>.unmodifiable(<String>[
+      label,
+      review.headline,
+      ...review.reviewLines,
+    ]);
+  }
+}
+
+class SheetCollaborationLocalSimulationReport {
+  const SheetCollaborationLocalSimulationReport({
+    required this.steps,
+    required this.finalState,
+  });
+
+  factory SheetCollaborationLocalSimulationReport.run({
+    required SheetCollaborationInvite invite,
+    required Set<String> initialFollowerScoreIds,
+    required Iterable<SheetCollaborationSimulationAction> actions,
+  }) {
+    final simulator = SheetCollaborationLocalSimulator(
+      invite: invite,
+      followerScoreIds: initialFollowerScoreIds,
+    );
+    final steps = <SheetCollaborationSimulationStep>[];
+    for (final action in actions) {
+      switch (action.type) {
+        case SheetCollaborationSimulationActionType.leaderPage:
+          final scoreId = action.scoreId;
+          final page = action.page;
+          if (scoreId == null || page == null) {
+            continue;
+          }
+          final state = simulator.applyLeaderPage(
+            scoreId: scoreId,
+            page: page,
+            timestamp: action.timestamp,
+          );
+          steps.add(
+            SheetCollaborationSimulationStep(
+              label: '리더: $scoreId $page쪽',
+              state: state,
+              review: SheetFollowerSyncReview.fromState(state),
+            ),
+          );
+        case SheetCollaborationSimulationActionType.replaceFollowerScores:
+          simulator.replaceFollowerScoreIds(action.scoreIds);
+          final state = simulator.state;
+          steps.add(
+            SheetCollaborationSimulationStep(
+              label: '팔로워 악보 목록 갱신: ${action.scoreIds.length}곡',
+              state: state,
+              review: SheetFollowerSyncReview.fromState(state),
+            ),
+          );
+        case SheetCollaborationSimulationActionType.disconnect:
+          final state = simulator.markDisconnected(action.timestamp);
+          steps.add(
+            SheetCollaborationSimulationStep(
+              label: '연결 끊김 시뮬레이션',
+              state: state,
+              review: SheetFollowerSyncReview.fromState(state),
+            ),
+          );
+      }
+    }
+    return SheetCollaborationLocalSimulationReport(
+      steps: List<SheetCollaborationSimulationStep>.unmodifiable(steps),
+      finalState: simulator.state,
+    );
+  }
+
+  final List<SheetCollaborationSimulationStep> steps;
+  final SheetFollowerSyncState finalState;
+
+  int get attentionStepCount {
+    return steps.where((step) => step.requiresAttention).length;
+  }
+
+  bool get hasAttention => attentionStepCount > 0;
+
+  bool get finalRequiresAttention {
+    return SheetFollowerSyncReview.fromState(finalState).requiresAttention;
+  }
+
+  String get headline {
+    if (steps.isEmpty) {
+      return '시뮬레이션할 페이지 전환이 없습니다.';
+    }
+    if (finalRequiresAttention) {
+      return '마지막 상태에 확인이 필요합니다.';
+    }
+    if (hasAttention) {
+      return '중간에 확인할 상태가 있었지만 마지막 상태는 동기화되었습니다.';
+    }
+    return '모든 시뮬레이션 단계가 안전하게 동기화되었습니다.';
+  }
+
+  List<String> get reviewLines {
+    return List<String>.unmodifiable(<String>[
+      '총 ${steps.length}단계',
+      if (attentionStepCount > 0) '확인 필요 $attentionStepCount단계',
+      SheetFollowerSyncReview.fromState(finalState).headline,
+    ]);
+  }
+}
+
 class SheetLeaderPageEvent {
   const SheetLeaderPageEvent({
     required this.sessionId,
