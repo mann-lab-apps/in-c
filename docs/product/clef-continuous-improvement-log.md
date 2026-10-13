@@ -2374,3 +2374,9 @@ backup dry-run diff now separates annotation changes into display layer configur
 object payloads, and external annotation file references, so future conflict review can explain what
 needs human attention before any restore or sync apply path. Focused backup-diff tests, full analyze,
 1,583-test suite and RC release checks passed.
+
+S206 VERIFIED LOCAL: reduced the leader/follower tablet risk before choosing a network transport.
+`SheetCollaborationPreflightCheck` now compares a leader setlist against follower-owned score ids and
+reports ready, missing-score and empty-setlist states, so a future pairing UI can block sessions that
+would otherwise leave the follower on the wrong score. Focused collaboration session tests, full
+analyze, 1,586-test suite and RC release checks passed.

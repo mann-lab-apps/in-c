@@ -2,6 +2,51 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_collaboration_session.dart';
 
 void main() {
+  test('preflight flags missing follower scores before collaboration', () {
+    final check = SheetCollaborationPreflightCheck.forSetlist(
+      setlistId: 'setlist-a',
+      leaderScoreIds: ['score-a', 'score-b', 'score-a', ' '],
+      followerScoreIds: {'score-a'},
+    );
+
+    expect(check.setlistId, 'setlist-a');
+    expect(check.totalScoreCount, 2);
+    expect(check.availableScoreIds, ['score-a']);
+    expect(check.missingScoreIds, ['score-b']);
+    expect(check.canFollow, isFalse);
+    expect(check.headline, '팔로워 기기에 없는 악보 1개');
+    expect(check.reviewLines, contains('총 2곡 중 1곡만 이 기기에 있습니다.'));
+  });
+
+  test('preflight allows complete follower score sets', () {
+    final check = SheetCollaborationPreflightCheck.forSetlist(
+      setlistId: 'setlist-a',
+      leaderScoreIds: ['score-a', 'score-b'],
+      followerScoreIds: {'score-b', 'score-a', 'other-score'},
+    );
+
+    expect(check.totalScoreCount, 2);
+    expect(check.availableScoreIds, ['score-a', 'score-b']);
+    expect(check.missingScoreIds, isEmpty);
+    expect(check.canFollow, isTrue);
+    expect(check.headline, '팔로워 기기가 모든 악보를 갖고 있습니다.');
+    expect(check.reviewLines, contains('총 2곡을 안전하게 따라갈 수 있습니다.'));
+  });
+
+  test('preflight blocks empty leader setlists', () {
+    final check = SheetCollaborationPreflightCheck.forSetlist(
+      setlistId: 'setlist-a',
+      leaderScoreIds: const <String>[],
+      followerScoreIds: {'score-a'},
+    );
+
+    expect(check.totalScoreCount, 0);
+    expect(check.availableScoreIds, isEmpty);
+    expect(check.missingScoreIds, isEmpty);
+    expect(check.canFollow, isFalse);
+    expect(check.headline, '동기화할 세트리스트 곡이 없습니다.');
+  });
+
   test('collaboration invite payload round trips for QR pairing', () {
     final createdAt = DateTime.utc(2026, 10, 2, 12);
     final invite = SheetCollaborationInvite(

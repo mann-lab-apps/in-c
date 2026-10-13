@@ -19,6 +19,82 @@ enum SheetCollaborationInviteStatus {
   expired,
 }
 
+class SheetCollaborationPreflightCheck {
+  const SheetCollaborationPreflightCheck({
+    required this.setlistId,
+    required this.totalScoreCount,
+    required this.availableScoreIds,
+    required this.missingScoreIds,
+  });
+
+  factory SheetCollaborationPreflightCheck.forSetlist({
+    required String setlistId,
+    required Iterable<String> leaderScoreIds,
+    required Set<String> followerScoreIds,
+  }) {
+    final normalizedLeaderScoreIds = <String>[];
+    final seen = <String>{};
+    for (final scoreId in leaderScoreIds) {
+      final normalized = scoreId.trim();
+      if (normalized.isNotEmpty && seen.add(normalized)) {
+        normalizedLeaderScoreIds.add(normalized);
+      }
+    }
+    final normalizedFollowerScoreIds = followerScoreIds
+        .map((scoreId) => scoreId.trim())
+        .where((scoreId) => scoreId.isNotEmpty)
+        .toSet();
+    final available = <String>[];
+    final missing = <String>[];
+    for (final scoreId in normalizedLeaderScoreIds) {
+      if (normalizedFollowerScoreIds.contains(scoreId)) {
+        available.add(scoreId);
+      } else {
+        missing.add(scoreId);
+      }
+    }
+    return SheetCollaborationPreflightCheck(
+      setlistId: setlistId.trim(),
+      totalScoreCount: normalizedLeaderScoreIds.length,
+      availableScoreIds: List<String>.unmodifiable(available),
+      missingScoreIds: List<String>.unmodifiable(missing),
+    );
+  }
+
+  final String setlistId;
+  final int totalScoreCount;
+  final List<String> availableScoreIds;
+  final List<String> missingScoreIds;
+
+  bool get canFollow => totalScoreCount > 0 && missingScoreIds.isEmpty;
+
+  String get headline {
+    if (totalScoreCount == 0) {
+      return '동기화할 세트리스트 곡이 없습니다.';
+    }
+    if (missingScoreIds.isEmpty) {
+      return '팔로워 기기가 모든 악보를 갖고 있습니다.';
+    }
+    return '팔로워 기기에 없는 악보 ${missingScoreIds.length}개';
+  }
+
+  List<String> get reviewLines {
+    if (totalScoreCount == 0) {
+      return const <String>['리더 세트리스트에 곡을 추가한 뒤 다시 확인하세요.'];
+    }
+    if (missingScoreIds.isEmpty) {
+      return <String>[
+        '총 $totalScoreCount곡을 안전하게 따라갈 수 있습니다.',
+        '실제 네트워크 연결 전까지는 같은 기기 시뮬레이션 결과입니다.',
+      ];
+    }
+    return <String>[
+      '총 $totalScoreCount곡 중 ${availableScoreIds.length}곡만 이 기기에 있습니다.',
+      '없는 악보를 setlist package나 파일 가져오기로 먼저 맞춘 뒤 연결하세요.',
+    ];
+  }
+}
+
 class SheetCollaborationInvite {
   const SheetCollaborationInvite({
     required this.sessionId,
