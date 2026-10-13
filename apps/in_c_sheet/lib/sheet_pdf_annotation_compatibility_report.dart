@@ -86,6 +86,20 @@ class SheetPdfViewerCompatibilityEntry {
   }
 }
 
+class SheetPdfViewerCompatibilityInvalidStatusCell {
+  const SheetPdfViewerCompatibilityInvalidStatusCell({
+    required this.viewerLabel,
+    required this.column,
+    required this.value,
+  });
+
+  final String viewerLabel;
+  final String column;
+  final String value;
+
+  String get summary => '$viewerLabel $column=`$value`';
+}
+
 class SheetPdfViewerCompatibilityGate {
   const SheetPdfViewerCompatibilityGate._({
     required this.missingViewerIds,
@@ -527,6 +541,44 @@ class SheetPdfAnnotationCompatibilityReportParser {
       }
     }
     return labels;
+  }
+
+  static List<SheetPdfViewerCompatibilityInvalidStatusCell>
+  parseInvalidStatusCells(String markdown) {
+    final invalidCells = <SheetPdfViewerCompatibilityInvalidStatusCell>[];
+    for (final cells in _parseRowsInSection(markdown, 'Viewer matrix:')) {
+      if (_isTableHeaderOrDivider(cells) ||
+          _viewerIdForLabel(cells.first) == null) {
+        continue;
+      }
+      for (
+        var index = 0;
+        index <
+            SheetPdfAnnotationCompatibilityReportTemplate
+                .viewerMatrixColumns
+                .length;
+        index += 1
+      ) {
+        final cellIndex = index + 1;
+        if (cellIndex >= cells.length) {
+          continue;
+        }
+        final value = cells[cellIndex].trim();
+        if (value.isEmpty ||
+            SheetPdfViewerCompatibilityStatusLabel.parse(value) != null) {
+          continue;
+        }
+        invalidCells.add(
+          SheetPdfViewerCompatibilityInvalidStatusCell(
+            viewerLabel: cells.first,
+            column: SheetPdfAnnotationCompatibilityReportTemplate
+                .viewerMatrixColumns[index],
+            value: value,
+          ),
+        );
+      }
+    }
+    return invalidCells;
   }
 
   static String? _viewerIdForLabel(String label) {

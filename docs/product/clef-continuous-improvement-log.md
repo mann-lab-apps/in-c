@@ -2597,3 +2597,8 @@ reads the viewer matrix and required-check evidence from their named sections in
 table, and `--review-report` warns when a hand-filled report contains unrecognized viewer rows such as
 typos or unsupported apps. Focused report tests, full analyze, the 1,613-test suite and RC release
 checks passed.
+
+S239 VERIFIED LOCAL: surfaced invalid status values in hand-filled editable PDF compatibility reports. The
+report review path now distinguishes typos such as `PAS` or prose like `needs retest` from valid
+PASS/ISSUE/BLOCKED/NOT_TESTED cells instead of letting them look like ordinary untested cells. Focused
+report tests, full analyze, the 1,614-test suite and RC release checks passed.

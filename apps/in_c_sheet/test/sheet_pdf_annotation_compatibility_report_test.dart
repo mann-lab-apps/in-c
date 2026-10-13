@@ -444,4 +444,31 @@ Required external checks:
     expect(entries.map((entry) => entry.viewerId), isNot(contains('Ink')));
     expect(unknownLabels, <String>['Adobe Acrobt', 'Mobile Sheetz']);
   });
+
+  test('reports invalid status cells in hand-filled viewer matrix', () {
+    const markdown = '''
+# Clef Editable Annotation Compatibility Report
+
+Viewer matrix:
+
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PAS | PASS | Unicode glyph ok |
+| Preview | PASS | needs retest | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Unknown Viewer | PASS | maybe | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | unsupported |
+''';
+
+    final entries =
+        SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(markdown);
+    final invalidCells =
+        SheetPdfAnnotationCompatibilityReportParser.parseInvalidStatusCells(
+          markdown,
+        );
+
+    expect(entries, hasLength(2));
+    expect(invalidCells.map((cell) => cell.summary), <String>[
+      'Acrobat Unicode text=`PAS`',
+      'Preview Line/arrow=`needs retest`',
+    ]);
+  });
 }

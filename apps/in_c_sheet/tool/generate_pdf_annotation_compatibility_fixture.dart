@@ -144,12 +144,24 @@ Future<void> _reviewReport(String reportPath) async {
       SheetPdfAnnotationCompatibilityReportParser.parseUnknownViewerLabels(
         markdown,
       );
+  final invalidStatusCells =
+      SheetPdfAnnotationCompatibilityReportParser.parseInvalidStatusCells(
+        markdown,
+      );
   if (unknownViewerLabels.isNotEmpty) {
     stdout.writeln('- Unknown viewer rows: ${unknownViewerLabels.join(', ')}');
   }
+  if (invalidStatusCells.isNotEmpty) {
+    stdout.writeln(
+      '- Invalid status cells: '
+      '${invalidStatusCells.map((cell) => cell.summary).join(', ')}',
+    );
+  }
   final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
   stdout.writeln(gate.markdownSummary());
-  if (unknownViewerLabels.isNotEmpty || !gate.canClaimExternalCompatibility) {
+  if (unknownViewerLabels.isNotEmpty ||
+      invalidStatusCells.isNotEmpty ||
+      !gate.canClaimExternalCompatibility) {
     exitCode = 2;
   }
 }
