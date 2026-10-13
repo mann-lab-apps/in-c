@@ -108,6 +108,7 @@ void main() {
         const SheetExternalFolderEntry(
           displayName: 'Ready.pdf',
           documentId: 'provider-ready',
+          sizeBytes: 1200,
         ),
         const SheetExternalFolderEntry(displayName: 'blocked.docx'),
       ],
@@ -122,8 +123,56 @@ void main() {
     expect(plan.copyCount, 1);
     expect(plan.copyCandidates.single.entry.displayName, 'Ready.pdf');
     expect(plan.copyCandidates.single.selectionId, 'doc:provider-ready');
+    expect(plan.knownCopySizeBytes, 1200);
+    expect(plan.unknownCopySizeCount, 0);
     expect(plan.blockedCandidates, isEmpty);
     expect(plan.message, contains('1개 PDF'));
+  });
+
+  test('copy plan exposes redacted batch sources for import pipeline', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Ready.pdf',
+          documentId: 'content://tree/secret/document/ready',
+          providerLabel: 'Drive',
+          sizeBytes: 1200,
+          modifiedAt: DateTime.utc(2026, 10, 13, 10),
+        ),
+        const SheetExternalFolderEntry(
+          displayName: 'Size Unknown.pdf',
+          documentId: 'content://tree/secret/document/unknown',
+        ),
+      ],
+    );
+    final plan = preview.copyPlanForSelection(
+      preview.candidates.map((candidate) => candidate.selectionId),
+    );
+
+    expect(plan.isReady, isTrue);
+    expect(plan.knownCopySizeBytes, 1200);
+    expect(plan.unknownCopySizeCount, 1);
+
+    final sources = plan.copySources(folderLabel: 'Recital Folder');
+    expect(sources, hasLength(2));
+    expect(sources.first.hasSensitiveToken, isTrue);
+    expect(sources.first.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Ready.pdf',
+      'folderLabel': 'Recital Folder',
+      'providerLabel': 'Drive',
+      'sizeBytes': 1200,
+      'modifiedAt': '2026-10-13T10:00:00.000Z',
+    });
+    expect(
+      sources.first.toBackupJson().values.join(' '),
+      isNot(contains('secret')),
+    );
+    expect(sources.last.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Size Unknown.pdf',
+      'folderLabel': 'Recital Folder',
+    });
   });
 
   test('copy plan blocks duplicate unsupported and unreadable selections', () {
@@ -147,6 +196,7 @@ void main() {
     expect(plan.isReady, isFalse);
     expect(plan.copyCandidates, isEmpty);
     expect(plan.blockedCandidates, hasLength(3));
+    expect(plan.copySources(), isEmpty);
   });
 
   test('copy plan rejects empty and stale selections', () {

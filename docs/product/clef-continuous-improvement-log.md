@@ -2362,3 +2362,9 @@ display settings, the controller saves them through the normal score replacement
 save failure, and the viewer saves semitone and capo-shape display changes without modifying the
 original `.chordpro` source. Focused model/controller/smoke tests, full analyze, 1,581-test suite and
 RC release checks passed.
+
+S204 VERIFIED LOCAL: reduced the direct-folder bridge gap without opening SAF UI yet. The existing
+copy-on-select plan now exposes a redacted batch of copy sources and known/unknown byte-size summary
+only when every selected entry is a readable, non-duplicate PDF, so a future platform picker bridge can
+hand safe candidates to the current import pipeline without leaking provider document tokens. Focused
+external-folder catalog tests, full analyze, 1,582-test suite and RC release checks passed.

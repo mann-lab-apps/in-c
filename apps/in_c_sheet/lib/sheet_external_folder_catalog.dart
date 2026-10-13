@@ -277,6 +277,42 @@ class SheetExternalFolderCopyPlan {
   bool get isReady => status == SheetExternalFolderCopyPlanStatus.ready;
 
   int get copyCount => copyCandidates.length;
+
+  int get knownCopySizeBytes {
+    var total = 0;
+    for (final candidate in copyCandidates) {
+      final sizeBytes = candidate.entry.sizeBytes;
+      if (sizeBytes != null && sizeBytes >= 0) {
+        total += sizeBytes;
+      }
+    }
+    return total;
+  }
+
+  int get unknownCopySizeCount {
+    return copyCandidates.where((candidate) {
+      final sizeBytes = candidate.entry.sizeBytes;
+      return sizeBytes == null || sizeBytes < 0;
+    }).length;
+  }
+
+  List<SheetExternalFolderCopySource> copySources({
+    String platform = 'android-saf',
+    String? folderLabel,
+  }) {
+    if (!isReady) {
+      return const <SheetExternalFolderCopySource>[];
+    }
+    return List<SheetExternalFolderCopySource>.unmodifiable(
+      copyCandidates.map(
+        (candidate) => SheetExternalFolderCopySource.fromCandidate(
+          candidate,
+          platform: platform,
+          folderLabel: folderLabel,
+        ),
+      ),
+    );
+  }
 }
 
 class SheetExternalFolderCopySource {
