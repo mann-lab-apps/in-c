@@ -436,12 +436,14 @@ class SheetPdfAnnotationCompatibilityReportParser {
   static List<SheetPdfViewerCompatibilityEntry> parseViewerMatrix(
     String markdown,
   ) {
-    final tableRows = [
-      for (final rawLine in markdown.split('\n')) _parseTableRow(rawLine),
-    ].whereType<List<String>>().toList(growable: false);
+    final viewerMatrixRows = _parseRowsInSection(markdown, 'Viewer matrix:');
+    final requiredCheckRows = _parseRowsInSection(
+      markdown,
+      'Required external checks:',
+    );
     final evidenceByViewerId = <String, String>{};
-    for (final cells in tableRows) {
-      if (cells.length != 3) {
+    for (final cells in requiredCheckRows) {
+      if (cells.length != 3 || _isTableHeaderOrDivider(cells)) {
         continue;
       }
       final viewerId = _viewerIdForLabel(cells.first);
@@ -455,12 +457,13 @@ class SheetPdfAnnotationCompatibilityReportParser {
     }
 
     final entries = <SheetPdfViewerCompatibilityEntry>[];
-    for (final cells in tableRows) {
-      if (cells.length <
-          SheetPdfAnnotationCompatibilityReportTemplate
-                  .viewerMatrixColumns
-                  .length +
-              2) {
+    for (final cells in viewerMatrixRows) {
+      if (_isTableHeaderOrDivider(cells) ||
+          cells.length <
+              SheetPdfAnnotationCompatibilityReportTemplate
+                      .viewerMatrixColumns
+                      .length +
+                  2) {
         continue;
       }
       final viewerLabel = cells.first;
@@ -504,6 +507,28 @@ class SheetPdfAnnotationCompatibilityReportParser {
     return entries;
   }
 
+  static List<String> parseUnknownViewerLabels(String markdown) {
+    final labels = <String>[];
+    final seenLabels = <String>{};
+    for (final cells in <List<String>>[
+      ..._parseRowsInSection(markdown, 'Viewer matrix:'),
+      ..._parseRowsInSection(markdown, 'Required external checks:'),
+    ]) {
+      if (_isTableHeaderOrDivider(cells)) {
+        continue;
+      }
+      final label = cells.first.trim();
+      if (label.isEmpty || _viewerIdForLabel(label) != null) {
+        continue;
+      }
+      final normalized = _normalizeViewerLabel(label);
+      if (seenLabels.add(normalized)) {
+        labels.add(label);
+      }
+    }
+    return labels;
+  }
+
   static String? _viewerIdForLabel(String label) {
     final normalized = _normalizeViewerLabel(label);
     for (final target
@@ -533,6 +558,47 @@ class SheetPdfAnnotationCompatibilityReportParser {
     'androidpdf': 'android-pdf-viewer',
     'androidpdfviewerapp': 'android-pdf-viewer',
   };
+
+  static List<List<String>> _parseRowsInSection(
+    String markdown,
+    String heading,
+  ) {
+    final rows = <List<String>>[];
+    var isInSection = false;
+    var hasStartedTable = false;
+    for (final rawLine in markdown.split('\n')) {
+      final line = rawLine.trim();
+      if (!isInSection) {
+        isInSection = line == heading;
+        continue;
+      }
+      final row = _parseTableRow(rawLine);
+      if (row == null) {
+        if (hasStartedTable) {
+          break;
+        }
+        continue;
+      }
+      hasStartedTable = true;
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  static bool _isTableHeaderOrDivider(List<String> cells) {
+    if (cells.isEmpty) {
+      return true;
+    }
+    final first = cells.first.trim().toLowerCase();
+    if (first == 'viewer') {
+      return true;
+    }
+    return cells.every((cell) {
+      final normalized = cell.trim().replaceAll(':', '');
+      return normalized.isNotEmpty &&
+          normalized.runes.every((rune) => rune == 45);
+    });
+  }
 
   static List<String>? _parseTableRow(String rawLine) {
     final line = rawLine.trim();

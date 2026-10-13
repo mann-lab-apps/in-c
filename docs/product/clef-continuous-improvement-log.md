@@ -2591,3 +2591,9 @@ the gate. The generated report uses exact viewer labels, but testers may shorten
 "Mobile Sheets" or "Android viewer"; the parser now normalizes common aliases back to the same target
 IDs before checking evidence and PASS/ISSUE/BLOCKED cells. Focused report tests, full analyze, the
 1,612-test suite and RC release checks passed.
+
+S238 VERIFIED LOCAL: surfaced unknown viewer names in editable PDF compatibility reports. The parser now
+reads the viewer matrix and required-check evidence from their named sections instead of every Markdown
+table, and `--review-report` warns when a hand-filled report contains unrecognized viewer rows such as
+typos or unsupported apps. Focused report tests, full analyze, the 1,613-test suite and RC release
+checks passed.

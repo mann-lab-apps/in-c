@@ -403,4 +403,45 @@ Viewer matrix:
     );
     expect(gate.canClaimExternalCompatibility, isTrue);
   });
+
+  test('reports unknown viewer labels without confusing subtype tables', () {
+    const markdown = '''
+# Clef Editable Annotation Compatibility Report
+
+Subtype checklist:
+
+| Subtype | Count | External viewer notes |
+| --- | ---: | --- |
+| `Ink` | 1 | visible |
+
+Viewer matrix:
+
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+| Adobe Acrobt | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | typo |
+| Mobile Sheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph ok |
+
+Required external checks:
+
+| Viewer | Required checks | Evidence link / screenshot |
+| --- | --- | --- |
+| Mobile Sheetz | music app import/open path | screenshots/mobile.png |
+| Piascore | music app import/open path | screenshots/piascore.png |
+''';
+
+    final entries =
+        SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(markdown);
+    final unknownLabels =
+        SheetPdfAnnotationCompatibilityReportParser.parseUnknownViewerLabels(
+          markdown,
+        );
+
+    expect(
+      entries.map((entry) => entry.viewerId),
+      containsAll(<String>['acrobat', 'mobilesheets']),
+    );
+    expect(entries.map((entry) => entry.viewerId), isNot(contains('Ink')));
+    expect(unknownLabels, <String>['Adobe Acrobt', 'Mobile Sheetz']);
+  });
 }

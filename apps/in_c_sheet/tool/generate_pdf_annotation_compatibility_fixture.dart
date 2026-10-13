@@ -136,12 +136,20 @@ Future<void> _reviewReport(String reportPath) async {
     exitCode = 64;
     return;
   }
+  final markdown = await report.readAsString();
   final entries = SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(
-    await report.readAsString(),
+    markdown,
   );
+  final unknownViewerLabels =
+      SheetPdfAnnotationCompatibilityReportParser.parseUnknownViewerLabels(
+        markdown,
+      );
+  if (unknownViewerLabels.isNotEmpty) {
+    stdout.writeln('- Unknown viewer rows: ${unknownViewerLabels.join(', ')}');
+  }
   final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
   stdout.writeln(gate.markdownSummary());
-  if (!gate.canClaimExternalCompatibility) {
+  if (unknownViewerLabels.isNotEmpty || !gate.canClaimExternalCompatibility) {
     exitCode = 2;
   }
 }

@@ -438,7 +438,8 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
    앱 버전, 기기명 또는 확인 메모 같은 evidence가 있어야 통과로 본다. `Unicode text`를 `PASS`로 두는
    viewer row는 notes 또는 evidence path에 Unicode/glyph/font/한글 표시 확인 근거를 명시해야 한다.
    채운 report는 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart --review-report <report.md>`로
-   다시 확인할 수 있다. 이 명령이 `NOT READY`를 출력하면 릴리즈 노트에는 외부 뷰어 호환성 미확인/이슈로 남긴다.
+   다시 확인할 수 있다. 이 명령이 `Unknown viewer rows` 또는 `NOT READY`를 출력하면 viewer 이름 오타,
+   미지원 viewer 행, 외부 뷰어 호환성 미확인/이슈로 분리해 릴리즈 노트에 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
    별도 WebP image stamp 사본을 만들 수 있으면, PDF 안에서는 PNG appearance로 보이더라도 `/Stamp`
