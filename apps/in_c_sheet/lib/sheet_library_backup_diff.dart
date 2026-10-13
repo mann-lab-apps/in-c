@@ -12,6 +12,9 @@ class SheetLibraryBackupDiff {
     required this.changedScoreFieldLabels,
     required this.fileChangedScoreIds,
     required this.annotationChangedScoreIds,
+    required this.annotationLayerChangedScoreIds,
+    required this.annotationObjectChangedScoreIds,
+    required this.annotationStorageChangedScoreIds,
     required this.addedSetlistIds,
     required this.removedSetlistIds,
     required this.changedSetlistIds,
@@ -33,6 +36,9 @@ class SheetLibraryBackupDiff {
     final changedScoreFieldLabels = <String>{};
     final fileChangedScoreIds = <String>[];
     final annotationChangedScoreIds = <String>[];
+    final annotationLayerChangedScoreIds = <String>[];
+    final annotationObjectChangedScoreIds = <String>[];
+    final annotationStorageChangedScoreIds = <String>[];
     for (final id in sharedScoreIds) {
       final baseScore = baseScores[id]!;
       final incomingScore = incomingScores[id]!;
@@ -51,6 +57,18 @@ class SheetLibraryBackupDiff {
       if (_scoreAnnotationSignature(baseScore) !=
           _scoreAnnotationSignature(incomingScore)) {
         annotationChangedScoreIds.add(id);
+      }
+      if (_scoreAnnotationLayerSignature(baseScore) !=
+          _scoreAnnotationLayerSignature(incomingScore)) {
+        annotationLayerChangedScoreIds.add(id);
+      }
+      if (_scoreAnnotationObjectSignature(baseScore) !=
+          _scoreAnnotationObjectSignature(incomingScore)) {
+        annotationObjectChangedScoreIds.add(id);
+      }
+      if (_scoreAnnotationStorageSignature(baseScore) !=
+          _scoreAnnotationStorageSignature(incomingScore)) {
+        annotationStorageChangedScoreIds.add(id);
       }
     }
 
@@ -88,6 +106,11 @@ class SheetLibraryBackupDiff {
       ),
       fileChangedScoreIds: _sorted(fileChangedScoreIds),
       annotationChangedScoreIds: _sorted(annotationChangedScoreIds),
+      annotationLayerChangedScoreIds: _sorted(annotationLayerChangedScoreIds),
+      annotationObjectChangedScoreIds: _sorted(annotationObjectChangedScoreIds),
+      annotationStorageChangedScoreIds: _sorted(
+        annotationStorageChangedScoreIds,
+      ),
       addedSetlistIds: _sortedDifference(
         incomingSetlists.keys,
         baseSetlists.keys,
@@ -115,6 +138,9 @@ class SheetLibraryBackupDiff {
   final List<String> changedScoreFieldLabels;
   final List<String> fileChangedScoreIds;
   final List<String> annotationChangedScoreIds;
+  final List<String> annotationLayerChangedScoreIds;
+  final List<String> annotationObjectChangedScoreIds;
+  final List<String> annotationStorageChangedScoreIds;
   final List<String> addedSetlistIds;
   final List<String> removedSetlistIds;
   final List<String> changedSetlistIds;
@@ -199,6 +225,12 @@ class SheetLibraryBackupDiffReport {
         '파일 경로나 연결 파일이 달라 원본 PDF/오디오 위치 확인이 필요합니다.',
       if (diff.annotationChangedScoreIds.isNotEmpty)
         '필기 데이터가 달라 어느 필기를 보존할지 확인이 필요합니다.',
+      if (diff.annotationLayerChangedScoreIds.isNotEmpty)
+        '필기 레이어 구성이 달라 보이기/내보내기 설정 확인이 필요합니다.',
+      if (diff.annotationObjectChangedScoreIds.isNotEmpty)
+        '필기 stroke, 텍스트, 스탬프 내용이 달라 자동 병합 전 검토가 필요합니다.',
+      if (diff.annotationStorageChangedScoreIds.isNotEmpty)
+        '필기 저장 파일 참조가 달라 백업에 실제 필기 파일이 포함됐는지 확인이 필요합니다.',
       if (diff.changedSetlistFieldLabels.isNotEmpty)
         '수정된 세트리스트 필드: ${diff.changedSetlistFieldLabels.join(', ')}',
       if (diff.setlistOrderChangedIds.isNotEmpty)
@@ -436,6 +468,30 @@ String _scoreAnnotationSignature(SheetScore score) {
     'annotationLayer': score.annotationLayer.toJson(),
     'annotationStorage': score.annotationStorage.toJson(),
   });
+}
+
+String _scoreAnnotationLayerSignature(SheetScore score) {
+  return jsonEncode(<String, Object?>{
+    'layers': score.annotationLayer.layers
+        .map((layer) => layer.toJson())
+        .toList(),
+  });
+}
+
+String _scoreAnnotationObjectSignature(SheetScore score) {
+  final layer = score.annotationLayer;
+  return jsonEncode(<String, Object?>{
+    'strokes': layer.strokes.map((stroke) => stroke.toJson()).toList(),
+    'texts': layer.texts.map((text) => text.toJson()).toList(),
+    'redoStack': layer.redoStack.map((entry) => entry.toJson()).toList(),
+    'eraseUndoStack': layer.eraseUndoStack
+        .map((entry) => entry.toJson())
+        .toList(),
+  });
+}
+
+String _scoreAnnotationStorageSignature(SheetScore score) {
+  return jsonEncode(score.annotationStorage.toJson());
 }
 
 Map<String, Object?> _settingsJson(SheetLibraryBackup backup) {

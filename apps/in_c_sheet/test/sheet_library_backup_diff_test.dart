@@ -102,6 +102,9 @@ void main() {
     expect(diff.changedScoreFieldLabels, ['원본 파일']);
     expect(diff.fileChangedScoreIds, ['score-a']);
     expect(diff.annotationChangedScoreIds, isEmpty);
+    expect(diff.annotationLayerChangedScoreIds, isEmpty);
+    expect(diff.annotationObjectChangedScoreIds, isEmpty);
+    expect(diff.annotationStorageChangedScoreIds, isEmpty);
     expect(diff.settingsChanged, isTrue);
     expect(diff.hasChanges, isTrue);
 
@@ -121,6 +124,102 @@ void main() {
     expect(mergeReview.risk, SheetLibraryBackupMergeRisk.review);
     expect(mergeReview.title, '수정 포함 전체 교체');
     expect(mergeReview.requiresManualReview, isTrue);
+  });
+
+  test('separates annotation layer object and storage conflict candidates', () {
+    final now = DateTime(2026, 10, 13, 10);
+    final base = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'score-a',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'stroke-a')],
+          ),
+          annotationStorage: const SheetAnnotationStorageReference(
+            mode: SheetAnnotationStorageReference.fileMode,
+            path: 'annotations/score-a.json',
+            checksum: 'base-checksum',
+          ),
+        ),
+        _score(
+          now,
+          id: 'score-b',
+          annotationLayer: const SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[],
+            layers: <SheetAnnotationDisplayLayer>[
+              SheetAnnotationDisplayLayer.defaultLayer,
+            ],
+          ),
+        ),
+        _score(
+          now,
+          id: 'score-c',
+          annotationStorage: const SheetAnnotationStorageReference(
+            mode: SheetAnnotationStorageReference.fileMode,
+            path: 'annotations/score-c.json',
+            checksum: 'old',
+          ),
+        ),
+      ],
+    );
+    final incoming = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'score-a',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'stroke-a-revised')],
+          ),
+          annotationStorage: const SheetAnnotationStorageReference(
+            mode: SheetAnnotationStorageReference.fileMode,
+            path: 'annotations/score-a.json',
+            checksum: 'base-checksum',
+          ),
+        ),
+        _score(
+          now,
+          id: 'score-b',
+          annotationLayer: const SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[],
+            layers: <SheetAnnotationDisplayLayer>[
+              SheetAnnotationDisplayLayer.defaultLayer,
+              SheetAnnotationDisplayLayer(id: 'lesson', label: 'Lesson'),
+            ],
+          ),
+        ),
+        _score(
+          now,
+          id: 'score-c',
+          annotationStorage: const SheetAnnotationStorageReference(
+            mode: SheetAnnotationStorageReference.fileMode,
+            path: 'annotations/score-c-new.json',
+            checksum: 'new',
+          ),
+        ),
+      ],
+    );
+
+    final diff = SheetLibraryBackupDiff.compare(base, incoming);
+
+    expect(diff.annotationChangedScoreIds, ['score-a', 'score-b', 'score-c']);
+    expect(diff.annotationLayerChangedScoreIds, ['score-b']);
+    expect(diff.annotationObjectChangedScoreIds, ['score-a']);
+    expect(diff.annotationStorageChangedScoreIds, ['score-c']);
+    expect(diff.changedScoreFieldLabels, ['필기 레이어', '필기 저장소']);
+
+    final report = SheetLibraryBackupDiffReport.fromDiff(diff);
+    expect(
+      report.reviewLines,
+      containsAll(<String>[
+        '필기 데이터가 달라 어느 필기를 보존할지 확인이 필요합니다.',
+        '필기 레이어 구성이 달라 보이기/내보내기 설정 확인이 필요합니다.',
+        '필기 stroke, 텍스트, 스탬프 내용이 달라 자동 병합 전 검토가 필요합니다.',
+        '필기 저장 파일 참조가 달라 백업에 실제 필기 파일이 포함됐는지 확인이 필요합니다.',
+      ]),
+    );
   });
 
   test('classifies additive-only backup changes separately', () {
@@ -210,6 +309,9 @@ SheetScore _score(
   required String id,
   String title = 'Score',
   String filePath = '/tmp/score.pdf',
+  SheetAnnotationLayer annotationLayer = SheetAnnotationLayer.empty,
+  SheetAnnotationStorageReference annotationStorage =
+      SheetAnnotationStorageReference.inline,
 }) {
   return SheetScore(
     id: id,
@@ -224,6 +326,23 @@ SheetScore _score(
     lastPage: 1,
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
+    annotationLayer: annotationLayer,
+    annotationStorage: annotationStorage,
+  );
+}
+
+SheetAnnotationStroke _stroke(DateTime now, {required String id}) {
+  return SheetAnnotationStroke(
+    id: id,
+    pageNumber: 1,
+    tool: SheetAnnotationTool.pen,
+    color: 0xff111111,
+    width: 3,
+    points: const <SheetAnnotationPoint>[
+      SheetAnnotationPoint(x: 0.2, y: 0.2),
+      SheetAnnotationPoint(x: 0.4, y: 0.4),
+    ],
+    createdAt: now,
   );
 }
 

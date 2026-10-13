@@ -2368,3 +2368,9 @@ copy-on-select plan now exposes a redacted batch of copy sources and known/unkno
 only when every selected entry is a readable, non-duplicate PDF, so a future platform picker bridge can
 hand safe candidates to the current import pipeline without leaking provider document tokens. Focused
 external-folder catalog tests, full analyze, 1,582-test suite and RC release checks passed.
+
+S205 VERIFIED LOCAL: reduced the cloud/annotation sync gap without adding automatic merge yet. The
+backup dry-run diff now separates annotation changes into display layer configuration, stroke/text/stamp
+object payloads, and external annotation file references, so future conflict review can explain what
+needs human attention before any restore or sync apply path. Focused backup-diff tests, full analyze,
+1,583-test suite and RC release checks passed.
