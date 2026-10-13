@@ -2,6 +2,166 @@ import 'package:flutter/material.dart';
 
 import 'sheet_collaboration_session.dart';
 
+class SheetCollaborationSessionPreviewView extends StatelessWidget {
+  const SheetCollaborationSessionPreviewView({
+    super.key,
+    required this.preview,
+    this.onStartLocalSimulation,
+    this.onCopyFallback,
+  });
+
+  final SheetCollaborationSessionPreview preview;
+  final VoidCallback? onStartLocalSimulation;
+  final VoidCallback? onCopyFallback;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final canStart =
+        preview.canStartLocalSimulation && onStartLocalSimulation != null;
+    return Semantics(
+      label: '협업 세션 미리보기',
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('협업 세션 미리보기', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                '실제 네트워크 연결 전, 같은 악보와 세트리스트를 갖췄는지 먼저 확인합니다.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              _CollaborationStatusBlock(
+                icon: preview.preflightCheck.canFollow
+                    ? Icons.check_circle_outline
+                    : Icons.error_outline,
+                title: preview.preflightCheck.headline,
+                lines: preview.preflightCheck.reviewLines,
+                attention: !preview.preflightCheck.canFollow,
+              ),
+              const SizedBox(height: 12),
+              _CollaborationStatusBlock(
+                icon: preview.followerReview.requiresAttention
+                    ? Icons.warning_amber_outlined
+                    : Icons.sync_alt,
+                title: preview.followerReview.headline,
+                lines: preview.followerReview.reviewLines,
+                attention: preview.followerReview.requiresAttention,
+              ),
+              if (preview.blockingReasons.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    border: Border.all(color: colorScheme.error),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '시작 전 확인 필요',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onErrorContainer,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ...preview.blockingReasons.map(
+                          (reason) => Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              reason,
+                              style: TextStyle(
+                                color: colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SheetCollaborationInviteQrView(
+                plan: preview.qrPlan,
+                onCopyFallback: onCopyFallback,
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: canStart ? onStartLocalSimulation : null,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('로컬 시뮬레이션 시작'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollaborationStatusBlock extends StatelessWidget {
+  const _CollaborationStatusBlock({
+    required this.icon,
+    required this.title,
+    required this.lines,
+    required this.attention,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<String> lines;
+  final bool attention;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final foreground = attention ? colorScheme.error : colorScheme.primary;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: foreground),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  ...lines.map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(line),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class SheetCollaborationInviteQrView extends StatelessWidget {
   const SheetCollaborationInviteQrView({
     super.key,

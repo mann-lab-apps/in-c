@@ -2406,3 +2406,9 @@ current follower review into startability, blocking reasons and review lines, so
 simulator screen can avoid showing an apparently ready collaboration when scores are missing or the
 follower state already needs attention. Focused collaboration tests, full analyze, 1,593-test suite
 and RC release checks passed.
+
+S211 VERIFIED LOCAL: rendered the collaboration session preview as a reusable widget without adding an
+app route or network transport. `SheetCollaborationSessionPreviewView` shows follower readiness,
+current follower state, blocking reasons, QR/copy fallback and a disabled/enabled local simulation
+action from the already validated preview model. Focused QR/preview widget tests, full analyze,
+1,595-test suite and RC release checks passed.

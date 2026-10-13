@@ -4,6 +4,99 @@ import 'package:in_c_sheet/sheet_collaboration_invite_qr.dart';
 import 'package:in_c_sheet/sheet_collaboration_session.dart';
 
 void main() {
+  testWidgets('collaboration session preview enables safe local simulation', (
+    tester,
+  ) async {
+    var started = false;
+    var copied = false;
+    final preview = SheetCollaborationSessionPreview.forInvite(
+      invite: _invite(sessionId: 'session-a'),
+      leaderScoreIds: ['score-a', 'score-b'],
+      followerScoreIds: {'score-a', 'score-b'},
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SheetCollaborationSessionPreviewView(
+            preview: preview,
+            onStartLocalSimulation: () {
+              started = true;
+            },
+            onCopyFallback: () {
+              copied = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('협업 세션 미리보기'), findsOneWidget);
+    expect(find.text('팔로워 기기가 모든 악보를 갖고 있습니다.'), findsOneWidget);
+    expect(find.text('리더 기기 연결 대기 중'), findsOneWidget);
+    expect(find.text('시작 전 확인 필요'), findsNothing);
+    expect(_qrPaint, findsOneWidget);
+
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '코드 복사'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '코드 복사'));
+    expect(copied, isTrue);
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, '로컬 시뮬레이션 시작'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, '로컬 시뮬레이션 시작'));
+    expect(started, isTrue);
+  });
+
+  testWidgets('collaboration session preview explains blocking reasons', (
+    tester,
+  ) async {
+    var started = false;
+    final now = DateTime.utc(2026, 10, 13, 12);
+    final synced = SheetFollowerSyncState.idle('session-a').applyLeaderEvent(
+      SheetLeaderPageEvent(
+        sessionId: 'session-a',
+        sequence: 1,
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        scoreId: 'score-a',
+        page: 2,
+        timestamp: now,
+      ),
+      availableScoreIds: {'score-a'},
+    );
+    final preview = SheetCollaborationSessionPreview.forInvite(
+      invite: _invite(sessionId: 'session-a'),
+      leaderScoreIds: ['score-a', 'score-b'],
+      followerScoreIds: {'score-a'},
+      followerState: synced.markDisconnected(
+        now.add(const Duration(seconds: 1)),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SheetCollaborationSessionPreviewView(
+            preview: preview,
+            onStartLocalSimulation: () {
+              started = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('시작 전 확인 필요'), findsOneWidget);
+    expect(find.text('팔로워 기기에 없는 악보 1개'), findsNWidgets(2));
+    expect(find.text('연결 끊김'), findsNWidgets(2));
+
+    final startButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '로컬 시뮬레이션 시작'),
+    );
+    expect(startButton.onPressed, isNull);
+    expect(started, isFalse);
+  });
+
   testWidgets('collaboration QR view renders matrix and copy fallback action', (
     tester,
   ) async {
