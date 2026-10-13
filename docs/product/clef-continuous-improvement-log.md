@@ -2393,3 +2393,9 @@ enabling a network session yet. `SheetCollaborationInviteQrView` renders a valid
 keeps a named copy-code action, and falls back to selectable invite payload text when QR generation is
 blocked. Widget coverage checks the scannable QR view and the copy fallback view before any route is
 added to the app. Focused QR view tests, full analyze, 1,590-test suite and RC release checks passed.
+
+S209 VERIFIED LOCAL: prepared leader/follower mismatch and reconnect UI copy before network transport.
+`SheetFollowerSyncReview` converts reducer states into a headline, review lines and an attention flag
+so a future simulator or follower screen can explain synced, missing-score, stale-event, disconnected
+and wrong-session states without duplicating status logic in widgets. Focused collaboration tests, full
+analyze, 1,591-test suite and RC release checks passed.

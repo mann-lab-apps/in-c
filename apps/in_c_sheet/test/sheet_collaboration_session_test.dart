@@ -457,4 +457,47 @@ void main() {
     expect(disconnected.page, 7);
     expect(disconnected.message, contains('현재 쪽'));
   });
+
+  test('follower sync review explains normal and blocking states', () {
+    final now = DateTime(2026, 10, 2, 20);
+    final synced = SheetFollowerSyncState.idle('session-1').applyLeaderEvent(
+      SheetLeaderPageEvent(
+        sessionId: 'session-1',
+        sequence: 1,
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        scoreId: 'score-a',
+        page: 3,
+        timestamp: now,
+      ),
+      availableScoreIds: {'score-a'},
+    );
+    final missing = synced.applyLeaderEvent(
+      SheetLeaderPageEvent(
+        sessionId: 'session-1',
+        sequence: 2,
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        scoreId: 'score-b',
+        page: 1,
+        timestamp: now.add(const Duration(seconds: 1)),
+      ),
+      availableScoreIds: {'score-a'},
+    );
+
+    final syncedReview = SheetFollowerSyncReview.fromState(synced);
+    final missingReview = SheetFollowerSyncReview.fromState(missing);
+    final disconnectedReview = SheetFollowerSyncReview.fromState(
+      synced.markDisconnected(now.add(const Duration(seconds: 2))),
+    );
+
+    expect(syncedReview.headline, '리더 기기를 따라가는 중');
+    expect(syncedReview.requiresAttention, isFalse);
+    expect(syncedReview.reviewLines, contains('현재 3쪽'));
+    expect(missingReview.headline, '팔로워 기기에 없는 악보');
+    expect(missingReview.requiresAttention, isTrue);
+    expect(missingReview.reviewLines, contains(contains('세트리스트 패키지')));
+    expect(disconnectedReview.headline, '연결 끊김');
+    expect(disconnectedReview.requiresAttention, isTrue);
+  });
 }

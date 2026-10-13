@@ -479,6 +479,75 @@ class SheetFollowerSyncState {
   }
 }
 
+class SheetFollowerSyncReview {
+  const SheetFollowerSyncReview({
+    required this.headline,
+    required this.reviewLines,
+    required this.requiresAttention,
+  });
+
+  factory SheetFollowerSyncReview.fromState(SheetFollowerSyncState state) {
+    switch (state.status) {
+      case SheetFollowerSyncStatus.idle:
+        return const SheetFollowerSyncReview(
+          headline: '리더 기기 연결 대기 중',
+          reviewLines: <String>['초대 코드를 받은 뒤 리더의 첫 페이지 전환을 기다립니다.'],
+          requiresAttention: false,
+        );
+      case SheetFollowerSyncStatus.synced:
+        return SheetFollowerSyncReview(
+          headline: '리더 기기를 따라가는 중',
+          reviewLines: <String>[
+            if (state.scoreId != null) '악보 ${state.scoreId}',
+            if (state.page != null) '현재 ${state.page}쪽',
+            '늦게 도착한 이전 페이지 전환은 무시됩니다.',
+          ],
+          requiresAttention: false,
+        );
+      case SheetFollowerSyncStatus.missingScore:
+        return SheetFollowerSyncReview(
+          headline: '팔로워 기기에 없는 악보',
+          reviewLines: <String>[
+            state.message ?? '이 기기에 없는 악보라 페이지를 넘기지 않았습니다.',
+            '세트리스트 패키지나 파일 가져오기로 악보를 맞춘 뒤 다시 연결하세요.',
+          ],
+          requiresAttention: true,
+        );
+      case SheetFollowerSyncStatus.staleEvent:
+        return SheetFollowerSyncReview(
+          headline: '이전 페이지 전환 무시',
+          reviewLines: <String>[
+            state.message ?? '이미 처리한 페이지 전환입니다.',
+            '현재 표시 중인 악보와 쪽을 유지합니다.',
+          ],
+          requiresAttention: false,
+        );
+      case SheetFollowerSyncStatus.disconnected:
+        return SheetFollowerSyncReview(
+          headline: '연결 끊김',
+          reviewLines: <String>[
+            state.message ?? '연결이 끊겼습니다. 현재 쪽을 유지합니다.',
+            '리더 초대를 다시 받으면 같은 세션인지 확인한 뒤 이어갑니다.',
+          ],
+          requiresAttention: true,
+        );
+      case SheetFollowerSyncStatus.sessionMismatch:
+        return SheetFollowerSyncReview(
+          headline: '다른 공연 세션',
+          reviewLines: <String>[
+            state.message ?? '다른 공연 세션의 페이지 전환 요청입니다.',
+            '현재 세트리스트 초대 코드와 같은지 확인하세요.',
+          ],
+          requiresAttention: true,
+        );
+    }
+  }
+
+  final String headline;
+  final List<String> reviewLines;
+  final bool requiresAttention;
+}
+
 String? _trimmedString(Object? value) {
   if (value is! String) {
     return null;
