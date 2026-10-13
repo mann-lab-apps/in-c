@@ -2418,3 +2418,9 @@ route. The report replays leader page moves, follower library refreshes and disc
 existing reducer, then summarizes attention steps and the final follower state so a future same-device
 simulator can show missing-score recovery and disconnect risk without opening real network transport.
 Focused collaboration tests, full analyze, 1,597-test suite and RC release checks passed.
+
+S213 VERIFIED LOCAL: rendered the local collaboration simulation report as a reusable widget without
+adding a route. `SheetCollaborationSimulationReportView` shows the report headline, summary lines,
+per-step follower status and final disconnect/missing-score attention states so the eventual simulator
+screen can reuse tested UI. Focused QR/report widget tests, full analyze, 1,599-test suite and RC
+release checks passed.

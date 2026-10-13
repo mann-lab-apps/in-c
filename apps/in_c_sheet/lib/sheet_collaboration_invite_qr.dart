@@ -110,6 +110,66 @@ class SheetCollaborationSessionPreviewView extends StatelessWidget {
   }
 }
 
+class SheetCollaborationSimulationReportView extends StatelessWidget {
+  const SheetCollaborationSimulationReportView({
+    super.key,
+    required this.report,
+  });
+
+  final SheetCollaborationLocalSimulationReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '협업 시뮬레이션 결과',
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('협업 시뮬레이션 결과', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(report.headline, style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 16),
+              _CollaborationStatusBlock(
+                icon: report.finalRequiresAttention
+                    ? Icons.warning_amber_outlined
+                    : Icons.check_circle_outline,
+                title: '요약',
+                lines: report.reviewLines,
+                attention: report.finalRequiresAttention,
+              ),
+              if (report.steps.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('단계별 결과', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                ...report.steps.map(
+                  (step) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _CollaborationStatusBlock(
+                      icon: step.requiresAttention
+                          ? Icons.error_outline
+                          : Icons.sync_alt,
+                      title: step.label,
+                      lines: <String>[
+                        step.review.headline,
+                        ...step.review.reviewLines,
+                      ],
+                      attention: step.requiresAttention,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CollaborationStatusBlock extends StatelessWidget {
   const _CollaborationStatusBlock({
     required this.icon,

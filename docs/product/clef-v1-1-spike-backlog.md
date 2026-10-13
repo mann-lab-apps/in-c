@@ -408,9 +408,11 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      readiness, follower state, blocking reason, QR/copy fallback, local simulation action 상태를 렌더한다.
   10. Local simulation report core. 구현 중: leader page move, follower library refresh, disconnect action을
       reducer에 통과시켜 attention step count와 final state를 route 노출 전 검증한다.
-  11. QR pairing mock route 또는 debug-only local session simulator 화면.
-  12. Same-device leader/follower simulator UI로 setlist/page mismatch UX 검증.
-  13. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
+  11. Reusable local simulation report view. 구현 중: report headline, summary, step-by-step follower
+      status and attention states를 route 연결 전 widget test로 검증한다.
+  12. QR pairing mock route 또는 debug-only local session simulator 화면.
+  13. Same-device leader/follower simulator UI로 setlist/page mismatch UX 검증.
+  14. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
 - 테스트/fixture/실기기 조건: Android tablet 2대, iPad/Android 혼합, 같은 setlist/다른 setlist,
   missing score, rapid page turns, disconnect/reconnect, screen sleep, pedal input while following.
 - Acceptance criteria: follower가 잘못된 악보로 넘어가지 않고, 연결 손실과 mismatch를 명확히 표시하며,
@@ -418,7 +420,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   stale event, missing score, session mismatch, disconnect 상태, QR/code invite round-trip, expiry,
   unsupported version, malformed payload, local simulator missing/recovery/disconnect, QR matrix generation,
   copy fallback, reusable QR view rendering, follower status review copy, session preview blocking
-  reasons, reusable preview view action states and local simulation report summaries를 검증한다.
+  reasons, reusable preview view action states, local simulation report summaries and report widget
+  rendering을 검증한다.
 - Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
 
 ## 15. Custom Stamp Pack / Stamp Management

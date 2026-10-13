@@ -97,6 +97,83 @@ void main() {
     expect(started, isFalse);
   });
 
+  testWidgets('collaboration simulation report shows recovery summary', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 10, 13, 12);
+    final report = SheetCollaborationLocalSimulationReport.run(
+      invite: _invite(sessionId: 'session-a'),
+      initialFollowerScoreIds: {'score-a'},
+      actions: <SheetCollaborationSimulationAction>[
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-a',
+          page: 1,
+          timestamp: now.add(const Duration(seconds: 1)),
+        ),
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-b',
+          page: 1,
+          timestamp: now.add(const Duration(seconds: 2)),
+        ),
+        SheetCollaborationSimulationAction.replaceFollowerScores(
+          scoreIds: {'score-a', 'score-b'},
+          timestamp: now.add(const Duration(seconds: 3)),
+        ),
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-b',
+          page: 2,
+          timestamp: now.add(const Duration(seconds: 4)),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SheetCollaborationSimulationReportView(report: report),
+        ),
+      ),
+    );
+
+    expect(find.text('협업 시뮬레이션 결과'), findsOneWidget);
+    expect(find.text('요약'), findsOneWidget);
+    expect(find.text('확인 필요 2단계'), findsOneWidget);
+    expect(find.text('리더: score-b 2쪽'), findsOneWidget);
+    expect(find.text('리더 기기를 따라가는 중'), findsWidgets);
+  });
+
+  testWidgets('collaboration simulation report highlights final disconnect', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 10, 13, 12);
+    final report = SheetCollaborationLocalSimulationReport.run(
+      invite: _invite(sessionId: 'session-a'),
+      initialFollowerScoreIds: {'score-a'},
+      actions: <SheetCollaborationSimulationAction>[
+        SheetCollaborationSimulationAction.leaderPage(
+          scoreId: 'score-a',
+          page: 3,
+          timestamp: now.add(const Duration(seconds: 1)),
+        ),
+        SheetCollaborationSimulationAction.disconnect(
+          timestamp: now.add(const Duration(seconds: 2)),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SheetCollaborationSimulationReportView(report: report),
+        ),
+      ),
+    );
+
+    expect(find.text('마지막 상태에 확인이 필요합니다.'), findsOneWidget);
+    expect(find.text('연결 끊김'), findsNWidgets(2));
+    expect(find.text('연결 끊김 시뮬레이션'), findsOneWidget);
+  });
+
   testWidgets('collaboration QR view renders matrix and copy fallback action', (
     tester,
   ) async {
