@@ -2539,3 +2539,10 @@ required spike item list still only named Acrobat/Preview and MobileSheets/Piasc
 capability now includes an explicit Android PDF viewer fixture requirement, and exporter capability
 tests lock all three external fixture requirements. Focused exporter tests, full analyze, the
 1,610-test suite and RC release checks passed.
+
+S230 VERIFIED LOCAL: made the editable PDF capability model expose the remaining Unicode FreeText
+appearance risk. Standard mode preserves Korean/music-symbol FreeText contents locally, but external
+viewer rendering still needs a font fallback/appearance fixture. This slice adds an explicit
+`unicodeFreeTextAppearanceFixture` required spike item and updates the current product docs so the
+capability model matches the known manual QA gap. Focused exporter tests, full analyze, the
+1,610-test suite and RC release checks passed.

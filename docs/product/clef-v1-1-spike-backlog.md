@@ -196,7 +196,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 결정 필요사항: rich stamp appearance를 표준 PDF annotation으로 유지할지, flatten vs editable export
   mode UI를 어떻게 둘지, 외부 viewer evidence를 어떤 릴리즈 기준으로 통과시킬지.
 - 구현 후보: Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer manual matrix result 수집,
-  music-symbol/Unicode FreeText fallback policy, external viewer evidence package.
+  Unicode FreeText appearance fixture와 font fallback policy, external viewer evidence package.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
   crop/rotation/page order PDF, pressure stroke fixture.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered

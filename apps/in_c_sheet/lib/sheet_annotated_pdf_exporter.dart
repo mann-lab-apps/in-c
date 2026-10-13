@@ -211,6 +211,7 @@ class SheetAnnotatedPdfExporter {
           'acrobatPreviewFixture',
           'mobileSheetsPiascoreFixture',
           'androidPdfViewerFixture',
+          'unicodeFreeTextAppearanceFixture',
         ],
       );
 
