@@ -188,7 +188,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection 통과 후
   Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다. Report review gate는 viewer row
   누락, NOT_TESTED cell, ISSUE, BLOCKED를 별도로 요약하며 모두 해소되기 전에는 external
-  compatibility 완료로 보지 않는다.
+  compatibility 완료로 보지 않는다. 채운 report는 같은 도구의 `--review-report` mode로 다시
+  검사할 수 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
   mapping의 1차 경로는 생겼지만, rich non-text stamp appearance, Unicode FreeText appearance/font
   fallback과 외부 viewer 호환성 검증이 필요하다.

@@ -172,4 +172,46 @@ void main() {
     expect(gate.canClaimExternalCompatibility, isTrue);
     expect(gate.markdownSummary(), contains('gate: PASS'));
   });
+
+  test('parses filled viewer matrix rows for report review', () {
+    const markdown = '''
+# Clef Editable Annotation Compatibility Report
+
+Viewer matrix:
+
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text/icon stamp | Image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | screenshot A |
+| macOS Preview | PASS | ISSUE | PASS | PASS | PASS | PASS | PASS | PASS | NOT_TESTED | PASS | line moved |
+| MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Android PDF viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | BLOCKED | PASS | unavailable |
+''';
+
+    final entries =
+        SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(markdown);
+    final preview = entries.singleWhere((entry) => entry.viewerId == 'preview');
+    final android = entries.singleWhere(
+      (entry) => entry.viewerId == 'android-pdf-viewer',
+    );
+    final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
+
+    expect(entries, hasLength(5));
+    expect(preview.notes, 'line moved');
+    expect(
+      preview.statuses['Line/arrow'],
+      SheetPdfViewerCompatibilityStatus.issue,
+    );
+    expect(
+      preview.statuses['Unicode text'],
+      SheetPdfViewerCompatibilityStatus.notTested,
+    );
+    expect(
+      android.statuses['Unicode text'],
+      SheetPdfViewerCompatibilityStatus.blocked,
+    );
+    expect(gate.canClaimExternalCompatibility, isFalse);
+    expect(gate.issueCells['preview'], contains('Line/arrow'));
+    expect(gate.blockedCells['android-pdf-viewer'], contains('Unicode text'));
+  });
 }

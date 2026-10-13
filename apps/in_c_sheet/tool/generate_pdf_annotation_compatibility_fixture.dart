@@ -7,6 +7,12 @@ import 'package:in_c_sheet/sheet_pdf_annotation_compatibility_report.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 
 Future<void> main(List<String> args) async {
+  final reviewReportPath = _valueAfter(args, '--review-report');
+  if (reviewReportPath != null) {
+    await _reviewReport(reviewReportPath);
+    return;
+  }
+
   final input = File(_valueAfter(args, '--input') ?? _defaultInputPath);
   final outputPath = _valueAfter(args, '--output') ?? _defaultOutputPath;
   final reportPath = _valueAfter(args, '--report') ?? _defaultReportPath;
@@ -84,6 +90,23 @@ Future<void> main(List<String> args) async {
     ..writeln('- macOS Preview')
     ..writeln('- MobileSheets')
     ..writeln('- Piascore');
+}
+
+Future<void> _reviewReport(String reportPath) async {
+  final report = File(reportPath);
+  if (!report.existsSync()) {
+    stderr.writeln('Compatibility report not found: ${report.path}');
+    exitCode = 64;
+    return;
+  }
+  final entries = SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(
+    await report.readAsString(),
+  );
+  final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
+  stdout.writeln(gate.markdownSummary());
+  if (!gate.canClaimExternalCompatibility) {
+    exitCode = 2;
+  }
 }
 
 const _defaultInputPath = 'test-fixtures/pdfs/short-score.pdf';

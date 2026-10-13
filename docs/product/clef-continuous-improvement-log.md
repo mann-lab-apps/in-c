@@ -2460,3 +2460,10 @@ cells, issues and blockers, so manual QA evidence cannot be confused with local 
 Focused compatibility report tests, fixture generation/report inspection, Poppler first-page render,
 full analyze, 1,606-test suite and RC release checks passed. External viewer behavior remains
 Device QA.
+
+S219 VERIFIED LOCAL: made filled editable PDF compatibility reports machine-checkable. The
+compatibility fixture tool can read a manually filled report with `--review-report`, summarize
+missing viewer rows, NOT_TESTED cells, ISSUE cells and BLOCKED cells, and return a non-zero review
+exit until the gate is ready. This keeps external viewer QA evidence easy to pass back without
+treating screenshots or local inspection as enough by themselves. Focused report parser tests,
+manual NOT_READY review-mode run, full analyze, 1,607-test suite and RC release checks passed.

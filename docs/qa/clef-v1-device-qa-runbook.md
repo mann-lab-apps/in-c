@@ -429,6 +429,8 @@ pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/ico
    선택/이동/편집 가능 여부와 Unicode glyph 표시를 별도 열로 남긴다.
    `Completion gate`가 남아 있는 동안에는 external compatibility를 완료로 표시하지 않는다. 모든 viewer row의 필수
    cell이 `PASS`이고 `ISSUE`/`BLOCKED`/`NOT_TESTED`가 없어야 통과로 본다.
+   채운 report는 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart --review-report <report.md>`로
+   다시 확인할 수 있다. 이 명령이 `NOT READY`를 출력하면 릴리즈 노트에는 외부 뷰어 호환성 미확인/이슈로 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
 7. 한글 FreeText/text stamp와 음악 기호가 실제 viewer에서 깨지지 않는지 확인한다. 로컬 Poppler 렌더는

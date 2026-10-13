@@ -4,6 +4,16 @@ enum SheetPdfViewerCompatibilityStatus { notTested, pass, issue, blocked }
 
 extension SheetPdfViewerCompatibilityStatusLabel
     on SheetPdfViewerCompatibilityStatus {
+  static SheetPdfViewerCompatibilityStatus? parse(String value) {
+    final normalized = value.trim().toUpperCase().replaceAll('`', '');
+    for (final status in SheetPdfViewerCompatibilityStatus.values) {
+      if (status.label == normalized) {
+        return status;
+      }
+    }
+    return null;
+  }
+
   bool get isKnown {
     return this != SheetPdfViewerCompatibilityStatus.notTested;
   }
@@ -307,5 +317,71 @@ Known local limits:
 - Unicode text may preserve `/Contents` while still rendering with missing glyph boxes.
 - Attach screenshots for every `${SheetPdfViewerCompatibilityStatus.issue.label}` and keep the generated PDF path with the report.
 ''';
+  }
+}
+
+class SheetPdfAnnotationCompatibilityReportParser {
+  const SheetPdfAnnotationCompatibilityReportParser._();
+
+  static List<SheetPdfViewerCompatibilityEntry> parseViewerMatrix(
+    String markdown,
+  ) {
+    final targetIdByLabel = <String, String>{
+      for (final target
+          in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
+        target.label: target.id,
+    };
+    final entries = <SheetPdfViewerCompatibilityEntry>[];
+    for (final rawLine in markdown.split('\n')) {
+      final line = rawLine.trim();
+      if (!line.startsWith('|') || !line.endsWith('|')) {
+        continue;
+      }
+      final cells = line
+          .substring(1, line.length - 1)
+          .split('|')
+          .map((cell) => cell.trim())
+          .toList(growable: false);
+      if (cells.length < 2) {
+        continue;
+      }
+      final viewerLabel = cells.first;
+      final viewerId = targetIdByLabel[viewerLabel];
+      if (viewerId == null) {
+        continue;
+      }
+      final statuses = <String, SheetPdfViewerCompatibilityStatus>{};
+      for (
+        var index = 0;
+        index <
+            SheetPdfAnnotationCompatibilityReportTemplate
+                .viewerMatrixColumns
+                .length;
+        index += 1
+      ) {
+        final column = SheetPdfAnnotationCompatibilityReportTemplate
+            .viewerMatrixColumns[index];
+        final cellIndex = index + 1;
+        final status = cellIndex < cells.length
+            ? SheetPdfViewerCompatibilityStatusLabel.parse(cells[cellIndex])
+            : null;
+        statuses[column] =
+            status ?? SheetPdfViewerCompatibilityStatus.notTested;
+      }
+      final notesIndex =
+          SheetPdfAnnotationCompatibilityReportTemplate
+              .viewerMatrixColumns
+              .length +
+          1;
+      final notes = notesIndex < cells.length ? cells[notesIndex] : '';
+      entries.add(
+        SheetPdfViewerCompatibilityEntry(
+          viewerId: viewerId,
+          statuses: Map.unmodifiable(statuses),
+          notes: notes,
+        ),
+      );
+    }
+    return entries;
   }
 }
