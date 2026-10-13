@@ -416,7 +416,8 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart`로 생성한다. 기본 출력은
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`와
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
-pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp, PNG/WebP image stamp를 포함한다.
+pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
+music-symbol stamp, PNG/WebP image stamp를 포함한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
 로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
 
@@ -426,9 +427,11 @@ pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/ico
 4. 생성 PDF를 Acrobat, macOS Preview, MobileSheets, Piascore 중 가능한 viewer로 열어 annotation이 보이고 선택/편집 가능한지 기록한다.
    생성된 report template의 viewer matrix를 `PASS` / `ISSUE` / `BLOCKED` / `NOT_TESTED`로 채운 뒤 결과를 공유한다.
    report의 `Required external checks`에는 viewer별로 꼭 확인할 항목이 분리되어 있으므로, 보이는지만 확인하지 말고
-   선택/이동/편집 가능 여부와 Unicode glyph 표시를 별도 열로 남긴다.
+   선택/이동/편집 가능 여부, text stamp, music-symbol stamp, PNG image stamp, WebP image stamp와
+   Unicode glyph 표시를 별도 열로 남긴다.
    `Completion gate`가 남아 있는 동안에는 external compatibility를 완료로 표시하지 않는다. 모든 viewer row의 필수
-   cell이 `PASS`이고 `ISSUE`/`BLOCKED`/`NOT_TESTED`가 없어야 통과로 본다.
+   cell이 `PASS`이고 `ISSUE`/`BLOCKED`/`NOT_TESTED`가 없어야 하며, 각 viewer row의
+   `Result notes`에는 screenshot path, 앱 버전, 기기명 또는 확인 메모 같은 evidence가 있어야 통과로 본다.
    채운 report는 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart --review-report <report.md>`로
    다시 확인할 수 있다. 이 명령이 `NOT READY`를 출력하면 릴리즈 노트에는 외부 뷰어 호환성 미확인/이슈로 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
@@ -448,9 +451,12 @@ Ink visible/editable:
 Line/arrow visible/editable:
 Rectangle visible/editable:
 FreeText visible/editable:
-Text/icon stamp visible/editable:
-Image Stamp visible/editable:
+Text stamp visible/editable:
+Music-symbol stamp visible/editable:
+PNG image stamp visible/editable:
+WebP image stamp visible/editable:
 Unicode text visible:
+Evidence path / notes:
 Layer export flag 반영:
 원본 PDF 보존:
 Local inspection PASS:

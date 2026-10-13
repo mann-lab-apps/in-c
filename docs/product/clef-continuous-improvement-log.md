@@ -2498,3 +2498,9 @@ that only changed cells to PASS and left result notes blank. The gate now tracks
 evidence, blocks external compatibility claims until each row includes notes/evidence, and summarizes
 the missing viewer ids during report review. Focused report tests, a NOT_READY generated-report
 review, full analyze, 1,609-test suite and RC release checks passed.
+
+S224 VERIFIED LOCAL: aligned QA handoff docs with the stricter editable PDF compatibility gate. The
+code now separates text stamp, music-symbol stamp, PNG image stamp, WebP image stamp and requires
+viewer evidence before claiming external compatibility, so the runbook, tester checklist, feature
+map and MobileSheets inventory now use the same wording. `git diff --check`, targeted trailing
+whitespace scan, tab scan and stale wording scan passed.

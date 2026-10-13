@@ -180,16 +180,16 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식을 계속 지원한다. export capability
   report는 flattened copy와 editable standard annotation export를 구분한다. Standard mode는
   pen/highlighter를 `/Ink`, line/arrow와 crescendo/diminuendo hairpin, staff/grid guide를 `/Line`,
-  rectangle을 `/Square`, text와 text/icon stamp를 `/FreeText`, PNG/JPEG/WebP image stamp를 `/Stamp`
+  rectangle을 `/Square`, text와 text/music-symbol stamp를 `/FreeText`, PNG/JPEG/WebP image stamp를 `/Stamp`
   객체로 쓰는 1차 writer가 있으며,
   생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
   inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
   모두 포함한 manual QA용 PDF와 PASS/ISSUE/BLOCKED/NOT_TESTED report template을
   `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection 통과 후
   Acrobat/Preview/MobileSheets/Piascore 확인 대상으로 넘긴다. Report review gate는 viewer row
-  누락, NOT_TESTED cell, ISSUE, BLOCKED를 별도로 요약하며 모두 해소되기 전에는 external
-  compatibility 완료로 보지 않는다. 채운 report는 같은 도구의 `--review-report` mode로 다시
-  검사할 수 있다.
+  누락, evidence 없는 row, NOT_TESTED cell, ISSUE, BLOCKED를 별도로 요약하며 모두 해소되기
+  전에는 external compatibility 완료로 보지 않는다. 채운 report는 같은 도구의 `--review-report`
+  mode로 다시 검사할 수 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
   mapping의 1차 경로는 생겼지만, rich non-text stamp appearance, Unicode FreeText appearance/font
   fallback과 외부 viewer 호환성 검증이 필요하다.
