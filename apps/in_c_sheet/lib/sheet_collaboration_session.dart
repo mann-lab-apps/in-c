@@ -309,6 +309,71 @@ class SheetCollaborationInviteQrPlan {
   String get copyFallbackPayload => payload;
 }
 
+class SheetCollaborationSessionPreview {
+  const SheetCollaborationSessionPreview({
+    required this.invite,
+    required this.qrPlan,
+    required this.preflightCheck,
+    required this.followerReview,
+  });
+
+  factory SheetCollaborationSessionPreview.forInvite({
+    required SheetCollaborationInvite invite,
+    required Iterable<String> leaderScoreIds,
+    required Set<String> followerScoreIds,
+    SheetFollowerSyncState? followerState,
+  }) {
+    final preflightCheck = SheetCollaborationPreflightCheck.forSetlist(
+      setlistId: invite.setlistId,
+      leaderScoreIds: leaderScoreIds,
+      followerScoreIds: followerScoreIds,
+    );
+    return SheetCollaborationSessionPreview(
+      invite: invite,
+      qrPlan: SheetCollaborationInviteQrPlan.forInvite(invite),
+      preflightCheck: preflightCheck,
+      followerReview: SheetFollowerSyncReview.fromState(
+        followerState ?? SheetFollowerSyncState.idle(invite.sessionId),
+      ),
+    );
+  }
+
+  final SheetCollaborationInvite invite;
+  final SheetCollaborationInviteQrPlan qrPlan;
+  final SheetCollaborationPreflightCheck preflightCheck;
+  final SheetFollowerSyncReview followerReview;
+
+  bool get canShareInvite =>
+      qrPlan.canRenderQr || qrPlan.copyFallbackPayload.isNotEmpty;
+
+  bool get canStartLocalSimulation =>
+      preflightCheck.canFollow && !followerReview.requiresAttention;
+
+  List<String> get blockingReasons {
+    final reasons = <String>[];
+    if (!preflightCheck.canFollow) {
+      reasons.add(preflightCheck.headline);
+    }
+    if (!canShareInvite) {
+      reasons.add('초대 QR이나 복사 코드를 준비하지 못했습니다.');
+    }
+    if (followerReview.requiresAttention) {
+      reasons.add(followerReview.headline);
+    }
+    return List<String>.unmodifiable(reasons);
+  }
+
+  List<String> get reviewLines {
+    return List<String>.unmodifiable(<String>[
+      '세션 ${invite.sessionId}',
+      ...preflightCheck.reviewLines,
+      ...qrPlan.reviewLines,
+      followerReview.headline,
+      ...followerReview.reviewLines,
+    ]);
+  }
+}
+
 class SheetCollaborationLocalSimulator {
   SheetCollaborationLocalSimulator({
     required this.invite,

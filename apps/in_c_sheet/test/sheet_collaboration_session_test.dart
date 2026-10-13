@@ -190,6 +190,70 @@ void main() {
     },
   );
 
+  test(
+    'collaboration session preview combines invite, preflight and state',
+    () {
+      final now = DateTime.utc(2026, 10, 2, 12);
+      final preview = SheetCollaborationSessionPreview.forInvite(
+        invite: SheetCollaborationInvite(
+          sessionId: 'session-1',
+          leaderDeviceId: 'leader-a',
+          setlistId: 'setlist-a',
+          createdAt: now,
+          expiresAt: now.add(const Duration(minutes: 5)),
+        ),
+        leaderScoreIds: ['score-a', 'score-b'],
+        followerScoreIds: {'score-a', 'score-b'},
+      );
+
+      expect(preview.canShareInvite, isTrue);
+      expect(preview.canStartLocalSimulation, isTrue);
+      expect(preview.blockingReasons, isEmpty);
+      expect(preview.preflightCheck.canFollow, isTrue);
+      expect(preview.qrPlan.canRenderQr, isTrue);
+      expect(preview.followerReview.headline, '리더 기기 연결 대기 중');
+      expect(preview.reviewLines, contains('세션 session-1'));
+      expect(preview.reviewLines, contains('총 2곡을 안전하게 따라갈 수 있습니다.'));
+    },
+  );
+
+  test('collaboration session preview blocks missing or attention states', () {
+    final now = DateTime.utc(2026, 10, 2, 12);
+    final synced = SheetFollowerSyncState.idle('session-1').applyLeaderEvent(
+      SheetLeaderPageEvent(
+        sessionId: 'session-1',
+        sequence: 1,
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        scoreId: 'score-a',
+        page: 2,
+        timestamp: now,
+      ),
+      availableScoreIds: {'score-a'},
+    );
+    final disconnected = synced.markDisconnected(
+      now.add(const Duration(seconds: 1)),
+    );
+
+    final preview = SheetCollaborationSessionPreview.forInvite(
+      invite: SheetCollaborationInvite(
+        sessionId: 'session-1',
+        leaderDeviceId: 'leader-a',
+        setlistId: 'setlist-a',
+        createdAt: now,
+        expiresAt: now.add(const Duration(minutes: 5)),
+      ),
+      leaderScoreIds: ['score-a', 'score-b'],
+      followerScoreIds: {'score-a'},
+      followerState: disconnected,
+    );
+
+    expect(preview.canShareInvite, isTrue);
+    expect(preview.canStartLocalSimulation, isFalse);
+    expect(preview.blockingReasons, ['팔로워 기기에 없는 악보 1개', '연결 끊김']);
+    expect(preview.reviewLines, contains('연결 끊김'));
+  });
+
   test('local simulator applies leader pages through the follower reducer', () {
     final now = DateTime.utc(2026, 10, 2, 12);
     final simulator = SheetCollaborationLocalSimulator(

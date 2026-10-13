@@ -2399,3 +2399,10 @@ S209 VERIFIED LOCAL: prepared leader/follower mismatch and reconnect UI copy bef
 so a future simulator or follower screen can explain synced, missing-score, stale-event, disconnected
 and wrong-session states without duplicating status logic in widgets. Focused collaboration tests, full
 analyze, 1,591-test suite and RC release checks passed.
+
+S210 VERIFIED LOCAL: prepared a single collaboration session preview model before adding a route.
+`SheetCollaborationSessionPreview` combines the invite QR/copy plan, follower setlist preflight and
+current follower review into startability, blocking reasons and review lines, so a future local
+simulator screen can avoid showing an apparently ready collaboration when scores are missing or the
+follower state already needs attention. Focused collaboration tests, full analyze, 1,593-test suite
+and RC release checks passed.

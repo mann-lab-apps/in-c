@@ -402,16 +402,19 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      fallback을 route 연결 전 widget test로 검증한다.
   7. Follower status review core. 구현됨: `SheetFollowerSyncReview`는 synced/missing/stale/disconnected/
      wrong-session 상태를 UI headline, review lines, attention flag로 바꾼다.
-  8. QR pairing mock route 또는 debug-only local session simulator 화면.
-  9. Same-device leader/follower simulator UI로 setlist/page mismatch UX 검증.
-  10. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
+  8. Collaboration session preview core. 구현됨: `SheetCollaborationSessionPreview`는 invite QR/copy plan,
+     follower setlist preflight, follower status review를 묶어 startability와 blocking reason을 계산한다.
+  9. QR pairing mock route 또는 debug-only local session simulator 화면.
+  10. Same-device leader/follower simulator UI로 setlist/page mismatch UX 검증.
+  11. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
 - 테스트/fixture/실기기 조건: Android tablet 2대, iPad/Android 혼합, 같은 setlist/다른 setlist,
   missing score, rapid page turns, disconnect/reconnect, screen sleep, pedal input while following.
 - Acceptance criteria: follower가 잘못된 악보로 넘어가지 않고, 연결 손실과 mismatch를 명확히 표시하며,
   leader/follower state reducer가 out-of-order event를 안전하게 처리한다. 현재 unit test는 available score,
   stale event, missing score, session mismatch, disconnect 상태, QR/code invite round-trip, expiry,
   unsupported version, malformed payload, local simulator missing/recovery/disconnect, QR matrix generation,
-  copy fallback, reusable QR view rendering and follower status review copy를 검증한다.
+  copy fallback, reusable QR view rendering, follower status review copy and session preview blocking
+  reasons를 검증한다.
 - Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
 
 ## 15. Custom Stamp Pack / Stamp Management
