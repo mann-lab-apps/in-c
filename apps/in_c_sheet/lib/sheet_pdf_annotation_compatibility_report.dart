@@ -90,6 +90,7 @@ class SheetPdfViewerCompatibilityGate {
   const SheetPdfViewerCompatibilityGate._({
     required this.missingViewerIds,
     required this.missingEvidenceViewerIds,
+    required this.missingUnicodeEvidenceViewerIds,
     required this.untestedCells,
     required this.issueCells,
     required this.blockedCells,
@@ -105,6 +106,7 @@ class SheetPdfViewerCompatibilityGate {
     final entryByViewer = {for (final entry in entries) entry.viewerId: entry};
     final missingViewerIds = <String>[];
     final missingEvidenceViewerIds = <String>[];
+    final missingUnicodeEvidenceViewerIds = <String>[];
     final untestedCells = <String, List<String>>{};
     final issueCells = <String, List<String>>{};
     final blockedCells = <String, List<String>>{};
@@ -117,6 +119,11 @@ class SheetPdfViewerCompatibilityGate {
       }
       if (entry.notes.trim().isEmpty && entry.evidence.trim().isEmpty) {
         missingEvidenceViewerIds.add(target.id);
+      }
+      if (entry.statuses['Unicode text'] ==
+              SheetPdfViewerCompatibilityStatus.pass &&
+          !_hasUnicodeEvidence(entry)) {
+        missingUnicodeEvidenceViewerIds.add(target.id);
       }
       final untested = entry.untestedColumns(columns);
       if (untested.isNotEmpty) {
@@ -134,6 +141,7 @@ class SheetPdfViewerCompatibilityGate {
     return SheetPdfViewerCompatibilityGate._(
       missingViewerIds: missingViewerIds,
       missingEvidenceViewerIds: missingEvidenceViewerIds,
+      missingUnicodeEvidenceViewerIds: missingUnicodeEvidenceViewerIds,
       untestedCells: untestedCells,
       issueCells: issueCells,
       blockedCells: blockedCells,
@@ -142,12 +150,15 @@ class SheetPdfViewerCompatibilityGate {
 
   final List<String> missingViewerIds;
   final List<String> missingEvidenceViewerIds;
+  final List<String> missingUnicodeEvidenceViewerIds;
   final Map<String, List<String>> untestedCells;
   final Map<String, List<String>> issueCells;
   final Map<String, List<String>> blockedCells;
 
   bool get hasMissingViewers => missingViewerIds.isNotEmpty;
   bool get hasMissingEvidence => missingEvidenceViewerIds.isNotEmpty;
+  bool get hasMissingUnicodeEvidence =>
+      missingUnicodeEvidenceViewerIds.isNotEmpty;
   bool get hasUntestedCells => untestedCells.isNotEmpty;
   bool get hasIssues => issueCells.isNotEmpty;
   bool get hasBlockedCells => blockedCells.isNotEmpty;
@@ -155,6 +166,7 @@ class SheetPdfViewerCompatibilityGate {
   bool get canClaimExternalCompatibility {
     return !hasMissingViewers &&
         !hasMissingEvidence &&
+        !hasMissingUnicodeEvidence &&
         !hasUntestedCells &&
         !hasIssues &&
         !hasBlockedCells;
@@ -172,6 +184,12 @@ class SheetPdfViewerCompatibilityGate {
       lines.add(
         '- Missing viewer evidence: '
         '${_viewerSummary(missingEvidenceViewerIds)}',
+      );
+    }
+    if (missingUnicodeEvidenceViewerIds.isNotEmpty) {
+      lines.add(
+        '- Missing Unicode/glyph evidence: '
+        '${_viewerSummary(missingUnicodeEvidenceViewerIds)}',
       );
     }
     if (untestedCells.isNotEmpty) {
@@ -204,6 +222,18 @@ class SheetPdfViewerCompatibilityGate {
       }
     }
     return viewerId;
+  }
+
+  static bool _hasUnicodeEvidence(SheetPdfViewerCompatibilityEntry entry) {
+    final evidenceText = '${entry.notes} ${entry.evidence}'.toLowerCase();
+    return evidenceText.contains('unicode') ||
+        evidenceText.contains('glyph') ||
+        evidenceText.contains('font') ||
+        evidenceText.contains('freetext') ||
+        evidenceText.contains('한글') ||
+        evidenceText.contains('음악') ||
+        evidenceText.contains('기호') ||
+        evidenceText.contains('글리프');
   }
 }
 
@@ -342,6 +372,7 @@ Completion gate:
 
 - Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has `Result notes` or a required-check evidence link.
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
+- If `Unicode text` is `${SheetPdfViewerCompatibilityStatus.pass.label}`, include Unicode/glyph/font evidence in the row notes or evidence link.
 - Treat local inspection as a fixture sanity check, not as proof of $viewerLabels behavior.
 
 Required spike items:

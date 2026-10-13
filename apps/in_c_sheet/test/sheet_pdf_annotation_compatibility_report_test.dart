@@ -72,6 +72,7 @@ void main() {
       markdown,
       contains('Do not claim external compatibility while any required cell'),
     );
+    expect(markdown, contains('include Unicode/glyph/font evidence'));
     expect(
       markdown,
       contains(
@@ -213,7 +214,9 @@ void main() {
                         .viewerMatrixColumns)
                   column: SheetPdfViewerCompatibilityStatus.pass,
               },
-              notes: '${target.label} screenshot and edit notes',
+              notes:
+                  '${target.label} screenshot, edit notes and Unicode glyph '
+                  'rendering evidence',
             ),
         ],
       );
@@ -248,6 +251,32 @@ void main() {
     expect(gate.markdownSummary(), contains('Missing viewer evidence'));
   });
 
+  test('keeps compatibility blocked without Unicode glyph evidence', () {
+    final gate = SheetPdfViewerCompatibilityGate.review(
+      entries: <SheetPdfViewerCompatibilityEntry>[
+        for (final target
+            in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
+          SheetPdfViewerCompatibilityEntry(
+            viewerId: target.id,
+            statuses: <String, SheetPdfViewerCompatibilityStatus>{
+              for (final column
+                  in SheetPdfAnnotationCompatibilityReportTemplate
+                      .viewerMatrixColumns)
+                column: SheetPdfViewerCompatibilityStatus.pass,
+            },
+            notes: '${target.label} generic screenshot and edit notes',
+          ),
+      ],
+    );
+
+    expect(gate.canClaimExternalCompatibility, isFalse);
+    expect(
+      gate.missingUnicodeEvidenceViewerIds,
+      containsAll(<String>['acrobat', 'preview', 'android-pdf-viewer']),
+    );
+    expect(gate.markdownSummary(), contains('Missing Unicode/glyph evidence'));
+  });
+
   test('parses filled viewer matrix rows for report review', () {
     const markdown = '''
 # Clef Editable Annotation Compatibility Report
@@ -256,7 +285,7 @@ Viewer matrix:
 
 | Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | screenshot A |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | Unicode glyph screenshot A |
 | macOS Preview | PASS | ISSUE | PASS | PASS | PASS | PASS | PASS | NOT_TESTED | PASS | NOT_TESTED | NOT_TESTED | PASS | line moved |
 | MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
 | Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
@@ -311,7 +340,7 @@ Viewer matrix:
 | Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
-| macOS Preview | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | preview notes |
+| macOS Preview | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | preview Unicode glyph notes |
 | MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
 | Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
 | Android PDF viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
@@ -320,10 +349,10 @@ Required external checks:
 
 | Viewer | Required checks | Evidence link / screenshot |
 | --- | --- | --- |
-| Acrobat | visible/editable annotation objects | screenshots/acrobat.png |
-| MobileSheets | music app import/open path | screenshots/mobilesheets.png |
-| Piascore | music app import/open path | screenshots/piascore.png |
-| Android PDF viewer | basic visible rendering | screenshots/android.png |
+| Acrobat | visible/editable annotation objects | screenshots/acrobat-unicode.png |
+| MobileSheets | music app import/open path | screenshots/mobilesheets-unicode.png |
+| Piascore | music app import/open path | screenshots/piascore-unicode.png |
+| Android PDF viewer | basic visible rendering | screenshots/android-unicode.png |
 ''';
 
     final entries =
@@ -333,8 +362,8 @@ Required external checks:
     final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
 
     expect(acrobat.notes, isEmpty);
-    expect(acrobat.evidence, 'screenshots/acrobat.png');
-    expect(preview.notes, 'preview notes');
+    expect(acrobat.evidence, 'screenshots/acrobat-unicode.png');
+    expect(preview.notes, 'preview Unicode glyph notes');
     expect(preview.evidence, isEmpty);
     expect(gate.canClaimExternalCompatibility, isTrue);
   });

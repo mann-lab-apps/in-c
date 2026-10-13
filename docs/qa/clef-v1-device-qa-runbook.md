@@ -435,7 +435,8 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
    `Completion gate`가 남아 있는 동안에는 external compatibility를 완료로 표시하지 않는다. 모든 viewer row의 필수
    cell이 `PASS`이고 `ISSUE`/`BLOCKED`/`NOT_TESTED`가 없어야 하며, 각 viewer row에는
    `Result notes` 또는 `Required external checks`의 `Evidence link / screenshot` 칸에 screenshot path,
-   앱 버전, 기기명 또는 확인 메모 같은 evidence가 있어야 통과로 본다.
+   앱 버전, 기기명 또는 확인 메모 같은 evidence가 있어야 통과로 본다. `Unicode text`를 `PASS`로 두는
+   viewer row는 notes 또는 evidence path에 Unicode/glyph/font/한글 표시 확인 근거를 명시해야 한다.
    채운 report는 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart --review-report <report.md>`로
    다시 확인할 수 있다. 이 명령이 `NOT READY`를 출력하면 릴리즈 노트에는 외부 뷰어 호환성 미확인/이슈로 남긴다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.

@@ -2574,3 +2574,9 @@ FreeText objects, but external PDF apps may render glyphs differently until a fo
 chosen. The export mode sheet and snackbar copy now warn about viewer variation instead of implying
 currently supported stamps are simply excluded. Full analyze, the 1,610-test suite and RC release
 checks passed.
+
+S235 VERIFIED LOCAL: tightened the editable PDF external compatibility gate so Unicode text cannot be
+marked PASS with only generic viewer evidence. The report review now tracks missing Unicode/glyph
+evidence separately from generic screenshot/notes evidence, and the QA docs require Unicode/glyph/font
+proof whenever a viewer row marks `Unicode text` as PASS. Focused report tests, full analyze, the
+1,611-test suite and RC release checks passed.
