@@ -266,4 +266,41 @@ Viewer matrix:
     expect(gate.missingEvidenceViewerIds, contains('piascore'));
     expect(gate.blockedCells['android-pdf-viewer'], contains('Unicode text'));
   });
+
+  test('uses required-check evidence links for compatibility gate', () {
+    const markdown = '''
+# Clef Editable Annotation Compatibility Report
+
+Viewer matrix:
+
+| Viewer | Ink | Line/arrow | Rectangle | Hairpin | Staff/grid | FreeText | Text stamp | Music-symbol stamp | PNG image stamp | WebP image stamp | Unicode text | Select/edit | Result notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Acrobat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| macOS Preview | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | preview notes |
+| MobileSheets | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Piascore | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+| Android PDF viewer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | |
+
+Required external checks:
+
+| Viewer | Required checks | Evidence link / screenshot |
+| --- | --- | --- |
+| Acrobat | visible/editable annotation objects | screenshots/acrobat.png |
+| MobileSheets | music app import/open path | screenshots/mobilesheets.png |
+| Piascore | music app import/open path | screenshots/piascore.png |
+| Android PDF viewer | basic visible rendering | screenshots/android.png |
+''';
+
+    final entries =
+        SheetPdfAnnotationCompatibilityReportParser.parseViewerMatrix(markdown);
+    final acrobat = entries.singleWhere((entry) => entry.viewerId == 'acrobat');
+    final preview = entries.singleWhere((entry) => entry.viewerId == 'preview');
+    final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
+
+    expect(acrobat.notes, isEmpty);
+    expect(acrobat.evidence, 'screenshots/acrobat.png');
+    expect(preview.notes, 'preview notes');
+    expect(preview.evidence, isEmpty);
+    expect(gate.canClaimExternalCompatibility, isTrue);
+  });
 }

@@ -2510,3 +2510,11 @@ template. The template includes Android PDF viewer rows and required checks, but
 only listed Acrobat, Preview, MobileSheets and Piascore. The generator now prints manual viewer QA
 targets from the template, including Android PDF viewer, so future target changes cannot drift.
 Fixture generation, full analyze and RC release checks with the 1,609-test suite passed.
+
+S226 VERIFIED LOCAL: tightened editable PDF compatibility report review so manually supplied evidence
+links are not ignored. The report template has a separate `Evidence link / screenshot` column in the
+required-check table, but parser review only counted `Result notes` in the viewer matrix. The parser
+now reads required-check evidence links by viewer and lets either notes or evidence satisfy the
+external compatibility evidence gate. The report template, device QA runbook and tester checklist now
+describe that behavior. Focused compatibility report tests, full analyze, the 1,610-test suite and RC
+release checks passed.

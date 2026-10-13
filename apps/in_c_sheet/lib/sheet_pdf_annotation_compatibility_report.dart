@@ -305,7 +305,7 @@ Result legend:
 
 Completion gate:
 
-- Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has evidence.
+- Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has `Result notes` or a required-check evidence link.
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
 - Treat local inspection as a fixture sanity check, not as proof of Acrobat/Preview/MobileSheets/Piascore behavior.
 
@@ -354,18 +354,31 @@ class SheetPdfAnnotationCompatibilityReportParser {
           in SheetPdfAnnotationCompatibilityReportTemplate.viewerTargets)
         target.label: target.id,
     };
-    final entries = <SheetPdfViewerCompatibilityEntry>[];
-    for (final rawLine in markdown.split('\n')) {
-      final line = rawLine.trim();
-      if (!line.startsWith('|') || !line.endsWith('|')) {
+    final tableRows = [
+      for (final rawLine in markdown.split('\n')) _parseTableRow(rawLine),
+    ].whereType<List<String>>().toList(growable: false);
+    final evidenceByViewerId = <String, String>{};
+    for (final cells in tableRows) {
+      if (cells.length != 3) {
         continue;
       }
-      final cells = line
-          .substring(1, line.length - 1)
-          .split('|')
-          .map((cell) => cell.trim())
-          .toList(growable: false);
-      if (cells.length < 2) {
+      final viewerId = targetIdByLabel[cells.first];
+      if (viewerId == null) {
+        continue;
+      }
+      final evidence = cells[2].trim();
+      if (evidence.isNotEmpty) {
+        evidenceByViewerId[viewerId] = evidence;
+      }
+    }
+
+    final entries = <SheetPdfViewerCompatibilityEntry>[];
+    for (final cells in tableRows) {
+      if (cells.length <
+          SheetPdfAnnotationCompatibilityReportTemplate
+                  .viewerMatrixColumns
+                  .length +
+              2) {
         continue;
       }
       final viewerLabel = cells.first;
@@ -402,9 +415,22 @@ class SheetPdfAnnotationCompatibilityReportParser {
           viewerId: viewerId,
           statuses: Map.unmodifiable(statuses),
           notes: notes,
+          evidence: evidenceByViewerId[viewerId] ?? '',
         ),
       );
     }
     return entries;
+  }
+
+  static List<String>? _parseTableRow(String rawLine) {
+    final line = rawLine.trim();
+    if (!line.startsWith('|') || !line.endsWith('|')) {
+      return null;
+    }
+    return line
+        .substring(1, line.length - 1)
+        .split('|')
+        .map((cell) => cell.trim())
+        .toList(growable: false);
   }
 }

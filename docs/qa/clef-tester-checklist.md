@@ -467,8 +467,9 @@
   Standard 사본은 pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, text note, text stamp,
   music-symbol stamp, PNG/JPEG/WebP image stamp가 외부 viewer에서 보이는지와 선택/편집 가능한지를
   기록한다. Image stamp는 standard editable export에서 FreeText로 오인되지 않고 `/Stamp`로 남아야 한다.
-  Report template을 채울 때는 viewer별 `Result notes`에 screenshot path, 앱/OS 버전, 기기명 또는
-  확인 메모를 남긴다. 모든 cell이 PASS여도 evidence가 비어 있으면 external compatibility 완료로 보지 않는다.
+  Report template을 채울 때는 viewer별 `Result notes`나 `Evidence link / screenshot`에 screenshot path,
+  앱/OS 버전, 기기명 또는 확인 메모를 남긴다. 모든 cell이 PASS여도 evidence가 비어 있으면
+  external compatibility 완료로 보지 않는다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.
