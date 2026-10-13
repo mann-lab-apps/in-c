@@ -2518,3 +2518,10 @@ now reads required-check evidence links by viewer and lets either notes or evide
 external compatibility evidence gate. The report template, device QA runbook and tester checklist now
 describe that behavior. Focused compatibility report tests, full analyze, the 1,610-test suite and RC
 release checks passed.
+
+S227 VERIFIED LOCAL: removed another hardcoded editable PDF compatibility viewer list. The report
+template and generated fixture score note still named Acrobat/Preview/MobileSheets/Piascore directly,
+which could drift from the template target list and omit Android PDF viewer. Those viewer references
+now derive from `viewerTargets`, so the report body and fixture metadata include Android PDF viewer
+whenever the target list does. Focused compatibility report tests, fixture generation, full analyze,
+the 1,610-test suite and RC release checks passed.

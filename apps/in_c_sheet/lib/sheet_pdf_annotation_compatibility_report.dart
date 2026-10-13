@@ -284,6 +284,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       for (final target in viewerTargets)
         '| ${target.label} | ${target.requiredChecks.join('<br>')} | |',
     ].join('\n');
+    final viewerLabels = viewerTargets.map((target) => target.label).join('/');
 
     return '''
 # Clef Editable Annotation Compatibility Report
@@ -307,7 +308,7 @@ Completion gate:
 
 - Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has `Result notes` or a required-check evidence link.
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
-- Treat local inspection as a fixture sanity check, not as proof of Acrobat/Preview/MobileSheets/Piascore behavior.
+- Treat local inspection as a fixture sanity check, not as proof of $viewerLabels behavior.
 
 Unicode FreeText contents:
 

@@ -54,6 +54,13 @@ void main() {
       markdown,
       contains('Do not claim external compatibility while any required cell'),
     );
+    expect(
+      markdown,
+      contains(
+        'not as proof of Acrobat/macOS Preview/MobileSheets/Piascore/'
+        'Android PDF viewer behavior',
+      ),
+    );
     expect(markdown, contains('- `숨 크게`'));
     expect(markdown, contains('| `Ink` | 1 | |'));
     expect(markdown, contains('| `Line` | 2 | |'));

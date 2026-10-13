@@ -150,14 +150,18 @@ String? _valueAfter(List<String> args, String flag) {
 
 SheetScore _compatibilityScore(String inputPath) {
   final now = DateTime.parse('2026-10-13T11:00:00.000');
+  final viewerLabels = SheetPdfAnnotationCompatibilityReportTemplate
+      .viewerTargets
+      .map((target) => target.label)
+      .join(', ');
   return SheetScore(
     id: 'pdf-annotation-compatibility',
     title: 'Clef Editable Annotation Compatibility',
     composer: '',
     tags: const <String>['qa', 'pdf-export'],
     note:
-        'Local generated fixture for Acrobat, Preview, MobileSheets and '
-        'Piascore manual compatibility checks.',
+        'Local generated fixture for $viewerLabels manual compatibility '
+        'checks.',
     filePath: inputPath,
     importedAt: now,
     updatedAt: now,
