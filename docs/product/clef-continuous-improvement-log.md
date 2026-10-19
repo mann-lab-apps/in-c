@@ -3007,3 +3007,11 @@ paragraphs in a cell with a readable separator. Nested table ownership avoids du
 The original DOCX remains a reference file and package/backup behavior is unchanged. Focused parser regression,
 `flutter analyze`, all 1,747 tests and the RC release check passed. Merged cells, images, footnotes, fonts and visual table
 layout remain outside the guarantee and require real-document QA.
+
+S298 VERIFIED LOCAL: preserved the readable meaning of common DOCX numbered and bulleted lists. The bounded extractor
+reads an optional 1 MiB `numbering.xml`, tracks list counters in document order and renders nested decimal, letter, Roman
+and bullet markers with indentation while leaving the original DOCX untouched. Missing, oversized or malformed optional
+numbering metadata falls back to paragraph text instead of blocking import. Parser regressions cover nested lists, custom
+starts, letter/Roman formats and damaged metadata. `dart format`, `flutter analyze`, all 1,750 tests and the RC release
+check passed. Word-specific custom numbering glyphs, layout fidelity and list override semantics remain outside the
+guarantee and require real-document QA.
