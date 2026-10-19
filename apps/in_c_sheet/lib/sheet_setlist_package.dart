@@ -18,6 +18,8 @@ const String sheetSetlistPackageManifestFileName = 'clef-setlist-package.txt';
 const String sheetSetlistPackageUserStampsFileName = 'clef-user-stamps.json';
 const String sheetSetlistPackageScoreDirectory = 'scores/';
 const String sheetSetlistPackageStampAssetDirectory = 'stamps/';
+const String sheetSetlistPackageSupportedScoreKindsLabel =
+    'PDF/JPG/PNG/텍스트/ChordPro/DOCX/RTF';
 
 class SheetSetlistPackageArchive {
   const SheetSetlistPackageArchive({

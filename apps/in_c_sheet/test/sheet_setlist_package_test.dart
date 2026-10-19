@@ -11,6 +11,13 @@ import 'package:in_c_sheet/sheet_setlist_manifest.dart';
 import 'package:in_c_sheet/sheet_setlist_package.dart';
 
 void main() {
+  test('supported score label includes every package document type', () {
+    expect(
+      sheetSetlistPackageSupportedScoreKindsLabel,
+      'PDF/JPG/PNG/텍스트/ChordPro/DOCX/RTF',
+    );
+  });
+
   test('dry run separates existing scores from package files', () {
     final manifest = SheetSetlistShareManifest.tryParse('''
 Clef & Staff 세트리스트

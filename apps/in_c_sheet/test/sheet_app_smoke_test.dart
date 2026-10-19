@@ -2830,6 +2830,7 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
 
     expect(find.text('세트리스트 패키지 내보내기'), findsOneWidget);
+    expect(find.textContaining('ChordPro/DOCX/RTF 원본'), findsOneWidget);
     expect(find.text('패키지를 만들 수 없습니다'), findsOneWidget);
     expect(find.text('곡 0개'), findsOneWidget);
     expect(find.text('파일 0개'), findsOneWidget);

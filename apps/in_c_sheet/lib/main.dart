@@ -8035,7 +8035,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$fileName · 패키지 안 PDF/JPG/PNG/텍스트/ChordPro와 현재 라이브러리 매칭을 확인합니다.',
+                '$fileName · 패키지 안 $sheetSetlistPackageSupportedScoreKindsLabel와 현재 라이브러리 매칭을 확인합니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -8216,7 +8216,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$setlistTitle · PDF/JPG/PNG/텍스트/ChordPro 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
+                '$setlistTitle · $sheetSetlistPackageSupportedScoreKindsLabel 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -9821,7 +9821,7 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
     case SheetSetlistPackageEntryStatus.duplicatePackageFile:
       return '같은 이름의 패키지 파일 후보 ${entry.packageFileCandidates.length}개';
     case SheetSetlistPackageEntryStatus.unsupportedFile:
-      return 'PDF/JPG/PNG/텍스트/ChordPro 악보만 패키지에서 확인할 수 있습니다.';
+      return '$sheetSetlistPackageSupportedScoreKindsLabel 악보만 패키지에서 확인할 수 있습니다.';
     case SheetSetlistPackageEntryStatus.invalidFile:
       return entry.packageFile?.validationFailure ?? '파일 내용을 읽을 수 없습니다.';
   }

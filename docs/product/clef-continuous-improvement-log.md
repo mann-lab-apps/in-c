@@ -2831,3 +2831,8 @@ S272 VERIFIED LOCAL: removed stale text-import guidance after DOCX and RTF suppo
 claims direct DOCX reading is future work, the unsupported-format fallback lists the actual PDF/image/text/ChordPro/DOCX/
 RTF read-only boundary, and QA wording names the same import surface. Smoke and policy assertions prevent the obsolete
 copy from returning while keeping unsupported legacy formats on the PDF-conversion path.
+
+S273 VERIFIED LOCAL: aligned setlist package copy with its mixed-format codec. Import preview, export preview and
+unsupported-entry guidance now share one PDF/image/text/ChordPro/DOCX/RTF label instead of omitting the original DOCX and
+RTF files that the package already validates and preserves. Unit and widget regressions keep the shared label and export
+surface synchronized; rich DOCX/RTF layout remains outside the read-only import guarantee.
