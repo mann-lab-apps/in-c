@@ -126,7 +126,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
    - 구현 상태: ready plan의 transient document token만 Android bridge에 넘겨 cache에 복사하고,
      기존 shared-PDF import pipeline으로 앱 내부 score를 만든다. 중복/읽기 실패/미지원/stale selection은
-     바이트 복사 전에 차단한다. source metadata 저장은 후속이다.
+     바이트 복사 전에 차단하며, 선택 중 하나라도 복사할 수 없으면 임시 사본을 지우고 부분 import를 하지
+     않는다. source metadata 저장은 후속이다.
    - 구현 상태: `SheetExternalFolderCopySource`는 display/provider/folder/size/modified hint를 score/backup
      metadata로 만들되 platform document token은 내보내지 않는다. 저장된 score metadata 연결은 후속.
 

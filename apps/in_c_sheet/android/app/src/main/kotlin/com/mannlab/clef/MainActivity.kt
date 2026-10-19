@@ -300,23 +300,32 @@ class MainActivity : FlutterActivity() {
     private fun copyExternalFolderPdfs(documentTokens: List<Any>): List<Map<String, String>> {
         val copiedFiles = mutableListOf<Map<String, String>>()
         val seenTokens = mutableSetOf<String>()
-        for (rawToken in documentTokens) {
-            val token = rawToken.toString().trim()
-            if (token.isEmpty() || !seenTokens.add(token)) {
-                continue
-            }
-            val uri = Uri.parse(token)
-            val copied = copySharedPdfToCache(uri)
-            if (copied != null) {
+        try {
+            for (rawToken in documentTokens) {
+                val token = rawToken.toString().trim()
+                if (token.isEmpty() || !seenTokens.add(token)) {
+                    continue
+                }
+                val uri = Uri.parse(token)
+                if (!uri.scheme.equals("content", ignoreCase = true)) {
+                    throw IllegalArgumentException("A selected document is no longer available.")
+                }
+                val copied = copySharedPdfToCache(uri)
+                    ?: throw IllegalStateException("A selected PDF could not be read.")
                 copiedFiles.add(
                     mapOf("path" to copied.file.absolutePath, "name" to copied.displayName),
                 )
             }
+            if (copiedFiles.isEmpty()) {
+                throw IllegalStateException("No selected PDF could be read.")
+            }
+            return copiedFiles
+        } catch (error: Exception) {
+            copiedFiles.forEach { copied ->
+                copied["path"]?.let(::File)?.delete()
+            }
+            throw error
         }
-        if (copiedFiles.isEmpty()) {
-            throw IllegalStateException("No selected PDF could be read.")
-        }
-        return copiedFiles
     }
 
     private fun drainPendingSharedFiles(): List<Map<String, String>> {
@@ -352,21 +361,24 @@ class MainActivity : FlutterActivity() {
             return null
         }
 
+        var output: File? = null
         return try {
             val input = contentResolver.openInputStream(uri) ?: return null
             val sharedDir = File(cacheDir, "shared-imports")
             if (!sharedDir.exists()) {
                 sharedDir.mkdirs()
             }
-            val output = File(
+            val copiedFile = File(
                 sharedDir,
                 "${System.currentTimeMillis()}-${safeFileName(displayName)}",
             )
+            output = copiedFile
             input.use { source ->
-                output.outputStream().use { target -> source.copyTo(target) }
+                copiedFile.outputStream().use { target -> source.copyTo(target) }
             }
-            SharedImportFile(file = output, displayName = displayName)
+            SharedImportFile(file = copiedFile, displayName = displayName)
         } catch (_: Exception) {
+            output?.delete()
             null
         }
     }

@@ -2713,3 +2713,8 @@ only the selected ready PDFs through the existing shared-PDF import path. SAF do
 not written into score metadata or backups. Focused catalog/gateway/sheet tests cover duplicate blocking, token
 redaction, selected-token copy requests and disabled blocked candidates; Android provider, cancel and large-folder
 flows remain Device QA.
+
+S256 IMPLEMENTED — ANDROID COMPILE/DEVICE QA PENDING: made Android folder-copy batches all-or-nothing before they enter the library pipeline. The
+native bridge now rejects non-content tokens and cleans every cache copy made for the batch when any selected PDF
+cannot be read, rather than importing a silent subset. The shared-PDF cache helper also removes a partially written
+file after a stream failure. Provider-offline and permission-loss behavior remains Android Device QA.

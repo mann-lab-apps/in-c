@@ -257,6 +257,8 @@ Folder catalog / direct folder spike:
 - Android 태블릿에서 권한 승인/취소, 빈 폴더, 201개 이상 폴더, 읽기 실패, 기존 및 폴더 내 중복 파일명,
   미지원 형식이 라이브러리를 변경하지 않고 안내되는지 확인한다.
 - 선택한 항목 중 중복/읽기 실패/미지원/stale 항목이 섞이면 실제 복사 전에 차단되어야 한다.
+- ready로 보였던 항목 하나가 provider offline/권한 문제로 실제 복사에 실패하면 임시 사본이나 부분 import가
+  남지 않고 실패 안내가 보여야 한다.
 - 선택한 PDF는 원본 폴더를 직접 참조하지 않고 기존 import pipeline으로 앱 내부에 복사되어야 한다.
 - 가져온 뒤 Android 파일 앱에서 원본을 rename/delete해도 Clef 안의 사본이 계속 열려야 한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
