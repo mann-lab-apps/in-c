@@ -130,6 +130,9 @@ fixture annotations land on either other page. External viewer rendering and edi
 
 ## 요약
 
+- Clef setlist package codec은 import/export 모두에 256MB archive/해제 크기, 128MB 단일 entry,
+  512 entry 한도를 공유한다. 한도 내 대용량 mixed package의 실기기 메모리/속도 QA는 남아 있다.
+
 | 상태 | 개수 | 대표 기능 |
 | --- | ---: | --- |
 | Implemented | 26 | 세트리스트, PDF/image import, songbook CSV, 보기 모드, 페이지 정리, 필기 기본 도구, 튜너, 드론, 백업/복원 |

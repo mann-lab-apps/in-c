@@ -2933,3 +2933,11 @@ scores remain protected from annotation overwrite. Regressions cover codec rejec
 successful restore, local collision preservation and save-failure cleanup. Large mixed-package and external-device QA
 remain follow-up.
 `flutter analyze`, all 1,721 tests and the RC release check passed.
+
+S289 VERIFIED LOCAL: bounded setlist package ZIP resource use before the next mixed-package Device QA pass. Import and
+export now share limits of 256 MiB compressed, 512 archive entries, 128 MiB per entry and 256 MiB total uncompressed
+content. The picker rejects an oversized archive before loading its bytes, while the lazy ZIP directory is checked before
+entry contents are decompressed. App-generated packages pass through the same policy so Clef cannot create an archive it
+will immediately refuse. Codec regressions cover compressed size, per-entry size, expanded total, entry count and export
+limits. Real large PDF/image/text/stamp combinations within the boundary remain Device QA.
+`flutter analyze`, all 1,724 tests and the RC release check passed.

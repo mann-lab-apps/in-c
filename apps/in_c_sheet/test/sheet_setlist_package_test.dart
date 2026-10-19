@@ -268,6 +268,92 @@ Clef & Staff 세트리스트
     expect(dryRun.importableFileCount, 1);
   });
 
+  test('codec rejects packages beyond compressed and expanded limits', () {
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Bounded Package
+곡 수: 1곡
+
+1. Etude
+   파일: etude.pdf
+''',
+      scoreFiles: const <String, List<int>>{
+        'scores/etude.pdf': <int>[1, 2, 3, 4],
+      },
+    );
+
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(
+        zip,
+        limits: SheetSetlistPackageLimits(maxArchiveBytes: zip.length - 1),
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(
+        zip,
+        limits: const SheetSetlistPackageLimits(maxEntryBytes: 3),
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => SheetSetlistPackageArchive.decodeBytes(
+        zip,
+        limits: const SheetSetlistPackageLimits(maxUncompressedBytes: 8),
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'codec rejects excessive package entry counts before reading content',
+    () {
+      final archive = Archive()
+        ..addFile(
+          ArchiveFile.string(sheetSetlistPackageManifestFileName, '''
+Clef & Staff 세트리스트
+제목: Entry Count
+곡 수: 1곡
+
+1. Etude
+   파일: etude.pdf
+'''),
+        )
+        ..addFile(ArchiveFile.bytes('scores/etude.pdf', <int>[1]))
+        ..addFile(ArchiveFile.bytes('scores/extra.pdf', <int>[2]));
+      final zip = ZipEncoder().encode(archive);
+
+      expect(
+        () => SheetSetlistPackageArchive.decodeBytes(
+          zip,
+          limits: const SheetSetlistPackageLimits(maxEntryCount: 2),
+        ),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test('codec refuses to create packages outside the shared limits', () {
+    expect(
+      () => SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Oversized Export
+곡 수: 1곡
+
+1. Etude
+   파일: etude.pdf
+''',
+        scoreFiles: const <String, List<int>>{
+          'scores/etude.pdf': <int>[1, 2, 3, 4],
+        },
+        limits: const SheetSetlistPackageLimits(maxEntryBytes: 3),
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('codec classifies plain text and ChordPro package scores', () {
     final zip = SheetSetlistPackageArchive.encodeBytes(
       manifestText: '''

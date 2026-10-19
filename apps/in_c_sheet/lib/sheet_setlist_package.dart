@@ -23,6 +23,23 @@ const String sheetSetlistPackageStampAssetDirectory = 'stamps/';
 const String sheetSetlistPackageSupportedScoreKindsLabel =
     'PDF/JPG/PNG/텍스트/ChordPro/DOCX/RTF';
 
+const SheetSetlistPackageLimits sheetSetlistPackageDefaultLimits =
+    SheetSetlistPackageLimits();
+
+class SheetSetlistPackageLimits {
+  const SheetSetlistPackageLimits({
+    this.maxArchiveBytes = 256 * 1024 * 1024,
+    this.maxEntryCount = 512,
+    this.maxEntryBytes = 128 * 1024 * 1024,
+    this.maxUncompressedBytes = 256 * 1024 * 1024,
+  });
+
+  final int maxArchiveBytes;
+  final int maxEntryCount;
+  final int maxEntryBytes;
+  final int maxUncompressedBytes;
+}
+
 class SheetSetlistPackageArchive {
   const SheetSetlistPackageArchive({
     required this.manifest,
@@ -54,7 +71,15 @@ class SheetSetlistPackageArchive {
     );
   }
 
-  static SheetSetlistPackageArchive decodeBytes(List<int> bytes) {
+  static SheetSetlistPackageArchive decodeBytes(
+    List<int> bytes, {
+    SheetSetlistPackageLimits limits = sheetSetlistPackageDefaultLimits,
+  }) {
+    if (bytes.length > limits.maxArchiveBytes) {
+      throw FormatException(
+        'Setlist package ZIP exceeds ${limits.maxArchiveBytes} bytes.',
+      );
+    }
     late Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes);
@@ -63,6 +88,7 @@ class SheetSetlistPackageArchive {
         'Setlist package ZIP cannot be read: ${error.message}',
       );
     }
+    _validatePackageArchiveLimits(archive, limits);
 
     final fileEntries = archive.files
         .where((entry) => entry.isFile)
@@ -217,6 +243,7 @@ class SheetSetlistPackageArchive {
     Map<String, List<int>> stampAssetFiles = const <String, List<int>>{},
     List<SheetSetlistPackageAnnotationSidecar> annotationSidecars =
         const <SheetSetlistPackageAnnotationSidecar>[],
+    SheetSetlistPackageLimits limits = sheetSetlistPackageDefaultLimits,
   }) {
     final manifest = SheetSetlistShareManifest.tryParse(manifestText);
     if (manifest == null) {
@@ -316,7 +343,14 @@ class SheetSetlistPackageArchive {
         ),
       );
     }
-    return Uint8List.fromList(ZipEncoder().encode(archive));
+    _validatePackageArchiveLimits(archive, limits);
+    final encoded = Uint8List.fromList(ZipEncoder().encode(archive));
+    if (encoded.length > limits.maxArchiveBytes) {
+      throw FormatException(
+        'Setlist package ZIP exceeds ${limits.maxArchiveBytes} bytes.',
+      );
+    }
+    return encoded;
   }
 
   static Future<SheetSetlistPackageExportResult> exportSetlistBytes({
@@ -1199,6 +1233,34 @@ Map<String, List<int>> _normalizePackageStampAssetFiles(
     normalized[path] = List<int>.unmodifiable(entry.value);
   }
   return Map<String, List<int>>.unmodifiable(normalized);
+}
+
+void _validatePackageArchiveLimits(
+  Archive archive,
+  SheetSetlistPackageLimits limits,
+) {
+  if (archive.files.length > limits.maxEntryCount) {
+    throw FormatException(
+      'Setlist package contains more than ${limits.maxEntryCount} entries.',
+    );
+  }
+  var totalBytes = 0;
+  for (final entry in archive.files.where((entry) => entry.isFile)) {
+    final size = entry.size;
+    if (size < 0 || size > limits.maxEntryBytes) {
+      throw FormatException(
+        'Setlist package entry exceeds ${limits.maxEntryBytes} bytes: '
+        '${entry.name}',
+      );
+    }
+    totalBytes += size;
+    if (totalBytes > limits.maxUncompressedBytes) {
+      throw FormatException(
+        'Setlist package expands beyond '
+        '${limits.maxUncompressedBytes} bytes.',
+      );
+    }
+  }
 }
 
 Set<String> _imageStampAssetRefs(List<SheetAnnotationStampPack> packs) {

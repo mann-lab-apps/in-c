@@ -7712,6 +7712,16 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       if (file == null) {
         return;
       }
+      if (await file.length() >
+          sheetSetlistPackageDefaultLimits.maxArchiveBytes) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('세트리스트 패키지는 256MB 이하만 열 수 있습니다.')),
+        );
+        return;
+      }
       final package = SheetSetlistPackageArchive.decodeBytes(
         await file.readAsBytes(),
       );
