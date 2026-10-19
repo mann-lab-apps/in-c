@@ -440,7 +440,9 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
    채운 report는 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart --review-report <report.md>`로
    다시 확인할 수 있다. 이 명령이 `Unknown viewer rows` 또는 `NOT READY`를 출력하면 viewer 이름 오타,
    미지원 viewer 행, 외부 뷰어 호환성 미확인/이슈로 분리해 릴리즈 노트에 남긴다. `Invalid status cells`가
-   나오면 `PASS`/`ISSUE`/`BLOCKED`/`NOT_TESTED` 중 하나로 고쳐 다시 검사한다.
+   나오면 `PASS`/`ISSUE`/`BLOCKED`/`NOT_TESTED` 중 하나로 고쳐 다시 검사한다. 완전한 PASS report는
+   종료 코드 0, unknown viewer/invalid status/미완료 gate가 있는 report는 종료 코드 2를 반환하며 이
+   CLI 계약은 temporary report를 사용하는 회귀 테스트로 확인한다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
    별도 WebP image stamp 사본을 만들 수 있으면, PDF 안에서는 PNG appearance로 보이더라도 `/Stamp`

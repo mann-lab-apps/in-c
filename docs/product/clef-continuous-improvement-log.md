@@ -2602,3 +2602,9 @@ S239 VERIFIED LOCAL: surfaced invalid status values in hand-filled editable PDF 
 report review path now distinguishes typos such as `PAS` or prose like `needs retest` from valid
 PASS/ISSUE/BLOCKED/NOT_TESTED cells instead of letting them look like ordinary untested cells. Focused
 report tests, full analyze, the 1,614-test suite and RC release checks passed.
+
+S240 VERIFIED LOCAL: locked the editable PDF compatibility report CLI contract with end-to-end process
+tests. Temporary hand-filled reports now prove that a complete PASS matrix exits 0, while unknown viewer
+rows or invalid status cells exit 2 and print actionable diagnostics before the NOT READY gate summary.
+This prevents parser-only coverage from hiding command wiring or exit-code regressions. Focused CLI tests,
+full analyze, the 1,616-test suite and RC release checks passed.
