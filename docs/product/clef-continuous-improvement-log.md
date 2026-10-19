@@ -2872,3 +2872,8 @@ S280 VERIFIED LOCAL: closed the matching metronome gap in copied-manifest setlis
 now use one manifest codec, so pasted fully matched lists restore the same per-song BPM, meter, subdivision, sound/volume,
 accent and count-in overrides as ZIP packages. Draft and UI sharing regressions preserve the legacy text format while
 avoiding divergent encoders.
+
+S281 VERIFIED LOCAL: made the setlist package boundary explicit before annotation fidelity work. Export and import
+previews now state that per-score annotations and linked audio/files are not transferred and direct users to full backup
+when they need complete library movement. This prevents the lightweight performance package from being mistaken for a
+full backup while annotation merge and collision policy remain unresolved.

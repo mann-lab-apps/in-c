@@ -8138,8 +8138,8 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     : '확인 필요 항목을 먼저 해결하세요',
                 message: canImportLater
                     ? stampPreview.hasDuplicates
-                          ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다.'
-                          : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다.'
+                          ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
+                          : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
                     : 'missing/ambiguous 항목이 남아 있으면 partial import를 하지 않습니다.',
                 color: canImportLater
                     ? theme.colorScheme.primary
@@ -8209,6 +8209,14 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
                 '$setlistTitle · $sheetSetlistPackageSupportedScoreKindsLabel 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '곡별 필기와 연결 오디오/파일은 포함하지 않습니다. 모두 옮기려면 전체 백업을 사용하세요.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
