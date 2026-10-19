@@ -416,7 +416,7 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `dart run tool/generate_pdf_annotation_compatibility_fixture.dart`로 생성한다. 기본 출력은
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf`와
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
-pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
+pen/highlighter, pressure-sensitive pen, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
 music-symbol stamp, PNG/WebP image stamp를 포함한다.
 외부 기기로 전달할 때는 같은 폴더의
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-bundle.zip`을 사용한다.
@@ -467,6 +467,7 @@ embedded font 없이 viewer font fallback에 의존하므로 Unicode 표시를 �
    종료 코드 0, unknown viewer/invalid status/미완료 gate가 있는 report는 종료 코드 2를 반환하며 이
    CLI 계약은 temporary report를 사용하는 회귀 테스트로 확인한다.
 5. hairpin/staff/grid/text-template stamp가 editable standard annotation으로 보이고 선택 가능한지 확인한다.
+   pressure-sensitive pen은 가는 시작점과 굵은 중간 구간이 하나의 `/Ink` annotation으로 보이는지도 확인한다.
 6. Image stamp가 standard mode에서 FreeText로 잘못 분류되지 않고 `/Stamp`로 남는지 확인한다.
    별도 WebP image stamp 사본을 만들 수 있으면, PDF 안에서는 PNG appearance로 보이더라도 `/Stamp`
    annotation으로 남는지 함께 확인한다.

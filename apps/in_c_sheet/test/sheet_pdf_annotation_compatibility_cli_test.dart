@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_pdf_annotation_compatibility_report.dart';
 
 void main() {
@@ -185,6 +186,12 @@ void main() {
       ]),
     );
     expect(File(transformedOutput).existsSync(), isTrue);
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(output);
+    expect(
+      inspection.clefAnnotationNames,
+      contains('clef-compat-pressure-pen'),
+    );
   });
 }
 

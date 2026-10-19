@@ -301,6 +301,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       label: 'Acrobat',
       requiredChecks: <String>[
         'visible/editable annotation objects',
+        'pressure-sensitive Ink appearance',
         'generated appearances',
         'Unicode FreeText rendering',
         'text and music-symbol stamp rendering',
@@ -312,6 +313,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       label: 'macOS Preview',
       requiredChecks: <String>[
         'visible annotation objects',
+        'pressure-sensitive Ink appearance',
         'select/edit behavior',
         'Unicode FreeText rendering',
         'text and music-symbol stamp rendering',
@@ -324,6 +326,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
+        'pressure-sensitive Ink appearance',
         'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
         'rotated/cropped annotation placement',
@@ -335,6 +338,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       requiredChecks: <String>[
         'music app import/open path',
         'editable object visibility',
+        'pressure-sensitive Ink appearance',
         'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
         'rotated/cropped annotation placement',
@@ -345,6 +349,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
       label: 'Android PDF viewer',
       requiredChecks: <String>[
         'basic visible rendering',
+        'pressure-sensitive Ink appearance',
         'text and music-symbol stamp rendering',
         'PNG and WebP image stamp rendering',
         'Unicode FreeText rendering',

@@ -2692,3 +2692,9 @@ arrow annotations, and TL/CENTER/BR text anchors. Text and image-stamp rectangle
 page dimensions before mapping back to source PDF coordinates, so their width and height do not swap incorrectly on
 90/270-degree pages. Focused exporter, report and CLI tests plus a Poppler render verify local structure and visual
 placement; Acrobat, Preview, MobileSheets, Piascore and Android viewer checks remain manual QA.
+
+S253 VERIFIED LOCAL: added a pressure-sensitive pen path to the editable-PDF compatibility fixture and made every
+external viewer target list its variable-width `/Ink` appearance as a required check. The exporter regression reads
+the generated `/AP` stream and requires distinct segment widths; fixture generation also names the pressure annotation.
+Focused exporter/report/CLI tests, full format, analyze, regression suite and RC release checks passed. Poppler render
+shows the expected thin-to-thick-to-thin stroke; real stylus capture and external viewer appearance remain device/manual QA.

@@ -162,6 +162,73 @@ void main() {
     expect(coordinates[3], closeTo(box.bottom + box.height * 0.75, 0.001));
   });
 
+  test(
+    'writes a pressure-variable Ink appearance for editable export',
+    () async {
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-pressure-annotation-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      final now = DateTime.parse('2026-10-19T12:30:00.000');
+      final score = SheetScore(
+        id: 'pressure-export',
+        title: 'Pressure export',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: 'test-fixtures/pdfs/short-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            SheetAnnotationStroke(
+              id: 'pressure-pen',
+              pageNumber: 1,
+              tool: SheetAnnotationTool.pen,
+              color: 0xff111111,
+              width: 8,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.20, y: 0.76, pressure: 0.0),
+                SheetAnnotationPoint(x: 0.45, y: 0.68, pressure: 1.0),
+                SheetAnnotationPoint(x: 0.72, y: 0.76, pressure: 0.4),
+              ],
+              createdAt: now,
+            ),
+          ],
+        ),
+      );
+      final outputPath = '${outputDir.path}/pressure-annotated.pdf';
+
+      final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+        score: score,
+        outputPath: outputPath,
+        mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      );
+      final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+      final annotation = exported
+          .page(0)
+          .annotations
+          .singleWhere((entry) => entry.name == 'clef-pressure-pen');
+      final appearance = latin1.decode(
+        exported.cos.decodeStreamData(annotation.normalAppearance!),
+      );
+
+      expect(result.didWrite, isTrue);
+      expect(annotation.subtype, 'Ink');
+      expect(annotation.inkList!.single, hasLength(3));
+      expect(appearance, contains('8 w'));
+      expect(appearance, contains('9.92 w'));
+    },
+  );
+
   test('detects text annotations that need a Unicode-capable PDF font', () {
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('Cue'), isFalse);
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('숨 크게'), isTrue);

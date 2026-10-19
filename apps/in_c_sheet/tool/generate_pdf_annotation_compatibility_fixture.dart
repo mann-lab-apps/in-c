@@ -527,6 +527,18 @@ SheetScore _compatibilityScore(String inputPath) {
           createdAt: now,
         ),
         _stroke(
+          id: 'compat-pressure-pen',
+          tool: SheetAnnotationTool.pen,
+          color: 0xff6a1b9a,
+          width: 8,
+          points: const <SheetAnnotationPoint>[
+            SheetAnnotationPoint(x: 0.56, y: 0.88, pressure: 0.0),
+            SheetAnnotationPoint(x: 0.68, y: 0.82, pressure: 1.0),
+            SheetAnnotationPoint(x: 0.82, y: 0.88, pressure: 0.4),
+          ],
+          createdAt: now.add(const Duration(milliseconds: 500)),
+        ),
+        _stroke(
           id: 'compat-highlighter',
           tool: SheetAnnotationTool.highlighter,
           color: 0xffffc107,
