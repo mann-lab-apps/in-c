@@ -2631,3 +2631,9 @@ music-symbol annotations still rely on each PDF viewer's font substitution, whil
 preflight failures report unavailable, invalid, oversized or missing-glyph causes without claiming a file
 was created. A focused feedback policy test keeps these messages aligned with the exporter result contract;
 actual glyph rendering remains external viewer QA.
+
+S244 VERIFIED LOCAL: moved the editable PDF Unicode tradeoff into the export-mode chooser instead of a
+two-second snackbar that was immediately replaced by the progress message. The chooser now counts only
+Unicode text annotations on PDF-enabled layers: the flattened option names how many text annotations will
+be omitted, while the editable option names how many still depend on the destination viewer's font. Unit
+tests cover layer-aware counting and both mode descriptions; actual viewer glyph rendering remains manual QA.

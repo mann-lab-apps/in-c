@@ -464,6 +464,7 @@
 - 샘플 파일 공유 가능 여부.
 - 테스트 영역: import, viewer, search, annotation export, backup, pedal, S Pen, tuner, audio 등.
 - annotation export를 볼 때는 flattened PDF 사본과 editable standard annotation 사본을 구분해 적는다.
+  모드 선택 화면의 한글/기호 주석 개수가 실제 PDF 포함 layer의 주석 수와 맞는지도 확인한다.
   Standard 사본은 pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, text note, text stamp,
   music-symbol stamp, PNG/JPEG/WebP image stamp가 외부 viewer에서 보이는지와 선택/편집 가능한지를
   기록한다. Image stamp는 standard editable export에서 FreeText로 오인되지 않고 `/Stamp`로 남아야 한다.

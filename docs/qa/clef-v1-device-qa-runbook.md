@@ -428,6 +428,8 @@ embedded font 없이 viewer font fallback에 의존하므로 Unicode 표시를 �
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
 3. `필기 포함 PDF 공유/인쇄`의 editable/standard export 경로가 노출된 빌드라면 standard 사본을 만든다.
+   Export mode 선택 화면에서 일반 사본은 제외될 한글/기호 텍스트 수, editable 사본은 viewer 글꼴에
+   의존할 한글/기호 수를 표시하는지 확인한다. `PDF 포함`을 끈 layer의 주석은 이 수에서 제외되어야 한다.
    한글/음악 기호 주석이 있고 embedded font를 쓰지 않은 경우 앱이 글꼴 미포함 주석 개수와 PDF 앱마다
    표시가 달라질 수 있다는 안내를 보여주는지 확인한다. 글꼴 preflight가 실패한 빌드에서는 파일 생성
    성공을 알리지 않고 일반 사본 선택 안내가 나와야 한다.

@@ -3,6 +3,22 @@ import 'sheet_annotated_pdf_exporter.dart';
 class SheetAnnotatedPdfExportFeedback {
   const SheetAnnotatedPdfExportFeedback._();
 
+  static String modeDescription(
+    SheetPdfAnnotationExportMode mode, {
+    required int unicodeTextCount,
+  }) {
+    return switch (mode) {
+      SheetPdfAnnotationExportMode.renderedStamp when unicodeTextCount > 0 =>
+        '대부분 앱에서 보이는 고정 사본 · 한글/기호 텍스트 $unicodeTextCount개 제외',
+      SheetPdfAnnotationExportMode.renderedStamp => '대부분 앱에서 보이는 고정된 필기 사본',
+      SheetPdfAnnotationExportMode.standardAnnotation
+          when unicodeTextCount > 0 =>
+        '표준 PDF 주석 · 한글/기호 $unicodeTextCount개는 PDF 앱 글꼴에 따라 표시',
+      SheetPdfAnnotationExportMode.standardAnnotation =>
+        '지원되는 필기와 스탬프를 표준 PDF 주석으로 내보냅니다',
+    };
+  }
+
   static String failureMessage(SheetAnnotatedPdfExportResult result) {
     if (result.requiresUnicodeFontEmbedding) {
       return '한글 텍스트 주석은 PDF 사본에 포함되지 않아 원본 PDF를 공유합니다.';

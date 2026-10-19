@@ -3,6 +3,23 @@ import 'package:in_c_sheet/sheet_annotated_pdf_export_feedback.dart';
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 
 void main() {
+  test('explains Unicode tradeoffs before choosing a PDF export mode', () {
+    expect(
+      SheetAnnotatedPdfExportFeedback.modeDescription(
+        SheetPdfAnnotationExportMode.renderedStamp,
+        unicodeTextCount: 3,
+      ),
+      '대부분 앱에서 보이는 고정 사본 · 한글/기호 텍스트 3개 제외',
+    );
+    expect(
+      SheetAnnotatedPdfExportFeedback.modeDescription(
+        SheetPdfAnnotationExportMode.standardAnnotation,
+        unicodeTextCount: 3,
+      ),
+      '표준 PDF 주석 · 한글/기호 3개는 PDF 앱 글꼴에 따라 표시',
+    );
+  });
+
   test('names unembedded Unicode text after editable PDF export', () {
     final messages = SheetAnnotatedPdfExportFeedback.successMessages(
       _result(didWrite: true, unembeddedUnicodeTextCount: 2),

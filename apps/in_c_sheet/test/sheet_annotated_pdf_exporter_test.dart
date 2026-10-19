@@ -28,6 +28,74 @@ void main() {
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('숨 크게'), isTrue);
   });
 
+  test('counts only export-enabled Unicode text annotations', () {
+    final now = DateTime(2026, 10, 19);
+    final score = SheetScore(
+      id: 'unicode-count',
+      title: 'Unicode count',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/score.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(
+            id: 'private',
+            label: 'Private',
+            includeInExport: false,
+          ),
+        ],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'ascii',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.1, y: 0.1),
+            text: 'Cue',
+            color: 0xff111111,
+            fontSize: 12,
+            createdAt: now,
+          ),
+          SheetTextAnnotation(
+            id: 'unicode-export',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.2, y: 0.2),
+            text: '숨',
+            color: 0xff111111,
+            fontSize: 12,
+            createdAt: now,
+          ),
+          SheetTextAnnotation(
+            id: 'unicode-private',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: '쉼',
+            color: 0xff111111,
+            fontSize: 12,
+            createdAt: now,
+            layerId: 'private',
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      SheetAnnotatedPdfExporter.exportableUnicodeTextAnnotationCount(score),
+      1,
+    );
+    expect(
+      SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(score),
+      isTrue,
+    );
+  });
+
   test('preflights Unicode font bytes, coverage, and output budget', () async {
     final fontBytes = await _pdfDocumentFixtureFontBytes();
 

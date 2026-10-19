@@ -15508,20 +15508,15 @@ setlist=$setlistLabel
       await _shareCurrentScorePdf();
       return;
     }
-    final exportMode = await _selectAnnotatedPdfExportMode();
+    final unicodeTextCount =
+        SheetAnnotatedPdfExporter.exportableUnicodeTextAnnotationCount(
+          currentScore,
+        );
+    final exportMode = await _selectAnnotatedPdfExportMode(
+      unicodeTextCount: unicodeTextCount,
+    );
     if (exportMode == null || !mounted) {
       return;
-    }
-    if (exportMode == SheetPdfAnnotationExportMode.renderedStamp &&
-        SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
-          currentScore,
-        )) {
-      _showSnackBar('한글 텍스트 주석은 PDF 사본에서 표시가 제한될 수 있습니다.');
-    } else if (exportMode == SheetPdfAnnotationExportMode.standardAnnotation &&
-        SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
-          currentScore,
-        )) {
-      _showSnackBar('한글/음악 기호 주석은 PDF 앱마다 다르게 보일 수 있습니다.');
     }
     if (annotationSummary.estimatedJsonBytes > 512 * 1024 ||
         annotationSummary.redoCount > 20) {
@@ -15578,7 +15573,9 @@ setlist=$setlistLabel
     }
   }
 
-  Future<SheetPdfAnnotationExportMode?> _selectAnnotatedPdfExportMode() async {
+  Future<SheetPdfAnnotationExportMode?> _selectAnnotatedPdfExportMode({
+    required int unicodeTextCount,
+  }) async {
     if (!SheetAnnotatedPdfExporter.supportsStandardAnnotationEmbedding) {
       return SheetPdfAnnotationExportMode.renderedStamp;
     }
@@ -15593,7 +15590,12 @@ setlist=$setlistLabel
             ListTile(
               leading: const Icon(Icons.picture_as_pdf_outlined),
               title: const Text('일반 PDF 사본'),
-              subtitle: const Text('대부분 앱에서 보이는 고정된 필기 사본'),
+              subtitle: Text(
+                SheetAnnotatedPdfExportFeedback.modeDescription(
+                  SheetPdfAnnotationExportMode.renderedStamp,
+                  unicodeTextCount: unicodeTextCount,
+                ),
+              ),
               onTap: () =>
                   Navigator.of(context)
                       .pop(SheetPdfAnnotationExportMode.renderedStamp),
@@ -15601,7 +15603,12 @@ setlist=$setlistLabel
             ListTile(
               leading: const Icon(Icons.edit_document),
               title: const Text('편집 가능한 PDF 주석'),
-              subtitle: const Text('지원되는 필기와 스탬프를 표준 PDF 주석으로 내보냅니다'),
+              subtitle: Text(
+                SheetAnnotatedPdfExportFeedback.modeDescription(
+                  SheetPdfAnnotationExportMode.standardAnnotation,
+                  unicodeTextCount: unicodeTextCount,
+                ),
+              ),
               onTap: () =>
                   Navigator.of(context)
                       .pop(SheetPdfAnnotationExportMode.standardAnnotation),

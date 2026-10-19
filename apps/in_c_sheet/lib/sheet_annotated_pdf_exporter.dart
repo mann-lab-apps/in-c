@@ -442,13 +442,19 @@ class SheetAnnotatedPdfExporter {
   }
 
   static bool scoreContainsUnicodeTextAnnotations(SheetScore score) {
-    return score.annotationLayer.texts.any(
-      (text) =>
-          score.annotationLayer.isAnnotationLayerIncludedInExport(
-            text.layerId,
-          ) &&
-          textRequiresUnicodeFont(text.text),
-    );
+    return exportableUnicodeTextAnnotationCount(score) > 0;
+  }
+
+  static int exportableUnicodeTextAnnotationCount(SheetScore score) {
+    return score.annotationLayer.texts
+        .where(
+          (text) =>
+              score.annotationLayer.isAnnotationLayerIncludedInExport(
+                text.layerId,
+              ) &&
+              textRequiresUnicodeFont(text.text),
+        )
+        .length;
   }
 
   static Future<SheetAnnotatedPdfExportResult> createAnnotatedCopy({
