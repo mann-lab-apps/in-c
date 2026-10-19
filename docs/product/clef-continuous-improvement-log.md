@@ -2899,3 +2899,10 @@ S284 VERIFIED LOCAL: tightened the package image-stamp boundary before wiring im
 encode and decode now compare every included image stamp's actual SHA-256, byte size, decodability and pixel dimensions
 with its metadata and reject mismatches instead of allowing a broken or substituted asset to reach the library import.
 Real PNG fixtures replace placeholder bytes and cover both locally encoded and externally assembled mismatched packages.
+
+S285 VERIFIED LOCAL: completed collision-safe image stamp asset storage for setlist package import. Only newly added stamp
+ids request their referenced assets; identical local bytes are reused, a different file at the same asset path is never
+replaced, and metadata is merged only after every required asset is available. A failed stamp metadata save or library
+switch removes assets created by that request while preserving the already committed score/setlist import and reports the
+non-fatal stamp failure. Controller regressions cover successful storage, path conflict preservation and save-failure
+cleanup without weakening built-in stamp availability. `flutter analyze`, all 1,712 tests and the RC release check passed.

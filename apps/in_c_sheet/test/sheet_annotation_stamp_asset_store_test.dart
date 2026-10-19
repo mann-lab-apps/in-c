@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -144,6 +145,64 @@ void main() {
     );
     expect(await store.assetExists(assetRef), isFalse);
   });
+
+  test(
+    'stores packaged assets without replacing a conflicting local file',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'clef-packaged-stamp-assets-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final store = SheetAnnotationStampAssetStore(rootDirectory: root);
+      final firstBytes = _pngBytes(color: 0xffff0000);
+      final otherBytes = _pngBytes(color: 0xff0000ff);
+      final firstChecksum = sha256.convert(firstBytes).toString();
+      const assetRef = 'stamps/package/photo.png';
+
+      final created = await store.storePackagedImageStampAsset(
+        assetRef: assetRef,
+        bytes: firstBytes,
+        checksum: firstChecksum,
+      );
+      final reused = await store.storePackagedImageStampAsset(
+        assetRef: assetRef,
+        bytes: firstBytes,
+        checksum: firstChecksum,
+      );
+      final conflict = await store.storePackagedImageStampAsset(
+        assetRef: assetRef,
+        bytes: otherBytes,
+        checksum: sha256.convert(otherBytes).toString(),
+      );
+      final mismatch = await store.storePackagedImageStampAsset(
+        assetRef: 'stamps/package/mismatch.png',
+        bytes: otherBytes,
+        checksum: firstChecksum,
+      );
+
+      expect(created.didStore, isTrue);
+      expect(created.didCreateAsset, isTrue);
+      expect(reused.didReuseExistingAsset, isTrue);
+      expect(conflict.didStore, isFalse);
+      expect(
+        conflict.failureReason,
+        SheetAnnotationStampAssetStore.existingAssetConflictReason,
+      );
+      expect(mismatch.didStore, isFalse);
+      expect(
+        mismatch.failureReason,
+        SheetAnnotationStampAssetStore.checksumMismatchReason,
+      );
+      expect(
+        await (await store.assetFileForRef(assetRef)).readAsBytes(),
+        firstBytes,
+      );
+    },
+  );
 
   test(
     'rejects unsafe or unsupported image stamp assets before writing',

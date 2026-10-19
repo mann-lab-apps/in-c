@@ -29,6 +29,20 @@ class SheetImageStampAssetImportResult {
   }
 }
 
+class SheetPackagedImageStampAssetStoreResult {
+  const SheetPackagedImageStampAssetStoreResult({
+    required this.didStore,
+    this.didCreateAsset = false,
+    this.failureReason = '',
+  });
+
+  final bool didStore;
+  final bool didCreateAsset;
+  final String failureReason;
+
+  bool get didReuseExistingAsset => didStore && !didCreateAsset;
+}
+
 class SheetAnnotationStampAssetStore {
   const SheetAnnotationStampAssetStore({this.rootDirectory});
 
@@ -40,6 +54,8 @@ class SheetAnnotationStampAssetStore {
   static const oversizedImageReason = 'oversizedImage';
   static const invalidImageDimensionsReason = 'invalidImageDimensions';
   static const invalidAssetMetadataReason = 'invalidAssetMetadata';
+  static const checksumMismatchReason = 'checksumMismatch';
+  static const existingAssetConflictReason = 'existingAssetConflict';
 
   Future<SheetImageStampAssetImportResult> importImageStampAsset({
     required File sourceFile,
@@ -214,6 +230,42 @@ class SheetAnnotationStampAssetStore {
     }
     await tempFile.rename(destination.path);
     return true;
+  }
+
+  Future<SheetPackagedImageStampAssetStoreResult> storePackagedImageStampAsset({
+    required String assetRef,
+    required List<int> bytes,
+    required String checksum,
+  }) async {
+    final normalizedChecksum = checksum.trim().toLowerCase();
+    if (sha256.convert(bytes).toString() != normalizedChecksum) {
+      return const SheetPackagedImageStampAssetStoreResult(
+        didStore: false,
+        failureReason: checksumMismatchReason,
+      );
+    }
+    final destination = await assetFileForRef(assetRef);
+    if (await destination.exists()) {
+      final existingChecksum = sha256
+          .convert(await destination.readAsBytes())
+          .toString();
+      if (existingChecksum == normalizedChecksum) {
+        return const SheetPackagedImageStampAssetStoreResult(didStore: true);
+      }
+      return const SheetPackagedImageStampAssetStoreResult(
+        didStore: false,
+        failureReason: existingAssetConflictReason,
+      );
+    }
+    final didRestore = await restoreImageStampAsset(
+      assetRef: assetRef,
+      bytes: bytes,
+    );
+    return SheetPackagedImageStampAssetStoreResult(
+      didStore: didRestore,
+      didCreateAsset: didRestore,
+      failureReason: didRestore ? '' : invalidAssetMetadataReason,
+    );
   }
 
   Future<bool> deleteAssetIfUnreferenced({

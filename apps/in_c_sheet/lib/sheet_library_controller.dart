@@ -2068,38 +2068,60 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
-  Future<void> _mergeImportedUserAnnotationStampPacks(
-    List<SheetAnnotationStampPack> importedPacks, {
-    required String libraryId,
-  }) async {
-    final validImported = importedPacks
-        .where((pack) => pack.validate(allowImageStamps: true).isValid)
-        .toList(growable: false);
-    if (validImported.isEmpty || _activeLibraryProfile.id != libraryId) {
-      return;
-    }
-
-    final nextPacks = [..._userAnnotationStampPacks];
-    var didChange = false;
-    for (final importedPack in validImported) {
-      final index = nextPacks.indexWhere((pack) => pack.id == importedPack.id);
-      if (index == -1) {
-        nextPacks.add(importedPack);
-        didChange = true;
-        continue;
-      }
-      final existingPack = nextPacks[index];
-      final existingStampIds = {
-        for (final stamp in existingPack.stamps) stamp.id,
+  List<SheetAnnotationStampPack> _newImportedUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> importedPacks,
+  ) {
+    final additions = <SheetAnnotationStampPack>[];
+    for (final importedPack in importedPacks.where(
+      (pack) => pack.validate(allowImageStamps: true).isValid,
+    )) {
+      final existingPack = _userAnnotationStampPacks
+          .where((pack) => pack.id == importedPack.id)
+          .firstOrNull;
+      final existingStampIds = <String>{
+        for (final stamp in existingPack?.stamps ?? const []) stamp.id,
       };
-      final newStamps = [
+      final newStamps = <SheetAnnotationUserStamp>[
         for (final stamp in importedPack.stamps)
           if (!existingStampIds.contains(stamp.id)) stamp,
       ];
       if (newStamps.isEmpty) {
         continue;
       }
-      didChange = true;
+      additions.add(
+        SheetAnnotationStampPack(
+          id: importedPack.id,
+          name: importedPack.name,
+          version: importedPack.version,
+          createdAt: importedPack.createdAt,
+          updatedAt: importedPack.updatedAt,
+          stamps: List<SheetAnnotationUserStamp>.unmodifiable(newStamps),
+        ),
+      );
+    }
+    return List<SheetAnnotationStampPack>.unmodifiable(additions);
+  }
+
+  Future<bool> _mergeImportedUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> importedPacks, {
+    required String libraryId,
+  }) async {
+    final additions = _newImportedUserAnnotationStampPacks(importedPacks);
+    if (additions.isEmpty) {
+      return true;
+    }
+    if (_activeLibraryProfile.id != libraryId) {
+      return false;
+    }
+
+    final nextPacks = [..._userAnnotationStampPacks];
+    for (final importedPack in additions) {
+      final index = nextPacks.indexWhere((pack) => pack.id == importedPack.id);
+      if (index == -1) {
+        nextPacks.add(importedPack);
+        continue;
+      }
+      final existingPack = nextPacks[index];
       nextPacks[index] = SheetAnnotationStampPack(
         id: existingPack.id,
         name: existingPack.name,
@@ -2108,15 +2130,71 @@ class SheetLibraryController extends ChangeNotifier {
         updatedAt: DateTime.now(),
         stamps: List<SheetAnnotationUserStamp>.unmodifiable([
           ...existingPack.stamps,
-          ...newStamps,
+          ...importedPack.stamps,
         ]),
       );
     }
 
-    if (!didChange) {
-      return;
+    return _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+  }
+
+  Future<bool> _storeAndMergeImportedUserAnnotationStampPacks(
+    SheetSetlistPackageDryRun dryRun, {
+    required String libraryId,
+  }) async {
+    final additions = _newImportedUserAnnotationStampPacks(
+      dryRun.userStampPacks,
+    );
+    if (additions.isEmpty) {
+      return true;
     }
-    await _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+    final assetsByRef = <String, SheetSetlistPackageStampAssetFile>{
+      for (final asset in dryRun.stampAssetFiles) asset.path: asset,
+    };
+    final createdAssetRefs = <String>{};
+    for (final pack in additions) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind != SheetAnnotationUserStamp.imageKind) {
+          continue;
+        }
+        final asset = assetsByRef[stamp.assetRef];
+        final bytes = asset?.bytes;
+        if (bytes == null) {
+          await _deleteUnusedImageStampAssets(
+            createdAssetRefs,
+            _userAnnotationStampPacks,
+          );
+          return false;
+        }
+        final result = await stampAssetStore.storePackagedImageStampAsset(
+          assetRef: stamp.assetRef,
+          bytes: bytes,
+          checksum: stamp.checksum,
+        );
+        if (!result.didStore || _activeLibraryProfile.id != libraryId) {
+          await _deleteUnusedImageStampAssets(
+            createdAssetRefs,
+            _userAnnotationStampPacks,
+          );
+          return false;
+        }
+        if (result.didCreateAsset) {
+          createdAssetRefs.add(stamp.assetRef);
+        }
+      }
+    }
+
+    final didMerge = await _mergeImportedUserAnnotationStampPacks(
+      additions,
+      libraryId: libraryId,
+    );
+    if (!didMerge) {
+      await _deleteUnusedImageStampAssets(
+        createdAssetRefs,
+        _userAnnotationStampPacks,
+      );
+    }
+    return didMerge;
   }
 
   Future<bool> _replaceUserAnnotationStampPacks(
@@ -3587,10 +3665,18 @@ class SheetLibraryController extends ChangeNotifier {
       await _saveScoresAndSetlistsChanges();
       metadataPersisted = true;
       if (_activeLibraryProfile.id == libraryId) {
-        await _mergeImportedUserAnnotationStampPacks(
-          dryRun.userStampPacks,
-          libraryId: libraryId,
-        );
+        final didImportStamps =
+            await _storeAndMergeImportedUserAnnotationStampPacks(
+              dryRun,
+              libraryId: libraryId,
+            );
+        if (!didImportStamps &&
+            dryRun.userStampPreview.newStampCount > 0 &&
+            _activeLibraryProfile.id == libraryId) {
+          _errorMessage =
+              '세트리스트는 가져왔지만 사용자 스탬프는 저장하지 못했습니다. 기존 스탬프와 파일은 그대로 유지했습니다.';
+          notifyListeners();
+        }
       }
       return setlist;
     } finally {

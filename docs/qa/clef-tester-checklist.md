@@ -170,8 +170,10 @@
    만들어져야 한다. 곡별 메트로놈 설정이 있으면 BPM/박자/리듬/소리/강세/카운트인이 새 세트리스트에
    복원되어야 한다. package에 text/icon 사용자 스탬프 metadata가 있으면 가져온 뒤 `사용자 스탬프`
    섹션에도 복원되어야 한다. package에 image stamp asset bytes가 함께 있으면 import preview에서
-   stamp asset 수가 유지되어야 하며, asset이 빠진 image stamp metadata는 복원되지 않아야 한다.
-   깨진 사용자 스탬프 metadata가 섞인 package는 안전한 stamp만 남기거나 가져오기를 막아야 한다.
+   stamp asset 수가 유지되고, 가져온 뒤 실제 bitmap stamp를 다시 선택/배치할 수 있어야 한다. 같은 asset
+   경로에 다른 local 파일이 있으면 기존 이미지를 덮어쓰지 않고 스탬프 미적용 안내를 보여야 한다.
+   asset이 빠진 image stamp metadata는 복원되지 않아야 하며, checksum/크기/픽셀 치수가 맞지 않는
+   package나 깨진 사용자 스탬프 metadata는 가져오기를 막아야 한다.
    missing/ambiguous 항목이 남아 있으면 저장되지 않아야 한다.
    내보내기와 가져오기 미리보기는 곡별 필기와 연결 오디오/파일이 포함되지 않으며 전체 백업이 필요하다고
    명확하게 알려야 한다.

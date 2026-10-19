@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -758,6 +759,165 @@ Clef & Staff 세트리스트
       <String>['공연 패키지'],
     );
   });
+
+  test('setlist package stores image stamp assets before metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-stamp-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing Etude');
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final imageBytes = _tinyPngBytes();
+    final stampPack = _packageImageStampPack(imageBytes, now);
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _packageImageStampManifest,
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: [stampPack],
+        stampAssetFiles: <String, List<int>>{
+          'stamps/package/photo-cue.png': imageBytes,
+        },
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.single.assetRef,
+      'stamps/package/photo-cue.png',
+    );
+    expect(
+      await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+      isTrue,
+    );
+    expect(controller.errorMessage, isNull);
+  });
+
+  test('setlist package preserves a conflicting local stamp asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-stamp-conflict-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing Etude');
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final localBytes = image.encodePng(image.Image(width: 3, height: 1));
+    await stampAssetStore.restoreImageStampAsset(
+      assetRef: 'stamps/package/photo-cue.png',
+      bytes: localBytes,
+    );
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final packageBytes = _tinyPngBytes();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _packageImageStampManifest,
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: [_packageImageStampPack(packageBytes, now)],
+        stampAssetFiles: <String, List<int>>{
+          'stamps/package/photo-cue.png': packageBytes,
+        },
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(controller.errorMessage, contains('사용자 스탬프'));
+    expect(
+      await (await stampAssetStore.assetFileForRef(
+        'stamps/package/photo-cue.png',
+      )).readAsBytes(),
+      localBytes,
+    );
+  });
+
+  test(
+    'setlist package removes a new stamp asset after save failure',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-stamp-save-failure-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 12);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now)..failSaveUserStampPacks = true;
+      await store.saveScores([existing]);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final imageBytes = _tinyPngBytes();
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: _packageImageStampManifest,
+          scoreFiles: const <String, List<int>>{},
+          userStampPacks: [_packageImageStampPack(imageBytes, now)],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': imageBytes,
+          },
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(controller.setlists, hasLength(1));
+      expect(controller.userAnnotationStampPacks, isEmpty);
+      expect(controller.errorMessage, contains('사용자 스탬프'));
+      expect(
+        await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+        isFalse,
+      );
+    },
+  );
 
   test('setlist package imports DOCX through its bounded store path', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -5231,6 +5391,42 @@ Clef & Staff 세트리스트
 
 List<int> _tinyPngBytes() {
   return image.encodePng(image.Image(width: 2, height: 1));
+}
+
+const _packageImageStampManifest = '''
+Clef & Staff 세트리스트
+제목: Image Stamp Package
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''';
+
+SheetAnnotationStampPack _packageImageStampPack(
+  List<int> imageBytes,
+  DateTime now,
+) {
+  return SheetAnnotationStampPack(
+    id: 'package',
+    name: 'Package stamps',
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    stamps: <SheetAnnotationUserStamp>[
+      SheetAnnotationUserStamp(
+        id: 'photo-cue',
+        packId: 'package',
+        label: 'Photo cue',
+        category: '사용자',
+        kind: SheetAnnotationUserStamp.imageKind,
+        assetRef: 'stamps/package/photo-cue.png',
+        checksum: sha256.convert(imageBytes).toString(),
+        assetSizeBytes: imageBytes.length,
+        assetWidthPixels: 2,
+        assetHeightPixels: 1,
+      ),
+    ],
+  );
 }
 
 class _PageRotationCopyStore extends SheetLibraryStore {
