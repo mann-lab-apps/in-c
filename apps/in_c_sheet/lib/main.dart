@@ -8732,12 +8732,24 @@ class _SheetPlainTextViewerScreenState
               onPressed: _closeSearch,
               icon: const Icon(Icons.close),
             )
-          else
+          else if (score.isEditablePlainTextSource)
             TextButton.icon(
               key: const ValueKey('plain-text-edit-source'),
               onPressed: _openSourceEditor,
               icon: const Icon(Icons.edit_note_outlined),
               label: const Text('원문 편집'),
+            ),
+          if (!_isSearching && score.isExtractedDocumentText)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 18),
+                  SizedBox(width: 4),
+                  Text('읽기 전용'),
+                ],
+              ),
             ),
           if (!_isSearching)
             TextButton.icon(
@@ -8858,7 +8870,7 @@ class _SheetPlainTextViewerScreenState
 
   Future<void> _openSourceEditor() async {
     final score = widget.controller.scoreByIdOrNull(widget.scoreId);
-    if (score == null) return;
+    if (score == null || !score.isEditablePlainTextSource) return;
     late final String currentSource;
     try {
       currentSource = _loadedText.isEmpty ? await _textFor(score) : _loadedText;

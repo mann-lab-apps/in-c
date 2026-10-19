@@ -1681,7 +1681,7 @@ class SheetLibraryController extends ChangeNotifier {
   Future<bool> updatePlainTextSource(SheetScore score, String source) async {
     final current = scoreByIdOrNull(score.id);
     if (current == null ||
-        !SheetFileImportPolicy.isPlainTextFileName(current.filePath) ||
+        !current.isEditablePlainTextSource ||
         !_plainTextSourceEdits.add(score.id)) {
       return false;
     }

@@ -162,7 +162,7 @@ fixture annotations land on either other page. External viewer rendering and edi
    v1.1에서는 가져오기 메뉴와 policy가 해당 형식의 범위를 명시하며,
    ChordPro parser/metadata/transpose/capo-shape/plain-text rendering core와 붙여넣기/파일 선택 저장형 import/viewer,
    곡별 표시 설정 저장을 마련했다.
-   comment/section/chorus/tab/page/column cue와 viewer의 표시 전용 transpose/capo shape 전환, structured display-line 기반 viewer를 지원한다. 넓은 화면의 악보별 1단/2단 설정은 명시적인 column cue나 가까운 구간 경계를 사용하고 좁은 폰에서는 1단으로 내려간다. DOCX/RTF 원본은 연결 파일, full backup 및 Clef setlist package에서 보존한다. 코드와 가사를 한 segment로 묶어 한글과 좁은 화면에서도 함께 줄바꿈하며 원문은 별도 편집기로 안전하게 수정한다. DOCX는 표 행/열과 기본 목록 표식을 읽기 형태로 보존하지만 이미지·각주·서식 편집과 시각적 layout은 후속이다.
+   comment/section/chorus/tab/page/column cue와 viewer의 표시 전용 transpose/capo shape 전환, structured display-line 기반 viewer를 지원한다. 넓은 화면의 악보별 1단/2단 설정은 명시적인 column cue나 가까운 구간 경계를 사용하고 좁은 폰에서는 1단으로 내려간다. DOCX/RTF 원본은 연결 파일, full backup 및 Clef setlist package에서 보존한다. 일반 텍스트와 ChordPro 원문은 별도 편집기로 안전하게 수정하되, 원본 문서와의 불일치를 막기 위해 DOCX/RTF 추출본은 검색 가능한 읽기 전용 viewer로만 연다. DOCX는 표 행/열과 기본 목록 표식을 읽기 형태로 보존하지만 이미지·각주·서식 편집과 시각적 layout은 후속이다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
    연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker

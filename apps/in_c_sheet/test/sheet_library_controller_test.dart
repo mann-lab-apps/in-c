@@ -2176,6 +2176,41 @@ Clef & Staff 세트리스트
     },
   );
 
+  test('plain text source edit rejects extracted document text', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-document-text-edit-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/document.txt');
+    const originalSource = 'Extracted document text';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 21);
+    final original = _score(
+      now,
+      id: 'document-text-edit',
+      filePath: sourceFile.path,
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+      ],
+    );
+    final store = _PlainTextSourceEditStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.updatePlainTextSource(original, 'Changed extract'),
+      isFalse,
+    );
+    expect(store.replacementCount, 0);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scoreById(original.id).toJson(), original.toJson());
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
   test(
     'plain text source edit restores file after score save failure',
     () async {
@@ -6806,6 +6841,8 @@ class _PlainTextSourceEditStore extends SheetLibraryStore {
   final releaseFirstReplacement = Completer<void>();
   bool failSaveScores = false;
   var _replacementCount = 0;
+
+  int get replacementCount => _replacementCount;
 
   @override
   Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {

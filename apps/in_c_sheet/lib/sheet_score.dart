@@ -2648,6 +2648,27 @@ class SheetScore {
   String get displayTitle =>
       title.trim().isEmpty ? sourceFileDisplayName : title.trim();
 
+  bool get isExtractedDocumentText {
+    final hasDocumentSourceType = customFields.any((field) {
+      if (field.key.trim() != '출처 유형') return false;
+      final sourceType = field.value.trim().toUpperCase();
+      return sourceType == 'DOCX' || sourceType == 'RTF';
+    });
+    if (hasDocumentSourceType) return true;
+    return linkedFiles.any((file) {
+      if (file.role != SheetLinkedFile.referenceRole) return false;
+      final type = file.type.trim().toLowerCase();
+      return type == 'docx' ||
+          type == 'rtf' ||
+          SheetFileImportPolicy.isDocxFileName(file.path) ||
+          SheetFileImportPolicy.isRtfFileName(file.path);
+    });
+  }
+
+  bool get isEditablePlainTextSource =>
+      SheetFileImportPolicy.isPlainTextFileName(filePath) &&
+      !isExtractedDocumentText;
+
   String get sourceFileDisplayName {
     final normalizedPath = filePath.trim().replaceAll('\\', '/');
     final rawName = normalizedPath.split('/').last.trim();

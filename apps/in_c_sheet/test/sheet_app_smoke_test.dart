@@ -1642,6 +1642,69 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('extracted document viewer stays searchable and read-only', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-document-text-viewer-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/document.txt')
+      ..writeAsStringSync('Extracted rehearsal notes');
+    final now = DateTime(2026, 10, 20, 21);
+    final store = _SynchronousPlainTextEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'document-text-score',
+        title: 'Studio document',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '출처 유형', value: 'RTF'),
+        ],
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'document-text-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.textContaining('Extracted rehearsal notes'), findsOneWidget);
+    expect(find.text('읽기 전용'), findsOneWidget);
+    expect(find.text('찾기'), findsOneWidget);
+    expect(find.byKey(const ValueKey('plain-text-edit-source')), findsNothing);
+
+    await tester.tap(find.text('찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'rehearsal');
+    await tester.pump();
+    expect(find.text('1/1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('plain text viewer edits source and reloads content', (
     tester,
   ) async {

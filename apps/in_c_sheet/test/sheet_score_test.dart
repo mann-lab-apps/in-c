@@ -368,6 +368,59 @@ void main() {
     );
   });
 
+  test('keeps extracted document text read-only', () {
+    final now = DateTime.parse('2026-10-20T21:00:00.000');
+    final plainText = SheetScore(
+      id: 'plain-text',
+      title: 'Lesson notes',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/app/docs/scores/plain-text.txt',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    expect(plainText.isExtractedDocumentText, isFalse);
+    expect(plainText.isEditablePlainTextSource, isTrue);
+
+    for (final sourceType in <String>['DOCX', ' rtf ']) {
+      final extracted = plainText.copyWith(
+        customFields: <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '출처 유형', value: sourceType),
+        ],
+      );
+
+      expect(extracted.isExtractedDocumentText, isTrue);
+      expect(extracted.isEditablePlainTextSource, isFalse);
+    }
+
+    final extractedWithReference = plainText.copyWith(
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/app/docs/linked/original.docx',
+          type: 'docx',
+          label: 'original.docx',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+    expect(extractedWithReference.isExtractedDocumentText, isTrue);
+    expect(extractedWithReference.isEditablePlainTextSource, isFalse);
+
+    expect(
+      plainText
+          .copyWith(filePath: '/app/docs/scores/lesson.pdf')
+          .isEditablePlainTextSource,
+      isFalse,
+    );
+  });
+
   test('SheetScore decodes dynamic JSON maps from persisted storage', () {
     final decoded = SheetScore.decodeJsonList(<dynamic>[
       <String, dynamic>{

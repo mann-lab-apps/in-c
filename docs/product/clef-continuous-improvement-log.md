@@ -3037,3 +3037,11 @@ repeat-folder duplicate checks, including DOCX/RTF scores whose readable primary
 gateway and controller regressions, Android `compileDebugKotlin`, `flutter analyze`, all 1,755 tests and the RC release
 check passed. Provider reboot/revocation, cloud-offline behavior, large mixed folders and original-file deletion remain
 Device QA; this is still copy-on-select rather than live folder synchronization or app-copy-free direct reference.
+
+S301 VERIFIED LOCAL: enforced the existing DOCX/RTF read-only promise at the viewer and controller boundaries. Extracted
+document scores are identified by their normalized source metadata or preserved DOCX/RTF reference file, so editing the
+visible `.txt` extract cannot silently diverge from the original document even if metadata is changed. The text viewer now
+shows a compact `읽기 전용` marker, keeps search available and omits the source editor; direct controller calls reject the
+same edit without touching the file or library state. Ordinary `.txt/.text/.md/.markdown` source editing remains enabled.
+Model, controller and widget regressions, `flutter analyze`, all 1,758 tests and the RC release check passed. Rich document
+layout editing and round-trip writes to DOCX/RTF remain outside the supported boundary.
