@@ -2836,3 +2836,8 @@ S273 VERIFIED LOCAL: aligned setlist package copy with its mixed-format codec. I
 unsupported-entry guidance now share one PDF/image/text/ChordPro/DOCX/RTF label instead of omitting the original DOCX and
 RTF files that the package already validates and preserves. Unit and widget regressions keep the shared label and export
 surface synchronized; rich DOCX/RTF layout remains outside the read-only import guarantee.
+
+S274 VERIFIED LOCAL: hardened stored plain-text reopening against files changed after import. The selectable viewer now
+reapplies the import boundary for 2 MiB size, strict UTF-8 and non-empty content instead of rendering replacement glyphs
+or a blank document as if it were valid. Widget regression covers all three failures with text-specific recovery copy;
+source repair and editing remain outside the read-only viewer.

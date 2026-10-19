@@ -1553,6 +1553,81 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('plain text viewer rejects changed invalid source', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-text-viewer-invalid-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final oversized = File('${tempDir.path}/oversized.txt')
+      ..writeAsBytesSync(
+        List<int>.filled(SheetFileImportPolicy.maxPlainTextBytes + 1, 0x41),
+      );
+    final malformed = File('${tempDir.path}/malformed.txt')
+      ..writeAsBytesSync(<int>[0xc3, 0x28]);
+    final empty = File('${tempDir.path}/empty.txt')..writeAsStringSync(' \n');
+    final now = DateTime(2026, 10, 20, 19);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final entry in <String, File>{
+        'oversized-text': oversized,
+        'malformed-text': malformed,
+        'empty-text': empty,
+      }.entries)
+        SheetScore(
+          id: entry.key,
+          title: entry.key,
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: entry.value.path,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: now,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    Future<void> pumpScore(String scoreId) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetPlainTextViewerScreen(
+            key: ValueKey(scoreId),
+            controller: controller,
+            scoreId: scoreId,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+    }
+
+    await pumpScore('oversized-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일이 너무 큽니다.'), findsOneWidget);
+
+    await pumpScore('malformed-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일의 UTF-8 내용이 손상되었습니다.'), findsOneWidget);
+
+    await pumpScore('empty-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일이 비어 있습니다.'), findsOneWidget);
+    expect(find.textContaining('PDF를 열지 못했습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ChordPro viewer rejects oversized and malformed source', (
     tester,
   ) async {

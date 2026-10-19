@@ -8834,7 +8834,16 @@ Future<String> _loadPlainTextScore(SheetScore score) {
     if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
       throw const FormatException('텍스트 파일이 너무 큽니다.');
     }
-    return utf8.decode(bytes, allowMalformed: true);
+    late final String text;
+    try {
+      text = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('텍스트 파일의 UTF-8 내용이 손상되었습니다.');
+    }
+    if (text.trim().isEmpty) {
+      throw const FormatException('텍스트 파일이 비어 있습니다.');
+    }
+    return text;
   });
 }
 
