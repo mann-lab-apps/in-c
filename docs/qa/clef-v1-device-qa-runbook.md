@@ -54,7 +54,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
   긴 ChordPro 악보는 상단 `구간` 메뉴에서 verse/chorus/bridge 표식을 골라 해당 줄로 이동해야 한다.
   `코드/가사 찾기`에서 코드명, 가사, 구간 이름을 각각 검색해 결과 수, 이전/다음 이동과 현재 줄 강조를 확인한다.
-- `악보 추가`의 `텍스트/ChordPro/DOCX 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
+- `악보 추가`의 `텍스트/ChordPro/DOCX/RTF 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
   ChordPro 텍스트를 붙여넣어 제목/작곡가/조성/박자 metadata chip과 코드/가사 preview가 보이는지
   확인한다. `악보로 저장`을 누르면 라이브러리에 ChordPro 악보가 생기고, 열었을 때 PDF viewer가 아닌
   읽기 전용 ChordPro 코드/가사 viewer로 들어가야 한다.
@@ -162,8 +162,8 @@ Repo 포함 fixture:
 - 실제 CamScanner/object-stream PDF 1개.
 - JPG/PNG 이미지 악보 2-3장.
 - HEIC/HEIF 이미지 1장.
-- Text/ChordPro/DOCX 악보 샘플 1개씩. 일반 Text는 파일 선택 저장/카드 노출/읽기 viewer 진입을 확인하고,
-  DOCX는 PDF 변환 안내가 자연스러운지 확인한다. ChordPro는 붙여넣기와 파일 선택 모두에서 metadata/preview 또는 저장/카드 노출/읽기 viewer 진입,
+- Text/ChordPro/DOCX/RTF 악보 샘플 1개씩. 일반 Text는 파일 선택 저장/카드 노출/읽기 viewer 진입을 확인하고,
+  DOCX/RTF는 추출 텍스트 viewer와 원본 reference 보존을 확인한다. ChordPro는 붙여넣기와 파일 선택 모두에서 metadata/preview 또는 저장/카드 노출/읽기 viewer 진입,
   곡별 저장형 transpose/capo shape 전환까지 확인한다.
 - Drive, iCloud, Dropbox 등 cloud provider에만 있는 PDF 1개.
 - MP3/M4A/WAV local audio file 각 1개 이상.

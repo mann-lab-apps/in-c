@@ -1196,7 +1196,7 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('import menu explains unsupported text score formats', (
+  testWidgets('import menu explains supported text score formats', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1221,6 +1221,7 @@ Clef & Staff 세트리스트
     expect(find.text('RTF 파일 선택 가져오기'), findsOneWidget);
     expect(find.text('ChordPro 표시 조정 지원'), findsOneWidget);
     expect(find.textContaining('일반 텍스트'), findsOneWidget);
+    expect(find.textContaining('DOCX 직접 읽기는 후속입니다.'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -1255,6 +1256,7 @@ Clef & Staff 세트리스트
     expect(find.text('작곡가: Lee'), findsOneWidget);
     expect(find.text('조성: D'), findsOneWidget);
     expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(find.textContaining('DOCX/RTF는 파일 선택으로'), findsOneWidget);
     await tester.tap(find.text('악보로 저장'));
     await tester.pumpAndSettle();
 

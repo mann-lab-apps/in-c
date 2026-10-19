@@ -2826,3 +2826,8 @@ same 2 MiB boundary as import, rejects malformed UTF-8 and empty source before p
 ChordPro score problem instead of the misleading shared PDF error. Plain-text viewer failures likewise use a text-score
 label while PDF behavior remains unchanged. Widget regression covers oversized and malformed source with explicit error
 copy; file repair and source editing remain outside the read-only viewer.
+
+S272 VERIFIED LOCAL: removed stale text-import guidance after DOCX and RTF support landed. The ChordPro preview no longer
+claims direct DOCX reading is future work, the unsupported-format fallback lists the actual PDF/image/text/ChordPro/DOCX/
+RTF read-only boundary, and QA wording names the same import surface. Smoke and policy assertions prevent the obsolete
+copy from returning while keeping unsupported legacy formats on the PDF-conversion path.

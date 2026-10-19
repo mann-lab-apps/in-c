@@ -102,6 +102,10 @@ void main() {
       SheetFileImportPolicy.unsupportedTextScoreImportMessage('notes.rtf'),
       allOf(contains('RTF'), contains('읽기 전용'), contains('가져올 수 있습니다')),
     );
+    expect(
+      SheetFileImportPolicy.unsupportedTextScoreImportMessage('legacy.doc'),
+      allOf(contains('DOCX'), contains('RTF'), contains('PDF로 내보낸 뒤')),
+    );
   });
 
   test('cleans scanner-like filenames into readable titles', () {

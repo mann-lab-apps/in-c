@@ -8385,7 +8385,7 @@ class _ChordProPreviewSheetState extends State<_ChordProPreviewSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'DOCX 직접 읽기는 후속입니다. 저장된 ChordPro 악보는 viewer에서 반음 이조와 카포 운지를 바꿀 수 있습니다.',
+                      'DOCX/RTF는 파일 선택으로 읽기 전용 저장합니다. 저장된 ChordPro 악보는 반음 이조와 카포 운지를 바꿀 수 있습니다.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
