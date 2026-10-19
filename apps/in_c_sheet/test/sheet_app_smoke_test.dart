@@ -1346,7 +1346,10 @@ Clef & Staff 세트리스트
 {title: Autumn Tune}
 {composer: Lee}
 {key: D}
+{section: Verse 1}
 [D]가을 [A]노래
+{soc: label="Big Chorus"}
+[G]다시 [D]노래
 ''');
     final now = DateTime(2026, 9, 28, 17);
     final store = SheetLibraryStore();
@@ -1387,6 +1390,14 @@ Clef & Staff 세트리스트
     expect(find.text('ChordPro'), findsOneWidget);
     expect(find.text('조성: D'), findsOneWidget);
     expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(find.text('구간'), findsOneWidget);
+
+    await tester.tap(find.text('구간'));
+    await tester.pumpAndSettle();
+    expect(find.text('[Verse 1]'), findsWidgets);
+    expect(find.text('[Big Chorus]'), findsWidgets);
+    await tester.tap(find.text('[Big Chorus]').last);
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 

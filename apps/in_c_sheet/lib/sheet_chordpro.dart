@@ -310,6 +310,16 @@ class SheetChordProDisplayLine {
   bool get hasChords => chords.isNotEmpty;
 }
 
+class SheetChordProNavigationTarget {
+  const SheetChordProNavigationTarget({
+    required this.label,
+    required this.displayLineIndex,
+  });
+
+  final String label;
+  final int displayLineIndex;
+}
+
 class SheetChordProParser {
   const SheetChordProParser._();
 
@@ -556,6 +566,20 @@ class SheetChordProTextRenderer {
       );
     }
     return rendered;
+  }
+
+  static List<SheetChordProNavigationTarget> navigationTargets(
+    List<SheetChordProDisplayLine> lines,
+  ) {
+    return List<SheetChordProNavigationTarget>.unmodifiable([
+      for (var index = 0; index < lines.length; index += 1)
+        if (lines[index].kind == SheetChordProDisplayLineKind.directive &&
+            lines[index].label.trim().isNotEmpty)
+          SheetChordProNavigationTarget(
+            label: lines[index].label,
+            displayLineIndex: index,
+          ),
+    ]);
   }
 
   static String? _renderDirectiveLine(SheetChordProLine line) {

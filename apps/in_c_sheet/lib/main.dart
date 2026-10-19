@@ -8577,6 +8577,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   int _transposeSemitones = 0;
   bool _showCapoShapes = false;
   String _displaySettingsSaveError = '';
+  final List<GlobalKey> _displayLineKeys = <GlobalKey>[];
 
   @override
   Widget build(BuildContext context) {
@@ -8588,10 +8589,50 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       );
     }
     _syncDisplaySettings(score);
+    final viewerDataFuture = _viewerDataFor(score);
     return Scaffold(
-      appBar: AppBar(title: Text(score.displayTitle)),
+      appBar: AppBar(
+        title: Text(score.displayTitle),
+        actions: [
+          FutureBuilder<_ChordProViewerData>(
+            future: viewerDataFuture,
+            builder: (context, snapshot) {
+              final data = snapshot.data;
+              if (data == null) return const SizedBox.shrink();
+              final lines = SheetChordProTextRenderer.renderDisplayLines(
+                data.document,
+              );
+              final targets = SheetChordProTextRenderer.navigationTargets(
+                lines,
+              );
+              if (targets.isEmpty) return const SizedBox.shrink();
+              return PopupMenuButton<int>(
+                tooltip: '구간 이동',
+                onSelected: _jumpToDisplayLine,
+                itemBuilder: (context) => [
+                  for (final target in targets)
+                    PopupMenuItem<int>(
+                      value: target.displayLineIndex,
+                      child: Text(target.label),
+                    ),
+                ],
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.segment_outlined),
+                      SizedBox(width: 6),
+                      Text('구간'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<_ChordProViewerData>(
-        future: _viewerDataFor(score),
+        future: viewerDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
@@ -8609,6 +8650,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
             transposeSemitones: _transposeSemitones,
             showCapoShapes: _showCapoShapes,
           );
+          _ensureDisplayLineKeys(displayLines.length);
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -8651,7 +8693,10 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                _ChordProDisplayLinesView(lines: displayLines),
+                _ChordProDisplayLinesView(
+                  lines: displayLines,
+                  lineKeys: _displayLineKeys,
+                ),
               ],
             ),
           );
@@ -8735,12 +8780,37 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       });
     }
   }
+
+  void _ensureDisplayLineKeys(int count) {
+    while (_displayLineKeys.length < count) {
+      _displayLineKeys.add(GlobalKey());
+    }
+    if (_displayLineKeys.length > count) {
+      _displayLineKeys.removeRange(count, _displayLineKeys.length);
+    }
+  }
+
+  void _jumpToDisplayLine(int index) {
+    if (index < 0 || index >= _displayLineKeys.length) return;
+    final targetContext = _displayLineKeys[index].currentContext;
+    if (targetContext == null) return;
+    Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      alignment: 0.08,
+    );
+  }
 }
 
 class _ChordProDisplayLinesView extends StatelessWidget {
-  const _ChordProDisplayLinesView({required this.lines});
+  const _ChordProDisplayLinesView({
+    required this.lines,
+    required this.lineKeys,
+  });
 
   final List<SheetChordProDisplayLine> lines;
+  final List<GlobalKey> lineKeys;
 
   @override
   Widget build(BuildContext context) {
@@ -8753,7 +8823,11 @@ class _ChordProDisplayLinesView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final line in lines) _ChordProDisplayLineView(line: line),
+        for (var index = 0; index < lines.length; index += 1)
+          KeyedSubtree(
+            key: lineKeys[index],
+            child: _ChordProDisplayLineView(line: lines[index]),
+          ),
       ],
     );
   }

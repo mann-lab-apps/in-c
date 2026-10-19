@@ -2763,3 +2763,9 @@ only when no library profile references them. Cleanup is restricted to Clef-mana
 preserves external and persisted files, and cannot hide the original import error. Store and controller regressions cover
 the reference guard and failed-save cleanup; metadata rollback failure remains outside the data-preservation guarantee.
 Validation passes focused controller/store tests, `flutter analyze`, all 1,666 tests and the RC release check.
+
+S263 VERIFIED LOCAL: added long ChordPro score navigation without changing source or display settings. The viewer now
+derives named jump targets from rendered section/comment/chorus/verse/bridge/tab/page/column directives and exposes a
+text-labelled `구간` menu in the app bar. Selecting a target scrolls its rendered line into view; scores without named
+directives keep the action hidden. Parser/renderer and widget regressions cover labels, indexes and the menu-to-line path.
+Validation passes `flutter analyze`, all 1,667 tests and the RC release check.

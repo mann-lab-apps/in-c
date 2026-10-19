@@ -358,6 +358,24 @@ e|--0--1--|
     ]);
   });
 
+  test('builds navigation targets from rendered rehearsal labels', () {
+    final document = SheetChordProParser.parse('''
+{section: Verse 1}
+[C]First
+{soc: label="Big Chorus"}
+[G]Second
+''');
+    final lines = SheetChordProTextRenderer.renderDisplayLines(document);
+
+    final targets = SheetChordProTextRenderer.navigationTargets(lines);
+
+    expect(targets.map((target) => target.label), <String>[
+      '[Verse 1]',
+      '[Big Chorus]',
+    ]);
+    expect(targets.map((target) => target.displayLineIndex), <int>[0, 2]);
+  });
+
   test('keeps unrecognized chords and directives stable', () {
     final document = SheetChordProParser.parse('''
 {comment: freely}
