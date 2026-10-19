@@ -143,12 +143,14 @@ void main() {
   test('fixture generator creates a portable QA bundle', () async {
     final output = '${tempDirectory.path}/editable.pdf';
     final unicodeOutput = '${tempDirectory.path}/unicode.pdf';
+    final transformedOutput = '${tempDirectory.path}/transformed.pdf';
     final report = '${tempDirectory.path}/report.md';
     final bundle = '${tempDirectory.path}/bundle.zip';
 
     final result = await _generateFixture(
       output: output,
       unicodeOutput: unicodeOutput,
+      transformedOutput: transformedOutput,
       report: report,
       bundle: bundle,
     );
@@ -170,6 +172,7 @@ void main() {
       containsAll(<String>[
         'clef-editable-annotation-compatibility.pdf',
         'clef-unicode-freetext-appearance.pdf',
+        'clef-rotated-cropped-annotation-compatibility.pdf',
         'clef-editable-annotation-compatibility-report.md',
       ]),
     );
@@ -178,8 +181,10 @@ void main() {
       containsAll(<String>[
         'clef-editable-annotation-compatibility.pdf',
         'clef-unicode-freetext-appearance.pdf',
+        'clef-rotated-cropped-annotation-compatibility.pdf',
       ]),
     );
+    expect(File(transformedOutput).existsSync(), isTrue);
   });
 }
 
@@ -203,6 +208,7 @@ Future<ProcessResult> _reviewReport(File report) {
 Future<ProcessResult> _generateFixture({
   required String output,
   required String unicodeOutput,
+  required String transformedOutput,
   required String report,
   required String bundle,
 }) {
@@ -215,6 +221,8 @@ Future<ProcessResult> _generateFixture({
     output,
     '--unicode-output',
     unicodeOutput,
+    '--transformed-output',
+    transformedOutput,
     '--report',
     report,
     '--bundle',

@@ -7,6 +7,8 @@ import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_pdf_annotation_compatibility_report.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:pdf_cos/pdf_cos.dart';
+import 'package:pdf_document/pdf_document.dart';
 
 Future<void> main(List<String> args) async {
   final reviewReportPath = _valueAfter(args, '--review-report');
@@ -19,10 +21,14 @@ Future<void> main(List<String> args) async {
   final outputPath = _valueAfter(args, '--output') ?? _defaultOutputPath;
   final unicodeOutputPath =
       _valueAfter(args, '--unicode-output') ?? _defaultUnicodeOutputPath;
+  final transformedOutputPath =
+      _valueAfter(args, '--transformed-output') ??
+      _defaultTransformedOutputPath;
   final reportPath = _valueAfter(args, '--report') ?? _defaultReportPath;
   final bundlePath = _valueAfter(args, '--bundle') ?? _defaultBundlePath;
   final output = File(outputPath);
   final unicodeOutput = File(unicodeOutputPath);
+  final transformedOutput = File(transformedOutputPath);
   if (!input.existsSync()) {
     stderr.writeln('Input PDF not found: ${input.path}');
     exitCode = 64;
@@ -30,6 +36,7 @@ Future<void> main(List<String> args) async {
   }
   output.parent.createSync(recursive: true);
   unicodeOutput.parent.createSync(recursive: true);
+  transformedOutput.parent.createSync(recursive: true);
 
   final pngBytes = image.encodePng(image.Image(width: 24, height: 24));
   final webpBytes = image.encodeWebP(
@@ -98,6 +105,13 @@ Future<void> main(List<String> args) async {
   if (unicodeInspection == null) {
     return;
   }
+  final transformedInspection = await _generateTransformedPageFixture(
+    input: input,
+    output: transformedOutput,
+  );
+  if (transformedInspection == null) {
+    return;
+  }
 
   stdout
     ..writeln('Generated Clef editable annotation compatibility fixture:')
@@ -134,17 +148,23 @@ Future<void> main(List<String> args) async {
     ..writeln(
       'Unicode FreeText annotations without embedded fonts: '
       '${unicodeInspection.unembeddedUnicodeFreeTextNames}',
-    );
+    )
+    ..writeln('Generated Clef rotated/cropped page fixture:')
+    ..writeln(transformedOutput.absolute.path)
+    ..writeln('Clef annotations: ${transformedInspection.clefAnnotationCount}');
   final report = File(reportPath);
   await report.parent.create(recursive: true);
   final outputSha256 = await _sha256Of(output);
   final unicodeOutputSha256 = await _sha256Of(unicodeOutput);
+  final transformedOutputSha256 = await _sha256Of(transformedOutput);
   await report.writeAsString(
     _compatibilityReportMarkdown(
       fixturePath: output.absolute.path,
       fixtureSha256: outputSha256,
       unicodeFixturePath: unicodeOutput.absolute.path,
       unicodeFixtureSha256: unicodeOutputSha256,
+      transformedFixturePath: transformedOutput.absolute.path,
+      transformedFixtureSha256: transformedOutputSha256,
       inspection: inspection,
       unicodeInspection: unicodeInspection,
       pdfAConformanceDelta: pdfAConformanceDelta,
@@ -157,6 +177,8 @@ Future<void> main(List<String> args) async {
     fixtureSha256: outputSha256,
     unicodeFixturePath: _bundleUnicodeFixtureName,
     unicodeFixtureSha256: unicodeOutputSha256,
+    transformedFixturePath: _bundleTransformedFixtureName,
+    transformedFixtureSha256: transformedOutputSha256,
     inspection: inspection,
     unicodeInspection: unicodeInspection,
     pdfAConformanceDelta: pdfAConformanceDelta,
@@ -167,6 +189,12 @@ Future<void> main(List<String> args) async {
       ArchiveFile.bytes(
         _bundleUnicodeFixtureName,
         await unicodeOutput.readAsBytes(),
+      ),
+    )
+    ..addFile(
+      ArchiveFile.bytes(
+        _bundleTransformedFixtureName,
+        await transformedOutput.readAsBytes(),
       ),
     )
     ..addFile(ArchiveFile.string(_bundleReportName, bundleReport));
@@ -289,6 +317,8 @@ String _compatibilityReportMarkdown({
   required String fixtureSha256,
   required String unicodeFixturePath,
   required String unicodeFixtureSha256,
+  required String transformedFixturePath,
+  required String transformedFixtureSha256,
   required SheetStandardPdfAnnotationInspection inspection,
   required SheetStandardPdfAnnotationInspection unicodeInspection,
   required SheetPdfAConformanceDelta pdfAConformanceDelta,
@@ -300,6 +330,8 @@ String _compatibilityReportMarkdown({
     unicodeFixturePath: unicodeFixturePath,
     unicodeInspection: unicodeInspection,
     unicodeFixtureSha256: unicodeFixtureSha256,
+    transformedFixturePath: transformedFixturePath,
+    transformedFixtureSha256: transformedFixtureSha256,
     pdfAConformanceDelta: pdfAConformanceDelta,
   );
 }
@@ -311,6 +343,9 @@ const _defaultOutputPath =
 const _defaultUnicodeOutputPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-unicode-freetext-appearance.pdf';
+const _defaultTransformedOutputPath =
+    '.dart_tool/clef-pdf-compatibility/'
+    'clef-rotated-cropped-annotation-compatibility.pdf';
 const _defaultReportPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-editable-annotation-compatibility-report.md';
@@ -319,6 +354,8 @@ const _defaultBundlePath =
     'clef-editable-annotation-compatibility-bundle.zip';
 const _bundleFixtureName = 'clef-editable-annotation-compatibility.pdf';
 const _bundleUnicodeFixtureName = 'clef-unicode-freetext-appearance.pdf';
+const _bundleTransformedFixtureName =
+    'clef-rotated-cropped-annotation-compatibility.pdf';
 const _bundleReportName = 'clef-editable-annotation-compatibility-report.md';
 const _pngImageStampAssetRef = 'stamps/compatibility/cue-photo.png';
 const _webpImageStampAssetRef = 'stamps/compatibility/webp-cue.webp';
@@ -377,6 +414,72 @@ _generateUnicodeAppearanceFixture({
     return null;
   }
   return inspection;
+}
+
+Future<SheetStandardPdfAnnotationInspection?> _generateTransformedPageFixture({
+  required File input,
+  required File output,
+}) async {
+  final sourceDocument = PdfDocument.open(await input.readAsBytes());
+  if (sourceDocument.pageCount == 0) {
+    stderr.writeln('Cannot generate transformed fixture from an empty PDF.');
+    exitCode = 1;
+    return null;
+  }
+  final page = sourceDocument.page(0);
+  final box = page.cropBox;
+  final horizontalInset = (box.width * 0.08).clamp(12.0, 36.0).toDouble();
+  final verticalInset = (box.height * 0.06).clamp(12.0, 36.0).toDouble();
+  final editor = PdfEditor(sourceDocument);
+  page.dict['CropBox'] = CosArray(<CosObject>[
+    CosReal(box.left + horizontalInset),
+    CosReal(box.bottom + verticalInset),
+    CosReal(box.right - horizontalInset),
+    CosReal(box.top - verticalInset),
+  ]);
+  editor.rotatePage(0, 90);
+  final transformedSource = File('${output.path}.source.pdf');
+  await transformedSource.writeAsBytes(editor.save(), flush: true);
+
+  try {
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: _transformedPageScore(transformedSource.path),
+      outputPath: output.path,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    if (!result.didWrite) {
+      stderr.writeln(
+        'Could not generate rotated/cropped fixture: '
+        '${result.failureReason ?? 'unknown failure'}',
+      );
+      exitCode = 1;
+      return null;
+    }
+    final outputDocument = PdfDocument.open(await output.readAsBytes());
+    final outputPage = outputDocument.page(0);
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          output.path,
+        );
+    if (outputPage.rotation != 90 ||
+        outputPage.cropBox == outputPage.mediaBox ||
+        !inspection.isLocallyInspectableEditableFixture ||
+        inspection.clefAnnotationCount < 5) {
+      stderr.writeln(
+        'Generated rotated/cropped fixture failed local inspection: '
+        'rotation=${outputPage.rotation}, crop=${outputPage.cropBox}, '
+        'media=${outputPage.mediaBox}, '
+        'annotations=${inspection.clefAnnotationCount}',
+      );
+      exitCode = 1;
+      return null;
+    }
+    return inspection;
+  } finally {
+    if (transformedSource.existsSync()) {
+      await transformedSource.delete();
+    }
+  }
 }
 
 String? _valueAfter(List<String> args, String flag) {
@@ -626,6 +729,81 @@ SheetScore _unicodeAppearanceScore(String inputPath) {
           fontSize: 22,
           createdAt: now.add(const Duration(seconds: 3)),
           stampKind: SheetAnnotationUserStamp.iconKind,
+        ),
+      ],
+    ),
+  );
+}
+
+SheetScore _transformedPageScore(String inputPath) {
+  final now = DateTime.parse('2026-10-19T13:00:00.000');
+  return SheetScore(
+    id: 'pdf-rotated-cropped-compatibility',
+    title: 'Clef Rotated Cropped Annotation Compatibility',
+    composer: '',
+    tags: const <String>['qa', 'pdf-export', 'rotation', 'crop'],
+    note:
+        'Fixture for visual annotation placement on a 90-degree rotated page '
+        'with an offset CropBox.',
+    filePath: inputPath,
+    importedAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    lastPage: 1,
+    isFavorite: false,
+    bookmarks: const <SheetBookmark>[],
+    annotationLayer: SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[
+        _stroke(
+          id: 'transform-descending-line',
+          tool: SheetAnnotationTool.line,
+          color: 0xffd32f2f,
+          width: 4,
+          points: const <SheetAnnotationPoint>[
+            SheetAnnotationPoint(x: 0.10, y: 0.10),
+            SheetAnnotationPoint(x: 0.90, y: 0.90),
+          ],
+          createdAt: now,
+        ),
+        _stroke(
+          id: 'transform-ascending-line',
+          tool: SheetAnnotationTool.arrow,
+          color: 0xff1d5fd1,
+          width: 4,
+          points: const <SheetAnnotationPoint>[
+            SheetAnnotationPoint(x: 0.10, y: 0.90),
+            SheetAnnotationPoint(x: 0.90, y: 0.10),
+          ],
+          createdAt: now.add(const Duration(seconds: 1)),
+        ),
+      ],
+      texts: <SheetTextAnnotation>[
+        SheetTextAnnotation(
+          id: 'transform-top-left',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.10, y: 0.10),
+          text: 'TL',
+          color: 0xff111111,
+          fontSize: 14,
+          createdAt: now.add(const Duration(seconds: 2)),
+        ),
+        SheetTextAnnotation(
+          id: 'transform-center',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.45, y: 0.50),
+          text: 'CENTER',
+          color: 0xff111111,
+          fontSize: 14,
+          createdAt: now.add(const Duration(seconds: 3)),
+        ),
+        SheetTextAnnotation(
+          id: 'transform-bottom-right',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.70, y: 0.85),
+          text: 'BR',
+          color: 0xff111111,
+          fontSize: 14,
+          createdAt: now.add(const Duration(seconds: 4)),
         ),
       ],
     ),

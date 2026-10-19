@@ -1176,20 +1176,16 @@ class SheetAnnotatedPdfExporter {
     if (trimmedText.isEmpty) {
       return false;
     }
-    final point = geometry.toPdfPoint(text.position);
     final estimatedWidth = (trimmedText.runes.length * text.fontSize * 0.65)
-        .clamp(text.fontSize * 3.5, geometry.width * 0.75)
+        .clamp(text.fontSize * 3.5, geometry.visualWidth * 0.75)
         .toDouble();
     final estimatedHeight = (text.fontSize * 1.6)
-        .clamp(text.fontSize * 1.3, geometry.height * 0.25)
+        .clamp(text.fontSize * 1.3, geometry.visualHeight * 0.25)
         .toDouble();
-    final rect = PdfRect(
-      point.x,
-      point.y - estimatedHeight,
-      (point.x + estimatedWidth)
-          .clamp(geometry.left, geometry.left + geometry.width)
-          .toDouble(),
-      point.y,
+    final rect = geometry.pdfRectFromVisualTopLeft(
+      text.position,
+      visualWidth: estimatedWidth,
+      visualHeight: estimatedHeight,
     );
     if (rect.width <= 0 || rect.height <= 0) {
       return false;
@@ -1236,13 +1232,11 @@ class SheetAnnotatedPdfExporter {
     SheetTextAnnotation text,
     PdfEmbeddableImage image,
   ) {
-    final point = geometry.toPdfPoint(text.position);
     final size = _imageStampPdfSize(geometry, text, image);
-    return PdfRect(
-      point.x,
-      point.y - size.height,
-      point.x + size.width,
-      point.y,
+    return geometry.pdfRectFromVisualTopLeft(
+      text.position,
+      visualWidth: size.width,
+      visualHeight: size.height,
     );
   }
 
@@ -1619,6 +1613,12 @@ class SheetPdfAnnotationGeometry {
   final double height;
   final int rotation;
 
+  bool get swapsVisualDimensions => rotation % 180 != 0;
+
+  double get visualWidth => swapsVisualDimensions ? height : width;
+
+  double get visualHeight => swapsVisualDimensions ? width : height;
+
   SheetPdfAnnotationPoint toPdfPoint(SheetAnnotationPoint point) {
     final x = point.x.clamp(0.0, 1.0).toDouble();
     final y = point.y.clamp(0.0, 1.0).toDouble();
@@ -1630,6 +1630,20 @@ class SheetPdfAnnotationGeometry {
       _ => (x * width, (1 - y) * height),
     };
     return SheetPdfAnnotationPoint(left + pdfX, bottom + pdfY);
+  }
+
+  PdfRect pdfRectFromVisualTopLeft(
+    SheetAnnotationPoint point, {
+    required double visualWidth,
+    required double visualHeight,
+  }) {
+    final end = SheetAnnotationPoint(
+      x: point.x + (visualWidth / this.visualWidth),
+      y: point.y + (visualHeight / this.visualHeight),
+    );
+    final first = toPdfPoint(point);
+    final second = toPdfPoint(end);
+    return PdfRect.normalized(first.x, first.y, second.x, second.y);
   }
 }
 

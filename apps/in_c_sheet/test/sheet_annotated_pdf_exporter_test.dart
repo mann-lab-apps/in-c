@@ -71,6 +71,29 @@ void main() {
     expect(point.y, closeTo(geometry.bottom + geometry.height * 0.25, 0.001));
   });
 
+  test('maps visual text boxes into rotated PDF coordinates', () {
+    const geometry = SheetPdfAnnotationGeometry(
+      left: 10,
+      bottom: 20,
+      width: 200,
+      height: 100,
+      rotation: 90,
+    );
+
+    final rect = geometry.pdfRectFromVisualTopLeft(
+      const SheetAnnotationPoint(x: 0.10, y: 0.20),
+      visualWidth: 40,
+      visualHeight: 20,
+    );
+
+    expect(geometry.visualWidth, 100);
+    expect(geometry.visualHeight, 200);
+    expect(rect.left, closeTo(50, 0.001));
+    expect(rect.bottom, closeTo(30, 0.001));
+    expect(rect.width, closeTo(20, 0.001));
+    expect(rect.height, closeTo(40, 0.001));
+  });
+
   test('exports line coordinates against a rotated PDF page', () async {
     final outputDir = await Directory.systemTemp.createTemp(
       'clef-rotated-annotation-export-',

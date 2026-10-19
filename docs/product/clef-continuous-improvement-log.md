@@ -2685,3 +2685,10 @@ dictionary already carries `/Rotate`. Clef annotation points are stored against 
 coordinate system. Pure geometry tests cover all rotations and offset CropBox origins, while an end-to-end fixture
 rotates a real PDF page, exports a line and reopens its `/L` coordinates. External viewer visual confirmation of
 rotated/cropped pages remains part of the compatibility matrix.
+
+S252 VERIFIED LOCAL: extended the external editable-PDF handoff to cover the rotated-page path that S251 opened.
+The portable compatibility ZIP now includes a 90-degree rotated source page with an offset CropBox, crossed line and
+arrow annotations, and TL/CENTER/BR text anchors. Text and image-stamp rectangles are calculated from the displayed
+page dimensions before mapping back to source PDF coordinates, so their width and height do not swap incorrectly on
+90/270-degree pages. Focused exporter, report and CLI tests plus a Poppler render verify local structure and visual
+placement; Acrobat, Preview, MobileSheets, Piascore and Android viewer checks remain manual QA.
