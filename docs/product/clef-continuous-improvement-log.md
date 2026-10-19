@@ -2807,3 +2807,9 @@ preview validates the bounded RTF parser before writes, and package import uses 
 file selection. Focused codec/export/controller regressions also keep DOCX and ordinary text package behavior intact.
 Validation passes `flutter analyze`, all 1,690 tests and the RC release check; one unrelated PDF compatibility CLI test
 timed out once under the first full parallel run, then passed alone and in the complete RC rerun.
+
+S269 VERIFIED LOCAL: bounded RTF parser structure as well as byte size. Clef now rejects documents whose group nesting
+exceeds 256 levels before extending parser state and continues to reject truncated `\\bin` payloads instead of treating
+their bytes as visible score text. Focused regressions cover both malformed inputs while preserving ordinary grouped RTF.
+Rich formatting fidelity, embedded binary assets and compatibility with every RTF producer remain outside this text-only
+import guarantee.

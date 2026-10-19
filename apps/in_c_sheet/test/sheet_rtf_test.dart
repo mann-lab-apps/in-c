@@ -55,6 +55,22 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('rejects excessive group nesting and invalid binary payloads', () {
+    final nested = StringBuffer(r'{\rtf1 ')
+      ..write('{' * (SheetRtfTextExtractor.maxGroupDepth + 1))
+      ..write('text')
+      ..write('}' * (SheetRtfTextExtractor.maxGroupDepth + 2));
+
+    expect(
+      () => SheetRtfTextExtractor.extract(_bytes(nested.toString())),
+      throwsFormatException,
+    );
+    expect(
+      () => SheetRtfTextExtractor.extract(_bytes(r'{\rtf1\bin12 abc}')),
+      throwsFormatException,
+    );
+  });
 }
 
 Uint8List _bytes(String source) => Uint8List.fromList(latin1.encode(source));

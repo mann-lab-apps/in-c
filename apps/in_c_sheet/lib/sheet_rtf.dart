@@ -11,6 +11,7 @@ class SheetRtfTextExtractor {
   const SheetRtfTextExtractor._();
 
   static const maxFileBytes = 2 * 1024 * 1024;
+  static const maxGroupDepth = 256;
 
   static const _ignoredDestinations = <String>{
     'annotation',
@@ -66,6 +67,9 @@ class SheetRtfTextExtractor {
     while (index < source.length) {
       final character = source[index];
       if (character == '{') {
+        if (depth >= maxGroupDepth) {
+          throw const FormatException('RTF group nesting exceeds the limit.');
+        }
         states.add(states.last.copy());
         depth += 1;
         index += 1;
