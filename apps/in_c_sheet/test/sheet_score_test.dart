@@ -168,6 +168,7 @@ void main() {
         transposeSemitones: 3,
         showCapoShapes: true,
         capoFretsOverride: 5,
+        columnCount: 2,
       ),
     );
 
@@ -285,6 +286,7 @@ void main() {
     expect(decoded.single.chordProDisplaySettings.transposeSemitones, 3);
     expect(decoded.single.chordProDisplaySettings.showCapoShapes, isTrue);
     expect(decoded.single.chordProDisplaySettings.capoFretsOverride, 5);
+    expect(decoded.single.chordProDisplaySettings.columnCount, 2);
   });
 
   test('normalizes ChordPro display settings safely', () {
@@ -292,13 +294,16 @@ void main() {
       'transposeSemitones': 48,
       'showCapoShapes': true,
       'capoFretsOverride': 48,
+      'columnCount': 48,
     });
 
     expect(decoded.transposeSemitones, 11);
     expect(decoded.showCapoShapes, isTrue);
     expect(decoded.capoFretsOverride, 12);
+    expect(decoded.columnCount, 2);
     expect(decoded.copyWith(transposeSemitones: -48).transposeSemitones, -11);
     expect(decoded.copyWith(capoFretsOverride: -4).capoFretsOverride, 0);
+    expect(decoded.copyWith(columnCount: -4).columnCount, 1);
     expect(
       decoded.copyWith(clearCapoFretsOverride: true).capoFretsOverride,
       isNull,

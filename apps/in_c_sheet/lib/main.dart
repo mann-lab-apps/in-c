@@ -8988,6 +8988,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   int _transposeSemitones = 0;
   bool _showCapoShapes = false;
   int? _capoFretsOverride;
+  int _columnCount = 1;
   String _displaySettingsSaveError = '';
   final TextEditingController _searchController = TextEditingController();
   final List<GlobalKey> _displayLineKeys = <GlobalKey>[];
@@ -9112,6 +9113,8 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
           final activeLineIndex = search.lineIndexes.isEmpty
               ? null
               : search.lineIndexes[activeMatchIndex];
+          final canUseTwoColumns = MediaQuery.sizeOf(context).width >= 720;
+          final effectiveColumnCount = canUseTwoColumns ? _columnCount : 1;
           return SafeArea(
             child: Column(
               children: [
@@ -9167,9 +9170,12 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                         canReset:
                             _transposeSemitones != 0 ||
                             _showCapoShapes ||
-                            _capoFretsOverride != null,
+                            _capoFretsOverride != null ||
+                            _columnCount != 1,
                         canShowCapoShapes: effectiveCapoFrets > 0,
                         showCapoShapes: _showCapoShapes,
+                        columnCount: _columnCount,
+                        canUseTwoColumns: canUseTwoColumns,
                         saveError: _displaySettingsSaveError,
                         onTransposeDown: () => _shiftTranspose(-1),
                         onTransposeUp: () => _shiftTranspose(1),
@@ -9180,6 +9186,13 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                             ? () => _shiftCapo(data.document, 1)
                             : null,
                         onReset: _resetDisplay,
+                        onColumnCountChanged: (value) {
+                          setState(() {
+                            _columnCount = value;
+                            _displaySettingsSaveError = '';
+                          });
+                          unawaited(_persistDisplaySettings());
+                        },
                         onShowCapoShapesChanged: (value) {
                           setState(() {
                             _showCapoShapes = value;
@@ -9204,6 +9217,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                         lineKeys: _displayLineKeys,
                         matchedLineIndexes: search.lineIndexes.toSet(),
                         activeLineIndex: activeLineIndex,
+                        columnCount: effectiveColumnCount,
                       ),
                     ],
                   ),
@@ -9271,6 +9285,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     _transposeSemitones = settings.transposeSemitones;
     _showCapoShapes = settings.showCapoShapes;
     _capoFretsOverride = settings.capoFretsOverride;
+    _columnCount = settings.columnCount;
     _displaySettingsSaveError = '';
   }
 
@@ -9320,6 +9335,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       _transposeSemitones = 0;
       _showCapoShapes = false;
       _capoFretsOverride = null;
+      _columnCount = 1;
       _displaySettingsSaveError = '';
     });
     unawaited(_persistDisplaySettings());
@@ -9334,6 +9350,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       transposeSemitones: _transposeSemitones,
       showCapoShapes: _showCapoShapes,
       capoFretsOverride: _capoFretsOverride,
+      columnCount: _columnCount,
     );
     try {
       await widget.controller.updateChordProDisplaySettings(score, settings);
@@ -9412,12 +9429,14 @@ class _ChordProDisplayLinesView extends StatelessWidget {
     required this.lineKeys,
     this.matchedLineIndexes = const <int>{},
     this.activeLineIndex,
+    this.columnCount = 1,
   });
 
   final List<SheetChordProDisplayLine> lines;
   final List<GlobalKey> lineKeys;
   final Set<int> matchedLineIndexes;
   final int? activeLineIndex;
+  final int columnCount;
 
   @override
   Widget build(BuildContext context) {
@@ -9427,20 +9446,36 @@ class _ChordProDisplayLinesView extends StatelessWidget {
         )) {
       return const Text('표시할 코드/가사 줄이 없습니다.');
     }
-    return Column(
+    final columns = SheetChordProTextRenderer.layoutDisplayLineIndexes(
+      lines,
+      columnCount: columnCount,
+    );
+    Widget buildColumn(List<int> indexes) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [for (final index in indexes) _buildLine(index)],
+    );
+    if (columns.length == 1) {
+      return buildColumn(columns.single);
+    }
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var index = 0; index < lines.length; index += 1)
-          KeyedSubtree(
-            key: lineKeys[index],
-            child: _ChordProDisplayLineView(
-              line: lines[index],
-              isSearchMatch: matchedLineIndexes.contains(index),
-              isActiveSearchMatch: activeLineIndex == index,
-              lineIndex: index,
-            ),
-          ),
+        Expanded(child: buildColumn(columns.first)),
+        const SizedBox(width: 32),
+        Expanded(child: buildColumn(columns.last)),
       ],
+    );
+  }
+
+  Widget _buildLine(int index) {
+    return KeyedSubtree(
+      key: lineKeys[index],
+      child: _ChordProDisplayLineView(
+        line: lines[index],
+        isSearchMatch: matchedLineIndexes.contains(index),
+        isActiveSearchMatch: activeLineIndex == index,
+        lineIndex: index,
+      ),
     );
   }
 }
@@ -9776,12 +9811,15 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
     required this.canReset,
     required this.canShowCapoShapes,
     required this.showCapoShapes,
+    required this.columnCount,
+    required this.canUseTwoColumns,
     required this.saveError,
     required this.onTransposeDown,
     required this.onTransposeUp,
     required this.onCapoDown,
     required this.onCapoUp,
     required this.onReset,
+    required this.onColumnCountChanged,
     required this.onShowCapoShapesChanged,
   });
 
@@ -9790,12 +9828,15 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
   final bool canReset;
   final bool canShowCapoShapes;
   final bool showCapoShapes;
+  final int columnCount;
+  final bool canUseTwoColumns;
   final String saveError;
   final VoidCallback onTransposeDown;
   final VoidCallback onTransposeUp;
   final VoidCallback? onCapoDown;
   final VoidCallback? onCapoUp;
   final VoidCallback onReset;
+  final ValueChanged<int> onColumnCountChanged;
   final ValueChanged<bool> onShowCapoShapesChanged;
 
   @override
@@ -9858,6 +9899,26 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
                 ),
               ],
             ),
+            if (canUseTwoColumns) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Text('단 구성', style: theme.textTheme.labelLarge),
+                  const SizedBox(width: 12),
+                  SegmentedButton<int>(
+                    key: const ValueKey('chordpro-column-count'),
+                    segments: const <ButtonSegment<int>>[
+                      ButtonSegment<int>(value: 1, label: Text('1단')),
+                      ButtonSegment<int>(value: 2, label: Text('2단')),
+                    ],
+                    selected: <int>{columnCount},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) =>
+                        onColumnCountChanged(selection.single),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 6),
             Text(
               saveError.isEmpty ? '이 악보를 다시 열어도 표시 조정이 유지됩니다.' : saveError,

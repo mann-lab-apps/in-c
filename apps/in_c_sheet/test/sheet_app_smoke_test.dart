@@ -1925,6 +1925,95 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ChordPro viewer persists two columns and falls back on phones', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1100, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-columns-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/columns.chordpro')
+      ..writeAsStringSync('''
+{title: Column Tune}
+{section: Verse}
+[C]First
+[G]Second
+{section: Chorus}
+[Am]Third
+[F]Fourth
+''');
+    final now = DateTime(2026, 10, 20, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-columns',
+        title: 'Column Tune',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-columns',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('chordpro-column-count')), findsOneWidget);
+    await tester.tap(find.text('2단'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(tester.getCenter(find.text('Third')).dx, greaterThan(550));
+    expect(tester.getCenter(find.text('First')).dx, lessThan(550));
+    expect(
+      controller
+          .scoreById('chordpro-columns')
+          .chordProDisplaySettings
+          .columnCount,
+      2,
+    );
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('chordpro-column-count')), findsNothing);
+    expect(
+      (tester.getCenter(find.text('Third')).dx -
+              tester.getCenter(find.text('First')).dx)
+          .abs(),
+      lessThan(40),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home renders recent setlists without overflow', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);

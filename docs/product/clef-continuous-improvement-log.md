@@ -2983,3 +2983,11 @@ reports. Gateway and small-screen widget regressions cover listing, reopening, f
 the transient fallback. Android Kotlin compilation, `flutter analyze`, all 1,739 tests and the RC release check passed.
 Reboot, provider revocation and removable-storage behavior remain Device QA; app-copy-free direct scores and iOS Files
 parity remain separate gaps.
+
+S295 VERIFIED LOCAL: added a per-score `1단`/`2단` layout to the stored ChordPro viewer on wide tablet screens without
+rewriting the source. Two-column layout prefers an explicit `{colb}` marker and otherwise splits near the document midpoint
+at a section directive, while transpose/capo display settings, search and section navigation continue to use the same
+rendered lines. Narrow phones force an effective single column without discarding the saved tablet preference. Model,
+controller, renderer and widget regressions cover normalization, persistence, explicit and automatic splitting, tablet
+placement and phone fallback. `dart format`, `flutter analyze`, all 1,742 tests and the RC release check passed. Actual
+tablet readability, large text scaling and very long performance documents remain Device QA.

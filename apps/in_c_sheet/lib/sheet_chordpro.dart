@@ -599,6 +599,50 @@ class SheetChordProTextRenderer {
     ]);
   }
 
+  static List<List<int>> layoutDisplayLineIndexes(
+    List<SheetChordProDisplayLine> lines, {
+    int columnCount = 1,
+  }) {
+    final indexes = List<int>.generate(lines.length, (index) => index);
+    if (columnCount < 2 || lines.length < 2) {
+      return <List<int>>[List<int>.unmodifiable(indexes)];
+    }
+    final explicitBreak = lines.indexWhere(
+      (line) =>
+          line.kind == SheetChordProDisplayLineKind.directive &&
+          line.label == '[Column break]',
+      1,
+    );
+    var splitIndex = explicitBreak > 0 && explicitBreak < lines.length
+        ? explicitBreak
+        : lines.length ~/ 2;
+    if (explicitBreak < 0) {
+      final midpoint = splitIndex;
+      for (var distance = 0; distance < lines.length; distance += 1) {
+        final before = midpoint - distance;
+        final after = midpoint + distance;
+        int? sectionIndex;
+        for (final index in <int>[before, after]) {
+          if (index > 0 &&
+              index < lines.length &&
+              lines[index].kind == SheetChordProDisplayLineKind.directive) {
+            sectionIndex = index;
+            break;
+          }
+        }
+        if (sectionIndex != null) {
+          splitIndex = sectionIndex;
+          break;
+        }
+      }
+    }
+    splitIndex = splitIndex.clamp(1, lines.length - 1);
+    return <List<int>>[
+      List<int>.unmodifiable(indexes.take(splitIndex)),
+      List<int>.unmodifiable(indexes.skip(splitIndex)),
+    ];
+  }
+
   static String? _renderDirectiveLine(SheetChordProLine line) {
     final name = line.directiveName;
     final value = line.directiveValue?.trim() ?? '';

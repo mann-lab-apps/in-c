@@ -457,6 +457,7 @@ class SheetChordProDisplaySettings {
     this.transposeSemitones = 0,
     this.showCapoShapes = false,
     this.capoFretsOverride,
+    this.columnCount = 1,
   });
 
   factory SheetChordProDisplaySettings.fromJson(Map<String, Object?>? json) {
@@ -468,6 +469,7 @@ class SheetChordProDisplaySettings {
       capoFretsOverride: _normalizeCapoFretsOverride(
         json?['capoFretsOverride'],
       ),
+      columnCount: _normalizeColumnCount(json?['columnCount']),
     );
   }
 
@@ -476,14 +478,19 @@ class SheetChordProDisplaySettings {
   final int transposeSemitones;
   final bool showCapoShapes;
   final int? capoFretsOverride;
+  final int columnCount;
 
   bool get isDefault =>
-      transposeSemitones == 0 && !showCapoShapes && capoFretsOverride == null;
+      transposeSemitones == 0 &&
+      !showCapoShapes &&
+      capoFretsOverride == null &&
+      columnCount == 1;
 
   SheetChordProDisplaySettings copyWith({
     int? transposeSemitones,
     bool? showCapoShapes,
     int? capoFretsOverride,
+    int? columnCount,
     bool clearCapoFretsOverride = false,
   }) {
     return SheetChordProDisplaySettings(
@@ -494,6 +501,7 @@ class SheetChordProDisplaySettings {
       capoFretsOverride: clearCapoFretsOverride
           ? null
           : _clampCapoFrets(capoFretsOverride ?? this.capoFretsOverride),
+      columnCount: _clampColumnCount(columnCount ?? this.columnCount),
     );
   }
 
@@ -502,6 +510,7 @@ class SheetChordProDisplaySettings {
       'transposeSemitones': transposeSemitones,
       'showCapoShapes': showCapoShapes,
       if (capoFretsOverride != null) 'capoFretsOverride': capoFretsOverride,
+      'columnCount': columnCount,
     };
   }
 
@@ -522,6 +531,14 @@ class SheetChordProDisplaySettings {
 
   static int? _clampCapoFrets(int? value) {
     return value?.clamp(0, 12).toInt();
+  }
+
+  static int _normalizeColumnCount(Object? value) {
+    return _clampColumnCount(_intFromJson(value, fallback: 1));
+  }
+
+  static int _clampColumnCount(int value) {
+    return value.clamp(1, 2).toInt();
   }
 }
 

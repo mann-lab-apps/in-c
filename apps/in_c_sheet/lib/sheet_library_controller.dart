@@ -1496,7 +1496,8 @@ class SheetLibraryController extends ChangeNotifier {
         current.chordProDisplaySettings.showCapoShapes ==
             settings.showCapoShapes &&
         current.chordProDisplaySettings.capoFretsOverride ==
-            settings.capoFretsOverride) {
+            settings.capoFretsOverride &&
+        current.chordProDisplaySettings.columnCount == settings.columnCount) {
       return;
     }
     await _replace(

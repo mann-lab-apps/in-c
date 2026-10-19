@@ -377,6 +377,58 @@ e|--0--1--|
     ]);
   });
 
+  test('lays out two display columns at an explicit column break', () {
+    final document = SheetChordProParser.parse('''
+[C]First
+[G]Second
+{colb}
+[Am]Third
+[F]Fourth
+''');
+    final lines = SheetChordProTextRenderer.renderDisplayLines(document);
+
+    final columns = SheetChordProTextRenderer.layoutDisplayLineIndexes(
+      lines,
+      columnCount: 2,
+    );
+
+    expect(columns, <List<int>>[
+      <int>[0, 1],
+      <int>[2, 3, 4],
+    ]);
+    expect(lines[columns.last.first].label, '[Column break]');
+  });
+
+  test('balances two display columns near a rehearsal section', () {
+    final document = SheetChordProParser.parse('''
+{section: Verse}
+[C]First
+[G]Second
+{section: Chorus}
+[Am]Third
+[F]Fourth
+''');
+    final lines = SheetChordProTextRenderer.renderDisplayLines(document);
+
+    final columns = SheetChordProTextRenderer.layoutDisplayLineIndexes(
+      lines,
+      columnCount: 2,
+    );
+
+    expect(columns, <List<int>>[
+      <int>[0, 1, 2],
+      <int>[3, 4, 5],
+    ]);
+    expect(lines[columns.last.first].label, '[Chorus]');
+    expect(
+      SheetChordProTextRenderer.layoutDisplayLineIndexes(
+        lines,
+        columnCount: 1,
+      ).single,
+      <int>[0, 1, 2, 3, 4, 5],
+    );
+  });
+
   test('builds navigation targets from rendered rehearsal labels', () {
     final document = SheetChordProParser.parse('''
 {section: Verse 1}
