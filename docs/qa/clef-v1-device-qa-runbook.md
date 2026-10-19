@@ -292,7 +292,7 @@ Cloud provider:
 
 Folder connection / direct folder spike:
 
-- 현재 구현은 persistent direct score가 아니라 Android `연결된 폴더에서 PDF 고르기`의 재사용 가능한
+- 현재 구현은 persistent direct score가 아니라 Android `연결된 폴더에서 악보 고르기`의 재사용 가능한
   read-only catalog와 copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
 - 폴더를 처음 연결하고 앱을 완전히 종료/재시작한 뒤 같은 폴더가 목록에 남아 다시 열리는지 확인한다.
 - 연결 해제 후 목록에서 사라지는지, 마지막 연결 해제 직후 새 picker가 강제로 열리지 않는지 확인한다.
@@ -305,7 +305,10 @@ Folder connection / direct folder spike:
 - 선택한 항목 중 중복/읽기 실패/미지원/stale 항목이 섞이면 실제 복사 전에 차단되어야 한다.
 - ready로 보였던 항목 하나가 provider offline/권한 문제로 실제 복사에 실패하면 임시 사본이나 부분 import가
   남지 않고 실패 안내가 보여야 한다.
-- 선택한 PDF는 원본 폴더를 직접 참조하지 않고 기존 import pipeline으로 앱 내부에 복사되어야 한다.
+- PDF, `.txt`, `.md`, ChordPro, DOCX, RTF를 섞어 선택하면 각 형식의 기존 viewer로 모두 열리고 원래
+  확장자와 folder/provider provenance가 유지되어야 한다. 손상 파일 하나를 섞으면 부분 카드나 성공 안내가
+  남지 않아야 한다.
+- 선택한 악보는 원본 폴더를 직접 참조하지 않고 기존 import pipeline으로 앱 내부에 복사되어야 한다.
 - 가져온 뒤 Android 파일 앱에서 원본을 rename/delete해도 Clef 안의 사본이 계속 열려야 한다.
 - 가져온 악보의 `정보 편집`에서 `가져온 위치`가 folder/provider와 원본 파일명을 읽기 전용으로 보여주는지 확인한다.
 - 앱을 재시작하거나 metadata backup을 복원한 뒤에도 이 출처 hint가 유지되는지 확인한다.

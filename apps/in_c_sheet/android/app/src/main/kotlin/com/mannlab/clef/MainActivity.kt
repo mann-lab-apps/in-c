@@ -41,6 +41,23 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val externalFolderRequestCode = 4317
         private const val maxExternalFolderEntries = 201
+        private val externalFolderScoreExtensions = setOf(
+            "pdf",
+            "txt",
+            "text",
+            "md",
+            "markdown",
+            "cho",
+            "chordpro",
+            "chopro",
+            "chord",
+            "crd",
+            "pro",
+            "song",
+            "onsong",
+            "docx",
+            "rtf",
+        )
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -116,11 +133,11 @@ class MainActivity : FlutterActivity() {
                     val documentTokens = call.argument<List<Any>>("documentTokens")
                         ?: emptyList()
                     try {
-                        result.success(copyExternalFolderPdfs(documentTokens))
+                        result.success(copyExternalFolderScores(documentTokens))
                     } catch (error: Exception) {
                         result.error(
                             "copy_failed",
-                            error.message ?: "Selected PDFs could not be copied.",
+                            error.message ?: "Selected score files could not be copied.",
                             null,
                         )
                     }
@@ -400,7 +417,7 @@ class MainActivity : FlutterActivity() {
         return uri
     }
 
-    private fun copyExternalFolderPdfs(documentTokens: List<Any>): List<Map<String, String>> {
+    private fun copyExternalFolderScores(documentTokens: List<Any>): List<Map<String, String>> {
         val copiedFiles = mutableListOf<Map<String, String>>()
         val seenTokens = mutableSetOf<String>()
         try {
@@ -413,14 +430,14 @@ class MainActivity : FlutterActivity() {
                 if (!uri.scheme.equals("content", ignoreCase = true)) {
                     throw IllegalArgumentException("A selected document is no longer available.")
                 }
-                val copied = copySharedPdfToCache(uri)
-                    ?: throw IllegalStateException("A selected PDF could not be read.")
+                val copied = copyExternalScoreToCache(uri)
+                    ?: throw IllegalStateException("A selected score file could not be read.")
                 copiedFiles.add(
                     mapOf("path" to copied.file.absolutePath, "name" to copied.displayName),
                 )
             }
             if (copiedFiles.isEmpty()) {
-                throw IllegalStateException("No selected PDF could be read.")
+                throw IllegalStateException("No selected score file could be read.")
             }
             return copiedFiles
         } catch (error: Exception) {
@@ -486,7 +503,45 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun copyExternalScoreToCache(uri: Uri): SharedImportFile? {
+        val displayName = rawDisplayNameForUri(uri, "selected-score")
+        val extension = displayName.substringAfterLast('.', "").lowercase()
+        if (extension !in externalFolderScoreExtensions) {
+            return null
+        }
+
+        var output: File? = null
+        return try {
+            val input = contentResolver.openInputStream(uri) ?: return null
+            val sharedDir = File(cacheDir, "folder-imports")
+            if (!sharedDir.exists()) {
+                sharedDir.mkdirs()
+            }
+            val copiedFile = File(
+                sharedDir,
+                "${System.currentTimeMillis()}-${safeFileName(displayName)}",
+            )
+            output = copiedFile
+            input.use { source ->
+                copiedFile.outputStream().use { target -> source.copyTo(target) }
+            }
+            SharedImportFile(file = copiedFile, displayName = displayName)
+        } catch (_: Exception) {
+            output?.delete()
+            null
+        }
+    }
+
     private fun displayNameForUri(uri: Uri): String {
+        val fallback = rawDisplayNameForUri(uri, "shared-score.pdf")
+        return if (fallback.endsWith(".pdf", ignoreCase = true)) {
+            fallback
+        } else {
+            "$fallback.pdf"
+        }
+    }
+
+    private fun rawDisplayNameForUri(uri: Uri, fallbackName: String): String {
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
             if (index >= 0 && cursor.moveToFirst()) {
@@ -496,12 +551,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-        val fallback = uri.lastPathSegment?.substringAfterLast('/') ?: "shared-score.pdf"
-        return if (fallback.endsWith(".pdf", ignoreCase = true)) {
-            fallback
-        } else {
-            "$fallback.pdf"
-        }
+        return uri.lastPathSegment?.substringAfterLast('/') ?: fallbackName
     }
 
     private fun safeFileName(name: String): String {

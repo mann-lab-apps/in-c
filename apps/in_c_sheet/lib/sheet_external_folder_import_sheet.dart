@@ -101,9 +101,7 @@ class ExternalFolderConnectionSheet extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(8, 8, 8, 0),
-                child: Text(
-                  '연결은 이 기기에만 저장됩니다. PDF를 가져오면 기존처럼 Clef 내부 사본을 사용합니다.',
-                ),
+                child: Text('연결은 이 기기에만 저장됩니다. 악보를 가져오면 Clef 내부 사본을 사용합니다.'),
               ),
             ],
           ),
@@ -143,7 +141,7 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
   Widget build(BuildContext context) {
     final plan = _plan;
     final title = widget.folderLabel.trim().isEmpty
-        ? '폴더의 PDF 고르기'
+        ? '폴더의 악보 고르기'
         : widget.folderLabel.trim();
     return SafeArea(
       child: Padding(
@@ -175,7 +173,7 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
               const SizedBox(height: 8),
               Expanded(
                 child: widget.preview.candidates.isEmpty
-                    ? const Center(child: Text('가져올 PDF가 없습니다.'))
+                    ? const Center(child: Text('가져올 악보 파일이 없습니다.'))
                     : ListView.separated(
                         itemCount: widget.preview.candidates.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
@@ -214,12 +212,12 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                       ? () => Navigator.of(context).pop(plan)
                       : null,
                   icon: const Icon(Icons.copy_outlined),
-                  label: Text('${plan.copyCount}개 PDF 복사'),
+                  label: Text('${plan.copyCount}개 악보 복사'),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '원본 폴더는 계속 참조하지 않습니다. 선택한 PDF만 Clef 라이브러리에 복사됩니다.',
+                '원본 폴더는 계속 참조하지 않습니다. 선택한 악보 파일만 Clef 라이브러리에 복사됩니다.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

@@ -241,7 +241,7 @@ class MethodChannelSheetExternalFolderGateway
           .toList(growable: false);
     } on PlatformException catch (error) {
       throw SheetExternalFolderGatewayException(
-        error.message ?? '선택한 PDF를 복사하지 못했습니다.',
+        error.message ?? '선택한 악보 파일을 복사하지 못했습니다.',
       );
     } on MissingPluginException {
       throw const SheetExternalFolderGatewayException(

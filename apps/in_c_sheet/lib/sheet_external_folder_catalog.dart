@@ -81,7 +81,7 @@ class SheetExternalFolderCatalogPreview {
         status: SheetExternalFolderCatalogStatus.empty,
         candidates: <SheetExternalFolderImportCandidate>[],
         scannedCount: 0,
-        message: '선택한 폴더에서 PDF 후보를 찾지 못했습니다.',
+        message: '선택한 폴더에서 지원하는 악보 파일을 찾지 못했습니다.',
       );
     }
 
@@ -94,7 +94,7 @@ class SheetExternalFolderCatalogPreview {
         .where((name) => name.isNotEmpty)
         .toSet();
 
-    // Treat repeated PDF names in the selected folder like an existing score.
+    // Treat repeated file names in the selected folder like an existing score.
     // The first ready candidate remains selectable; later duplicates stay out of
     // the copy batch so the import pipeline never creates ambiguous copies.
     final claimedNames = <String>{...existingNames};
@@ -120,7 +120,7 @@ class SheetExternalFolderCatalogPreview {
       maxEntries: maxEntries,
       message: capped
           ? '파일이 많아 처음 $maxEntries개만 먼저 보여줍니다. 선택한 파일만 Clef 라이브러리에 복사됩니다.'
-          : '선택한 폴더를 둘러보고 가져올 PDF를 고를 수 있습니다.',
+          : '선택한 폴더에서 PDF, 텍스트, ChordPro, DOCX, RTF 악보를 고를 수 있습니다.',
     );
   }
 
@@ -170,7 +170,7 @@ class SheetExternalFolderCatalogPreview {
         copyCandidates: <SheetExternalFolderImportCandidate>[],
         blockedCandidates: <SheetExternalFolderImportCandidate>[],
         unknownSelectionCount: 0,
-        message: '가져올 PDF를 선택하세요.',
+        message: '가져올 악보 파일을 선택하세요.',
       );
     }
 
@@ -211,7 +211,7 @@ class SheetExternalFolderCatalogPreview {
       copyCandidates: copyCandidates,
       blockedCandidates: const <SheetExternalFolderImportCandidate>[],
       unknownSelectionCount: 0,
-      message: '${copyCandidates.length}개 PDF를 Clef 라이브러리에 복사할 준비가 됐습니다.',
+      message: '${copyCandidates.length}개 악보 파일을 Clef 라이브러리에 복사할 준비가 됐습니다.',
     );
   }
 
@@ -234,11 +234,11 @@ class SheetExternalFolderCatalogPreview {
         selectionId: selectionId,
       );
     }
-    if (!SheetFileImportPolicy.isPdfFileName(entry.displayName)) {
+    if (!SheetFileImportPolicy.isSupportedScoreFileName(entry.displayName)) {
       return SheetExternalFolderImportCandidate(
         entry: entry,
         status: SheetExternalFolderCandidateStatus.unsupportedFormat,
-        message: '폴더 가져오기는 먼저 PDF 파일만 복사 대상으로 보여줍니다.',
+        message: 'PDF, 텍스트, ChordPro, DOCX, RTF 파일만 가져올 수 있습니다.',
         selectionId: selectionId,
       );
     }

@@ -58,6 +58,23 @@ void main() {
     );
     expect(SheetFileImportPolicy.isDocxFileName('lesson-notes.DOCX'), isTrue);
     expect(SheetFileImportPolicy.isRtfFileName('lesson-notes.RTF'), isTrue);
+    for (final name in <String>[
+      'score.pdf',
+      'notes.txt',
+      'chart.onsong',
+      'lesson.docx',
+      'lesson.rtf',
+    ]) {
+      expect(
+        SheetFileImportPolicy.isSupportedScoreFileName(name),
+        isTrue,
+        reason: name,
+      );
+    }
+    expect(
+      SheetFileImportPolicy.isSupportedScoreFileName('workbook.xlsx'),
+      isFalse,
+    );
   });
 
   test('explains known unsupported image types', () {

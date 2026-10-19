@@ -907,7 +907,29 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<List<SheetScore>> importSharedPdfFiles(
     List<SheetSharedImportFile> files,
-  ) async {
+  ) {
+    return _importSharedScoreFiles(
+      files,
+      pdfOnly: true,
+      failureMessage: '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.',
+    );
+  }
+
+  Future<List<SheetScore>> importSharedScoreFiles(
+    List<SheetSharedImportFile> files,
+  ) {
+    return _importSharedScoreFiles(
+      files,
+      pdfOnly: false,
+      failureMessage: '선택한 악보 파일을 가져오지 못했습니다. 지원 형식과 파일 내용을 확인한 뒤 다시 시도해주세요.',
+    );
+  }
+
+  Future<List<SheetScore>> _importSharedScoreFiles(
+    List<SheetSharedImportFile> files, {
+    required bool pdfOnly,
+    required String failureMessage,
+  }) async {
     if (_isImporting || files.isEmpty) {
       return const <SheetScore>[];
     }
@@ -921,9 +943,9 @@ class SheetLibraryController extends ChangeNotifier {
     final imported = <SheetScore>[];
     try {
       for (final sharedFile in files) {
-        final rawScore = await store.importPdfFile(
-          File(sharedFile.path),
-          fileName: sharedFile.name,
+        final rawScore = await _importSharedScoreFile(
+          sharedFile,
+          pdfOnly: pdfOnly,
         );
         final score = _withActiveCollection(
           rawScore.copyWith(importSource: sharedFile.importSource),
@@ -946,13 +968,47 @@ class SheetLibraryController extends ChangeNotifier {
     } catch (error) {
       await store.discardUnreferencedImportedScoreFiles(imported);
       if (_activeLibraryProfile.id == libraryId) {
-        _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.';
+        _errorMessage = failureMessage;
       }
       return const <SheetScore>[];
     } finally {
       _isImporting = false;
       notifyListeners();
     }
+  }
+
+  Future<SheetScore> _importSharedScoreFile(
+    SheetSharedImportFile sharedFile, {
+    required bool pdfOnly,
+  }) async {
+    if (SheetFileImportPolicy.isPdfFileName(sharedFile.name)) {
+      return store.importPdfFile(
+        File(sharedFile.path),
+        fileName: sharedFile.name,
+      );
+    }
+    if (pdfOnly ||
+        !SheetFileImportPolicy.isSupportedScoreFileName(sharedFile.name)) {
+      throw FormatException('Unsupported score file: ${sharedFile.name}');
+    }
+
+    final importedFile = SheetImportedFile(
+      name: sharedFile.name,
+      bytes: await File(sharedFile.path).readAsBytes(),
+    );
+    if (SheetFileImportPolicy.isChordProFileName(sharedFile.name)) {
+      return store.importChordProFileBytes(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isPlainTextFileName(sharedFile.name)) {
+      return store.importPlainTextFile(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isDocxFileName(sharedFile.name)) {
+      return store.importDocxFileBytes(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isRtfFileName(sharedFile.name)) {
+      return store.importRtfFileBytes(file: importedFile);
+    }
+    throw FormatException('Unsupported score file: ${sharedFile.name}');
   }
 
   Future<bool> _saveImportedScores(String libraryId) async {

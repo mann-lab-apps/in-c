@@ -542,7 +542,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await _openScore(score, showImportNudge: true);
   }
 
-  Future<void> _importPdfsFromAndroidFolder() async {
+  Future<void> _importScoresFromAndroidFolder() async {
     if (!Platform.isAndroid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('연결된 폴더 가져오기는 Android에서 지원합니다.')),
@@ -609,7 +609,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       pickedFolder.entries,
-      existingFileNames: controller.scores.map(_scoreFileName),
+      existingFileNames: controller.scores.expand(_scoreImportFileNames),
     );
     final plan = await showModalBottomSheet<SheetExternalFolderCopyPlan>(
       context: context,
@@ -643,18 +643,29 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted || files.isEmpty) {
       return;
     }
-    final imported = await controller.importSharedPdfFiles(files);
+    List<SheetScore> imported;
+    try {
+      imported = await controller.importSharedScoreFiles(files);
+    } finally {
+      for (final file in files) {
+        try {
+          await File(file.path).delete();
+        } on FileSystemException {
+          // Native cache cleanup is best effort after the app-owned copy exists.
+        }
+      }
+    }
     if (!mounted) {
       return;
     }
     if (imported.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('선택한 PDF를 라이브러리에 추가하지 못했습니다.')),
+        const SnackBar(content: Text('선택한 악보를 라이브러리에 추가하지 못했습니다.')),
       );
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${imported.length}개 PDF를 라이브러리에 복사했습니다.')),
+      SnackBar(content: Text('${imported.length}개 악보를 라이브러리에 복사했습니다.')),
     );
   }
 
@@ -665,6 +676,21 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     return fileName.startsWith(prefixedId)
         ? fileName.substring(prefixedId.length)
         : fileName;
+  }
+
+  Iterable<String> _scoreImportFileNames(SheetScore score) sync* {
+    yield _scoreFileName(score);
+    final sourceName = score.importSource?.displayName.trim();
+    if (sourceName != null && sourceName.isNotEmpty) yield sourceName;
+    for (final linkedFile in score.linkedFiles) {
+      final label = linkedFile.label.trim();
+      if (label.isNotEmpty) {
+        yield label;
+      } else {
+        final path = linkedFile.path.replaceAll('\\', '/');
+        yield path.split('/').last;
+      }
+    }
   }
 
   Future<bool> _addImportedScoreToSetlist(SheetScore score) async {
@@ -755,8 +781,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               if (Platform.isAndroid)
                 ListTile(
                   leading: const Icon(Icons.folder_copy_outlined),
-                  title: const Text('연결된 폴더에서 PDF 고르기'),
-                  subtitle: const Text('폴더 권한을 유지하고 선택한 PDF만 앱에 복사'),
+                  title: const Text('연결된 폴더에서 악보 고르기'),
+                  subtitle: const Text('PDF, 텍스트, ChordPro, DOCX, RTF를 앱에 복사'),
                   onTap: () =>
                       Navigator.of(context)
                           .pop(_LibraryImportAction.androidFolderPdfs),
@@ -806,7 +832,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       case _LibraryImportAction.pdfs:
         await _importPdfs();
       case _LibraryImportAction.androidFolderPdfs:
-        await _importPdfsFromAndroidFolder();
+        await _importScoresFromAndroidFolder();
       case _LibraryImportAction.pdfsToSetlist:
         await _importPdfs(addToSetlist: true);
       case _LibraryImportAction.images:

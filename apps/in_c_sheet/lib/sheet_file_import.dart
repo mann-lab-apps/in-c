@@ -80,6 +80,14 @@ class SheetFileImportPolicy {
     return rtfExtensions.contains(extensionOf(name));
   }
 
+  static bool isSupportedScoreFileName(String name) {
+    return isPdfFileName(name) ||
+        isPlainTextFileName(name) ||
+        isChordProFileName(name) ||
+        isDocxFileName(name) ||
+        isRtfFileName(name);
+  }
+
   static bool isTextScoreFileName(String name) {
     return isChordProFileName(name) || isPlainTextFileName(name);
   }

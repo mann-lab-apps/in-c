@@ -3025,3 +3025,15 @@ references if a later linked image fails. Existing persisted files remain protec
 scan. Controller/store regressions cover duplicate open, save failure, delayed library switch, shared partial failure,
 batch write failure and linked-image failure. `dart format`, `flutter analyze`, all 1,753 tests and the RC release check
 passed. Forced process termination and best-effort cleanup failure remain outside the guarantee.
+
+S300 VERIFIED LOCAL: expanded the Android connected-folder copy flow from PDF-only to the score formats Clef already
+understands: PDF, plain text/Markdown, ChordPro, DOCX and RTF. The read-only SAF catalog identifies those formats before
+copying, keeps unsupported/unreadable/duplicate names blocked and sends only the selected transient document tokens to a
+native cache copy. The controller dispatches each copied file through its existing format parser and app-owned storage,
+preserves redacted folder/provider provenance and commits the mixed batch only after every item succeeds. Unsupported or
+damaged later items clean earlier app-owned results without saving a partial list; the UI also removes consumed native
+cache files best-effort. Existing score primary paths, provenance names and linked original labels all participate in
+repeat-folder duplicate checks, including DOCX/RTF scores whose readable primary file is extracted text. Catalog, widget,
+gateway and controller regressions, Android `compileDebugKotlin`, `flutter analyze`, all 1,755 tests and the RC release
+check passed. Provider reboot/revocation, cloud-offline behavior, large mixed folders and original-file deletion remain
+Device QA; this is still copy-on-select rather than live folder synchronization or app-copy-free direct reference.

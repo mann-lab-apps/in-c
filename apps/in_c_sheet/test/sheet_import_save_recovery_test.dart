@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_score.dart';
@@ -143,6 +144,81 @@ void main() {
     expect(controller.scores.single.id, 'existing');
     expect(store.discardedScoreIds, contains('imported'));
   });
+
+  test(
+    'connected folder imports every supported score format atomically',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-folder-scores-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      const names = <String>[
+        'score.pdf',
+        'lyrics.txt',
+        'chart.chordpro',
+        'notes.docx',
+        'lesson.rtf',
+      ];
+      final files = <SheetSharedImportFile>[];
+      for (final name in names) {
+        final file = File('${directory.path}/$name');
+        await file.writeAsString('fixture');
+        files.add(
+          SheetSharedImportFile(
+            path: file.path,
+            name: name,
+            importSource: SheetScoreImportSource.create(
+              platform: 'android-saf-copy',
+              displayName: name,
+              folderLabel: 'Recital',
+            ),
+          ),
+        );
+      }
+
+      final imported = await controller.importSharedScoreFiles(files);
+
+      expect(store.sharedKinds, <String>[
+        'pdf',
+        'text',
+        'chordpro',
+        'docx',
+        'rtf',
+      ]);
+      expect(imported, hasLength(5));
+      expect(imported.map((score) => score.importSource?.folderLabel).toSet(), {
+        'Recital',
+      });
+      expect(controller.scores, hasLength(6));
+    },
+  );
+
+  test(
+    'connected folder rejects a mixed unsupported batch without saving',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-folder-invalid-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final pdf = File('${directory.path}/score.pdf');
+      final unsupported = File('${directory.path}/score.xlsx');
+      await pdf.writeAsString('fixture');
+      await unsupported.writeAsString('fixture');
+      final saveCallsBeforeImport = store.saveCalls;
+
+      final imported = await controller.importSharedScoreFiles(
+        <SheetSharedImportFile>[
+          SheetSharedImportFile(path: pdf.path, name: 'score.pdf'),
+          SheetSharedImportFile(path: unsupported.path, name: 'score.xlsx'),
+        ],
+      );
+
+      expect(imported, isEmpty);
+      expect(controller.scores.single.id, 'existing');
+      expect(store.discardedScoreIds, contains('imported'));
+      expect(store.saveCalls, saveCallsBeforeImport);
+    },
+  );
 
   for (final addToSetlist in [false, true]) {
     testWidgets(
@@ -494,6 +570,7 @@ class _ImportStore extends SheetLibraryStore {
   int sharedImportCalls = 0;
   int? failSharedImportAt;
   final discardedScoreIds = <String>[];
+  final sharedKinds = <String>[];
 
   @override
   Future<List<SheetScore>> loadScores() async {
@@ -531,7 +608,44 @@ class _ImportStore extends SheetLibraryStore {
     if (sharedImportCalls == failSharedImportAt) {
       throw const FormatException('invalid shared PDF');
     }
+    sharedKinds.add('pdf');
     return _imported();
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('text');
+    return _score('text-imported');
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('chordpro');
+    return _score('chordpro-imported');
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('docx');
+    return _score('docx-imported');
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('rtf');
+    return _score('rtf-imported');
   }
 
   @override

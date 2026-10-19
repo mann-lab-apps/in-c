@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_external_folder_catalog.dart';
 
 void main() {
-  test('classifies PDF entries as copy candidates without mutating data', () {
+  test('classifies supported score entries without mutating data', () {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[
         const SheetExternalFolderEntry(
@@ -10,14 +10,18 @@ void main() {
           sizeBytes: 1200,
           providerLabel: 'Downloads',
         ),
+        const SheetExternalFolderEntry(displayName: 'notes.txt'),
+        const SheetExternalFolderEntry(displayName: 'chart.chordpro'),
         const SheetExternalFolderEntry(displayName: 'notes.docx'),
+        const SheetExternalFolderEntry(displayName: 'notes.rtf'),
+        const SheetExternalFolderEntry(displayName: 'unsupported.xlsx'),
       ],
     );
 
     expect(preview.status, SheetExternalFolderCatalogStatus.ready);
     expect(preview.isReadOnlyPreview, isTrue);
-    expect(preview.scannedCount, 2);
-    expect(preview.readyCount, 1);
+    expect(preview.scannedCount, 6);
+    expect(preview.readyCount, 5);
     expect(preview.blockedCount, 1);
     expect(preview.hasReadyCandidates, isTrue);
     expect(
@@ -29,6 +33,18 @@ void main() {
       'entry:0:bach cello suite.pdf',
     );
     expect(preview.candidates.first.message, contains('복사'));
+    expect(
+      preview.candidates
+          .where((candidate) => candidate.isReadyToCopy)
+          .map((candidate) => candidate.entry.displayName),
+      <String>[
+        'Bach Cello Suite.pdf',
+        'notes.txt',
+        'chart.chordpro',
+        'notes.docx',
+        'notes.rtf',
+      ],
+    );
     expect(
       preview.candidates.last.status,
       SheetExternalFolderCandidateStatus.unsupportedFormat,
@@ -126,7 +142,7 @@ void main() {
     expect(preview.message, contains('처음 3개'));
   });
 
-  test('builds a copy-on-select plan only from ready PDF candidates', () {
+  test('builds a copy-on-select plan only from ready score candidates', () {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[
         const SheetExternalFolderEntry(
@@ -134,7 +150,7 @@ void main() {
           documentId: 'provider-ready',
           sizeBytes: 1200,
         ),
-        const SheetExternalFolderEntry(displayName: 'blocked.docx'),
+        const SheetExternalFolderEntry(displayName: 'blocked.xlsx'),
       ],
     );
 
@@ -150,7 +166,7 @@ void main() {
     expect(plan.knownCopySizeBytes, 1200);
     expect(plan.unknownCopySizeCount, 0);
     expect(plan.blockedCandidates, isEmpty);
-    expect(plan.message, contains('1개 PDF'));
+    expect(plan.message, contains('1개 악보 파일'));
   });
 
   test('copy plan exposes redacted batch sources for import pipeline', () {
@@ -203,7 +219,7 @@ void main() {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[
         const SheetExternalFolderEntry(displayName: 'Existing.pdf'),
-        const SheetExternalFolderEntry(displayName: 'notes.docx'),
+        const SheetExternalFolderEntry(displayName: 'notes.xlsx'),
         const SheetExternalFolderEntry(
           displayName: 'Cloud.pdf',
           canRead: false,

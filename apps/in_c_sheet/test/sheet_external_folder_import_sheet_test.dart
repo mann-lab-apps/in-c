@@ -5,13 +5,14 @@ import 'package:in_c_sheet/sheet_external_folder_gateway.dart';
 import 'package:in_c_sheet/sheet_external_folder_import_sheet.dart';
 
 void main() {
-  testWidgets('preselects safe PDFs and keeps blocked files disabled', (
+  testWidgets('preselects supported scores and keeps blocked files disabled', (
     tester,
   ) async {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       const <SheetExternalFolderEntry>[
         SheetExternalFolderEntry(displayName: 'Ready.pdf'),
         SheetExternalFolderEntry(displayName: 'notes.docx'),
+        SheetExternalFolderEntry(displayName: 'blocked.xlsx'),
       ],
     );
 
@@ -30,11 +31,12 @@ void main() {
     expect(find.text('Recital'), findsOneWidget);
     expect(find.text('Ready.pdf'), findsOneWidget);
     expect(find.text('notes.docx'), findsOneWidget);
-    expect(find.text('1개 PDF 복사'), findsOneWidget);
+    expect(find.text('2개 악보 복사'), findsOneWidget);
     final checkboxes = tester.widgetList<CheckboxListTile>(
       find.byType(CheckboxListTile),
     );
     expect(checkboxes.first.onChanged, isNotNull);
+    expect(checkboxes.elementAt(1).onChanged, isNotNull);
     expect(checkboxes.last.onChanged, isNull);
   });
 
