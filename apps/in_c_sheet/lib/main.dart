@@ -8858,7 +8858,17 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   int _transposeSemitones = 0;
   bool _showCapoShapes = false;
   String _displaySettingsSaveError = '';
+  final TextEditingController _searchController = TextEditingController();
   final List<GlobalKey> _displayLineKeys = <GlobalKey>[];
+  List<SheetChordProDisplayLine> _displayLines = const [];
+  bool _isSearching = false;
+  int _activeSearchMatchIndex = 0;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -8873,43 +8883,67 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     final viewerDataFuture = _viewerDataFor(score);
     return Scaffold(
       appBar: AppBar(
-        title: Text(score.displayTitle),
-        actions: [
-          FutureBuilder<_ChordProViewerData>(
-            future: viewerDataFuture,
-            builder: (context, snapshot) {
-              final data = snapshot.data;
-              if (data == null) return const SizedBox.shrink();
-              final lines = SheetChordProTextRenderer.renderDisplayLines(
-                data.document,
-              );
-              final targets = SheetChordProTextRenderer.navigationTargets(
-                lines,
-              );
-              if (targets.isEmpty) return const SizedBox.shrink();
-              return PopupMenuButton<int>(
-                tooltip: '구간 이동',
-                onSelected: _jumpToDisplayLine,
-                itemBuilder: (context) => [
-                  for (final target in targets)
-                    PopupMenuItem<int>(
-                      value: target.displayLineIndex,
-                      child: Text(target.label),
-                    ),
-                ],
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.segment_outlined),
-                      SizedBox(width: 6),
-                      Text('구간'),
-                    ],
-                  ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: '코드/가사 찾기',
+                  border: InputBorder.none,
                 ),
-              );
-            },
-          ),
+                onChanged: _updateSearch,
+              )
+            : Text(score.displayTitle),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              tooltip: '찾기 닫기',
+              onPressed: _closeSearch,
+              icon: const Icon(Icons.close),
+            )
+          else ...[
+            FutureBuilder<_ChordProViewerData>(
+              future: viewerDataFuture,
+              builder: (context, snapshot) {
+                final data = snapshot.data;
+                if (data == null) return const SizedBox.shrink();
+                final lines = SheetChordProTextRenderer.renderDisplayLines(
+                  data.document,
+                );
+                final targets = SheetChordProTextRenderer.navigationTargets(
+                  lines,
+                );
+                if (targets.isEmpty) return const SizedBox.shrink();
+                return PopupMenuButton<int>(
+                  tooltip: '구간 이동',
+                  onSelected: _jumpToDisplayLine,
+                  itemBuilder: (context) => [
+                    for (final target in targets)
+                      PopupMenuItem<int>(
+                        value: target.displayLineIndex,
+                        child: Text(target.label),
+                      ),
+                  ],
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.segment_outlined),
+                        SizedBox(width: 6),
+                        Text('구간'),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              tooltip: '코드/가사 찾기',
+              onPressed: () => setState(() => _isSearching = true),
+              icon: const Icon(Icons.search),
+            ),
+          ],
         ],
       ),
       body: FutureBuilder<_ChordProViewerData>(
@@ -8931,52 +8965,86 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
             transposeSemitones: _transposeSemitones,
             showCapoShapes: _showCapoShapes,
           );
+          _displayLines = displayLines;
           _ensureDisplayLineKeys(displayLines.length);
+          final search = _chordProSearch(displayLines, _searchController.text);
+          final activeMatchIndex = search.lineIndexes.isEmpty
+              ? 0
+              : math.min(
+                  _activeSearchMatchIndex,
+                  search.lineIndexes.length - 1,
+                );
+          final activeLineIndex = search.lineIndexes.isEmpty
+              ? null
+              : search.lineIndexes[activeMatchIndex];
           return SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(label: Text('ChordPro')),
-                    if (data.draft.composer.isNotEmpty)
-                      Chip(label: Text('작곡가: ${data.draft.composer}')),
-                    if (displayDocument.key.isNotEmpty)
-                      Chip(label: Text('조성: ${displayDocument.key}')),
-                    if (data.document.timeSignature.isNotEmpty)
-                      Chip(label: Text('박자: ${data.document.timeSignature}')),
-                    if (data.document.capo != null)
-                      Chip(label: Text('카포: ${data.document.capo}')),
-                    if (_transposeSemitones != 0)
-                      Chip(label: Text('이조: ${_transposeLabel()}')),
-                    if (_showCapoShapes && (data.document.capo ?? 0) > 0)
-                      const Chip(label: Text('카포 운지 표시')),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _ChordProViewerDisplayControls(
-                  transposeLabel: _transposeLabel(),
-                  canReset: _transposeSemitones != 0 || _showCapoShapes,
-                  canShowCapoShapes: (data.document.capo ?? 0) > 0,
-                  showCapoShapes: _showCapoShapes,
-                  saveError: _displaySettingsSaveError,
-                  onTransposeDown: () => _shiftTranspose(-1),
-                  onTransposeUp: () => _shiftTranspose(1),
-                  onReset: _resetDisplay,
-                  onShowCapoShapesChanged: (value) {
-                    setState(() {
-                      _showCapoShapes = value;
-                      _displaySettingsSaveError = '';
-                    });
-                    unawaited(_persistDisplaySettings());
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ChordProDisplayLinesView(
-                  lines: displayLines,
-                  lineKeys: _displayLineKeys,
+                if (_isSearching)
+                  _PlainTextSearchToolbar(
+                    query: _searchController.text,
+                    matchCount: search.lineIndexes.length,
+                    isTruncated: search.isTruncated,
+                    activeMatchIndex: activeMatchIndex,
+                    onPrevious: search.lineIndexes.isEmpty
+                        ? null
+                        : () => _moveSearchMatch(-1, search),
+                    onNext: search.lineIndexes.isEmpty
+                        ? null
+                        : () => _moveSearchMatch(1, search),
+                  ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Chip(label: Text('ChordPro')),
+                          if (data.draft.composer.isNotEmpty)
+                            Chip(label: Text('작곡가: ${data.draft.composer}')),
+                          if (displayDocument.key.isNotEmpty)
+                            Chip(label: Text('조성: ${displayDocument.key}')),
+                          if (data.document.timeSignature.isNotEmpty)
+                            Chip(
+                              label: Text('박자: ${data.document.timeSignature}'),
+                            ),
+                          if (data.document.capo != null)
+                            Chip(label: Text('카포: ${data.document.capo}')),
+                          if (_transposeSemitones != 0)
+                            Chip(label: Text('이조: ${_transposeLabel()}')),
+                          if (_showCapoShapes && (data.document.capo ?? 0) > 0)
+                            const Chip(label: Text('카포 운지 표시')),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _ChordProViewerDisplayControls(
+                        transposeLabel: _transposeLabel(),
+                        canReset: _transposeSemitones != 0 || _showCapoShapes,
+                        canShowCapoShapes: (data.document.capo ?? 0) > 0,
+                        showCapoShapes: _showCapoShapes,
+                        saveError: _displaySettingsSaveError,
+                        onTransposeDown: () => _shiftTranspose(-1),
+                        onTransposeUp: () => _shiftTranspose(1),
+                        onReset: _resetDisplay,
+                        onShowCapoShapesChanged: (value) {
+                          setState(() {
+                            _showCapoShapes = value;
+                            _displaySettingsSaveError = '';
+                          });
+                          unawaited(_persistDisplaySettings());
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _ChordProDisplayLinesView(
+                        lines: displayLines,
+                        lineKeys: _displayLineKeys,
+                        matchedLineIndexes: search.lineIndexes.toSet(),
+                        activeLineIndex: activeLineIndex,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -9082,16 +9150,57 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       alignment: 0.08,
     );
   }
+
+  void _updateSearch(String query) {
+    setState(() => _activeSearchMatchIndex = 0);
+    _scheduleSearchJump(_chordProSearch(_displayLines, query));
+  }
+
+  void _closeSearch() {
+    setState(() {
+      _isSearching = false;
+      _activeSearchMatchIndex = 0;
+      _searchController.clear();
+    });
+  }
+
+  void _moveSearchMatch(int delta, _ChordProSearchResult search) {
+    if (search.lineIndexes.isEmpty) return;
+    setState(() {
+      _activeSearchMatchIndex =
+          (_activeSearchMatchIndex + delta) % search.lineIndexes.length;
+      if (_activeSearchMatchIndex < 0) {
+        _activeSearchMatchIndex += search.lineIndexes.length;
+      }
+    });
+    _scheduleSearchJump(search);
+  }
+
+  void _scheduleSearchJump(_ChordProSearchResult search) {
+    if (search.lineIndexes.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final matchIndex = math.min(
+        _activeSearchMatchIndex,
+        search.lineIndexes.length - 1,
+      );
+      _jumpToDisplayLine(search.lineIndexes[matchIndex]);
+    });
+  }
 }
 
 class _ChordProDisplayLinesView extends StatelessWidget {
   const _ChordProDisplayLinesView({
     required this.lines,
     required this.lineKeys,
+    this.matchedLineIndexes = const <int>{},
+    this.activeLineIndex,
   });
 
   final List<SheetChordProDisplayLine> lines;
   final List<GlobalKey> lineKeys;
+  final Set<int> matchedLineIndexes;
+  final int? activeLineIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -9107,7 +9216,12 @@ class _ChordProDisplayLinesView extends StatelessWidget {
         for (var index = 0; index < lines.length; index += 1)
           KeyedSubtree(
             key: lineKeys[index],
-            child: _ChordProDisplayLineView(line: lines[index]),
+            child: _ChordProDisplayLineView(
+              line: lines[index],
+              isSearchMatch: matchedLineIndexes.contains(index),
+              isActiveSearchMatch: activeLineIndex == index,
+              lineIndex: index,
+            ),
           ),
       ],
     );
@@ -9115,58 +9229,85 @@ class _ChordProDisplayLinesView extends StatelessWidget {
 }
 
 class _ChordProDisplayLineView extends StatelessWidget {
-  const _ChordProDisplayLineView({required this.line});
+  const _ChordProDisplayLineView({
+    required this.line,
+    required this.lineIndex,
+    this.isSearchMatch = false,
+    this.isActiveSearchMatch = false,
+  });
 
   final SheetChordProDisplayLine line;
+  final int lineIndex;
+  final bool isSearchMatch;
+  final bool isActiveSearchMatch;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    switch (line.kind) {
-      case SheetChordProDisplayLineKind.directive:
-        return Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 4),
-          child: Text(
-            line.label,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w800,
-            ),
+    final chordRow = line.kind == SheetChordProDisplayLineKind.chordLyric
+        ? _chordProDisplayChordRow(line)
+        : '';
+    final content = switch (line.kind) {
+      SheetChordProDisplayLineKind.directive => Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: 4),
+        child: Text(
+          line.label,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w800,
           ),
-        );
-      case SheetChordProDisplayLineKind.blank:
-        return const SizedBox(height: 12);
-      case SheetChordProDisplayLineKind.lyric:
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(line.lyricText, style: theme.textTheme.bodyLarge),
-        );
-      case SheetChordProDisplayLineKind.chordLyric:
-        final chordRow = _chordProDisplayChordRow(line);
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (chordRow.isNotEmpty)
-                Text(
-                  chordRow,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
+        ),
+      ),
+      SheetChordProDisplayLineKind.blank => const SizedBox(height: 12),
+      SheetChordProDisplayLineKind.lyric => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(line.lyricText, style: theme.textTheme.bodyLarge),
+      ),
+      SheetChordProDisplayLineKind.chordLyric => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (chordRow.isNotEmpty)
+              Text(
+                chordRow,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
                 ),
-              if (line.lyricText.isNotEmpty)
-                Text(
-                  line.lyricText,
-                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
-                ),
-            ],
-          ),
-        );
+              ),
+            if (line.lyricText.isNotEmpty)
+              Text(
+                line.lyricText,
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
+              ),
+          ],
+        ),
+      ),
+    };
+    if (!isSearchMatch) {
+      return content;
     }
+    return Semantics(
+      selected: isActiveSearchMatch,
+      child: DecoratedBox(
+        key: isActiveSearchMatch
+            ? ValueKey('chordpro-search-active-$lineIndex')
+            : null,
+        decoration: BoxDecoration(
+          color: isActiveSearchMatch
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: content,
+        ),
+      ),
+    );
   }
 }
 
@@ -9182,6 +9323,58 @@ String _chordProDisplayChordRow(SheetChordProDisplayLine line) {
     chordRow += cell.chord;
   }
   return chordRow.trimRight();
+}
+
+class _ChordProSearchResult {
+  const _ChordProSearchResult({
+    required this.lineIndexes,
+    required this.isTruncated,
+  });
+
+  final List<int> lineIndexes;
+  final bool isTruncated;
+}
+
+_ChordProSearchResult _chordProSearch(
+  List<SheetChordProDisplayLine> lines,
+  String rawQuery,
+) {
+  const maxMatches = 500;
+  final query = rawQuery.trim();
+  if (query.isEmpty || lines.isEmpty) {
+    return const _ChordProSearchResult(
+      lineIndexes: <int>[],
+      isTruncated: false,
+    );
+  }
+  final pattern = RegExp(
+    RegExp.escape(query),
+    caseSensitive: false,
+    unicode: true,
+  );
+  final matches = <int>[];
+  for (var index = 0; index < lines.length; index += 1) {
+    final line = lines[index];
+    final searchableText = switch (line.kind) {
+      SheetChordProDisplayLineKind.directive => line.label,
+      SheetChordProDisplayLineKind.lyric => line.lyricText,
+      SheetChordProDisplayLineKind.chordLyric =>
+        '${_chordProDisplayChordRow(line)}\n${line.lyricText}',
+      SheetChordProDisplayLineKind.blank => '',
+    };
+    if (!pattern.hasMatch(searchableText)) continue;
+    if (matches.length == maxMatches) {
+      return _ChordProSearchResult(
+        lineIndexes: List<int>.unmodifiable(matches),
+        isTruncated: true,
+      );
+    }
+    matches.add(index);
+  }
+  return _ChordProSearchResult(
+    lineIndexes: List<int>.unmodifiable(matches),
+    isTruncated: false,
+  );
 }
 
 class _ChordProViewerData {

@@ -53,6 +53,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   text가 들어 있는 package는 preview에서 확인 필요로 표시되고 partial import를 시작하지 않아야 한다.
   저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
   긴 ChordPro 악보는 상단 `구간` 메뉴에서 verse/chorus/bridge 표식을 골라 해당 줄로 이동해야 한다.
+  `코드/가사 찾기`에서 코드명, 가사, 구간 이름을 각각 검색해 결과 수, 이전/다음 이동과 현재 줄 강조를 확인한다.
 - `악보 추가`의 `텍스트/ChordPro/DOCX 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
   ChordPro 텍스트를 붙여넣어 제목/작곡가/조성/박자 metadata chip과 코드/가사 preview가 보이는지
   확인한다. `악보로 저장`을 누르면 라이브러리에 ChordPro 악보가 생기고, 열었을 때 PDF viewer가 아닌

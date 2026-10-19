@@ -2813,3 +2813,10 @@ exceeds 256 levels before extending parser state and continues to reject truncat
 their bytes as visible score text. Focused regressions cover both malformed inputs while preserving ordinary grouped RTF.
 Rich formatting fidelity, embedded binary assets and compatibility with every RTF producer remain outside this text-only
 import guarantee.
+
+S270 VERIFIED LOCAL: added in-view search to stored ChordPro scores without editing their source. The familiar search
+action matches the currently rendered chord rows, lyrics and rehearsal labels, reports up to 500 matching lines, wraps
+previous/next navigation and scrolls to a visibly highlighted active line. Named section navigation and persisted
+transpose/capo display settings remain available outside search mode. Widget regression covers a two-result lyric search,
+next-result movement, active-line highlighting and closing the search surface. Editable source and a dense chord-grid
+layout remain follow-up work.

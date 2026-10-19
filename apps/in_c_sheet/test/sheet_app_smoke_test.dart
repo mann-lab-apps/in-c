@@ -1460,6 +1460,29 @@ Clef & Staff 세트리스트
     expect(find.text('[Big Chorus]'), findsWidgets);
     await tester.tap(find.text('[Big Chorus]').last);
     await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('코드/가사 찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '노래');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1/2'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('chordpro-search-active-1')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('다음 일치'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('chordpro-search-active-3')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('찾기 닫기'));
+    await tester.pump();
+    expect(find.byTooltip('코드/가사 찾기'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
