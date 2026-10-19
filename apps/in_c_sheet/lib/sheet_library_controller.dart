@@ -1492,7 +1492,9 @@ class SheetLibraryController extends ChangeNotifier {
     if (current.chordProDisplaySettings.transposeSemitones ==
             settings.transposeSemitones &&
         current.chordProDisplaySettings.showCapoShapes ==
-            settings.showCapoShapes) {
+            settings.showCapoShapes &&
+        current.chordProDisplaySettings.capoFretsOverride ==
+            settings.capoFretsOverride) {
       return;
     }
     await _replace(

@@ -167,6 +167,7 @@ void main() {
       chordProDisplaySettings: const SheetChordProDisplaySettings(
         transposeSemitones: 3,
         showCapoShapes: true,
+        capoFretsOverride: 5,
       ),
     );
 
@@ -283,17 +284,25 @@ void main() {
     );
     expect(decoded.single.chordProDisplaySettings.transposeSemitones, 3);
     expect(decoded.single.chordProDisplaySettings.showCapoShapes, isTrue);
+    expect(decoded.single.chordProDisplaySettings.capoFretsOverride, 5);
   });
 
   test('normalizes ChordPro display settings safely', () {
     final decoded = SheetChordProDisplaySettings.fromJson(<String, Object?>{
       'transposeSemitones': 48,
       'showCapoShapes': true,
+      'capoFretsOverride': 48,
     });
 
     expect(decoded.transposeSemitones, 11);
     expect(decoded.showCapoShapes, isTrue);
+    expect(decoded.capoFretsOverride, 12);
     expect(decoded.copyWith(transposeSemitones: -48).transposeSemitones, -11);
+    expect(decoded.copyWith(capoFretsOverride: -4).capoFretsOverride, 0);
+    expect(
+      decoded.copyWith(clearCapoFretsOverride: true).capoFretsOverride,
+      isNull,
+    );
     expect(SheetChordProDisplaySettings.defaultSettings.isDefault, isTrue);
   });
 

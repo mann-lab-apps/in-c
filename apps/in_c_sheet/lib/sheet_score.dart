@@ -456,6 +456,7 @@ class SheetChordProDisplaySettings {
   const SheetChordProDisplaySettings({
     this.transposeSemitones = 0,
     this.showCapoShapes = false,
+    this.capoFretsOverride,
   });
 
   factory SheetChordProDisplaySettings.fromJson(Map<String, Object?>? json) {
@@ -464,6 +465,9 @@ class SheetChordProDisplaySettings {
         json?['transposeSemitones'],
       ),
       showCapoShapes: _boolFromJson(json?['showCapoShapes'], fallback: false),
+      capoFretsOverride: _normalizeCapoFretsOverride(
+        json?['capoFretsOverride'],
+      ),
     );
   }
 
@@ -471,18 +475,25 @@ class SheetChordProDisplaySettings {
 
   final int transposeSemitones;
   final bool showCapoShapes;
+  final int? capoFretsOverride;
 
-  bool get isDefault => transposeSemitones == 0 && !showCapoShapes;
+  bool get isDefault =>
+      transposeSemitones == 0 && !showCapoShapes && capoFretsOverride == null;
 
   SheetChordProDisplaySettings copyWith({
     int? transposeSemitones,
     bool? showCapoShapes,
+    int? capoFretsOverride,
+    bool clearCapoFretsOverride = false,
   }) {
     return SheetChordProDisplaySettings(
       transposeSemitones: _clampTransposeSemitones(
         transposeSemitones ?? this.transposeSemitones,
       ),
       showCapoShapes: showCapoShapes ?? this.showCapoShapes,
+      capoFretsOverride: clearCapoFretsOverride
+          ? null
+          : _clampCapoFrets(capoFretsOverride ?? this.capoFretsOverride),
     );
   }
 
@@ -490,6 +501,7 @@ class SheetChordProDisplaySettings {
     return <String, Object?>{
       'transposeSemitones': transposeSemitones,
       'showCapoShapes': showCapoShapes,
+      if (capoFretsOverride != null) 'capoFretsOverride': capoFretsOverride,
     };
   }
 
@@ -499,6 +511,17 @@ class SheetChordProDisplaySettings {
 
   static int _clampTransposeSemitones(int value) {
     return value.clamp(-11, 11).toInt();
+  }
+
+  static int? _normalizeCapoFretsOverride(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    return _clampCapoFrets(_intFromJson(value, fallback: 0));
+  }
+
+  static int? _clampCapoFrets(int? value) {
+    return value?.clamp(0, 12).toInt();
   }
 }
 

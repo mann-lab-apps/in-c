@@ -1313,12 +1313,14 @@ Clef & Staff 세트리스트
       const SheetChordProDisplaySettings(
         transposeSemitones: 2,
         showCapoShapes: true,
+        capoFretsOverride: 4,
       ),
     );
 
     final persisted = (await store.loadScores()).single;
     expect(persisted.chordProDisplaySettings.transposeSemitones, 2);
     expect(persisted.chordProDisplaySettings.showCapoShapes, isTrue);
+    expect(persisted.chordProDisplaySettings.capoFretsOverride, 4);
   });
 
   test(

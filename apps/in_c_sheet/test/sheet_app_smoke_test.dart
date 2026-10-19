@@ -1795,6 +1795,23 @@ Clef & Staff 세트리스트
       isTrue,
     );
 
+    await tester.tap(find.byTooltip('카포 내림'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('카포: 1'), findsOneWidget);
+    expect(find.text('카포 1'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .capoFretsOverride,
+      1,
+    );
+
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump();
     await tester.pumpWidget(
@@ -1812,7 +1829,8 @@ Clef & Staff 세트리스트
     await tester.pump();
 
     expect(find.text('카포 운지 표시'), findsOneWidget);
-    expect(find.textContaining('D  A'), findsOneWidget);
+    expect(find.text('카포: 1'), findsOneWidget);
+    expect(find.text('카포 1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

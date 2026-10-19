@@ -2857,3 +2857,8 @@ regressions cover original-file handoff and cleanup after failed persistence.
 S277 VERIFIED LOCAL: added delayed file-import regressions for ChordPro and plain text. When a copied file finishes after
 the user has switched libraries, neither destination library receives a stale card or error, the source library keeps its
 previous durable scores, and the uncommitted copied file is offered to the cross-profile reference-aware cleanup path.
+
+S278 VERIFIED LOCAL: added a persisted 0-12 fret capo override to the stored ChordPro viewer so players can test alternate
+capo shapes without editing the original source. The source capo remains the default, each step immediately enables the
+matching fingering view, zero disables it, and `원래대로` clears the override. Model normalization/round-trip, controller
+persistence and viewer reopen regressions cover clamping, reset and restoration; actual readability remains Device QA.

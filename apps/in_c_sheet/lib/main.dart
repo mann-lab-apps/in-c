@@ -8868,6 +8868,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   String _loadedDisplayScoreId = '';
   int _transposeSemitones = 0;
   bool _showCapoShapes = false;
+  int? _capoFretsOverride;
   String _displaySettingsSaveError = '';
   final TextEditingController _searchController = TextEditingController();
   final List<GlobalKey> _displayLineKeys = <GlobalKey>[];
@@ -8976,8 +8977,10 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
           final displayLines = SheetChordProTextRenderer.renderDisplayLines(
             data.document,
             transposeSemitones: _transposeSemitones,
+            capoFrets: _effectiveCapoFrets(data.document),
             showCapoShapes: _showCapoShapes,
           );
+          final effectiveCapoFrets = _effectiveCapoFrets(data.document);
           _displayLines = displayLines;
           _ensureDisplayLineKeys(displayLines.length);
           final search = _chordProSearch(displayLines, _searchController.text);
@@ -9023,23 +9026,40 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                             Chip(
                               label: Text('박자: ${data.document.timeSignature}'),
                             ),
-                          if (data.document.capo != null)
-                            Chip(label: Text('카포: ${data.document.capo}')),
+                          if (data.document.capo != null ||
+                              _capoFretsOverride != null)
+                            Chip(
+                              label: Text(
+                                effectiveCapoFrets == 0
+                                    ? '카포: 없음'
+                                    : '카포: $effectiveCapoFrets',
+                              ),
+                            ),
                           if (_transposeSemitones != 0)
                             Chip(label: Text('이조: ${_transposeLabel()}')),
-                          if (_showCapoShapes && (data.document.capo ?? 0) > 0)
+                          if (_showCapoShapes && effectiveCapoFrets > 0)
                             const Chip(label: Text('카포 운지 표시')),
                         ],
                       ),
                       const SizedBox(height: 12),
                       _ChordProViewerDisplayControls(
                         transposeLabel: _transposeLabel(),
-                        canReset: _transposeSemitones != 0 || _showCapoShapes,
-                        canShowCapoShapes: (data.document.capo ?? 0) > 0,
+                        capoFrets: effectiveCapoFrets,
+                        canReset:
+                            _transposeSemitones != 0 ||
+                            _showCapoShapes ||
+                            _capoFretsOverride != null,
+                        canShowCapoShapes: effectiveCapoFrets > 0,
                         showCapoShapes: _showCapoShapes,
                         saveError: _displaySettingsSaveError,
                         onTransposeDown: () => _shiftTranspose(-1),
                         onTransposeUp: () => _shiftTranspose(1),
+                        onCapoDown: effectiveCapoFrets > 0
+                            ? () => _shiftCapo(data.document, -1)
+                            : null,
+                        onCapoUp: effectiveCapoFrets < 12
+                            ? () => _shiftCapo(data.document, 1)
+                            : null,
                         onReset: _resetDisplay,
                         onShowCapoShapesChanged: (value) {
                           setState(() {
@@ -9083,7 +9103,12 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     _loadedDisplayScoreId = score.id;
     _transposeSemitones = settings.transposeSemitones;
     _showCapoShapes = settings.showCapoShapes;
+    _capoFretsOverride = settings.capoFretsOverride;
     _displaySettingsSaveError = '';
+  }
+
+  int _effectiveCapoFrets(SheetChordProDocument document) {
+    return _capoFretsOverride ?? document.capo ?? 0;
   }
 
   SheetChordProDocument _displayDocument(SheetChordProDocument document) {
@@ -9113,10 +9138,21 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     unawaited(_persistDisplaySettings());
   }
 
+  void _shiftCapo(SheetChordProDocument document, int delta) {
+    setState(() {
+      final next = (_effectiveCapoFrets(document) + delta).clamp(0, 12);
+      _capoFretsOverride = next;
+      _showCapoShapes = next > 0;
+      _displaySettingsSaveError = '';
+    });
+    unawaited(_persistDisplaySettings());
+  }
+
   void _resetDisplay() {
     setState(() {
       _transposeSemitones = 0;
       _showCapoShapes = false;
+      _capoFretsOverride = null;
       _displaySettingsSaveError = '';
     });
     unawaited(_persistDisplaySettings());
@@ -9130,6 +9166,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     final settings = SheetChordProDisplaySettings(
       transposeSemitones: _transposeSemitones,
       showCapoShapes: _showCapoShapes,
+      capoFretsOverride: _capoFretsOverride,
     );
     try {
       await widget.controller.updateChordProDisplaySettings(score, settings);
@@ -9423,23 +9460,29 @@ Future<_ChordProViewerData> _loadChordProViewerData(SheetScore score) {
 class _ChordProViewerDisplayControls extends StatelessWidget {
   const _ChordProViewerDisplayControls({
     required this.transposeLabel,
+    required this.capoFrets,
     required this.canReset,
     required this.canShowCapoShapes,
     required this.showCapoShapes,
     required this.saveError,
     required this.onTransposeDown,
     required this.onTransposeUp,
+    required this.onCapoDown,
+    required this.onCapoUp,
     required this.onReset,
     required this.onShowCapoShapesChanged,
   });
 
   final String transposeLabel;
+  final int capoFrets;
   final bool canReset;
   final bool canShowCapoShapes;
   final bool showCapoShapes;
   final String saveError;
   final VoidCallback onTransposeDown;
   final VoidCallback onTransposeUp;
+  final VoidCallback? onCapoDown;
+  final VoidCallback? onCapoUp;
   final VoidCallback onReset;
   final ValueChanged<bool> onShowCapoShapesChanged;
 
@@ -9476,6 +9519,17 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
                 IconButton.outlined(
                   tooltip: '반음 올림',
                   onPressed: onTransposeUp,
+                  icon: const Icon(Icons.add),
+                ),
+                IconButton.outlined(
+                  tooltip: '카포 내림',
+                  onPressed: onCapoDown,
+                  icon: const Icon(Icons.remove),
+                ),
+                Chip(label: Text('카포 $capoFrets')),
+                IconButton.outlined(
+                  tooltip: '카포 올림',
+                  onPressed: onCapoUp,
                   icon: const Icon(Icons.add),
                 ),
                 FilterChip(
