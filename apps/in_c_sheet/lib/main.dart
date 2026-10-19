@@ -8153,9 +8153,9 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     ? annotationCount > 0
                           ? restoredAnnotationCount > 0
                                 ? deferredAnnotationCount > 0
-                                      ? '새 PDF/이미지 악보 필기 $restoredAnnotationCount개를 함께 복원합니다. 기존 악보 또는 image stamp/텍스트 악보 필기 $deferredAnnotationCount개는 덮어쓰지 않고 보호합니다.'
+                                      ? '새 PDF/이미지 악보 필기 $restoredAnnotationCount개를 함께 복원합니다. 검증된 이미지 스탬프 파일도 포함되며, 기존 악보와 텍스트 악보 필기 $deferredAnnotationCount개는 덮어쓰지 않고 보호합니다.'
                                       : '새 PDF/이미지 악보 필기 $restoredAnnotationCount개를 함께 복원합니다. 기존 악보는 덮어쓰지 않습니다.'
-                                : '패키지 필기 $deferredAnnotationCount개를 안전하게 확인했습니다. 기존 악보 또는 image stamp/텍스트 악보 필기는 적용하지 않고 보호합니다.'
+                                : '패키지 필기 $deferredAnnotationCount개를 안전하게 확인했습니다. 기존 악보와 텍스트 악보 필기는 적용하지 않고 보호합니다.'
                           : stampPreview.hasDuplicates
                           ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
                           : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
@@ -8305,7 +8305,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
               if (result.skippedImageStampAnnotationScores.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '이미지 스탬프가 있는 필기는 안전한 연결을 위해 제외했습니다: ${_scoreListSummary(result.skippedImageStampAnnotationScores)}',
+                  '필요한 이미지 스탬프 정의 또는 파일이 없어 필기를 제외했습니다: ${_scoreListSummary(result.skippedImageStampAnnotationScores)}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.tertiary,
                   ),

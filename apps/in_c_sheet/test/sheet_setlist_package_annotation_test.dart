@@ -224,7 +224,7 @@ void main() {
     );
   });
 
-  test('dry run defers image stamp sidecars until assets can be bound', () {
+  test('package rejects image stamp sidecars without a packaged asset', () {
     final scoreBytes = <int>[1, 2, 3, 4];
     final sidecar = SheetSetlistPackageAnnotationSidecar(
       scoreEntryPath: scorePath,
@@ -246,19 +246,14 @@ void main() {
         ],
       ),
     );
-    final package = SheetSetlistPackageArchive.decodeBytes(
-      SheetSetlistPackageArchive.encodeBytes(
+    expect(
+      () => SheetSetlistPackageArchive.encodeBytes(
         manifestText: _manifestText(),
         scoreFiles: <String, List<int>>{scorePath: scoreBytes},
         annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[sidecar],
       ),
+      throwsFormatException,
     );
-
-    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
-
-    expect(dryRun.restorableAnnotationCount, 0);
-    expect(dryRun.deferredAnnotationCount, 1);
-    expect(dryRun.entries.single.canRestoreAnnotationSidecar, isFalse);
   });
 
   test('package archive rejects orphan and checksum-mismatched sidecars', () {

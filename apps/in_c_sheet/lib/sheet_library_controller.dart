@@ -2197,6 +2197,59 @@ class SheetLibraryController extends ChangeNotifier {
     return didMerge;
   }
 
+  Future<Set<String>?> _storeRequiredPackageAnnotationAssets(
+    SheetSetlistPackageDryRun dryRun, {
+    required String libraryId,
+  }) async {
+    final requiredAssetRefs = <String>{
+      for (final entry in dryRun.entries)
+        if (entry.canRestoreAnnotationSidecar)
+          for (final text in entry.annotationSidecar!.annotationLayer.texts)
+            if (text.isImageStamp) text.stampAssetRef,
+    };
+    if (requiredAssetRefs.isEmpty) {
+      return const <String>{};
+    }
+    final assetsByRef = <String, SheetSetlistPackageStampAssetFile>{
+      for (final asset in dryRun.stampAssetFiles) asset.path: asset,
+    };
+    final stampsByAssetRef = <String, SheetAnnotationUserStamp>{
+      for (final pack in dryRun.userStampPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind)
+            stamp.assetRef: stamp,
+    };
+    final createdAssetRefs = <String>{};
+    for (final assetRef in requiredAssetRefs) {
+      final asset = assetsByRef[assetRef];
+      final stamp = stampsByAssetRef[assetRef];
+      final bytes = asset?.bytes;
+      if (stamp == null || bytes == null) {
+        await _deleteUnusedImageStampAssets(
+          createdAssetRefs,
+          _userAnnotationStampPacks,
+        );
+        return null;
+      }
+      final result = await stampAssetStore.storePackagedImageStampAsset(
+        assetRef: assetRef,
+        bytes: bytes,
+        checksum: stamp.checksum,
+      );
+      if (!result.didStore || _activeLibraryProfile.id != libraryId) {
+        await _deleteUnusedImageStampAssets(
+          createdAssetRefs,
+          _userAnnotationStampPacks,
+        );
+        return null;
+      }
+      if (result.didCreateAsset) {
+        createdAssetRefs.add(assetRef);
+      }
+    }
+    return createdAssetRefs;
+  }
+
   Future<bool> _replaceUserAnnotationStampPacks(
     List<SheetAnnotationStampPack> packs, {
     required String libraryId,
@@ -3547,8 +3600,30 @@ class SheetLibraryController extends ChangeNotifier {
     final durations = <String, int>{};
     final metronomeSettings = <String, SheetMetronomeSettings>{};
     var metadataPersisted = false;
+    final createdAnnotationAssetRefs = <String>{};
+    final preexistingImageAssetRefs = <String>{
+      for (final pack in _userAnnotationStampPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind) stamp.assetRef,
+      for (final score in _scores)
+        for (final text in score.annotationLayer.texts)
+          if (text.isImageStamp) text.stampAssetRef,
+    };
 
     try {
+      final storedAnnotationAssetRefs =
+          await _storeRequiredPackageAnnotationAssets(
+            dryRun,
+            libraryId: libraryId,
+          );
+      if (storedAnnotationAssetRefs == null) {
+        if (_activeLibraryProfile.id == libraryId) {
+          _errorMessage = '이미지 스탬프 파일을 안전하게 저장하지 못해 세트리스트를 가져오지 않았습니다.';
+          notifyListeners();
+        }
+        return null;
+      }
+      createdAnnotationAssetRefs.addAll(storedAnnotationAssetRefs);
       for (var index = 0; index < dryRun.entries.length; index += 1) {
         final entry = dryRun.entries[index];
         late final SheetScore score;
@@ -3690,6 +3765,18 @@ class SheetLibraryController extends ChangeNotifier {
     } finally {
       if (!metadataPersisted && createdScores.isNotEmpty) {
         await store.discardUnreferencedImportedScoreFiles(createdScores);
+      }
+      if (!metadataPersisted && createdAnnotationAssetRefs.isNotEmpty) {
+        for (final assetRef in createdAnnotationAssetRefs) {
+          try {
+            await stampAssetStore.deleteAssetIfUnreferenced(
+              assetRef: assetRef,
+              referencedAssetRefs: preexistingImageAssetRefs,
+            );
+          } catch (_) {
+            // Preserve the original package import failure.
+          }
+        }
       }
     }
   }

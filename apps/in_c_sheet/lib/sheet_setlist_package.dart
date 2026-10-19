@@ -184,6 +184,16 @@ class SheetSetlistPackageArchive {
       }
       annotationSidecars.add(sidecar);
     }
+    final packagedImageAssetRefs = _imageStampAssetRefs(userStampPacks);
+    final unresolvedAnnotationAssetRefs =
+        _imageStampAssetRefsInAnnotationSidecars(annotationSidecars)
+          ..removeAll(packagedImageAssetRefs);
+    if (unresolvedAnnotationAssetRefs.isNotEmpty) {
+      throw FormatException(
+        'Setlist package annotation references unknown stamp assets: '
+        '${unresolvedAnnotationAssetRefs.join(', ')}',
+      );
+    }
 
     return SheetSetlistPackageArchive(
       manifest: manifest,
@@ -244,6 +254,15 @@ class SheetSetlistPackageArchive {
       );
     }
     final referencedStampAssetRefs = _imageStampAssetRefs(normalizedStampPacks);
+    final unresolvedAnnotationAssetRefs =
+        _imageStampAssetRefsInAnnotationSidecars(annotationSidecars)
+          ..removeAll(referencedStampAssetRefs);
+    if (unresolvedAnnotationAssetRefs.isNotEmpty) {
+      throw FormatException(
+        'Setlist package annotation references unknown stamp assets: '
+        '${unresolvedAnnotationAssetRefs.join(', ')}',
+      );
+    }
     final paths = <String>{};
     for (final entry in scoreFiles.entries) {
       final path = entry.key.trim().replaceAll('\\', '/');
@@ -405,6 +424,13 @@ class SheetSetlistPackageArchive {
         }
       }
     }
+    final exportableImageAssetRefs = _imageStampAssetRefs(
+      _normalizePackageUserStampPacks(
+        userStampPacks,
+        allowImageStamps: stampAssetFiles.isNotEmpty,
+        availableImageAssetRefs: stampAssetFiles.keys.toSet(),
+      ),
+    );
     final annotationSidecars = <SheetSetlistPackageAnnotationSidecar>[];
     final skippedSharedSourceAnnotationScores = <SheetScore>[];
     final skippedUnsupportedAnnotationScores = <SheetScore>[];
@@ -431,7 +457,11 @@ class SheetSetlistPackageArchive {
         skippedUnsupportedAnnotationScores.add(score);
         continue;
       }
-      if (annotationLayer.texts.any((text) => text.isImageStamp)) {
+      final imageAssetRefs = {
+        for (final text in annotationLayer.texts)
+          if (text.isImageStamp) text.stampAssetRef,
+      };
+      if (!exportableImageAssetRefs.containsAll(imageAssetRefs)) {
         skippedImageStampAnnotationScores.add(score);
         continue;
       }
@@ -710,6 +740,9 @@ class SheetSetlistPackageDryRun {
             existingMatch: index < matches.length ? matches[index] : null,
             packageFiles: packageFiles,
             annotationSidecars: annotationSidecars,
+            restorableImageStampAssetRefs: _imageStampAssetRefs(
+              normalizedUserStampPacks,
+            ),
           ),
       ]),
     );
@@ -863,6 +896,7 @@ class SheetSetlistPackageEntry {
     this.existingScore,
     this.packageFile,
     this.annotationSidecar,
+    this.hasRestorableImageStampAssets = false,
     this.candidates = const <SheetScore>[],
     this.packageFileCandidates = const <SheetSetlistPackageFile>[],
   });
@@ -872,6 +906,7 @@ class SheetSetlistPackageEntry {
   final SheetScore? existingScore;
   final SheetSetlistPackageFile? packageFile;
   final SheetSetlistPackageAnnotationSidecar? annotationSidecar;
+  final bool hasRestorableImageStampAssets;
   final List<SheetScore> candidates;
   final List<SheetSetlistPackageFile> packageFileCandidates;
 
@@ -882,7 +917,8 @@ class SheetSetlistPackageEntry {
         status == SheetSetlistPackageEntryStatus.importableFile &&
         (scoreKind == SheetSetlistPackageScoreKind.pdf ||
             scoreKind == SheetSetlistPackageScoreKind.image) &&
-        !sidecar.annotationLayer.texts.any((text) => text.isImageStamp);
+        (!sidecar.annotationLayer.texts.any((text) => text.isImageStamp) ||
+            hasRestorableImageStampAssets);
   }
 
   bool get isResolved {
@@ -914,6 +950,7 @@ class SheetSetlistPackageEntry {
     required List<SheetSetlistPackageFile> packageFiles,
     List<SheetSetlistPackageAnnotationSidecar> annotationSidecars =
         const <SheetSetlistPackageAnnotationSidecar>[],
+    Set<String> restorableImageStampAssetRefs = const <String>{},
   }) {
     final packageFileMatches = _matchingPackageFiles(
       item.fileName,
@@ -925,6 +962,12 @@ class SheetSetlistPackageEntry {
             annotationSidecars,
           )
         : null;
+    final imageStampAssetRefs = packageAnnotation == null
+        ? const <String>{}
+        : {
+            for (final text in packageAnnotation.annotationLayer.texts)
+              if (text.isImageStamp) text.stampAssetRef,
+          };
     if (existingMatch != null && existingMatch.isResolved) {
       return SheetSetlistPackageEntry(
         item: item,
@@ -988,6 +1031,9 @@ class SheetSetlistPackageEntry {
       status: SheetSetlistPackageEntryStatus.importableFile,
       packageFile: file,
       annotationSidecar: packageAnnotation,
+      hasRestorableImageStampAssets: restorableImageStampAssetRefs.containsAll(
+        imageStampAssetRefs,
+      ),
       packageFileCandidates: matches,
     );
   }
@@ -1161,6 +1207,16 @@ Set<String> _imageStampAssetRefs(List<SheetAnnotationStampPack> packs) {
       for (final stamp in pack.stamps)
         if (stamp.kind == SheetAnnotationUserStamp.imageKind)
           stamp.assetRef.trim().replaceAll('\\', '/'),
+  }..remove('');
+}
+
+Set<String> _imageStampAssetRefsInAnnotationSidecars(
+  Iterable<SheetSetlistPackageAnnotationSidecar> sidecars,
+) {
+  return {
+    for (final sidecar in sidecars)
+      for (final text in sidecar.annotationLayer.texts)
+        if (text.isImageStamp) text.stampAssetRef.trim().replaceAll('\\', '/'),
   }..remove('');
 }
 

@@ -1143,6 +1143,61 @@ Clef & Staff 세트리스트
     },
   );
 
+  test(
+    'export includes image stamp annotations with validated assets',
+    () async {
+      final imageBytes = image.encodePng(image.Image(width: 16, height: 16));
+      final now = DateTime(2026, 10, 20, 19);
+      final score = _score(
+        id: 'photo-score',
+        title: 'Photo Score',
+        filePath: '/library/photo-score.pdf',
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'photo-cue',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+              text: 'Photo cue',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+              stampKind: SheetAnnotationUserStamp.imageKind,
+              stampAssetRef: 'stamps/photos/photo-cue.png',
+            ),
+          ],
+        ),
+      );
+      final setlist = SheetSetlist(
+        id: 'photo-set',
+        title: 'Photo Set',
+        scoreIds: const <String>['photo-score'],
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: setlist,
+        scores: <SheetScore>[score],
+        readScoreBytes: (_) async => <int>[1, 2, 3],
+        userStampPacks: <SheetAnnotationStampPack>[
+          _imageStampPack(imageBytes, timestamp: now),
+        ],
+        readUserStampAssetBytes: (_) async => imageBytes,
+      );
+
+      expect(result.didExport, isTrue);
+      expect(result.includedAnnotationCount, 1);
+      expect(result.skippedImageStampAnnotationScores, isEmpty);
+      final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+      final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+      expect(package.annotationSidecars, hasLength(1));
+      expect(dryRun.restorableAnnotationCount, 1);
+      expect(dryRun.deferredAnnotationCount, 0);
+    },
+  );
+
   test('export stores a shared source file once', () async {
     final now = DateTime(2026, 9, 28, 15);
     final scores = [

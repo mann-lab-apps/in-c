@@ -895,6 +895,187 @@ Clef & Staff 세트리스트
     expect(controller.errorMessage, isNull);
   });
 
+  test(
+    'setlist package restores image stamp annotations after asset storage',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-annotation-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 19);
+      final store = _PackageImportStore(now);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final imageBytes = _tinyPngBytes();
+      final scoreBytes = <int>[1, 2, 3];
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Image Annotation Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+          userStampPacks: <SheetAnnotationStampPack>[
+            _packageImageStampPack(imageBytes, now),
+          ],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': imageBytes,
+          },
+          annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+            SheetSetlistPackageAnnotationSidecar(
+              scoreEntryPath: 'scores/new-sonata.pdf',
+              scoreSha256: sha256.convert(scoreBytes).toString(),
+              annotationLayer: SheetAnnotationLayer(
+                strokes: const <SheetAnnotationStroke>[],
+                texts: <SheetTextAnnotation>[
+                  SheetTextAnnotation(
+                    id: 'photo-cue',
+                    pageNumber: 1,
+                    position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                    text: 'Photo cue',
+                    color: 0xff111111,
+                    fontSize: 18,
+                    createdAt: now,
+                    stampKind: SheetAnnotationUserStamp.imageKind,
+                    stampAssetRef: 'stamps/package/photo-cue.png',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(dryRun.restorableAnnotationCount, 1);
+      expect(
+        controller
+            .scoreById('package-pdf-0')
+            .annotationLayer
+            .texts
+            .single
+            .isImageStamp,
+        isTrue,
+      );
+      expect(
+        await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+        isTrue,
+      );
+      expect(controller.userAnnotationStampPacks, hasLength(1));
+    },
+  );
+
+  test(
+    'setlist package blocks image annotations on local asset conflict',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-annotation-conflict-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 19);
+      final store = _PackageImportStore(now);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final localBytes = image.encodePng(image.Image(width: 3, height: 1));
+      await stampAssetStore.restoreImageStampAsset(
+        assetRef: 'stamps/package/photo-cue.png',
+        bytes: localBytes,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final packageBytes = _tinyPngBytes();
+      final scoreBytes = <int>[1, 2, 3];
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Conflicting Image Annotation
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+          userStampPacks: <SheetAnnotationStampPack>[
+            _packageImageStampPack(packageBytes, now),
+          ],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': packageBytes,
+          },
+          annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+            SheetSetlistPackageAnnotationSidecar(
+              scoreEntryPath: 'scores/new-sonata.pdf',
+              scoreSha256: sha256.convert(scoreBytes).toString(),
+              annotationLayer: SheetAnnotationLayer(
+                strokes: const <SheetAnnotationStroke>[],
+                texts: <SheetTextAnnotation>[
+                  SheetTextAnnotation(
+                    id: 'photo-cue',
+                    pageNumber: 1,
+                    position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                    text: 'Photo cue',
+                    color: 0xff111111,
+                    fontSize: 18,
+                    createdAt: now,
+                    stampKind: SheetAnnotationUserStamp.imageKind,
+                    stampAssetRef: 'stamps/package/photo-cue.png',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNull);
+      expect(controller.scores, isEmpty);
+      expect(controller.setlists, isEmpty);
+      expect(controller.errorMessage, contains('이미지 스탬프 파일'));
+      expect(
+        await (await stampAssetStore.assetFileForRef(
+          'stamps/package/photo-cue.png',
+        )).readAsBytes(),
+        localBytes,
+      );
+    },
+  );
+
   test('setlist package preserves a conflicting local stamp asset', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final root = await Directory.systemTemp.createTemp(
@@ -1113,6 +1294,44 @@ Clef & Staff 세트리스트
       expect(store.discardedScoreIds, <String>['package-pdf-0']);
     },
   );
+
+  test('setlist package save failure cleans a new annotation asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-annotation-save-failure-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 19);
+    final store = _PackageImportStore(now)..failSaveScoresAndSetlists = true;
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final package = _packageWithImageAnnotation(_tinyPngBytes(), now);
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    await expectLater(
+      controller.importSetlistPackage(package, dryRun),
+      throwsStateError,
+    );
+
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists, isEmpty);
+    expect(store.discardedScoreIds, <String>['package-pdf-0']);
+    expect(
+      await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+      isFalse,
+    );
+  });
 
   test(
     'setlist package stamp merge failure preserves imported setlist',
@@ -5509,6 +5728,54 @@ SheetAnnotationStampPack _packageImageStampPack(
         assetHeightPixels: 1,
       ),
     ],
+  );
+}
+
+SheetSetlistPackageArchive _packageWithImageAnnotation(
+  List<int> imageBytes,
+  DateTime now,
+) {
+  final scoreBytes = <int>[1, 2, 3];
+  return SheetSetlistPackageArchive.decodeBytes(
+    SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Image Annotation Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+      scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+      userStampPacks: <SheetAnnotationStampPack>[
+        _packageImageStampPack(imageBytes, now),
+      ],
+      stampAssetFiles: <String, List<int>>{
+        'stamps/package/photo-cue.png': imageBytes,
+      },
+      annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+        SheetSetlistPackageAnnotationSidecar(
+          scoreEntryPath: 'scores/new-sonata.pdf',
+          scoreSha256: sha256.convert(scoreBytes).toString(),
+          annotationLayer: SheetAnnotationLayer(
+            strokes: const <SheetAnnotationStroke>[],
+            texts: <SheetTextAnnotation>[
+              SheetTextAnnotation(
+                id: 'photo-cue',
+                pageNumber: 1,
+                position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                text: 'Photo cue',
+                color: 0xff111111,
+                fontSize: 18,
+                createdAt: now,
+                stampKind: SheetAnnotationUserStamp.imageKind,
+                stampAssetRef: 'stamps/package/photo-cue.png',
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 

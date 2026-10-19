@@ -615,10 +615,10 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   1. 완료: sidecar envelope/path/checksum/annotation validation codec과 회귀 테스트.
   2. 완료: package archive decode/encode에 optional sidecar collection을 연결하고 score bytes checksum,
      orphan/duplicate sidecar를 검증한다. Sidecar가 없는 기존 v1 package는 그대로 읽는다.
-  3. 진행 중: export에서 ZIP에 쓴 score bytes checksum과 annotation document를 묶었다. 고유 원본의
-     PDF/image 일반 필기는 sidecar로 내보내고 shared-source/text/image-stamp 문서는 명시적으로 제외한다.
-     Image stamp annotation asset binding은 남았다.
-  4. 완료: dry-run은 `새 악보 필기 복원`과 `기존 악보/image stamp/텍스트 악보라 보호·미적용`을 구분하고 preview에서
+  3. 완료: export에서 ZIP에 쓴 score bytes checksum과 annotation document를 묶었다. 고유 원본의
+     PDF/image 일반 필기와 검증된 image stamp 필기를 sidecar로 내보내고, shared-source/text 문서와
+     image stamp 정의·asset이 불완전한 문서는 명시적으로 제외한다.
+  4. 완료: dry-run은 `새 악보 필기 복원`과 `기존 악보/텍스트 악보라 보호·미적용`을 구분하고 preview에서
      미적용 경계를 명시한다. Image stamp asset은 실제 SHA-256/크기/디코딩/픽셀 치수를 metadata와
      대조해 손상 또는 바뀐 파일을 package codec에서 차단한다. Import는 새 stamp id의 asset만 저장하고,
      동일 checksum은 재사용하며 같은 경로의 다른 local 파일은 보존한다. Image stamp sidecar 실제 적용은 남았다.

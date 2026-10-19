@@ -2922,3 +2922,14 @@ a partial result. The normal UI export path now also reads app-owned image stamp
 carry their validated PNG/JPEG/WebP files. Regressions cover sidecar round-trip, shared-source protection and explicit
 text/image-stamp deferral; external package size and Device QA remain follow-up.
 `flutter analyze`, all 1,717 tests and the RC release check passed.
+
+S288 VERIFIED LOCAL: completed collision-safe image-stamp annotation transfer for setlist packages. ZIP encode/decode now
+rejects annotation sidecars whose image stamp references are not backed by validated package stamp metadata and asset
+bytes. Export includes those sidecars when every referenced PNG/JPEG/WebP asset is complete and reports only incomplete
+image-stamp documents as omitted. Import preview marks complete sidecars as restorable; the controller stores their assets
+before the score/setlist metadata transaction, reuses identical local bytes, refuses a different file at the same path,
+and removes only assets created by the failed request when metadata persistence fails. Existing local scores and text
+scores remain protected from annotation overwrite. Regressions cover codec rejection, export/dry-run eligibility,
+successful restore, local collision preservation and save-failure cleanup. Large mixed-package and external-device QA
+remain follow-up.
+`flutter analyze`, all 1,721 tests and the RC release check passed.
