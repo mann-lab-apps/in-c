@@ -72,7 +72,7 @@ Clef & Staff 세트리스트
 2. Duplicate
    파일: duplicate.pdf
 3. Unsupported
-   파일: chart.docx
+   파일: chart.rtf
 4. No File
 ''');
 
@@ -82,7 +82,7 @@ Clef & Staff 세트리스트
       packageFiles: const [
         SheetSetlistPackageFile(path: 'scores/duplicate.pdf'),
         SheetSetlistPackageFile(path: 'extras/duplicate.pdf'),
-        SheetSetlistPackageFile(path: 'scores/chart.docx'),
+        SheetSetlistPackageFile(path: 'scores/chart.rtf'),
       ],
     );
 
@@ -101,7 +101,7 @@ Clef & Staff 세트리스트
       containsAll([
         '패키지에서 찾을 수 없는 파일: missing.pdf',
         '패키지에 같은 이름의 파일이 여러 개 있습니다: duplicate.pdf',
-        '지원하지 않는 패키지 파일 형식: chart.docx',
+        '지원하지 않는 패키지 파일 형식: chart.rtf',
         '패키지에서 찾을 수 없는 파일: No File',
       ]),
     );
@@ -243,6 +243,55 @@ Clef & Staff 세트리스트
     ]);
     expect(dryRun.canImport, isTrue);
     expect(dryRun.importableFileCount, 2);
+  });
+
+  test('codec validates DOCX package scores before import', () {
+    final manifest = '''
+Clef & Staff 세트리스트
+제목: DOCX Package
+곡 수: 1곡
+
+1. Studio Notes
+   파일: studio-notes.docx
+''';
+    final validPackage = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: manifest,
+        scoreFiles: <String, List<int>>{
+          'scores/studio-notes.docx': _docxBytes('Practice slowly.'),
+        },
+      ),
+    );
+    final validDryRun = validPackage.previewImport(
+      currentScores: const <SheetScore>[],
+    );
+
+    expect(
+      validPackage.packageFiles.single.scoreKind,
+      SheetSetlistPackageScoreKind.docx,
+    );
+    expect(
+      validPackage.packageFiles.single.mediaType,
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    expect(validDryRun.canImport, isTrue);
+
+    final invalidPackage = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: manifest,
+        scoreFiles: const <String, List<int>>{
+          'scores/studio-notes.docx': <int>[1, 2, 3],
+        },
+      ),
+    );
+    final invalidDryRun = invalidPackage.previewImport(
+      currentScores: const <SheetScore>[],
+    );
+    expect(
+      invalidDryRun.entries.single.status,
+      SheetSetlistPackageEntryStatus.invalidFile,
+    );
+    expect(invalidDryRun.warnings.single, contains('DOCX 파일을 읽을 수 없습니다'));
   });
 
   test('dry run rejects invalid packaged text before import', () {
@@ -690,6 +739,46 @@ Clef & Staff 세트리스트
     ]);
   });
 
+  test('export preserves a DOCX original instead of extracted text', () async {
+    final now = DateTime(2026, 10, 20, 14);
+    final bytes = _docxBytes('Studio notes');
+    final score = _score(
+      id: 'docx-score',
+      title: 'Studio Notes',
+      filePath: '/library/studio-notes.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/library/original.docx',
+          type: 'docx',
+          label: 'studio-notes.docx',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+    final setlist = SheetSetlist(
+      id: 'docx-set',
+      title: 'DOCX Set',
+      scoreIds: const <String>['docx-score'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: <SheetScore>[score],
+      readScoreBytes: (_) async => utf8.encode('extracted text'),
+      readOriginalDocxBytes: (_, _) async => bytes,
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.manifestText, contains('파일: studio-notes.docx'));
+    expect(result.manifestText, contains('형식: DOCX'));
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.packageFiles.single.path, 'scores/studio-notes.docx');
+    expect(package.packageFiles.single.bytes, bytes);
+  });
+
   test(
     'export package includes image user stamp assets when readable',
     () async {
@@ -843,6 +932,7 @@ SheetScore _score({
   required String title,
   String composer = '',
   String? filePath,
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
 }) {
   final now = DateTime(2026, 9, 28, 15);
   return SheetScore(
@@ -852,6 +942,7 @@ SheetScore _score({
     tags: const <String>[],
     note: '',
     filePath: filePath ?? '/tmp/$id.pdf',
+    linkedFiles: linkedFiles,
     importedAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -859,4 +950,15 @@ SheetScore _score({
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
   );
+}
+
+Uint8List _docxBytes(String text) {
+  final archive = Archive()
+    ..addFile(
+      ArchiveFile.string(
+        'word/document.xml',
+        '<w:document xmlns:w="urn:word"><w:body><w:p><w:r><w:t>${htmlEscape.convert(text)}</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    );
+  return Uint8List.fromList(ZipEncoder().encode(archive));
 }

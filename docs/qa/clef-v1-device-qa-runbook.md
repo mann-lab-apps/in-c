@@ -46,9 +46,10 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   import다. PDF를 포함하는 `clef.setlist.package` ZIP은 세트리스트 화면의 `패키지` 버튼에서
   선택해 dry-run preview까지 확인할 수 있다. 세트리스트 상세의 `패키지 내보내기`는 ZIP으로 묶을
   파일 수와 manifest를 먼저 보여준 뒤 공유한다. 완전히 해결된 package는 preview 후 `패키지 가져오기`로
-  기존 악보와 package 안 PDF/image/text/ChordPro 파일을 묶은 새 세트리스트를 만들 수 있어야 한다.
-  PDF, `.md`, `.onsong` 악보가 섞인 세트리스트를 package로 내보낸 뒤 다시 가져와 각 항목이 PDF,
-  일반 텍스트, ChordPro viewer로 올바르게 열리는지 확인한다. 빈 text, 잘못된 UTF-8 또는 2 MiB 초과
+  기존 악보와 package 안 PDF/image/text/ChordPro/DOCX 파일을 묶은 새 세트리스트를 만들 수 있어야 한다.
+  PDF, `.md`, `.onsong`, `.docx` 악보가 섞인 세트리스트를 package로 내보낸 뒤 다시 가져와 각 항목이 PDF,
+  일반 텍스트, ChordPro 또는 DOCX 추출 텍스트 viewer로 올바르게 열리는지 확인한다. DOCX 항목은 원본
+  reference 연결 파일을 유지해야 한다. 빈 text, 잘못된 UTF-8 또는 2 MiB 초과
   text가 들어 있는 package는 preview에서 확인 필요로 표시되고 partial import를 시작하지 않아야 한다.
   저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
   긴 ChordPro 악보는 상단 `구간` 메뉴에서 verse/chorus/bridge 표식을 골라 해당 줄로 이동해야 한다.

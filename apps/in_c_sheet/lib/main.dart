@@ -9821,6 +9821,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         }
         return file.readAsBytes();
       },
+      readOriginalDocxBytes: (score, originalDocx) async {
+        final file = File(originalDocx.path);
+        if (!await file.exists()) return null;
+        return file.readAsBytes();
+      },
     );
     if (!mounted) {
       return;

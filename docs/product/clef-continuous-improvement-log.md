@@ -2783,3 +2783,12 @@ and XML size caps plus malformed/empty document rejection run before library mut
 managed copies, and full-backup regression restores both extracted text and original DOCX bytes. Table structure, images,
 footnotes and formatting fidelity, RTF parsing and DOCX originals inside setlist packages remain explicit follow-up gaps.
 Validation passes 425 focused tests, `flutter analyze`, all 1,675 tests and the RC release check.
+
+S266 VERIFIED LOCAL: preserved imported DOCX originals when sharing and restoring Clef setlist packages. Package export
+now detects the managed DOCX reference behind an extracted text score, writes that original `.docx` entry instead of a
+lossy `.txt` substitute, records DOCX in the manifest and validates the bounded ZIP/XML payload before import. Package
+import routes DOCX bytes through the existing atomic DOCX store path, so a failed metadata/setlist save still cleans up
+new managed files. Regression coverage keeps ordinary PDF/text/ChordPro extension handling unchanged and proves DOCX
+export, validation and controller import. Table structure, images, footnotes and Word formatting fidelity remain outside
+the read-only viewer guarantee. Validation passes focused package/controller tests, `flutter analyze`, all 1,678 tests
+and the RC release check.

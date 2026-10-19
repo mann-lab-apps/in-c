@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -744,6 +745,41 @@ Clef & Staff 세트리스트
           .where((field) => field.key == '출처 유형')
           .map((field) => field.value),
       <String>['공연 패키지'],
+    );
+  });
+
+  test('setlist package imports DOCX through its bounded store path', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 14);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: DOCX Package
+곡 수: 1곡
+
+1. Studio Notes
+   파일: studio-notes.docx
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/studio-notes.docx': _packageDocxBytes('Practice slowly.'),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported?.scoreIds, <String>['package-docx-0']);
+    expect(store.importedDocxNames, <String>['studio-notes.docx']);
+    expect(controller.scoreById('package-docx-0').filePath, endsWith('.txt'));
+    expect(
+      controller.scoreById('package-docx-0').linkedFiles.single.type,
+      'docx',
     );
   });
 
@@ -5259,11 +5295,13 @@ class _PackageImportStore extends SheetLibraryStore {
   final importedPdfBytes = <List<int>>[];
   final importedPlainTextNames = <String>[];
   final importedChordProNames = <String>[];
+  final importedDocxNames = <String>[];
   final discardedScoreIds = <String>[];
   var _pdfCount = 0;
   var _imageCount = 0;
   var _textCount = 0;
   var _chordProCount = 0;
+  var _docxCount = 0;
   bool failSaveScoresAndSetlists = false;
   bool failSaveUserStampPacks = false;
   Future<void> Function()? afterPdfImport;
@@ -5331,6 +5369,31 @@ class _PackageImportStore extends SheetLibraryStore {
       filePath: '/package/${file.name}',
       customFields: const <SheetCustomMetadataField>[
         SheetCustomMetadataField(key: '출처 유형', value: 'ChordPro'),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedDocxNames.add(file.name);
+    final index = _docxCount++;
+    final now = importedAt ?? this.now;
+    return _score(
+      now,
+      id: 'package-docx-$index',
+      title: 'Studio Notes',
+      filePath: '/package/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/package/${file.name}',
+          type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
       ],
     );
   }
@@ -5532,4 +5595,15 @@ SheetScore _score(
     bookmarks: bookmarks,
     metronomeSettings: metronomeSettings,
   );
+}
+
+Uint8List _packageDocxBytes(String text) {
+  final archive = Archive()
+    ..addFile(
+      ArchiveFile.string(
+        'word/document.xml',
+        '<w:document xmlns:w="urn:word"><w:body><w:p><w:r><w:t>${htmlEscape.convert(text)}</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    );
+  return Uint8List.fromList(ZipEncoder().encode(archive));
 }

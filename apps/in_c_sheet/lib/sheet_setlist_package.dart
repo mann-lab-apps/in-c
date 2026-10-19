@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 import 'sheet_annotation.dart';
+import 'sheet_docx.dart';
 import 'sheet_file_import.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
@@ -212,15 +213,16 @@ class SheetSetlistPackageArchive {
     required SheetSetlist setlist,
     required List<SheetScore> scores,
     required Future<List<int>?> Function(SheetScore score) readScoreBytes,
+    Future<List<int>?> Function(SheetScore score, SheetLinkedFile originalDocx)?
+    readOriginalDocxBytes,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
     Future<List<int>?> Function(String assetRef)? readUserStampAssetBytes,
   }) async {
     final orderedScores = _scoresInSetlistOrder(setlist, scores);
-    final manifestText = _setlistPackageManifestText(setlist, orderedScores);
     if (orderedScores.isEmpty) {
       return SheetSetlistPackageExportResult(
-        manifestText: manifestText,
+        manifestText: _setlistPackageManifestText(setlist, orderedScores),
         missingScores: const <SheetScore>[],
         unsupportedScores: const <SheetScore>[],
       );
@@ -231,15 +233,26 @@ class SheetSetlistPackageArchive {
     final usedEntryPaths = <String>{};
     final missingScores = <SheetScore>[];
     final unsupportedScores = <SheetScore>[];
+    final packageFileNames = <String, String>{};
 
     for (final score in orderedScores) {
-      final sourcePath = score.filePath.trim();
+      final originalDocx = _originalDocxReference(score);
+      final sourcePath = originalDocx?.path.trim() ?? score.filePath.trim();
+      final sourceFileName = originalDocx == null
+          ? score.sourceFileDisplayName
+          : _docxReferenceFileName(originalDocx);
+      if (originalDocx != null) {
+        packageFileNames[score.id] = sourceFileName;
+      }
       if (entryPathBySourcePath.containsKey(sourcePath)) {
         continue;
       }
-      final extension = _fileExtension(score.filePath);
+      final extension = _fileExtension(
+        originalDocx == null ? score.filePath : sourceFileName,
+      );
       final safeEntryPath = _scorePackageEntryPath(
         score,
+        sourceFileName: sourceFileName,
         extension: extension,
         usedEntryPaths: usedEntryPaths,
       );
@@ -248,7 +261,13 @@ class SheetSetlistPackageArchive {
         continue;
       }
 
-      final bytes = await readScoreBytes(score);
+      if (originalDocx != null && readOriginalDocxBytes == null) {
+        unsupportedScores.add(score);
+        continue;
+      }
+      final bytes = originalDocx == null
+          ? await readScoreBytes(score)
+          : await readOriginalDocxBytes!(score, originalDocx);
       if (bytes == null) {
         missingScores.add(score);
         continue;
@@ -256,6 +275,12 @@ class SheetSetlistPackageArchive {
       entryPathBySourcePath[sourcePath] = safeEntryPath;
       scoreFiles[safeEntryPath] = bytes;
     }
+
+    final manifestText = _setlistPackageManifestText(
+      setlist,
+      orderedScores,
+      packageFileNames: packageFileNames,
+    );
 
     if (missingScores.isNotEmpty || unsupportedScores.isNotEmpty) {
       return SheetSetlistPackageExportResult(
@@ -382,11 +407,22 @@ class SheetSetlistPackageFile {
 
   bool get isChordPro => scoreKind == SheetSetlistPackageScoreKind.chordPro;
 
+  bool get isDocx => scoreKind == SheetSetlistPackageScoreKind.docx;
+
   String get validationFailure {
     final content = bytes;
-    if (content == null || !scoreKind.isTextScore) {
+    if (content == null) {
       return '';
     }
+    if (scoreKind == SheetSetlistPackageScoreKind.docx) {
+      try {
+        SheetDocxTextExtractor.extract(content);
+        return '';
+      } on FormatException catch (error) {
+        return 'DOCX 파일을 읽을 수 없습니다: ${error.message}';
+      }
+    }
+    if (!scoreKind.isTextScore) return '';
     if (content.isEmpty) {
       return '텍스트 파일이 비어 있습니다.';
     }
@@ -410,6 +446,7 @@ enum SheetSetlistPackageScoreKind {
   image('이미지'),
   plainText('텍스트'),
   chordPro('ChordPro'),
+  docx('DOCX'),
   unsupported('지원하지 않음');
 
   const SheetSetlistPackageScoreKind(this.label);
@@ -423,6 +460,7 @@ enum SheetSetlistPackageScoreKind {
     if (SheetFileImportPolicy.isSupportedImageFileName(fileName)) return image;
     if (SheetFileImportPolicy.isPlainTextFileName(fileName)) return plainText;
     if (SheetFileImportPolicy.isChordProFileName(fileName)) return chordPro;
+    if (SheetFileImportPolicy.isDocxFileName(fileName)) return docx;
     return unsupported;
   }
 }
@@ -872,8 +910,9 @@ Set<String> _imageStampAssetRefs(List<SheetAnnotationStampPack> packs) {
 
 String _setlistPackageManifestText(
   SheetSetlist setlist,
-  List<SheetScore> scores,
-) {
+  List<SheetScore> scores, {
+  Map<String, String> packageFileNames = const <String, String>{},
+}) {
   final buffer = StringBuffer()
     ..writeln('Clef & Staff 세트리스트')
     ..writeln('제목: ${setlist.title}')
@@ -890,7 +929,11 @@ String _setlistPackageManifestText(
   for (var index = 0; index < scores.length; index += 1) {
     final score = scores[index];
     buffer.writeln('${index + 1}. ${score.displayTitle}');
-    for (final detail in _setlistPackageManifestDetails(setlist, score)) {
+    for (final detail in _setlistPackageManifestDetails(
+      setlist,
+      score,
+      packageFileName: packageFileNames[score.id],
+    )) {
       buffer.writeln('   $detail');
     }
   }
@@ -899,8 +942,9 @@ String _setlistPackageManifestText(
 
 List<String> _setlistPackageManifestDetails(
   SheetSetlist setlist,
-  SheetScore score,
-) {
+  SheetScore score, {
+  String? packageFileName,
+}) {
   final composer = score.composer.trim();
   final note = setlist.scoreNotes[score.id]?.trim();
   final duration = setlist.scoreDurations[score.id] ?? 0;
@@ -909,8 +953,8 @@ List<String> _setlistPackageManifestDetails(
   final scoreNote = score.note.trim();
   final metadata = <String>[
     if (composer.isNotEmpty) '작곡가: $composer',
-    '파일: ${score.sourceFileDisplayName}',
-    '형식: ${SheetSetlistPackageScoreKind.forFileName(score.filePath).label}',
+    '파일: ${packageFileName ?? score.sourceFileDisplayName}',
+    '형식: ${SheetSetlistPackageScoreKind.forFileName(packageFileName ?? score.filePath).label}',
     '시작: ${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽',
     if (duration > 0) '예상 시간: ${_formatDuration(duration)}',
     if (note?.isNotEmpty == true) '세트 메모: $note',
@@ -933,11 +977,15 @@ List<String> _setlistPackageManifestDetails(
 
 String _scorePackageEntryPath(
   SheetScore score, {
+  String? sourceFileName,
   required String extension,
   required Set<String> usedEntryPaths,
 }) {
   final fallbackStem = score.id.trim().isEmpty ? 'score' : score.id.trim();
-  final stem = _safePackageFileStem(score.sourceFileDisplayName, fallbackStem);
+  final stemSource = sourceFileName == null
+      ? score.sourceFileDisplayName
+      : _removeFileExtension(sourceFileName, extension);
+  final stem = _safePackageFileStem(stemSource, fallbackStem);
   final safeExtension = extension.isEmpty ? '.pdf' : extension;
   var path = '$sheetSetlistPackageScoreDirectory$stem$safeExtension';
   var suffix = 2;
@@ -947,6 +995,14 @@ String _scorePackageEntryPath(
   }
   usedEntryPaths.add(path);
   return path;
+}
+
+String _removeFileExtension(String fileName, String extension) {
+  if (extension.isEmpty ||
+      !fileName.toLowerCase().endsWith(extension.toLowerCase())) {
+    return fileName;
+  }
+  return fileName.substring(0, fileName.length - extension.length);
 }
 
 String _safePackageFileStem(String value, String fallback) {
@@ -1018,9 +1074,30 @@ String _mediaTypeForScoreFile(String path) {
       return 'text/plain';
     case SheetSetlistPackageScoreKind.chordPro:
       return 'text/vnd.chordpro';
+    case SheetSetlistPackageScoreKind.docx:
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     case SheetSetlistPackageScoreKind.unsupported:
       return '';
   }
+}
+
+SheetLinkedFile? _originalDocxReference(SheetScore score) {
+  for (final linkedFile in score.linkedFiles) {
+    if (linkedFile.role == SheetLinkedFile.referenceRole &&
+        (linkedFile.type.toLowerCase() == 'docx' ||
+            SheetFileImportPolicy.isDocxFileName(linkedFile.path))) {
+      return linkedFile;
+    }
+  }
+  return null;
+}
+
+String _docxReferenceFileName(SheetLinkedFile file) {
+  final label = file.label.trim();
+  if (SheetFileImportPolicy.isDocxFileName(label)) return _fileName(label);
+  final pathName = _fileName(file.path);
+  if (SheetFileImportPolicy.isDocxFileName(pathName)) return pathName;
+  return 'score.docx';
 }
 
 String _mediaTypeForStampAssetFile(String path) {
