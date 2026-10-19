@@ -2645,3 +2645,10 @@ surface each offending annotation name instead of reducing the failure to a gene
 Regression tests cover a deliberately malformed export containing all three hazards. This gate verifies the
 structure Clef generated; Acrobat, Preview, MobileSheets, Piascore and Android rendering/editability remain
 manual compatibility QA.
+
+S246 VERIFIED LOCAL: extended the editable PDF fixture gate to presentation flags that can disappear between
+screen viewing and printing. Every generated Clef annotation must carry the PDF Print flag and must not carry
+Hidden or NoView; the inspector, fixture CLI and report now name non-printable and hidden annotations. The
+malformed regression fixture proves these failures join duplicate names, out-of-page rectangles and actions in
+blocking local handoff, while normal Clef output remains printable. Actual print rendering and viewer editing
+still require the external compatibility matrix.

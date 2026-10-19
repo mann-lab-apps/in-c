@@ -72,6 +72,8 @@ void main() {
     expect(markdown, contains('- Duplicate Clef annotation names: none'));
     expect(markdown, contains('- Out-of-page Clef annotations: none'));
     expect(markdown, contains('- Clef annotations with actions: none'));
+    expect(markdown, contains('- Non-printable Clef annotations: none'));
+    expect(markdown, contains('- Hidden Clef annotations: none'));
     expect(
       markdown,
       contains('- FreeText annotations with embedded fonts: clef-free-text-1'),

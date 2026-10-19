@@ -91,6 +91,8 @@ class SheetStandardPdfAnnotationInspection {
     this.duplicateClefAnnotationNames = const <String>[],
     this.outOfPageClefAnnotationNames = const <String>[],
     this.actionBearingClefAnnotationNames = const <String>[],
+    this.nonPrintableClefAnnotationNames = const <String>[],
+    this.hiddenClefAnnotationNames = const <String>[],
   });
 
   final String path;
@@ -108,6 +110,8 @@ class SheetStandardPdfAnnotationInspection {
   final List<String> duplicateClefAnnotationNames;
   final List<String> outOfPageClefAnnotationNames;
   final List<String> actionBearingClefAnnotationNames;
+  final List<String> nonPrintableClefAnnotationNames;
+  final List<String> hiddenClefAnnotationNames;
 
   static const editableClefSubtypes = <String>{
     'Ink',
@@ -142,7 +146,9 @@ class SheetStandardPdfAnnotationInspection {
   bool get hasSafeClefAnnotationStructure {
     return duplicateClefAnnotationNames.isEmpty &&
         outOfPageClefAnnotationNames.isEmpty &&
-        actionBearingClefAnnotationNames.isEmpty;
+        actionBearingClefAnnotationNames.isEmpty &&
+        nonPrintableClefAnnotationNames.isEmpty &&
+        hiddenClefAnnotationNames.isEmpty;
   }
 
   bool get isLocallyInspectableEditableFixture {
@@ -320,6 +326,8 @@ class SheetAnnotatedPdfExporter {
     final clefAnnotationNameCounts = <String, int>{};
     final outOfPageClefAnnotationNames = <String>[];
     final actionBearingClefAnnotationNames = <String>[];
+    final nonPrintableClefAnnotationNames = <String>[];
+    final hiddenClefAnnotationNames = <String>[];
     var totalAnnotationCount = 0;
     var clefAnnotationCount = 0;
 
@@ -344,6 +352,12 @@ class SheetAnnotatedPdfExporter {
         if (annotation.dict.containsKey('A') ||
             annotation.dict.containsKey('AA')) {
           actionBearingClefAnnotationNames.add(name);
+        }
+        if (!annotation.isPrint) {
+          nonPrintableClefAnnotationNames.add(name);
+        }
+        if (annotation.isHidden || annotation.isNoView) {
+          hiddenClefAnnotationNames.add(name);
         }
         clefSubtypeCounts[annotation.subtype] =
             (clefSubtypeCounts[annotation.subtype] ?? 0) + 1;
@@ -396,6 +410,10 @@ class SheetAnnotatedPdfExporter {
       actionBearingClefAnnotationNames: List.unmodifiable(
         actionBearingClefAnnotationNames,
       ),
+      nonPrintableClefAnnotationNames: List.unmodifiable(
+        nonPrintableClefAnnotationNames,
+      ),
+      hiddenClefAnnotationNames: List.unmodifiable(hiddenClefAnnotationNames),
     );
   }
 

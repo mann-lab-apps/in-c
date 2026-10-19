@@ -692,6 +692,8 @@ void main() {
     expect(inspection.duplicateClefAnnotationNames, isEmpty);
     expect(inspection.outOfPageClefAnnotationNames, isEmpty);
     expect(inspection.actionBearingClefAnnotationNames, isEmpty);
+    expect(inspection.nonPrintableClefAnnotationNames, isEmpty);
+    expect(inspection.hiddenClefAnnotationNames, isEmpty);
     expect(
       inspection.clefAnnotationNames,
       containsAll(<String>[
@@ -776,11 +778,7 @@ void main() {
         .annotations
         .firstWhere((annotation) => annotation.name == 'clef-duplicate');
     actionAnnotation.dict['A'] = actionAnnotation.dict['AP']!;
-    unsafeEditor.setAnnotationFlags(
-      0,
-      actionAnnotation,
-      actionAnnotation.flags,
-    );
+    unsafeEditor.setAnnotationFlags(0, actionAnnotation, 34);
     await File(outputPath).writeAsBytes(unsafeEditor.save(), flush: true);
     final inspection =
         await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
@@ -791,6 +789,8 @@ void main() {
     expect(inspection.duplicateClefAnnotationNames, ['clef-duplicate']);
     expect(inspection.outOfPageClefAnnotationNames, contains('clef-outside'));
     expect(inspection.actionBearingClefAnnotationNames, ['clef-duplicate']);
+    expect(inspection.nonPrintableClefAnnotationNames, ['clef-duplicate']);
+    expect(inspection.hiddenClefAnnotationNames, ['clef-duplicate']);
     expect(inspection.hasSafeClefAnnotationStructure, isFalse);
     expect(inspection.isLocallyInspectableEditableFixture, isFalse);
   });

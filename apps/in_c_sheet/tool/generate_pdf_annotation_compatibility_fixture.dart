@@ -76,6 +76,10 @@ Future<void> main(List<String> args) async {
     stderr.writeln(
       'Action-bearing names: ${inspection.actionBearingClefAnnotationNames}',
     );
+    stderr.writeln(
+      'Non-printable names: ${inspection.nonPrintableClefAnnotationNames}',
+    );
+    stderr.writeln('Hidden names: ${inspection.hiddenClefAnnotationNames}');
     exitCode = 1;
     return;
   }
@@ -238,7 +242,9 @@ _generateUnicodeAppearanceFixture({
       'Unsafe annotation structure: '
       'duplicates=${inspection.duplicateClefAnnotationNames}, '
       'outOfPage=${inspection.outOfPageClefAnnotationNames}, '
-      'actions=${inspection.actionBearingClefAnnotationNames}',
+      'actions=${inspection.actionBearingClefAnnotationNames}, '
+      'nonPrintable=${inspection.nonPrintableClefAnnotationNames}, '
+      'hidden=${inspection.hiddenClefAnnotationNames}',
     );
     exitCode = 1;
     return null;

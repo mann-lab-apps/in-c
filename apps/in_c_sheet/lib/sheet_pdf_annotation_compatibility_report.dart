@@ -377,6 +377,8 @@ Local inspection:
 - Duplicate Clef annotation names: ${inspection.duplicateClefAnnotationNames.isEmpty ? 'none' : inspection.duplicateClefAnnotationNames.join(', ')}
 - Out-of-page Clef annotations: ${inspection.outOfPageClefAnnotationNames.isEmpty ? 'none' : inspection.outOfPageClefAnnotationNames.join(', ')}
 - Clef annotations with actions: ${inspection.actionBearingClefAnnotationNames.isEmpty ? 'none' : inspection.actionBearingClefAnnotationNames.join(', ')}
+- Non-printable Clef annotations: ${inspection.nonPrintableClefAnnotationNames.isEmpty ? 'none' : inspection.nonPrintableClefAnnotationNames.join(', ')}
+- Hidden Clef annotations: ${inspection.hiddenClefAnnotationNames.isEmpty ? 'none' : inspection.hiddenClefAnnotationNames.join(', ')}
 - FreeText annotations with embedded fonts: ${inspection.embeddedFontFreeTextNames.isEmpty ? 'none' : inspection.embeddedFontFreeTextNames.join(', ')}
 - Unicode FreeText annotations without embedded fonts: ${inspection.unembeddedUnicodeFreeTextNames.isEmpty ? 'none' : inspection.unembeddedUnicodeFreeTextNames.join(', ')}
 
