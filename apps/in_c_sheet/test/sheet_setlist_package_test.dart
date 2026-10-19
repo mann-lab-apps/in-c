@@ -813,6 +813,180 @@ Clef & Staff 세트리스트
     expect(dryRun.importableFileCount, 2);
   });
 
+  test('export includes restorable PDF annotation sidecars', () async {
+    final now = DateTime(2026, 10, 20, 18);
+    final score = _score(
+      id: 'annotated',
+      title: 'Annotated Etude',
+      filePath: '/library/annotated.pdf',
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff112233,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.2),
+              SheetAnnotationPoint(x: 0.3, y: 0.4),
+            ],
+            createdAt: now,
+            layerId: 'rehearsal',
+          ),
+        ],
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: 'Rehearsal'),
+        ],
+      ),
+    );
+    final setlist = SheetSetlist(
+      id: 'annotated-set',
+      title: 'Annotated Set',
+      scoreIds: const <String>['annotated'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: <SheetScore>[score],
+      readScoreBytes: (_) async => <int>[1, 2, 3, 4],
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedAnnotationCount, 1);
+    expect(result.skippedAnnotationCount, 0);
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.annotationSidecars, hasLength(1));
+    expect(
+      package.annotationSidecars.single.annotationLayer.strokes.single.id,
+      'stroke-1',
+    );
+  });
+
+  test('export does not choose annotations for a shared source file', () async {
+    final now = DateTime(2026, 10, 20, 18);
+    final annotationLayer = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      texts: <SheetTextAnnotation>[
+        SheetTextAnnotation(
+          id: 'note',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+          text: 'Cue',
+          color: 0xff111111,
+          fontSize: 18,
+          createdAt: now,
+        ),
+      ],
+    );
+    final scores = <SheetScore>[
+      _score(
+        id: 'part-a',
+        title: 'Part A',
+        filePath: '/library/songbook.pdf',
+        annotationLayer: annotationLayer,
+      ),
+      _score(
+        id: 'part-b',
+        title: 'Part B',
+        filePath: '/library/songbook.pdf',
+        annotationLayer: annotationLayer,
+      ),
+    ];
+    final setlist = SheetSetlist(
+      id: 'shared-set',
+      title: 'Shared Source Set',
+      scoreIds: const <String>['part-a', 'part-b'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: scores,
+      readScoreBytes: (_) async => <int>[1, 2, 3],
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedAnnotationCount, 0);
+    expect(result.skippedSharedSourceAnnotationScores, hasLength(2));
+    expect(
+      SheetSetlistPackageArchive.decodeBytes(result.bytes!).annotationSidecars,
+      isEmpty,
+    );
+  });
+
+  test('export reports deferred text and image stamp annotations', () async {
+    final now = DateTime(2026, 10, 20, 18);
+    final scores = <SheetScore>[
+      _score(
+        id: 'notes',
+        title: 'Lesson Notes',
+        filePath: '/library/notes.md',
+        annotationLayer: SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            SheetAnnotationStroke(
+              id: 'text-stroke',
+              pageNumber: 1,
+              tool: SheetAnnotationTool.pen,
+              color: 0xff111111,
+              width: 3,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.1, y: 0.2),
+              ],
+              createdAt: now,
+            ),
+          ],
+        ),
+      ),
+      _score(
+        id: 'photo-cue',
+        title: 'Photo Cue',
+        filePath: '/library/photo-cue.pdf',
+        annotationLayer: SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'image-stamp',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+              text: 'Photo cue',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now,
+              stampKind: SheetAnnotationUserStamp.imageKind,
+              stampAssetRef: 'stamps/photos/cue.png',
+            ),
+          ],
+        ),
+      ),
+    ];
+    final setlist = SheetSetlist(
+      id: 'deferred-set',
+      title: 'Deferred Set',
+      scoreIds: const <String>['notes', 'photo-cue'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: scores,
+      readScoreBytes: (score) async => score.id == 'notes'
+          ? utf8.encode('Practice slowly.')
+          : <int>[1, 2, 3],
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedAnnotationCount, 0);
+    expect(result.skippedUnsupportedAnnotationScores.single.id, 'notes');
+    expect(result.skippedImageStampAnnotationScores.single.id, 'photo-cue');
+    expect(result.skippedAnnotationCount, 2);
+  });
+
   test('export preserves text score extensions and manifest kinds', () async {
     final now = DateTime(2026, 10, 20, 10);
     final scores = <SheetScore>[
@@ -1064,6 +1238,7 @@ SheetScore _score({
   String composer = '',
   String? filePath,
   List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
+  SheetAnnotationLayer annotationLayer = SheetAnnotationLayer.empty,
 }) {
   final now = DateTime(2026, 9, 28, 15);
   return SheetScore(
@@ -1080,6 +1255,7 @@ SheetScore _score({
     lastPage: 1,
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
+    annotationLayer: annotationLayer,
   );
 }
 

@@ -2925,7 +2925,7 @@ Clef & Staff 세트리스트
 
     expect(find.text('세트리스트 패키지 내보내기'), findsOneWidget);
     expect(find.textContaining('ChordPro/DOCX/RTF 원본'), findsOneWidget);
-    expect(find.textContaining('곡별 필기와 연결 오디오/파일은 포함하지 않습니다'), findsOneWidget);
+    expect(find.textContaining('PDF/이미지 악보의 일반 필기는 함께 묶습니다'), findsOneWidget);
     expect(find.text('패키지를 만들 수 없습니다'), findsOneWidget);
     expect(find.text('곡 0개'), findsOneWidget);
     expect(find.text('파일 0개'), findsOneWidget);

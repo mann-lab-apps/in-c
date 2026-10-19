@@ -8201,6 +8201,15 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
   final int scoreCount;
   final VoidCallback? onShare;
 
+  String _scoreListSummary(List<SheetScore> scores) {
+    final visible = scores
+        .take(3)
+        .map((score) => score.displayTitle)
+        .join(', ');
+    final hiddenCount = scores.length - 3;
+    return hiddenCount > 0 ? '$visible 외 $hiddenCount곡' : visible;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -8208,6 +8217,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
     final color = canShare
         ? theme.colorScheme.secondary
         : theme.colorScheme.error;
+    final skippedAnnotationCount = result.skippedAnnotationCount;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -8232,7 +8242,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '곡별 필기와 연결 오디오/파일은 포함하지 않습니다. 모두 옮기려면 전체 백업을 사용하세요.',
+                'PDF/이미지 악보의 일반 필기는 함께 묶습니다. 연결 오디오/파일과 일부 고급 필기는 포함하지 않으므로 모두 옮기려면 전체 백업을 사용하세요.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.tertiary,
                   fontWeight: FontWeight.w700,
@@ -8243,7 +8253,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
                 icon: canShare ? Icons.archive_outlined : Icons.error_outline,
                 title: canShare ? '공유할 패키지를 만들었습니다' : '패키지를 만들 수 없습니다',
                 message: canShare
-                    ? '곡 $scoreCount개 · 파일 ${result.includedFileCount}개 · 스탬프 pack ${result.includedUserStampPackCount}개 · 가져오기 전 preview에서 다시 확인합니다.'
+                    ? '곡 $scoreCount개 · 파일 ${result.includedFileCount}개 · 필기 ${result.includedAnnotationCount}곡 · 스탬프 pack ${result.includedUserStampPackCount}개 · 가져오기 전 preview에서 다시 확인합니다.'
                     : result.failureReason,
                 color: color,
               ),
@@ -8258,9 +8268,49 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
                     Chip(
                       label: Text('스탬프 ${result.includedUserStampPackCount}팩'),
                     ),
+                  if (result.includedUserStampAssetCount > 0)
+                    Chip(
+                      label: Text(
+                        '스탬프 파일 ${result.includedUserStampAssetCount}개',
+                      ),
+                    ),
+                  if (result.includedAnnotationCount > 0)
+                    Chip(label: Text('필기 ${result.includedAnnotationCount}곡')),
+                  if (skippedAnnotationCount > 0)
+                    Chip(
+                      avatar: const Icon(Icons.info_outline, size: 18),
+                      label: Text('필기 제외 $skippedAnnotationCount곡'),
+                    ),
                   Chip(label: Text(canShare ? 'ZIP 준비 완료' : '확인 필요')),
                 ],
               ),
+              if (result.skippedSharedSourceAnnotationScores.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '같은 원본 파일을 공유해 필기를 제외했습니다: ${_scoreListSummary(result.skippedSharedSourceAnnotationScores)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+              ],
+              if (result.skippedUnsupportedAnnotationScores.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '텍스트/DOCX/RTF 악보 필기는 아직 패키지로 옮기지 않습니다: ${_scoreListSummary(result.skippedUnsupportedAnnotationScores)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+              ],
+              if (result.skippedImageStampAnnotationScores.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '이미지 스탬프가 있는 필기는 안전한 연결을 위해 제외했습니다: ${_scoreListSummary(result.skippedImageStampAnnotationScores)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Flexible(
                 child: DecoratedBox(
@@ -10138,6 +10188,17 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       setlist: currentSetlist,
       scores: scores,
       userStampPacks: controller.userAnnotationStampPacks,
+      readUserStampAssetBytes: (assetRef) async {
+        try {
+          final file = await controller.stampAssetStore.assetFileForRef(
+            assetRef,
+          );
+          if (!await file.exists()) return null;
+          return await file.readAsBytes();
+        } catch (_) {
+          return null;
+        }
+      },
       readScoreBytes: (score) async {
         final file = File(score.filePath);
         if (!await file.exists()) {

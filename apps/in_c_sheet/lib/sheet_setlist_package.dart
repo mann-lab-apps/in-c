@@ -327,12 +327,16 @@ class SheetSetlistPackageArchive {
     final missingScores = <SheetScore>[];
     final unsupportedScores = <SheetScore>[];
     final packageFileNames = <String, String>{};
+    final sourcePathByScoreId = <String, String>{};
+    final sourceUseCounts = <String, int>{};
 
     for (final score in orderedScores) {
       final originalDocx = _originalDocxReference(score);
       final originalRtf = _originalRtfReference(score);
       final originalDocument = originalDocx ?? originalRtf;
       final sourcePath = originalDocument?.path.trim() ?? score.filePath.trim();
+      sourcePathByScoreId[score.id] = sourcePath;
+      sourceUseCounts[sourcePath] = (sourceUseCounts[sourcePath] ?? 0) + 1;
       final sourceFileName = switch (originalDocument) {
         null => score.sourceFileDisplayName,
         _ when originalDocx != null => _referenceFileName(originalDocx, 'docx'),
@@ -401,6 +405,45 @@ class SheetSetlistPackageArchive {
         }
       }
     }
+    final annotationSidecars = <SheetSetlistPackageAnnotationSidecar>[];
+    final skippedSharedSourceAnnotationScores = <SheetScore>[];
+    final skippedUnsupportedAnnotationScores = <SheetScore>[];
+    final skippedImageStampAnnotationScores = <SheetScore>[];
+    for (final score in orderedScores) {
+      final annotationLayer = score.annotationLayer;
+      if (annotationLayer.strokes.isEmpty && annotationLayer.texts.isEmpty) {
+        continue;
+      }
+      final sourcePath = sourcePathByScoreId[score.id];
+      final entryPath = sourcePath == null
+          ? null
+          : entryPathBySourcePath[sourcePath];
+      if (entryPath == null) {
+        skippedUnsupportedAnnotationScores.add(score);
+        continue;
+      }
+      if ((sourceUseCounts[sourcePath] ?? 0) > 1) {
+        skippedSharedSourceAnnotationScores.add(score);
+        continue;
+      }
+      final packageFile = SheetSetlistPackageFile(path: entryPath);
+      if (!packageFile.isPdf && !packageFile.isImage) {
+        skippedUnsupportedAnnotationScores.add(score);
+        continue;
+      }
+      if (annotationLayer.texts.any((text) => text.isImageStamp)) {
+        skippedImageStampAnnotationScores.add(score);
+        continue;
+      }
+      final scoreBytes = scoreFiles[entryPath]!;
+      annotationSidecars.add(
+        SheetSetlistPackageAnnotationSidecar(
+          scoreEntryPath: entryPath,
+          scoreSha256: sha256.convert(scoreBytes).toString(),
+          annotationLayer: annotationLayer,
+        ),
+      );
+    }
 
     return SheetSetlistPackageExportResult(
       bytes: encodeBytes(
@@ -408,6 +451,7 @@ class SheetSetlistPackageArchive {
         scoreFiles: scoreFiles,
         userStampPacks: userStampPacks,
         stampAssetFiles: stampAssetFiles,
+        annotationSidecars: annotationSidecars,
       ),
       manifestText: manifestText,
       includedFileCount: scoreFiles.length,
@@ -419,6 +463,16 @@ class SheetSetlistPackageArchive {
       includedUserStampAssetCount: _normalizePackageStampAssetFiles(
         stampAssetFiles,
       ).length,
+      includedAnnotationCount: annotationSidecars.length,
+      skippedSharedSourceAnnotationScores: List<SheetScore>.unmodifiable(
+        skippedSharedSourceAnnotationScores,
+      ),
+      skippedUnsupportedAnnotationScores: List<SheetScore>.unmodifiable(
+        skippedUnsupportedAnnotationScores,
+      ),
+      skippedImageStampAnnotationScores: List<SheetScore>.unmodifiable(
+        skippedImageStampAnnotationScores,
+      ),
       missingScores: const <SheetScore>[],
       unsupportedScores: const <SheetScore>[],
     );
@@ -434,6 +488,10 @@ class SheetSetlistPackageExportResult {
     this.includedFileCount = 0,
     this.includedUserStampPackCount = 0,
     this.includedUserStampAssetCount = 0,
+    this.includedAnnotationCount = 0,
+    this.skippedSharedSourceAnnotationScores = const <SheetScore>[],
+    this.skippedUnsupportedAnnotationScores = const <SheetScore>[],
+    this.skippedImageStampAnnotationScores = const <SheetScore>[],
   });
 
   final Uint8List? bytes;
@@ -441,8 +499,17 @@ class SheetSetlistPackageExportResult {
   final int includedFileCount;
   final int includedUserStampPackCount;
   final int includedUserStampAssetCount;
+  final int includedAnnotationCount;
+  final List<SheetScore> skippedSharedSourceAnnotationScores;
+  final List<SheetScore> skippedUnsupportedAnnotationScores;
+  final List<SheetScore> skippedImageStampAnnotationScores;
   final List<SheetScore> missingScores;
   final List<SheetScore> unsupportedScores;
+
+  int get skippedAnnotationCount =>
+      skippedSharedSourceAnnotationScores.length +
+      skippedUnsupportedAnnotationScores.length +
+      skippedImageStampAnnotationScores.length;
 
   bool get didExport =>
       bytes != null && missingScores.isEmpty && unsupportedScores.isEmpty;

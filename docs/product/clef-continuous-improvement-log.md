@@ -2913,3 +2913,12 @@ sidecars. New eligible scores persist their committed stroke/text/multi-layer do
 transaction, while an existing local score keeps its own annotations unchanged. Image-stamp sidecars remain deferred until
 their placed asset references can be bound to the collision-safe package asset transaction. `flutter analyze`, all 1,714
 tests and the RC release check passed.
+
+S287 VERIFIED LOCAL: connected app-generated setlist packages to the safe annotation sidecar path. Export now includes
+committed stroke/text/multi-layer documents for uniquely sourced PDF/image scores, binds each sidecar to the exact bytes
+placed in the ZIP and reports included/omitted annotation counts before sharing. It deliberately omits annotations for
+scores sharing one source file, text/DOCX/RTF scores and documents containing image stamps instead of choosing or claiming
+a partial result. The normal UI export path now also reads app-owned image stamp assets so referenced user stamp packs can
+carry their validated PNG/JPEG/WebP files. Regressions cover sidecar round-trip, shared-source protection and explicit
+text/image-stamp deferral; external package size and Device QA remain follow-up.
+`flutter analyze`, all 1,717 tests and the RC release check passed.
