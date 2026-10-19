@@ -2941,3 +2941,12 @@ entry contents are decompressed. App-generated packages pass through the same po
 will immediately refuse. Codec regressions cover compressed size, per-entry size, expanded total, entry count and export
 limits. Real large PDF/image/text/stamp combinations within the boundary remain Device QA.
 `flutter analyze`, all 1,724 tests and the RC release check passed.
+
+S290 VERIFIED LOCAL: preserved placed image-stamp annotations in setlist packages after their picker definition is
+deleted. Export now reads image assets referenced directly by eligible annotation sidecars, validates safe `stamps/`
+paths, size, decodability and pixel limits, and includes the bytes without synthesizing user stamp metadata. Import stores
+the asset collision-safely using its actual SHA-256, restores the annotation on a new PDF/image score and leaves the user
+stamp picker unchanged. Malformed image decoders are normalized to package format failures instead of leaking arbitrary
+decoder exceptions. Regressions cover export/dry-run, restore without picker resurrection and malformed image rejection.
+Large mixed-package and external-device QA remain follow-up.
+`flutter analyze`, all 1,728 tests and the RC release check passed.

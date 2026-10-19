@@ -177,14 +177,15 @@
    missing/ambiguous 항목이 남아 있으면 저장되지 않아야 한다.
    annotation sidecar가 있는 package는 새 PDF/image 악보의 일반 필기와 검증된 image stamp 필기를
    `필기 함께 복원`으로 표시하고 가져온 뒤 layer/stroke/text/stamp가 유지되어야 한다. 기존 local 악보와
-   text score 필기는 `보호(미적용)`로 표시하고 덮어쓰지 않아야 한다. Image stamp 정의·asset이
-   누락된 package는 가져오기를 막아야 하며, 같은 local asset 경로에 다른 파일이 있으면 기존 파일을
+   text score 필기는 `보호(미적용)`로 표시하고 덮어쓰지 않아야 한다. Image stamp asset이
+   누락·손상된 package는 가져오기를 막아야 하며, 같은 local asset 경로에 다른 파일이 있으면 기존 파일을
    덮어쓰지 않아야 한다. 연결 오디오/파일은 포함되지 않으며 전체 백업이
    필요하다고 명확하게 알려야 한다.
    앱에서 package를 내보낼 때도 고유 원본 PDF/image 악보의 일반 필기 수가 표시되고 재가져오기 후
    복원되어야 한다. 같은 원본을 공유하는 악보와 text/DOCX/RTF 필기는 제외 수와 이유를
-   내보내기 preview에서 확인할 수 있어야 한다. 정상 image stamp 필기는 포함되고, 정의·asset이
-   불완전한 경우만 제외 사유로 표시되어야 한다.
+   내보내기 preview에서 확인할 수 있어야 한다. 정상 image stamp 필기는 포함되고, asset이
+   누락·손상된 경우만 제외 사유로 표시되어야 한다. Picker에서 정의를 삭제한 image stamp도 이미 배치된
+   필기와 bitmap은 복원하되 삭제한 사용자 스탬프 정의가 다시 만들어지지 않아야 한다.
    256MB를 초과하는 package ZIP은 읽기 전에 명확한 안내로 거부되어야 하며, 압축을 풀면
    한도를 넘는 파일도 preview나 부분 import를 시작하지 않아야 한다.
    `악보 추가`의 `텍스트/ChordPro/DOCX/RTF 안내`에서는 ChordPro를 붙여넣어 제목/작곡가/조성/박자와

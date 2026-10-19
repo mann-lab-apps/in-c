@@ -201,8 +201,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   완료되지 않으면 어떤 library profile에서도 참조하지 않는 app-owned 복사본만 정리한다. 악보별 필기를
   score entry path/checksum에 묶는 optional sidecar strict codec과 ZIP round-trip이 있고, 새 PDF/image score의
   일반 stroke/text/multi-layer sidecar와 검증된 image stamp asset은 같은 metadata transaction에서 복원한다.
-  기존 local score와 text score sidecar는 preview에서 보호·미적용으로 구분한다. Image stamp 정의·asset이
-  누락되면 codec이 거부하고, local asset 경로 충돌은 기존 파일을 덮어쓰지 않고 import를 차단한다.
+  기존 local score와 text score sidecar는 preview에서 보호·미적용으로 구분한다. Image stamp asset이
+  누락되거나 손상되면 codec이 거부하고, local asset 경로 충돌은 기존 파일을 덮어쓰지 않고 import를 차단한다.
+  삭제된 image stamp picker 정의는 다시 만들지 않으면서 이미 배치된 필기와 asset만 복원한다.
   ZIP codec은 256MB archive/해제 크기, 128MB 단일 entry, 512 entry 한도로 과도한 메모리 사용을
   preview 전에 차단한다. MobileSheets 전용 binary package 호환과 한도 내 대용량 mixed package 실기기 QA는 후속이다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,

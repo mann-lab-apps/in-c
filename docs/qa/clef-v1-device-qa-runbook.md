@@ -57,11 +57,13 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   같은 asset 경로에 다른 local 이미지가 있으면 기존 파일을 덮어쓰지 않고 스탬프 미적용 안내를 보여야 한다.
   Annotation sidecar가 있는 package는 새 PDF/image 악보의 일반 필기와 검증된 image stamp 필기를
   함께 복원하고, 기존 local 악보나 text score sidecar는 preview에서 보호·미적용으로
-  구분해 덮어쓰지 않아야 한다. Image stamp 정의·파일이 누락되거나 local 경로에 다른
+  구분해 덮어쓰지 않아야 한다. Image stamp 파일이 누락·손상되거나 local 경로에 다른
   파일이 있으면 가져오기를 막고 기존 파일을 보존해야 한다.
   앱에서 만든 package도 고유 원본 PDF/image 악보의 일반 필기 수를 내보내기 preview에 표시해야 한다.
   같은 PDF를 공유하는 songbook 곡과 text/DOCX/RTF 필기는 제외 수와 이유가 보여야 한다.
-  정상 image stamp 필기는 포함하되, 정의·asset이 누락된 필기는 별도 제외 사유로 표시해야 한다.
+  정상 image stamp 필기는 포함하되, asset이 누락·손상된 필기는 별도 제외 사유로 표시해야 한다.
+  Picker에서 image stamp 정의를 삭제한 뒤에도 이미 찍힌 필기와 bitmap은 package로 복원되되,
+  삭제한 정의가 `사용자 스탬프`에 다시 생기지 않아야 한다.
   사용자 image stamp pack은 asset 파일 수도 표시한다.
   256MB를 초과하는 ZIP은 파일 내용을 읽기 전에 안내하고 거부해야 한다. Entry 512개, 단일
   entry 128MB, 전체 해제 크기 256MB 한도를 넘는 조작 ZIP도 import preview 전에 차단되어야 한다.

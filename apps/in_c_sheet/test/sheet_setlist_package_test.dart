@@ -12,6 +12,7 @@ import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
 import 'package:in_c_sheet/sheet_setlist_package.dart';
+import 'package:in_c_sheet/sheet_setlist_package_annotation.dart';
 
 void main() {
   group('setlist package metronome codec', () {
@@ -1283,6 +1284,129 @@ Clef & Staff 세트리스트
       expect(dryRun.deferredAnnotationCount, 0);
     },
   );
+
+  test('export preserves placed image stamps after their picker definition is deleted', () async {
+    final imageBytes = image.encodePng(image.Image(width: 16, height: 16));
+    final now = DateTime(2026, 10, 20, 20);
+    final score = _score(
+      id: 'orphan-photo-score',
+      title: 'Orphan Photo Score',
+      filePath: '/library/orphan-photo-score.pdf',
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'orphan-photo-cue',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+            text: 'Photo cue',
+            color: 0xff111111,
+            fontSize: 18,
+            createdAt: now,
+            stampKind: SheetAnnotationUserStamp.imageKind,
+            stampAssetRef: 'stamps/photos/deleted-photo-cue.png',
+          ),
+        ],
+      ),
+    );
+    final setlist = SheetSetlist(
+      id: 'orphan-photo-set',
+      title: 'Orphan Photo Set',
+      scoreIds: const <String>['orphan-photo-score'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: <SheetScore>[score],
+      readScoreBytes: (_) async => <int>[1, 2, 3],
+      readUserStampAssetBytes: (assetRef) async =>
+          assetRef == 'stamps/photos/deleted-photo-cue.png' ? imageBytes : null,
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.includedAnnotationCount, 1);
+    expect(result.includedUserStampPackCount, 0);
+    expect(result.includedUserStampAssetCount, 1);
+    expect(result.skippedImageStampAnnotationScores, isEmpty);
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+    expect(package.userStampPacks, isEmpty);
+    expect(
+      package.stampAssetFiles.single.path,
+      'stamps/photos/deleted-photo-cue.png',
+    );
+    expect(dryRun.restorableAnnotationCount, 1);
+    expect(dryRun.userStampPreview.hasStamps, isFalse);
+  });
+
+  test('codec rejects invalid annotation-only image stamp assets', () {
+    final scoreBytes = <int>[1, 2, 3];
+    const assetRef = 'stamps/photos/deleted-photo-cue.png';
+
+    expect(
+      () => SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Invalid Annotation Asset
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+        stampAssetFiles: const <String, List<int>>{
+          assetRef: <int>[1, 2, 3],
+        },
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/new-sonata.pdf',
+            scoreSha256: sha256.convert(scoreBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: const <SheetAnnotationStroke>[],
+              texts: <SheetTextAnnotation>[
+                SheetTextAnnotation(
+                  id: 'photo-cue',
+                  pageNumber: 1,
+                  position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                  text: 'Photo cue',
+                  color: 0xff111111,
+                  fontSize: 18,
+                  createdAt: DateTime(2026, 10, 20, 20),
+                  stampKind: SheetAnnotationUserStamp.imageKind,
+                  stampAssetRef: assetRef,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('codec normalizes malformed user stamp image failures', () {
+    const malformedBytes = <int>[1, 2, 3];
+
+    expect(
+      () => SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Malformed Stamp
+곡 수: 0곡
+''',
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: <SheetAnnotationStampPack>[
+          _imageStampPack(malformedBytes),
+        ],
+        stampAssetFiles: const <String, List<int>>{
+          'stamps/photos/photo-cue.png': malformedBytes,
+        },
+      ),
+      throwsFormatException,
+    );
+  });
 
   test('export stores a shared source file once', () async {
     final now = DateTime(2026, 9, 28, 15);

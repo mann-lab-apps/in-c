@@ -986,6 +986,86 @@ Clef & Staff 세트리스트
     },
   );
 
+  test('setlist package restores placed image assets without recreating deleted stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-orphan-image-annotation-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 20);
+    final store = _PackageImportStore(now);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final imageBytes = _tinyPngBytes();
+    final scoreBytes = <int>[1, 2, 3];
+    const assetRef = 'stamps/package/deleted-photo-cue.png';
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Deleted Stamp Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+        stampAssetFiles: <String, List<int>>{assetRef: imageBytes},
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/new-sonata.pdf',
+            scoreSha256: sha256.convert(scoreBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: const <SheetAnnotationStroke>[],
+              texts: <SheetTextAnnotation>[
+                SheetTextAnnotation(
+                  id: 'photo-cue',
+                  pageNumber: 1,
+                  position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                  text: 'Photo cue',
+                  color: 0xff111111,
+                  fontSize: 18,
+                  createdAt: now,
+                  stampKind: SheetAnnotationUserStamp.imageKind,
+                  stampAssetRef: assetRef,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(dryRun.restorableAnnotationCount, 1);
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(
+      controller
+          .scoreById('package-pdf-0')
+          .annotationLayer
+          .texts
+          .single
+          .stampAssetRef,
+      assetRef,
+    );
+    expect(await stampAssetStore.assetExists(assetRef), isTrue);
+    expect(controller.errorMessage, isNull);
+  });
+
   test(
     'setlist package blocks image annotations on local asset conflict',
     () async {

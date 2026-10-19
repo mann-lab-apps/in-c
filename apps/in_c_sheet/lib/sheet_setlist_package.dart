@@ -210,7 +210,7 @@ class SheetSetlistPackageArchive {
       }
       annotationSidecars.add(sidecar);
     }
-    final packagedImageAssetRefs = _imageStampAssetRefs(userStampPacks);
+    final packagedImageAssetRefs = stampAssetRefs;
     final unresolvedAnnotationAssetRefs =
         _imageStampAssetRefsInAnnotationSidecars(annotationSidecars)
           ..removeAll(packagedImageAssetRefs);
@@ -220,6 +220,12 @@ class SheetSetlistPackageArchive {
         '${unresolvedAnnotationAssetRefs.join(', ')}',
       );
     }
+    _validatePackageAnnotationImageStampAssets(
+      annotationSidecars,
+      <String, List<int>>{
+        for (final asset in stampAssetFiles) asset.path: asset.bytes!,
+      },
+    );
 
     return SheetSetlistPackageArchive(
       manifest: manifest,
@@ -280,16 +286,23 @@ class SheetSetlistPackageArchive {
         ),
       );
     }
-    final referencedStampAssetRefs = _imageStampAssetRefs(normalizedStampPacks);
+    final referencedStampAssetRefs = <String>{
+      ..._imageStampAssetRefs(normalizedStampPacks),
+      ..._imageStampAssetRefsInAnnotationSidecars(annotationSidecars),
+    };
     final unresolvedAnnotationAssetRefs =
         _imageStampAssetRefsInAnnotationSidecars(annotationSidecars)
-          ..removeAll(referencedStampAssetRefs);
+          ..removeAll(normalizedStampAssetFiles.keys);
     if (unresolvedAnnotationAssetRefs.isNotEmpty) {
       throw FormatException(
         'Setlist package annotation references unknown stamp assets: '
         '${unresolvedAnnotationAssetRefs.join(', ')}',
       );
     }
+    _validatePackageAnnotationImageStampAssets(
+      annotationSidecars,
+      normalizedStampAssetFiles,
+    );
     final paths = <String>{};
     for (final entry in scoreFiles.entries) {
       final path = entry.key.trim().replaceAll('\\', '/');
@@ -449,22 +462,39 @@ class SheetSetlistPackageArchive {
         unsupportedScores: List<SheetScore>.unmodifiable(unsupportedScores),
       );
     }
+    final annotationImageAssetRefs = <String>{
+      for (final score in orderedScores)
+        for (final text in score.annotationLayer.texts)
+          if (text.isImageStamp)
+            text.stampAssetRef.trim().replaceAll('\\', '/'),
+    }..remove('');
     final stampAssetFiles = <String, List<int>>{};
     if (readUserStampAssetBytes != null) {
-      for (final assetRef in _imageStampAssetRefs(userStampPacks)) {
+      for (final assetRef in <String>{
+        ..._imageStampAssetRefs(userStampPacks),
+        ...annotationImageAssetRefs,
+      }) {
         final bytes = await readUserStampAssetBytes(assetRef);
         if (bytes != null) {
           stampAssetFiles[assetRef] = bytes;
         }
       }
     }
-    final exportableImageAssetRefs = _imageStampAssetRefs(
-      _normalizePackageUserStampPacks(
-        userStampPacks,
-        allowImageStamps: stampAssetFiles.isNotEmpty,
-        availableImageAssetRefs: stampAssetFiles.keys.toSet(),
+    final exportableImageAssetRefs = <String>{
+      ..._imageStampAssetRefs(
+        _normalizePackageUserStampPacks(
+          userStampPacks,
+          allowImageStamps: stampAssetFiles.isNotEmpty,
+          availableImageAssetRefs: stampAssetFiles.keys.toSet(),
+        ),
       ),
-    );
+      for (final assetRef in annotationImageAssetRefs)
+        if (_isValidPackageAnnotationImageStampAsset(
+          assetRef,
+          stampAssetFiles[assetRef],
+        ))
+          assetRef,
+    };
     final annotationSidecars = <SheetSetlistPackageAnnotationSidecar>[];
     final skippedSharedSourceAnnotationScores = <SheetScore>[];
     final skippedUnsupportedAnnotationScores = <SheetScore>[];
@@ -774,9 +804,7 @@ class SheetSetlistPackageDryRun {
             existingMatch: index < matches.length ? matches[index] : null,
             packageFiles: packageFiles,
             annotationSidecars: annotationSidecars,
-            restorableImageStampAssetRefs: _imageStampAssetRefs(
-              normalizedUserStampPacks,
-            ),
+            restorableImageStampAssetRefs: stampAssetRefs,
           ),
       ]),
     );
@@ -1309,7 +1337,14 @@ void _validatePackageImageStampAssets(
           '${stamp.assetRef}',
         );
       }
-      final decoded = image.decodeImage(Uint8List.fromList(bytes));
+      image.Image? decoded;
+      try {
+        decoded = image.decodeImage(Uint8List.fromList(bytes));
+      } catch (_) {
+        throw FormatException(
+          'Setlist package image stamp cannot be decoded: ${stamp.assetRef}',
+        );
+      }
       if (decoded == null) {
         throw FormatException(
           'Setlist package image stamp cannot be decoded: ${stamp.assetRef}',
@@ -1324,6 +1359,48 @@ void _validatePackageImageStampAssets(
       }
     }
   }
+}
+
+void _validatePackageAnnotationImageStampAssets(
+  Iterable<SheetSetlistPackageAnnotationSidecar> sidecars,
+  Map<String, List<int>> assetFiles,
+) {
+  for (final assetRef in _imageStampAssetRefsInAnnotationSidecars(sidecars)) {
+    if (!_isValidPackageAnnotationImageStampAsset(
+      assetRef,
+      assetFiles[assetRef],
+    )) {
+      throw FormatException(
+        'Setlist package annotation image stamp is invalid: $assetRef',
+      );
+    }
+  }
+}
+
+bool _isValidPackageAnnotationImageStampAsset(
+  String assetRef,
+  List<int>? bytes,
+) {
+  final normalizedRef = assetRef.trim().replaceAll('\\', '/');
+  if (!_isSafePackageStampAssetZipEntryPath(normalizedRef) ||
+      bytes == null ||
+      bytes.isEmpty ||
+      bytes.length > SheetAnnotationStampPack.maxImageAssetBytes) {
+    return false;
+  }
+  image.Image? decoded;
+  try {
+    decoded = image.decodeImage(Uint8List.fromList(bytes));
+  } catch (_) {
+    return false;
+  }
+  return decoded != null &&
+      decoded.width > 0 &&
+      decoded.height > 0 &&
+      decoded.width <= SheetAnnotationStampPack.maxImageAssetDimensionPixels &&
+      decoded.height <= SheetAnnotationStampPack.maxImageAssetDimensionPixels &&
+      decoded.width * decoded.height <=
+          SheetAnnotationStampPack.maxImageAssetPixels;
 }
 
 String _setlistPackageManifestText(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
 import 'sheet_annotation.dart';
@@ -2224,7 +2225,7 @@ class SheetLibraryController extends ChangeNotifier {
       final asset = assetsByRef[assetRef];
       final stamp = stampsByAssetRef[assetRef];
       final bytes = asset?.bytes;
-      if (stamp == null || bytes == null) {
+      if (bytes == null) {
         await _deleteUnusedImageStampAssets(
           createdAssetRefs,
           _userAnnotationStampPacks,
@@ -2234,7 +2235,7 @@ class SheetLibraryController extends ChangeNotifier {
       final result = await stampAssetStore.storePackagedImageStampAsset(
         assetRef: assetRef,
         bytes: bytes,
-        checksum: stamp.checksum,
+        checksum: stamp?.checksum ?? sha256.convert(bytes).toString(),
       );
       if (!result.didStore || _activeLibraryProfile.id != libraryId) {
         await _deleteUnusedImageStampAssets(
