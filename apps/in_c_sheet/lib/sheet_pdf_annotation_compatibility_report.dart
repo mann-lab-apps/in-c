@@ -100,6 +100,20 @@ class SheetPdfViewerCompatibilityInvalidStatusCell {
   String get summary => '$viewerLabel $column=`$value`';
 }
 
+class SheetPdfAConformanceReportFinding {
+  const SheetPdfAConformanceReportFinding({
+    required this.profile,
+    required this.severity,
+    required this.details,
+  });
+
+  final String profile;
+  final String severity;
+  final String details;
+
+  String get summary => '$profile $severity: $details';
+}
+
 class SheetPdfViewerCompatibilityGate {
   const SheetPdfViewerCompatibilityGate._({
     required this.missingViewerIds,
@@ -401,6 +415,7 @@ Completion gate:
 - Keep this report as `${SheetPdfViewerCompatibilityStatus.notTested.label}` until every viewer row has `Result notes` or a required-check evidence link.
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
 - If `Unicode text` is `${SheetPdfViewerCompatibilityStatus.pass.label}`, include Unicode/glyph/font evidence in the row notes or evidence link.
+- Resolve every introduced PDF/A error or warning before treating a filled viewer matrix as ready.
 - Treat local inspection as a fixture sanity check, not as proof of $viewerLabels behavior.
 
 Required spike items:
@@ -597,6 +612,31 @@ class SheetPdfAnnotationCompatibilityReportParser {
       }
     }
     return invalidCells;
+  }
+
+  static List<SheetPdfAConformanceReportFinding> parseIntroducedPdfAFindings(
+    String markdown,
+  ) {
+    final findings = <SheetPdfAConformanceReportFinding>[];
+    final pattern = RegExp(
+      r'^- Introduced (PDF/A-[^ ]+) (errors|warnings):\s*(.+)$',
+      multiLine: true,
+      caseSensitive: false,
+    );
+    for (final match in pattern.allMatches(markdown)) {
+      final details = (match.group(3) ?? '').trim();
+      if (details.isEmpty || details.toLowerCase() == 'none') {
+        continue;
+      }
+      findings.add(
+        SheetPdfAConformanceReportFinding(
+          profile: match.group(1) ?? 'PDF/A',
+          severity: (match.group(2) ?? 'finding').toLowerCase(),
+          details: details,
+        ),
+      );
+    }
+    return findings;
   }
 
   static String? _viewerIdForLabel(String label) {

@@ -424,7 +424,8 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
 빈 목록이어야 fixture를 외부 viewer QA로 넘긴다.
 생성 report에는 원본과 출력의 PDF/A-2b error/warning 개수와 출력에서 새로 생긴 finding도
 따로 기록된다. `Introduced PDF/A-2b errors/warnings`가 `none`이 아니면 외부 확인 전에 원인을
-검토한다. 다만 이 비교는 정식 PDF/A 인증이 아니며, 현재 validator는 annotation appearance
+검토한다. 채운 report의 `--review-report` 검사도 이 finding을 출력하고 종료 코드 2를 반환한다.
+다만 이 비교는 정식 PDF/A 인증이 아니며, 현재 validator는 annotation appearance
 stream 안의 font resource를 순회하지 않는다. 따라서 PDF/A delta가 깨끗해도 아래 embedded-font
 검사와 Unicode glyph 외부 확인은 그대로 수행한다.
 같은 도구는 한글/음악 기호 FreeText 표시만 따로 볼 수 있는

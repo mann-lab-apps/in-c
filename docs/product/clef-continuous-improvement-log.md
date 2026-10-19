@@ -2660,3 +2660,9 @@ listed in the generated report. Regression coverage proves ordinary Clef Ink exp
 and a deliberately hidden/non-printable annotation is reported as a new warning. The current `pdf_document`
 validator does not traverse fonts inside annotation appearance streams, so a clean delta is not a PDF/A
 certificate and does not replace the dedicated FreeText font inspector or external viewer/glyph QA.
+
+S248 VERIFIED LOCAL: connected introduced PDF/A findings to the filled compatibility report review gate.
+`--review-report` now parses non-empty `Introduced PDF/A-* errors/warnings` rows, prints their details and
+returns exit code 2 even if every external viewer cell is PASS. Existing reports without those diagnostic rows
+remain reviewable, while generated reports can no longer hide a local conformance regression behind a complete
+viewer matrix. Parser and end-to-end process tests cover `none` filtering, warning diagnostics and exit codes.

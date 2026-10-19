@@ -58,6 +58,24 @@ void main() {
       expect(result.stderr, isNot(contains('Unhandled exception')));
     },
   );
+
+  test('review-report exits two for introduced PDF/A findings', () async {
+    final report = await _writeReport(
+      tempDirectory,
+      _compatibilityReport(
+        introducedPdfAWarning:
+            '[WARNING] A2:6.5.3: Annotation does not have the Print flag.',
+      ),
+    );
+
+    final result = await _reviewReport(report);
+
+    expect(result.exitCode, 2);
+    expect(result.stdout, contains('Introduced PDF/A findings'));
+    expect(result.stdout, contains('does not have the Print flag'));
+    expect(result.stdout, contains('External viewer compatibility gate: PASS'));
+    expect(result.stderr, isNot(contains('Unhandled exception')));
+  });
 }
 
 Future<File> _writeReport(Directory directory, String contents) async {
@@ -80,6 +98,7 @@ Future<ProcessResult> _reviewReport(File report) {
 String _compatibilityReport({
   String acrobatUnicodeStatus = 'PASS',
   String? extraViewerRow,
+  String introducedPdfAWarning = 'none',
 }) {
   final rows = <String>[
     for (final target
@@ -92,6 +111,11 @@ String _compatibilityReport({
   ].join('\n');
   return '''
 # Clef Editable Annotation Compatibility Report
+
+Local inspection:
+
+- Introduced PDF/A-2b errors: none
+- Introduced PDF/A-2b warnings: $introducedPdfAWarning
 
 Viewer matrix:
 

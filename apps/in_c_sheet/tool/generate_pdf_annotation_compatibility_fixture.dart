@@ -179,6 +179,10 @@ Future<void> _reviewReport(String reportPath) async {
       SheetPdfAnnotationCompatibilityReportParser.parseInvalidStatusCells(
         markdown,
       );
+  final introducedPdfAFindings =
+      SheetPdfAnnotationCompatibilityReportParser.parseIntroducedPdfAFindings(
+        markdown,
+      );
   if (unknownViewerLabels.isNotEmpty) {
     stdout.writeln('- Unknown viewer rows: ${unknownViewerLabels.join(', ')}');
   }
@@ -188,10 +192,17 @@ Future<void> _reviewReport(String reportPath) async {
       '${invalidStatusCells.map((cell) => cell.summary).join(', ')}',
     );
   }
+  if (introducedPdfAFindings.isNotEmpty) {
+    stdout.writeln(
+      '- Introduced PDF/A findings: '
+      '${introducedPdfAFindings.map((finding) => finding.summary).join(' | ')}',
+    );
+  }
   final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
   stdout.writeln(gate.markdownSummary());
   if (unknownViewerLabels.isNotEmpty ||
       invalidStatusCells.isNotEmpty ||
+      introducedPdfAFindings.isNotEmpty ||
       !gate.canClaimExternalCompatibility) {
     exitCode = 2;
   }

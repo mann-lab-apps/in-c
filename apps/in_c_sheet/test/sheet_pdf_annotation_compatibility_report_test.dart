@@ -512,4 +512,24 @@ Viewer matrix:
       'Preview Line/arrow=`needs retest`',
     ]);
   });
+
+  test('parses only non-empty introduced PDF/A findings', () {
+    const markdown = '''
+Local inspection:
+
+- Introduced PDF/A-2b errors: none
+- Introduced PDF/A-2b warnings: [WARNING] A2:6.5.3: Annotation does not have the Print flag. (page 1)
+''';
+
+    final findings =
+        SheetPdfAnnotationCompatibilityReportParser.parseIntroducedPdfAFindings(
+          markdown,
+        );
+
+    expect(findings, hasLength(1));
+    expect(findings.single.profile, 'PDF/A-2b');
+    expect(findings.single.severity, 'warnings');
+    expect(findings.single.details, contains('does not have the Print flag'));
+    expect(findings.single.summary, startsWith('PDF/A-2b warnings:'));
+  });
 }
