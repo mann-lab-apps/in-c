@@ -2991,3 +2991,12 @@ rendered lines. Narrow phones force an effective single column without discardin
 controller, renderer and widget regressions cover normalization, persistence, explicit and automatic splitting, tablet
 placement and phone fallback. `dart format`, `flutter analyze`, all 1,742 tests and the RC release check passed. Actual
 tablet readability, large text scaling and very long performance documents remain Device QA.
+
+S296 VERIFIED LOCAL: closed the plain-text source editing gap without treating extracted DOCX/RTF text as an editable
+original. Stored `.txt`, `.text`, `.md` and `.markdown` scores now expose a named `원문 편집` action, apply the existing
+strict UTF-8, non-empty and 2 MiB boundary, replace the app-owned file atomically and reload the viewer immediately.
+Library title/composer metadata stays independent from the file body. Metadata save failure or a library switch during a
+late edit restores the previous source and cannot report success in the destination library. Controller and widget
+regressions cover successful editing, extension/metadata preservation, failed-save rollback, library-switch rollback and
+viewer refresh. `dart format`, `flutter analyze`, all 1,746 tests and the RC release check passed. DOCX/RTF extracted
+views remain intentionally read-only so edits cannot diverge silently from their preserved original documents.

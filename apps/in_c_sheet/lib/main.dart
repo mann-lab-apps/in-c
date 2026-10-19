@@ -8708,6 +8708,13 @@ class _SheetPlainTextViewerScreenState
             )
           else
             TextButton.icon(
+              key: const ValueKey('plain-text-edit-source'),
+              onPressed: _openSourceEditor,
+              icon: const Icon(Icons.edit_note_outlined),
+              label: const Text('원문 편집'),
+            ),
+          if (!_isSearching)
+            TextButton.icon(
               onPressed: () => setState(() => _isSearching = true),
               icon: const Icon(Icons.search),
               label: const Text('찾기'),
@@ -8821,6 +8828,146 @@ class _SheetPlainTextViewerScreenState
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _openSourceEditor() async {
+    final score = widget.controller.scoreByIdOrNull(widget.scoreId);
+    if (score == null) return;
+    late final String currentSource;
+    try {
+      currentSource = _loadedText.isEmpty ? await _textFor(score) : _loadedText;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('원문을 읽지 못했습니다. 파일을 확인해주세요.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final source = await showDialog<String>(
+      context: context,
+      builder: (context) => _PlainTextSourceEditorDialog(source: currentSource),
+    );
+    if (source == null || !mounted) return;
+    try {
+      final didSave = await widget.controller.updatePlainTextSource(
+        score,
+        source,
+      );
+      if (!mounted) return;
+      if (!didSave) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('원문을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+        return;
+      }
+      setState(() {
+        _textFuture = _loadPlainTextScore(
+          widget.controller.scoreById(widget.scoreId),
+        );
+        _loadedText = source;
+        _activeMatchIndex = 0;
+        _searchController.clear();
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('텍스트 원문을 저장했습니다.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('원문을 저장하지 못했습니다. 기존 내용은 유지됩니다.')),
+      );
+    }
+  }
+}
+
+class _PlainTextSourceEditorDialog extends StatefulWidget {
+  const _PlainTextSourceEditorDialog({required this.source});
+
+  final String source;
+
+  @override
+  State<_PlainTextSourceEditorDialog> createState() =>
+      _PlainTextSourceEditorDialogState();
+}
+
+class _PlainTextSourceEditorDialogState
+    extends State<_PlainTextSourceEditorDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.source,
+  );
+  String _error = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: '취소',
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close),
+          ),
+          title: const Text('텍스트 원문 편집'),
+          actions: [TextButton(onPressed: _save, child: const Text('저장'))],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('라이브러리 제목과 작곡가 정보는 원문을 저장해도 바뀌지 않습니다.'),
+                if (_error.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _error,
+                    key: const ValueKey('plain-text-source-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('plain-text-source-editor'),
+                    controller: _controller,
+                    expands: true,
+                    minLines: null,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '악보 메모 또는 가사를 입력하세요.',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _save() {
+    final source = _controller.text;
+    if (source.trim().isEmpty) {
+      setState(() => _error = '원문을 입력해주세요.');
+      return;
+    }
+    if (utf8.encode(source).length > SheetFileImportPolicy.maxPlainTextBytes) {
+      setState(() => _error = '원문은 2 MiB 이하로 입력해주세요.');
+      return;
+    }
+    Navigator.of(context).pop(source);
   }
 }
 

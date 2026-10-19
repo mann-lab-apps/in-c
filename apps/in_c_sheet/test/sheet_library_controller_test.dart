@@ -2135,6 +2135,119 @@ Clef & Staff 세트리스트
   });
 
   test(
+    'plain text source edit preserves library metadata and file extension',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp('clef-text-edit-');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/lesson.md');
+      const originalSource = '# Original\nPractice slowly.';
+      const revisedSource = '# Revised\nPractice in short phrases.';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 21);
+      final original = _score(
+        now,
+        id: 'plain-text-edit',
+        title: 'Library title',
+        composer: 'Teacher',
+        filePath: sourceFile.path,
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        await controller.updatePlainTextSource(
+          controller.scoreById(original.id),
+          revisedSource,
+        ),
+        isTrue,
+      );
+
+      expect(await sourceFile.readAsString(), revisedSource);
+      expect(sourceFile.path, endsWith('.md'));
+      final current = controller.scoreById(original.id);
+      expect(current.title, 'Library title');
+      expect(current.composer, 'Teacher');
+      expect((await store.loadScores()).single.filePath, sourceFile.path);
+    },
+  );
+
+  test(
+    'plain text source edit restores file after score save failure',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-text-edit-failure-',
+      );
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/failure.txt');
+      const originalSource = 'Original notes';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 21);
+      final original = _score(
+        now,
+        id: 'plain-text-edit-failure',
+        filePath: sourceFile.path,
+      );
+      final store = _PlainTextSourceEditStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updatePlainTextSource(original, 'Revised notes'),
+        throwsStateError,
+      );
+
+      expect(await sourceFile.readAsString(), originalSource);
+      expect(controller.scoreById(original.id).toJson(), original.toJson());
+      expect((await store.loadScores()).single.toJson(), original.toJson());
+    },
+  );
+
+  test('late plain text edit rolls back after a library switch', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-text-edit-switch-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/switch.txt');
+    const originalSource = 'Original notes';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 21);
+    final original = _score(
+      now,
+      id: 'plain-text-edit-switch',
+      filePath: sourceFile.path,
+    );
+    final store = _PlainTextSourceEditStore(delayFirstReplacement: true);
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final sourceLibraryId = controller.activeLibraryProfile.id;
+
+    final pending = controller.updatePlainTextSource(original, 'Revised notes');
+    await store.firstReplacementStarted.future;
+    await controller.createLibraryProfile('Destination');
+    store.releaseFirstReplacement.complete();
+
+    expect(await pending, isFalse);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scores, isEmpty);
+    await controller.switchLibraryProfile(sourceLibraryId);
+    expect(controller.scores.single.toJson(), original.toJson());
+  });
+
+  test(
     'appends another setlist while preserving target performance settings',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -6682,6 +6795,37 @@ class _DelayedChordProSourceEditStore extends SheetLibraryStore {
       await releaseFirstReplacement.future;
     }
     await super.replaceChordProSource(score: score, source: source);
+  }
+}
+
+class _PlainTextSourceEditStore extends SheetLibraryStore {
+  _PlainTextSourceEditStore({this.delayFirstReplacement = false});
+
+  final bool delayFirstReplacement;
+  final firstReplacementStarted = Completer<void>();
+  final releaseFirstReplacement = Completer<void>();
+  bool failSaveScores = false;
+  var _replacementCount = 0;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSaveScores) {
+      throw StateError('Plain text score save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> replacePlainTextSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    _replacementCount += 1;
+    if (delayFirstReplacement && _replacementCount == 1) {
+      firstReplacementStarted.complete();
+      await releaseFirstReplacement.future;
+    }
+    await super.replacePlainTextSource(score: score, source: source);
   }
 }
 

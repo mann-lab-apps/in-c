@@ -1074,9 +1074,58 @@ class SheetLibraryStore {
       throw const FormatException('Empty ChordPro source.');
     }
 
+    await _replaceTextScoreSource(
+      score: score,
+      bytes: bytes,
+      missingFileMessage: 'ChordPro source file is missing.',
+    );
+  }
+
+  Future<String> readPlainTextSource(SheetScore score) async {
+    final file = File(score.filePath);
+    final bytes = await file.readAsBytes();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Plain text source is too large.');
+    }
+    late final String source;
+    try {
+      source = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('Invalid plain text UTF-8 source.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty plain text source.');
+    }
+    return source;
+  }
+
+  Future<void> replacePlainTextSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    final bytes = utf8.encode(source);
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Plain text source is too large.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty plain text source.');
+    }
+
+    await _replaceTextScoreSource(
+      score: score,
+      bytes: bytes,
+      missingFileMessage: 'Plain text source file is missing.',
+    );
+  }
+
+  Future<void> _replaceTextScoreSource({
+    required SheetScore score,
+    required List<int> bytes,
+    required String missingFileMessage,
+  }) async {
     final file = File(score.filePath);
     if (!await file.exists()) {
-      throw const FileSystemException('ChordPro source file is missing.');
+      throw FileSystemException(missingFileMessage);
     }
     final token =
         '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';

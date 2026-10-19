@@ -1588,7 +1588,7 @@ Clef & Staff 세트리스트
     final file = File('${tempDir.path}/lesson.txt')
       ..writeAsStringSync('첫 문장\n\n두 번째 문장');
     final now = DateTime(2026, 10, 19, 12);
-    final store = SheetLibraryStore();
+    final store = _SynchronousPlainTextEditStore();
     await store.saveScores([
       SheetScore(
         id: 'plain-text-score',
@@ -1639,6 +1639,81 @@ Clef & Staff 세트리스트
     await tester.tap(find.byTooltip('찾기 닫기'));
     await tester.pump();
     expect(find.text('찾기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('plain text viewer edits source and reloads content', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-text-source-editor-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/lesson.txt')
+      ..writeAsStringSync('Original notes');
+    final now = DateTime(2026, 10, 20, 21);
+    final store = _SynchronousPlainTextEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'plain-text-editor',
+        title: 'Lesson notes',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'plain-text-editor',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-edit-source')));
+    await tester.pumpAndSettle();
+    expect(find.text('텍스트 원문 편집'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('plain-text-source-editor')),
+      'Revised notes',
+    );
+    await tester.tap(find.widgetWithText(TextButton, '저장'));
+    await tester.pumpAndSettle();
+    var savedSource = '';
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 20; attempt += 1) {
+        savedSource = await file.readAsString();
+        if (savedSource == 'Revised notes') return;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    expect(savedSource, 'Revised notes');
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Revised notes'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -5300,6 +5375,22 @@ class _SynchronousChordProEditStore extends SheetLibraryStore {
 
   @override
   Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) {
+    File(score.filePath).writeAsStringSync(source, flush: true);
+    return Future<void>.value();
+  }
+}
+
+class _SynchronousPlainTextEditStore extends SheetLibraryStore {
+  @override
+  Future<String> readPlainTextSource(SheetScore score) {
+    return Future<String>.value(File(score.filePath).readAsStringSync());
+  }
+
+  @override
+  Future<void> replacePlainTextSource({
     required SheetScore score,
     required String source,
   }) {
