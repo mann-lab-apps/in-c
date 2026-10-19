@@ -889,6 +889,27 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.title, 'late autumn');
   });
 
+  test('imports a plain text file as a library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 19, 12);
+    final store = _ChordProImportStore(now)
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'lesson-notes.txt',
+        bytes: Uint8List.fromList(utf8.encode('첫 문장\n두 번째 문장')),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importPlainTextFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'lesson notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(controller.scores.single.title, 'lesson notes');
+    await controller.load();
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+  });
+
   test('ChordPro import save failure restores previous scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 9, 28, 16);
@@ -929,6 +950,27 @@ Clef & Staff 세트리스트
     await controller.load();
 
     final imported = await controller.importChordProFile();
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+  });
+
+  test('plain text import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 19, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now)
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'lesson.txt',
+        bytes: Uint8List.fromList(utf8.encode('Lesson notes')),
+      );
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importPlainTextFile();
 
     expect(imported, isNull);
     expect(controller.scores.map((score) => score.id), ['existing']);
@@ -5149,10 +5191,29 @@ class _ChordProImportStore extends SheetLibraryStore {
   String importedSource = '';
   bool failSaveScores = false;
   SheetImportedFile? pickedChordProFile;
+  SheetImportedFile? pickedPlainTextFile;
 
   @override
   Future<SheetImportedFile?> pickChordProFile() async {
     return pickedChordProFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    return _score(
+      importedAt ?? now,
+      id: 'plain-text-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}',
+    );
   }
 
   @override

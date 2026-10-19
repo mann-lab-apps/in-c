@@ -31,6 +31,13 @@ void main() {
       isTrue,
     );
     expect(SheetFileImportPolicy.isSupportedAudioExtension('.m4a'), isTrue);
+    expect(SheetFileImportPolicy.isPlainTextFileName('notes.TXT'), isTrue);
+    expect(SheetFileImportPolicy.isPlainTextFileName('chart.md'), isTrue);
+    expect(SheetFileImportPolicy.isTextScoreFileName('chart.onsong'), isTrue);
+    expect(
+      SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName('notes.txt'),
+      isFalse,
+    );
     expect(
       SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
         'lead-sheet.chordpro',
@@ -87,7 +94,7 @@ void main() {
     );
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage('lyrics.txt'),
-      contains('텍스트 악보'),
+      allOf(contains('텍스트 악보'), contains('파일 선택')),
     );
   });
 

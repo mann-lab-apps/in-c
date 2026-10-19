@@ -1216,8 +1216,9 @@ Clef & Staff 세트리스트
     expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
     expect(find.textContaining('ChordPro 붙여넣기 미리보기'), findsWidgets);
     expect(find.text('ChordPro 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('텍스트 파일 선택 가져오기'), findsOneWidget);
     expect(find.text('ChordPro 표시 조정 지원'), findsOneWidget);
-    expect(find.textContaining('ChordPro 붙여넣기/파일 저장'), findsOneWidget);
+    expect(find.textContaining('일반 텍스트'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1299,6 +1300,37 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('text score info can import a selected plain text file', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedPlainTextFile = SheetImportedFile(
+          name: 'lesson-notes.txt',
+          bytes: Uint8List.fromList(utf8.encode('첫 문장\n두 번째 문장')),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"lesson notes" 텍스트 악보를 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+    expect(find.text('lesson notes'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('saved ChordPro score opens a read-only chord lyric viewer', (
     tester,
   ) async {
@@ -1355,6 +1387,57 @@ Clef & Staff 세트리스트
     expect(find.text('ChordPro'), findsOneWidget);
     expect(find.text('조성: D'), findsOneWidget);
     expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved plain text score opens a selectable text viewer', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync('clef-text-viewer-');
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/lesson.txt')
+      ..writeAsStringSync('첫 문장\n\n두 번째 문장');
+    final now = DateTime(2026, 10, 19, 12);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'plain-text-score',
+        title: 'Lesson notes',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'plain-text-score',
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await file.readAsBytes();
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Lesson notes'), findsOneWidget);
+    expect(find.byType(SelectionArea), findsOneWidget);
+    expect(find.textContaining('첫 문장'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -4530,10 +4613,38 @@ class _RecordingSharedImportController extends SheetLibraryController {
 
 class _SmokeChordProStore extends SheetLibraryStore {
   SheetImportedFile? pickedChordProFile;
+  SheetImportedFile? pickedPlainTextFile;
 
   @override
   Future<SheetImportedFile?> pickChordProFile() async {
     return pickedChordProFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 10, 19, 12);
+    return SheetScore(
+      id: 'smoke-plain-text',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/text/${file.name}',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
   }
 
   @override

@@ -2739,3 +2739,11 @@ hints now discard provenance without blocking the copied PDF, URI-shaped optiona
 and persisted hint lengths are capped. Metadata backup coverage explicitly verifies the remaining display hints survive
 round-trip while no content URI or document-token key is emitted. Real Android providers and full backup handoff remain
 Device QA because the native bridge is still uncompiled in this checkpoint.
+
+S260 VERIFIED LOCAL: closed the basic plain-text score gap without treating arbitrary rich documents as safe text.
+The named Text/ChordPro import surface now accepts `.txt`, `.text`, `.md` and `.markdown` files up to 2 MiB, rejects
+empty or oversized input before library mutation, copies accepted bytes into app-owned storage and saves a normal
+library score through the existing rollback-aware import path. Opening that score routes to a selectable read-only
+text viewer rather than the PDF viewer; the bounded loader caches its file Future so rebuilds cannot restart loading.
+ChordPro retains its structured viewer and DOCX/RTF still receive PDF-conversion guidance. Focused policy, store,
+controller and widget tests cover extension recognition, storage, failure recovery, UI import and viewer rendering.

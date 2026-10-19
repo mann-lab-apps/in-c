@@ -101,6 +101,50 @@ void main() {
     }
   });
 
+  test('imports plain text into app-owned score storage', () async {
+    final store = SheetLibraryStore();
+    final score = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'lesson-notes.md',
+        bytes: Uint8List.fromList(utf8.encode('첫 문장\n\n두 번째 문장')),
+      ),
+      importedAt: DateTime.utc(2026, 10, 19),
+    );
+
+    expect(score.title, 'lesson notes');
+    expect(score.filePath, endsWith('.md'));
+    expect(await File(score.filePath).readAsString(), '첫 문장\n\n두 번째 문장');
+  });
+
+  test('rejects empty oversized and unsupported plain text files', () async {
+    final store = SheetLibraryStore();
+
+    await expectLater(
+      store.importPlainTextFile(
+        file: SheetImportedFile(name: 'empty.txt', bytes: Uint8List(0)),
+      ),
+      throwsFormatException,
+    );
+    await expectLater(
+      store.importPlainTextFile(
+        file: SheetImportedFile(
+          name: 'large.txt',
+          bytes: Uint8List(SheetFileImportPolicy.maxPlainTextBytes + 1),
+        ),
+      ),
+      throwsFormatException,
+    );
+    await expectLater(
+      store.importPlainTextFile(
+        file: SheetImportedFile(
+          name: 'document.rtf',
+          bytes: Uint8List.fromList(utf8.encode('text')),
+        ),
+      ),
+      throwsFormatException,
+    );
+  });
+
   for (final scoped in [false, true]) {
     for (final throws in [false, true]) {
       for (final key in [

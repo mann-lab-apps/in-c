@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui show Canvas, Image, decodeImageFromList;
@@ -745,7 +746,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: const Text('텍스트/ChordPro/DOCX 안내'),
-                subtitle: const Text('ChordPro 저장 가능 · DOCX는 PDF 변환 권장'),
+                subtitle: const Text('텍스트·ChordPro 저장 가능 · DOCX는 PDF 변환 권장'),
                 onTap: () =>
                     Navigator.of(context)
                         .pop(_LibraryImportAction.textScoreInfo),
@@ -830,12 +831,23 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   unawaited(_importChordProFile());
                 },
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.text_snippet_outlined),
+                title: const Text('텍스트 파일 선택 가져오기'),
+                subtitle: const Text('.txt, .text, .md 파일을 읽기 전용 악보로 저장'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(_importPlainTextFile());
+                },
+              ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.save_outlined),
                 title: Text('지금 가능한 저장 흐름'),
                 subtitle: Text(
-                  'PDF/JPG/PNG 가져오기, ChordPro 붙여넣기/파일 저장을 사용할 수 있습니다.',
+                  'PDF/JPG/PNG, 일반 텍스트, ChordPro 붙여넣기/파일 저장을 사용할 수 있습니다.',
                 ),
               ),
               const ListTile(
@@ -875,6 +887,22 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             if (mounted) {
               unawaited(_openScore(imported, showImportNudge: true));
             }
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importPlainTextFile() async {
+    final imported = await controller.importPlainTextFile();
+    if (!mounted || imported == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${imported.displayTitle}" 텍스트 악보를 가져왔습니다.'),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (mounted) unawaited(_openScore(imported));
           },
         ),
       ),
@@ -1244,6 +1272,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       MaterialPageRoute<void>(
         builder: (context) => _isChordProScore(score)
             ? SheetChordProViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+              )
+            : _isPlainTextScore(score)
+            ? SheetPlainTextViewerScreen(
                 controller: controller,
                 scoreId: score.id,
               )
@@ -8436,6 +8469,92 @@ bool _isChordProScore(SheetScore score) {
   return SheetFileImportPolicy.isChordProFileName(score.filePath);
 }
 
+bool _isPlainTextScore(SheetScore score) {
+  return SheetFileImportPolicy.isPlainTextFileName(score.filePath);
+}
+
+class SheetPlainTextViewerScreen extends StatefulWidget {
+  const SheetPlainTextViewerScreen({
+    super.key,
+    required this.controller,
+    required this.scoreId,
+  });
+
+  final SheetLibraryController controller;
+  final String scoreId;
+
+  @override
+  State<SheetPlainTextViewerScreen> createState() =>
+      _SheetPlainTextViewerScreenState();
+}
+
+class _SheetPlainTextViewerScreenState
+    extends State<SheetPlainTextViewerScreen> {
+  Future<String>? _textFuture;
+  String _loadedPath = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final score = widget.controller.scoreByIdOrNull(widget.scoreId);
+    if (score == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('텍스트 악보')),
+        body: const Center(child: Text('악보를 찾을 수 없습니다.')),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(score.displayTitle)),
+      body: FutureBuilder<String>(
+        future: _textFor(score),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _ViewerErrorBanner(
+              filePath: score.filePath,
+              error: snapshot.error ?? '텍스트 파일을 읽지 못했습니다.',
+            );
+          }
+          return SafeArea(
+            child: SelectionArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Text(
+                    snapshot.data!,
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(height: 1.55),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<String> _textFor(SheetScore score) {
+    if (_textFuture == null || _loadedPath != score.filePath) {
+      _loadedPath = score.filePath;
+      _textFuture = _loadPlainTextScore(score);
+    }
+    return _textFuture!;
+  }
+}
+
+Future<String> _loadPlainTextScore(SheetScore score) {
+  return Future<String>.sync(() {
+    final bytes = File(score.filePath).readAsBytesSync();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('텍스트 파일이 너무 큽니다.');
+    }
+    return utf8.decode(bytes, allowMalformed: true);
+  });
+}
+
 class SheetChordProViewerScreen extends StatefulWidget {
   const SheetChordProViewerScreen({
     super.key,
@@ -9555,6 +9674,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       MaterialPageRoute<void>(
         builder: (context) => _isChordProScore(score)
             ? SheetChordProViewerScreen(
+                controller: controller,
+                scoreId: score.id,
+              )
+            : _isPlainTextScore(score)
+            ? SheetPlainTextViewerScreen(
                 controller: controller,
                 scoreId: score.id,
               )

@@ -1004,6 +1004,56 @@ class SheetLibraryStore {
     return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
   }
 
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.plainTextExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isPlainTextFileName(file.name)) {
+      throw FormatException('Unsupported text file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isPlainTextFileName(file.name)) {
+      throw FormatException('Unsupported text file: ${file.name}');
+    }
+    if (file.bytes.isEmpty ||
+        file.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Invalid text file size.');
+    }
+    final source = utf8.decode(file.bytes, allowMalformed: true);
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty text file.');
+    }
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: file.bytes,
+      id: id,
+      originalFileName: file.name,
+    );
+    return SheetScore(
+      id: id,
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
   Future<SheetLinkedFile?> pickLinkedFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
@@ -2068,7 +2118,7 @@ class SheetLibraryStore {
     }
 
     final safeName = _safeFileName(
-      originalFileName.toLowerCase().endsWith('.chordpro')
+      SheetFileImportPolicy.isTextScoreFileName(originalFileName)
           ? originalFileName
           : '$originalFileName.chordpro',
     );

@@ -670,6 +670,37 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetScore?> importPlainTextFile() async {
+    if (_isImporting) return null;
+
+    final libraryId = _activeLibraryProfile.id;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickPlainTextFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      final rawScore = await store.importPlainTextFile(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) return null;
+      final score = _withActiveCollection(rawScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) return null;
+      return score;
+    } catch (_) {
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = '텍스트 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
   Future<SheetScore?> _storeChordProSource(
     String source, {
     required String libraryId,
@@ -3980,7 +4011,7 @@ class SheetLibraryController extends ChangeNotifier {
     var linkedFileCount = 0;
     var fileBackedAnnotationCount = 0;
     for (final score in _scores) {
-      if (SheetFileImportPolicy.isChordProFileName(score.filePath)) {
+      if (SheetFileImportPolicy.isTextScoreFileName(score.filePath)) {
         textScoreCount += 1;
       } else {
         pdfScoreCount += 1;

@@ -18,6 +18,8 @@ class SheetImportedFile {
 class SheetFileImportPolicy {
   const SheetFileImportPolicy._();
 
+  static const maxPlainTextBytes = 2 * 1024 * 1024;
+
   static const pdfExtensions = <String>{'pdf'};
   static const imageExtensions = <String>{'jpg', 'jpeg', 'png'};
   static const audioExtensions = <String>{
@@ -30,14 +32,11 @@ class SheetFileImportPolicy {
   };
   static const unsupportedImageExtensions = <String>{'heic', 'heif'};
   static const unsupportedTextScoreExtensions = <String>{
-    'txt',
-    'text',
-    'md',
-    'markdown',
     'rtf',
     ...chordProExtensions,
     'docx',
   };
+  static const plainTextExtensions = <String>{'txt', 'text', 'md', 'markdown'};
   static const chordProExtensions = <String>{
     'cho',
     'chordpro',
@@ -71,6 +70,14 @@ class SheetFileImportPolicy {
     return chordProExtensions.contains(extension);
   }
 
+  static bool isPlainTextFileName(String name) {
+    return plainTextExtensions.contains(extensionOf(name));
+  }
+
+  static bool isTextScoreFileName(String name) {
+    return isChordProFileName(name) || isPlainTextFileName(name);
+  }
+
   static bool isSupportedAudioExtension(String extension) {
     final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
     return audioExtensions.contains(normalized);
@@ -102,7 +109,10 @@ class SheetFileImportPolicy {
     if (isChordProFileName(name)) {
       return '$label 파일은 텍스트/ChordPro 안내에서 파일 선택으로 가져올 수 있습니다. 저장 전에 metadata와 코드/가사를 확인하려면 붙여넣기 미리보기를 사용하세요.';
     }
-    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보와 ChordPro 붙여넣기 저장을 지원합니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
+    if (isPlainTextFileName(name)) {
+      return '$label 파일은 텍스트/ChordPro 안내에서 파일 선택으로 가져올 수 있습니다.';
+    }
+    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보와 일반 텍스트·ChordPro 파일 저장을 지원합니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }
 
   static String extensionOf(String name) {
