@@ -10918,6 +10918,7 @@ enum _ViewerMenuAction {
   managePageOrder,
   manageJumpPoints,
   manageRehearsalMarks,
+  openPdfOutline,
   importPdfOutline,
   importBookmarkCsv,
   createScoresFromBookmarks,
@@ -11248,6 +11249,100 @@ class _PagePickerNamedTarget {
   final String label;
   final int page;
   final IconData icon;
+}
+
+class _PdfOutlineTarget {
+  const _PdfOutlineTarget({
+    required this.label,
+    required this.pageNumber,
+    required this.depth,
+  });
+
+  final String label;
+  final int pageNumber;
+  final int depth;
+}
+
+class _PdfOutlineBrowserSheet extends StatelessWidget {
+  const _PdfOutlineBrowserSheet({
+    required this.targets,
+    required this.currentPage,
+    required this.onGoToPage,
+  });
+
+  final List<_PdfOutlineTarget> targets;
+  final int currentPage;
+  final ValueChanged<int> onGoToPage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'PDF 목차',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '원본 PDF의 목차를 바로 엽니다. 북마크로 저장하려면 도구 메뉴에서 목차 가져오기를 선택하세요.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.62,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: targets.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final target = targets[index];
+                  final isCurrent = target.pageNumber == currentPage;
+                  return ListTile(
+                    contentPadding: EdgeInsetsDirectional.only(
+                      start: 8 + (target.depth.clamp(0, 3) * 16.0),
+                      end: 8,
+                    ),
+                    leading: const Icon(Icons.account_tree_outlined),
+                    title: Text(
+                      target.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: isCurrent
+                            ? FontWeight.w900
+                            : FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text('${target.pageNumber}쪽'),
+                    trailing: isCurrent
+                        ? Icon(
+                            Icons.check_circle,
+                            color: theme.colorScheme.primary,
+                          )
+                        : const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      onGoToPage(target.pageNumber);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PagePickerSheetState extends State<_PagePickerSheet> {
@@ -11754,7 +11849,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   Timer? _autoScrollTimer;
   Timer? _autoScrollCueTimer;
   String? _cropFitToken;
-  List<SheetBookmark> _pdfOutlineBookmarks = const <SheetBookmark>[];
+  List<_PdfOutlineTarget> _pdfOutlineTargets = const <_PdfOutlineTarget>[];
   bool _didLoadPdfOutline = false;
   String? _viewerFileStatusPath;
   Future<SheetViewerFileStatus>? _viewerFileStatusFuture;
@@ -12220,34 +12315,34 @@ setlist=$setlistLabel
     _didLoadPdfOutline = true;
     try {
       final outline = await document.loadOutline();
-      final bookmarks = <SheetBookmark>[];
-      void visit(List<PdfOutlineNode> nodes) {
+      final targets = <_PdfOutlineTarget>[];
+      void visit(List<PdfOutlineNode> nodes, {required int depth}) {
         for (final node in nodes) {
           final title = node.title.trim();
           final pageNumber = node.dest?.pageNumber;
           if (title.isNotEmpty && pageNumber != null && pageNumber > 0) {
-            bookmarks.add(
-              SheetBookmark(
-                pageNumber: pageNumber,
+            targets.add(
+              _PdfOutlineTarget(
                 label: title,
-                createdAt: DateTime.now(),
+                pageNumber: pageNumber,
+                depth: depth,
               ),
             );
           }
-          visit(node.children);
+          visit(node.children, depth: depth + 1);
         }
       }
 
-      visit(outline);
+      visit(outline, depth: 0);
       if (mounted) {
         setState(() {
-          _pdfOutlineBookmarks = List<SheetBookmark>.unmodifiable(bookmarks);
+          _pdfOutlineTargets = List<_PdfOutlineTarget>.unmodifiable(targets);
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _pdfOutlineBookmarks = const <SheetBookmark>[];
+          _pdfOutlineTargets = const <_PdfOutlineTarget>[];
         });
       }
     }
@@ -13417,18 +13512,43 @@ setlist=$setlistLabel
   }
 
   Future<void> _importPdfOutlineBookmarks() async {
-    if (_pdfOutlineBookmarks.isEmpty) {
+    if (_pdfOutlineTargets.isEmpty) {
       _showSnackBar('가져올 PDF 목차/북마크가 없습니다.');
       return;
     }
+    final outlineBookmarks = _pdfOutlineTargets
+        .map(
+          (target) => SheetBookmark(
+            pageNumber: target.pageNumber,
+            label: target.label,
+            createdAt: DateTime.now(),
+          ),
+        )
+        .toList(growable: false);
     final didMerge = await widget.controller.mergeBookmarksFromOutline(
       score,
-      _pdfOutlineBookmarks,
+      outlineBookmarks,
     );
     _showSnackBar(
       didMerge
-          ? '${_pdfOutlineBookmarks.length}개 PDF 목차 후보를 북마크에 병합했습니다.'
+          ? '${_pdfOutlineTargets.length}개 PDF 목차 후보를 북마크에 병합했습니다.'
           : '새로 병합할 PDF 목차 항목이 없습니다.',
+    );
+  }
+
+  Future<void> _showPdfOutlineBrowser() async {
+    if (_pdfOutlineTargets.isEmpty) {
+      _showSnackBar('PDF 목차가 없거나 아직 불러오는 중입니다.');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _PdfOutlineBrowserSheet(
+        targets: _pdfOutlineTargets,
+        currentPage: _pageNumber ?? score.lastPage,
+        onGoToPage: (page) => unawaited(_goToSheetPage(page)),
+      ),
     );
   }
 
@@ -17123,6 +17243,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.manageRehearsalMarks:
         await _showRehearsalMarks();
         return;
+      case _ViewerMenuAction.openPdfOutline:
+        await _showPdfOutlineBrowser();
+        return;
       case _ViewerMenuAction.importPdfOutline:
         await _importPdfOutlineBookmarks();
         return;
@@ -17691,11 +17814,24 @@ setlist=$setlistLabel
           ),
         ),
         PopupMenuItem<_ViewerMenuAction>(
+          enabled: _pdfOutlineTargets.isNotEmpty,
+          value: _ViewerMenuAction.openPdfOutline,
+          child: ListTile(
+            leading: const Icon(Icons.account_tree_outlined),
+            title: const Text('PDF 목차 보기'),
+            subtitle: Text(
+              _pdfOutlineTargets.isEmpty
+                  ? '목차 없음 또는 불러오는 중'
+                  : '${_pdfOutlineTargets.length}개 항목에서 바로 이동',
+            ),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
           value: _ViewerMenuAction.importPdfOutline,
           child: ListTile(
             leading: const Icon(Icons.account_tree_outlined),
             title: const Text('PDF 목차 가져오기'),
-            subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+            subtitle: Text('${_pdfOutlineTargets.length}개 후보를 북마크로 저장'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
@@ -18068,11 +18204,24 @@ setlist=$setlistLabel
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
+              enabled: _pdfOutlineTargets.isNotEmpty,
+              value: _ViewerMenuAction.openPdfOutline,
+              child: ListTile(
+                leading: const Icon(Icons.account_tree_outlined),
+                title: const Text('PDF 목차 보기'),
+                subtitle: Text(
+                  _pdfOutlineTargets.isEmpty
+                      ? '목차 없음 또는 불러오는 중'
+                      : '${_pdfOutlineTargets.length}개 항목에서 바로 이동',
+                ),
+              ),
+            ),
+            PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.importPdfOutline,
               child: ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
                 title: const Text('PDF 목차 가져오기'),
-                subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+                subtitle: Text('${_pdfOutlineTargets.length}개 후보를 북마크로 저장'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -25638,6 +25787,37 @@ Widget buildPagePickerSheetForTest({
         jumpPoints: pageSettings.jumpPoints,
         bookmarks: bookmarks,
         rehearsalMarks: pageSettings.rehearsalMarks,
+        onGoToPage: onGoToPage ?? (_) {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildPdfOutlineBrowserForTest({
+  List<({String label, int pageNumber, int depth})> entries = const [],
+  int currentPage = 1,
+  double textScale = 1,
+  ValueChanged<int>? onGoToPage,
+}) {
+  return MaterialApp(
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
+    ),
+    home: Scaffold(
+      body: _PdfOutlineBrowserSheet(
+        targets: entries
+            .map(
+              (entry) => _PdfOutlineTarget(
+                label: entry.label,
+                pageNumber: entry.pageNumber,
+                depth: entry.depth,
+              ),
+            )
+            .toList(growable: false),
+        currentPage: currentPage,
         onGoToPage: onGoToPage ?? (_) {},
       ),
     ),

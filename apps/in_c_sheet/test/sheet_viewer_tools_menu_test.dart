@@ -108,6 +108,8 @@ void main() {
         expect(find.text('2페이지 보기에서 설정'), findsOneWidget);
         expect(find.text('필기'), findsOneWidget);
         expect(find.text('공유와 입력'), findsOneWidget);
+        await tester.ensureVisible(find.text('PDF 목차 보기'));
+        expect(find.text('PDF 목차 보기'), findsOneWidget);
         const captureDirectory = String.fromEnvironment(
           'CLEF_QA_SCREENSHOT_DIR',
         );

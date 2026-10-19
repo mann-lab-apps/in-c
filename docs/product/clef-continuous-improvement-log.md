@@ -2718,3 +2718,10 @@ S256 IMPLEMENTED — ANDROID COMPILE/DEVICE QA PENDING: made Android folder-copy
 native bridge now rejects non-content tokens and cleans every cache copy made for the batch when any selected PDF
 cannot be read, rather than importing a silent subset. The shared-PDF cache helper also removes a partially written
 file after a stream failure. Provider-offline and permission-loss behavior remains Android Device QA.
+
+S257 VERIFIED LOCAL: added a read-only PDF outline browser for long scores without adding thumbnail rendering or
+mutating the score library. The viewer keeps each loaded outline item's nesting depth, shows the hierarchy and target
+page in a scrollable sheet, marks the current page and jumps directly when an item is tapped. The existing explicit
+`PDF 목차 가져오기` action remains separate for users who want persistent Clef bookmarks. Focused widget coverage
+checks hierarchy display, current-page state and page selection; nested/large outlines and real PDF navigation remain
+Device QA.

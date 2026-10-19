@@ -76,7 +76,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Viewer / Performance | Image caching | display page | render cache profile과 memory cap이 있다 | feature map `image caching/prefetch` | Partially Implemented | 50-100페이지 실기기 계측 필요 |
 | Viewer / Performance | Song overlay | display page | viewer `도구` 메뉴, toolbar, mini panel, tap zone hint가 있다 | feature map `이름으로 도구 찾기` | Implemented | Clef는 이름 있는 메뉴를 더 강조 |
 | Viewer / Performance | Automatic scrolling | utilities page | 곡별 duration/cue/rehearsal mark 기반 자동 스크롤이 있다 | feature map `자동 스크롤` | Implemented | 측정 기반 세밀 timeline editor는 후속 |
-| Viewer / Performance | Page slider / direct page jump | user guide Song Overlay | page navigation/control이 있다. 긴 PDF용 slider, 쪽 번호 입력, 처음/현재/끝/10쪽 전후 빠른 이동을 제공하고, 페이지 탐색에서 page jump point/북마크/리허설 표시 지점을 함께 선택한다 | feature map `가로 페이지 넘김`, viewer tests | Partially Implemented | MobileSheets식 preview thumbnail slider 깊이는 아직 직접 대조 전 |
+| Viewer / Performance | Page slider / direct page jump | user guide Song Overlay | page navigation/control이 있다. 긴 PDF용 slider, 쪽 번호 입력, 처음/현재/끝/10쪽 전후 빠른 이동을 제공하고, 페이지 탐색에서 page jump point/북마크/리허설 표시 지점을 함께 선택한다. 원본 PDF outline은 계층을 보존한 읽기 전용 목록에서 저장 없이 바로 이동하고, 영구 북마크 병합은 별도 action으로 유지한다 | feature map `가로 페이지 넘김`, viewer tests | Partially Implemented | MobileSheets식 preview thumbnail slider 깊이는 아직 직접 대조 전 |
 | Viewer / Performance | Next song bar / setlist continuation | user guide 목차 | viewer context, 이전/다음 곡, 진행 배지, 다음 곡 제목 힌트가 있다 | feature map `세트리스트 연속 넘김` | Partially Implemented | MobileSheets와 같은 별도 next song bar 표현은 아님 |
 | Viewer / Performance | Performance mode | utilities page | 공연 모드와 quick action overlay가 있다 | feature map `공연 모드`, `quick action box` | Implemented | 실제 연주 중 오작동 방지 QA 필요 |
 | Viewer / Performance | Two-tablet book mode | official site collaboration/display | 없다 | feature map `기기 간 페이지 전환`, `leader/follower tablet` | Not Implemented | 협업/동기화 영역 |
@@ -185,8 +185,9 @@ fixture annotations land on either other page. External viewer rendering and edi
 
 - 사용자 피드백의 metadata 없는 악보 혼동은 현재 코드/테스트 기준 반영됨. 홈의 `정보 정리 필요`는
   일반 `최근 악보` rail이 아니라 `정보 보강` task card와 `정보 편집` action으로 표시된다.
-- 긴 PDF navigation은 page picker slider, 직접 page 입력, 빠른 이동, named target list까지 구현됨.
-  MobileSheets식 thumbnail strip/별도 outline browser는 렌더링 비용 확인 전까지 후속 후보로 남긴다.
+- 긴 PDF navigation은 page picker slider, 직접 page 입력, 빠른 이동, named target list와 원본 PDF
+  outline의 계층형 읽기 전용 browser까지 구현됨. MobileSheets식 thumbnail strip은 렌더링 비용 확인
+  전까지 후속 후보로 남긴다.
 - Annotation stamp discovery는 검색, category chip, 최근 사용, `빠른 선택` row까지 구현됨. 사용자 stamp
   pack과 image asset round-trip, annotation layer 관리, editable annotation 1차 writer까지 구현됐고,
   snipping, multi-select layer operation, production Unicode font와 external viewer evidence는 여전히 gap이다.

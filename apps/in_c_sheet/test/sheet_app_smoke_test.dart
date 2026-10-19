@@ -3394,6 +3394,75 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('PDF outline browser preserves hierarchy and opens its page', (
+    tester,
+  ) async {
+    final openedPages = <int>[];
+    await tester.pumpWidget(
+      buildPdfOutlineBrowserForTest(
+        currentPage: 4,
+        entries: const [
+          (label: 'Part I', pageNumber: 1, depth: 0),
+          (label: 'Allegro', pageNumber: 4, depth: 1),
+          (label: 'Coda', pageNumber: 28, depth: 1),
+        ],
+        onGoToPage: openedPages.add,
+      ),
+    );
+
+    expect(find.text('PDF 목차'), findsOneWidget);
+    expect(find.text('Part I'), findsOneWidget);
+    expect(find.text('Allegro'), findsOneWidget);
+    expect(find.text('1쪽'), findsOneWidget);
+    expect(find.text('4쪽'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Allegro')).dx,
+      greaterThan(tester.getTopLeft(find.text('Part I')).dx),
+    );
+
+    await tester.tap(find.text('Coda'));
+    await tester.pump();
+
+    expect(openedPages, <int>[28]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('PDF outline browser scrolls a long outline on a small screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final openedPages = <int>[];
+    await tester.pumpWidget(
+      buildPdfOutlineBrowserForTest(
+        textScale: 1.6,
+        entries: List.generate(
+          40,
+          (index) => (
+            label: 'Section ${index + 1}',
+            pageNumber: index + 1,
+            depth: index % 4,
+          ),
+        ),
+        onGoToPage: openedPages.add,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Section 40'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Section 40'));
+    await tester.pump();
+
+    expect(openedPages, <int>[40]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('quick jump overflow labels named target types', (tester) async {
     final jumps = <SheetPageJumpPoint>[];
     final pages = <int>[];
