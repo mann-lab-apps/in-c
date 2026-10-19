@@ -2841,3 +2841,9 @@ S274 VERIFIED LOCAL: hardened stored plain-text reopening against files changed 
 reapplies the import boundary for 2 MiB size, strict UTF-8 and non-empty content instead of rendering replacement glyphs
 or a blank document as if it were valid. Widget regression covers all three failures with text-specific recovery copy;
 source repair and editing remain outside the read-only viewer.
+
+S275 VERIFIED LOCAL: closed malformed-text and oversized-paste bypasses in the user-facing text import paths. Plain-text
+and ChordPro file selection now reject empty, over-2-MiB and non-UTF-8 bytes in the controller before even a mocked store
+can mutate the library, while the concrete plain-text store also decodes strictly. Pasted ChordPro enforces the same byte
+ceiling in controller and store. Store/controller regressions verify rejection without a score or rewritten replacement
+glyphs; editable source remains outside this read-only flow.

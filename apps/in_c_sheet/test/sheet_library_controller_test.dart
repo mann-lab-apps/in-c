@@ -1071,6 +1071,30 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.filePath, endsWith('.txt'));
   });
 
+  test('file text imports reject malformed UTF-8 before mutation', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 19);
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'broken.chordpro',
+        bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+      )
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'broken.txt',
+        bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(await controller.importChordProFile(), isNull);
+    expect(store.importedSource, isEmpty);
+    expect(controller.scores, isEmpty);
+
+    expect(await controller.importPlainTextFile(), isNull);
+    expect(controller.scores, isEmpty);
+    expect(await store.loadScores(), isEmpty);
+  });
+
   test('imports a DOCX file as a readable library score', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 10, 20, 13);

@@ -957,6 +957,10 @@ class SheetLibraryStore {
     required SheetChordProScoreDraft draft,
     DateTime? importedAt,
   }) async {
+    final sourceBytes = utf8.encode(source);
+    if (sourceBytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
     final trimmedSource = source.trim();
     if (trimmedSource.isEmpty) {
       throw const FormatException('Empty ChordPro source.');
@@ -965,7 +969,7 @@ class SheetLibraryStore {
     final now = importedAt ?? DateTime.now();
     final id = _newId(now);
     final storedPath = await _writeTextScore(
-      bytes: utf8.encode(source),
+      bytes: sourceBytes,
       id: id,
       originalFileName: '${draft.title}.chordpro',
     );
@@ -1125,7 +1129,7 @@ class SheetLibraryStore {
         file.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
       throw const FormatException('Invalid text file size.');
     }
-    final source = utf8.decode(file.bytes, allowMalformed: true);
+    final source = utf8.decode(file.bytes);
     if (source.trim().isEmpty) {
       throw const FormatException('Empty text file.');
     }

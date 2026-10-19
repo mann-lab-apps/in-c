@@ -649,7 +649,11 @@ class SheetLibraryController extends ChangeNotifier {
       if (_activeLibraryProfile.id != libraryId || importedFile == null) {
         return null;
       }
-      final source = utf8.decode(importedFile.bytes, allowMalformed: true);
+      if (importedFile.bytes.isEmpty ||
+          importedFile.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('Invalid ChordPro file size.');
+      }
+      final source = utf8.decode(importedFile.bytes);
       if (source.trim().isEmpty) {
         throw const FormatException('Empty ChordPro file.');
       }
@@ -684,6 +688,14 @@ class SheetLibraryController extends ChangeNotifier {
       final importedFile = await store.pickPlainTextFile();
       if (_activeLibraryProfile.id != libraryId || importedFile == null) {
         return null;
+      }
+      if (importedFile.bytes.isEmpty ||
+          importedFile.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('Invalid text file size.');
+      }
+      final source = utf8.decode(importedFile.bytes);
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty text file.');
       }
       final rawScore = await store.importPlainTextFile(file: importedFile);
       if (_activeLibraryProfile.id != libraryId) return null;
@@ -797,6 +809,9 @@ class SheetLibraryController extends ChangeNotifier {
     required String libraryId,
     String? fallbackTitle,
   }) async {
+    if (utf8.encode(source).length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
     final trimmedSource = source.trim();
     final document = SheetChordProParser.parse(trimmedSource);
     final draft = SheetChordProScoreDraft.fromDocument(

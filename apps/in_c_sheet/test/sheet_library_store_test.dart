@@ -10,6 +10,7 @@ import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_annotation_stamp_asset_store.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
@@ -216,34 +217,46 @@ void main() {
     expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
   });
 
-  test('rejects empty oversized and unsupported plain text files', () async {
-    final store = SheetLibraryStore();
+  test(
+    'rejects empty oversized malformed and unsupported text files',
+    () async {
+      final store = SheetLibraryStore();
 
-    await expectLater(
-      store.importPlainTextFile(
-        file: SheetImportedFile(name: 'empty.txt', bytes: Uint8List(0)),
-      ),
-      throwsFormatException,
-    );
-    await expectLater(
-      store.importPlainTextFile(
-        file: SheetImportedFile(
-          name: 'large.txt',
-          bytes: Uint8List(SheetFileImportPolicy.maxPlainTextBytes + 1),
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'malformed.txt',
+            bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+          ),
         ),
-      ),
-      throwsFormatException,
-    );
-    await expectLater(
-      store.importPlainTextFile(
-        file: SheetImportedFile(
-          name: 'document.pages',
-          bytes: Uint8List.fromList(utf8.encode('text')),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(name: 'empty.txt', bytes: Uint8List(0)),
         ),
-      ),
-      throwsFormatException,
-    );
-  });
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'large.txt',
+            bytes: Uint8List(SheetFileImportPolicy.maxPlainTextBytes + 1),
+          ),
+        ),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'document.pages',
+            bytes: Uint8List.fromList(utf8.encode('text')),
+          ),
+        ),
+        throwsFormatException,
+      );
+    },
+  );
 
   test(
     'imports ChordPro bytes with original extension and strict UTF-8',
@@ -266,6 +279,15 @@ void main() {
       expect(score.composer, 'Kim');
       expect(score.filePath, endsWith('.onsong'));
       expect(await File(score.filePath).readAsString(), source);
+      await expectLater(
+        store.importChordProText(
+          source: 'A' * (SheetFileImportPolicy.maxPlainTextBytes + 1),
+          draft: SheetChordProScoreDraft.fromDocument(
+            SheetChordProParser.parse('{title: Large}\n[C]Line'),
+          ),
+        ),
+        throwsFormatException,
+      );
       await expectLater(
         store.importChordProFileBytes(
           file: SheetImportedFile(
