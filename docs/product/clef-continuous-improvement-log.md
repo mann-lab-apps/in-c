@@ -2678,3 +2678,10 @@ creates one ZIP containing the mixed fixture, Unicode appearance fixture and a r
 relative to the extracted report. Report review resolves relative paths against the report directory and keeps
 the same SHA-256 checks, so moving the bundle to another machine does not weaken artifact identity. End-to-end
 tests generate and inspect the ZIP, verify all three entries and prove relative artifact review succeeds.
+
+S251 VERIFIED LOCAL: fixed editable and flattened annotation export coordinates for source PDFs whose page
+dictionary already carries `/Rotate`. Clef annotation points are stored against the rotated page overlay shown by
+`pdfrx`; export geometry now reverses 90/180/270-degree display rotation before writing into the original CropBox
+coordinate system. Pure geometry tests cover all rotations and offset CropBox origins, while an end-to-end fixture
+rotates a real PDF page, exports a line and reopens its `/L` coordinates. External viewer visual confirmation of
+rotated/cropped pages remains part of the compatibility matrix.

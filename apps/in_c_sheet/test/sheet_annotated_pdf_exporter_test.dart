@@ -6,6 +6,7 @@ import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:pdf_cos/pdf_cos.dart';
 import 'package:pdf_document/pdf_document.dart';
 
 void main() {
@@ -21,6 +22,121 @@ void main() {
     expect(geometry.toPdfPoint(const SheetAnnotationPoint(x: 0, y: 0)).y, 120);
     expect(geometry.toPdfPoint(const SheetAnnotationPoint(x: 1, y: 1)).x, 210);
     expect(geometry.toPdfPoint(const SheetAnnotationPoint(x: 1, y: 1)).y, 20);
+  });
+
+  test('reverses PDF page rotation when exporting overlay points', () {
+    const point = SheetAnnotationPoint(x: 0.25, y: 0.75);
+
+    final clockwise90 = const SheetPdfAnnotationGeometry(
+      left: 10,
+      bottom: 20,
+      width: 200,
+      height: 100,
+      rotation: 90,
+    ).toPdfPoint(point);
+    final clockwise180 = const SheetPdfAnnotationGeometry(
+      left: 10,
+      bottom: 20,
+      width: 200,
+      height: 100,
+      rotation: 180,
+    ).toPdfPoint(point);
+    final clockwise270 = const SheetPdfAnnotationGeometry(
+      left: 10,
+      bottom: 20,
+      width: 200,
+      height: 100,
+      rotation: 270,
+    ).toPdfPoint(point);
+
+    expect((clockwise90.x, clockwise90.y), (160, 45));
+    expect((clockwise180.x, clockwise180.y), (160, 95));
+    expect((clockwise270.x, clockwise270.y), (60, 95));
+  });
+
+  test('reads PDF page rotation into annotation export geometry', () async {
+    final source = PdfDocument.open(
+      await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+    );
+    final editor = PdfEditor(source)..rotatePage(0, 90);
+    final rotated = PdfDocument.open(editor.save());
+
+    final geometry = SheetPdfAnnotationGeometry.fromPage(rotated.page(0));
+    final point = geometry.toPdfPoint(
+      const SheetAnnotationPoint(x: 0.25, y: 0.75),
+    );
+
+    expect(geometry.rotation, 90);
+    expect(point.x, closeTo(geometry.left + geometry.width * 0.75, 0.001));
+    expect(point.y, closeTo(geometry.bottom + geometry.height * 0.25, 0.001));
+  });
+
+  test('exports line coordinates against a rotated PDF page', () async {
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-rotated-annotation-export-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final source = PdfDocument.open(
+      await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+    );
+    final rotatedInput = File('${outputDir.path}/rotated-source.pdf');
+    final rotationEditor = PdfEditor(source)..rotatePage(0, 90);
+    await rotatedInput.writeAsBytes(rotationEditor.save());
+    final rotatedDocument = PdfDocument.open(await rotatedInput.readAsBytes());
+    final box = rotatedDocument.page(0).cropBox;
+    final now = DateTime.parse('2026-10-19T12:00:00.000');
+    final score = SheetScore(
+      id: 'rotated-export',
+      title: 'Rotated export',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: rotatedInput.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          _stroke(
+            'rotated-line',
+            SheetAnnotationTool.line,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.25, y: 0.75),
+              SheetAnnotationPoint(x: 0.75, y: 0.25),
+            ],
+            now,
+          ),
+        ],
+      ),
+    );
+    final outputPath = '${outputDir.path}/rotated-annotated.pdf';
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+    final annotation = exported
+        .page(0)
+        .annotations
+        .singleWhere((entry) => entry.name == 'clef-rotated-line');
+    final line = exported.cos.resolve(annotation.dict['L']) as CosArray;
+    final coordinates = line.items.map(_cosNumber).toList(growable: false);
+
+    expect(result.didWrite, isTrue);
+    expect(exported.page(0).rotation, 90);
+    expect(coordinates[0], closeTo(box.left + box.width * 0.75, 0.001));
+    expect(coordinates[1], closeTo(box.bottom + box.height * 0.25, 0.001));
+    expect(coordinates[2], closeTo(box.left + box.width * 0.25, 0.001));
+    expect(coordinates[3], closeTo(box.bottom + box.height * 0.75, 0.001));
   });
 
   test('detects text annotations that need a Unicode-capable PDF font', () {
@@ -1984,3 +2100,9 @@ SheetAnnotationStroke _stroke(
     createdAt: createdAt,
   );
 }
+
+double _cosNumber(CosObject value) => switch (value) {
+  CosInteger(:final value) => value.toDouble(),
+  CosReal(:final value) => value,
+  _ => throw StateError('Expected PDF number, got $value'),
+};

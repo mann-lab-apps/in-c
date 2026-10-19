@@ -158,9 +158,11 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
    연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker
    timeline, 여러 track marker preset은 없다.
-5. Advanced annotation: stroke/shape nudge는 단일 선택 수준까지 구현되어 있고, custom stamp는 text/icon-only
-   schema, picker section, metadata backup/restore fixture와 text/icon-only 생성/삭제/선택까지 있다.
-   snipping, richer multi-layer management, full editable PDF annotation export compatibility는 남아 있다.
+5. Advanced annotation: stroke/shape nudge는 단일 선택 수준까지 구현되어 있고, custom stamp는 text/icon/image
+   schema, picker, 저장/정리, backup/package asset round-trip과 실제 image stamp 배치까지 지원한다. Layer 생성,
+   선택, 이름 변경, 삭제, 기존 주석 이동과 active-layer undo/redo도 있다. Editable PDF export는 주요 도구를
+   표준 annotation으로 쓰고 source `/Rotate`를 역변환하지만, snipping, multi-select layer operation,
+   production Unicode font embedding과 외부 viewer compatibility matrix는 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
 7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
    있으나 MobileSheets식 내용 기반 automatic crop, Android direct-reference library는 없다.
@@ -181,7 +183,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - 긴 PDF navigation은 page picker slider, 직접 page 입력, 빠른 이동, named target list까지 구현됨.
   MobileSheets식 thumbnail strip/별도 outline browser는 렌더링 비용 확인 전까지 후속 후보로 남긴다.
 - Annotation stamp discovery는 검색, category chip, 최근 사용, `빠른 선택` row까지 구현됨. 사용자 stamp
-  pack은 text/icon-only schema spike부터 시작하고, snipping, richer multi-layer management, full editable PDF annotation export compatibility는 여전히 gap이다.
+  pack과 image asset round-trip, annotation layer 관리, editable annotation 1차 writer까지 구현됐고,
+  snipping, multi-select layer operation, production Unicode font와 external viewer evidence는 여전히 gap이다.
 - Device QA가 필요한 항목은 제품 기능 부재와 구분한다. 특히 실제 오디오 균일성, 드론 음량,
   Bluetooth/USB pedal, stylus 필기감, 긴 악보/긴 라이브러리 손가락 조작감은 자동 테스트만으로
   완료 처리하지 않는다.

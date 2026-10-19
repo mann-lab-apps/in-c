@@ -473,6 +473,9 @@ embedded font 없이 viewer font fallback에 의존하므로 Unicode 표시를 �
 7. 한글 FreeText/text stamp와 음악 기호가 실제 viewer에서 깨지지 않는지 확인한다. 로컬 Poppler 렌더는
    Helvetica/Identity encoding 경고와 한글 glyph box가 나올 수 있으므로 contents 보존 PASS와 표시
    호환성 ISSUE를 분리해 기록한다.
+8. 원본 PDF에 `/Rotate` 또는 offset CropBox가 있는 페이지에도 좌상단/중앙/우하단에 선과 텍스트를 놓고
+   editable/일반 사본을 만든다. 원본 앱 화면과 외부 viewer에서 위치와 방향이 같아야 하며, 회전 전
+   PDF 좌표와 화면 좌표를 혼동해 반대 모서리로 이동하면 ISSUE로 기록한다.
 
 기록:
 

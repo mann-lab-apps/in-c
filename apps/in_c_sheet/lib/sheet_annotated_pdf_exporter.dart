@@ -1599,6 +1599,7 @@ class SheetPdfAnnotationGeometry {
     required this.bottom,
     required this.width,
     required this.height,
+    this.rotation = 0,
   });
 
   factory SheetPdfAnnotationGeometry.fromPage(PdfPage page) {
@@ -1608,6 +1609,7 @@ class SheetPdfAnnotationGeometry {
       bottom: box.bottom,
       width: box.width,
       height: box.height,
+      rotation: page.rotation,
     );
   }
 
@@ -1615,14 +1617,19 @@ class SheetPdfAnnotationGeometry {
   final double bottom;
   final double width;
   final double height;
+  final int rotation;
 
   SheetPdfAnnotationPoint toPdfPoint(SheetAnnotationPoint point) {
     final x = point.x.clamp(0.0, 1.0).toDouble();
     final y = point.y.clamp(0.0, 1.0).toDouble();
-    return SheetPdfAnnotationPoint(
-      left + (x * width),
-      bottom + ((1 - y) * height),
-    );
+    final normalizedRotation = ((rotation % 360) + 360) % 360;
+    final (pdfX, pdfY) = switch (normalizedRotation) {
+      90 => (y * width, x * height),
+      180 => ((1 - x) * width, y * height),
+      270 => ((1 - y) * width, (1 - x) * height),
+      _ => (x * width, (1 - y) * height),
+    };
+    return SheetPdfAnnotationPoint(left + pdfX, bottom + pdfY);
   }
 }
 
