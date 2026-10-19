@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -520,28 +522,8 @@ Clef & Staff 세트리스트
   });
 
   test('codec preserves image user stamp metadata with asset bytes', () {
-    final stampPack = SheetAnnotationStampPack(
-      id: 'photos',
-      name: '사진 스탬프',
-      version: 1,
-      createdAt: DateTime(2026, 10, 8, 12),
-      updatedAt: DateTime(2026, 10, 8, 12),
-      stamps: const <SheetAnnotationUserStamp>[
-        SheetAnnotationUserStamp(
-          id: 'photo-cue',
-          packId: 'photos',
-          label: 'Photo cue',
-          category: '사용자',
-          kind: SheetAnnotationUserStamp.imageKind,
-          assetRef: 'stamps/photos/photo-cue.png',
-          checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          assetSizeBytes: 3,
-          assetWidthPixels: 16,
-          assetHeightPixels: 16,
-          licenseLabel: 'User provided',
-        ),
-      ],
-    );
+    final imageBytes = image.encodePng(image.Image(width: 16, height: 16));
+    final stampPack = _imageStampPack(imageBytes);
     final zip = SheetSetlistPackageArchive.encodeBytes(
       manifestText: '''
 Clef & Staff 세트리스트
@@ -553,8 +535,8 @@ Clef & Staff 세트리스트
 ''',
       scoreFiles: const <String, List<int>>{},
       userStampPacks: [stampPack],
-      stampAssetFiles: const <String, List<int>>{
-        'stamps/photos/photo-cue.png': [1, 2, 3],
+      stampAssetFiles: <String, List<int>>{
+        'stamps/photos/photo-cue.png': imageBytes,
       },
     );
 
@@ -564,7 +546,7 @@ Clef & Staff 세트리스트
     expect(package.stampAssetFiles, hasLength(1));
     expect(package.stampAssetFiles.single.path, 'stamps/photos/photo-cue.png');
     expect(package.stampAssetFiles.single.mediaType, 'image/png');
-    expect(package.stampAssetFiles.single.bytes, [1, 2, 3]);
+    expect(package.stampAssetFiles.single.bytes, imageBytes);
     expect(package.userStampPacks, hasLength(1));
     expect(
       package.userStampPacks.single.stamps.single.kind,
@@ -574,28 +556,50 @@ Clef & Staff 세트리스트
     expect(dryRun.userStampPreview.totalStampCount, 1);
   });
 
-  test('codec drops image user stamp metadata when asset is missing', () {
-    final stampPack = SheetAnnotationStampPack(
-      id: 'photos',
-      name: '사진 스탬프',
-      version: 1,
-      createdAt: DateTime(2026, 10, 8, 12),
-      updatedAt: DateTime(2026, 10, 8, 12),
-      stamps: const <SheetAnnotationUserStamp>[
-        SheetAnnotationUserStamp(
-          id: 'photo-cue',
-          packId: 'photos',
-          label: 'Photo cue',
-          category: '사용자',
-          kind: SheetAnnotationUserStamp.imageKind,
-          assetRef: 'stamps/photos/photo-cue.png',
-          checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          assetSizeBytes: 3,
-          assetWidthPixels: 16,
-          assetHeightPixels: 16,
-        ),
-      ],
+  test('codec rejects image stamp bytes that do not match metadata', () {
+    final expectedBytes = image.encodePng(image.Image(width: 16, height: 16));
+    final mismatchedBytes = image.encodePng(image.Image(width: 15, height: 16));
+    final stampPack = _imageStampPack(expectedBytes);
+
+    expect(
+      () => SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _imageStampManifest,
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: [stampPack],
+        stampAssetFiles: <String, List<int>>{
+          'stamps/photos/photo-cue.png': mismatchedBytes,
+        },
+      ),
+      throwsFormatException,
     );
+
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile.string(
+          sheetSetlistPackageManifestFileName,
+          _imageStampManifest,
+        ),
+      )
+      ..addFile(
+        ArchiveFile.string(
+          sheetSetlistPackageUserStampsFileName,
+          jsonEncode(<Object?>[stampPack.toJson()]),
+        ),
+      )
+      ..addFile(
+        ArchiveFile.bytes('stamps/photos/photo-cue.png', mismatchedBytes),
+      );
+
+    expect(
+      () =>
+          SheetSetlistPackageArchive.decodeBytes(ZipEncoder().encode(archive)),
+      throwsFormatException,
+    );
+  });
+
+  test('codec drops image user stamp metadata when asset is missing', () {
+    final imageBytes = image.encodePng(image.Image(width: 16, height: 16));
+    final stampPack = _imageStampPack(imageBytes);
     final zip = SheetSetlistPackageArchive.encodeBytes(
       manifestText: '''
 Clef & Staff 세트리스트
@@ -928,6 +932,7 @@ Clef & Staff 세트리스트
   test(
     'export package includes image user stamp assets when readable',
     () async {
+      final imageBytes = image.encodePng(image.Image(width: 16, height: 16));
       final now = DateTime(2026, 10, 8, 15);
       final score = _score(
         id: 'goedicke',
@@ -941,27 +946,7 @@ Clef & Staff 세트리스트
         createdAt: now,
         updatedAt: now,
       );
-      final stampPack = SheetAnnotationStampPack(
-        id: 'photos',
-        name: '사진 스탬프',
-        version: 1,
-        createdAt: now,
-        updatedAt: now,
-        stamps: const <SheetAnnotationUserStamp>[
-          SheetAnnotationUserStamp(
-            id: 'photo-cue',
-            packId: 'photos',
-            label: 'Photo cue',
-            category: '사용자',
-            kind: SheetAnnotationUserStamp.imageKind,
-            assetRef: 'stamps/photos/photo-cue.png',
-            checksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            assetSizeBytes: 3,
-            assetWidthPixels: 16,
-            assetHeightPixels: 16,
-          ),
-        ],
-      );
+      final stampPack = _imageStampPack(imageBytes, timestamp: now);
 
       final result = await SheetSetlistPackageArchive.exportSetlistBytes(
         setlist: setlist,
@@ -969,7 +954,7 @@ Clef & Staff 세트리스트
         readScoreBytes: (_) async => [9, 8, 7],
         userStampPacks: [stampPack],
         readUserStampAssetBytes: (assetRef) async =>
-            assetRef == 'stamps/photos/photo-cue.png' ? [1, 2, 3] : null,
+            assetRef == 'stamps/photos/photo-cue.png' ? imageBytes : null,
       );
 
       expect(result.didExport, isTrue);
@@ -980,7 +965,7 @@ Clef & Staff 세트리스트
         package.userStampPacks.single.stamps.single.assetRef,
         'stamps/photos/photo-cue.png',
       );
-      expect(package.stampAssetFiles.single.bytes, [1, 2, 3]);
+      expect(package.stampAssetFiles.single.bytes, imageBytes);
     },
   );
 
@@ -1107,4 +1092,42 @@ Uint8List _docxBytes(String text) {
       ),
     );
   return Uint8List.fromList(ZipEncoder().encode(archive));
+}
+
+const _imageStampManifest = '''
+Clef & Staff 세트리스트
+제목: Image Stamp Package
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''';
+
+SheetAnnotationStampPack _imageStampPack(
+  List<int> imageBytes, {
+  DateTime? timestamp,
+}) {
+  final now = timestamp ?? DateTime(2026, 10, 8, 12);
+  return SheetAnnotationStampPack(
+    id: 'photos',
+    name: '사진 스탬프',
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    stamps: <SheetAnnotationUserStamp>[
+      SheetAnnotationUserStamp(
+        id: 'photo-cue',
+        packId: 'photos',
+        label: 'Photo cue',
+        category: '사용자',
+        kind: SheetAnnotationUserStamp.imageKind,
+        assetRef: 'stamps/photos/photo-cue.png',
+        checksum: sha256.convert(imageBytes).toString(),
+        assetSizeBytes: imageBytes.length,
+        assetWidthPixels: 16,
+        assetHeightPixels: 16,
+        licenseLabel: 'User provided',
+      ),
+    ],
+  );
 }

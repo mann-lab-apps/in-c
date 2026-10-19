@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+import 'package:image/image.dart' as image;
 
 import 'sheet_annotation.dart';
 import 'sheet_docx.dart';
@@ -150,6 +151,9 @@ class SheetSetlistPackageArchive {
             allowImageStamps: true,
             availableImageAssetRefs: stampAssetRefs,
           );
+    _validatePackageImageStampAssets(userStampPacks, <String, List<int>>{
+      for (final asset in stampAssetFiles) asset.path: asset.bytes!,
+    });
     final scoreFilesByPath = {for (final file in packageFiles) file.path: file};
     final annotationSidecars = <SheetSetlistPackageAnnotationSidecar>[];
     final annotatedScorePaths = <String>{};
@@ -222,6 +226,10 @@ class SheetSetlistPackageArchive {
       userStampPacks,
       allowImageStamps: normalizedStampAssetFiles.isNotEmpty,
       availableImageAssetRefs: normalizedStampAssetFiles.keys.toSet(),
+    );
+    _validatePackageImageStampAssets(
+      normalizedStampPacks,
+      normalizedStampAssetFiles,
     );
     if (normalizedStampPacks.isNotEmpty) {
       archive.addFile(
@@ -1066,6 +1074,50 @@ Set<String> _imageStampAssetRefs(List<SheetAnnotationStampPack> packs) {
         if (stamp.kind == SheetAnnotationUserStamp.imageKind)
           stamp.assetRef.trim().replaceAll('\\', '/'),
   }..remove('');
+}
+
+void _validatePackageImageStampAssets(
+  List<SheetAnnotationStampPack> packs,
+  Map<String, List<int>> assetFiles,
+) {
+  for (final pack in packs) {
+    for (final stamp in pack.stamps) {
+      if (stamp.kind != SheetAnnotationUserStamp.imageKind) {
+        continue;
+      }
+      final bytes = assetFiles[stamp.assetRef];
+      if (bytes == null) {
+        throw FormatException(
+          'Setlist package image stamp asset is missing: ${stamp.assetRef}',
+        );
+      }
+      if (bytes.length != stamp.assetSizeBytes) {
+        throw FormatException(
+          'Setlist package image stamp size does not match: ${stamp.assetRef}',
+        );
+      }
+      final checksum = sha256.convert(bytes).toString();
+      if (checksum.toLowerCase() != stamp.checksum.toLowerCase()) {
+        throw FormatException(
+          'Setlist package image stamp checksum does not match: '
+          '${stamp.assetRef}',
+        );
+      }
+      final decoded = image.decodeImage(Uint8List.fromList(bytes));
+      if (decoded == null) {
+        throw FormatException(
+          'Setlist package image stamp cannot be decoded: ${stamp.assetRef}',
+        );
+      }
+      if (decoded.width != stamp.assetWidthPixels ||
+          decoded.height != stamp.assetHeightPixels) {
+        throw FormatException(
+          'Setlist package image stamp dimensions do not match: '
+          '${stamp.assetRef}',
+        );
+      }
+    }
+  }
 }
 
 String _setlistPackageManifestText(

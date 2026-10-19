@@ -2894,3 +2894,8 @@ already matched local scores, counts both groups and explicitly says the current
 and imports only scores/setlist data. This avoids silent partial behavior for externally produced sidecar packages while
 the annotation storage transaction is still pending. Model regressions preserve ordinary packages with no sidecars.
 Focused package tests passed 35 cases; `flutter analyze`, all 1,707 tests and the RC release check passed.
+
+S284 VERIFIED LOCAL: tightened the package image-stamp boundary before wiring imported assets into local storage. ZIP
+encode and decode now compare every included image stamp's actual SHA-256, byte size, decodability and pixel dimensions
+with its metadata and reject mismatches instead of allowing a broken or substituted asset to reach the library import.
+Real PNG fixtures replace placeholder bytes and cover both locally encoded and externally assembled mismatched packages.
