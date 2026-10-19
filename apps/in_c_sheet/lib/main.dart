@@ -8492,6 +8492,18 @@ class _SheetPlainTextViewerScreenState
     extends State<SheetPlainTextViewerScreen> {
   Future<String>? _textFuture;
   String _loadedPath = '';
+  String _loadedText = '';
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _isSearching = false;
+  int _activeMatchIndex = 0;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -8503,7 +8515,34 @@ class _SheetPlainTextViewerScreenState
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(score.displayTitle)),
+      appBar: AppBar(
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: '텍스트 찾기',
+                  border: InputBorder.none,
+                ),
+                onChanged: _updateSearch,
+              )
+            : Text(score.displayTitle),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              tooltip: '찾기 닫기',
+              onPressed: _closeSearch,
+              icon: const Icon(Icons.close),
+            )
+          else
+            TextButton.icon(
+              onPressed: () => setState(() => _isSearching = true),
+              icon: const Icon(Icons.search),
+              label: const Text('찾기'),
+            ),
+        ],
+      ),
       body: FutureBuilder<String>(
         future: _textFor(score),
         builder: (context, snapshot) {
@@ -8516,19 +8555,47 @@ class _SheetPlainTextViewerScreenState
               error: snapshot.error ?? '텍스트 파일을 읽지 못했습니다.',
             );
           }
+          _loadedText = snapshot.data!;
+          final search = _plainTextSearch(_loadedText, _searchController.text);
+          final activeMatchIndex = search.matches.isEmpty
+              ? 0
+              : math.min(_activeMatchIndex, search.matches.length - 1);
           return SafeArea(
-            child: SelectionArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    snapshot.data!,
-                    style: Theme.of(context).textTheme.bodyLarge
-                        ?.copyWith(height: 1.55),
+            child: Column(
+              children: [
+                if (_isSearching)
+                  _PlainTextSearchToolbar(
+                    query: _searchController.text,
+                    matchCount: search.matches.length,
+                    isTruncated: search.isTruncated,
+                    activeMatchIndex: activeMatchIndex,
+                    onPrevious: search.matches.isEmpty
+                        ? null
+                        : () => _moveSearchMatch(-1, search),
+                    onNext: search.matches.isEmpty
+                        ? null
+                        : () => _moveSearchMatch(1, search),
+                  ),
+                Expanded(
+                  child: SelectionArea(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text.rich(
+                          _highlightPlainText(
+                            context,
+                            _loadedText,
+                            search,
+                            activeMatchIndex,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           );
         },
@@ -8543,6 +8610,168 @@ class _SheetPlainTextViewerScreenState
     }
     return _textFuture!;
   }
+
+  void _updateSearch(String query) {
+    setState(() => _activeMatchIndex = 0);
+    final search = _plainTextSearch(_loadedText, query);
+    _scheduleSearchJump(search);
+  }
+
+  void _closeSearch() {
+    setState(() {
+      _isSearching = false;
+      _activeMatchIndex = 0;
+      _searchController.clear();
+    });
+  }
+
+  void _moveSearchMatch(int delta, _PlainTextSearchResult search) {
+    if (search.matches.isEmpty) return;
+    setState(() {
+      _activeMatchIndex = (_activeMatchIndex + delta) % search.matches.length;
+      if (_activeMatchIndex < 0) {
+        _activeMatchIndex += search.matches.length;
+      }
+    });
+    _scheduleSearchJump(search);
+  }
+
+  void _scheduleSearchJump(_PlainTextSearchResult search) {
+    if (search.matches.isEmpty || _loadedText.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final index = math.min(_activeMatchIndex, search.matches.length - 1);
+      final ratio = search.matches[index].start / _loadedText.length;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent * ratio,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+}
+
+class _PlainTextSearchToolbar extends StatelessWidget {
+  const _PlainTextSearchToolbar({
+    required this.query,
+    required this.matchCount,
+    required this.isTruncated,
+    required this.activeMatchIndex,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final String query;
+  final int matchCount;
+  final bool isTruncated;
+  final int activeMatchIndex;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = query.trim().isEmpty
+        ? '검색어를 입력하세요.'
+        : matchCount == 0
+        ? '일치하는 내용이 없습니다.'
+        : '${activeMatchIndex + 1}/$matchCount${isTruncated ? '+' : ''}';
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            IconButton(
+              tooltip: '이전 일치',
+              onPressed: onPrevious,
+              icon: const Icon(Icons.keyboard_arrow_up),
+            ),
+            IconButton(
+              tooltip: '다음 일치',
+              onPressed: onNext,
+              icon: const Icon(Icons.keyboard_arrow_down),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlainTextSearchResult {
+  const _PlainTextSearchResult({
+    required this.matches,
+    required this.isTruncated,
+  });
+
+  final List<TextRange> matches;
+  final bool isTruncated;
+}
+
+_PlainTextSearchResult _plainTextSearch(String text, String rawQuery) {
+  const maxMatches = 500;
+  final query = rawQuery.trim();
+  if (query.isEmpty || text.isEmpty) {
+    return const _PlainTextSearchResult(
+      matches: <TextRange>[],
+      isTruncated: false,
+    );
+  }
+  final matches = <TextRange>[];
+  final pattern = RegExp(
+    RegExp.escape(query),
+    caseSensitive: false,
+    unicode: true,
+  );
+  for (final match in pattern.allMatches(text)) {
+    if (matches.length == maxMatches) {
+      return _PlainTextSearchResult(matches: matches, isTruncated: true);
+    }
+    matches.add(TextRange(start: match.start, end: match.end));
+  }
+  return _PlainTextSearchResult(matches: matches, isTruncated: false);
+}
+
+TextSpan _highlightPlainText(
+  BuildContext context,
+  String text,
+  _PlainTextSearchResult search,
+  int activeMatchIndex,
+) {
+  final baseStyle = Theme.of(context).textTheme.bodyLarge
+      ?.copyWith(height: 1.55);
+  if (search.matches.isEmpty) {
+    return TextSpan(text: text, style: baseStyle);
+  }
+  final colorScheme = Theme.of(context).colorScheme;
+  final spans = <InlineSpan>[];
+  var offset = 0;
+  for (var index = 0; index < search.matches.length; index += 1) {
+    final match = search.matches[index];
+    if (match.start > offset) {
+      spans.add(TextSpan(text: text.substring(offset, match.start)));
+    }
+    spans.add(
+      TextSpan(
+        text: text.substring(match.start, match.end),
+        style: TextStyle(
+          color: index == activeMatchIndex
+              ? colorScheme.onPrimaryContainer
+              : colorScheme.onSecondaryContainer,
+          backgroundColor: index == activeMatchIndex
+              ? colorScheme.primaryContainer
+              : colorScheme.secondaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+    offset = match.end;
+  }
+  if (offset < text.length) {
+    spans.add(TextSpan(text: text.substring(offset)));
+  }
+  return TextSpan(style: baseStyle, children: spans);
 }
 
 Future<String> _loadPlainTextScore(SheetScore score) {

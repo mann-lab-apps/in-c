@@ -2769,3 +2769,9 @@ derives named jump targets from rendered section/comment/chorus/verse/bridge/tab
 text-labelled `구간` menu in the app bar. Selecting a target scrolls its rendered line into view; scores without named
 directives keep the action hidden. Parser/renderer and widget regressions cover labels, indexes and the menu-to-line path.
 Validation passes `flutter analyze`, all 1,667 tests and the RC release check.
+
+S264 VERIFIED LOCAL: added in-view search for stored plain-text scores. A text-labelled `찾기` action opens an app-bar
+query field, highlights case-insensitive matches and provides named previous/next controls with the active result count.
+Navigation scrolls toward each match, wraps at either end and caps highlighted results at 500 to keep near-limit files
+responsive. Closing search restores the score title and selection-oriented viewer. Widget regression covers the full flow.
+Validation passes focused smoke tests, `flutter analyze`, all 1,667 tests and the RC release check.

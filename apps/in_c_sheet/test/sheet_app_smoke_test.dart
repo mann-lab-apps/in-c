@@ -1449,6 +1449,20 @@ Clef & Staff 세트리스트
     expect(find.text('Lesson notes'), findsOneWidget);
     expect(find.byType(SelectionArea), findsOneWidget);
     expect(find.textContaining('첫 문장'), findsOneWidget);
+
+    await tester.tap(find.text('찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '문장');
+    await tester.pump();
+    expect(find.text('1/2'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('다음 일치'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('찾기 닫기'));
+    await tester.pump();
+    expect(find.text('찾기'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
