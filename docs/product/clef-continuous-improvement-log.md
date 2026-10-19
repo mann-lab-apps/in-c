@@ -2672,3 +2672,9 @@ record SHA-256 digests for both the mixed editable-annotation fixture and the Un
 `--review-report` verifies every listed local file and returns exit code 2 for a missing or changed artifact,
 while legacy reports without the artifact table remain reviewable. Parser, template and end-to-end CLI tests
 cover paths with spaces, digest normalization, mismatch diagnostics and missing-file diagnostics.
+
+S250 VERIFIED LOCAL: made the editable PDF external-viewer handoff portable. Fixture generation now also
+creates one ZIP containing the mixed fixture, Unicode appearance fixture and a report whose artifact paths are
+relative to the extracted report. Report review resolves relative paths against the report directory and keeps
+the same SHA-256 checks, so moving the bundle to another machine does not weaken artifact identity. End-to-end
+tests generate and inspect the ZIP, verify all three entries and prove relative artifact review succeeds.

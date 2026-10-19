@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
@@ -19,6 +20,7 @@ Future<void> main(List<String> args) async {
   final unicodeOutputPath =
       _valueAfter(args, '--unicode-output') ?? _defaultUnicodeOutputPath;
   final reportPath = _valueAfter(args, '--report') ?? _defaultReportPath;
+  final bundlePath = _valueAfter(args, '--bundle') ?? _defaultBundlePath;
   final output = File(outputPath);
   final unicodeOutput = File(unicodeOutputPath);
   if (!input.existsSync()) {
@@ -135,20 +137,45 @@ Future<void> main(List<String> args) async {
     );
   final report = File(reportPath);
   await report.parent.create(recursive: true);
+  final outputSha256 = await _sha256Of(output);
+  final unicodeOutputSha256 = await _sha256Of(unicodeOutput);
   await report.writeAsString(
-    SheetPdfAnnotationCompatibilityReportTemplate.markdown(
+    _compatibilityReportMarkdown(
       fixturePath: output.absolute.path,
-      inspection: inspection,
-      fixtureSha256: await _sha256Of(output),
+      fixtureSha256: outputSha256,
       unicodeFixturePath: unicodeOutput.absolute.path,
+      unicodeFixtureSha256: unicodeOutputSha256,
+      inspection: inspection,
       unicodeInspection: unicodeInspection,
-      unicodeFixtureSha256: await _sha256Of(unicodeOutput),
       pdfAConformanceDelta: pdfAConformanceDelta,
     ),
   );
+  final bundle = File(bundlePath);
+  await bundle.parent.create(recursive: true);
+  final bundleReport = _compatibilityReportMarkdown(
+    fixturePath: _bundleFixtureName,
+    fixtureSha256: outputSha256,
+    unicodeFixturePath: _bundleUnicodeFixtureName,
+    unicodeFixtureSha256: unicodeOutputSha256,
+    inspection: inspection,
+    unicodeInspection: unicodeInspection,
+    pdfAConformanceDelta: pdfAConformanceDelta,
+  );
+  final archive = Archive()
+    ..addFile(ArchiveFile.bytes(_bundleFixtureName, await output.readAsBytes()))
+    ..addFile(
+      ArchiveFile.bytes(
+        _bundleUnicodeFixtureName,
+        await unicodeOutput.readAsBytes(),
+      ),
+    )
+    ..addFile(ArchiveFile.string(_bundleReportName, bundleReport));
+  await bundle.writeAsBytes(ZipEncoder().encode(archive), flush: true);
   stdout
     ..writeln('Manual QA report template:')
     ..writeln(report.absolute.path)
+    ..writeln('Portable QA bundle:')
+    ..writeln(bundle.absolute.path)
     ..writeln('Required spike items:');
   for (final item
       in SheetAnnotatedPdfExporter
@@ -193,7 +220,7 @@ Future<void> _reviewReport(String reportPath) async {
   final missingArtifacts = <SheetPdfCompatibilityFixtureArtifact>[];
   final mismatchedArtifacts = <String>[];
   for (final artifact in fixtureArtifacts) {
-    final file = File(artifact.path);
+    final file = _resolveArtifactFile(report, artifact.path);
     if (!file.existsSync()) {
       missingArtifacts.add(artifact);
       continue;
@@ -247,6 +274,36 @@ Future<String> _sha256Of(File file) async {
   return sha256.convert(await file.readAsBytes()).toString();
 }
 
+File _resolveArtifactFile(File report, String artifactPath) {
+  final isAbsolute =
+      artifactPath.startsWith('/') ||
+      RegExp(r'^[A-Za-z]:[\\/]').hasMatch(artifactPath);
+  if (isAbsolute) {
+    return File(artifactPath);
+  }
+  return File('${report.parent.path}${Platform.pathSeparator}$artifactPath');
+}
+
+String _compatibilityReportMarkdown({
+  required String fixturePath,
+  required String fixtureSha256,
+  required String unicodeFixturePath,
+  required String unicodeFixtureSha256,
+  required SheetStandardPdfAnnotationInspection inspection,
+  required SheetStandardPdfAnnotationInspection unicodeInspection,
+  required SheetPdfAConformanceDelta pdfAConformanceDelta,
+}) {
+  return SheetPdfAnnotationCompatibilityReportTemplate.markdown(
+    fixturePath: fixturePath,
+    inspection: inspection,
+    fixtureSha256: fixtureSha256,
+    unicodeFixturePath: unicodeFixturePath,
+    unicodeInspection: unicodeInspection,
+    unicodeFixtureSha256: unicodeFixtureSha256,
+    pdfAConformanceDelta: pdfAConformanceDelta,
+  );
+}
+
 const _defaultInputPath = 'test-fixtures/pdfs/short-score.pdf';
 const _defaultOutputPath =
     '.dart_tool/clef-pdf-compatibility/'
@@ -257,6 +314,12 @@ const _defaultUnicodeOutputPath =
 const _defaultReportPath =
     '.dart_tool/clef-pdf-compatibility/'
     'clef-editable-annotation-compatibility-report.md';
+const _defaultBundlePath =
+    '.dart_tool/clef-pdf-compatibility/'
+    'clef-editable-annotation-compatibility-bundle.zip';
+const _bundleFixtureName = 'clef-editable-annotation-compatibility.pdf';
+const _bundleUnicodeFixtureName = 'clef-unicode-freetext-appearance.pdf';
+const _bundleReportName = 'clef-editable-annotation-compatibility-report.md';
 const _pngImageStampAssetRef = 'stamps/compatibility/cue-photo.png';
 const _webpImageStampAssetRef = 'stamps/compatibility/webp-cue.webp';
 
