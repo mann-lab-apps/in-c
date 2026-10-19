@@ -9371,9 +9371,6 @@ class _ChordProDisplayLineView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final chordRow = line.kind == SheetChordProDisplayLineKind.chordLyric
-        ? _chordProDisplayChordRow(line)
-        : '';
     final content = switch (line.kind) {
       SheetChordProDisplayLineKind.directive => Padding(
         padding: const EdgeInsets.only(top: 12, bottom: 4),
@@ -9392,25 +9389,10 @@ class _ChordProDisplayLineView extends StatelessWidget {
       ),
       SheetChordProDisplayLineKind.chordLyric => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (chordRow.isNotEmpty)
-              Text(
-                chordRow,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
-              ),
-            if (line.lyricText.isNotEmpty)
-              Text(
-                line.lyricText,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
-              ),
-          ],
+        child: _ChordProSegmentWrap(
+          segments: line.segments,
+          lineIndex: lineIndex,
+          showLyricRow: line.lyricText.isNotEmpty,
         ),
       ),
     };
@@ -9433,6 +9415,66 @@ class _ChordProDisplayLineView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: content,
         ),
+      ),
+    );
+  }
+}
+
+class _ChordProSegmentWrap extends StatelessWidget {
+  const _ChordProSegmentWrap({
+    required this.segments,
+    required this.lineIndex,
+    required this.showLyricRow,
+  });
+
+  final List<SheetChordProDisplaySegment> segments;
+  final int lineIndex;
+  final bool showLyricRow;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chordStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: theme.colorScheme.primary,
+      fontWeight: FontWeight.w800,
+      height: 1.15,
+    );
+    final lyricStyle = theme.textTheme.bodyLarge?.copyWith(height: 1.35);
+    return Semantics(
+      label: [
+        for (final segment in segments)
+          if (segment.chord case final chord?)
+            '$chord ${segment.lyric}'
+          else
+            segment.lyric,
+      ].join(),
+      child: Wrap(
+        spacing: 0,
+        runSpacing: 6,
+        children: [
+          for (var index = 0; index < segments.length; index += 1)
+            IntrinsicWidth(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    segments[index].chord ?? '',
+                    key: ValueKey('chordpro-chord-$lineIndex-$index'),
+                    style: chordStyle,
+                  ),
+                  if (showLyricRow)
+                    Text(
+                      segments[index].lyric.isEmpty
+                          ? ' '
+                          : segments[index].lyric,
+                      key: ValueKey('chordpro-lyric-$lineIndex-$index'),
+                      style: lyricStyle,
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

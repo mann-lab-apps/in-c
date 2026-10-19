@@ -2958,3 +2958,10 @@ each card and its own committed stroke/text/layer document without introducing a
 annotations for another. Package codec and controller regressions cover both distinct restore and the unchanged unannotated
 dedupe path. Text/DOCX/RTF annotations remain outside this transfer boundary.
 `flutter analyze`, all 1,729 tests and the RC release check passed.
+
+S292 VERIFIED LOCAL: kept ChordPro chords attached to their lyric segments instead of rendering an independent monospace
+chord row over proportional Korean/Latin lyrics. Structured display lines now retain every source token, including text
+before the first chord, and the viewer wraps chord/lyric cells together when space is narrow. Transpose, capo-shape,
+search and section navigation continue to use the same rendered document. Parser/widget regressions cover segment content,
+capo shapes and a 320px-wide viewer without overflow; multi-column chord-grid layout and source editing remain follow-up.
+`flutter analyze`, all 1,730 tests and the RC release check passed.

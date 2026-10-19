@@ -257,6 +257,10 @@ Plain line
       'Home ',
       'again',
     ]);
+    expect(
+      lines[1].segments.map((segment) => (segment.chord, segment.lyric)),
+      <(String?, String)>[('E', 'Home '), ('B/D#', 'again')],
+    );
     expect(lines[2].hasChords, isFalse);
     expect(lines[3].lyricText, 'Plain line');
   });
@@ -276,6 +280,21 @@ Plain line
       'C',
       'G/B',
     ]);
+    expect(lines.single.segments.map((segment) => segment.chord), <String?>[
+      'C',
+      'G/B',
+    ]);
+  });
+
+  test('structured display segments retain lyrics before the first chord', () {
+    final document = SheetChordProParser.parse('Intro [C]starts [G]here');
+
+    final line = SheetChordProTextRenderer.renderDisplayLines(document).single;
+
+    expect(
+      line.segments.map((segment) => (segment.chord, segment.lyric)),
+      <(String?, String)>[(null, 'Intro '), ('C', 'starts '), ('G', 'here')],
+    );
   });
 
   test('renders chord-only lines without adding empty lyric rows', () {

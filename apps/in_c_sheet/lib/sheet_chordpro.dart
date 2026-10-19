@@ -276,12 +276,20 @@ class SheetChordProDisplayChord {
   final String lyric;
 }
 
+class SheetChordProDisplaySegment {
+  const SheetChordProDisplaySegment({required this.lyric, this.chord});
+
+  final String lyric;
+  final String? chord;
+}
+
 class SheetChordProDisplayLine {
   const SheetChordProDisplayLine._({
     required this.kind,
     this.label = '',
     this.lyricText = '',
     this.chords = const <SheetChordProDisplayChord>[],
+    this.segments = const <SheetChordProDisplaySegment>[],
   });
 
   const SheetChordProDisplayLine.lyric(String lyricText)
@@ -290,10 +298,12 @@ class SheetChordProDisplayLine {
   const SheetChordProDisplayLine.chordLyric({
     required String lyricText,
     required List<SheetChordProDisplayChord> chords,
+    required List<SheetChordProDisplaySegment> segments,
   }) : this._(
          kind: SheetChordProDisplayLineKind.chordLyric,
          lyricText: lyricText,
          chords: chords,
+         segments: segments,
        );
 
   const SheetChordProDisplayLine.directive(String label)
@@ -306,6 +316,7 @@ class SheetChordProDisplayLine {
   final String label;
   final String lyricText;
   final List<SheetChordProDisplayChord> chords;
+  final List<SheetChordProDisplaySegment> segments;
 
   bool get hasChords => chords.isNotEmpty;
 }
@@ -562,6 +573,12 @@ class SheetChordProTextRenderer {
             showCapoShapes: showCapoShapes,
             preferFlats: preferFlats,
           ),
+          segments: _renderDisplaySegments(
+            line.tokens,
+            capoFrets: effectiveCapoFrets,
+            showCapoShapes: showCapoShapes,
+            preferFlats: preferFlats,
+          ),
         ),
       );
     }
@@ -668,6 +685,28 @@ class SheetChordProTextRenderer {
       lyricOffset += token.text.length;
     }
     return rendered;
+  }
+
+  static List<SheetChordProDisplaySegment> _renderDisplaySegments(
+    List<SheetChordProToken> tokens, {
+    required int capoFrets,
+    required bool showCapoShapes,
+    required bool preferFlats,
+  }) {
+    return List<SheetChordProDisplaySegment>.unmodifiable([
+      for (final token in tokens)
+        SheetChordProDisplaySegment(
+          lyric: token.text,
+          chord: token.chord == null
+              ? null
+              : _renderChord(
+                  token.chord!,
+                  capoFrets: capoFrets,
+                  showCapoShapes: showCapoShapes,
+                  preferFlats: preferFlats,
+                ),
+        ),
+    ]);
   }
 
   static String _renderChord(

@@ -1400,6 +1400,9 @@ Clef & Staff 세트리스트
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final tempDir = Directory.systemTemp.createTempSync(
       'clef-chordpro-viewer-',
     );
@@ -1454,7 +1457,8 @@ Clef & Staff 세트리스트
     expect(find.text('Autumn Tune'), findsWidgets);
     expect(find.text('ChordPro'), findsOneWidget);
     expect(find.text('조성: D'), findsOneWidget);
-    expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chordpro-lyric-1-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chordpro-lyric-1-1')), findsOneWidget);
     expect(find.text('구간'), findsOneWidget);
 
     await tester.tap(find.text('구간'));
@@ -1755,7 +1759,8 @@ Clef & Staff 세트리스트
     await tester.pump();
 
     expect(find.text('조성: E'), findsOneWidget);
-    expect(find.textContaining('E  B'), findsOneWidget);
+    expect(find.text('E'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
     expect(find.text('이 악보를 다시 열어도 표시 조정이 유지됩니다.'), findsOneWidget);
 
     await tester.tap(find.byTooltip('반음 올림'));
@@ -1767,7 +1772,8 @@ Clef & Staff 세트리스트
 
     expect(find.text('조성: F'), findsOneWidget);
     expect(find.text('이조: +1'), findsOneWidget);
-    expect(find.textContaining('F  C'), findsOneWidget);
+    expect(find.text('F'), findsOneWidget);
+    expect(find.text('C'), findsOneWidget);
     expect(
       controller
           .scoreById('chordpro-capo-score')
@@ -1786,7 +1792,8 @@ Clef & Staff 세트리스트
     await tester.pump();
 
     expect(find.text('카포 운지 표시'), findsOneWidget);
-    expect(find.textContaining('D  A'), findsOneWidget);
+    expect(find.text('D'), findsOneWidget);
+    expect(find.text('A'), findsOneWidget);
     expect(
       controller
           .scoreById('chordpro-capo-score')
