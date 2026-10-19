@@ -1044,9 +1044,10 @@ Clef & Staff 세트리스트
 
     expect(imported, isNotNull);
     expect(imported!.title, 'late autumn');
-    expect(imported.filePath, endsWith('.chordpro'));
+    expect(imported.filePath, endsWith('.onsong'));
     expect(imported.customFields.map((field) => field.key), contains('조성'));
-    expect(store.importedSource, contains('늦가을'));
+    expect(store.importedChordProFile?.name, 'late-autumn.onsong');
+    expect(utf8.decode(store.importedChordProFile!.bytes), contains('늦가을'));
     expect(controller.scores.single.title, 'late autumn');
   });
 
@@ -1087,7 +1088,7 @@ Clef & Staff 세트리스트
     await controller.load();
 
     expect(await controller.importChordProFile(), isNull);
-    expect(store.importedSource, isEmpty);
+    expect(store.importedChordProFile, isNull);
     expect(controller.scores, isEmpty);
 
     expect(await controller.importPlainTextFile(), isNull);
@@ -1179,6 +1180,7 @@ Clef & Staff 세트리스트
     expect(imported, isNull);
     expect(controller.scores.map((score) => score.id), ['existing']);
     expect((await store.loadScores()).map((score) => score.id), ['existing']);
+    expect(store.discardedScoreIds, contains('chordpro-file-1'));
   });
 
   test('plain text import save failure restores previous scores', () async {
@@ -1200,6 +1202,7 @@ Clef & Staff 세트리스트
     expect(imported, isNull);
     expect(controller.scores.map((score) => score.id), ['existing']);
     expect((await store.loadScores()).map((score) => score.id), ['existing']);
+    expect(store.discardedScoreIds, contains('plain-text-1'));
   });
 
   test(
@@ -5570,6 +5573,7 @@ class _ChordProImportStore extends SheetLibraryStore {
   String importedSource = '';
   bool failSaveScores = false;
   SheetImportedFile? pickedChordProFile;
+  SheetImportedFile? importedChordProFile;
   SheetImportedFile? pickedPlainTextFile;
   SheetImportedFile? pickedDocxFile;
   SheetImportedFile? pickedRtfFile;
@@ -5583,6 +5587,31 @@ class _ChordProImportStore extends SheetLibraryStore {
   @override
   Future<SheetImportedFile?> pickPlainTextFile() async {
     return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedChordProFile = file;
+    final document = SheetChordProParser.parse(utf8.decode(file.bytes));
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    return _score(
+      importedAt ?? now,
+      id: 'chordpro-file-1',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      filePath: '/text/${file.name}',
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
   }
 
   @override

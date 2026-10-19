@@ -1273,7 +1273,7 @@ Clef & Staff 세트리스트
     final controller = SheetLibraryController(
       store: _SmokeChordProStore()
         ..pickedChordProFile = SheetImportedFile(
-          name: 'winter-song.chordpro',
+          name: 'winter-song.onsong',
           bytes: Uint8List.fromList(
             utf8.encode('''
 {title: Winter Song}
@@ -1300,6 +1300,7 @@ Clef & Staff 세트리스트
 
     expect(find.text('"Winter Song" ChordPro 파일을 가져왔습니다.'), findsOneWidget);
     expect(controller.scores.single.title, 'Winter Song');
+    expect(controller.scores.single.filePath, endsWith('.onsong'));
     expect(find.text('Winter Song'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
@@ -4916,6 +4917,37 @@ class _SmokeChordProStore extends SheetLibraryStore {
       lastPage: 1,
       isFavorite: false,
       bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 9, 28, 17);
+    final document = SheetChordProParser.parse(utf8.decode(file.bytes));
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    return SheetScore(
+      id: 'smoke-chordpro-file',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: '/text/${file.name}',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
     );
   }
 

@@ -639,6 +639,7 @@ class SheetLibraryController extends ChangeNotifier {
     }
 
     final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
     _isImporting = true;
     _errorMessage = null;
     _lastImportOpenedExistingScore = false;
@@ -657,14 +658,26 @@ class SheetLibraryController extends ChangeNotifier {
       if (source.trim().isEmpty) {
         throw const FormatException('Empty ChordPro file.');
       }
-      return await _storeChordProSource(
-        source,
-        libraryId: libraryId,
-        fallbackTitle: SheetFileImportPolicy.titleFromFileName(
-          importedFile.name,
-        ),
-      );
+      importedScore = await store.importChordProFileBytes(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
     } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'ChordPro 파일을 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
       }
@@ -679,6 +692,7 @@ class SheetLibraryController extends ChangeNotifier {
     if (_isImporting) return null;
 
     final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
     _isImporting = true;
     _errorMessage = null;
     _lastImportOpenedExistingScore = false;
@@ -697,13 +711,26 @@ class SheetLibraryController extends ChangeNotifier {
       if (source.trim().isEmpty) {
         throw const FormatException('Empty text file.');
       }
-      final rawScore = await store.importPlainTextFile(file: importedFile);
-      if (_activeLibraryProfile.id != libraryId) return null;
-      final score = _withActiveCollection(rawScore);
+      importedScore = await store.importPlainTextFile(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
       _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
       return score;
     } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = '텍스트 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
       }

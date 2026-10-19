@@ -2847,3 +2847,9 @@ and ChordPro file selection now reject empty, over-2-MiB and non-UTF-8 bytes in 
 can mutate the library, while the concrete plain-text store also decodes strictly. Pasted ChordPro enforces the same byte
 ceiling in controller and store. Store/controller regressions verify rejection without a score or rewritten replacement
 glyphs; editable source remains outside this read-only flow.
+
+S276 VERIFIED LOCAL: routed selected ChordPro files through the byte-preserving store path instead of decoding and
+rewriting every source as `.chordpro`. `.onsong` and the other supported extensions now retain their original bytes and
+extension. ChordPro and plain-text file imports also use the DOCX/RTF cleanup pattern: a library switch, metadata save
+failure or later exception discards only the newly copied unreferenced file and never reports success. Controller
+regressions cover original-file handoff and cleanup after failed persistence.
