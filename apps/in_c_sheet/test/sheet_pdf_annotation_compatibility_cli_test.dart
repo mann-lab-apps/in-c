@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_pdf_annotation_compatibility_report.dart';
+import 'package:pdf_document/pdf_document.dart';
 
 void main() {
   late Directory tempDirectory;
@@ -186,6 +187,31 @@ void main() {
       ]),
     );
     expect(File(transformedOutput).existsSync(), isTrue);
+    final transformedDocument = PdfDocument.open(
+      await File(transformedOutput).readAsBytes(),
+    );
+    expect(transformedDocument.pageCount, 3);
+    expect(transformedDocument.page(1).rotation, 90);
+    expect(
+      transformedDocument
+          .page(1)
+          .annotations
+          .where((annotation) => annotation.name?.startsWith('clef-') ?? false)
+          .length,
+      greaterThanOrEqualTo(5),
+    );
+    for (final pageIndex in <int>[0, 2]) {
+      expect(
+        transformedDocument
+            .page(pageIndex)
+            .annotations
+            .where(
+              (annotation) => annotation.name?.startsWith('clef-') ?? false,
+            )
+            .isEmpty,
+        isTrue,
+      );
+    }
     final inspection =
         await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(output);
     expect(

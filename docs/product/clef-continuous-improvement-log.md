@@ -2698,3 +2698,10 @@ external viewer target list its variable-width `/Ink` appearance as a required c
 the generated `/AP` stream and requires distinct segment widths; fixture generation also names the pressure annotation.
 Focused exporter/report/CLI tests, full format, analyze, regression suite and RC release checks passed. Poppler render
 shows the expected thin-to-thick-to-thin stroke; real stylus capture and external viewer appearance remain device/manual QA.
+
+S254 VERIFIED LOCAL: the external compatibility fixture now begins from a real three-page score, reorders its PDF page
+tree to `3, 1, 2`, and applies the 90-degree rotation plus offset CropBox to the current second page before exporting
+annotation anchors. The generator and CLI regression prove that only current page 2 carries the fixture annotations;
+Poppler renders show the blank first page and the expected page-2 anchors. An exporter regression also writes line
+annotations through the full 90/180/270-degree path with an offset CropBox and reopens their exact `/L` coordinates.
+External viewer confirmation remains manual QA.

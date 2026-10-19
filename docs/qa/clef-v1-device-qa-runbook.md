@@ -420,7 +420,7 @@ pen/highlighter, pressure-sensitive pen, line/arrow, rectangle, hairpin, staff/g
 music-symbol stamp, PNG/WebP image stamp를 포함한다.
 외부 기기로 전달할 때는 같은 폴더의
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-bundle.zip`을 사용한다.
-ZIP에는 mixed annotation, Unicode FreeText, 90-degree rotated/offset-CropBox fixture PDF와 상대 경로를 사용하는 report가 함께 있어 압축을 푼 위치가 바뀌어도
+ZIP에는 mixed annotation, Unicode FreeText, `3, 1, 2` 순서로 재정렬한 뒤 2쪽에 90-degree rotation/offset-CropBox를 적용한 fixture PDF와 상대 경로를 사용하는 report가 함께 있어 압축을 푼 위치가 바뀌어도
 report 파일 기준으로 artifact를 찾는다.
 Report의 `Fixture artifacts` 표에는 세 PDF의 절대 경로와 SHA-256이 기록된다. 외부 앱에서
 확인한 PDF와 report가 같은 세트인지 유지하고, `--review-report`가 `Missing fixture artifacts`나
@@ -477,7 +477,7 @@ embedded font 없이 viewer font fallback에 의존하므로 Unicode 표시를 �
 8. 원본 PDF에 `/Rotate` 또는 offset CropBox가 있는 페이지에도 좌상단/중앙/우하단에 선과 텍스트를 놓고
    editable/일반 사본을 만든다. 원본 앱 화면과 외부 viewer에서 위치와 방향이 같아야 하며, 회전 전
    PDF 좌표와 화면 좌표를 혼동해 반대 모서리로 이동하면 ISSUE로 기록한다.
-   생성한 rotated/cropped fixture에서는 TL / CENTER / BR와 두 대각선이 같은 화면 위치에 있는지 확인한다.
+   생성한 reordered/rotated/cropped fixture에서는 2쪽만 열어 TL / CENTER / BR와 두 대각선이 같은 화면 위치에 있는지 확인한다. 1쪽과 3쪽에 이 Clef annotation이 나타나면 ISSUE로 기록한다.
 
 기록:
 

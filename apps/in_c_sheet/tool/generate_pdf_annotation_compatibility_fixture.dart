@@ -149,7 +149,7 @@ Future<void> main(List<String> args) async {
       'Unicode FreeText annotations without embedded fonts: '
       '${unicodeInspection.unembeddedUnicodeFreeTextNames}',
     )
-    ..writeln('Generated Clef rotated/cropped page fixture:')
+    ..writeln('Generated Clef reordered/rotated/cropped page fixture:')
     ..writeln(transformedOutput.absolute.path)
     ..writeln('Clef annotations: ${transformedInspection.clefAnnotationCount}');
   final report = File(reportPath);
@@ -426,18 +426,20 @@ Future<SheetStandardPdfAnnotationInspection?> _generateTransformedPageFixture({
     exitCode = 1;
     return null;
   }
-  final page = sourceDocument.page(0);
+  // Reorder first so export targets the current PDF page index rather than
+  // accidentally relying on the original source-page order.
+  final editor = PdfEditor(sourceDocument)..reorderPages(<int>[2, 0, 1]);
+  final page = sourceDocument.page(1);
   final box = page.cropBox;
   final horizontalInset = (box.width * 0.08).clamp(12.0, 36.0).toDouble();
   final verticalInset = (box.height * 0.06).clamp(12.0, 36.0).toDouble();
-  final editor = PdfEditor(sourceDocument);
   page.dict['CropBox'] = CosArray(<CosObject>[
     CosReal(box.left + horizontalInset),
     CosReal(box.bottom + verticalInset),
     CosReal(box.right - horizontalInset),
     CosReal(box.top - verticalInset),
   ]);
-  editor.rotatePage(0, 90);
+  editor.rotatePage(1, 90);
   final transformedSource = File('${output.path}.source.pdf');
   await transformedSource.writeAsBytes(editor.save(), flush: true);
 
@@ -449,26 +451,36 @@ Future<SheetStandardPdfAnnotationInspection?> _generateTransformedPageFixture({
     );
     if (!result.didWrite) {
       stderr.writeln(
-        'Could not generate rotated/cropped fixture: '
+        'Could not generate reordered/rotated/cropped fixture: '
         '${result.failureReason ?? 'unknown failure'}',
       );
       exitCode = 1;
       return null;
     }
     final outputDocument = PdfDocument.open(await output.readAsBytes());
-    final outputPage = outputDocument.page(0);
+    final outputPage = outputDocument.page(1);
+    final otherPagesContainClefAnnotations = <int>[0, 2].any(
+      (index) => outputDocument
+          .page(index)
+          .annotations
+          .any((annotation) => annotation.name?.startsWith('clef-') ?? false),
+    );
     final inspection =
         await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
           output.path,
         );
-    if (outputPage.rotation != 90 ||
+    if (outputDocument.pageCount != 3 ||
+        outputPage.rotation != 90 ||
         outputPage.cropBox == outputPage.mediaBox ||
+        otherPagesContainClefAnnotations ||
         !inspection.isLocallyInspectableEditableFixture ||
         inspection.clefAnnotationCount < 5) {
       stderr.writeln(
-        'Generated rotated/cropped fixture failed local inspection: '
-        'rotation=${outputPage.rotation}, crop=${outputPage.cropBox}, '
+        'Generated reordered/rotated/cropped fixture failed local inspection: '
+        'pages=${outputDocument.pageCount}, rotation=${outputPage.rotation}, '
+        'crop=${outputPage.cropBox}, '
         'media=${outputPage.mediaBox}, '
+        'otherPagesContainClefAnnotations=$otherPagesContainClefAnnotations, '
         'annotations=${inspection.clefAnnotationCount}',
       );
       exitCode = 1;
@@ -755,8 +767,9 @@ SheetScore _transformedPageScore(String inputPath) {
     composer: '',
     tags: const <String>['qa', 'pdf-export', 'rotation', 'crop'],
     note:
-        'Fixture for visual annotation placement on a 90-degree rotated page '
-        'with an offset CropBox.',
+        'Fixture for annotation placement on page 2 after source pages are '
+        'reordered to 3, 1, 2, then page 2 gets a 90-degree rotation and '
+        'offset CropBox.',
     filePath: inputPath,
     importedAt: now,
     updatedAt: now,
@@ -771,6 +784,7 @@ SheetScore _transformedPageScore(String inputPath) {
           tool: SheetAnnotationTool.line,
           color: 0xffd32f2f,
           width: 4,
+          pageNumber: 2,
           points: const <SheetAnnotationPoint>[
             SheetAnnotationPoint(x: 0.10, y: 0.10),
             SheetAnnotationPoint(x: 0.90, y: 0.90),
@@ -782,6 +796,7 @@ SheetScore _transformedPageScore(String inputPath) {
           tool: SheetAnnotationTool.arrow,
           color: 0xff1d5fd1,
           width: 4,
+          pageNumber: 2,
           points: const <SheetAnnotationPoint>[
             SheetAnnotationPoint(x: 0.10, y: 0.90),
             SheetAnnotationPoint(x: 0.90, y: 0.10),
@@ -792,7 +807,7 @@ SheetScore _transformedPageScore(String inputPath) {
       texts: <SheetTextAnnotation>[
         SheetTextAnnotation(
           id: 'transform-top-left',
-          pageNumber: 1,
+          pageNumber: 2,
           position: const SheetAnnotationPoint(x: 0.10, y: 0.10),
           text: 'TL',
           color: 0xff111111,
@@ -801,7 +816,7 @@ SheetScore _transformedPageScore(String inputPath) {
         ),
         SheetTextAnnotation(
           id: 'transform-center',
-          pageNumber: 1,
+          pageNumber: 2,
           position: const SheetAnnotationPoint(x: 0.45, y: 0.50),
           text: 'CENTER',
           color: 0xff111111,
@@ -810,7 +825,7 @@ SheetScore _transformedPageScore(String inputPath) {
         ),
         SheetTextAnnotation(
           id: 'transform-bottom-right',
-          pageNumber: 1,
+          pageNumber: 2,
           position: const SheetAnnotationPoint(x: 0.70, y: 0.85),
           text: 'BR',
           color: 0xff111111,
@@ -829,10 +844,11 @@ SheetAnnotationStroke _stroke({
   required double width,
   required List<SheetAnnotationPoint> points,
   required DateTime createdAt,
+  int pageNumber = 1,
 }) {
   return SheetAnnotationStroke(
     id: id,
-    pageNumber: 1,
+    pageNumber: pageNumber,
     tool: tool,
     color: color,
     width: width,

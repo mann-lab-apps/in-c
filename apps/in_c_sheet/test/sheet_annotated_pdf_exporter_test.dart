@@ -94,73 +94,100 @@ void main() {
     expect(rect.height, closeTo(40, 0.001));
   });
 
-  test('exports line coordinates against a rotated PDF page', () async {
-    final outputDir = await Directory.systemTemp.createTemp(
-      'clef-rotated-annotation-export-',
-    );
-    addTearDown(() async {
-      if (outputDir.existsSync()) {
-        await outputDir.delete(recursive: true);
-      }
-    });
-    final source = PdfDocument.open(
-      await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
-    );
-    final rotatedInput = File('${outputDir.path}/rotated-source.pdf');
-    final rotationEditor = PdfEditor(source)..rotatePage(0, 90);
-    await rotatedInput.writeAsBytes(rotationEditor.save());
-    final rotatedDocument = PdfDocument.open(await rotatedInput.readAsBytes());
-    final box = rotatedDocument.page(0).cropBox;
-    final now = DateTime.parse('2026-10-19T12:00:00.000');
-    final score = SheetScore(
-      id: 'rotated-export',
-      title: 'Rotated export',
-      composer: '',
-      tags: const <String>[],
-      note: '',
-      filePath: rotatedInput.path,
-      importedAt: now,
-      updatedAt: now,
-      lastOpenedAt: null,
-      lastPage: 1,
-      isFavorite: false,
-      bookmarks: const <SheetBookmark>[],
-      annotationLayer: SheetAnnotationLayer(
-        strokes: <SheetAnnotationStroke>[
-          _stroke(
-            'rotated-line',
-            SheetAnnotationTool.line,
-            const <SheetAnnotationPoint>[
-              SheetAnnotationPoint(x: 0.25, y: 0.75),
-              SheetAnnotationPoint(x: 0.75, y: 0.25),
+  test(
+    'exports line coordinates against rotated and cropped PDF pages',
+    () async {
+      final outputDir = await Directory.systemTemp.createTemp(
+        'clef-rotated-annotation-export-',
+      );
+      addTearDown(() async {
+        if (outputDir.existsSync()) {
+          await outputDir.delete(recursive: true);
+        }
+      });
+      for (final rotation in <int>[90, 180, 270]) {
+        final source = PdfDocument.open(
+          await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+        );
+        final sourcePage = source.page(0);
+        final sourceBox = sourcePage.cropBox;
+        sourcePage.dict['CropBox'] = CosArray(<CosObject>[
+          CosReal(sourceBox.left + 24),
+          CosReal(sourceBox.bottom + 30),
+          CosReal(sourceBox.right - 24),
+          CosReal(sourceBox.top - 30),
+        ]);
+        final rotatedInput = File(
+          '${outputDir.path}/rotated-$rotation-source.pdf',
+        );
+        final rotationEditor = PdfEditor(source)..rotatePage(0, rotation);
+        await rotatedInput.writeAsBytes(rotationEditor.save());
+        final rotatedDocument = PdfDocument.open(
+          await rotatedInput.readAsBytes(),
+        );
+        final geometry = SheetPdfAnnotationGeometry.fromPage(
+          rotatedDocument.page(0),
+        );
+        final now = DateTime.parse('2026-10-19T12:00:00.000');
+        final score = SheetScore(
+          id: 'rotated-export-$rotation',
+          title: 'Rotated export $rotation',
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: rotatedInput.path,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+          annotationLayer: SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[
+              _stroke(
+                'rotated-line-$rotation',
+                SheetAnnotationTool.line,
+                const <SheetAnnotationPoint>[
+                  SheetAnnotationPoint(x: 0.25, y: 0.75),
+                  SheetAnnotationPoint(x: 0.75, y: 0.25),
+                ],
+                now,
+              ),
             ],
-            now,
           ),
-        ],
-      ),
-    );
-    final outputPath = '${outputDir.path}/rotated-annotated.pdf';
+        );
+        final outputPath = '${outputDir.path}/rotated-$rotation-annotated.pdf';
 
-    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
-      score: score,
-      outputPath: outputPath,
-      mode: SheetPdfAnnotationExportMode.standardAnnotation,
-    );
-    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
-    final annotation = exported
-        .page(0)
-        .annotations
-        .singleWhere((entry) => entry.name == 'clef-rotated-line');
-    final line = exported.cos.resolve(annotation.dict['L']) as CosArray;
-    final coordinates = line.items.map(_cosNumber).toList(growable: false);
+        final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+          score: score,
+          outputPath: outputPath,
+          mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        );
+        final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+        final annotation = exported
+            .page(0)
+            .annotations
+            .singleWhere(
+              (entry) => entry.name == 'clef-rotated-line-$rotation',
+            );
+        final line = exported.cos.resolve(annotation.dict['L']) as CosArray;
+        final coordinates = line.items.map(_cosNumber).toList(growable: false);
+        final expectedStart = geometry.toPdfPoint(
+          const SheetAnnotationPoint(x: 0.25, y: 0.75),
+        );
+        final expectedEnd = geometry.toPdfPoint(
+          const SheetAnnotationPoint(x: 0.75, y: 0.25),
+        );
 
-    expect(result.didWrite, isTrue);
-    expect(exported.page(0).rotation, 90);
-    expect(coordinates[0], closeTo(box.left + box.width * 0.75, 0.001));
-    expect(coordinates[1], closeTo(box.bottom + box.height * 0.25, 0.001));
-    expect(coordinates[2], closeTo(box.left + box.width * 0.25, 0.001));
-    expect(coordinates[3], closeTo(box.bottom + box.height * 0.75, 0.001));
-  });
+        expect(result.didWrite, isTrue, reason: 'rotation=$rotation');
+        expect(exported.page(0).rotation, rotation);
+        expect(coordinates[0], closeTo(expectedStart.x, 0.001));
+        expect(coordinates[1], closeTo(expectedStart.y, 0.001));
+        expect(coordinates[2], closeTo(expectedEnd.x, 0.001));
+        expect(coordinates[3], closeTo(expectedEnd.y, 0.001));
+      }
+    },
+  );
 
   test(
     'writes a pressure-variable Ink appearance for editable export',

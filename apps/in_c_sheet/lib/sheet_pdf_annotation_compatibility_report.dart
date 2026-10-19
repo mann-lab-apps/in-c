@@ -305,7 +305,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'generated appearances',
         'Unicode FreeText rendering',
         'text and music-symbol stamp rendering',
-        'rotated/cropped annotation placement',
+        'reordered/rotated/cropped annotation placement',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -317,7 +317,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'select/edit behavior',
         'Unicode FreeText rendering',
         'text and music-symbol stamp rendering',
-        'rotated/cropped annotation placement',
+        'reordered/rotated/cropped annotation placement',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -329,7 +329,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'pressure-sensitive Ink appearance',
         'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
-        'rotated/cropped annotation placement',
+        'reordered/rotated/cropped annotation placement',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -341,7 +341,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'pressure-sensitive Ink appearance',
         'text and music-symbol stamp handling',
         'PNG and WebP image stamp handling',
-        'rotated/cropped annotation placement',
+        'reordered/rotated/cropped annotation placement',
       ],
     ),
     SheetPdfViewerCompatibilityTarget(
@@ -353,7 +353,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
         'text and music-symbol stamp rendering',
         'PNG and WebP image stamp rendering',
         'Unicode FreeText rendering',
-        'rotated/cropped annotation placement',
+        'reordered/rotated/cropped annotation placement',
       ],
     ),
   ];
@@ -411,7 +411,7 @@ ${unicodeInspection.unicodeFreeTextContents.map((content) => '  - `$content`').j
         '| Unicode appearance fixture | `$unicodeFixturePath` | '
             '`$unicodeFixtureSha256` |',
       if (transformedFixturePath != null && transformedFixtureSha256 != null)
-        '| Rotated/cropped fixture | `$transformedFixturePath` | '
+        '| Reordered/rotated/cropped fixture | `$transformedFixturePath` | '
             '`$transformedFixtureSha256` |',
     ].join('\n');
     final artifactSection = artifactRows.isEmpty
@@ -472,11 +472,11 @@ $requiredSpikeRows
 $unicodeFixtureSection
 ${transformedFixturePath == null ? '' : '''
 
-Rotated/cropped appearance fixture:
+Reordered/rotated/cropped appearance fixture:
 
 - Fixture: `$transformedFixturePath`
-- Source page 1 uses a 90-degree clockwise `/Rotate` and an offset CropBox.
-- Confirm the two crossing lines and TL / CENTER / BR labels stay at the same visual locations.
+- Source pages are reordered to 3, 1, 2. The current page 2 then uses a 90-degree clockwise `/Rotate` and an offset CropBox.
+- Confirm the two crossing lines and TL / CENTER / BR labels stay on page 2 at the same visual locations.
 '''}
 
 Unicode FreeText contents:

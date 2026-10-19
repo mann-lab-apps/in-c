@@ -200,7 +200,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   로컬 report에 포함되지만 현재 validator가 annotation appearance font를 순회하지 않으므로 정식
   PDF/A 보존 검증과 Unicode appearance/font compatibility는 별도 spike로 유지한다.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
-  crop/rotation/page order PDF, pressure stroke fixture.
+  crop/rotation/page order PDF, pressure stroke fixture. Local handoff fixture now reorders pages to `3, 1, 2`
+  before applying a 90-degree rotation and offset CropBox to current page 2; external QA must still verify that
+  only page 2 carries the expected annotations.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered
   fallback이 계속 선택 가능하며 원본 PDF는 수정하지 않는다.
 - Blocker 해제 조건: external viewer compatibility matrix 통과, image/stamp/music-symbol fallback
