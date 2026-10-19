@@ -3467,6 +3467,7 @@ class SheetLibraryController extends ChangeNotifier {
     final startPages = <String, int>{};
     final notes = <String, String>{};
     final durations = <String, int>{};
+    final metronomeSettings = <String, SheetMetronomeSettings>{};
     var metadataPersisted = false;
 
     try {
@@ -3551,6 +3552,12 @@ class SheetLibraryController extends ChangeNotifier {
         if (duration > 0) {
           durations[score.id] = duration;
         }
+        final metronome = SheetSetlistPackageMetronomeCodec.tryDecode(
+          entry.item.details['메트로놈'] ?? '',
+        );
+        if (metronome != null) {
+          metronomeSettings[score.id] = metronome;
+        }
       }
 
       if (scoreIds.isEmpty || _activeLibraryProfile.id != libraryId) {
@@ -3568,6 +3575,8 @@ class SheetLibraryController extends ChangeNotifier {
         scoreStartPages: Map<String, int>.unmodifiable(startPages),
         scoreNotes: Map<String, String>.unmodifiable(notes),
         scoreDurations: Map<String, int>.unmodifiable(durations),
+        scoreMetronomeSettings:
+            Map<String, SheetMetronomeSettings>.unmodifiable(metronomeSettings),
         transitionSeconds: _parseManifestDurationSeconds(
           package.manifest.transitionLabel,
         ),

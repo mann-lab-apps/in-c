@@ -49,7 +49,8 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   기존 악보와 package 안 PDF/image/text/ChordPro/DOCX/RTF 파일을 묶은 새 세트리스트를 만들 수 있어야 한다.
   PDF, `.md`, `.onsong`, `.docx`, `.rtf` 악보가 섞인 세트리스트를 package로 내보낸 뒤 다시 가져와 각 항목이 PDF,
   일반 텍스트, ChordPro 또는 문서 추출 텍스트 viewer로 올바르게 열리는지 확인한다. DOCX/RTF 항목은 원본
-  reference 연결 파일을 유지해야 한다. 빈 text, 잘못된 UTF-8 또는 2 MiB 초과
+  reference 연결 파일을 유지해야 한다. 곡별 메트로놈 override가 있는 세트리스트는 BPM, 박자, subdivision,
+  소리/음량, 강세 패턴과 카운트인이 package 재가져오기 후에도 같아야 한다. 빈 text, 잘못된 UTF-8 또는 2 MiB 초과
   text가 들어 있는 package는 preview에서 확인 필요로 표시되고 partial import를 시작하지 않아야 한다.
   저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
   긴 ChordPro 악보는 상단 `구간` 메뉴에서 verse/chorus/bridge 표식을 골라 해당 줄로 이동해야 한다.

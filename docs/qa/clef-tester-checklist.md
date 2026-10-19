@@ -167,7 +167,8 @@
    ZIP에 들어갈 파일 수, 사용자 스탬프 pack 수와 manifest를 먼저 보여야 한다. `패키지` 버튼은 Clef setlist ZIP을 선택해
    기존 악보/새 파일/확인 필요 항목을 미리 보여야 하며, 완전히 해결된 package에서
    `패키지 가져오기`를 누르면 package 안 PDF/image 파일이 라이브러리에 복사되고 새 세트리스트가
-   만들어져야 한다. package에 text/icon 사용자 스탬프 metadata가 있으면 가져온 뒤 `사용자 스탬프`
+   만들어져야 한다. 곡별 메트로놈 설정이 있으면 BPM/박자/리듬/소리/강세/카운트인이 새 세트리스트에
+   복원되어야 한다. package에 text/icon 사용자 스탬프 metadata가 있으면 가져온 뒤 `사용자 스탬프`
    섹션에도 복원되어야 한다. package에 image stamp asset bytes가 함께 있으면 import preview에서
    stamp asset 수가 유지되어야 하며, asset이 빠진 image stamp metadata는 복원되지 않아야 한다.
    깨진 사용자 스탬프 metadata가 섞인 package는 안전한 stamp만 남기거나 가져오기를 막아야 한다.

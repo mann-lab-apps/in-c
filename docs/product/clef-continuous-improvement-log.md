@@ -2862,3 +2862,8 @@ S278 VERIFIED LOCAL: added a persisted 0-12 fret capo override to the stored Cho
 capo shapes without editing the original source. The source capo remains the default, each step immediately enables the
 matching fingering view, zero disables it, and `원래대로` clears the override. Model normalization/round-trip, controller
 persistence and viewer reopen regressions cover clamping, reset and restoration; actual readability remains Device QA.
+
+S279 VERIFIED LOCAL: restored per-song metronome settings when importing Clef setlist packages. A backward-compatible
+manifest codec reads the existing BPM/meter/volume text and now preserves subdivision, muted volume, accent state/pattern
+and count-in for new packages. Imported settings are stored as setlist overrides for both existing and newly copied scores,
+survive reload, and malformed core settings are ignored rather than producing unsafe performance defaults.

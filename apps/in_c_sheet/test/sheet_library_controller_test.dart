@@ -635,6 +635,7 @@ Clef & Staff 세트리스트
    시작: 3쪽
    예상 시간: 3분 30초
    세트 메모: mute ready
+   메트로놈: 120 BPM · 3/4 · 8분 · 소리 70% · 카운트인 1마디
 2. New Sonata
    작곡가: Mozart
    파일: new-sonata.pdf
@@ -660,6 +661,12 @@ Clef & Staff 세트리스트
     expect(imported.scoreStartPages, {'existing': 3});
     expect(imported.scoreNotes, {'existing': 'mute ready'});
     expect(imported.scoreDurations, {'existing': 210, 'package-pdf-0': 240});
+    final importedMetronome = imported.scoreMetronomeSettings['existing'];
+    expect(importedMetronome?.bpm, 120);
+    expect(importedMetronome?.meter, SheetMetronomeMeter.threeFour);
+    expect(importedMetronome?.subdivision, SheetMetronomeSubdivision.eighth);
+    expect(importedMetronome?.volumePercent, 70);
+    expect(importedMetronome?.countInBars, 1);
     expect(imported.transitionSeconds, 10);
     final newScore = controller.scoreById('package-pdf-0');
     expect(newScore.title, 'New Sonata');
@@ -688,6 +695,10 @@ Clef & Staff 세트리스트
 
     await controller.load();
     expect(controller.setlists.single.scoreIds, ['existing', 'package-pdf-0']);
+    expect(
+      controller.setlists.single.scoreMetronomeSettings['existing']?.toJson(),
+      importedMetronome?.toJson(),
+    );
     expect(controller.scoreById('package-pdf-0').title, 'New Sonata');
     expect(
       controller.userAnnotationStampPacks.single.stamps.map(
