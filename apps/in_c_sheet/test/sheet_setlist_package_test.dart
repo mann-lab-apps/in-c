@@ -953,58 +953,79 @@ Clef & Staff 세트리스트
     );
   });
 
-  test('export does not choose annotations for a shared source file', () async {
-    final now = DateTime(2026, 10, 20, 18);
-    final annotationLayer = SheetAnnotationLayer(
-      strokes: const <SheetAnnotationStroke>[],
-      texts: <SheetTextAnnotation>[
-        SheetTextAnnotation(
-          id: 'note',
-          pageNumber: 1,
-          position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
-          text: 'Cue',
-          color: 0xff111111,
-          fontSize: 18,
-          createdAt: now,
+  test(
+    'export splits shared sources to preserve per-score annotations',
+    () async {
+      final now = DateTime(2026, 10, 20, 18);
+      SheetAnnotationLayer annotationLayer(String id, String text) =>
+          SheetAnnotationLayer(
+            strokes: const <SheetAnnotationStroke>[],
+            texts: <SheetTextAnnotation>[
+              SheetTextAnnotation(
+                id: id,
+                pageNumber: 1,
+                position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                text: text,
+                color: 0xff111111,
+                fontSize: 18,
+                createdAt: now,
+              ),
+            ],
+          );
+      final scores = <SheetScore>[
+        _score(
+          id: 'part-a',
+          title: 'Part A',
+          filePath: '/library/songbook.pdf',
+          annotationLayer: annotationLayer('note-a', 'Cue A'),
         ),
-      ],
-    );
-    final scores = <SheetScore>[
-      _score(
-        id: 'part-a',
-        title: 'Part A',
-        filePath: '/library/songbook.pdf',
-        annotationLayer: annotationLayer,
-      ),
-      _score(
-        id: 'part-b',
-        title: 'Part B',
-        filePath: '/library/songbook.pdf',
-        annotationLayer: annotationLayer,
-      ),
-    ];
-    final setlist = SheetSetlist(
-      id: 'shared-set',
-      title: 'Shared Source Set',
-      scoreIds: const <String>['part-a', 'part-b'],
-      createdAt: now,
-      updatedAt: now,
-    );
+        _score(
+          id: 'part-b',
+          title: 'Part B',
+          filePath: '/library/songbook.pdf',
+          annotationLayer: annotationLayer('note-b', 'Cue B'),
+        ),
+      ];
+      final setlist = SheetSetlist(
+        id: 'shared-set',
+        title: 'Shared Source Set',
+        scoreIds: const <String>['part-a', 'part-b'],
+        createdAt: now,
+        updatedAt: now,
+      );
 
-    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
-      setlist: setlist,
-      scores: scores,
-      readScoreBytes: (_) async => <int>[1, 2, 3],
-    );
+      final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: setlist,
+        scores: scores,
+        readScoreBytes: (_) async => <int>[1, 2, 3],
+      );
 
-    expect(result.didExport, isTrue);
-    expect(result.includedAnnotationCount, 0);
-    expect(result.skippedSharedSourceAnnotationScores, hasLength(2));
-    expect(
-      SheetSetlistPackageArchive.decodeBytes(result.bytes!).annotationSidecars,
-      isEmpty,
-    );
-  });
+      expect(result.didExport, isTrue);
+      expect(result.includedFileCount, 2);
+      expect(result.includedAnnotationCount, 2);
+      expect(result.skippedSharedSourceAnnotationScores, isEmpty);
+      final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+      expect(package.packageFiles.map((file) => file.fileName), <String>[
+        'songbook.pdf',
+        'songbook-2.pdf',
+      ]);
+      expect(
+        package.annotationSidecars.map(
+          (sidecar) => sidecar.annotationLayer.texts.single.text,
+        ),
+        <String>['Cue A', 'Cue B'],
+      );
+      final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+      expect(dryRun.entries, hasLength(2));
+      expect(dryRun.restorableAnnotationCount, 2);
+      expect(
+        dryRun.entries.map(
+          (entry) => entry.annotationSidecar!.annotationLayer.texts.single.text,
+        ),
+        <String>['Cue A', 'Cue B'],
+      );
+    },
+  );
 
   test('export reports deferred text and image stamp annotations', () async {
     final now = DateTime(2026, 10, 20, 18);

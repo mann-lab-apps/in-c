@@ -2950,3 +2950,11 @@ stamp picker unchanged. Malformed image decoders are normalized to package forma
 decoder exceptions. Regressions cover export/dry-run, restore without picker resurrection and malformed image rejection.
 Large mixed-package and external-device QA remain follow-up.
 `flutter analyze`, all 1,728 tests and the RC release check passed.
+
+S291 VERIFIED LOCAL: preserved separate annotations for songbook entries that share one source PDF. Export now keeps the
+existing single-file deduplication when the shared source has no transferable annotations, but assigns a distinct package
+score entry to each annotated card so the existing v1 sidecar path/checksum contract remains unambiguous. Import restores
+each card and its own committed stroke/text/layer document without introducing a new sidecar schema or choosing one card's
+annotations for another. Package codec and controller regressions cover both distinct restore and the unchanged unannotated
+dedupe path. Text/DOCX/RTF annotations remain outside this transfer boundary.
+`flutter analyze`, all 1,729 tests and the RC release check passed.

@@ -403,6 +403,20 @@ class SheetSetlistPackageArchive {
       final sourcePath = originalDocument?.path.trim() ?? score.filePath.trim();
       sourcePathByScoreId[score.id] = sourcePath;
       sourceUseCounts[sourcePath] = (sourceUseCounts[sourcePath] ?? 0) + 1;
+    }
+    final sourcesRequiringDistinctEntries = <String>{
+      for (final score in orderedScores)
+        if ((sourceUseCounts[sourcePathByScoreId[score.id]] ?? 0) > 1 &&
+            _hasTransferablePackageAnnotations(score))
+          sourcePathByScoreId[score.id]!,
+    };
+    final entryPathByScoreId = <String, String>{};
+
+    for (final score in orderedScores) {
+      final originalDocx = _originalDocxReference(score);
+      final originalRtf = _originalRtfReference(score);
+      final originalDocument = originalDocx ?? originalRtf;
+      final sourcePath = originalDocument?.path.trim() ?? score.filePath.trim();
       final sourceFileName = switch (originalDocument) {
         null => score.sourceFileDisplayName,
         _ when originalDocx != null => _referenceFileName(originalDocx, 'docx'),
@@ -411,7 +425,15 @@ class SheetSetlistPackageArchive {
       if (originalDocument != null) {
         packageFileNames[score.id] = sourceFileName;
       }
-      if (entryPathBySourcePath.containsKey(sourcePath)) {
+      final requiresDistinctEntry = sourcesRequiringDistinctEntries.contains(
+        sourcePath,
+      );
+      final entryKey = requiresDistinctEntry
+          ? '$sourcePath#${score.id}'
+          : sourcePath;
+      final existingEntryPath = entryPathBySourcePath[entryKey];
+      if (existingEntryPath != null) {
+        entryPathByScoreId[score.id] = existingEntryPath;
         continue;
       }
       final extension = _fileExtension(
@@ -445,7 +467,11 @@ class SheetSetlistPackageArchive {
         missingScores.add(score);
         continue;
       }
-      entryPathBySourcePath[sourcePath] = safeEntryPath;
+      entryPathBySourcePath[entryKey] = safeEntryPath;
+      entryPathByScoreId[score.id] = safeEntryPath;
+      if (requiresDistinctEntry) {
+        packageFileNames[score.id] = _fileName(safeEntryPath);
+      }
       scoreFiles[safeEntryPath] = bytes;
     }
 
@@ -504,16 +530,9 @@ class SheetSetlistPackageArchive {
       if (annotationLayer.strokes.isEmpty && annotationLayer.texts.isEmpty) {
         continue;
       }
-      final sourcePath = sourcePathByScoreId[score.id];
-      final entryPath = sourcePath == null
-          ? null
-          : entryPathBySourcePath[sourcePath];
+      final entryPath = entryPathByScoreId[score.id];
       if (entryPath == null) {
         skippedUnsupportedAnnotationScores.add(score);
-        continue;
-      }
-      if ((sourceUseCounts[sourcePath] ?? 0) > 1) {
-        skippedSharedSourceAnnotationScores.add(score);
         continue;
       }
       final packageFile = SheetSetlistPackageFile(path: entryPath);
@@ -1183,6 +1202,23 @@ List<SheetScore> _scoresInSetlistOrder(
     for (final scoreId in setlist.scoreIds)
       if (scoresById[scoreId] != null) scoresById[scoreId]!,
   ];
+}
+
+bool _hasTransferablePackageAnnotations(SheetScore score) {
+  if (score.annotationLayer.strokes.isEmpty &&
+      score.annotationLayer.texts.isEmpty) {
+    return false;
+  }
+  final originalDocx = _originalDocxReference(score);
+  final originalRtf = _originalRtfReference(score);
+  final sourceFileName = originalDocx != null
+      ? _referenceFileName(originalDocx, 'docx')
+      : originalRtf != null
+      ? _referenceFileName(originalRtf, 'rtf')
+      : score.filePath;
+  final kind = SheetSetlistPackageScoreKind.forFileName(sourceFileName);
+  return kind == SheetSetlistPackageScoreKind.pdf ||
+      kind == SheetSetlistPackageScoreKind.image;
 }
 
 List<SheetAnnotationStampPack> _decodeUserStampPacks(

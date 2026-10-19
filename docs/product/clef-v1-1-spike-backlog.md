@@ -587,8 +587,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 현재 상태: `clef.setlist.package` v1은 악보 파일, 세트리스트 설정, user stamp metadata와 참조된
   image stamp asset을 전달한다. 고유 원본을 가진 PDF/image 악보는 일반 stroke/text/multi-layer/image stamp
   필기도 sidecar로 내보내고 새 악보 import에서 복원한다. 삭제된 image stamp definition은 피커에 되살리지
-  않으면서 이미 배치된 필기의 검증된 asset만 전달한다. 같은 원본을 공유하는 악보와 text/DOCX/RTF 필기는
-  preview에서 제외 수와 이유를 밝히며 완전한 이동에는 full backup을 안내한다.
+  않으면서 이미 배치된 필기의 검증된 asset만 전달한다. 같은 원본을 공유하는 PDF/image 악보는 필기가
+  있으면 악보별 package entry로 분리해 기존 v1 sidecar 계약으로 각각 전달하고, 필기가 없으면 원본 entry를
+  계속 dedupe한다. Text/DOCX/RTF 필기는 preview에서 제외 수와 이유를 밝히며 완전한 이동에는 full backup을 안내한다.
 - 첫 계약: optional `annotations/<score-path-sha256>.json` sidecar가 package의 `scores/` entry 하나를
   가리킨다. Sidecar는 `clef.setlist.package.annotation` scope/version, score entry path, score bytes의
   SHA-256, committed stroke/text/layer document를 담는다. 로컬 score id와 undo/redo history는 내보내지
@@ -617,9 +618,10 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   1. 완료: sidecar envelope/path/checksum/annotation validation codec과 회귀 테스트.
   2. 완료: package archive decode/encode에 optional sidecar collection을 연결하고 score bytes checksum,
      orphan/duplicate sidecar를 검증한다. Sidecar가 없는 기존 v1 package는 그대로 읽는다.
-  3. 완료: export에서 ZIP에 쓴 score bytes checksum과 annotation document를 묶었다. 고유 원본의
-     PDF/image 일반 필기와 검증된 image stamp 필기를 sidecar로 내보내고, shared-source/text 문서와
-     image stamp asset이 없거나 손상된 문서는 명시적으로 제외한다. 삭제된 picker 정의는 필수 조건이 아니다.
+  3. 완료: export에서 ZIP에 쓴 score bytes checksum과 annotation document를 묶었다. PDF/image 일반 필기와
+     검증된 image stamp 필기를 sidecar로 내보내며, 필기가 있는 shared-source score는 악보별 package entry로
+     분리해 각각의 sidecar를 보존한다. Text 문서와 image stamp asset이 없거나 손상된 문서는 명시적으로
+     제외한다. 삭제된 picker 정의는 필수 조건이 아니다.
   4. 완료: dry-run은 `새 악보 필기 복원`과 `기존 악보/텍스트 악보라 보호·미적용`을 구분하고 preview에서
      미적용 경계를 명시한다. Image stamp asset은 실제 SHA-256/크기/디코딩/픽셀 치수를 metadata와
      대조해 손상 또는 바뀐 파일을 package codec에서 차단한다. Import는 필요한 image asset을 metadata
@@ -631,6 +633,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   6. 완료: picker에서 삭제된 image stamp definition이 있어도 placed annotation이 참조하는 안전한
      PNG/JPEG/WebP asset을 package에 포함하고 복원한다. Import는 asset checksum을 실제 bytes에서 계산하며
      user stamp pack을 합성하지 않아 삭제된 picker 항목을 되살리지 않는다.
+  7. 완료: 같은 PDF/image source를 공유하는 songbook score에 서로 다른 필기가 있으면 source bytes를
+     악보별 package entry로 분리하고 기존 sidecar v1 path/checksum 계약으로 각 annotation document를
+     복원한다. 필기가 없는 shared source는 한 entry로 dedupe한다.
 - Acceptance criteria: 새 score의 multi-layer annotation round-trip, 기존 score 무변경, image stamp asset
   해석, corrupt/duplicate/checksum mismatch 차단, save failure cleanup, library switch, retry를 자동 검증하고
   stylus 렌더링과 큰 annotation 문서는 Device QA로 확인한다.

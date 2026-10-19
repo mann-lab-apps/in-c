@@ -843,6 +843,71 @@ Clef & Staff 세트리스트
     );
   });
 
+  test(
+    'setlist package restores separate annotations for shared PDF scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 21);
+      final scores = <SheetScore>[
+        _score(
+          now,
+          id: 'movement-a',
+          title: 'Movement A',
+          filePath: '/library/songbook.pdf',
+        ).copyWith(
+          annotationLayer: SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[
+              _annotationStroke('movement-a-stroke', now),
+            ],
+          ),
+        ),
+        _score(
+          now,
+          id: 'movement-b',
+          title: 'Movement B',
+          filePath: '/library/songbook.pdf',
+        ).copyWith(
+          annotationLayer: SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[
+              _annotationStroke('movement-b-stroke', now),
+            ],
+          ),
+        ),
+      ];
+      final sourceSetlist = SheetSetlist(
+        id: 'songbook-set',
+        title: 'Songbook Set',
+        scoreIds: const <String>['movement-a', 'movement-b'],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final exported = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: sourceSetlist,
+        scores: scores,
+        readScoreBytes: (_) async => <int>[1, 2, 3],
+      );
+      final package = SheetSetlistPackageArchive.decodeBytes(exported.bytes!);
+      final store = _PackageImportStore(now);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final dryRun = package.previewImport(currentScores: controller.scores);
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(imported!.scoreIds, <String>['package-pdf-0', 'package-pdf-1']);
+      expect(dryRun.restorableAnnotationCount, 2);
+      expect(
+        controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+        'movement-a-stroke',
+      );
+      expect(
+        controller.scoreById('package-pdf-1').annotationLayer.strokes.single.id,
+        'movement-b-stroke',
+      );
+    },
+  );
+
   test('setlist package stores image stamp assets before metadata', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final root = await Directory.systemTemp.createTemp(
