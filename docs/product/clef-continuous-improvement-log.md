@@ -2775,3 +2775,11 @@ query field, highlights case-insensitive matches and provides named previous/nex
 Navigation scrolls toward each match, wraps at either end and caps highlighted results at 500 to keep near-limit files
 responsive. Closing search restores the score title and selection-oriented viewer. Widget regression covers the full flow.
 Validation passes focused smoke tests, `flutter analyze`, all 1,667 tests and the RC release check.
+
+S265 VERIFIED LOCAL: added bounded DOCX-to-text import without introducing a full document editor. Clef reads paragraph,
+tab and line-break content plus optional core title/creator from `word/document.xml`, stores the extracted UTF-8 text in
+the existing selectable/searchable viewer and preserves the original DOCX as a reference linked file. Input, expanded ZIP
+and XML size caps plus malformed/empty document rejection run before library mutation. Save failure removes unreferenced
+managed copies, and full-backup regression restores both extracted text and original DOCX bytes. Table structure, images,
+footnotes and formatting fidelity, RTF parsing and DOCX originals inside setlist packages remain explicit follow-up gaps.
+Validation passes 425 focused tests, `flutter analyze`, all 1,675 tests and the RC release check.

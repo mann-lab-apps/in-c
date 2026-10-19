@@ -842,21 +842,30 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   unawaited(_importPlainTextFile());
                 },
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.article_outlined),
+                title: const Text('DOCX 파일 선택 가져오기'),
+                subtitle: const Text('문단 텍스트를 추출해 읽기 전용 악보로 저장'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(_importDocxFile());
+                },
+              ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.save_outlined),
                 title: Text('지금 가능한 저장 흐름'),
                 subtitle: Text(
-                  'PDF/JPG/PNG, 일반 텍스트, ChordPro 붙여넣기/파일 저장을 사용할 수 있습니다.',
+                  'PDF/JPG/PNG, 일반 텍스트, ChordPro, DOCX 읽기 전용 저장을 사용할 수 있습니다.',
                 ),
               ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.tune_outlined),
                 title: Text('ChordPro 표시 조정 지원'),
-                subtitle: Text(
-                  '저장된 ChordPro 악보에서 반음 이조와 카포 운지 표시를 바꿀 수 있습니다. DOCX 읽기는 후속입니다.',
-                ),
+                subtitle: Text('저장된 ChordPro 악보에서 반음 이조와 카포 운지 표시를 바꿀 수 있습니다.'),
               ),
               const SizedBox(height: 8),
               Align(
@@ -899,6 +908,22 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('"${imported.displayTitle}" 텍스트 악보를 가져왔습니다.'),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (mounted) unawaited(_openScore(imported));
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importDocxFile() async {
+    final imported = await controller.importDocxFile();
+    if (!mounted || imported == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${imported.displayTitle}" DOCX 악보를 가져왔습니다.'),
         action: SnackBarAction(
           label: '열기',
           onPressed: () {

@@ -998,6 +998,26 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.filePath, endsWith('.txt'));
   });
 
+  test('imports a DOCX file as a readable library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 13);
+    final store = _ChordProImportStore(now)
+      ..pickedDocxFile = SheetImportedFile(
+        name: 'studio-notes.docx',
+        bytes: Uint8List.fromList(<int>[1, 2, 3]),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importDocxFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'studio notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(imported?.linkedFiles.single.type, 'docx');
+    expect(controller.scores.single.id, 'docx-1');
+  });
+
   test('ChordPro import save failure restores previous scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 9, 28, 16);
@@ -1064,6 +1084,31 @@ Clef & Staff 세트리스트
     expect(controller.scores.map((score) => score.id), ['existing']);
     expect((await store.loadScores()).map((score) => score.id), ['existing']);
   });
+
+  test(
+    'DOCX import save failure restores scores and discards copied files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 13);
+      final existing = _score(now, id: 'existing', title: 'Existing');
+      final store = _ChordProImportStore(now)
+        ..pickedDocxFile = SheetImportedFile(
+          name: 'broken-save.docx',
+          bytes: Uint8List.fromList(<int>[1, 2, 3]),
+        );
+      await store.saveScores([existing]);
+      store.failSaveScores = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importDocxFile();
+
+      expect(imported, isNull);
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(store.discardedScoreIds, ['docx-1']);
+    },
+  );
 
   test('persists ChordPro display settings per score', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -5330,6 +5375,8 @@ class _ChordProImportStore extends SheetLibraryStore {
   bool failSaveScores = false;
   SheetImportedFile? pickedChordProFile;
   SheetImportedFile? pickedPlainTextFile;
+  SheetImportedFile? pickedDocxFile;
+  final discardedScoreIds = <String>[];
 
   @override
   Future<SheetImportedFile?> pickChordProFile() async {
@@ -5339,6 +5386,11 @@ class _ChordProImportStore extends SheetLibraryStore {
   @override
   Future<SheetImportedFile?> pickPlainTextFile() async {
     return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickDocxFile() async {
+    return pickedDocxFile;
   }
 
   @override
@@ -5352,6 +5404,37 @@ class _ChordProImportStore extends SheetLibraryStore {
       title: SheetFileImportPolicy.titleFromFileName(file.name),
       filePath: '/text/${file.name}',
     );
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final importedAtOrNow = importedAt ?? now;
+    return _score(
+      importedAtOrNow,
+      id: 'docx-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: importedAtOrNow,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
   }
 
   @override

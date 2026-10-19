@@ -116,6 +116,57 @@ void main() {
     expect(await File(score.filePath).readAsString(), '첫 문장\n\n두 번째 문장');
   });
 
+  test('imports DOCX text and preserves the original as a reference', () async {
+    final store = SheetLibraryStore();
+    final bytes = _docxBytes(
+      title: 'Studio Notes',
+      creator: 'Kim',
+      text: '첫 문장',
+    );
+    final score = await store.importDocxFileBytes(
+      file: SheetImportedFile(name: 'lesson.docx', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20),
+    );
+
+    expect(score.title, 'Studio Notes');
+    expect(score.composer, 'Kim');
+    expect(score.filePath, endsWith('.txt'));
+    expect(await File(score.filePath).readAsString(), '첫 문장');
+    expect(score.linkedFiles, hasLength(1));
+    expect(score.linkedFiles.single.type, 'docx');
+    expect(score.linkedFiles.single.role, SheetLinkedFile.referenceRole);
+    expect(await File(score.linkedFiles.single.path).readAsBytes(), bytes);
+    expect(
+      score.customFields.where((field) => field.key == '출처 유형').single.value,
+      'DOCX',
+    );
+  });
+
+  test('full backup restores DOCX extracted text and original bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final bytes = _docxBytes(text: 'Backup notes');
+    final score = await store.importDocxFileBytes(
+      file: SheetImportedFile(name: 'backup.docx', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20),
+    );
+    await store.saveScores(<SheetScore>[score]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-docx-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final restoredStore = SheetLibraryStore();
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+    final restored = (await restoredStore.loadScores()).single;
+
+    expect(result.didRestore, isTrue);
+    expect(await File(restored.filePath).readAsString(), 'Backup notes');
+    expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
+  });
+
   test('rejects empty oversized and unsupported plain text files', () async {
     final store = SheetLibraryStore();
 
@@ -3423,6 +3474,27 @@ void main() {
       );
     },
   );
+}
+
+Uint8List _docxBytes({
+  String title = '',
+  String creator = '',
+  required String text,
+}) {
+  final archive = Archive()
+    ..addFile(
+      ArchiveFile.string(
+        'word/document.xml',
+        '<w:document xmlns:w="urn:word"><w:body><w:p><w:r><w:t>${htmlEscape.convert(text)}</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    )
+    ..addFile(
+      ArchiveFile.string(
+        'docProps/core.xml',
+        '<cp:coreProperties xmlns:cp="urn:core" xmlns:dc="urn:dc"><dc:title>${htmlEscape.convert(title)}</dc:title><dc:creator>${htmlEscape.convert(creator)}</dc:creator></cp:coreProperties>',
+      ),
+    );
+  return Uint8List.fromList(ZipEncoder().encode(archive));
 }
 
 _FailingPreferencesStore _installFailingPreferences() {

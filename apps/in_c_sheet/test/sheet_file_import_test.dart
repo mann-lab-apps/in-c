@@ -54,8 +54,9 @@ void main() {
       SheetFileImportPolicy.isKnownButUnsupportedTextScoreFileName(
         'lesson-notes.DOCX',
       ),
-      isTrue,
+      isFalse,
     );
+    expect(SheetFileImportPolicy.isDocxFileName('lesson-notes.DOCX'), isTrue);
   });
 
   test('explains known unsupported image types', () {
@@ -73,7 +74,7 @@ void main() {
     );
   });
 
-  test('explains known unsupported text score types', () {
+  test('explains supported and unsupported text score types', () {
     expect(
       SheetFileImportPolicy.unsupportedImportMessage(
         'Unsupported score file: lead-sheet.chordpro',
@@ -84,7 +85,7 @@ void main() {
       SheetFileImportPolicy.unsupportedTextScoreImportMessage(
         'lesson-notes.docx',
       ),
-      allOf(contains('DOCX'), contains('PDF')),
+      allOf(contains('DOCX'), contains('읽기 전용'), contains('가져올 수 있습니다')),
     );
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage(

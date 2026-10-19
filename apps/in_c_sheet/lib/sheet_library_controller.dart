@@ -702,6 +702,51 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetScore?> importDocxFile() async {
+    if (_isImporting) return null;
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickDocxFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      importedScore = await store.importDocxFileBytes(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
+    } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'DOCX 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
   Future<SheetScore?> _storeChordProSource(
     String source, {
     required String libraryId,

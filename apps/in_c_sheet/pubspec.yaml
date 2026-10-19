@@ -49,6 +49,7 @@ dependencies:
   pdf: ^3.13.0
   archive: ^4.0.9
   qr: ^3.0.2
+  xml: ^7.0.1
 
 dev_dependencies:
   integration_test:

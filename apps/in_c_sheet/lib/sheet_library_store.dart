@@ -13,6 +13,7 @@ import 'sheet_annotation.dart';
 import 'sheet_annotation_stamp_asset_store.dart';
 import 'sheet_bookmark_import.dart';
 import 'sheet_chordpro.dart';
+import 'sheet_docx.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
@@ -1150,6 +1151,78 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetImportedFile?> pickDocxFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.docxExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isDocxFileName(file.name)) {
+      throw FormatException('Unsupported DOCX file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isDocxFileName(file.name)) {
+      throw FormatException('Unsupported DOCX file: ${file.name}');
+    }
+    final document = SheetDocxTextExtractor.extract(file.bytes);
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final fallbackTitle = SheetFileImportPolicy.titleFromFileName(file.name);
+    final title = document.title.trim().isEmpty
+        ? fallbackTitle
+        : document.title.trim();
+    final textPath = await _writeTextScore(
+      bytes: utf8.encode(document.text),
+      id: id,
+      originalFileName: '$fallbackTitle.txt',
+    );
+    String? originalPath;
+    try {
+      originalPath = await _writeLinkedFile(
+        bytes: file.bytes,
+        originalFileName: file.name,
+        importedAt: now,
+      );
+      return SheetScore(
+        id: id,
+        title: title,
+        composer: document.creator.trim(),
+        tags: const <String>[],
+        note: 'DOCX에서 텍스트를 추출한 읽기 전용 악보',
+        filePath: textPath,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        linkedFiles: <SheetLinkedFile>[
+          SheetLinkedFile(
+            path: originalPath,
+            type: 'docx',
+            label: file.name,
+            role: SheetLinkedFile.referenceRole,
+            createdAt: now,
+          ),
+        ],
+        customFields: <SheetCustomMetadataField>[
+          const SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          SheetCustomMetadataField(key: '원본 파일', value: file.name),
+        ],
+      );
+    } catch (_) {
+      await _deleteFileBestEffort(textPath);
+      if (originalPath != null) await _deleteFileBestEffort(originalPath);
+      rethrow;
+    }
+  }
+
   Future<SheetLinkedFile?> pickLinkedFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
@@ -1310,6 +1383,7 @@ class SheetLibraryStore {
       'aac' => 'audio/aac',
       'flac' => 'audio/flac',
       'ogg' => 'audio/ogg',
+      'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       _ => 'application/pdf',
     };
   }
@@ -2221,6 +2295,15 @@ class SheetLibraryStore {
     final file = File('${textScoresDir.path}/$id-$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<void> _deleteFileBestEffort(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Cleanup must not replace the original import failure.
+    }
   }
 
   Future<String> _writeLinkedFile({
