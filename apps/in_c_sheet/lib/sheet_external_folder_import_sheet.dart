@@ -1,6 +1,117 @@
 import 'package:flutter/material.dart';
 
 import 'sheet_external_folder_catalog.dart';
+import 'sheet_external_folder_gateway.dart';
+
+enum SheetExternalFolderConnectionActionType { open, add, forget }
+
+class SheetExternalFolderConnectionAction {
+  const SheetExternalFolderConnectionAction._(this.type, [this.connection]);
+
+  const SheetExternalFolderConnectionAction.add()
+    : this._(SheetExternalFolderConnectionActionType.add);
+
+  const SheetExternalFolderConnectionAction.open(
+    SheetExternalFolderConnection connection,
+  ) : this._(SheetExternalFolderConnectionActionType.open, connection);
+
+  const SheetExternalFolderConnectionAction.forget(
+    SheetExternalFolderConnection connection,
+  ) : this._(SheetExternalFolderConnectionActionType.forget, connection);
+
+  final SheetExternalFolderConnectionActionType type;
+  final SheetExternalFolderConnection? connection;
+}
+
+class ExternalFolderConnectionSheet extends StatelessWidget {
+  const ExternalFolderConnectionSheet({required this.connections, super.key});
+
+  final List<SheetExternalFolderConnection> connections;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  '연결된 폴더',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final connection in connections)
+                      ListTile(
+                        enabled: connection.canRead,
+                        leading: Icon(
+                          connection.canRead
+                              ? Icons.folder_open_outlined
+                              : Icons.folder_off_outlined,
+                        ),
+                        title: Text(
+                          connection.folderLabel.isEmpty
+                              ? '이름 없는 폴더'
+                              : connection.folderLabel,
+                        ),
+                        subtitle: Text(
+                          connection.canRead
+                              ? (connection.providerLabel ?? 'Android 파일')
+                              : '권한이 없거나 폴더를 찾을 수 없습니다.',
+                        ),
+                        onTap: connection.canRead
+                            ? () => Navigator.of(context).pop(
+                                SheetExternalFolderConnectionAction.open(
+                                  connection,
+                                ),
+                              )
+                            : null,
+                        trailing: IconButton(
+                          tooltip: '폴더 연결 해제',
+                          onPressed: () => Navigator.of(context).pop(
+                            SheetExternalFolderConnectionAction.forget(
+                              connection,
+                            ),
+                          ),
+                          icon: const Icon(Icons.link_off_outlined),
+                        ),
+                      ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.create_new_folder_outlined),
+                      title: const Text('새 폴더 연결'),
+                      subtitle: const Text('읽기 권한을 유지해 다음에도 다시 사용'),
+                      onTap: () => Navigator.of(context)
+                          .pop(const SheetExternalFolderConnectionAction.add()),
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: Text(
+                  '연결은 이 기기에만 저장됩니다. PDF를 가져오면 기존처럼 Clef 내부 사본을 사용합니다.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class ExternalFolderImportSheet extends StatefulWidget {
   const ExternalFolderImportSheet({

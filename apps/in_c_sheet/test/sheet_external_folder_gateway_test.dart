@@ -39,6 +39,7 @@ void main() {
 
       expect(selection, isNotNull);
       expect(selection!.folderLabel, 'Recital PDFs');
+      expect(selection.permissionPersisted, isFalse);
       expect(selection.entries.single.displayName, 'Etude.pdf');
       expect(
         selection.entries.single.modifiedAt,
@@ -53,6 +54,78 @@ void main() {
           .single;
       expect(source.documentToken, contains('secret'));
       expect(source.toBackupJson().values.join(' '), isNot(contains('secret')));
+    },
+  );
+
+  test(
+    'lists reusable folder connections and filters invalid tokens',
+    () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return <Map<String, Object?>>[
+              <String, Object?>{
+                'folderLabel': 'Recital PDFs',
+                'providerLabel': 'Downloads',
+                'folderToken': 'content://provider/tree/recital',
+                'canRead': true,
+              },
+              <String, Object?>{
+                'folderLabel': 'Broken',
+                'folderToken': '',
+                'canRead': false,
+              },
+            ];
+          });
+      final gateway = MethodChannelSheetExternalFolderGateway(channel: channel);
+
+      final connections = await gateway.listConnectedFolders();
+
+      expect(calls.single.method, 'listConnectedFolders');
+      expect(connections, hasLength(1));
+      expect(connections.single.folderLabel, 'Recital PDFs');
+      expect(connections.single.providerLabel, 'Downloads');
+      expect(connections.single.canRead, isTrue);
+    },
+  );
+
+  test(
+    'opens and forgets a connected folder by its device-only token',
+    () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            if (call.method == 'openConnectedFolder') {
+              return <String, Object?>{
+                'folderLabel': 'Recital PDFs',
+                'providerLabel': 'Downloads',
+                'folderToken': 'content://provider/tree/recital',
+                'permissionPersisted': true,
+                'entries': <Map<String, Object?>>[],
+              };
+            }
+            return null;
+          });
+      final gateway = MethodChannelSheetExternalFolderGateway(channel: channel);
+
+      final selection = await gateway.openConnectedFolder(
+        'content://provider/tree/recital',
+      );
+      await gateway.forgetConnectedFolder('content://provider/tree/recital');
+
+      expect(selection.permissionPersisted, isTrue);
+      expect(selection.folderToken, 'content://provider/tree/recital');
+      expect(calls.map((call) => call.method), <String>[
+        'openConnectedFolder',
+        'forgetConnectedFolder',
+      ]);
+      for (final call in calls) {
+        expect(call.arguments, <String, Object?>{
+          'folderToken': 'content://provider/tree/recital',
+        });
+      }
     },
   );
 

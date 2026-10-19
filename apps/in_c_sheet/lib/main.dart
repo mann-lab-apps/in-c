@@ -545,14 +545,51 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   Future<void> _importPdfsFromAndroidFolder() async {
     if (!Platform.isAndroid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('폴더에서 PDF 고르기는 Android에서 지원합니다.')),
+        const SnackBar(content: Text('연결된 폴더 가져오기는 Android에서 지원합니다.')),
       );
       return;
     }
     final gateway = MethodChannelSheetExternalFolderGateway();
     SheetExternalFolderSelection? selection;
+    var didForgetConnection = false;
     try {
-      selection = await gateway.pickFolder();
+      while (mounted && selection == null) {
+        final connected = await gateway.listConnectedFolders();
+        if (!mounted) return;
+        if (connected.isEmpty) {
+          if (didForgetConnection) return;
+          selection = await gateway.pickFolder();
+          break;
+        }
+        final action =
+            await showModalBottomSheet<SheetExternalFolderConnectionAction>(
+              context: context,
+              showDragHandle: true,
+              isScrollControlled: true,
+              builder: (context) =>
+                  ExternalFolderConnectionSheet(connections: connected),
+            );
+        if (!mounted || action == null) return;
+        switch (action.type) {
+          case SheetExternalFolderConnectionActionType.open:
+            selection = await gateway.openConnectedFolder(
+              action.connection!.folderToken,
+            );
+            break;
+          case SheetExternalFolderConnectionActionType.add:
+            selection = await gateway.pickFolder();
+            break;
+          case SheetExternalFolderConnectionActionType.forget:
+            await gateway.forgetConnectedFolder(action.connection!.folderToken);
+            didForgetConnection = true;
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('폴더 연결을 해제했습니다.')));
+            }
+            break;
+        }
+      }
     } on SheetExternalFolderGatewayException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -563,6 +600,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final pickedFolder = selection;
     if (!mounted || pickedFolder == null) {
       return;
+    }
+    if (!pickedFolder.permissionPersisted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이 파일 제공자는 연결을 유지하지 않아 이번에만 폴더를 사용합니다.')),
+      );
     }
 
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
@@ -713,8 +755,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               if (Platform.isAndroid)
                 ListTile(
                   leading: const Icon(Icons.folder_copy_outlined),
-                  title: const Text('폴더에서 PDF 고르기'),
-                  subtitle: const Text('폴더를 둘러본 뒤 선택한 PDF만 앱에 복사'),
+                  title: const Text('연결된 폴더에서 PDF 고르기'),
+                  subtitle: const Text('폴더 권한을 유지하고 선택한 PDF만 앱에 복사'),
                   onTap: () =>
                       Navigator.of(context)
                           .pop(_LibraryImportAction.androidFolderPdfs),

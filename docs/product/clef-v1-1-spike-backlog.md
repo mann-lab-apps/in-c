@@ -76,6 +76,10 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   - SAF/Files direct reference는 권한 만료와 provider offline 상태가 실제 공연 중 blocker가 될 수 있다.
   - MobileSheets식 "폴더에서 빠르게 찾기" 체감은 read-only catalog와 선택 복사만으로도 상당 부분 얻을 수 있다.
 - 따라서 `Persistent direct reference`는 별도 migration과 Device QA 이후에만 연다.
+- Android tree read permission은 기기 안의 `연결된 폴더` 목록에서 재사용/해제할 수 있다. 이 연결은 폴더를
+  다시 고르는 수고만 줄이며 score path, metadata, backup 또는 자동 동기화 대상으로 승격하지 않는다.
+- provider가 persistable permission을 주지 않으면 기존 가져오기를 막지 않고 그 선택에서만 읽은 뒤 내부
+  사본을 만든다.
 - 사용자-facing copy:
   - "폴더를 둘러보고 가져오기"
   - "선택한 파일은 Clef 라이브러리에 복사됩니다"
@@ -85,7 +89,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 ### 첫 구현 경계
 
 - 허용:
-  - Android 폴더 선택 권한 요청과 이번 선택 흐름 안의 임시 read access.
+  - Android 폴더 선택 권한 요청, 가능한 경우 persistent tree read access와 기기 내 연결 목록.
   - PDF 후보 스캔 preview.
   - display name, size, modified time, provider label 표시.
   - 선택 파일만 기존 import pipeline으로 복사.
@@ -115,10 +119,12 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - Android `ACTION_OPEN_DOCUMENT_TREE`로 폴더 권한을 얻고 PDF 후보 목록만 보여준다.
    - 이 단계에서는 Clef 라이브러리에 항목을 만들지 않고, provider/display name/last modified/size만 기록한다.
    - Acceptance: 권한 승인/취소/권한 상실/빈 폴더/큰 폴더가 앱 데이터를 변경하지 않고 안내된다.
-   - 구현 상태: Android `ACTION_OPEN_DOCUMENT_TREE` bridge와 `폴더에서 PDF 고르기` sheet가 있다.
+   - 구현 상태: Android `ACTION_OPEN_DOCUMENT_TREE` bridge와 `연결된 폴더에서 PDF 고르기` sheet가 있다.
      직접 하위 파일을 최대 201개까지 일회성으로 읽어, PDF 후보/기존 또는 폴더 내 중복 이름/읽기 실패/
      미지원 형식을 라이브러리 변경 전에 보여준다. URI는 preview와 즉시 복사 요청에만 쓰며 score/backup에
-     저장하지 않는다. Android tablet/provider/취소 경로는 Device QA가 남았다.
+     저장하지 않는다. 유지 가능한 tree permission은 기기 안에서만 목록화해 재열기/연결 해제를 제공하고,
+     유지 불가 provider는 일회성 선택으로 fallback한다. Android 재부팅/provider 권한 회수/취소 경로는
+     Device QA가 남았다.
 
 2. **Copy-on-select bridge**
    - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.

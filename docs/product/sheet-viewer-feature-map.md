@@ -55,7 +55,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | v1.1 parser core는 root/suffix/slash bass/key directive transpose, capo metadata 읽기, concert chord 기준 capo shape 계산, transposed/capo-shape rendering과 structured display cells를 지원한다. 저장된 ChordPro viewer에는 반음 올림/내림, 0-12 프렛 카포 위치 조정, 원래대로, 카포 운지 표시 toggle이 있고, 이조/카포 override/운지 표시 설정은 score metadata에 저장되어 악보를 다시 열어도 유지된다. 표시 조정은 원문을 바꾸지 않으며, 명시적인 `원문 편집`만 source를 저장한다. 실제 다단 chord-grid UI는 후속 |
 | 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`로 새 PDF 사본을 현재 파일로 승격하고 이전 PDF를 연결된 edited copy로 보존. 연결 파일 목록은 PDF/이미지/오디오 라벨과 아이콘으로 구분 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | CSV/PDF 북마크로 같은 PDF를 참조하는 곡 항목을 생성한다. 곡 밖 페이지는 숨기고 표시 순서/자동 스크롤/점프/리허설 마크를 해당 구간으로 제한한다. 구간이 모두 숨겨져 있으면 새 곡의 첫 페이지 한 장을 표시한다. 같은 원본/표시 구간/제목은 중복 생성하지 않고 생성 직후 `세트리스트 만들기`로 곡 모음을 만든다. 원본 PDF/설정은 보존하며 물리 분할은 후속 |
-| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | v1.1 첫 구현은 direct reference가 아니라 Android SAF `폴더에서 PDF 고르기` + 선택 복사다. direct child 후보를 최대 201개까지 읽어 PDF/중복/읽기 실패/미지원 상태를 보여주고, ready plan의 일회성 token만 cache 복사 뒤 기존 import pipeline에 넘긴다. 복사 결과 이름이 선택 원본과 정확히 일치할 때만 folder/provider/원본 파일명/크기/수정 시각을 읽기 전용 score provenance로 저장하고 정보 편집 화면에 표시한다. token/URI는 score/backup에 저장하지 않는다. Persistent URI direct score, 자동 동기화, iOS Files parity는 권한/백업/공연 안정성 QA 이후 |
+| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | v1.1 첫 구현은 direct score가 아니라 Android SAF `연결된 폴더에서 PDF 고르기` + 선택 복사다. 유지 가능한 tree read permission은 기기 안의 연결 목록에서 재사용/해제하고, 유지 불가 provider는 일회성으로 내려간다. direct child 후보를 최대 201개까지 읽어 PDF/중복/읽기 실패/미지원 상태를 보여주며, 선택 token은 cache 복사 요청에만 사용한다. folder/provider/원본 파일명/크기/수정 시각 provenance는 남기되 token/URI와 연결 목록은 score/backup/support report에 저장하지 않는다. 앱 내부 사본 없는 persistent direct score, 자동 동기화, iOS Files parity는 권한/백업/공연 안정성 QA 이후 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
@@ -336,7 +336,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 ## V1 후보
 
 - HEIC/HEIF 직접 변환. 현재 감지와 안내만 제공하며 native decoder/dependency 결정과 실제 사진 샘플 QA가 필요하다.
-- 기존 폴더 직접 참조. Android SAF persistent URI permission과 iOS Files/security-scoped resource spike가 필요하다.
+- 기존 폴더 직접 참조. Android SAF persistent tree permission을 연결 목록에 재사용하는 단계까지 구현했지만 악보는 여전히 앱 내부 사본이다. 앱 내부 사본 없는 direct score와 iOS Files/security-scoped resource는 별도 spike가 필요하다.
 - iOS Share Extension이 필요한 출처 앱 대응. document open URL bridge는 구현했고 Share Extension은 Xcode target/App Group/provisioning이 필요하다.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - Cloud provider 실기기 import QA. system picker/provider 우선 정책과 내려받기 안내는 구현됨.

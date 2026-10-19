@@ -65,6 +65,53 @@ class MainActivity : FlutterActivity() {
         externalFolderChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickFolder" -> openExternalFolderPicker(result)
+                "listConnectedFolders" -> {
+                    try {
+                        result.success(connectedExternalFolders())
+                    } catch (error: Exception) {
+                        result.error(
+                            "scan_failed",
+                            error.message ?: "Connected folders could not be listed.",
+                            null,
+                        )
+                    }
+                }
+                "openConnectedFolder" -> {
+                    val folderToken = call.argument<String>("folderToken").orEmpty().trim()
+                    try {
+                        result.success(
+                            externalFolderSelection(
+                                Uri.parse(folderToken),
+                                permissionPersisted = true,
+                            ),
+                        )
+                    } catch (error: SecurityException) {
+                        result.error("permission_denied", "Folder access permission expired.", null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "scan_failed",
+                            error.message ?: "The connected folder could not be read.",
+                            null,
+                        )
+                    }
+                }
+                "forgetConnectedFolder" -> {
+                    val folderToken = call.argument<String>("folderToken").orEmpty().trim()
+                    try {
+                        val uri = requireContentUri(folderToken)
+                        contentResolver.releasePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "permission_release_failed",
+                            error.message ?: "Folder permission could not be released.",
+                            null,
+                        )
+                    }
+                }
                 "copySelected" -> {
                     val documentTokens = call.argument<List<Any>>("documentTokens")
                         ?: emptyList()
@@ -220,20 +267,17 @@ class MainActivity : FlutterActivity() {
             return
         }
         try {
-            val root = DocumentFile.fromTreeUri(this, treeUri)
-                ?: throw IllegalStateException("The selected folder is unavailable.")
-            val entries = root.listFiles()
-                .asSequence()
-                .take(maxExternalFolderEntries)
-                .map { document -> externalFolderEntry(document, treeUri.authority) }
-                .toList()
-            result.success(
-                mapOf(
-                    "folderLabel" to (root.name ?: "선택한 폴더"),
-                    "providerLabel" to (treeUri.authority ?: "Android 파일"),
-                    "entries" to entries,
-                ),
-            )
+            var permissionPersisted = false
+            val takeFlags = data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
+            if (takeFlags != 0) {
+                try {
+                    contentResolver.takePersistableUriPermission(treeUri, takeFlags)
+                    permissionPersisted = true
+                } catch (_: SecurityException) {
+                    // Some providers allow this import but do not retain tree access.
+                }
+            }
+            result.success(externalFolderSelection(treeUri, permissionPersisted))
         } catch (error: SecurityException) {
             result.error("permission_denied", "Folder access permission was not granted.", null)
         } catch (error: Exception) {
@@ -276,7 +320,10 @@ class MainActivity : FlutterActivity() {
         try {
             startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                    .addFlags(
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
+                    ),
                 externalFolderRequestCode,
             )
         } catch (error: Exception) {
@@ -295,6 +342,62 @@ class MainActivity : FlutterActivity() {
             "modifiedAt" to document.lastModified().takeIf { it > 0L },
             "canRead" to (document.isFile && document.canRead()),
         )
+    }
+
+    private fun externalFolderSelection(
+        treeUri: Uri,
+        permissionPersisted: Boolean = false,
+    ): Map<String, Any?> {
+        val uri = requireContentUri(treeUri.toString())
+        val root = DocumentFile.fromTreeUri(this, uri)
+            ?: throw IllegalStateException("The selected folder is unavailable.")
+        if (!root.isDirectory || !root.canRead()) {
+            throw SecurityException("The selected folder cannot be read.")
+        }
+        val entries = root.listFiles()
+            .asSequence()
+            .take(maxExternalFolderEntries)
+            .map { document -> externalFolderEntry(document, uri.authority) }
+            .toList()
+        return mapOf(
+            "folderLabel" to (root.name ?: "선택한 폴더"),
+            "providerLabel" to (uri.authority ?: "Android 파일"),
+            "folderToken" to uri.toString(),
+            "permissionPersisted" to permissionPersisted,
+            "entries" to entries,
+        )
+    }
+
+    private fun connectedExternalFolders(): List<Map<String, Any?>> {
+        return contentResolver.persistedUriPermissions
+            .filter { permission -> permission.isReadPermission }
+            .map { permission ->
+                val uri = permission.uri
+                val root = DocumentFile.fromTreeUri(this, uri)
+                mapOf(
+                    "folderLabel" to (root?.name ?: "사용할 수 없는 폴더"),
+                    "providerLabel" to (uri.authority ?: "Android 파일"),
+                    "folderToken" to uri.toString(),
+                    "canRead" to (root?.canRead() == true && root.isDirectory),
+                )
+            }
+            .sortedWith(
+                compareBy<Map<String, Any?>>(
+                    { it["folderLabel"].toString().lowercase() },
+                    { it["folderToken"].toString() },
+                ),
+            )
+    }
+
+    private fun requireContentUri(value: String): Uri {
+        if (value.isBlank()) {
+            throw IllegalArgumentException("A folder token is required.")
+        }
+        val uri = Uri.parse(value)
+        if (!uri.scheme.equals("content", ignoreCase = true)) {
+            throw IllegalArgumentException("The folder token is invalid.")
+        }
+        return uri
     }
 
     private fun copyExternalFolderPdfs(documentTokens: List<Any>): List<Map<String, String>> {

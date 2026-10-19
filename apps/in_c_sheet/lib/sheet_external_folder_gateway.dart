@@ -8,6 +8,8 @@ class SheetExternalFolderSelection {
     required this.folderLabel,
     required this.entries,
     this.providerLabel,
+    this.folderToken,
+    this.permissionPersisted = false,
   });
 
   factory SheetExternalFolderSelection.fromPlatformMap(
@@ -24,6 +26,8 @@ class SheetExternalFolderSelection {
     return SheetExternalFolderSelection(
       folderLabel: value['folderLabel']?.toString().trim() ?? '',
       providerLabel: value['providerLabel']?.toString().trim(),
+      folderToken: value['folderToken']?.toString().trim(),
+      permissionPersisted: value['permissionPersisted'] == true,
       entries: entries,
     );
   }
@@ -52,7 +56,36 @@ class SheetExternalFolderSelection {
 
   final String folderLabel;
   final String? providerLabel;
+  final String? folderToken;
+  final bool permissionPersisted;
   final List<SheetExternalFolderEntry> entries;
+}
+
+class SheetExternalFolderConnection {
+  const SheetExternalFolderConnection({
+    required this.folderLabel,
+    required this.folderToken,
+    this.providerLabel,
+    this.canRead = true,
+  });
+
+  factory SheetExternalFolderConnection.fromPlatformMap(
+    Map<Object?, Object?> value,
+  ) {
+    return SheetExternalFolderConnection(
+      folderLabel: value['folderLabel']?.toString().trim() ?? '',
+      folderToken: value['folderToken']?.toString().trim() ?? '',
+      providerLabel: value['providerLabel']?.toString().trim(),
+      canRead: value['canRead'] is bool ? value['canRead']! as bool : true,
+    );
+  }
+
+  final String folderLabel;
+  final String folderToken;
+  final String? providerLabel;
+  final bool canRead;
+
+  bool get isValid => folderToken.isNotEmpty;
 }
 
 class SheetExternalFolderGatewayException implements Exception {
@@ -63,6 +96,12 @@ class SheetExternalFolderGatewayException implements Exception {
 
 abstract class SheetExternalFolderGateway {
   Future<SheetExternalFolderSelection?> pickFolder();
+
+  Future<List<SheetExternalFolderConnection>> listConnectedFolders();
+
+  Future<SheetExternalFolderSelection> openConnectedFolder(String folderToken);
+
+  Future<void> forgetConnectedFolder(String folderToken);
 
   Future<List<SheetSharedImportFile>> copySelected(
     Iterable<SheetExternalFolderCopySource> sources,
@@ -91,6 +130,71 @@ class MethodChannelSheetExternalFolderGateway
     } on MissingPluginException {
       throw const SheetExternalFolderGatewayException(
         '이 기기에서는 폴더 가져오기를 지원하지 않습니다.',
+      );
+    }
+  }
+
+  @override
+  Future<List<SheetExternalFolderConnection>> listConnectedFolders() async {
+    try {
+      final response = await _channel.invokeMethod<Object?>(
+        'listConnectedFolders',
+      );
+      if (response is! List) return const <SheetExternalFolderConnection>[];
+      return response
+          .whereType<Map<Object?, Object?>>()
+          .map(SheetExternalFolderConnection.fromPlatformMap)
+          .where((connection) => connection.isValid)
+          .toList(growable: false);
+    } on PlatformException catch (error) {
+      throw SheetExternalFolderGatewayException(
+        error.message ?? '연결된 폴더를 확인하지 못했습니다.',
+      );
+    } on MissingPluginException {
+      throw const SheetExternalFolderGatewayException(
+        '이 기기에서는 폴더 연결을 지원하지 않습니다.',
+      );
+    }
+  }
+
+  @override
+  Future<SheetExternalFolderSelection> openConnectedFolder(
+    String folderToken,
+  ) async {
+    try {
+      final response = await _channel.invokeMethod<Object?>(
+        'openConnectedFolder',
+        <String, Object?>{'folderToken': folderToken},
+      );
+      if (response is! Map<Object?, Object?>) {
+        throw const SheetExternalFolderGatewayException('연결된 폴더를 다시 열지 못했습니다.');
+      }
+      return SheetExternalFolderSelection.fromPlatformMap(response);
+    } on PlatformException catch (error) {
+      throw SheetExternalFolderGatewayException(
+        error.message ?? '연결된 폴더를 다시 열지 못했습니다.',
+      );
+    } on MissingPluginException {
+      throw const SheetExternalFolderGatewayException(
+        '이 기기에서는 폴더 연결을 지원하지 않습니다.',
+      );
+    }
+  }
+
+  @override
+  Future<void> forgetConnectedFolder(String folderToken) async {
+    try {
+      await _channel.invokeMethod<void>(
+        'forgetConnectedFolder',
+        <String, Object?>{'folderToken': folderToken},
+      );
+    } on PlatformException catch (error) {
+      throw SheetExternalFolderGatewayException(
+        error.message ?? '폴더 연결을 해제하지 못했습니다.',
+      );
+    } on MissingPluginException {
+      throw const SheetExternalFolderGatewayException(
+        '이 기기에서는 폴더 연결을 지원하지 않습니다.',
       );
     }
   }

@@ -285,10 +285,16 @@ Cloud provider:
 - provider, online/offline, 내려받기 필요 여부, picker error.
 - 앱 내부 사본 생성 여부, 같은 파일 재가져오기 중복 여부.
 
-Folder catalog / direct folder spike:
+Folder connection / direct folder spike:
 
-- 현재 구현은 persistent direct reference가 아니라 Android `폴더에서 PDF 고르기`의 read-only catalog와
-  copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
+- 현재 구현은 persistent direct score가 아니라 Android `연결된 폴더에서 PDF 고르기`의 재사용 가능한
+  read-only catalog와 copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
+- 폴더를 처음 연결하고 앱을 완전히 종료/재시작한 뒤 같은 폴더가 목록에 남아 다시 열리는지 확인한다.
+- 연결 해제 후 목록에서 사라지는지, 마지막 연결 해제 직후 새 picker가 강제로 열리지 않는지 확인한다.
+- Android 설정/파일 provider에서 권한을 회수하거나 폴더를 제거한 뒤 `사용할 수 없는 폴더`로 표시되고
+  연결 해제는 가능한지 확인한다. 앱/라이브러리 데이터가 삭제되면 안 된다.
+- persistable permission을 제공하지 않는 provider는 이번 가져오기는 허용하되 재시작 후 연결 목록에
+  남지 않고 일회성 사용 안내를 보여야 한다.
 - Android 태블릿에서 권한 승인/취소, 빈 폴더, 201개 이상 폴더, 읽기 실패, 기존 및 폴더 내 중복 파일명,
   미지원 형식이 라이브러리를 변경하지 않고 안내되는지 확인한다.
 - 선택한 항목 중 중복/읽기 실패/미지원/stale 항목이 섞이면 실제 복사 전에 차단되어야 한다.
@@ -299,7 +305,7 @@ Folder catalog / direct folder spike:
 - 가져온 악보의 `정보 편집`에서 `가져온 위치`가 folder/provider와 원본 파일명을 읽기 전용으로 보여주는지 확인한다.
 - 앱을 재시작하거나 metadata backup을 복원한 뒤에도 이 출처 hint가 유지되는지 확인한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
-  지원 보고 텍스트에 그대로 노출되지 않아야 한다.
+  지원 보고 텍스트에 그대로 노출되지 않아야 한다. 연결 목록 자체도 backup/restore 대상이 아니어야 한다.
 - 원본 폴더 삭제/rename이 이미 가져온 Clef 악보 삭제로 이어지면 안 된다.
 
 Long library navigation:

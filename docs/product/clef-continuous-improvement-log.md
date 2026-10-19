@@ -2973,3 +2973,13 @@ being silently replaced by edited directives. If score metadata persistence fail
 record are restored; a delayed edit that completes after a library switch also rolls the source back and cannot write into
 the destination library. Controller and widget regressions cover success, invalid input, save failure, library switching
 and viewer reload. Multi-column chord-grid layout remains follow-up.
+
+S294 VERIFIED LOCAL: made Android SAF folder access reusable without turning external files into fragile live scores.
+Folders whose providers grant persistent read access now appear in a device-local connection sheet and can be reopened or
+forgotten after app restart; providers that only grant transient access still complete the current import and show a clear
+one-use notice. Selected PDFs continue through the existing cache copy and library import pipeline, so removing or
+renaming the source cannot break an imported score. Tree/document URIs remain outside score metadata, backups and support
+reports. Gateway and small-screen widget regressions cover listing, reopening, forgetting, unavailable connections and
+the transient fallback. Android Kotlin compilation, `flutter analyze`, all 1,739 tests and the RC release check passed.
+Reboot, provider revocation and removable-storage behavior remain Device QA; app-copy-free direct scores and iOS Files
+parity remain separate gaps.
