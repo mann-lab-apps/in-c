@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 import 'sheet_annotation.dart';
+import 'sheet_file_import.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
@@ -367,11 +368,63 @@ class SheetSetlistPackageFile {
     return _fileName(path);
   }
 
-  bool get isSupportedScoreFile {
-    return _supportedScoreExtensions.contains(_fileExtension(fileName));
-  }
+  SheetSetlistPackageScoreKind get scoreKind =>
+      SheetSetlistPackageScoreKind.forFileName(fileName);
 
-  bool get isPdf => _fileExtension(fileName) == '.pdf';
+  bool get isSupportedScoreFile =>
+      scoreKind != SheetSetlistPackageScoreKind.unsupported;
+
+  bool get isPdf => scoreKind == SheetSetlistPackageScoreKind.pdf;
+
+  bool get isImage => scoreKind == SheetSetlistPackageScoreKind.image;
+
+  bool get isPlainText => scoreKind == SheetSetlistPackageScoreKind.plainText;
+
+  bool get isChordPro => scoreKind == SheetSetlistPackageScoreKind.chordPro;
+
+  String get validationFailure {
+    final content = bytes;
+    if (content == null || !scoreKind.isTextScore) {
+      return '';
+    }
+    if (content.isEmpty) {
+      return '텍스트 파일이 비어 있습니다.';
+    }
+    if (content.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      return '텍스트 파일이 2 MiB 제한을 초과합니다.';
+    }
+    try {
+      final source = utf8.decode(content);
+      if (source.trim().isEmpty) {
+        return '텍스트 파일에 읽을 내용이 없습니다.';
+      }
+    } on FormatException {
+      return '텍스트 파일이 올바른 UTF-8 형식이 아닙니다.';
+    }
+    return '';
+  }
+}
+
+enum SheetSetlistPackageScoreKind {
+  pdf('PDF'),
+  image('이미지'),
+  plainText('텍스트'),
+  chordPro('ChordPro'),
+  unsupported('지원하지 않음');
+
+  const SheetSetlistPackageScoreKind(this.label);
+
+  final String label;
+
+  bool get isTextScore => this == plainText || this == chordPro;
+
+  static SheetSetlistPackageScoreKind forFileName(String fileName) {
+    if (SheetFileImportPolicy.isPdfFileName(fileName)) return pdf;
+    if (SheetFileImportPolicy.isSupportedImageFileName(fileName)) return image;
+    if (SheetFileImportPolicy.isPlainTextFileName(fileName)) return plainText;
+    if (SheetFileImportPolicy.isChordProFileName(fileName)) return chordPro;
+    return unsupported;
+  }
 }
 
 class SheetSetlistPackageDryRun {
@@ -582,6 +635,8 @@ class SheetSetlistPackageEntry {
         return '패키지에 같은 이름의 파일이 여러 개 있습니다: ${item.fileName}';
       case SheetSetlistPackageEntryStatus.unsupportedFile:
         return '지원하지 않는 패키지 파일 형식: ${_displayFileReference(item)}';
+      case SheetSetlistPackageEntryStatus.invalidFile:
+        return '${_displayFileReference(item)}: ${packageFile?.validationFailure ?? '파일을 읽을 수 없습니다.'}';
     }
   }
 
@@ -639,6 +694,14 @@ class SheetSetlistPackageEntry {
         packageFileCandidates: matches,
       );
     }
+    if (file.validationFailure.isNotEmpty) {
+      return SheetSetlistPackageEntry(
+        item: item,
+        status: SheetSetlistPackageEntryStatus.invalidFile,
+        packageFile: file,
+        packageFileCandidates: matches,
+      );
+    }
     return SheetSetlistPackageEntry(
       item: item,
       status: SheetSetlistPackageEntryStatus.importableFile,
@@ -655,9 +718,8 @@ enum SheetSetlistPackageEntryStatus {
   missingFile,
   duplicatePackageFile,
   unsupportedFile,
+  invalidFile,
 }
-
-const _supportedScoreExtensions = <String>{'.pdf', '.jpg', '.jpeg', '.png'};
 
 List<SheetSetlistPackageFile> _matchingPackageFiles(
   String fileName,
@@ -848,6 +910,7 @@ List<String> _setlistPackageManifestDetails(
   final metadata = <String>[
     if (composer.isNotEmpty) '작곡가: $composer',
     '파일: ${score.sourceFileDisplayName}',
+    '형식: ${SheetSetlistPackageScoreKind.forFileName(score.filePath).label}',
     '시작: ${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽',
     if (duration > 0) '예상 시간: ${_formatDuration(duration)}',
     if (note?.isNotEmpty == true) '세트 메모: $note',
@@ -946,16 +1009,18 @@ bool _isSafePackageStampAssetZipEntryPath(String path) {
 }
 
 String _mediaTypeForScoreFile(String path) {
-  switch (_fileExtension(path)) {
-    case '.pdf':
+  switch (SheetSetlistPackageScoreKind.forFileName(path)) {
+    case SheetSetlistPackageScoreKind.pdf:
       return 'application/pdf';
-    case '.jpg':
-    case '.jpeg':
-      return 'image/jpeg';
-    case '.png':
-      return 'image/png';
+    case SheetSetlistPackageScoreKind.image:
+      return _fileExtension(path) == '.png' ? 'image/png' : 'image/jpeg';
+    case SheetSetlistPackageScoreKind.plainText:
+      return 'text/plain';
+    case SheetSetlistPackageScoreKind.chordPro:
+      return 'text/vnd.chordpro';
+    case SheetSetlistPackageScoreKind.unsupported:
+      return '';
   }
-  return '';
 }
 
 String _mediaTypeForStampAssetFile(String path) {

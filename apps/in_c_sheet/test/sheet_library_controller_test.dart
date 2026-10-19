@@ -696,6 +696,57 @@ Clef & Staff 세트리스트
     );
   });
 
+  test('setlist package imports plain text and ChordPro scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 10);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Text Package
+곡 수: 2곡
+
+1. Lesson Notes
+   파일: lesson-notes.md
+2. Autumn Song
+   파일: autumn-song.onsong
+   출처 유형: 공연 패키지
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/lesson-notes.md': utf8.encode('Practice slowly.'),
+          'scores/autumn-song.onsong': utf8.encode('''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+'''),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported!.scoreIds, <String>[
+      'package-text-0',
+      'package-chordpro-0',
+    ]);
+    expect(store.importedPlainTextNames, <String>['lesson-notes.md']);
+    expect(store.importedChordProNames, <String>['autumn-song.onsong']);
+    final chordPro = controller.scoreById('package-chordpro-0');
+    expect(chordPro.title, 'Autumn Song');
+    expect(chordPro.composer, 'Kim');
+    expect(
+      chordPro.customFields
+          .where((field) => field.key == '출처 유형')
+          .map((field) => field.value),
+      <String>['공연 패키지'],
+    );
+  });
+
   test(
     'setlist package import failure restores previous scores and setlists',
     () async {
@@ -5124,8 +5175,12 @@ class _PackageImportStore extends SheetLibraryStore {
 
   final DateTime now;
   final importedPdfBytes = <List<int>>[];
+  final importedPlainTextNames = <String>[];
+  final importedChordProNames = <String>[];
   var _pdfCount = 0;
   var _imageCount = 0;
+  var _textCount = 0;
+  var _chordProCount = 0;
   bool failSaveScoresAndSetlists = false;
   bool failSaveUserStampPacks = false;
 
@@ -5157,6 +5212,40 @@ class _PackageImportStore extends SheetLibraryStore {
       id: 'package-image-$index',
       title: title ?? images.first.name,
       filePath: '/package/${title ?? images.first.name}.pdf',
+    );
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedPlainTextNames.add(file.name);
+    final index = _textCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-text-$index',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/package/${file.name}',
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedChordProNames.add(file.name);
+    final index = _chordProCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-chordpro-$index',
+      title: 'Autumn Song',
+      composer: 'Kim',
+      filePath: '/package/${file.name}',
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '출처 유형', value: 'ChordPro'),
+      ],
     );
   }
 

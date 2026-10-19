@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
@@ -204,6 +206,82 @@ Clef & Staff 세트리스트
     expect(dryRun.canImport, isTrue);
     expect(dryRun.existingScoreCount, 1);
     expect(dryRun.importableFileCount, 1);
+  });
+
+  test('codec classifies plain text and ChordPro package scores', () {
+    final zip = SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Text Package
+곡 수: 2곡
+
+1. Lesson Notes
+   파일: lesson-notes.md
+2. Autumn Song
+   파일: autumn-song.chordpro
+''',
+      scoreFiles: <String, List<int>>{
+        'scores/lesson-notes.md': utf8.encode('Practice slowly.'),
+        'scores/autumn-song.chordpro': utf8.encode('''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+'''),
+      },
+    );
+
+    final package = SheetSetlistPackageArchive.decodeBytes(zip);
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+
+    expect(package.packageFiles.map((file) => file.scoreKind), [
+      SheetSetlistPackageScoreKind.plainText,
+      SheetSetlistPackageScoreKind.chordPro,
+    ]);
+    expect(package.packageFiles.map((file) => file.mediaType), [
+      'text/plain',
+      'text/vnd.chordpro',
+    ]);
+    expect(dryRun.canImport, isTrue);
+    expect(dryRun.importableFileCount, 2);
+  });
+
+  test('dry run rejects invalid packaged text before import', () {
+    final manifest = SheetSetlistShareManifest.tryParse('''
+Clef & Staff 세트리스트
+제목: Invalid Text
+곡 수: 3곡
+
+1. Empty
+   파일: empty.txt
+2. Malformed
+   파일: malformed.md
+3. Oversized
+   파일: oversized.chordpro
+''')!;
+    final dryRun = SheetSetlistPackageDryRun.preview(
+      manifest: manifest,
+      currentScores: const <SheetScore>[],
+      packageFiles: <SheetSetlistPackageFile>[
+        SheetSetlistPackageFile(path: 'scores/empty.txt', bytes: Uint8List(0)),
+        SheetSetlistPackageFile(
+          path: 'scores/malformed.md',
+          bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+        ),
+        SheetSetlistPackageFile(
+          path: 'scores/oversized.chordpro',
+          bytes: Uint8List(SheetFileImportPolicy.maxPlainTextBytes + 1),
+        ),
+      ],
+    );
+
+    expect(dryRun.canImport, isFalse);
+    expect(
+      dryRun.entries.map((entry) => entry.status),
+      everyElement(SheetSetlistPackageEntryStatus.invalidFile),
+    );
+    expect(dryRun.warnings.join('\n'), contains('비어 있습니다'));
+    expect(dryRun.warnings.join('\n'), contains('UTF-8'));
+    expect(dryRun.warnings.join('\n'), contains('2 MiB'));
   });
 
   test('codec preserves optional text and icon user stamp metadata', () {
@@ -574,6 +652,42 @@ Clef & Staff 세트리스트
     final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
     expect(dryRun.canImport, isTrue);
     expect(dryRun.importableFileCount, 2);
+  });
+
+  test('export preserves text score extensions and manifest kinds', () async {
+    final now = DateTime(2026, 10, 20, 10);
+    final scores = <SheetScore>[
+      _score(id: 'notes', title: 'Lesson Notes', filePath: '/library/notes.md'),
+      _score(
+        id: 'song',
+        title: 'Autumn Song',
+        filePath: '/library/autumn.onsong',
+      ),
+    ];
+    final setlist = SheetSetlist(
+      id: 'text-set',
+      title: 'Text Set',
+      scoreIds: const <String>['notes', 'song'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: scores,
+      readScoreBytes: (score) async => utf8.encode(
+        score.id == 'notes' ? 'Practice slowly.' : '{title: Autumn Song}',
+      ),
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.manifestText, contains('형식: 텍스트'));
+    expect(result.manifestText, contains('형식: ChordPro'));
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.packageFiles.map((file) => file.path), [
+      'scores/notes.md',
+      'scores/autumn.onsong',
+    ]);
   });
 
   test(

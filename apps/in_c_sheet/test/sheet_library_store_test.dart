@@ -145,6 +145,98 @@ void main() {
     );
   });
 
+  test(
+    'imports ChordPro bytes with original extension and strict UTF-8',
+    () async {
+      final store = SheetLibraryStore();
+      final source = '''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+''';
+      final score = await store.importChordProFileBytes(
+        file: SheetImportedFile(
+          name: 'autumn.onsong',
+          bytes: Uint8List.fromList(utf8.encode(source)),
+        ),
+        importedAt: DateTime.utc(2026, 10, 20),
+      );
+
+      expect(score.title, 'Autumn Song');
+      expect(score.composer, 'Kim');
+      expect(score.filePath, endsWith('.onsong'));
+      expect(await File(score.filePath).readAsString(), source);
+      await expectLater(
+        store.importChordProFileBytes(
+          file: SheetImportedFile(
+            name: 'broken.chordpro',
+            bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+          ),
+        ),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test('full backup round trips plain text and ChordPro score files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.utc(2026, 10, 20);
+    final plainSource = utf8.encode('Practice slowly.');
+    final chordSource = utf8.encode('''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+''');
+    final plain = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'lesson-notes.md',
+        bytes: Uint8List.fromList(plainSource),
+      ),
+      importedAt: now,
+    );
+    final chord = await store.importChordProFileBytes(
+      file: SheetImportedFile(
+        name: 'autumn.onsong',
+        bytes: Uint8List.fromList(chordSource),
+      ),
+      importedAt: now.add(const Duration(microseconds: 1)),
+    );
+    await store.saveScores(<SheetScore>[plain, chord]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'text-set',
+        title: 'Text Set',
+        scoreIds: <String>[plain.id, chord.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-text-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final restoredStore = SheetLibraryStore();
+
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+
+    expect(result.didRestore, isTrue);
+    final restored = await restoredStore.loadScores();
+    expect(restored, hasLength(2));
+    final restoredPlain = restored.firstWhere((score) => score.id == plain.id);
+    final restoredChord = restored.firstWhere((score) => score.id == chord.id);
+    expect(restoredPlain.filePath, endsWith('.md'));
+    expect(restoredChord.filePath, endsWith('.onsong'));
+    expect(await File(restoredPlain.filePath).readAsBytes(), plainSource);
+    expect(await File(restoredChord.filePath).readAsBytes(), chordSource);
+    expect((await restoredStore.loadSetlists()).single.scoreIds, <String>[
+      plain.id,
+      chord.id,
+    ]);
+  });
+
   for (final scoped in [false, true]) {
     for (final throws in [false, true]) {
       for (final key in [

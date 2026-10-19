@@ -7983,7 +7983,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$fileName · 패키지 안 PDF/JPG/PNG와 현재 라이브러리 매칭을 확인합니다.',
+                '$fileName · 패키지 안 PDF/JPG/PNG/텍스트/ChordPro와 현재 라이브러리 매칭을 확인합니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -8164,7 +8164,7 @@ class _SetlistPackageExportPreviewSheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$setlistTitle · PDF/JPG/PNG 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
+                '$setlistTitle · PDF/JPG/PNG/텍스트/ChordPro 원본, Clef manifest, 사용자 스탬프 metadata를 ZIP으로 묶습니다.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -9238,6 +9238,7 @@ IconData _packageEntryIcon(SheetSetlistPackageEntryStatus status) {
     SheetSetlistPackageEntryStatus.duplicatePackageFile =>
       Icons.file_copy_outlined,
     SheetSetlistPackageEntryStatus.unsupportedFile => Icons.block_flipped,
+    SheetSetlistPackageEntryStatus.invalidFile => Icons.warning_amber_outlined,
   };
 }
 
@@ -9247,7 +9248,8 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
       final score = entry.existingScore!;
       return '현재 라이브러리 악보 · ${score.sourceFileDisplayName}';
     case SheetSetlistPackageEntryStatus.importableFile:
-      return '패키지 파일 · ${entry.packageFile?.path ?? entry.item.fileName}';
+      final file = entry.packageFile;
+      return '패키지 ${file?.scoreKind.label ?? '파일'} · ${file?.path ?? entry.item.fileName}';
     case SheetSetlistPackageEntryStatus.ambiguousExistingScore:
       return '후보 ${entry.candidates.length}개 · 제목/파일명을 더 구분해야 합니다.';
     case SheetSetlistPackageEntryStatus.missingFile:
@@ -9255,7 +9257,9 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
     case SheetSetlistPackageEntryStatus.duplicatePackageFile:
       return '같은 이름의 패키지 파일 후보 ${entry.packageFileCandidates.length}개';
     case SheetSetlistPackageEntryStatus.unsupportedFile:
-      return 'PDF/JPG/PNG 악보만 패키지에서 확인할 수 있습니다.';
+      return 'PDF/JPG/PNG/텍스트/ChordPro 악보만 패키지에서 확인할 수 있습니다.';
+    case SheetSetlistPackageEntryStatus.invalidFile:
+      return entry.packageFile?.validationFailure ?? '파일 내용을 읽을 수 없습니다.';
   }
 }
 

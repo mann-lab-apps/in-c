@@ -989,6 +989,55 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isChordProFileName(file.name)) {
+      throw FormatException('Unsupported ChordPro file: ${file.name}');
+    }
+    if (file.bytes.isEmpty ||
+        file.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Invalid ChordPro file size.');
+    }
+    final source = utf8.decode(file.bytes);
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro file.');
+    }
+    final document = SheetChordProParser.parse(source);
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: file.bytes,
+      id: id,
+      originalFileName: file.name,
+    );
+    return SheetScore(
+      id: id,
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      viewerSettings: SheetViewerSettings.defaultSettings,
+      pageSettings: SheetPageSettings.empty,
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
   Future<SheetImportedFile?> pickChordProFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,

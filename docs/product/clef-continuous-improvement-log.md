@@ -2747,3 +2747,12 @@ library score through the existing rollback-aware import path. Opening that scor
 text viewer rather than the PDF viewer; the bounded loader caches its file Future so rebuilds cannot restart loading.
 ChordPro retains its structured viewer and DOCX/RTF still receive PDF-conversion guidance. Focused policy, store,
 controller and widget tests cover extension recognition, storage, failure recovery, UI import and viewer rendering.
+
+S261 VERIFIED LOCAL: extended Clef setlist packages beyond PDF/image-only assumptions. Package ZIP export/import now
+classifies PDF, JPG/PNG, plain text and ChordPro explicitly, preserves text source bytes and extensions, records each
+score format in the readable manifest and routes imported files through their existing app-owned storage paths.
+Dry-run preview blocks empty, over-2-MiB and malformed UTF-8 text before library mutation; package metadata no longer
+erases composer, note or custom fields parsed from ChordPro when the manifest omits them. Full-backup regression proves
+plain text and ChordPro bytes, extensions and setlist references survive export/restore. Focused package/controller/store
+tests pass 324/324; mixed-format package sharing and viewer routing remain Device QA.
+Full validation also passes `flutter analyze`, all 1,664 tests and the RC release check.

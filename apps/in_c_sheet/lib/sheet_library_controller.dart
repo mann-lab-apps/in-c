@@ -121,6 +121,7 @@ class SheetLibraryBackupHealth {
 
 const _setlistPackageKnownDetailKeys = <String>{
   '파일',
+  '형식',
   '작곡가',
   '시작',
   '예상 시간',
@@ -3350,19 +3351,37 @@ class SheetLibraryController extends ChangeNotifier {
           throw StateError('Package file bytes are not available.');
         }
         final importedAt = now.add(Duration(microseconds: index));
-        final rawScore = packageFile.isPdf
-            ? await store.importPdfBytes(
-                bytes: bytes,
-                fileName: packageFile.fileName,
-                importedAt: importedAt,
-              )
-            : await store.importImagesAsPdfBytes(
-                images: [
-                  SheetImportedFile(name: packageFile.fileName, bytes: bytes),
-                ],
-                title: entry.item.title,
-                importedAt: importedAt,
-              );
+        final importedFile = SheetImportedFile(
+          name: packageFile.fileName,
+          bytes: bytes,
+          mimeType: packageFile.mediaType,
+        );
+        final rawScore = switch (packageFile.scoreKind) {
+          SheetSetlistPackageScoreKind.pdf => await store.importPdfBytes(
+            bytes: bytes,
+            fileName: packageFile.fileName,
+            importedAt: importedAt,
+          ),
+          SheetSetlistPackageScoreKind.image =>
+            await store.importImagesAsPdfBytes(
+              images: [importedFile],
+              title: entry.item.title,
+              importedAt: importedAt,
+            ),
+          SheetSetlistPackageScoreKind.plainText =>
+            await store.importPlainTextFile(
+              file: importedFile,
+              importedAt: importedAt,
+            ),
+          SheetSetlistPackageScoreKind.chordPro =>
+            await store.importChordProFileBytes(
+              file: importedFile,
+              importedAt: importedAt,
+            ),
+          SheetSetlistPackageScoreKind.unsupported => throw StateError(
+            'Unsupported package score file.',
+          ),
+        };
         if (_activeLibraryProfile.id != libraryId) {
           return null;
         }
@@ -4472,26 +4491,43 @@ class SheetLibraryController extends ChangeNotifier {
   ) {
     final details = item.details;
     final title = _normalizeScoreTitle(item.title, score.title);
-    final composer = _normalizeOptionalMetadata(item.composer);
-    final note = _normalizeOptionalMetadata(details['악보 메모'] ?? '');
-    final collection = _normalizeOptionalMetadata(details['컬렉션'] ?? '');
-    final group = _normalizeOptionalMetadata(details['그룹'] ?? '');
-    final customFields = <SheetCustomMetadataField>[
-      for (final entry in details.entries)
-        if (!_setlistPackageKnownDetailKeys.contains(entry.key) &&
-            entry.value.trim().isNotEmpty)
-          SheetCustomMetadataField(key: entry.key, value: entry.value),
-    ];
+    final composer = _normalizeOptionalMetadata(
+      item.composer.isEmpty ? score.composer : item.composer,
+    );
+    final note = _normalizeOptionalMetadata(details['악보 메모'] ?? score.note);
+    final collection = _normalizeOptionalMetadata(
+      details['컬렉션'] ?? score.collection,
+    );
+    final group = _normalizeOptionalMetadata(details['그룹'] ?? score.group);
+    final customFieldsByKey = <String, SheetCustomMetadataField>{
+      for (final field in score.customFields)
+        field.key.trim().toLowerCase(): field,
+    };
+    for (final entry in details.entries) {
+      final key = entry.key.trim();
+      final value = entry.value.trim();
+      if (_setlistPackageKnownDetailKeys.contains(key) || value.isEmpty) {
+        continue;
+      }
+      customFieldsByKey[key.toLowerCase()] = SheetCustomMetadataField(
+        key: key,
+        value: value,
+      );
+    }
 
     return score.copyWith(
       title: title,
       composer: composer,
-      tags: _normalizeTags(details['태그'] ?? ''),
+      tags: details.containsKey('태그')
+          ? _normalizeTags(details['태그'] ?? '')
+          : score.tags,
       note: note,
       collection: collection,
       group: group,
-      rating: _parseManifestRating(details['별점'] ?? ''),
-      customFields: customFields,
+      rating: details.containsKey('별점')
+          ? _parseManifestRating(details['별점'] ?? '')
+          : score.rating,
+      customFields: customFieldsByKey.values.toList(growable: false),
       viewerSettings: _globalViewerSettings,
       updatedAt: DateTime.now(),
     );
