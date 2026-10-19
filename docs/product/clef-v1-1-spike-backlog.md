@@ -207,13 +207,16 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 ## 6. 한글/비라틴 PDF Font Embedding
 
 - 현재 v1 상태: ASCII text annotation은 rendered stamp export에 포함한다. 한글/비ASCII text는 깨진
-  glyph 방지를 위해 skip/fallback 안내를 표시하고, mixed ASCII/한글 fixture test가 있다.
+  glyph 방지를 위해 skip/fallback 안내를 표시하고, mixed ASCII/한글 fixture test가 있다. Editable
+  standard export inspector는 FreeText의 embedded font program 여부를 다시 읽어, Unicode contents는
+  보존됐지만 embedded font 없이 viewer fallback에 의존하는 주석 이름을 별도 보고한다.
 - 왜 v1.1 spike인지: 배포 가능한 폰트 license, subset embedding, CJK glyph coverage, file size
   증가, PDF writer 지원 여부가 필요하다.
 - 결정 필요사항: Noto Sans CJK 등 폰트 후보와 license, app bundle size, subset embedding 가능성,
   fallback font list, style/weight 범위.
-- 구현 후보: font asset registration, text export font resolver, unicode text fixture, missing glyph
-  preflight, export summary copy.
+- 구현 후보: licensed font asset registration, text export font resolver, glyph coverage preflight,
+  whole-font 중복 embedding을 피할 writer resource reuse/subset 지원, unicode text fixture, missing
+  glyph preflight, export summary copy.
 - 테스트/fixture/실기기 조건: Korean/CJK/Latin mixed text, emoji rejection, large text annotation,
   Acrobat/Preview/MobileSheets rendering, file size regression.
 - Acceptance criteria: 한글 텍스트 주석이 export PDF에서 깨지지 않고 보이며, license와 bundle

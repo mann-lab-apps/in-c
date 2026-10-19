@@ -34,6 +34,8 @@ void main() {
       clefAnnotationContents: <String>['Cue', '숨 크게'],
       unicodeFreeTextContents: <String>['숨 크게'],
       missingGeneratedAppearanceNames: <String>[],
+      embeddedFontFreeTextNames: <String>['clef-free-text-1'],
+      unembeddedUnicodeFreeTextNames: <String>['clef-korean-text-1'],
     );
 
     final markdown = SheetPdfAnnotationCompatibilityReportTemplate.markdown(
@@ -56,12 +58,28 @@ void main() {
         clefAnnotationContents: <String>['Cue', '숨 크게', '느리게', '♪'],
         unicodeFreeTextContents: <String>['숨 크게', '느리게', '♪'],
         missingGeneratedAppearanceNames: <String>[],
+        unembeddedUnicodeFreeTextNames: <String>[
+          'clef-unicode-korean',
+          'clef-unicode-stamp',
+          'clef-unicode-symbol',
+        ],
       ),
     );
 
     expect(markdown, contains('Fixture: `/tmp/clef-fixture.pdf`'));
     expect(markdown, contains('- Pages: 1'));
     expect(markdown, contains('- Clef annotations: 6'));
+    expect(
+      markdown,
+      contains('- FreeText annotations with embedded fonts: clef-free-text-1'),
+    );
+    expect(
+      markdown,
+      contains(
+        'Unicode FreeText annotations without embedded fonts: '
+        'clef-korean-text-1',
+      ),
+    );
     expect(markdown, contains('Result legend:'));
     expect(markdown, contains('`PASS`'));
     expect(markdown, contains('`ISSUE`'));
@@ -111,6 +129,7 @@ void main() {
     expect(markdown, contains('- `느리게`'));
     expect(markdown, contains('Known local limits:'));
     expect(markdown, contains('generated appearances exist'));
+    expect(markdown, contains('identifies embedded FreeText font programs'));
     expect(markdown, contains('checked separately'));
   });
 

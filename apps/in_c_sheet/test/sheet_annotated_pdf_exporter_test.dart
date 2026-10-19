@@ -646,6 +646,9 @@ void main() {
     expect(inspection.clefAnnotationContents, contains('숨 크게'));
     expect(inspection.hasUnicodeFreeTextContents, isTrue);
     expect(inspection.unicodeFreeTextContents, contains('숨 크게'));
+    expect(inspection.hasEmbeddedFontFreeText, isFalse);
+    expect(inspection.hasUnembeddedUnicodeFreeText, isTrue);
+    expect(inspection.unembeddedUnicodeFreeTextNames, contains('clef-text-kr'));
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });
 
@@ -1282,6 +1285,10 @@ void main() {
     expect(
       inspection.unicodeFreeTextContents,
       containsAll(<String>['숨 크게', '♪']),
+    );
+    expect(
+      inspection.unembeddedUnicodeFreeTextNames,
+      containsAll(<String>['clef-compat-text-stamp', 'clef-compat-icon-stamp']),
     );
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
   });

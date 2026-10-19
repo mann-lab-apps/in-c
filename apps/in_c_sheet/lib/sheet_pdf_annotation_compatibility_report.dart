@@ -374,6 +374,8 @@ Local inspection:
 - Pages: ${inspection.pageCount}
 - Clef annotations: ${inspection.clefAnnotationCount}
 - Generated appearances missing: ${inspection.missingGeneratedAppearanceNames.isEmpty ? 'none' : inspection.missingGeneratedAppearanceNames.join(', ')}
+- FreeText annotations with embedded fonts: ${inspection.embeddedFontFreeTextNames.isEmpty ? 'none' : inspection.embeddedFontFreeTextNames.join(', ')}
+- Unicode FreeText annotations without embedded fonts: ${inspection.unembeddedUnicodeFreeTextNames.isEmpty ? 'none' : inspection.unembeddedUnicodeFreeTextNames.join(', ')}
 
 Result legend:
 
@@ -419,6 +421,7 @@ $requiredCheckRows
 Known local limits:
 
 - Local inspection proves PDF annotation objects, `/NM` names, contents and generated appearances exist.
+- Local inspection identifies embedded FreeText font programs; listed Unicode annotations without one still depend on viewer font fallback.
 - Local inspection does not prove viewer rendering fidelity or edit behavior.
 - Unicode text may preserve `/Contents` while still rendering with missing glyph boxes.
 - Text and music-symbol stamps are exported as editable FreeText-style annotations and must be

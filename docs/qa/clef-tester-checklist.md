@@ -470,6 +470,9 @@
   Report template을 채울 때는 viewer별 `Result notes`나 `Evidence link / screenshot`에 screenshot path,
   앱/OS 버전, 기기명 또는 확인 메모를 남긴다. 모든 cell이 PASS여도 evidence가 비어 있으면
   external compatibility 완료로 보지 않는다.
+  Fixture 도구가 `Unicode FreeText annotations without embedded fonts`를 출력하면 해당 주석 이름과
+  한글/음악 기호 표시 결과를 함께 기록한다. `/Contents`가 보존됐다는 사실만으로 glyph 표시를 PASS로
+  처리하지 않는다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.

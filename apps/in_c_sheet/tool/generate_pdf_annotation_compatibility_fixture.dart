@@ -91,8 +91,8 @@ Future<void> main(List<String> args) async {
         '${inspection.unicodeFreeTextContents}',
       )
       ..writeln(
-        'Local inspection preserves contents, but generated appearances may '
-        'depend on viewer font fallback.',
+        'Unicode FreeText annotations without embedded fonts: '
+        '${inspection.unembeddedUnicodeFreeTextNames}',
       );
   }
   stdout
@@ -101,6 +101,10 @@ Future<void> main(List<String> args) async {
     ..writeln(
       'Unicode FreeText contents: '
       '${unicodeInspection.unicodeFreeTextContents}',
+    )
+    ..writeln(
+      'Unicode FreeText annotations without embedded fonts: '
+      '${unicodeInspection.unembeddedUnicodeFreeTextNames}',
     );
   final report = File(reportPath);
   await report.parent.create(recursive: true);

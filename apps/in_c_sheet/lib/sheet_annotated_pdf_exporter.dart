@@ -52,6 +52,8 @@ class SheetStandardPdfAnnotationInspection {
     required this.clefAnnotationContents,
     required this.unicodeFreeTextContents,
     required this.missingGeneratedAppearanceNames,
+    this.embeddedFontFreeTextNames = const <String>[],
+    this.unembeddedUnicodeFreeTextNames = const <String>[],
   });
 
   final String path;
@@ -64,6 +66,8 @@ class SheetStandardPdfAnnotationInspection {
   final List<String> clefAnnotationContents;
   final List<String> unicodeFreeTextContents;
   final List<String> missingGeneratedAppearanceNames;
+  final List<String> embeddedFontFreeTextNames;
+  final List<String> unembeddedUnicodeFreeTextNames;
 
   static const editableClefSubtypes = <String>{
     'Ink',
@@ -85,6 +89,14 @@ class SheetStandardPdfAnnotationInspection {
 
   bool get hasUnicodeFreeTextContents {
     return unicodeFreeTextContents.isNotEmpty;
+  }
+
+  bool get hasEmbeddedFontFreeText {
+    return embeddedFontFreeTextNames.isNotEmpty;
+  }
+
+  bool get hasUnembeddedUnicodeFreeText {
+    return unembeddedUnicodeFreeTextNames.isNotEmpty;
   }
 
   bool get isLocallyInspectableEditableFixture {
@@ -235,6 +247,8 @@ class SheetAnnotatedPdfExporter {
     final clefAnnotationContents = <String>[];
     final unicodeFreeTextContents = <String>[];
     final missingGeneratedAppearanceNames = <String>[];
+    final embeddedFontFreeTextNames = <String>[];
+    final unembeddedUnicodeFreeTextNames = <String>[];
     var totalAnnotationCount = 0;
     var clefAnnotationCount = 0;
 
@@ -258,7 +272,14 @@ class SheetAnnotatedPdfExporter {
           if (annotation.subtype == 'FreeText' &&
               contents.runes.any((rune) => rune > 0x7f)) {
             unicodeFreeTextContents.add(contents);
+            if (PdfEmbeddedFont.fromFreeText(annotation) == null) {
+              unembeddedUnicodeFreeTextNames.add(name);
+            }
           }
+        }
+        if (annotation.subtype == 'FreeText' &&
+            PdfEmbeddedFont.fromFreeText(annotation) != null) {
+          embeddedFontFreeTextNames.add(name);
         }
         if (!annotation.dict.containsKey('AP')) {
           missingGeneratedAppearanceNames.add(name);
@@ -278,6 +299,10 @@ class SheetAnnotatedPdfExporter {
       unicodeFreeTextContents: List.unmodifiable(unicodeFreeTextContents),
       missingGeneratedAppearanceNames: List.unmodifiable(
         missingGeneratedAppearanceNames,
+      ),
+      embeddedFontFreeTextNames: List.unmodifiable(embeddedFontFreeTextNames),
+      unembeddedUnicodeFreeTextNames: List.unmodifiable(
+        unembeddedUnicodeFreeTextNames,
       ),
     );
   }

@@ -2608,3 +2608,10 @@ tests. Temporary hand-filled reports now prove that a complete PASS matrix exits
 rows or invalid status cells exit 2 and print actionable diagnostics before the NOT READY gate summary.
 This prevents parser-only coverage from hiding command wiring or exit-code regressions. Focused CLI tests,
 full analyze, the 1,616-test suite and RC release checks passed.
+
+S241 VERIFIED LOCAL: made the editable PDF inspector distinguish preserved Unicode contents from actual
+font embedding evidence. Local inspection now records FreeText annotations backed by an embedded font and
+separately names Unicode FreeText annotations that still depend on viewer font fallback. The compatibility
+fixture CLI and report surface both lists, so generated appearances and `/Contents` no longer look like
+proof of Korean/music-symbol glyph fidelity. Focused exporter/report tests passed; licensed font selection,
+glyph preflight, embedding size policy and external viewer QA remain follow-up.

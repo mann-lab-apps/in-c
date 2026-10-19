@@ -421,7 +421,9 @@ music-symbol stamp, PNG/WebP image stamp를 포함한다.
 같은 도구는 한글/음악 기호 FreeText 표시만 따로 볼 수 있는
 `.dart_tool/clef-pdf-compatibility/clef-unicode-freetext-appearance.pdf`도 생성한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은
-로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다.
+로컬 검사에서 통과했지만 실제 glyph 표시가 viewer별로 달라질 수 있다는 뜻이다. 이어지는
+`Unicode FreeText annotations without embedded fonts` 목록이 비어 있지 않으면 해당 주석은 실제
+embedded font 없이 viewer font fallback에 의존하므로 Unicode 표시를 반드시 별도 확인한다.
 
 1. 샘플 악보에 pen/highlighter, arrow/line, rectangle, text note를 추가한다.
 2. layer export flag가 켜진 상태와 꺼진 상태를 각각 확인한다.
