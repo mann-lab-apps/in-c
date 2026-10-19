@@ -2363,6 +2363,69 @@ class SheetCustomMetadataField {
   }
 }
 
+class SheetScoreImportSource {
+  SheetScoreImportSource({
+    required String platform,
+    required String displayName,
+    String? folderLabel,
+    String? providerLabel,
+    int? sizeBytes,
+    this.modifiedAt,
+  }) : platform = platform.trim(),
+       displayName = displayName.trim(),
+       folderLabel = _nonEmptyOrNull(folderLabel),
+       providerLabel = _nonEmptyOrNull(providerLabel),
+       sizeBytes = sizeBytes != null && sizeBytes >= 0 ? sizeBytes : null;
+
+  static SheetScoreImportSource? tryFromJson(Object? value) {
+    final json = _asJsonMap(value);
+    if (json == null) return null;
+    final platform = _stringFromJson(json['platform']).trim();
+    final displayName = _stringFromJson(json['displayName']).trim();
+    if (platform.isEmpty || displayName.isEmpty) return null;
+    final rawSize = json['sizeBytes'];
+    return SheetScoreImportSource(
+      platform: platform,
+      displayName: displayName,
+      folderLabel: _stringFromJson(json['folderLabel']),
+      providerLabel: _stringFromJson(json['providerLabel']),
+      sizeBytes: rawSize is num ? rawSize.toInt() : null,
+      modifiedAt: DateTime.tryParse(_stringFromJson(json['modifiedAt'])),
+    );
+  }
+
+  final String platform;
+  final String displayName;
+  final String? folderLabel;
+  final String? providerLabel;
+  final int? sizeBytes;
+  final DateTime? modifiedAt;
+
+  String get locationLabel {
+    final parts = <String>[
+      ?folderLabel,
+      if (providerLabel != null && providerLabel != folderLabel) providerLabel!,
+    ];
+    return parts.isEmpty ? '외부 폴더' : parts.join(' · ');
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'platform': platform,
+      'displayName': displayName,
+      if (folderLabel != null) 'folderLabel': folderLabel,
+      if (providerLabel != null) 'providerLabel': providerLabel,
+      if (sizeBytes != null) 'sizeBytes': sizeBytes,
+      if (modifiedAt != null) 'modifiedAt': modifiedAt!.toIso8601String(),
+    };
+  }
+
+  static String? _nonEmptyOrNull(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? null : trimmed;
+  }
+}
+
 class SheetScore {
   const SheetScore({
     required this.id,
@@ -2377,6 +2440,7 @@ class SheetScore {
     this.linkedFiles = const <SheetLinkedFile>[],
     this.structuredNotes = SheetScoreNotes.empty,
     this.customFields = const <SheetCustomMetadataField>[],
+    this.importSource,
     required this.importedAt,
     required this.updatedAt,
     required this.lastOpenedAt,
@@ -2417,6 +2481,7 @@ class SheetScore {
         _asJsonMap(json['structuredNotes']),
       ),
       customFields: _parseCustomFields(json['customFields']),
+      importSource: SheetScoreImportSource.tryFromJson(json['importSource']),
       importedAt: importedAt,
       updatedAt: _dateFromJson(json['updatedAt'], fallback: importedAt),
       lastOpenedAt: _parseOptionalDate(json['lastOpenedAt']),
@@ -2498,6 +2563,7 @@ class SheetScore {
   final List<SheetLinkedFile> linkedFiles;
   final SheetScoreNotes structuredNotes;
   final List<SheetCustomMetadataField> customFields;
+  final SheetScoreImportSource? importSource;
   final DateTime importedAt;
   final DateTime updatedAt;
   final DateTime? lastOpenedAt;
@@ -2554,7 +2620,13 @@ class SheetScore {
           (field) =>
               field.key.toLowerCase().contains(normalized) ||
               field.value.toLowerCase().contains(normalized),
-        );
+        ) ||
+        (importSource?.displayName.toLowerCase().contains(normalized) ??
+            false) ||
+        (importSource?.folderLabel?.toLowerCase().contains(normalized) ??
+            false) ||
+        (importSource?.providerLabel?.toLowerCase().contains(normalized) ??
+            false);
   }
 
   SheetScore copyWith({
@@ -2569,6 +2641,7 @@ class SheetScore {
     List<SheetLinkedFile>? linkedFiles,
     SheetScoreNotes? structuredNotes,
     List<SheetCustomMetadataField>? customFields,
+    SheetScoreImportSource? importSource,
     DateTime? updatedAt,
     DateTime? lastOpenedAt,
     int? lastPage,
@@ -2602,6 +2675,7 @@ class SheetScore {
       customFields: customFields == null
           ? this.customFields
           : normalizeCustomFields(customFields),
+      importSource: importSource ?? this.importSource,
       importedAt: importedAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
@@ -2637,6 +2711,7 @@ class SheetScore {
       'linkedFiles': linkedFiles.map((file) => file.toJson()).toList(),
       'structuredNotes': structuredNotes.toJson(),
       'customFields': customFields.map((field) => field.toJson()).toList(),
+      if (importSource != null) 'importSource': importSource!.toJson(),
       'importedAt': importedAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'lastOpenedAt': lastOpenedAt?.toIso8601String(),

@@ -2332,6 +2332,12 @@ Clef & Staff 세트리스트
         tags: const <String>[],
         note: '',
         filePath: '/tmp/score-1-clef-imported-score.pdf',
+        importSource: SheetScoreImportSource(
+          platform: 'android-saf-copy',
+          displayName: 'clef-imported-score.pdf',
+          folderLabel: 'Recital PDFs',
+          providerLabel: 'Downloads',
+        ),
         importedAt: now,
         updatedAt: now,
         lastOpenedAt: now,
@@ -2373,6 +2379,12 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
 
     expect(find.text('악보 정보 편집'), findsOneWidget);
+    expect(find.text('가져온 위치'), findsOneWidget);
+    expect(find.textContaining('Recital PDFs · Downloads'), findsOneWidget);
+    expect(
+      find.textContaining('원본 파일 · clef-imported-score.pdf'),
+      findsOneWidget,
+    );
     expect(find.text('자주 쓰는 필드'), findsOneWidget);
     expect(find.text('조성'), findsOneWidget);
     expect(find.text('박자'), findsOneWidget);

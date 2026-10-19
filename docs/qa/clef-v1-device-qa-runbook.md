@@ -261,6 +261,8 @@ Folder catalog / direct folder spike:
   남지 않고 실패 안내가 보여야 한다.
 - 선택한 PDF는 원본 폴더를 직접 참조하지 않고 기존 import pipeline으로 앱 내부에 복사되어야 한다.
 - 가져온 뒤 Android 파일 앱에서 원본을 rename/delete해도 Clef 안의 사본이 계속 열려야 한다.
+- 가져온 악보의 `정보 편집`에서 `가져온 위치`가 folder/provider와 원본 파일명을 읽기 전용으로 보여주는지 확인한다.
+- 앱을 재시작하거나 metadata backup을 복원한 뒤에도 이 출처 hint가 유지되는지 확인한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
   지원 보고 텍스트에 그대로 노출되지 않아야 한다.
 - 원본 폴더 삭제/rename이 이미 가져온 Clef 악보 삭제로 이어지면 안 된다.

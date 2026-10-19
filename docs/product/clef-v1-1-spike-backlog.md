@@ -89,7 +89,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   - PDF 후보 스캔 preview.
   - display name, size, modified time, provider label 표시.
   - 선택 파일만 기존 import pipeline으로 복사.
-  - source metadata에 원본 folder hint를 저장할 준비. 실제 score metadata 저장은 후속.
+  - 복사 결과 이름이 선택 원본과 일치할 때 원본 folder/provider/file hint를 읽기 전용 score provenance로 저장.
   - 권한 취소/빈 폴더/읽기 실패 안내.
 - 금지:
   - 앱 내부 사본 없이 PDF를 여는 direct score.
@@ -122,14 +122,15 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 2. **Copy-on-select bridge**
    - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.
-   - folder source URI와 display path는 source metadata로 남겨 중복 탐지와 “원본 폴더에서 다시 가져오기”에 사용한다.
+   - folder/provider/display name hint만 source metadata로 남긴다. URI/token은 저장하지 않으며 자동 재연결에 사용하지 않는다.
    - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
    - 구현 상태: ready plan의 transient document token만 Android bridge에 넘겨 cache에 복사하고,
      기존 shared-PDF import pipeline으로 앱 내부 score를 만든다. 중복/읽기 실패/미지원/stale selection은
      바이트 복사 전에 차단하며, 선택 중 하나라도 복사할 수 없으면 임시 사본을 지우고 부분 import를 하지
-     않는다. source metadata 저장은 후속이다.
+     않는다.
    - 구현 상태: `SheetExternalFolderCopySource`는 display/provider/folder/size/modified hint를 score/backup
-     metadata로 만들되 platform document token은 내보내지 않는다. 저장된 score metadata 연결은 후속.
+     metadata로 만들되 platform document token은 내보내지 않는다. native 복사 결과 이름이 선택 원본과
+     정확히 일치할 때만 `SheetScoreImportSource`로 저장하고 악보 정보 편집 화면에서 읽기 전용으로 보여준다.
 
 3. **Persistent direct reference**
    - 별도 score storage type을 추가해 앱 내부 사본 없이 tree URI를 직접 열 수 있게 한다.

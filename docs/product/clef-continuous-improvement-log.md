@@ -2725,3 +2725,11 @@ page in a scrollable sheet, marks the current page and jumps directly when an it
 `PDF 목차 가져오기` action remains separate for users who want persistent Clef bookmarks. Focused widget coverage
 checks hierarchy display, current-page state and page selection; nested/large outlines and real PDF navigation remain
 Device QA.
+
+S258 VERIFIED LOCAL: connected Android folder-copy hints to persisted score provenance without turning the feature
+into direct reference. Native copy results receive provenance only when their returned file name matches one unique
+selected source; mismatches remain unlabelled rather than guessing by batch order. The score stores platform,
+folder/provider labels, original display name, size and modification time, and the metadata editor shows the location
+read-only. The model has no URI or document-token field, and focused model/gateway/import/UI tests prove round-trip,
+restart persistence, mismatch fallback and sensitive-token redaction. Android native compilation and real provider,
+backup-restore and information-dialog checks remain Device QA.

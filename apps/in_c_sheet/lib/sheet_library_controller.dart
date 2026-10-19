@@ -713,7 +713,9 @@ class SheetLibraryController extends ChangeNotifier {
           fileName: sharedFile.name,
         );
         if (_activeLibraryProfile.id != libraryId) return const <SheetScore>[];
-        final score = _withActiveCollection(rawScore);
+        final score = _withActiveCollection(
+          rawScore.copyWith(importSource: sharedFile.importSource),
+        );
         imported.add(score);
       }
       if (imported.isEmpty) {
@@ -4690,7 +4692,11 @@ List<SheetLibraryFacet> _stringFacets(Iterable<String> values) {
 }
 
 class SheetSharedImportFile {
-  const SheetSharedImportFile({required this.path, required this.name});
+  const SheetSharedImportFile({
+    required this.path,
+    required this.name,
+    this.importSource,
+  });
 
   factory SheetSharedImportFile.fromPlatformMap(Map<Object?, Object?> value) {
     return SheetSharedImportFile(
@@ -4701,8 +4707,17 @@ class SheetSharedImportFile {
 
   final String path;
   final String name;
+  final SheetScoreImportSource? importSource;
 
   bool get isValid => path.isNotEmpty && name.toLowerCase().endsWith('.pdf');
+
+  SheetSharedImportFile copyWith({SheetScoreImportSource? importSource}) {
+    return SheetSharedImportFile(
+      path: path,
+      name: name,
+      importSource: importSource ?? this.importSource,
+    );
+  }
 }
 
 List<SheetSharedImportFile> normalizeSharedImportPayload(Object? value) {

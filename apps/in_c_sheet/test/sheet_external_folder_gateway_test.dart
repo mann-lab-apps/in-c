@@ -69,21 +69,60 @@ void main() {
           });
       final gateway = MethodChannelSheetExternalFolderGateway(channel: channel);
 
-      final files = await gateway.copySelected(
-        const <SheetExternalFolderCopySource>[
-          SheetExternalFolderCopySource(
-            displayName: 'Etude.pdf',
-            documentToken: 'content://provider/document/etude',
-          ),
-          SheetExternalFolderCopySource(displayName: 'No token.pdf'),
-        ],
-      );
+      final files = await gateway.copySelected(<SheetExternalFolderCopySource>[
+        SheetExternalFolderCopySource(
+          displayName: 'Etude.pdf',
+          documentToken: 'content://provider/document/etude',
+          folderLabel: 'Recital PDFs',
+          providerLabel: 'Downloads',
+          sizeBytes: 512,
+          modifiedAt: DateTime.utc(2026, 10, 19),
+        ),
+        const SheetExternalFolderCopySource(displayName: 'No token.pdf'),
+      ]);
 
       expect(files.single.path, '/cache/etude.pdf');
+      expect(
+        files.single.importSource?.locationLabel,
+        'Recital PDFs · Downloads',
+      );
+      expect(files.single.importSource?.displayName, 'Etude.pdf');
+      expect(files.single.importSource?.sizeBytes, 512);
+      expect(
+        files.single.importSource!.toJson().values.join(' '),
+        isNot(contains('content://')),
+      );
       expect(calls.single.method, 'copySelected');
       expect(calls.single.arguments, <String, Object?>{
         'documentTokens': <String>['content://provider/document/etude'],
       });
+    },
+  );
+
+  test(
+    'does not guess provenance when native copy names do not match',
+    () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (_) async {
+            return <Map<String, String>>[
+              <String, String>{
+                'path': '/cache/renamed.pdf',
+                'name': 'Renamed.pdf',
+              },
+            ];
+          });
+      final gateway = MethodChannelSheetExternalFolderGateway(channel: channel);
+
+      final files = await gateway.copySelected(
+        const <SheetExternalFolderCopySource>[
+          SheetExternalFolderCopySource(
+            displayName: 'Original.pdf',
+            documentToken: 'content://provider/document/original',
+          ),
+        ],
+      );
+
+      expect(files.single.importSource, isNull);
     },
   );
 

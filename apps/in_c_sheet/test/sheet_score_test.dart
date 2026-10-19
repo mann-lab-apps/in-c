@@ -1474,4 +1474,68 @@ void main() {
     expect(decoded.right, normalized.right);
     expect(decoded.hasCrop, isTrue);
   });
+
+  test('score import provenance round trips without sensitive tokens', () {
+    final now = DateTime.utc(2026, 10, 19);
+    final score = SheetScore(
+      id: 'folder-score',
+      title: 'Folder score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/folder-score.pdf',
+      importSource: SheetScoreImportSource(
+        platform: ' android-saf-copy ',
+        displayName: ' Folder Score.pdf ',
+        folderLabel: ' Recital PDFs ',
+        providerLabel: ' Downloads ',
+        sizeBytes: 4096,
+        modifiedAt: now,
+      ),
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    final encoded = SheetScore.encodeList(<SheetScore>[score]);
+    final restored = SheetScore.decodeList(encoded).single;
+
+    expect(restored.importSource?.platform, 'android-saf-copy');
+    expect(restored.importSource?.displayName, 'Folder Score.pdf');
+    expect(restored.importSource?.locationLabel, 'Recital PDFs · Downloads');
+    expect(restored.importSource?.modifiedAt, now);
+    expect(restored.matches('recital pdfs'), isTrue);
+    expect(encoded, isNot(contains('content://')));
+    expect(encoded, isNot(contains('documentToken')));
+  });
+
+  test('score ignores malformed import provenance', () {
+    final now = DateTime.utc(2026, 10, 19);
+    final json = <String, Object?>{
+      'id': 'score',
+      'title': 'Score',
+      'composer': '',
+      'tags': const <String>[],
+      'note': '',
+      'filePath': '/tmp/score.pdf',
+      'importedAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+      'lastPage': 1,
+      'isFavorite': false,
+      'bookmarks': const <Object?>[],
+      'importSource': <String, Object?>{
+        'platform': 'android-saf-copy',
+        'displayName': ' ',
+        'documentToken': 'content://provider/secret',
+      },
+    };
+
+    final score = SheetScore.fromJson(json);
+
+    expect(score.importSource, isNull);
+    expect(score.toJson().containsKey('importSource'), isFalse);
+  });
 }

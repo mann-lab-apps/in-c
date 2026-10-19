@@ -94,6 +94,37 @@ void main() {
     );
   }
 
+  test('shared PDF import persists redacted folder provenance', () async {
+    final imported = await controller.importSharedPdfFiles([
+      SheetSharedImportFile(
+        path: '/tmp/folder-score.pdf',
+        name: 'folder-score.pdf',
+        importSource: SheetScoreImportSource(
+          platform: 'android-saf-copy',
+          displayName: 'folder-score.pdf',
+          folderLabel: 'Recital PDFs',
+          providerLabel: 'Downloads',
+          sizeBytes: 2048,
+          modifiedAt: DateTime.utc(2026, 10, 19),
+        ),
+      ),
+    ]);
+
+    expect(
+      imported.single.importSource?.locationLabel,
+      'Recital PDFs · Downloads',
+    );
+    await controller.load();
+    final restored = controller.scores.firstWhere(
+      (score) => score.id == 'imported',
+    );
+    expect(restored.importSource?.displayName, 'folder-score.pdf');
+    expect(restored.importSource?.sizeBytes, 2048);
+    final encoded = SheetScore.encodeList(controller.scores);
+    expect(encoded, isNot(contains('content://')));
+    expect(encoded, isNot(contains('documentToken')));
+  });
+
   for (final addToSetlist in [false, true]) {
     testWidgets(
       'switched library ignores late PDF navigation: setlist=$addToSetlist',

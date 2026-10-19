@@ -1,4 +1,5 @@
 import 'sheet_file_import.dart';
+import 'sheet_score.dart';
 
 enum SheetExternalFolderCatalogStatus {
   ready,
@@ -376,5 +377,16 @@ class SheetExternalFolderCopySource {
 
   Map<String, Object?> toBackupJson() {
     return toScoreMetadataJson();
+  }
+
+  SheetScoreImportSource toScoreImportSource() {
+    return SheetScoreImportSource(
+      platform: platform,
+      displayName: displayName,
+      folderLabel: folderLabel,
+      providerLabel: providerLabel,
+      sizeBytes: sizeBytes,
+      modifiedAt: modifiedAt,
+    );
   }
 }

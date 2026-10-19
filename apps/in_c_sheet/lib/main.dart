@@ -4046,6 +4046,18 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                     decoration: const InputDecoration(labelText: '메모'),
                     maxLines: 3,
                   ),
+                  if (score.importSource case final importSource?) ...[
+                    const SizedBox(height: 14),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.folder_copy_outlined),
+                      title: const Text('가져온 위치'),
+                      subtitle: Text(
+                        '${importSource.locationLabel}\n'
+                        '원본 파일 · ${importSource.displayName}',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   _LinkedFilesEditor(
                     linkedFiles: linkedFiles,

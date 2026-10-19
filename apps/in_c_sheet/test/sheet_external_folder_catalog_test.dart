@@ -268,6 +268,7 @@ void main() {
     });
     expect(source.toBackupJson().values.join(' '), isNot(contains('secret')));
     expect(source.toBackupJson().keys, isNot(contains('documentToken')));
+    expect(source.toScoreImportSource().toJson(), source.toScoreMetadataJson());
   });
 
   test('copy source metadata omits empty and invalid optional fields', () {

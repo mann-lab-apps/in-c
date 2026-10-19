@@ -99,9 +99,13 @@ class MethodChannelSheetExternalFolderGateway
   Future<List<SheetSharedImportFile>> copySelected(
     Iterable<SheetExternalFolderCopySource> sources,
   ) async {
-    final documentTokens = sources
-        .map((source) => source.documentToken?.trim() ?? '')
-        .where((token) => token.isNotEmpty)
+    final copySources = sources
+        .where((source) {
+          return source.documentToken?.trim().isNotEmpty == true;
+        })
+        .toList(growable: false);
+    final documentTokens = copySources
+        .map((source) => source.documentToken!.trim())
         .toList(growable: false);
     if (documentTokens.isEmpty) {
       return const <SheetSharedImportFile>[];
@@ -110,7 +114,26 @@ class MethodChannelSheetExternalFolderGateway
       final response = await _channel.invokeMethod<Object?>('copySelected', {
         'documentTokens': documentTokens,
       });
-      return normalizeSharedImportPayload(response);
+      final files = normalizeSharedImportPayload(response);
+      final sourcesByName = <String, SheetExternalFolderCopySource?>{};
+      for (final source in copySources) {
+        final name = SheetExternalFolderCatalogPreview.normalizeName(
+          source.displayName,
+        );
+        if (name.isEmpty) continue;
+        sourcesByName[name] = sourcesByName.containsKey(name) ? null : source;
+      }
+      return files
+          .map((file) {
+            final source =
+                sourcesByName[SheetExternalFolderCatalogPreview.normalizeName(
+                  file.name,
+                )];
+            return source == null
+                ? file
+                : file.copyWith(importSource: source.toScoreImportSource());
+          })
+          .toList(growable: false);
     } on PlatformException catch (error) {
       throw SheetExternalFolderGatewayException(
         error.message ?? '선택한 PDF를 복사하지 못했습니다.',
