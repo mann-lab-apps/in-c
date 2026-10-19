@@ -64,6 +64,17 @@ void main() {
           'clef-unicode-symbol',
         ],
       ),
+      pdfAConformanceDelta: const SheetPdfAConformanceDelta(
+        profile: 'PDF/A-2b',
+        sourceErrorCount: 3,
+        outputErrorCount: 4,
+        sourceWarningCount: 0,
+        outputWarningCount: 0,
+        introducedErrorDescriptions: <String>[
+          '[ERROR] A2:6.3.4: Font "Helvetica" is not embedded. (page 1)',
+        ],
+        introducedWarningDescriptions: <String>[],
+      ),
     );
 
     expect(markdown, contains('Fixture: `/tmp/clef-fixture.pdf`'));
@@ -74,6 +85,10 @@ void main() {
     expect(markdown, contains('- Clef annotations with actions: none'));
     expect(markdown, contains('- Non-printable Clef annotations: none'));
     expect(markdown, contains('- Hidden Clef annotations: none'));
+    expect(markdown, contains('- PDF/A-2b source/output errors: 3/4'));
+    expect(markdown, contains('- PDF/A-2b source/output warnings: 0/0'));
+    expect(markdown, contains('- Introduced PDF/A-2b errors: [ERROR]'));
+    expect(markdown, contains('- Introduced PDF/A-2b warnings: none'));
     expect(
       markdown,
       contains('- FreeText annotations with embedded fonts: clef-free-text-1'),
@@ -124,10 +139,12 @@ void main() {
     expect(markdown, contains('`mobileSheetsPiascoreFixture`'));
     expect(markdown, contains('`androidPdfViewerFixture`'));
     expect(markdown, contains('`unicodeFontFallbackPolicy`'));
+    expect(markdown, contains('`pdfAConformancePreservation`'));
     expect(markdown, contains('Acrobat and macOS Preview'));
     expect(markdown, contains('MobileSheets and Piascore'));
     expect(markdown, contains('Android PDF viewer used by testers'));
     expect(markdown, contains('licensed font fallback/embedding policy'));
+    expect(markdown, contains('newly introduced PDF/A findings'));
     expect(markdown, contains('Unicode appearance fixture:'));
     expect(markdown, contains('Fixture: `/tmp/clef-unicode.pdf`'));
     expect(markdown, contains('Clef FreeText annotations: 4'));

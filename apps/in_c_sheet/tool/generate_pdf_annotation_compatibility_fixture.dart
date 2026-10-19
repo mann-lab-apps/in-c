@@ -83,6 +83,11 @@ Future<void> main(List<String> args) async {
     exitCode = 1;
     return;
   }
+  final pdfAConformanceDelta =
+      await SheetAnnotatedPdfExporter.inspectPdfAConformanceDelta(
+        inputPath: input.path,
+        outputPath: output.path,
+      );
   final unicodeInspection = await _generateUnicodeAppearanceFixture(
     input: input,
     output: unicodeOutput,
@@ -96,7 +101,15 @@ Future<void> main(List<String> args) async {
     ..writeln(output.absolute.path)
     ..writeln('Pages: ${inspection.pageCount}')
     ..writeln('Clef annotations: ${inspection.clefAnnotationCount}')
-    ..writeln('Subtype counts: ${inspection.clefSubtypeCounts}');
+    ..writeln('Subtype counts: ${inspection.clefSubtypeCounts}')
+    ..writeln(
+      '${pdfAConformanceDelta.profile} introduced errors: '
+      '${pdfAConformanceDelta.introducedErrorDescriptions}',
+    )
+    ..writeln(
+      '${pdfAConformanceDelta.profile} introduced warnings: '
+      '${pdfAConformanceDelta.introducedWarningDescriptions}',
+    );
   if (inspection.hasUnicodeFreeTextContents) {
     stdout
       ..writeln(
@@ -127,6 +140,7 @@ Future<void> main(List<String> args) async {
       inspection: inspection,
       unicodeFixturePath: unicodeOutput.absolute.path,
       unicodeInspection: unicodeInspection,
+      pdfAConformanceDelta: pdfAConformanceDelta,
     ),
   );
   stdout

@@ -2652,3 +2652,11 @@ Hidden or NoView; the inspector, fixture CLI and report now name non-printable a
 malformed regression fixture proves these failures join duplicate names, out-of-page rectangles and actions in
 blocking local handoff, while normal Clef output remains printable. Actual print rendering and viewer editing
 still require the external compatibility matrix.
+
+S247 VERIFIED LOCAL: added source-versus-output PDF/A-2b conformance delta diagnostics to the editable PDF
+fixture handoff. The checker compares findings as a multiset without relying on rewritten PDF object numbers,
+so defects already present in the source are not attributed to Clef and newly introduced errors or warnings are
+listed in the generated report. Regression coverage proves ordinary Clef Ink export adds no detected finding
+and a deliberately hidden/non-printable annotation is reported as a new warning. The current `pdf_document`
+validator does not traverse fonts inside annotation appearance streams, so a clean delta is not a PDF/A
+certificate and does not replace the dedicated FreeText font inspector or external viewer/glyph QA.

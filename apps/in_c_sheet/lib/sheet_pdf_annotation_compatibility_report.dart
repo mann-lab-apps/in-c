@@ -327,6 +327,7 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
     required SheetStandardPdfAnnotationInspection inspection,
     String? unicodeFixturePath,
     SheetStandardPdfAnnotationInspection? unicodeInspection,
+    SheetPdfAConformanceDelta? pdfAConformanceDelta,
   }) {
     final subtypeRows = [
       for (final entry in inspection.clefSubtypeCounts.entries)
@@ -381,6 +382,12 @@ Local inspection:
 - Hidden Clef annotations: ${inspection.hiddenClefAnnotationNames.isEmpty ? 'none' : inspection.hiddenClefAnnotationNames.join(', ')}
 - FreeText annotations with embedded fonts: ${inspection.embeddedFontFreeTextNames.isEmpty ? 'none' : inspection.embeddedFontFreeTextNames.join(', ')}
 - Unicode FreeText annotations without embedded fonts: ${inspection.unembeddedUnicodeFreeTextNames.isEmpty ? 'none' : inspection.unembeddedUnicodeFreeTextNames.join(', ')}
+${pdfAConformanceDelta == null ? '' : '''
+- ${pdfAConformanceDelta.profile} source/output errors: ${pdfAConformanceDelta.sourceErrorCount}/${pdfAConformanceDelta.outputErrorCount}
+- ${pdfAConformanceDelta.profile} source/output warnings: ${pdfAConformanceDelta.sourceWarningCount}/${pdfAConformanceDelta.outputWarningCount}
+- Introduced ${pdfAConformanceDelta.profile} errors: ${pdfAConformanceDelta.introducedErrorDescriptions.isEmpty ? 'none' : pdfAConformanceDelta.introducedErrorDescriptions.join(' | ')}
+- Introduced ${pdfAConformanceDelta.profile} warnings: ${pdfAConformanceDelta.introducedWarningDescriptions.isEmpty ? 'none' : pdfAConformanceDelta.introducedWarningDescriptions.join(' | ')}
+'''}
 
 Result legend:
 
@@ -447,6 +454,9 @@ Known local limits:
       case 'unicodeFontFallbackPolicy':
         return 'choose a licensed font fallback/embedding policy before '
             'claiming Unicode glyph fidelity.';
+      case 'pdfAConformancePreservation':
+        return 'review newly introduced PDF/A findings separately from '
+            'problems already present in the source PDF.';
     }
     return 'document and clear this remaining compatibility dependency.';
   }

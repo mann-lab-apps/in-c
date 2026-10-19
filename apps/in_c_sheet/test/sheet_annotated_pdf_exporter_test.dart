@@ -198,6 +198,10 @@ void main() {
     );
     expect(standard.requiredSpikeItems, contains('androidPdfViewerFixture'));
     expect(standard.requiredSpikeItems, contains('unicodeFontFallbackPolicy'));
+    expect(
+      standard.requiredSpikeItems,
+      contains('pdfAConformancePreservation'),
+    );
   });
 
   test('creates an annotated PDF copy without changing the original', () async {
@@ -793,6 +797,126 @@ void main() {
     expect(inspection.hiddenClefAnnotationNames, ['clef-duplicate']);
     expect(inspection.hasSafeClefAnnotationStructure, isFalse);
     expect(inspection.isLocallyInspectableEditableFixture, isFalse);
+  });
+
+  test('reports only PDF/A findings introduced by editable export', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp('clef-pdfa-delta-');
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final now = DateTime.parse('2026-10-19T11:00:00.000');
+    SheetScore scoreWith(SheetAnnotationLayer annotationLayer, String id) {
+      return SheetScore(
+        id: id,
+        title: 'PDF/A delta',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: input.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        annotationLayer: annotationLayer,
+      );
+    }
+
+    final inkOutput = '${outputDir.path}/ink.pdf';
+    final inkResult = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: scoreWith(
+        SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            _stroke(
+              'ink',
+              SheetAnnotationTool.pen,
+              const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.1, y: 0.1),
+                SheetAnnotationPoint(x: 0.2, y: 0.2),
+              ],
+              now,
+            ),
+          ],
+        ),
+        'pdfa-ink',
+      ),
+      outputPath: inkOutput,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final inkDelta =
+        await SheetAnnotatedPdfExporter.inspectPdfAConformanceDelta(
+          inputPath: input.path,
+          outputPath: inkOutput,
+        );
+    final unsafeDocument = PdfDocument.open(
+      await File(inkOutput).readAsBytes(),
+    );
+    final unsafeEditor = PdfEditor(unsafeDocument);
+    final unsafeAnnotation = unsafeDocument
+        .page(0)
+        .annotations
+        .firstWhere((annotation) => annotation.name == 'clef-ink');
+    unsafeEditor.setAnnotationFlags(0, unsafeAnnotation, 2);
+    final unsafeOutput = '${outputDir.path}/unsafe-ink.pdf';
+    await File(unsafeOutput).writeAsBytes(unsafeEditor.save(), flush: true);
+    final unsafeDelta =
+        await SheetAnnotatedPdfExporter.inspectPdfAConformanceDelta(
+          inputPath: input.path,
+          outputPath: unsafeOutput,
+        );
+
+    final textOutput = '${outputDir.path}/text.pdf';
+    final textResult = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: scoreWith(
+        SheetAnnotationLayer(
+          strokes: const <SheetAnnotationStroke>[],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'ascii-text',
+              pageNumber: 1,
+              position: const SheetAnnotationPoint(x: 0.2, y: 0.2),
+              text: 'Cue',
+              color: 0xff111111,
+              fontSize: 12,
+              createdAt: now,
+            ),
+          ],
+        ),
+        'pdfa-text',
+      ),
+      outputPath: textOutput,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final textDelta =
+        await SheetAnnotatedPdfExporter.inspectPdfAConformanceDelta(
+          inputPath: input.path,
+          outputPath: textOutput,
+        );
+
+    expect(inkResult.didWrite, isTrue);
+    expect(inkDelta.profile, 'PDF/A-2b');
+    expect(inkDelta.sourceErrorCount, greaterThan(0));
+    expect(inkDelta.introducedErrorDescriptions, isEmpty);
+    expect(inkDelta.introducedWarningDescriptions, isEmpty);
+    expect(inkDelta.hasIntroducedFindings, isFalse);
+    expect(textResult.didWrite, isTrue);
+    expect(textDelta.introducedErrorDescriptions, isEmpty);
+    expect(textDelta.introducedWarningDescriptions, isEmpty);
+    expect(textDelta.hasIntroducedFindings, isFalse);
+    expect(unsafeDelta.introducedErrorDescriptions, isEmpty);
+    expect(
+      unsafeDelta.introducedWarningDescriptions,
+      contains(contains('A2:6.5.3')),
+    );
+    expect(
+      unsafeDelta.introducedWarningDescriptions,
+      contains(contains('does not have the Print flag')),
+    );
+    expect(unsafeDelta.hasIntroducedFindings, isTrue);
   });
 
   test('writes Unicode FreeText in standard annotation mode', () async {

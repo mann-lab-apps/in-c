@@ -163,6 +163,31 @@ class SheetStandardPdfAnnotationInspection {
   }
 }
 
+class SheetPdfAConformanceDelta {
+  const SheetPdfAConformanceDelta({
+    required this.profile,
+    required this.sourceErrorCount,
+    required this.outputErrorCount,
+    required this.sourceWarningCount,
+    required this.outputWarningCount,
+    required this.introducedErrorDescriptions,
+    required this.introducedWarningDescriptions,
+  });
+
+  final String profile;
+  final int sourceErrorCount;
+  final int outputErrorCount;
+  final int sourceWarningCount;
+  final int outputWarningCount;
+  final List<String> introducedErrorDescriptions;
+  final List<String> introducedWarningDescriptions;
+
+  bool get hasIntroducedFindings {
+    return introducedErrorDescriptions.isNotEmpty ||
+        introducedWarningDescriptions.isNotEmpty;
+  }
+}
+
 class SheetAnnotatedPdfExportResult {
   const SheetAnnotatedPdfExportResult({
     required this.inputPath,
@@ -298,6 +323,7 @@ class SheetAnnotatedPdfExporter {
           'mobileSheetsPiascoreFixture',
           'androidPdfViewerFixture',
           'unicodeFontFallbackPolicy',
+          'pdfAConformancePreservation',
         ],
       );
 
@@ -415,6 +441,72 @@ class SheetAnnotatedPdfExporter {
       ),
       hiddenClefAnnotationNames: List.unmodifiable(hiddenClefAnnotationNames),
     );
+  }
+
+  static Future<SheetPdfAConformanceDelta> inspectPdfAConformanceDelta({
+    required String inputPath,
+    required String outputPath,
+    int part = 2,
+    String level = 'B',
+  }) async {
+    final source = validatePdfA(
+      PdfDocument.open(await File(inputPath).readAsBytes()),
+      part: part,
+      level: level,
+    );
+    final output = validatePdfA(
+      PdfDocument.open(await File(outputPath).readAsBytes()),
+      part: part,
+      level: level,
+    );
+    final introducedErrors = _introducedConformanceIssues(
+      source.errors,
+      output.errors,
+    );
+    final introducedWarnings = _introducedConformanceIssues(
+      source.warnings,
+      output.warnings,
+    );
+    return SheetPdfAConformanceDelta(
+      profile: output.profile,
+      sourceErrorCount: source.errors.length,
+      outputErrorCount: output.errors.length,
+      sourceWarningCount: source.warnings.length,
+      outputWarningCount: output.warnings.length,
+      introducedErrorDescriptions: List.unmodifiable(
+        introducedErrors.map((issue) => issue.toString()),
+      ),
+      introducedWarningDescriptions: List.unmodifiable(
+        introducedWarnings.map((issue) => issue.toString()),
+      ),
+    );
+  }
+
+  static List<PdfConformanceIssue> _introducedConformanceIssues(
+    List<PdfConformanceIssue> source,
+    List<PdfConformanceIssue> output,
+  ) {
+    final remainingSourceCounts = <String, int>{};
+    for (final issue in source) {
+      final key = _conformanceIssueKey(issue);
+      remainingSourceCounts[key] = (remainingSourceCounts[key] ?? 0) + 1;
+    }
+    final introduced = <PdfConformanceIssue>[];
+    for (final issue in output) {
+      final key = _conformanceIssueKey(issue);
+      final sourceCount = remainingSourceCounts[key] ?? 0;
+      if (sourceCount > 0) {
+        remainingSourceCounts[key] = sourceCount - 1;
+      } else {
+        introduced.add(issue);
+      }
+    }
+    return introduced;
+  }
+
+  static String _conformanceIssueKey(PdfConformanceIssue issue) {
+    return '${issue.severity.name}|${issue.rule}|${issue.pageIndex ?? -1}|'
+        '${issue.message}';
   }
 
   static bool _annotationRectFitsPage(PdfRect rect, PdfRect pageBox) {
