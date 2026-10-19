@@ -1205,6 +1205,49 @@ Clef & Staff 세트리스트
     expect(store.discardedScoreIds, contains('plain-text-1'));
   });
 
+  for (final kind in <String>['ChordPro', 'plain text']) {
+    test(
+      '$kind file import discards its copy after a library switch',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 10, 20, 20);
+        final existing = _score(now, id: 'existing', title: 'Existing');
+        final store = _ChordProImportStore(now)
+          ..pickedChordProFile = SheetImportedFile(
+            name: 'switch.onsong',
+            bytes: Uint8List.fromList(utf8.encode('{title: Switch}\n[C]Line')),
+          )
+          ..pickedPlainTextFile = SheetImportedFile(
+            name: 'switch.txt',
+            bytes: Uint8List.fromList(utf8.encode('Switch notes')),
+          )
+          ..fileImportReady = Completer<void>()
+          ..releaseFileImport = Completer<void>();
+        await store.saveScores([existing]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final sourceLibraryId = controller.activeLibraryProfile.id;
+
+        final pending = kind == 'ChordPro'
+            ? controller.importChordProFile()
+            : controller.importPlainTextFile();
+        await store.fileImportReady!.future;
+        await controller.createLibraryProfile('Destination');
+        store.releaseFileImport!.complete();
+
+        expect(await pending, isNull);
+        expect(controller.scores, isEmpty);
+        expect(controller.errorMessage, isNull);
+        expect(
+          store.discardedScoreIds,
+          contains(kind == 'ChordPro' ? 'chordpro-file-1' : 'plain-text-1'),
+        );
+        await controller.switchLibraryProfile(sourceLibraryId);
+        expect(controller.scores.map((score) => score.id), ['existing']);
+      },
+    );
+  }
+
   test(
     'DOCX import save failure restores scores and discards copied files',
     () async {
@@ -5577,7 +5620,17 @@ class _ChordProImportStore extends SheetLibraryStore {
   SheetImportedFile? pickedPlainTextFile;
   SheetImportedFile? pickedDocxFile;
   SheetImportedFile? pickedRtfFile;
+  Completer<void>? fileImportReady;
+  Completer<void>? releaseFileImport;
   final discardedScoreIds = <String>[];
+
+  Future<void> _waitForFileImportRelease() async {
+    final ready = fileImportReady;
+    if (ready != null && !ready.isCompleted) {
+      ready.complete();
+    }
+    await releaseFileImport?.future;
+  }
 
   @override
   Future<SheetImportedFile?> pickChordProFile() async {
@@ -5600,7 +5653,7 @@ class _ChordProImportStore extends SheetLibraryStore {
       document,
       fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
     );
-    return _score(
+    final score = _score(
       importedAt ?? now,
       id: 'chordpro-file-1',
       title: draft.title,
@@ -5612,6 +5665,8 @@ class _ChordProImportStore extends SheetLibraryStore {
           SheetCustomMetadataField(key: entry.key, value: entry.value),
       ],
     );
+    await _waitForFileImportRelease();
+    return score;
   }
 
   @override
@@ -5629,12 +5684,14 @@ class _ChordProImportStore extends SheetLibraryStore {
     required SheetImportedFile file,
     DateTime? importedAt,
   }) async {
-    return _score(
+    final score = _score(
       importedAt ?? now,
       id: 'plain-text-1',
       title: SheetFileImportPolicy.titleFromFileName(file.name),
       filePath: '/text/${file.name}',
     );
+    await _waitForFileImportRelease();
+    return score;
   }
 
   @override

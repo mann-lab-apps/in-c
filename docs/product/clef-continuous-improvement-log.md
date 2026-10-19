@@ -2853,3 +2853,7 @@ rewriting every source as `.chordpro`. `.onsong` and the other supported extensi
 extension. ChordPro and plain-text file imports also use the DOCX/RTF cleanup pattern: a library switch, metadata save
 failure or later exception discards only the newly copied unreferenced file and never reports success. Controller
 regressions cover original-file handoff and cleanup after failed persistence.
+
+S277 VERIFIED LOCAL: added delayed file-import regressions for ChordPro and plain text. When a copied file finishes after
+the user has switched libraries, neither destination library receives a stale card or error, the source library keeps its
+previous durable scores, and the uncommitted copied file is offered to the cross-profile reference-aware cleanup path.
