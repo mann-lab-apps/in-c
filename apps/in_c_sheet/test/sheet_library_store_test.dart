@@ -167,6 +167,55 @@ void main() {
     expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
   });
 
+  test('imports RTF text and preserves the original as a reference', () async {
+    final store = SheetLibraryStore();
+    final bytes = Uint8List.fromList(
+      latin1.encode(r'{\rtf1\ansi First\par \u54620?\u44544?}'),
+    );
+    final score = await store.importRtfFileBytes(
+      file: SheetImportedFile(name: 'rehearsal-notes.rtf', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20, 15),
+    );
+
+    expect(score.title, 'rehearsal notes');
+    expect(score.filePath, endsWith('.txt'));
+    expect(await File(score.filePath).readAsString(), 'First\n한글');
+    expect(score.linkedFiles.single.type, 'rtf');
+    expect(score.linkedFiles.single.role, SheetLinkedFile.referenceRole);
+    expect(await File(score.linkedFiles.single.path).readAsBytes(), bytes);
+    expect(
+      score.customFields.where((field) => field.key == '출처 유형').single.value,
+      'RTF',
+    );
+  });
+
+  test('full backup restores RTF extracted text and original bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final bytes = Uint8List.fromList(
+      latin1.encode(r'{\rtf1\ansi Backup\par notes}'),
+    );
+    final score = await store.importRtfFileBytes(
+      file: SheetImportedFile(name: 'backup.rtf', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20, 15),
+    );
+    await store.saveScores(<SheetScore>[score]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-rtf-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final restoredStore = SheetLibraryStore();
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+    final restored = (await restoredStore.loadScores()).single;
+
+    expect(result.didRestore, isTrue);
+    expect(await File(restored.filePath).readAsString(), 'Backup\nnotes');
+    expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
+  });
+
   test('rejects empty oversized and unsupported plain text files', () async {
     final store = SheetLibraryStore();
 
@@ -188,7 +237,7 @@ void main() {
     await expectLater(
       store.importPlainTextFile(
         file: SheetImportedFile(
-          name: 'document.rtf',
+          name: 'document.pages',
           bytes: Uint8List.fromList(utf8.encode('text')),
         ),
       ),

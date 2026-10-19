@@ -57,6 +57,7 @@ void main() {
       isFalse,
     );
     expect(SheetFileImportPolicy.isDocxFileName('lesson-notes.DOCX'), isTrue);
+    expect(SheetFileImportPolicy.isRtfFileName('lesson-notes.RTF'), isTrue);
   });
 
   test('explains known unsupported image types', () {
@@ -96,6 +97,10 @@ void main() {
     expect(
       SheetFileImportPolicy.unsupportedTextScoreImportMessage('lyrics.txt'),
       allOf(contains('텍스트 악보'), contains('파일 선택')),
+    );
+    expect(
+      SheetFileImportPolicy.unsupportedTextScoreImportMessage('notes.rtf'),
+      allOf(contains('RTF'), contains('읽기 전용'), contains('가져올 수 있습니다')),
     );
   });
 

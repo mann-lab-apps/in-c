@@ -1054,6 +1054,26 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.id, 'docx-1');
   });
 
+  test('imports an RTF file as a readable library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 15);
+    final store = _ChordProImportStore(now)
+      ..pickedRtfFile = SheetImportedFile(
+        name: 'rehearsal-notes.rtf',
+        bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importRtfFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'rehearsal notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(imported?.linkedFiles.single.type, 'rtf');
+    expect(controller.scores.single.id, 'rtf-1');
+  });
+
   test('ChordPro import save failure restores previous scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime(2026, 9, 28, 16);
@@ -1143,6 +1163,31 @@ Clef & Staff 세트리스트
       expect(controller.scores.map((score) => score.id), ['existing']);
       expect((await store.loadScores()).map((score) => score.id), ['existing']);
       expect(store.discardedScoreIds, ['docx-1']);
+    },
+  );
+
+  test(
+    'RTF import save failure restores scores and discards copied files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing');
+      final store = _ChordProImportStore(now)
+        ..pickedRtfFile = SheetImportedFile(
+          name: 'broken-save.rtf',
+          bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+        );
+      await store.saveScores([existing]);
+      store.failSaveScores = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importRtfFile();
+
+      expect(imported, isNull);
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(store.discardedScoreIds, ['rtf-1']);
     },
   );
 
@@ -5439,6 +5484,7 @@ class _ChordProImportStore extends SheetLibraryStore {
   SheetImportedFile? pickedChordProFile;
   SheetImportedFile? pickedPlainTextFile;
   SheetImportedFile? pickedDocxFile;
+  SheetImportedFile? pickedRtfFile;
   final discardedScoreIds = <String>[];
 
   @override
@@ -5454,6 +5500,11 @@ class _ChordProImportStore extends SheetLibraryStore {
   @override
   Future<SheetImportedFile?> pickDocxFile() async {
     return pickedDocxFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickRtfFile() async {
+    return pickedRtfFile;
   }
 
   @override
@@ -5484,6 +5535,29 @@ class _ChordProImportStore extends SheetLibraryStore {
         SheetLinkedFile(
           path: '/text/${file.name}',
           type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: importedAtOrNow,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final importedAtOrNow = importedAt ?? now;
+    return _score(
+      importedAtOrNow,
+      id: 'rtf-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'rtf',
           label: file.name,
           role: SheetLinkedFile.referenceRole,
           createdAt: importedAtOrNow,

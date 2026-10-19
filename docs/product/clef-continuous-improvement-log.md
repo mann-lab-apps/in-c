@@ -2792,3 +2792,11 @@ new managed files. Regression coverage keeps ordinary PDF/text/ChordPro extensio
 export, validation and controller import. Table structure, images, footnotes and Word formatting fidelity remain outside
 the read-only viewer guarantee. Validation passes focused package/controller tests, `flutter analyze`, all 1,678 tests
 and the RC release check.
+
+S267 VERIFIED LOCAL: added bounded RTF-to-text import instead of treating `.rtf` as an opaque unsupported document.
+The parser preserves paragraphs, line breaks, tabs, escaped punctuation and signed Unicode text while skipping font/color
+tables, images, objects and optional destinations. Clef stores the extracted text in the existing selectable/searchable
+viewer, keeps the original RTF as a reference linked file and includes both files in full backup. The named import surface
+now exposes RTF selection, and controller regressions cover success plus metadata-save cleanup without false success.
+Fonts, colors, tables, images, embedded objects and rich formatting are not reproduced by the read-only viewer. Validation
+passes focused parser/store/controller/smoke tests, `flutter analyze`, all 1,687 tests and the RC release check.

@@ -745,8 +745,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               const Divider(height: 8),
               ListTile(
                 leading: const Icon(Icons.description_outlined),
-                title: const Text('텍스트/ChordPro/DOCX 안내'),
-                subtitle: const Text('텍스트·ChordPro 저장 가능 · DOCX는 PDF 변환 권장'),
+                title: const Text('텍스트/ChordPro/DOCX/RTF 안내'),
+                subtitle: const Text('일반 텍스트와 문서 악보를 읽기 전용으로 저장'),
                 onTap: () =>
                     Navigator.of(context)
                         .pop(_LibraryImportAction.textScoreInfo),
@@ -795,7 +795,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '텍스트/ChordPro/DOCX 안내',
+                      '텍스트/ChordPro/DOCX/RTF 안내',
                       style: Theme.of(context).textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w900),
                     ),
@@ -853,12 +853,23 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   unawaited(_importDocxFile());
                 },
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.text_snippet_outlined),
+                title: const Text('RTF 파일 선택 가져오기'),
+                subtitle: const Text('서식에서 텍스트를 추출해 읽기 전용 악보로 저장'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(_importRtfFile());
+                },
+              ),
               const ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.save_outlined),
                 title: Text('지금 가능한 저장 흐름'),
                 subtitle: Text(
-                  'PDF/JPG/PNG, 일반 텍스트, ChordPro, DOCX 읽기 전용 저장을 사용할 수 있습니다.',
+                  'PDF/JPG/PNG, 일반 텍스트, ChordPro, DOCX, RTF 읽기 전용 저장을 사용할 수 있습니다.',
                 ),
               ),
               const ListTile(
@@ -924,6 +935,22 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('"${imported.displayTitle}" DOCX 악보를 가져왔습니다.'),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (mounted) unawaited(_openScore(imported));
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importRtfFile() async {
+    final imported = await controller.importRtfFile();
+    if (!mounted || imported == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${imported.displayTitle}" RTF 악보를 가져왔습니다.'),
         action: SnackBarAction(
           label: '열기',
           onPressed: () {

@@ -22,6 +22,7 @@ import 'sheet_file_import.dart';
 import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
+import 'sheet_rtf.dart';
 import 'sheet_setlist.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
@@ -1213,6 +1214,75 @@ class SheetLibraryStore {
         ],
         customFields: <SheetCustomMetadataField>[
           const SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          SheetCustomMetadataField(key: '원본 파일', value: file.name),
+        ],
+      );
+    } catch (_) {
+      await _deleteFileBestEffort(textPath);
+      if (originalPath != null) await _deleteFileBestEffort(originalPath);
+      rethrow;
+    }
+  }
+
+  Future<SheetImportedFile?> pickRtfFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.rtfExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isRtfFileName(file.name)) {
+      throw FormatException('Unsupported RTF file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isRtfFileName(file.name)) {
+      throw FormatException('Unsupported RTF file: ${file.name}');
+    }
+    final document = SheetRtfTextExtractor.extract(file.bytes);
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final fallbackTitle = SheetFileImportPolicy.titleFromFileName(file.name);
+    final textPath = await _writeTextScore(
+      bytes: utf8.encode(document.text),
+      id: id,
+      originalFileName: '$fallbackTitle.txt',
+    );
+    String? originalPath;
+    try {
+      originalPath = await _writeLinkedFile(
+        bytes: file.bytes,
+        originalFileName: file.name,
+        importedAt: now,
+      );
+      return SheetScore(
+        id: id,
+        title: fallbackTitle,
+        composer: '',
+        tags: const <String>[],
+        note: 'RTF에서 텍스트를 추출한 읽기 전용 악보',
+        filePath: textPath,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        linkedFiles: <SheetLinkedFile>[
+          SheetLinkedFile(
+            path: originalPath,
+            type: 'rtf',
+            label: file.name,
+            role: SheetLinkedFile.referenceRole,
+            createdAt: now,
+          ),
+        ],
+        customFields: <SheetCustomMetadataField>[
+          const SheetCustomMetadataField(key: '출처 유형', value: 'RTF'),
           SheetCustomMetadataField(key: '원본 파일', value: file.name),
         ],
       );

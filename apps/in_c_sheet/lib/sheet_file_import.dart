@@ -31,11 +31,9 @@ class SheetFileImportPolicy {
     'ogg',
   };
   static const unsupportedImageExtensions = <String>{'heic', 'heif'};
-  static const unsupportedTextScoreExtensions = <String>{
-    'rtf',
-    ...chordProExtensions,
-  };
+  static const unsupportedTextScoreExtensions = <String>{...chordProExtensions};
   static const docxExtensions = <String>{'docx'};
+  static const rtfExtensions = <String>{'rtf'};
   static const plainTextExtensions = <String>{'txt', 'text', 'md', 'markdown'};
   static const chordProExtensions = <String>{
     'cho',
@@ -78,6 +76,10 @@ class SheetFileImportPolicy {
     return docxExtensions.contains(extensionOf(name));
   }
 
+  static bool isRtfFileName(String name) {
+    return rtfExtensions.contains(extensionOf(name));
+  }
+
   static bool isTextScoreFileName(String name) {
     return isChordProFileName(name) || isPlainTextFileName(name);
   }
@@ -118,6 +120,9 @@ class SheetFileImportPolicy {
     }
     if (isDocxFileName(name)) {
       return 'DOCX 파일은 텍스트/ChordPro 안내에서 읽기 전용 악보로 가져올 수 있습니다.';
+    }
+    if (isRtfFileName(name)) {
+      return 'RTF 파일은 텍스트/ChordPro 안내에서 읽기 전용 악보로 가져올 수 있습니다.';
     }
     return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG 악보와 일반 텍스트·ChordPro 파일 저장을 지원합니다. 원본 앱에서 PDF로 내보내거나 인쇄해서 가져와주세요.';
   }

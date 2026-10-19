@@ -1192,7 +1192,7 @@ Clef & Staff 세트리스트
     expect(find.text('여러 PDF를 세트리스트에 추가'), findsOneWidget);
     expect(find.text('이미지를 PDF 악보로 묶기'), findsOneWidget);
     expect(find.text('이미지를 묶어 세트리스트에 추가'), findsOneWidget);
-    expect(find.text('텍스트/ChordPro/DOCX 안내'), findsOneWidget);
+    expect(find.text('텍스트/ChordPro/DOCX/RTF 안내'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1208,9 +1208,9 @@ Clef & Staff 세트리스트
 
     await tester.tap(find.byTooltip('악보 추가'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
 
     expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
@@ -1218,6 +1218,7 @@ Clef & Staff 세트리스트
     expect(find.text('ChordPro 파일 선택 가져오기'), findsOneWidget);
     expect(find.text('텍스트 파일 선택 가져오기'), findsOneWidget);
     expect(find.text('DOCX 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('RTF 파일 선택 가져오기'), findsOneWidget);
     expect(find.text('ChordPro 표시 조정 지원'), findsOneWidget);
     expect(find.textContaining('일반 텍스트'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -1233,9 +1234,9 @@ Clef & Staff 세트리스트
 
     await tester.tap(find.byTooltip('악보 추가'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('ChordPro 붙여넣기 미리보기'));
     await tester.pumpAndSettle();
@@ -1288,9 +1289,9 @@ Clef & Staff 세트리스트
 
     await tester.tap(find.byTooltip('악보 추가'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('ChordPro 파일 선택 가져오기'));
     await tester.pumpAndSettle();
@@ -1318,8 +1319,8 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('악보 추가'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
-    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('텍스트 파일 선택 가져오기'));
     await tester.pumpAndSettle();
@@ -1349,8 +1350,8 @@ Clef & Staff 세트리스트
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('악보 추가'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX 안내'));
-    await tester.tap(find.text('텍스트/ChordPro/DOCX 안내'));
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('DOCX 파일 선택 가져오기'));
     await tester.tap(find.text('DOCX 파일 선택 가져오기'));
@@ -1360,6 +1361,35 @@ Clef & Staff 세트리스트
     expect(controller.scores.single.filePath, endsWith('.txt'));
     expect(controller.scores.single.linkedFiles.single.type, 'docx');
     expect(find.text('studio notes'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('text score info can import a selected RTF file', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedRtfFile = SheetImportedFile(
+          name: 'rehearsal-notes.rtf',
+          bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('RTF 파일 선택 가져오기'));
+    await tester.tap(find.text('RTF 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"rehearsal notes" RTF 악보를 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+    expect(controller.scores.single.linkedFiles.single.type, 'rtf');
+    expect(find.text('rehearsal notes'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -4672,6 +4702,7 @@ class _SmokeChordProStore extends SheetLibraryStore {
   SheetImportedFile? pickedChordProFile;
   SheetImportedFile? pickedPlainTextFile;
   SheetImportedFile? pickedDocxFile;
+  SheetImportedFile? pickedRtfFile;
 
   @override
   Future<SheetImportedFile?> pickChordProFile() async {
@@ -4686,6 +4717,11 @@ class _SmokeChordProStore extends SheetLibraryStore {
   @override
   Future<SheetImportedFile?> pickDocxFile() async {
     return pickedDocxFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickRtfFile() async {
+    return pickedRtfFile;
   }
 
   @override
@@ -4733,6 +4769,37 @@ class _SmokeChordProStore extends SheetLibraryStore {
         SheetLinkedFile(
           path: '/text/${file.name}',
           type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 10, 20, 15);
+    return SheetScore(
+      id: 'smoke-rtf',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/text/${file.name}.txt',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'rtf',
           label: file.name,
           role: SheetLinkedFile.referenceRole,
           createdAt: now,
