@@ -67,6 +67,15 @@ Future<void> main(List<String> args) async {
     stderr.writeln(
       'Missing AP names: ${inspection.missingGeneratedAppearanceNames}',
     );
+    stderr.writeln(
+      'Duplicate names: ${inspection.duplicateClefAnnotationNames}',
+    );
+    stderr.writeln(
+      'Out-of-page names: ${inspection.outOfPageClefAnnotationNames}',
+    );
+    stderr.writeln(
+      'Action-bearing names: ${inspection.actionBearingClefAnnotationNames}',
+    );
     exitCode = 1;
     return;
   }
@@ -224,6 +233,12 @@ _generateUnicodeAppearanceFixture({
     stderr.writeln('Subtype counts: ${inspection.clefSubtypeCounts}');
     stderr.writeln(
       'Unicode FreeText contents: ${inspection.unicodeFreeTextContents}',
+    );
+    stderr.writeln(
+      'Unsafe annotation structure: '
+      'duplicates=${inspection.duplicateClefAnnotationNames}, '
+      'outOfPage=${inspection.outOfPageClefAnnotationNames}, '
+      'actions=${inspection.actionBearingClefAnnotationNames}',
     );
     exitCode = 1;
     return null;

@@ -418,6 +418,9 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
 pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
 music-symbol stamp, PNG/WebP image stamp를 포함한다.
+생성 도구는 외부 앱 확인 전에 Clef annotation 이름 중복, 0 이하/페이지 밖 rectangle,
+`/A` 또는 `/AA` action을 검사한다. `Duplicate names`, `Out-of-page names`,
+`Action-bearing names`가 모두 빈 목록이어야 fixture를 외부 viewer QA로 넘긴다.
 같은 도구는 한글/음악 기호 FreeText 표시만 따로 볼 수 있는
 `.dart_tool/clef-pdf-compatibility/clef-unicode-freetext-appearance.pdf`도 생성한다.
 도구 출력에 `Unicode FreeText contents require external render QA`가 나오면 `/Contents` 보존은

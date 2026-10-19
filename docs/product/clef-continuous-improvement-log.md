@@ -2637,3 +2637,11 @@ two-second snackbar that was immediately replaced by the progress message. The c
 Unicode text annotations on PDF-enabled layers: the flattened option names how many text annotations will
 be omitted, while the editable option names how many still depend on the destination viewer's font. Unit
 tests cover layer-aware counting and both mode descriptions; actual viewer glyph rendering remains manual QA.
+
+S245 VERIFIED LOCAL: hardened editable PDF fixture inspection before external viewer handoff. Local
+inspection now rejects duplicate Clef annotation names, non-positive or page-escaping annotation rectangles,
+and Clef annotations that carry `/A` or `/AA` actions. The fixture CLI and generated compatibility report
+surface each offending annotation name instead of reducing the failure to a generic local-inspection error.
+Regression tests cover a deliberately malformed export containing all three hazards. This gate verifies the
+structure Clef generated; Acrobat, Preview, MobileSheets, Piascore and Android rendering/editability remain
+manual compatibility QA.

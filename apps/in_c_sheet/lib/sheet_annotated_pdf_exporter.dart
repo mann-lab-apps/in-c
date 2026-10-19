@@ -88,6 +88,9 @@ class SheetStandardPdfAnnotationInspection {
     required this.missingGeneratedAppearanceNames,
     this.embeddedFontFreeTextNames = const <String>[],
     this.unembeddedUnicodeFreeTextNames = const <String>[],
+    this.duplicateClefAnnotationNames = const <String>[],
+    this.outOfPageClefAnnotationNames = const <String>[],
+    this.actionBearingClefAnnotationNames = const <String>[],
   });
 
   final String path;
@@ -102,6 +105,9 @@ class SheetStandardPdfAnnotationInspection {
   final List<String> missingGeneratedAppearanceNames;
   final List<String> embeddedFontFreeTextNames;
   final List<String> unembeddedUnicodeFreeTextNames;
+  final List<String> duplicateClefAnnotationNames;
+  final List<String> outOfPageClefAnnotationNames;
+  final List<String> actionBearingClefAnnotationNames;
 
   static const editableClefSubtypes = <String>{
     'Ink',
@@ -133,10 +139,17 @@ class SheetStandardPdfAnnotationInspection {
     return unembeddedUnicodeFreeTextNames.isNotEmpty;
   }
 
+  bool get hasSafeClefAnnotationStructure {
+    return duplicateClefAnnotationNames.isEmpty &&
+        outOfPageClefAnnotationNames.isEmpty &&
+        actionBearingClefAnnotationNames.isEmpty;
+  }
+
   bool get isLocallyInspectableEditableFixture {
     return hasClefAnnotations &&
         hasOnlyLocallySupportedClefSubtypes &&
-        hasGeneratedAppearances;
+        hasGeneratedAppearances &&
+        hasSafeClefAnnotationStructure;
   }
 
   bool containsClefSubtype(String subtype) {
@@ -304,11 +317,15 @@ class SheetAnnotatedPdfExporter {
     final missingGeneratedAppearanceNames = <String>[];
     final embeddedFontFreeTextNames = <String>[];
     final unembeddedUnicodeFreeTextNames = <String>[];
+    final clefAnnotationNameCounts = <String, int>{};
+    final outOfPageClefAnnotationNames = <String>[];
+    final actionBearingClefAnnotationNames = <String>[];
     var totalAnnotationCount = 0;
     var clefAnnotationCount = 0;
 
     for (var pageIndex = 0; pageIndex < document.pageCount; pageIndex++) {
-      for (final annotation in document.page(pageIndex).annotations) {
+      final page = document.page(pageIndex);
+      for (final annotation in page.annotations) {
         totalAnnotationCount += 1;
         subtypeCounts[annotation.subtype] =
             (subtypeCounts[annotation.subtype] ?? 0) + 1;
@@ -319,6 +336,15 @@ class SheetAnnotatedPdfExporter {
         }
         clefAnnotationCount += 1;
         clefAnnotationNames.add(name);
+        clefAnnotationNameCounts[name] =
+            (clefAnnotationNameCounts[name] ?? 0) + 1;
+        if (!_annotationRectFitsPage(annotation.rect, page.cropBox)) {
+          outOfPageClefAnnotationNames.add(name);
+        }
+        if (annotation.dict.containsKey('A') ||
+            annotation.dict.containsKey('AA')) {
+          actionBearingClefAnnotationNames.add(name);
+        }
         clefSubtypeCounts[annotation.subtype] =
             (clefSubtypeCounts[annotation.subtype] ?? 0) + 1;
         final contents = annotation.contents;
@@ -359,7 +385,28 @@ class SheetAnnotatedPdfExporter {
       unembeddedUnicodeFreeTextNames: List.unmodifiable(
         unembeddedUnicodeFreeTextNames,
       ),
+      duplicateClefAnnotationNames: List.unmodifiable(
+        clefAnnotationNameCounts.entries
+            .where((entry) => entry.value > 1)
+            .map((entry) => entry.key),
+      ),
+      outOfPageClefAnnotationNames: List.unmodifiable(
+        outOfPageClefAnnotationNames,
+      ),
+      actionBearingClefAnnotationNames: List.unmodifiable(
+        actionBearingClefAnnotationNames,
+      ),
     );
+  }
+
+  static bool _annotationRectFitsPage(PdfRect rect, PdfRect pageBox) {
+    const tolerance = 1.0;
+    return rect.width > 0 &&
+        rect.height > 0 &&
+        rect.left >= pageBox.left - tolerance &&
+        rect.bottom >= pageBox.bottom - tolerance &&
+        rect.right <= pageBox.right + tolerance &&
+        rect.top <= pageBox.top + tolerance;
   }
 
   static bool textRequiresUnicodeFont(String text) {

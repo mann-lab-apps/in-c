@@ -689,6 +689,9 @@ void main() {
     expect(inspection.containsClefSubtype('Square'), isTrue);
     expect(inspection.containsClefSubtype('FreeText'), isTrue);
     expect(inspection.missingGeneratedAppearanceNames, isEmpty);
+    expect(inspection.duplicateClefAnnotationNames, isEmpty);
+    expect(inspection.outOfPageClefAnnotationNames, isEmpty);
+    expect(inspection.actionBearingClefAnnotationNames, isEmpty);
     expect(
       inspection.clefAnnotationNames,
       containsAll(<String>[
@@ -699,6 +702,97 @@ void main() {
       ]),
     );
     expect(await input.readAsBytes(), originalBytes);
+  });
+
+  test('flags duplicate names and out-of-page editable annotations', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-unsafe-annotation-inspection-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/unsafe-editable.pdf';
+    final now = DateTime.parse('2026-10-19T10:00:00.000');
+    final score = SheetScore(
+      id: 'unsafe-inspection',
+      title: 'Unsafe inspection',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          _stroke(
+            'duplicate',
+            SheetAnnotationTool.pen,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            now,
+          ),
+          _stroke(
+            'duplicate',
+            SheetAnnotationTool.pen,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.3, y: 0.3),
+              SheetAnnotationPoint(x: 0.4, y: 0.4),
+            ],
+            now.add(const Duration(seconds: 1)),
+          ),
+          _stroke(
+            'outside',
+            SheetAnnotationTool.line,
+            const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: -0.2, y: 0.5),
+              SheetAnnotationPoint(x: 0.2, y: 0.5),
+            ],
+            now.add(const Duration(seconds: 2)),
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+    final unsafeDocument = PdfDocument.open(
+      await File(outputPath).readAsBytes(),
+    );
+    final unsafeEditor = PdfEditor(unsafeDocument);
+    final actionAnnotation = unsafeDocument
+        .page(0)
+        .annotations
+        .firstWhere((annotation) => annotation.name == 'clef-duplicate');
+    actionAnnotation.dict['A'] = actionAnnotation.dict['AP']!;
+    unsafeEditor.setAnnotationFlags(
+      0,
+      actionAnnotation,
+      actionAnnotation.flags,
+    );
+    await File(outputPath).writeAsBytes(unsafeEditor.save(), flush: true);
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
+
+    expect(result.didWrite, isTrue);
+    expect(inspection.duplicateClefAnnotationNames, ['clef-duplicate']);
+    expect(inspection.outOfPageClefAnnotationNames, contains('clef-outside'));
+    expect(inspection.actionBearingClefAnnotationNames, ['clef-duplicate']);
+    expect(inspection.hasSafeClefAnnotationStructure, isFalse);
+    expect(inspection.isLocallyInspectableEditableFixture, isFalse);
   });
 
   test('writes Unicode FreeText in standard annotation mode', () async {

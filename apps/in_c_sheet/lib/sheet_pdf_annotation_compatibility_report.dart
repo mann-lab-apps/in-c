@@ -374,6 +374,9 @@ Local inspection:
 - Pages: ${inspection.pageCount}
 - Clef annotations: ${inspection.clefAnnotationCount}
 - Generated appearances missing: ${inspection.missingGeneratedAppearanceNames.isEmpty ? 'none' : inspection.missingGeneratedAppearanceNames.join(', ')}
+- Duplicate Clef annotation names: ${inspection.duplicateClefAnnotationNames.isEmpty ? 'none' : inspection.duplicateClefAnnotationNames.join(', ')}
+- Out-of-page Clef annotations: ${inspection.outOfPageClefAnnotationNames.isEmpty ? 'none' : inspection.outOfPageClefAnnotationNames.join(', ')}
+- Clef annotations with actions: ${inspection.actionBearingClefAnnotationNames.isEmpty ? 'none' : inspection.actionBearingClefAnnotationNames.join(', ')}
 - FreeText annotations with embedded fonts: ${inspection.embeddedFontFreeTextNames.isEmpty ? 'none' : inspection.embeddedFontFreeTextNames.join(', ')}
 - Unicode FreeText annotations without embedded fonts: ${inspection.unembeddedUnicodeFreeTextNames.isEmpty ? 'none' : inspection.unembeddedUnicodeFreeTextNames.join(', ')}
 
