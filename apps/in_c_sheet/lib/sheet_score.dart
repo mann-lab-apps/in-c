@@ -2364,18 +2364,35 @@ class SheetCustomMetadataField {
 }
 
 class SheetScoreImportSource {
-  SheetScoreImportSource({
+  const SheetScoreImportSource._({
+    required this.platform,
+    required this.displayName,
+    this.folderLabel,
+    this.providerLabel,
+    this.sizeBytes,
+    this.modifiedAt,
+  });
+
+  static SheetScoreImportSource? create({
     required String platform,
     required String displayName,
     String? folderLabel,
     String? providerLabel,
     int? sizeBytes,
-    this.modifiedAt,
-  }) : platform = platform.trim(),
-       displayName = displayName.trim(),
-       folderLabel = _nonEmptyOrNull(folderLabel),
-       providerLabel = _nonEmptyOrNull(providerLabel),
-       sizeBytes = sizeBytes != null && sizeBytes >= 0 ? sizeBytes : null;
+    DateTime? modifiedAt,
+  }) {
+    final safePlatform = _safeHint(platform, maxLength: 64);
+    final safeDisplayName = _safeHint(displayName, maxLength: 512);
+    if (safePlatform == null || safeDisplayName == null) return null;
+    return SheetScoreImportSource._(
+      platform: safePlatform,
+      displayName: safeDisplayName,
+      folderLabel: _safeHint(folderLabel, maxLength: 256),
+      providerLabel: _safeHint(providerLabel, maxLength: 256),
+      sizeBytes: sizeBytes != null && sizeBytes >= 0 ? sizeBytes : null,
+      modifiedAt: modifiedAt,
+    );
+  }
 
   static SheetScoreImportSource? tryFromJson(Object? value) {
     final json = _asJsonMap(value);
@@ -2384,7 +2401,7 @@ class SheetScoreImportSource {
     final displayName = _stringFromJson(json['displayName']).trim();
     if (platform.isEmpty || displayName.isEmpty) return null;
     final rawSize = json['sizeBytes'];
-    return SheetScoreImportSource(
+    return SheetScoreImportSource.create(
       platform: platform,
       displayName: displayName,
       folderLabel: _stringFromJson(json['folderLabel']),
@@ -2420,10 +2437,18 @@ class SheetScoreImportSource {
     };
   }
 
-  static String? _nonEmptyOrNull(String? value) {
+  static String? _safeHint(String? value, {required int maxLength}) {
     final trimmed = value?.trim() ?? '';
-    return trimmed.isEmpty ? null : trimmed;
+    if (trimmed.isEmpty || _uriSchemePattern.hasMatch(trimmed)) return null;
+    return trimmed.length <= maxLength
+        ? trimmed
+        : trimmed.substring(0, maxLength);
   }
+
+  static final _uriSchemePattern = RegExp(
+    r'^[a-z][a-z0-9+.-]*:',
+    caseSensitive: false,
+  );
 }
 
 class SheetScore {

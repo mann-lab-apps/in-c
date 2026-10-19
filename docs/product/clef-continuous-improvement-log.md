@@ -2733,3 +2733,9 @@ folder/provider labels, original display name, size and modification time, and t
 read-only. The model has no URI or document-token field, and focused model/gateway/import/UI tests prove round-trip,
 restart persistence, mismatch fallback and sensitive-token redaction. Android native compilation and real provider,
 backup-restore and information-dialog checks remain Device QA.
+
+S259 VERIFIED LOCAL: hardened the folder-provenance boundary against provider-controlled labels. URI-shaped required
+hints now discard provenance without blocking the copied PDF, URI-shaped optional folder/provider labels are omitted,
+and persisted hint lengths are capped. Metadata backup coverage explicitly verifies the remaining display hints survive
+round-trip while no content URI or document-token key is emitted. Real Android providers and full backup handoff remain
+Device QA because the native bridge is still uncompiled in this checkpoint.

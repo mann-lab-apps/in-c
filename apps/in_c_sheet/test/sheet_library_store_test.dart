@@ -1830,6 +1830,14 @@ void main() {
       customFields: const <SheetCustomMetadataField>[
         SheetCustomMetadataField(key: 'Publisher', value: 'Mann Lab'),
       ],
+      importSource: SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'sonata.pdf',
+        folderLabel: 'Recital PDFs',
+        providerLabel: 'Downloads',
+        sizeBytes: 8192,
+        modifiedAt: now,
+      ),
       viewerSettings: const SheetViewerSettings(
         displayMode: 'auto',
         halfPageTurn: false,
@@ -2031,6 +2039,13 @@ void main() {
     expect(backup.scores.single.linkedFiles.single.audioLoopEndMs, 8200);
     expect(backup.scores.single.customFields.single.key, 'Publisher');
     expect(backup.scores.single.customFields.single.value, 'Mann Lab');
+    expect(backup.scores.single.importSource?.displayName, 'sonata.pdf');
+    expect(
+      backup.scores.single.importSource?.locationLabel,
+      'Recital PDFs · Downloads',
+    );
+    expect(backupJson, isNot(contains('content://')));
+    expect(backupJson, isNot(contains('documentToken')));
     expect(
       backup.scores.single.viewerSettings.customPedalMapping['Space'],
       'toggleQuickActions',

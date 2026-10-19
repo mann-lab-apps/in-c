@@ -126,6 +126,31 @@ void main() {
     },
   );
 
+  test('keeps copied PDFs when provenance hints look sensitive', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async {
+          return <Map<String, String>>[
+            <String, String>{
+              'path': '/cache/content-source.pdf',
+              'name': 'content://provider/secret.pdf',
+            },
+          ];
+        });
+    final gateway = MethodChannelSheetExternalFolderGateway(channel: channel);
+
+    final files = await gateway.copySelected(
+      const <SheetExternalFolderCopySource>[
+        SheetExternalFolderCopySource(
+          displayName: 'content://provider/secret.pdf',
+          documentToken: 'content://provider/document/source',
+        ),
+      ],
+    );
+
+    expect(files.single.path, '/cache/content-source.pdf');
+    expect(files.single.importSource, isNull);
+  });
+
   test(
     'reports native picker failures as user-facing gateway errors',
     () async {

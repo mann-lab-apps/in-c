@@ -129,9 +129,10 @@ class MethodChannelSheetExternalFolderGateway
                 sourcesByName[SheetExternalFolderCatalogPreview.normalizeName(
                   file.name,
                 )];
-            return source == null
+            final importSource = source?.toScoreImportSource();
+            return importSource == null
                 ? file
-                : file.copyWith(importSource: source.toScoreImportSource());
+                : file.copyWith(importSource: importSource);
           })
           .toList(growable: false);
     } on PlatformException catch (error) {

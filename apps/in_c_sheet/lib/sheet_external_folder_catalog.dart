@@ -379,8 +379,8 @@ class SheetExternalFolderCopySource {
     return toScoreMetadataJson();
   }
 
-  SheetScoreImportSource toScoreImportSource() {
-    return SheetScoreImportSource(
+  SheetScoreImportSource? toScoreImportSource() {
+    return SheetScoreImportSource.create(
       platform: platform,
       displayName: displayName,
       folderLabel: folderLabel,

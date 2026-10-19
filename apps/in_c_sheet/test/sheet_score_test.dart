@@ -1484,14 +1484,14 @@ void main() {
       tags: const <String>[],
       note: '',
       filePath: '/tmp/folder-score.pdf',
-      importSource: SheetScoreImportSource(
+      importSource: SheetScoreImportSource.create(
         platform: ' android-saf-copy ',
         displayName: ' Folder Score.pdf ',
         folderLabel: ' Recital PDFs ',
         providerLabel: ' Downloads ',
         sizeBytes: 4096,
         modifiedAt: now,
-      ),
+      )!,
       importedAt: now,
       updatedAt: now,
       lastOpenedAt: null,
@@ -1537,5 +1537,27 @@ void main() {
 
     expect(score.importSource, isNull);
     expect(score.toJson().containsKey('importSource'), isFalse);
+  });
+
+  test('score import provenance rejects URI hints and caps labels', () {
+    expect(
+      SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'content://provider/secret',
+      ),
+      isNull,
+    );
+
+    final source = SheetScoreImportSource.create(
+      platform: 'android-saf-copy',
+      displayName: 'Score.pdf',
+      folderLabel: 'content://tree/secret',
+      providerLabel: List<String>.filled(300, 'p').join(),
+    );
+
+    expect(source, isNotNull);
+    expect(source?.folderLabel, isNull);
+    expect(source?.providerLabel, hasLength(256));
+    expect(source?.toJson().values.join(' '), isNot(contains('content://')));
   });
 }

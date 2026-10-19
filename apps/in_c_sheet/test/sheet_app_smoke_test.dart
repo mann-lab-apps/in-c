@@ -2332,12 +2332,12 @@ Clef & Staff 세트리스트
         tags: const <String>[],
         note: '',
         filePath: '/tmp/score-1-clef-imported-score.pdf',
-        importSource: SheetScoreImportSource(
+        importSource: SheetScoreImportSource.create(
           platform: 'android-saf-copy',
           displayName: 'clef-imported-score.pdf',
           folderLabel: 'Recital PDFs',
           providerLabel: 'Downloads',
-        ),
+        )!,
         importedAt: now,
         updatedAt: now,
         lastOpenedAt: now,

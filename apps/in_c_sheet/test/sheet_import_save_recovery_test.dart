@@ -99,14 +99,14 @@ void main() {
       SheetSharedImportFile(
         path: '/tmp/folder-score.pdf',
         name: 'folder-score.pdf',
-        importSource: SheetScoreImportSource(
+        importSource: SheetScoreImportSource.create(
           platform: 'android-saf-copy',
           displayName: 'folder-score.pdf',
           folderLabel: 'Recital PDFs',
           providerLabel: 'Downloads',
           sizeBytes: 2048,
           modifiedAt: DateTime.utc(2026, 10, 19),
-        ),
+        )!,
       ),
     ]);
 
