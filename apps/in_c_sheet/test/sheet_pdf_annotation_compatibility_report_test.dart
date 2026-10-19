@@ -41,6 +41,8 @@ void main() {
     final markdown = SheetPdfAnnotationCompatibilityReportTemplate.markdown(
       fixturePath: '/tmp/clef-fixture.pdf',
       inspection: inspection,
+      fixtureSha256:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       unicodeFixturePath: '/tmp/clef-unicode.pdf',
       unicodeInspection: const SheetStandardPdfAnnotationInspection(
         path: 'unicode.pdf',
@@ -64,6 +66,8 @@ void main() {
           'clef-unicode-symbol',
         ],
       ),
+      unicodeFixtureSha256:
+          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
       pdfAConformanceDelta: const SheetPdfAConformanceDelta(
         profile: 'PDF/A-2b',
         sourceErrorCount: 3,
@@ -78,6 +82,11 @@ void main() {
     );
 
     expect(markdown, contains('Fixture: `/tmp/clef-fixture.pdf`'));
+    expect(markdown, contains('Fixture artifacts:'));
+    expect(markdown, contains('| Editable annotation fixture |'));
+    expect(markdown, contains('| Unicode appearance fixture |'));
+    expect(markdown, contains('`aaaaaaaaaaaaaaaa'));
+    expect(markdown, contains('`bbbbbbbbbbbbbbbb'));
     expect(markdown, contains('- Pages: 1'));
     expect(markdown, contains('- Clef annotations: 6'));
     expect(markdown, contains('- Duplicate Clef annotation names: none'));
@@ -531,5 +540,29 @@ Local inspection:
     expect(findings.single.severity, 'warnings');
     expect(findings.single.details, contains('does not have the Print flag'));
     expect(findings.single.summary, startsWith('PDF/A-2b warnings:'));
+  });
+
+  test('parses fixture artifact paths and SHA-256 digests', () {
+    const markdown = '''
+Fixture artifacts:
+
+| Artifact | Path | SHA-256 |
+| --- | --- | --- |
+| Editable annotation fixture | `/tmp/editable fixture.pdf` | `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA` |
+| Unicode appearance fixture | `/tmp/unicode.pdf` | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` |
+''';
+
+    final artifacts =
+        SheetPdfAnnotationCompatibilityReportParser.parseFixtureArtifacts(
+          markdown,
+        );
+
+    expect(artifacts, hasLength(2));
+    expect(artifacts.first.label, 'Editable annotation fixture');
+    expect(artifacts.first.path, '/tmp/editable fixture.pdf');
+    expect(
+      artifacts.first.sha256,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    );
   });
 }

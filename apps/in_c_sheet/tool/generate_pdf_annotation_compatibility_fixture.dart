@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotated_pdf_exporter.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -138,8 +139,10 @@ Future<void> main(List<String> args) async {
     SheetPdfAnnotationCompatibilityReportTemplate.markdown(
       fixturePath: output.absolute.path,
       inspection: inspection,
+      fixtureSha256: await _sha256Of(output),
       unicodeFixturePath: unicodeOutput.absolute.path,
       unicodeInspection: unicodeInspection,
+      unicodeFixtureSha256: await _sha256Of(unicodeOutput),
       pdfAConformanceDelta: pdfAConformanceDelta,
     ),
   );
@@ -183,6 +186,25 @@ Future<void> _reviewReport(String reportPath) async {
       SheetPdfAnnotationCompatibilityReportParser.parseIntroducedPdfAFindings(
         markdown,
       );
+  final fixtureArtifacts =
+      SheetPdfAnnotationCompatibilityReportParser.parseFixtureArtifacts(
+        markdown,
+      );
+  final missingArtifacts = <SheetPdfCompatibilityFixtureArtifact>[];
+  final mismatchedArtifacts = <String>[];
+  for (final artifact in fixtureArtifacts) {
+    final file = File(artifact.path);
+    if (!file.existsSync()) {
+      missingArtifacts.add(artifact);
+      continue;
+    }
+    final actual = await _sha256Of(file);
+    if (actual != artifact.sha256) {
+      mismatchedArtifacts.add(
+        '${artifact.label} expected=${artifact.sha256} actual=$actual',
+      );
+    }
+  }
   if (unknownViewerLabels.isNotEmpty) {
     stdout.writeln('- Unknown viewer rows: ${unknownViewerLabels.join(', ')}');
   }
@@ -198,14 +220,31 @@ Future<void> _reviewReport(String reportPath) async {
       '${introducedPdfAFindings.map((finding) => finding.summary).join(' | ')}',
     );
   }
+  if (missingArtifacts.isNotEmpty) {
+    stdout.writeln(
+      '- Missing fixture artifacts: '
+      '${missingArtifacts.map((artifact) => '${artifact.label}=${artifact.path}').join(', ')}',
+    );
+  }
+  if (mismatchedArtifacts.isNotEmpty) {
+    stdout.writeln(
+      '- Fixture SHA-256 mismatches: ${mismatchedArtifacts.join(' | ')}',
+    );
+  }
   final gate = SheetPdfViewerCompatibilityGate.review(entries: entries);
   stdout.writeln(gate.markdownSummary());
   if (unknownViewerLabels.isNotEmpty ||
       invalidStatusCells.isNotEmpty ||
       introducedPdfAFindings.isNotEmpty ||
+      missingArtifacts.isNotEmpty ||
+      mismatchedArtifacts.isNotEmpty ||
       !gate.canClaimExternalCompatibility) {
     exitCode = 2;
   }
+}
+
+Future<String> _sha256Of(File file) async {
+  return sha256.convert(await file.readAsBytes()).toString();
 }
 
 const _defaultInputPath = 'test-fixtures/pdfs/short-score.pdf';

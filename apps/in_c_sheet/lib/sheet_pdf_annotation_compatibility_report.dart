@@ -114,6 +114,18 @@ class SheetPdfAConformanceReportFinding {
   String get summary => '$profile $severity: $details';
 }
 
+class SheetPdfCompatibilityFixtureArtifact {
+  const SheetPdfCompatibilityFixtureArtifact({
+    required this.label,
+    required this.path,
+    required this.sha256,
+  });
+
+  final String label;
+  final String path;
+  final String sha256;
+}
+
 class SheetPdfViewerCompatibilityGate {
   const SheetPdfViewerCompatibilityGate._({
     required this.missingViewerIds,
@@ -339,8 +351,10 @@ class SheetPdfAnnotationCompatibilityReportTemplate {
   static String markdown({
     required String fixturePath,
     required SheetStandardPdfAnnotationInspection inspection,
+    String? fixtureSha256,
     String? unicodeFixturePath,
     SheetStandardPdfAnnotationInspection? unicodeInspection,
+    String? unicodeFixtureSha256,
     SheetPdfAConformanceDelta? pdfAConformanceDelta,
   }) {
     final subtypeRows = [
@@ -378,11 +392,29 @@ Unicode appearance fixture:
 - Unicode contents:
 ${unicodeInspection.unicodeFreeTextContents.map((content) => '  - `$content`').join('\n')}
 ''';
+    final artifactRows = <String>[
+      if (fixtureSha256 != null)
+        '| Editable annotation fixture | `$fixturePath` | `$fixtureSha256` |',
+      if (unicodeFixturePath != null && unicodeFixtureSha256 != null)
+        '| Unicode appearance fixture | `$unicodeFixturePath` | '
+            '`$unicodeFixtureSha256` |',
+    ].join('\n');
+    final artifactSection = artifactRows.isEmpty
+        ? ''
+        : '''
+
+Fixture artifacts:
+
+| Artifact | Path | SHA-256 |
+| --- | --- | --- |
+$artifactRows
+''';
 
     return '''
 # Clef Editable Annotation Compatibility Report
 
 Fixture: `$fixturePath`
+$artifactSection
 
 Local inspection:
 
@@ -416,6 +448,7 @@ Completion gate:
 - Do not claim external compatibility while any required cell is `${SheetPdfViewerCompatibilityStatus.notTested.label}`, `${SheetPdfViewerCompatibilityStatus.issue.label}` or `${SheetPdfViewerCompatibilityStatus.blocked.label}`.
 - If `Unicode text` is `${SheetPdfViewerCompatibilityStatus.pass.label}`, include Unicode/glyph/font evidence in the row notes or evidence link.
 - Resolve every introduced PDF/A error or warning before treating a filled viewer matrix as ready.
+- Keep the fixture files with this report; `--review-report` verifies listed SHA-256 digests when artifact rows are present.
 - Treat local inspection as a fixture sanity check, not as proof of $viewerLabels behavior.
 
 Required spike items:
@@ -637,6 +670,33 @@ class SheetPdfAnnotationCompatibilityReportParser {
       );
     }
     return findings;
+  }
+
+  static List<SheetPdfCompatibilityFixtureArtifact> parseFixtureArtifacts(
+    String markdown,
+  ) {
+    final artifacts = <SheetPdfCompatibilityFixtureArtifact>[];
+    for (final cells in _parseRowsInSection(markdown, 'Fixture artifacts:')) {
+      if (cells.length != 3 ||
+          cells.first.trim().toLowerCase() == 'artifact' ||
+          _isTableHeaderOrDivider(cells)) {
+        continue;
+      }
+      final label = cells[0].trim();
+      final path = cells[1].trim().replaceAll('`', '');
+      final digest = cells[2].trim().replaceAll('`', '').toLowerCase();
+      if (label.isEmpty || path.isEmpty || digest.isEmpty) {
+        continue;
+      }
+      artifacts.add(
+        SheetPdfCompatibilityFixtureArtifact(
+          label: label,
+          path: path,
+          sha256: digest,
+        ),
+      );
+    }
+    return artifacts;
   }
 
   static String? _viewerIdForLabel(String label) {

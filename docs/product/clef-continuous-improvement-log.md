@@ -2666,3 +2666,9 @@ S248 VERIFIED LOCAL: connected introduced PDF/A findings to the filled compatibi
 returns exit code 2 even if every external viewer cell is PASS. Existing reports without those diagnostic rows
 remain reviewable, while generated reports can no longer hide a local conformance regression behind a complete
 viewer matrix. Parser and end-to-end process tests cover `none` filtering, warning diagnostics and exit codes.
+
+S249 VERIFIED LOCAL: bound editable PDF compatibility reports to the exact generated artifacts. New reports
+record SHA-256 digests for both the mixed editable-annotation fixture and the Unicode appearance fixture.
+`--review-report` verifies every listed local file and returns exit code 2 for a missing or changed artifact,
+while legacy reports without the artifact table remain reviewable. Parser, template and end-to-end CLI tests
+cover paths with spaces, digest normalization, mismatch diagnostics and missing-file diagnostics.

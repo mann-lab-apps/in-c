@@ -76,6 +76,46 @@ void main() {
     expect(result.stdout, contains('External viewer compatibility gate: PASS'));
     expect(result.stderr, isNot(contains('Unhandled exception')));
   });
+
+  test('review-report exits two for a changed fixture artifact', () async {
+    final fixture = File('${tempDirectory.path}/fixture.pdf');
+    await fixture.writeAsString('changed fixture');
+    final report = await _writeReport(
+      tempDirectory,
+      _compatibilityReport(
+        fixturePath: fixture.path,
+        fixtureSha256:
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ),
+    );
+
+    final result = await _reviewReport(report);
+
+    expect(result.exitCode, 2);
+    expect(result.stdout, contains('Fixture SHA-256 mismatches'));
+    expect(result.stdout, contains('Editable annotation fixture'));
+    expect(result.stdout, contains('External viewer compatibility gate: PASS'));
+    expect(result.stderr, isNot(contains('Unhandled exception')));
+  });
+
+  test('review-report exits two for a missing fixture artifact', () async {
+    final report = await _writeReport(
+      tempDirectory,
+      _compatibilityReport(
+        fixturePath: '${tempDirectory.path}/missing.pdf',
+        fixtureSha256:
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ),
+    );
+
+    final result = await _reviewReport(report);
+
+    expect(result.exitCode, 2);
+    expect(result.stdout, contains('Missing fixture artifacts'));
+    expect(result.stdout, contains('missing.pdf'));
+    expect(result.stdout, contains('External viewer compatibility gate: PASS'));
+    expect(result.stderr, isNot(contains('Unhandled exception')));
+  });
 }
 
 Future<File> _writeReport(Directory directory, String contents) async {
@@ -99,6 +139,8 @@ String _compatibilityReport({
   String acrobatUnicodeStatus = 'PASS',
   String? extraViewerRow,
   String introducedPdfAWarning = 'none',
+  String? fixturePath,
+  String? fixtureSha256,
 }) {
   final rows = <String>[
     for (final target
@@ -111,6 +153,14 @@ String _compatibilityReport({
   ].join('\n');
   return '''
 # Clef Editable Annotation Compatibility Report
+
+${fixturePath == null || fixtureSha256 == null ? '' : '''
+Fixture artifacts:
+
+| Artifact | Path | SHA-256 |
+| --- | --- | --- |
+| Editable annotation fixture | `$fixturePath` | `$fixtureSha256` |
+'''}
 
 Local inspection:
 

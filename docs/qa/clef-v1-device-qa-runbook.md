@@ -418,6 +418,9 @@ picker 선택을 검증한다. 실기기에서는 Android/iOS 파일 선택 prov
 `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility-report.md`이며
 pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text stamp,
 music-symbol stamp, PNG/WebP image stamp를 포함한다.
+Report의 `Fixture artifacts` 표에는 두 PDF의 절대 경로와 SHA-256이 기록된다. 외부 앱에서
+확인한 PDF와 report가 같은 세트인지 유지하고, `--review-report`가 `Missing fixture artifacts`나
+`Fixture SHA-256 mismatches`를 출력하면 fixture를 다시 생성하거나 올바른 파일을 함께 전달한다.
 생성 도구는 외부 앱 확인 전에 Clef annotation 이름 중복, 0 이하/페이지 밖 rectangle,
 `/A` 또는 `/AA` action, Print/Hidden/NoView flag를 검사한다. `Duplicate names`,
 `Out-of-page names`, `Action-bearing names`, `Non-printable names`, `Hidden names`가 모두
