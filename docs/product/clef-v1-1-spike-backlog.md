@@ -582,6 +582,45 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
 - Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.
 
+## 17. Setlist Package Annotation Sidecar
+
+- 현재 상태: `clef.setlist.package` v1은 악보 파일, 세트리스트 설정, user stamp metadata와 참조된
+  image stamp asset을 전달하지만 악보별 필기는 전달하지 않는다. Export/import preview는 이 경계를
+  명시하고 완전한 라이브러리 이동에는 full backup을 안내한다.
+- 첫 계약: optional `annotations/<score-path-sha256>.json` sidecar가 package의 `scores/` entry 하나를
+  가리킨다. Sidecar는 `clef.setlist.package.annotation` scope/version, score entry path, score bytes의
+  SHA-256, committed stroke/text/layer document를 담는다. 로컬 score id와 undo/redo history는 내보내지
+  않는다.
+- 로컬 검증: strict codec은 safe relative score/sidecar path, 16 MiB sidecar, 20,000 object,
+  1,000,000 point 상한, exact score checksum, 중복 object id, 알 수 없는 layer, malformed UTF-8/JSON을
+  검사한다. Parser가 손상된 object를 조용히 버린 경우에도 raw/parsed count 불일치로 거부한다.
+- export 정책:
+  - 보이는 layer만이 아니라 전체 committed layer와 visibility/export flag를 전달한다. Package transfer는
+    렌더된 PDF export가 아니라 다른 Clef library에서 편집을 이어가기 위한 데이터 이동이기 때문이다.
+  - score bytes를 읽은 시점의 checksum을 sidecar에 기록해 다른 파일에 필기가 붙는 것을 막는다.
+  - image stamp annotation이 참조하는 asset은 기존 package user stamp/stamp asset 계약으로 해결돼야 한다.
+    해결되지 않은 asset reference가 있으면 annotation sidecar를 완전 전송으로 표시하지 않는다.
+- import/충돌 정책:
+  - package에서 새로 만드는 score에는 checksum과 sidecar 검증이 모두 끝난 뒤 필기를 연결할 수 있다.
+  - 기존 local score와 매칭된 항목에는 필기를 자동 덮어쓰거나 병합하지 않는다. 첫 UI는 `건너뜀`과
+    명확한 경고를 기본으로 하고, object-id/tombstone 충돌 규칙이 생기기 전에는 explicit merge를 열지 않는다.
+  - invalid sidecar를 조용히 무시하지 않는다. Preview에서 해당 악보의 필기 문제를 분리해 보여주고,
+    사용자가 `악보와 세트리스트만 가져오기`를 명시적으로 선택하기 전에는 partial import를 실행하지 않는다.
+  - inline/file-backed 저장 차이는 기존 annotation store API에서 정규화하며 외부 path를 package에 넣지 않는다.
+- transaction/rollback 정책: 새 score 파일, annotation write, metadata와 setlist save를 하나의 import 요청
+  수명으로 다룬다. 실패 시 이번 요청이 만든 unreferenced managed file만 정리하고 기존 score/annotation은
+  보존한다. rollback 자체 실패나 프로세스 강제 종료까지 보장한다고 표현하지 않는다.
+- 다음 구현 단계:
+  1. 완료: sidecar envelope/path/checksum/annotation validation codec과 회귀 테스트.
+  2. 완료: package archive decode/encode에 optional sidecar collection을 연결하고 score bytes checksum,
+     orphan/duplicate sidecar를 검증한다. Sidecar가 없는 기존 v1 package는 그대로 읽는다.
+  3. export에서 score bytes checksum과 annotation load를 묶고 image stamp reference completeness를 검증한다.
+  4. dry-run preview에 `새 악보 필기`, `기존 악보라 건너뜀`, `손상/누락 asset` 상태를 추가한다.
+  5. controller import transaction과 save-failure cleanup을 연결한다.
+- Acceptance criteria: 새 score의 multi-layer annotation round-trip, 기존 score 무변경, image stamp asset
+  해석, corrupt/duplicate/checksum mismatch 차단, save failure cleanup, library switch, retry를 자동 검증하고
+  stylus 렌더링과 큰 annotation 문서는 Device QA로 확인한다.
+
 ## RC 이후 추천 우선순위
 
 1. Android/iPad 실기기 QA에서 S Pen/stylus, audio, pedal, 장시간 연주 결과를 먼저 닫는다.

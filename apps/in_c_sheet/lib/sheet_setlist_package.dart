@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 
 import 'sheet_annotation.dart';
 import 'sheet_docx.dart';
@@ -10,6 +11,7 @@ import 'sheet_score.dart';
 import 'sheet_rtf.dart';
 import 'sheet_setlist.dart';
 import 'sheet_setlist_manifest.dart';
+import 'sheet_setlist_package_annotation.dart';
 
 const String sheetSetlistPackageScope = 'clef.setlist.package';
 const int sheetSetlistPackageVersion = 1;
@@ -26,12 +28,14 @@ class SheetSetlistPackageArchive {
     required this.packageFiles,
     this.userStampPacks = const <SheetAnnotationStampPack>[],
     this.stampAssetFiles = const <SheetSetlistPackageStampAssetFile>[],
+    this.annotationSidecars = const <SheetSetlistPackageAnnotationSidecar>[],
   });
 
   final SheetSetlistShareManifest manifest;
   final List<SheetSetlistPackageFile> packageFiles;
   final List<SheetAnnotationStampPack> userStampPacks;
   final List<SheetSetlistPackageStampAssetFile> stampAssetFiles;
+  final List<SheetSetlistPackageAnnotationSidecar> annotationSidecars;
 
   SheetSetlistPackageDryRun previewImport({
     required List<SheetScore> currentScores,
@@ -93,6 +97,7 @@ class SheetSetlistPackageArchive {
     final paths = <String>{};
     final packageFiles = <SheetSetlistPackageFile>[];
     final stampAssetFiles = <SheetSetlistPackageStampAssetFile>[];
+    final annotationEntries = <ArchiveFile>[];
     for (final entry in fileEntries) {
       final path = entry.name.trim();
       if (path == sheetSetlistPackageManifestFileName ||
@@ -125,6 +130,13 @@ class SheetSetlistPackageArchive {
         );
         continue;
       }
+      if (path.startsWith(sheetSetlistPackageAnnotationDirectory)) {
+        if (!paths.add(path)) {
+          throw FormatException('Duplicate setlist package entry: $path');
+        }
+        annotationEntries.add(entry);
+        continue;
+      }
       if (!_isSafePackageScoreZipEntryPath(path)) {
         throw FormatException('Unsafe setlist package entry: $path');
       }
@@ -137,6 +149,36 @@ class SheetSetlistPackageArchive {
             allowImageStamps: true,
             availableImageAssetRefs: stampAssetRefs,
           );
+    final scoreFilesByPath = {for (final file in packageFiles) file.path: file};
+    final annotationSidecars = <SheetSetlistPackageAnnotationSidecar>[];
+    final annotatedScorePaths = <String>{};
+    for (final entry in annotationEntries) {
+      final sidecar = SheetSetlistPackageAnnotationCodec.decode(
+        archiveEntryPath: entry.name,
+        bytes: entry.content,
+      );
+      final scoreFile = scoreFilesByPath[sidecar.scoreEntryPath];
+      if (scoreFile?.bytes == null) {
+        throw FormatException(
+          'Setlist package annotation has no matching score: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      if (!annotatedScorePaths.add(sidecar.scoreEntryPath)) {
+        throw FormatException(
+          'Setlist package contains duplicate annotations for: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      final scoreDigest = sha256.convert(scoreFile!.bytes!).toString();
+      if (scoreDigest != sidecar.scoreSha256) {
+        throw FormatException(
+          'Setlist package annotation checksum does not match: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      annotationSidecars.add(sidecar);
+    }
 
     return SheetSetlistPackageArchive(
       manifest: manifest,
@@ -145,6 +187,10 @@ class SheetSetlistPackageArchive {
       stampAssetFiles: List<SheetSetlistPackageStampAssetFile>.unmodifiable(
         stampAssetFiles,
       ),
+      annotationSidecars:
+          List<SheetSetlistPackageAnnotationSidecar>.unmodifiable(
+            annotationSidecars,
+          ),
     );
   }
 
@@ -154,6 +200,8 @@ class SheetSetlistPackageArchive {
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
     Map<String, List<int>> stampAssetFiles = const <String, List<int>>{},
+    List<SheetSetlistPackageAnnotationSidecar> annotationSidecars =
+        const <SheetSetlistPackageAnnotationSidecar>[],
   }) {
     final manifest = SheetSetlistShareManifest.tryParse(manifestText);
     if (manifest == null) {
@@ -207,6 +255,38 @@ class SheetSetlistPackageArchive {
         throw FormatException('Duplicate setlist package entry: $path');
       }
       archive.addFile(ArchiveFile.bytes(path, entry.value));
+    }
+    final annotatedScorePaths = <String>{};
+    for (final sidecar in annotationSidecars) {
+      final scoreBytes = scoreFiles[sidecar.scoreEntryPath];
+      if (scoreBytes == null) {
+        throw FormatException(
+          'Setlist package annotation has no matching score: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      if (!annotatedScorePaths.add(sidecar.scoreEntryPath)) {
+        throw FormatException(
+          'Setlist package contains duplicate annotations for: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      if (sha256.convert(scoreBytes).toString() != sidecar.scoreSha256) {
+        throw FormatException(
+          'Setlist package annotation checksum does not match: '
+          '${sidecar.scoreEntryPath}',
+        );
+      }
+      final path = sidecar.archiveEntryPath;
+      if (!paths.add(path)) {
+        throw FormatException('Duplicate setlist package entry: $path');
+      }
+      archive.addFile(
+        ArchiveFile.bytes(
+          path,
+          SheetSetlistPackageAnnotationCodec.encode(sidecar),
+        ),
+      );
     }
     return Uint8List.fromList(ZipEncoder().encode(archive));
   }

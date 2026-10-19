@@ -2877,3 +2877,13 @@ S281 VERIFIED LOCAL: made the setlist package boundary explicit before annotatio
 previews now state that per-score annotations and linked audio/files are not transferred and direct users to full backup
 when they need complete library movement. This prevents the lightweight performance package from being mistaken for a
 full backup while annotation merge and collision policy remain unresolved.
+
+S282 VERIFIED LOCAL: defined and enforced the first safe setlist-package annotation sidecar boundary without claiming
+that library import already restores handwriting. The optional envelope binds one committed annotation document to a
+safe `scores/` entry and its SHA-256 under a deterministic `annotations/` path, excludes undo history and local score ids,
+and rejects unsafe paths, malformed UTF-8/JSON, silent object loss, duplicate ids, unknown layers and bounded-size/object/
+point violations. Package ZIP encode/decode now carries validated optional sidecars, rejects orphan, duplicate and
+score-checksum-mismatched entries, and keeps older packages without sidecars readable. The spike contract keeps existing
+matched scores unchanged by default, requires explicit preview for partial annotation skips and reserves export loading,
+preview and storage transaction wiring for the next slices. Regressions cover a multi-layer round trip and the principal
+corruption/collision cases.
