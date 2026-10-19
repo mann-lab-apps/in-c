@@ -684,6 +684,17 @@ class SheetSetlistPackageDryRun {
       )
       .length;
 
+  int get restorableAnnotationCount =>
+      entries.where((entry) => entry.canRestoreAnnotationSidecar).length;
+
+  int get deferredAnnotationCount => entries
+      .where(
+        (entry) =>
+            entry.annotationSidecar != null &&
+            !entry.canRestoreAnnotationSidecar,
+      )
+      .length;
+
   int get protectedExistingAnnotationCount => entries
       .where(
         (entry) =>
@@ -796,6 +807,16 @@ class SheetSetlistPackageEntry {
   final SheetSetlistPackageAnnotationSidecar? annotationSidecar;
   final List<SheetScore> candidates;
   final List<SheetSetlistPackageFile> packageFileCandidates;
+
+  bool get canRestoreAnnotationSidecar {
+    final sidecar = annotationSidecar;
+    final scoreKind = packageFile?.scoreKind;
+    return sidecar != null &&
+        status == SheetSetlistPackageEntryStatus.importableFile &&
+        (scoreKind == SheetSetlistPackageScoreKind.pdf ||
+            scoreKind == SheetSetlistPackageScoreKind.image) &&
+        !sidecar.annotationLayer.texts.any((text) => text.isImageStamp);
+  }
 
   bool get isResolved {
     return status == SheetSetlistPackageEntryStatus.existingScore ||

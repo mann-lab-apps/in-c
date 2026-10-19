@@ -55,6 +55,8 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   text가 들어 있는 package는 preview에서 확인 필요로 표시되고 partial import를 시작하지 않아야 한다.
   Image stamp가 든 package를 가져오면 `사용자 스탬프`에서 실제 bitmap을 다시 선택/배치할 수 있어야 한다.
   같은 asset 경로에 다른 local 이미지가 있으면 기존 파일을 덮어쓰지 않고 스탬프 미적용 안내를 보여야 한다.
+  Annotation sidecar가 있는 package는 새 PDF/image 악보의 일반 필기를 함께 복원하고, 기존 local 악보나
+  image stamp/text score sidecar는 preview에서 보호·미적용으로 구분해 덮어쓰지 않아야 한다.
   저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
   긴 ChordPro 악보는 상단 `구간` 메뉴에서 verse/chorus/bridge 표식을 골라 해당 줄로 이동해야 한다.
   `코드/가사 찾기`에서 코드명, 가사, 구간 이름을 각각 검색해 결과 수, 이전/다음 이동과 현재 줄 강조를 확인한다.

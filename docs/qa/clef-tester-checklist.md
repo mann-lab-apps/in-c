@@ -175,8 +175,10 @@
    asset이 빠진 image stamp metadata는 복원되지 않아야 하며, checksum/크기/픽셀 치수가 맞지 않는
    package나 깨진 사용자 스탬프 metadata는 가져오기를 막아야 한다.
    missing/ambiguous 항목이 남아 있으면 저장되지 않아야 한다.
-   내보내기와 가져오기 미리보기는 곡별 필기와 연결 오디오/파일이 포함되지 않으며 전체 백업이 필요하다고
-   명확하게 알려야 한다.
+   annotation sidecar가 있는 package는 새 PDF/image 악보의 일반 필기를 `필기 함께 복원`으로 표시하고
+   가져온 뒤 layer/stroke/text가 유지되어야 한다. 기존 local 악보와 image stamp/text score 필기는
+   `보호(미적용)`로 표시하고 덮어쓰지 않아야 한다. 연결 오디오/파일은 포함되지 않으며 전체 백업이
+   필요하다고 명확하게 알려야 한다.
    `악보 추가`의 `텍스트/ChordPro/DOCX/RTF 안내`에서는 ChordPro를 붙여넣어 제목/작곡가/조성/박자와
    코드/가사 preview를 확인하고, `악보로 저장` 후 라이브러리 카드와 읽기 viewer로 열리는지 확인한다.
 7. 여러 악보를 일괄 선택해 기존 또는 새 컬렉션으로 묶고, 완료 안내의 `보기`로 컬렉션 필터를

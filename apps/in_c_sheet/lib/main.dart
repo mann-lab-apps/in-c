@@ -8009,6 +8009,8 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
     final canImportLater = dryRun.canImport;
     final stampPreview = dryRun.userStampPreview;
     final annotationCount = dryRun.annotationSidecars.length;
+    final restoredAnnotationCount = dryRun.restorableAnnotationCount;
+    final deferredAnnotationCount = dryRun.deferredAnnotationCount;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -8084,7 +8086,11 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                   if (annotationCount > 0)
                     Chip(
                       avatar: const Icon(Icons.draw_outlined, size: 16),
-                      label: Text('필기 $annotationCount개 확인'),
+                      label: Text(
+                        restoredAnnotationCount > 0
+                            ? '필기 $restoredAnnotationCount개 복원'
+                            : '필기 $annotationCount개 보호',
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
@@ -8145,7 +8151,11 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     : '확인 필요 항목을 먼저 해결하세요',
                 message: canImportLater
                     ? annotationCount > 0
-                          ? '패키지 필기 $annotationCount개를 안전하게 확인했습니다. 현재 가져오기에서는 필기를 적용하지 않으며 기존 악보도 덮어쓰지 않습니다. 악보와 세트리스트만 가져옵니다.'
+                          ? restoredAnnotationCount > 0
+                                ? deferredAnnotationCount > 0
+                                      ? '새 PDF/이미지 악보 필기 $restoredAnnotationCount개를 함께 복원합니다. 기존 악보 또는 image stamp/텍스트 악보 필기 $deferredAnnotationCount개는 덮어쓰지 않고 보호합니다.'
+                                      : '새 PDF/이미지 악보 필기 $restoredAnnotationCount개를 함께 복원합니다. 기존 악보는 덮어쓰지 않습니다.'
+                                : '패키지 필기 $deferredAnnotationCount개를 안전하게 확인했습니다. 기존 악보 또는 image stamp/텍스트 악보 필기는 적용하지 않고 보호합니다.'
                           : stampPreview.hasDuplicates
                           ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
                           : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
@@ -9888,7 +9898,9 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
       final file = entry.packageFile;
       final annotationLabel = entry.annotationSidecar == null
           ? ''
-          : ' · 필기 포함(현재 미적용)';
+          : entry.canRestoreAnnotationSidecar
+          ? ' · 필기 함께 복원'
+          : ' · 필기 보호(미적용)';
       return '패키지 ${file?.scoreKind.label ?? '파일'} · ${file?.path ?? entry.item.fileName}$annotationLabel';
     case SheetSetlistPackageEntryStatus.ambiguousExistingScore:
       return '후보 ${entry.candidates.length}개 · 제목/파일명을 더 구분해야 합니다.';

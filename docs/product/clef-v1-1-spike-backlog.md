@@ -615,11 +615,12 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   2. 완료: package archive decode/encode에 optional sidecar collection을 연결하고 score bytes checksum,
      orphan/duplicate sidecar를 검증한다. Sidecar가 없는 기존 v1 package는 그대로 읽는다.
   3. export에서 score bytes checksum과 annotation load를 묶고 image stamp reference completeness를 검증한다.
-  4. 진행 중: dry-run은 `새 악보 필기 후보`와 `기존 악보라 보호/미적용`을 구분하고 preview에서 현재
+  4. 완료: dry-run은 `새 악보 필기 복원`과 `기존 악보/image stamp/텍스트 악보라 보호·미적용`을 구분하고 preview에서
      미적용 경계를 명시한다. Image stamp asset은 실제 SHA-256/크기/디코딩/픽셀 치수를 metadata와
      대조해 손상 또는 바뀐 파일을 package codec에서 차단한다. Import는 새 stamp id의 asset만 저장하고,
-     동일 checksum은 재사용하며 같은 경로의 다른 local 파일은 보존한다. 필기 sidecar 실제 적용 confirmation은 남았다.
-  5. controller import transaction과 save-failure cleanup을 연결한다.
+     동일 checksum은 재사용하며 같은 경로의 다른 local 파일은 보존한다. Image stamp sidecar 실제 적용은 남았다.
+  5. 진행 중: 새 PDF/image score의 일반 stroke/text/multi-layer sidecar는 score/setlist metadata transaction에
+     연결하고 기존 score는 덮어쓰지 않는다. Image stamp sidecar의 asset binding과 export annotation load는 남았다.
 - Acceptance criteria: 새 score의 multi-layer annotation round-trip, 기존 score 무변경, image stamp asset
   해석, corrupt/duplicate/checksum mismatch 차단, save failure cleanup, library switch, retry를 자동 검증하고
   stylus 렌더링과 큰 annotation 문서는 Device QA로 확인한다.

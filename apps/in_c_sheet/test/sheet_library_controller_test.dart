@@ -23,6 +23,7 @@ import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_setlist_package.dart';
+import 'package:in_c_sheet/sheet_setlist_package_annotation.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -757,6 +758,88 @@ Clef & Staff 세트리스트
           .where((field) => field.key == '출처 유형')
           .map((field) => field.value),
       <String>['공연 패키지'],
+    );
+  });
+
+  test('setlist package restores new score annotations without overwriting existing scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 11);
+    final localLayer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[_annotationStroke('local-stroke', now)],
+    );
+    final existing = _score(
+      now,
+      id: 'existing',
+      title: 'Existing Etude',
+    ).copyWith(annotationLayer: localLayer);
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final existingBytes = <int>[9, 8, 7];
+    final newBytes = <int>[1, 2, 3];
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Annotated Package
+곡 수: 2곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+2. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/existing-etude.pdf': existingBytes,
+          'scores/new-sonata.pdf': newBytes,
+        },
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/existing-etude.pdf',
+            scoreSha256: sha256.convert(existingBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[
+                _annotationStroke('package-existing-stroke', now),
+              ],
+            ),
+          ),
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/new-sonata.pdf',
+            scoreSha256: sha256.convert(newBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[
+                _annotationStroke('package-new-stroke', now),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(dryRun.restorableAnnotationCount, 1);
+    expect(dryRun.protectedExistingAnnotationCount, 1);
+    expect(
+      controller.scoreById('existing').annotationLayer.strokes.single.id,
+      'local-stroke',
+    );
+    expect(
+      controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+      'package-new-stroke',
+    );
+
+    await controller.load();
+    expect(
+      controller.scoreById('existing').annotationLayer.strokes.single.id,
+      'local-stroke',
+    );
+    expect(
+      controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+      'package-new-stroke',
     );
   });
 
@@ -5426,6 +5509,21 @@ SheetAnnotationStampPack _packageImageStampPack(
         assetHeightPixels: 1,
       ),
     ],
+  );
+}
+
+SheetAnnotationStroke _annotationStroke(String id, DateTime createdAt) {
+  return SheetAnnotationStroke(
+    id: id,
+    pageNumber: 1,
+    tool: SheetAnnotationTool.pen,
+    color: 0xff111111,
+    width: 3,
+    points: const <SheetAnnotationPoint>[
+      SheetAnnotationPoint(x: 0.1, y: 0.2),
+      SheetAnnotationPoint(x: 0.3, y: 0.4),
+    ],
+    createdAt: createdAt,
   );
 }
 

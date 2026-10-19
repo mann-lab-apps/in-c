@@ -199,9 +199,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   ambiguous existing score를 구분한다. 완전히 해결된 package는 preview 확인 뒤 package 안
   PDF/image/text/ChordPro를 라이브러리에 복사하고 기존 악보와 함께 새 score/setlist를 저장한다. 저장이
   완료되지 않으면 어떤 library profile에서도 참조하지 않는 app-owned 복사본만 정리한다. 악보별 필기를
-  score entry path/checksum에 묶는 optional sidecar strict codec과 ZIP round-trip은 준비됐지만 export에서
-  필기를 읽고 import transaction으로 저장하는 연결은 아직 열지 않았다. MobileSheets 전용 binary package
-  호환과 대용량 package 실기기 QA도 후속이다.
+  score entry path/checksum에 묶는 optional sidecar strict codec과 ZIP round-trip이 있고, 새 PDF/image score의
+  일반 stroke/text/multi-layer sidecar는 같은 metadata transaction에서 복원한다. 기존 local score와
+  image stamp/text score sidecar는 preview에서 보호·미적용으로 구분한다. Export annotation load와 image stamp
+  sidecar asset binding, MobileSheets 전용 binary package 호환, 대용량 package 실기기 QA는 후속이다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,
   컬렉션 지정/정보 편집/제거를 더보기 메뉴로 묶는다. 넓은 화면은 기존 바로가기를 유지한다.
 - 일괄 정보 편집에서 작곡가를 선택 악보에 함께 적용할 수 있다. 작곡가 입력란을 비우면

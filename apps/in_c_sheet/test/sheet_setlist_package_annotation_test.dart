@@ -206,6 +206,8 @@ void main() {
       currentScores: const <SheetScore>[],
     );
     expect(newScorePreview.annotationCandidateCount, 1);
+    expect(newScorePreview.restorableAnnotationCount, 1);
+    expect(newScorePreview.deferredAnnotationCount, 0);
     expect(newScorePreview.protectedExistingAnnotationCount, 0);
     expect(newScorePreview.entries.single.annotationSidecar, isNotNull);
 
@@ -213,11 +215,50 @@ void main() {
       currentScores: <SheetScore>[_existingScore()],
     );
     expect(existingScorePreview.annotationCandidateCount, 0);
+    expect(existingScorePreview.restorableAnnotationCount, 0);
+    expect(existingScorePreview.deferredAnnotationCount, 1);
     expect(existingScorePreview.protectedExistingAnnotationCount, 1);
     expect(
       existingScorePreview.entries.single.status,
       SheetSetlistPackageEntryStatus.existingScore,
     );
+  });
+
+  test('dry run defers image stamp sidecars until assets can be bound', () {
+    final scoreBytes = <int>[1, 2, 3, 4];
+    final sidecar = SheetSetlistPackageAnnotationSidecar(
+      scoreEntryPath: scorePath,
+      scoreSha256: sha256.convert(scoreBytes).toString(),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'image-stamp',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+            text: 'Photo cue',
+            color: 0xff111111,
+            fontSize: 18,
+            createdAt: DateTime.utc(2026, 10, 20),
+            stampKind: SheetAnnotationUserStamp.imageKind,
+            stampAssetRef: 'stamps/photos/photo-cue.png',
+          ),
+        ],
+      ),
+    );
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _manifestText(),
+        scoreFiles: <String, List<int>>{scorePath: scoreBytes},
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[sidecar],
+      ),
+    );
+
+    final dryRun = package.previewImport(currentScores: const <SheetScore>[]);
+
+    expect(dryRun.restorableAnnotationCount, 0);
+    expect(dryRun.deferredAnnotationCount, 1);
+    expect(dryRun.entries.single.canRestoreAnnotationSidecar, isFalse);
   });
 
   test('package archive rejects orphan and checksum-mismatched sidecars', () {

@@ -3606,7 +3606,15 @@ class SheetLibraryController extends ChangeNotifier {
               'Unsupported package score file.',
             ),
           };
-          score = _scoreFromSetlistPackageItem(rawScore, entry.item);
+          final scoreWithMetadata = _scoreFromSetlistPackageItem(
+            rawScore,
+            entry.item,
+          );
+          score = entry.canRestoreAnnotationSidecar
+              ? scoreWithMetadata.copyWith(
+                  annotationLayer: entry.annotationSidecar!.annotationLayer,
+                )
+              : scoreWithMetadata;
           createdScores.add(score);
           if (_activeLibraryProfile.id != libraryId) {
             return null;

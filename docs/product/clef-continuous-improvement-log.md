@@ -2906,3 +2906,10 @@ replaced, and metadata is merged only after every required asset is available. A
 switch removes assets created by that request while preserving the already committed score/setlist import and reports the
 non-fatal stamp failure. Controller regressions cover successful storage, path conflict preservation and save-failure
 cleanup without weakening built-in stamp availability. `flutter analyze`, all 1,712 tests and the RC release check passed.
+
+S286 VERIFIED LOCAL: opened the first annotation sidecar restore path without weakening the no-overwrite rule. Import
+preview now separates restorable new PDF/image score annotations from protected existing-score, text-score and image-stamp
+sidecars. New eligible scores persist their committed stroke/text/multi-layer document in the same score/setlist metadata
+transaction, while an existing local score keeps its own annotations unchanged. Image-stamp sidecars remain deferred until
+their placed asset references can be bound to the collision-safe package asset transaction. `flutter analyze`, all 1,714
+tests and the RC release check passed.
