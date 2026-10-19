@@ -6,7 +6,6 @@ import 'package:archive/archive.dart';
 import 'sheet_annotation.dart';
 import 'sheet_docx.dart';
 import 'sheet_file_import.dart';
-import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_rtf.dart';
 import 'sheet_setlist.dart';
@@ -20,182 +19,6 @@ const String sheetSetlistPackageScoreDirectory = 'scores/';
 const String sheetSetlistPackageStampAssetDirectory = 'stamps/';
 const String sheetSetlistPackageSupportedScoreKindsLabel =
     'PDF/JPG/PNG/텍스트/ChordPro/DOCX/RTF';
-
-class SheetSetlistPackageMetronomeCodec {
-  const SheetSetlistPackageMetronomeCodec._();
-
-  static String encode(SheetMetronomeSettings settings) {
-    final defaultAccents = SheetMetronomeSettings.defaultAccentBeatIndexesFor(
-      settings.meter,
-    );
-    final accents = settings.normalizedAccentBeatIndexes;
-    final parts = <String>[
-      '${settings.bpm} BPM',
-      settings.meter.label,
-      if (settings.subdivision != SheetMetronomeSubdivision.none)
-        settings.subdivision.label,
-      settings.soundEnabled ? '소리 ${settings.volumePercent}%' : '시각만',
-      if (!settings.soundEnabled &&
-          settings.volumePercent !=
-              SheetMetronomeSettings.defaultSettings.volumePercent)
-        '음량 ${settings.volumePercent}%',
-      if (!settings.accentEnabled)
-        '강세 끔'
-      else if (!_sameIndexes(accents, defaultAccents))
-        accents.isEmpty
-            ? '강세 없음'
-            : '강세 ${accents.map((index) => index + 1).join(',')}',
-      if (settings.countInBars > 0) '카운트인 ${settings.countInBars}마디',
-    ];
-    return parts.join(' · ');
-  }
-
-  static SheetMetronomeSettings? tryDecode(String value) {
-    final parts = value
-        .split('·')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-    if (parts.length < 2) {
-      return null;
-    }
-
-    final bpmMatch = RegExp(
-      r'^(\d+)\s*BPM$',
-      caseSensitive: false,
-    ).firstMatch(parts.first);
-    final bpm = int.tryParse(bpmMatch?.group(1) ?? '');
-    if (bpm == null || bpm < 40 || bpm > 240) {
-      return null;
-    }
-    final meter = _meterForLabel(parts[1]);
-    if (meter == null) {
-      return null;
-    }
-
-    var soundEnabled = true;
-    var volumePercent = SheetMetronomeSettings.defaultSettings.volumePercent;
-    var subdivision = SheetMetronomeSubdivision.none;
-    var countInBars = 0;
-    var accentEnabled = true;
-    var accentBeatIndexes = SheetMetronomeSettings.defaultAccentBeatIndexesFor(
-      meter,
-    );
-
-    for (final part in parts.skip(2)) {
-      final matchingSubdivision = _subdivisionForLabel(part);
-      if (matchingSubdivision != null) {
-        subdivision = matchingSubdivision;
-        continue;
-      }
-      if (part == '시각만') {
-        soundEnabled = false;
-        continue;
-      }
-      final volumeMatch = RegExp(r'^소리\s+(\d+)%$').firstMatch(part);
-      if (volumeMatch != null) {
-        final volume = int.tryParse(volumeMatch.group(1) ?? '');
-        if (volume == null || volume < 0 || volume > 100) {
-          return null;
-        }
-        soundEnabled = true;
-        volumePercent = volume;
-        continue;
-      }
-      final mutedVolumeMatch = RegExp(r'^음량\s+(\d+)%$').firstMatch(part);
-      if (mutedVolumeMatch != null) {
-        final volume = int.tryParse(mutedVolumeMatch.group(1) ?? '');
-        if (volume == null || volume < 0 || volume > 100) {
-          return null;
-        }
-        volumePercent = volume;
-        continue;
-      }
-      final countInMatch = RegExp(r'^카운트인\s+(\d+)마디$').firstMatch(part);
-      if (countInMatch != null) {
-        final bars = int.tryParse(countInMatch.group(1) ?? '');
-        if (bars == null || bars < 0 || bars > 2) {
-          return null;
-        }
-        countInBars = bars;
-        continue;
-      }
-      if (part == '강세 끔') {
-        accentEnabled = false;
-        continue;
-      }
-      if (part == '강세 없음') {
-        accentEnabled = true;
-        accentBeatIndexes = const <int>[];
-        continue;
-      }
-      final accentMatch = RegExp(r'^강세\s+([\d,\s]+)$').firstMatch(part);
-      if (accentMatch != null) {
-        final indexes = <int>{};
-        for (final rawBeat in accentMatch.group(1)!.split(',')) {
-          final beat = int.tryParse(rawBeat.trim());
-          if (beat == null || beat < 1 || beat > meter.beatsPerBar) {
-            return null;
-          }
-          indexes.add(beat - 1);
-        }
-        if (indexes.isEmpty) {
-          return null;
-        }
-        accentEnabled = true;
-        accentBeatIndexes = indexes.toList()..sort();
-        continue;
-      }
-      if (part.startsWith('소리') ||
-          part.startsWith('음량') ||
-          part.startsWith('카운트인') ||
-          part.startsWith('강세')) {
-        return null;
-      }
-    }
-
-    return SheetMetronomeSettings(
-      bpm: bpm,
-      meter: meter,
-      soundEnabled: soundEnabled,
-      accentEnabled: accentEnabled,
-      subdivision: subdivision,
-      countInBars: countInBars,
-      volumePercent: volumePercent,
-      accentBeatIndexes: List<int>.unmodifiable(accentBeatIndexes),
-    );
-  }
-
-  static SheetMetronomeMeter? _meterForLabel(String label) {
-    for (final meter in SheetMetronomeMeter.values) {
-      if (meter.label == label) {
-        return meter;
-      }
-    }
-    return null;
-  }
-
-  static SheetMetronomeSubdivision? _subdivisionForLabel(String label) {
-    for (final subdivision in SheetMetronomeSubdivision.values.skip(1)) {
-      if (subdivision.label == label) {
-        return subdivision;
-      }
-    }
-    return null;
-  }
-
-  static bool _sameIndexes(List<int> left, List<int> right) {
-    if (left.length != right.length) {
-      return false;
-    }
-    for (var index = 0; index < left.length; index += 1) {
-      if (left[index] != right[index]) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
 
 class SheetSetlistPackageArchive {
   const SheetSetlistPackageArchive({
@@ -1174,7 +997,7 @@ List<String> _setlistPackageManifestDetails(
       setlist.scoreMetronomeSettings[score.id] ?? score.metronomeSettings;
   if (metronome != null) {
     metadata.add(
-      '메트로놈: ${SheetSetlistPackageMetronomeCodec.encode(metronome)}',
+      '메트로놈: ${SheetSetlistManifestMetronomeCodec.encode(metronome)}',
     );
   }
   return metadata;

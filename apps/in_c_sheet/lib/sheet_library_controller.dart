@@ -3552,7 +3552,7 @@ class SheetLibraryController extends ChangeNotifier {
         if (duration > 0) {
           durations[score.id] = duration;
         }
-        final metronome = SheetSetlistPackageMetronomeCodec.tryDecode(
+        final metronome = SheetSetlistManifestMetronomeCodec.tryDecode(
           entry.item.details['메트로놈'] ?? '',
         );
         if (metronome != null) {

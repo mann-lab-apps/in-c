@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist_manifest.dart';
 
@@ -149,6 +150,7 @@ Clef & Staff 세트리스트
    시작: 3쪽
    예상 시간: 3분 30초
    세트 메모: mute ready
+   메트로놈: 88 BPM · 3/4 · 8분 · 소리 70% · 카운트인 1마디
 2. Bach Suite
    파일: bach-suite
    시작: 1쪽
@@ -171,6 +173,12 @@ Clef & Staff 세트리스트
     expect(draft.scoreStartPages, {'goedicke': 3, 'bach': 1});
     expect(draft.scoreDurations, {'goedicke': 210, 'bach': 240});
     expect(draft.scoreNotes, {'goedicke': 'mute ready'});
+    final metronome = draft.scoreMetronomeSettings['goedicke'];
+    expect(metronome?.bpm, 88);
+    expect(metronome?.meter, SheetMetronomeMeter.threeFour);
+    expect(metronome?.subdivision, SheetMetronomeSubdivision.eighth);
+    expect(metronome?.volumePercent, 70);
+    expect(metronome?.countInBars, 1);
     expect(draft.transitionSeconds, 15);
   });
 

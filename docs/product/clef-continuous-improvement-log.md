@@ -2867,3 +2867,8 @@ S279 VERIFIED LOCAL: restored per-song metronome settings when importing Clef se
 manifest codec reads the existing BPM/meter/volume text and now preserves subdivision, muted volume, accent state/pattern
 and count-in for new packages. Imported settings are stored as setlist overrides for both existing and newly copied scores,
 survive reload, and malformed core settings are ignored rather than producing unsafe performance defaults.
+
+S280 VERIFIED LOCAL: closed the matching metronome gap in copied-manifest setlist import. Package and plain-text sharing
+now use one manifest codec, so pasted fully matched lists restore the same per-song BPM, meter, subdivision, sound/volume,
+accent and count-in overrides as ZIP packages. Draft and UI sharing regressions preserve the legacy text format while
+avoiding divergent encoders.

@@ -14,7 +14,7 @@ import 'package:in_c_sheet/sheet_setlist_package.dart';
 void main() {
   group('setlist package metronome codec', () {
     test('reads legacy manifest settings with meter defaults', () {
-      final settings = SheetSetlistPackageMetronomeCodec.tryDecode(
+      final settings = SheetSetlistManifestMetronomeCodec.tryDecode(
         '120 BPM · 4/4 · 소리 70%',
       );
 
@@ -39,8 +39,8 @@ void main() {
         accentBeatIndexes: <int>[0, 2, 5],
       );
 
-      final encoded = SheetSetlistPackageMetronomeCodec.encode(source);
-      final restored = SheetSetlistPackageMetronomeCodec.tryDecode(encoded);
+      final encoded = SheetSetlistManifestMetronomeCodec.encode(source);
+      final restored = SheetSetlistManifestMetronomeCodec.tryDecode(encoded);
 
       expect(encoded, contains('강세 1,3,6'));
       expect(restored?.toJson(), source.toJson());
@@ -48,15 +48,15 @@ void main() {
 
     test('rejects malformed core and known option values', () {
       expect(
-        SheetSetlistPackageMetronomeCodec.tryDecode('300 BPM · 4/4'),
+        SheetSetlistManifestMetronomeCodec.tryDecode('300 BPM · 4/4'),
         isNull,
       );
       expect(
-        SheetSetlistPackageMetronomeCodec.tryDecode('120 BPM · 5/4 · 소리 70%'),
+        SheetSetlistManifestMetronomeCodec.tryDecode('120 BPM · 5/4 · 소리 70%'),
         isNull,
       );
       expect(
-        SheetSetlistPackageMetronomeCodec.tryDecode('120 BPM · 4/4 · 강세 5'),
+        SheetSetlistManifestMetronomeCodec.tryDecode('120 BPM · 4/4 · 강세 5'),
         isNull,
       );
     });

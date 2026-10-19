@@ -6385,21 +6385,11 @@ List<String> _setlistShareDetails(SheetSetlist setlist, SheetScore score) {
   final metronome =
       setlist.scoreMetronomeSettings[score.id] ?? score.metronomeSettings;
   if (metronome != null) {
-    metadata.add('메트로놈: ${_formatMetronomeSettings(metronome)}');
+    metadata.add(
+      '메트로놈: ${SheetSetlistManifestMetronomeCodec.encode(metronome)}',
+    );
   }
   return metadata;
-}
-
-String _formatMetronomeSettings(SheetMetronomeSettings settings) {
-  final parts = <String>[
-    '${settings.bpm} BPM',
-    settings.meter.label,
-    if (settings.subdivision != SheetMetronomeSubdivision.none)
-      settings.subdivision.label,
-    settings.soundEnabled ? '소리 ${settings.volumePercent}%' : '시각만',
-    if (settings.countInBars > 0) '카운트인 ${settings.countInBars}마디',
-  ];
-  return parts.join(' · ');
 }
 
 @visibleForTesting
