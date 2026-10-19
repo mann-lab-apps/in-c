@@ -51,12 +51,14 @@ class SheetDocxTextExtractor {
     }
 
     final documentXml = _parseXml(documentEntry.content, 'document.xml');
-    final paragraphs = documentXml.descendants
-        .whereType<XmlElement>()
-        .where((element) => element.localName == 'p')
-        .map(_paragraphText)
-        .toList(growable: false);
-    final text = paragraphs.join('\n').trim();
+    XmlElement? body;
+    for (final element in documentXml.descendants.whereType<XmlElement>()) {
+      if (element.localName == 'body') {
+        body = element;
+        break;
+      }
+    }
+    final text = body == null ? '' : _blockTexts(body).join('\n').trim();
     if (text.isEmpty) {
       throw const FormatException('DOCX document has no readable text.');
     }
@@ -101,6 +103,53 @@ class SheetDocxTextExtractor {
       }
     }
     return buffer.toString().trimRight();
+  }
+
+  static Iterable<String> _blockTexts(XmlElement container) sync* {
+    for (final child in container.children.whereType<XmlElement>()) {
+      switch (child.localName) {
+        case 'p':
+          yield _paragraphText(child);
+        case 'tbl':
+          yield* _tableRows(child);
+        default:
+          yield* _blockTexts(child);
+      }
+    }
+  }
+
+  static Iterable<String> _tableRows(XmlElement table) sync* {
+    final rows = table.descendants.whereType<XmlElement>().where(
+      (element) =>
+          element.localName == 'tr' &&
+          identical(_nearestAncestor(element, 'tbl'), table),
+    );
+    for (final row in rows) {
+      final cells = row.descendants.whereType<XmlElement>().where(
+        (element) =>
+            element.localName == 'tc' &&
+            identical(_nearestAncestor(element, 'tr'), row),
+      );
+      final values = <String>[
+        for (final cell in cells)
+          _blockTexts(cell)
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty)
+              .join(' / '),
+      ];
+      if (values.any((value) => value.isNotEmpty)) {
+        yield values.join('\t');
+      }
+    }
+  }
+
+  static XmlElement? _nearestAncestor(XmlElement element, String localName) {
+    XmlElement? current = element.parentElement;
+    while (current != null) {
+      if (current.localName == localName) return current;
+      current = current.parentElement;
+    }
+    return null;
   }
 
   static String _firstElementText(XmlDocument document, String localName) {

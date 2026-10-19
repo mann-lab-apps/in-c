@@ -3000,3 +3000,10 @@ late edit restores the previous source and cannot report success in the destinat
 regressions cover successful editing, extension/metadata preservation, failed-save rollback, library-switch rollback and
 viewer refresh. `dart format`, `flutter analyze`, all 1,746 tests and the RC release check passed. DOCX/RTF extracted
 views remain intentionally read-only so edits cannot diverge silently from their preserved original documents.
+
+S297 VERIFIED LOCAL: improved DOCX table readability without claiming Word layout fidelity. The bounded extractor now
+walks body blocks in document order, emits each table row on one line, separates cells with tabs and keeps multiple
+paragraphs in a cell with a readable separator. Nested table ownership avoids duplicating inner rows into outer tables.
+The original DOCX remains a reference file and package/backup behavior is unchanged. Focused parser regression,
+`flutter analyze`, all 1,747 tests and the RC release check passed. Merged cells, images, footnotes, fonts and visual table
+layout remain outside the guarantee and require real-document QA.

@@ -43,6 +43,39 @@ void main() {
     expect(document.creator, isEmpty);
   });
 
+  test('keeps DOCX table rows and columns readable', () {
+    final document = SheetDocxTextExtractor.extract(
+      _docxBytes(
+        documentXml: '''
+<w:document xmlns:w="urn:word">
+  <w:body>
+    <w:p><w:r><w:t>Rehearsal order</w:t></w:r></w:p>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Section</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Tempo</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:p><w:r><w:t>Verse</w:t></w:r></w:p>
+          <w:p><w:r><w:t>Repeat twice</w:t></w:r></w:p>
+        </w:tc>
+        <w:tc><w:p><w:r><w:t>96 BPM</w:t></w:r></w:p></w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p><w:r><w:t>End note</w:t></w:r></w:p>
+  </w:body>
+</w:document>
+''',
+      ),
+    );
+
+    expect(
+      document.text,
+      'Rehearsal order\nSection\tTempo\nVerse / Repeat twice\t96 BPM\nEnd note',
+    );
+  });
+
   test('rejects malformed archives, missing XML and empty documents', () {
     expect(
       () => SheetDocxTextExtractor.extract(Uint8List.fromList(<int>[1, 2, 3])),
