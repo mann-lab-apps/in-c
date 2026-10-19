@@ -1044,6 +1044,64 @@ class SheetLibraryStore {
     );
   }
 
+  Future<String> readChordProSource(SheetScore score) async {
+    final file = File(score.filePath);
+    final bytes = await file.readAsBytes();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
+    late final String source;
+    try {
+      source = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('Invalid ChordPro UTF-8 source.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+    return source;
+  }
+
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    final bytes = utf8.encode(source);
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+
+    final file = File(score.filePath);
+    if (!await file.exists()) {
+      throw const FileSystemException('ChordPro source file is missing.');
+    }
+    final token =
+        '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';
+    final temporary = File('${file.path}.$token.tmp');
+    final backup = File('${file.path}.$token.bak');
+    var movedOriginal = false;
+    try {
+      await temporary.writeAsBytes(bytes, flush: true);
+      await file.rename(backup.path);
+      movedOriginal = true;
+      await temporary.rename(file.path);
+      await _deleteFileBestEffort(backup.path);
+    } catch (_) {
+      if (movedOriginal && !await file.exists() && await backup.exists()) {
+        try {
+          await backup.rename(file.path);
+        } catch (_) {
+          // Preserve the original replacement error when rollback also fails.
+        }
+      }
+      await _deleteFileBestEffort(temporary.path);
+      rethrow;
+    }
+  }
+
   Future<int> discardUnreferencedImportedScoreFiles(
     Iterable<SheetScore> candidates,
   ) async {

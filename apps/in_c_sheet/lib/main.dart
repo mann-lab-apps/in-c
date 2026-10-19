@@ -9147,6 +9147,16 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('chordpro-edit-source'),
+                          onPressed: () => _openSourceEditor(data),
+                          icon: const Icon(Icons.edit_note_outlined),
+                          label: const Text('원문 편집'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       _ChordProDisplayLinesView(
                         lines: displayLines,
                         lineKeys: _displayLineKeys,
@@ -9170,6 +9180,44 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       _viewerDataFuture = _loadChordProViewerData(score);
     }
     return _viewerDataFuture!;
+  }
+
+  Future<void> _openSourceEditor(_ChordProViewerData data) async {
+    final source = await showDialog<String>(
+      context: context,
+      builder: (context) => _ChordProSourceEditorDialog(source: data.source),
+    );
+    if (source == null || !mounted) return;
+    final score = widget.controller.scoreByIdOrNull(widget.scoreId);
+    if (score == null) return;
+    try {
+      final didSave = await widget.controller.updateChordProSource(
+        score,
+        source,
+      );
+      if (!mounted) return;
+      if (!didSave) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('원문을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+        return;
+      }
+      setState(() {
+        _viewerDataFuture = _loadChordProViewerData(
+          widget.controller.scoreById(widget.scoreId),
+        );
+        _displayLines = const <SheetChordProDisplayLine>[];
+        _activeSearchMatchIndex = 0;
+        _searchController.clear();
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('ChordPro 원문을 저장했습니다.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('원문을 저장하지 못했습니다. 기존 내용은 유지됩니다.')),
+      );
+    }
   }
 
   void _syncDisplaySettings(SheetScore score) {
@@ -9547,8 +9595,13 @@ _ChordProSearchResult _chordProSearch(
 }
 
 class _ChordProViewerData {
-  const _ChordProViewerData({required this.document, required this.draft});
+  const _ChordProViewerData({
+    required this.source,
+    required this.document,
+    required this.draft,
+  });
 
+  final String source;
   final SheetChordProDocument document;
   final SheetChordProScoreDraft draft;
 }
@@ -9570,10 +9623,108 @@ Future<_ChordProViewerData> _loadChordProViewerData(SheetScore score) {
     }
     final document = SheetChordProParser.parse(source);
     return _ChordProViewerData(
+      source: source,
       document: document,
       draft: SheetChordProScoreDraft.fromDocument(document),
     );
   });
+}
+
+class _ChordProSourceEditorDialog extends StatefulWidget {
+  const _ChordProSourceEditorDialog({required this.source});
+
+  final String source;
+
+  @override
+  State<_ChordProSourceEditorDialog> createState() =>
+      _ChordProSourceEditorDialogState();
+}
+
+class _ChordProSourceEditorDialogState
+    extends State<_ChordProSourceEditorDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.source,
+  );
+  String _error = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: '취소',
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close),
+          ),
+          title: const Text('ChordPro 원문 편집'),
+          actions: [TextButton(onPressed: _save, child: const Text('저장'))],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('제목과 작곡가 등 라이브러리 정보는 원문을 저장해도 자동으로 바뀌지 않습니다.'),
+                if (_error.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _error,
+                    key: const ValueKey('chordpro-source-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('chordpro-source-editor'),
+                    controller: _controller,
+                    expands: true,
+                    minLines: null,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '{title: 곡 제목}\n[C]가사',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _save() {
+    final source = _controller.text;
+    if (source.trim().isEmpty) {
+      setState(() => _error = '원문을 입력해주세요.');
+      return;
+    }
+    if (utf8.encode(source).length > SheetFileImportPolicy.maxPlainTextBytes) {
+      setState(() => _error = '원문은 2 MiB 이하로 입력해주세요.');
+      return;
+    }
+    try {
+      SheetChordProParser.parse(source);
+    } catch (_) {
+      setState(() => _error = 'ChordPro 원문을 해석하지 못했습니다.');
+      return;
+    }
+    Navigator.of(context).pop(source);
+  }
 }
 
 class _ChordProViewerDisplayControls extends StatelessWidget {

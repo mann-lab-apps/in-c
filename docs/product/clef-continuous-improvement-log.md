@@ -2965,3 +2965,11 @@ before the first chord, and the viewer wraps chord/lyric cells together when spa
 search and section navigation continue to use the same rendered document. Parser/widget regressions cover segment content,
 capo shapes and a 320px-wide viewer without overflow; multi-column chord-grid layout and source editing remain follow-up.
 `flutter analyze`, all 1,730 tests and the RC release check passed.
+
+S293 VERIFIED LOCAL: added a named `원문 편집` flow to stored ChordPro scores. The full-screen editor enforces the existing
+strict UTF-8, non-empty and 2 MiB boundary, replaces the source through a same-directory temporary file and immediately
+reloads rendered chords/lyrics. Library title, composer and other curated metadata are deliberately preserved instead of
+being silently replaced by edited directives. If score metadata persistence fails, the previous source bytes and score
+record are restored; a delayed edit that completes after a library switch also rolls the source back and cannot write into
+the destination library. Controller and widget regressions cover success, invalid input, save failure, library switching
+and viewer reload. Multi-column chord-grid layout remains follow-up.

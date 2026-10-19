@@ -175,6 +175,7 @@ class SheetLibraryController extends ChangeNotifier {
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
+  final Set<String> _chordProSourceEdits = <String>{};
   String? _errorMessage;
   bool _lastImportOpenedExistingScore = false;
 
@@ -1504,6 +1505,66 @@ class SheetLibraryController extends ChangeNotifier {
         updatedAt: DateTime.now(),
       ),
     );
+  }
+
+  Future<bool> updateChordProSource(SheetScore score, String source) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || !_chordProSourceEdits.add(score.id)) {
+      return false;
+    }
+    final libraryId = _activeLibraryProfile.id;
+    String? previousSource;
+    var didReplaceSource = false;
+    try {
+      if (utf8.encode(source).length >
+          SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('ChordPro source is too large.');
+      }
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty ChordPro source.');
+      }
+      SheetChordProParser.parse(source);
+      previousSource = await store.readChordProSource(current);
+      if (source == previousSource) {
+        return true;
+      }
+
+      await store.replaceChordProSource(score: current, source: source);
+      didReplaceSource = true;
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.replaceChordProSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      final latest = scoreByIdOrNull(score.id);
+      if (latest == null || latest.filePath != current.filePath) {
+        await store.replaceChordProSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      await _replace(latest.copyWith(updatedAt: DateTime.now()));
+      return true;
+    } catch (_) {
+      if (didReplaceSource && previousSource != null) {
+        try {
+          await store.replaceChordProSource(
+            score: current,
+            source: previousSource,
+          );
+        } catch (_) {
+          // Preserve the original persistence error when source rollback fails.
+        }
+      }
+      rethrow;
+    } finally {
+      _chordProSourceEdits.remove(score.id);
+    }
   }
 
   Future<SheetPerformancePresetTemplate> savePerformancePresetTemplate({

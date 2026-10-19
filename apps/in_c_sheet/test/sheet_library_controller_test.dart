@@ -1977,6 +1977,162 @@ Clef & Staff 세트리스트
   );
 
   test(
+    'ChordPro source edit preserves library metadata and file extension',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp('clef-chordpro-edit-');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/concert.onsong');
+      const originalSource = '{title: Source title}\n[C]Old line';
+      const revisedSource = '{title: Revised source title}\n[G]New line';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 20);
+      final original = _score(
+        now,
+        id: 'chordpro-edit',
+        title: 'My library title',
+        composer: 'My composer',
+        filePath: sourceFile.path,
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        await controller.updateChordProSource(
+          controller.scoreById(original.id),
+          revisedSource,
+        ),
+        isTrue,
+      );
+
+      expect(await sourceFile.readAsString(), revisedSource);
+      expect(sourceFile.path, endsWith('.onsong'));
+      final current = controller.scoreById(original.id);
+      expect(current.title, 'My library title');
+      expect(current.composer, 'My composer');
+      final persisted = (await store.loadScores()).single;
+      expect(persisted.title, 'My library title');
+      expect(persisted.filePath, sourceFile.path);
+    },
+  );
+
+  test('ChordPro source edit restores file after score save failure', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-failure-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/failure.chordpro');
+    const originalSource = '{title: Original}\n[C]Old line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-failure',
+      filePath: sourceFile.path,
+    );
+    final store = _ChordProImportStore(now);
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.failSaveScores = true;
+
+    await expectLater(
+      controller.updateChordProSource(
+        controller.scoreById(original.id),
+        '{title: Revised}\n[D]New line',
+      ),
+      throwsStateError,
+    );
+
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scoreById(original.id).toJson(), original.toJson());
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
+  test('ChordPro source edit rejects empty and oversized content', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-invalid-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/invalid.chordpro');
+    const originalSource = '{title: Original}\n[C]Line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-invalid',
+      filePath: sourceFile.path,
+    );
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await expectLater(
+      controller.updateChordProSource(original, ' \n'),
+      throwsFormatException,
+    );
+    await expectLater(
+      controller.updateChordProSource(
+        original,
+        'A' * (SheetFileImportPolicy.maxPlainTextBytes + 1),
+      ),
+      throwsFormatException,
+    );
+
+    expect(await sourceFile.readAsString(), originalSource);
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
+  test('late ChordPro source edit rolls back after a library switch', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-switch-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/switch.chordpro');
+    const originalSource = '{title: Source}\n[C]Old line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-switch',
+      filePath: sourceFile.path,
+    );
+    final store = _DelayedChordProSourceEditStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final sourceLibraryId = controller.activeLibraryProfile.id;
+
+    final pending = controller.updateChordProSource(
+      original,
+      '{title: Revised}\n[D]New line',
+    );
+    await store.firstReplacementStarted.future;
+    await controller.createLibraryProfile('Destination');
+    store.releaseFirstReplacement.complete();
+
+    expect(await pending, isFalse);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scores, isEmpty);
+    await controller.switchLibraryProfile(sourceLibraryId);
+    expect(controller.scores.single.toJson(), original.toJson());
+  });
+
+  test(
     'appends another setlist while preserving target performance settings',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -6505,6 +6661,25 @@ class _LinkedPdfPickerStore extends SheetLibraryStore {
   @override
   Future<SheetLinkedFile?> pickLinkedPdfFile() async {
     return file;
+  }
+}
+
+class _DelayedChordProSourceEditStore extends SheetLibraryStore {
+  final firstReplacementStarted = Completer<void>();
+  final releaseFirstReplacement = Completer<void>();
+  var _replacementCount = 0;
+
+  @override
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    _replacementCount += 1;
+    if (_replacementCount == 1) {
+      firstReplacementStarted.complete();
+      await releaseFirstReplacement.future;
+    }
+    await super.replaceChordProSource(score: score, source: source);
   }
 }
 

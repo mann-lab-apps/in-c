@@ -935,6 +935,7 @@ void main() {
 
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
+    expect(find.text('ChordPro 원문 편집'), findsNothing);
 
     expect(controller.setlists, hasLength(1));
     expect(controller.setlists.single.title, '새 세트리스트');
@@ -1490,6 +1491,89 @@ Clef & Staff 세트리스트
     await tester.tap(find.byTooltip('찾기 닫기'));
     await tester.pump();
     expect(find.byTooltip('코드/가사 찾기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro viewer edits source and reloads rendered chords', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-source-editor-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/editor.chordpro')
+      ..writeAsStringSync('{title: Editor Tune}\n[C]Old lyric');
+    final now = DateTime(2026, 10, 20, 20);
+    final store = _SynchronousChordProEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-editor',
+        title: 'Library title',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-editor',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('chordpro-edit-source')),
+    );
+    await tester.tap(find.byKey(const ValueKey('chordpro-edit-source')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ChordPro 원문 편집'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('chordpro-source-editor')),
+      '{title: Source title changed}\n[G]New lyric',
+    );
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+    var savedSource = '';
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 20; attempt += 1) {
+        savedSource = await file.readAsString();
+        if (savedSource.contains('[G]New lyric')) return;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    expect(savedSource, contains('[G]New lyric'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('chordpro-editor').title, 'Library title');
+    expect(find.text('G'), findsOneWidget);
+    expect(find.text('New lyric'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -5117,6 +5201,22 @@ class _DelayedRestoreStore extends SheetLibraryStore {
   Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
     List<int> bytes,
   ) => _restore();
+}
+
+class _SynchronousChordProEditStore extends SheetLibraryStore {
+  @override
+  Future<String> readChordProSource(SheetScore score) {
+    return Future<String>.value(File(score.filePath).readAsStringSync());
+  }
+
+  @override
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) {
+    File(score.filePath).writeAsStringSync(source, flush: true);
+    return Future<void>.value();
+  }
 }
 
 class _MetadataPreviewStore extends SheetLibraryStore {
