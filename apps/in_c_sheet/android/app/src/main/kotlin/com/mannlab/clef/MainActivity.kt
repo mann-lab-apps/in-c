@@ -1,5 +1,6 @@
 package com.mannlab.clef
 
+import android.app.Activity
 import android.content.Intent
 import android.media.AudioFormat
 import android.media.AudioManager
@@ -9,6 +10,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
+import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -20,6 +22,7 @@ import kotlin.math.sin
 
 class MainActivity : FlutterActivity() {
     private val sharedImportsChannelName = "clef/shared_imports"
+    private val externalFolderChannelName = "clef/external_folder"
     private val tonePlayerChannelName = "clef/tone_player"
     private val metronomePlayerChannelName = "clef/metronome_player"
     private val audioPlayerChannelName = "clef/audio_player"
@@ -28,10 +31,17 @@ class MainActivity : FlutterActivity() {
     private val metronomePlayer = ClefMetronomePlayer()
     private val audioPlayer = ClefAudioPlayer()
     private var sharedImportsChannel: MethodChannel? = null
+    private var externalFolderChannel: MethodChannel? = null
     private var tonePlayerChannel: MethodChannel? = null
     private var metronomePlayerChannel: MethodChannel? = null
     private var audioPlayerChannel: MethodChannel? = null
     private var didCollectInitialIntent = false
+    private var pendingExternalFolderResult: MethodChannel.Result? = null
+
+    companion object {
+        private const val externalFolderRequestCode = 4317
+        private const val maxExternalFolderEntries = 201
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -44,6 +54,29 @@ class MainActivity : FlutterActivity() {
                 "getInitialSharedFiles" -> {
                     collectInitialIntent()
                     result.success(drainPendingSharedFiles())
+                }
+                else -> result.notImplemented()
+            }
+        }
+        externalFolderChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            externalFolderChannelName,
+        )
+        externalFolderChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "pickFolder" -> openExternalFolderPicker(result)
+                "copySelected" -> {
+                    val documentTokens = call.argument<List<Any>>("documentTokens")
+                        ?: emptyList()
+                    try {
+                        result.success(copyExternalFolderPdfs(documentTokens))
+                    } catch (error: Exception) {
+                        result.error(
+                            "copy_failed",
+                            error.message ?: "Selected PDFs could not be copied.",
+                            null,
+                        )
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -169,6 +202,49 @@ class MainActivity : FlutterActivity() {
         super.onDestroy()
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != externalFolderRequestCode) {
+            return
+        }
+        val result = pendingExternalFolderResult ?: return
+        pendingExternalFolderResult = null
+        if (resultCode != Activity.RESULT_OK) {
+            result.success(null)
+            return
+        }
+        val treeUri = data?.data
+        if (treeUri == null) {
+            result.error("scan_failed", "The selected folder is unavailable.", null)
+            return
+        }
+        try {
+            val root = DocumentFile.fromTreeUri(this, treeUri)
+                ?: throw IllegalStateException("The selected folder is unavailable.")
+            val entries = root.listFiles()
+                .asSequence()
+                .take(maxExternalFolderEntries)
+                .map { document -> externalFolderEntry(document, treeUri.authority) }
+                .toList()
+            result.success(
+                mapOf(
+                    "folderLabel" to (root.name ?: "선택한 폴더"),
+                    "providerLabel" to (treeUri.authority ?: "Android 파일"),
+                    "entries" to entries,
+                ),
+            )
+        } catch (error: SecurityException) {
+            result.error("permission_denied", "Folder access permission was not granted.", null)
+        } catch (error: Exception) {
+            result.error(
+                "scan_failed",
+                error.message ?: "The selected folder could not be read.",
+                null,
+            )
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -189,6 +265,58 @@ class MainActivity : FlutterActivity() {
         }
         didCollectInitialIntent = true
         intent?.let { pendingSharedFiles.addAll(sharedFilesFromIntent(it)) }
+    }
+
+    private fun openExternalFolderPicker(result: MethodChannel.Result) {
+        if (pendingExternalFolderResult != null) {
+            result.error("picker_active", "A folder picker is already open.", null)
+            return
+        }
+        pendingExternalFolderResult = result
+        try {
+            startActivityForResult(
+                Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                externalFolderRequestCode,
+            )
+        } catch (error: Exception) {
+            pendingExternalFolderResult = null
+            result.error("picker_failed", error.message ?: "Folder picker could not open.", null)
+        }
+    }
+
+    private fun externalFolderEntry(document: DocumentFile, providerLabel: String?): Map<String, Any?> {
+        return mapOf(
+            "displayName" to (document.name ?: "unnamed-file"),
+            // This URI is an in-memory copy token only. Dart never persists it.
+            "documentId" to document.uri.toString(),
+            "providerLabel" to providerLabel,
+            "sizeBytes" to document.length().takeIf { it >= 0L },
+            "modifiedAt" to document.lastModified().takeIf { it > 0L },
+            "canRead" to (document.isFile && document.canRead()),
+        )
+    }
+
+    private fun copyExternalFolderPdfs(documentTokens: List<Any>): List<Map<String, String>> {
+        val copiedFiles = mutableListOf<Map<String, String>>()
+        val seenTokens = mutableSetOf<String>()
+        for (rawToken in documentTokens) {
+            val token = rawToken.toString().trim()
+            if (token.isEmpty() || !seenTokens.add(token)) {
+                continue
+            }
+            val uri = Uri.parse(token)
+            val copied = copySharedPdfToCache(uri)
+            if (copied != null) {
+                copiedFiles.add(
+                    mapOf("path" to copied.file.absolutePath, "name" to copied.displayName),
+                )
+            }
+        }
+        if (copiedFiles.isEmpty()) {
+            throw IllegalStateException("No selected PDF could be read.")
+        }
+        return copiedFiles
     }
 
     private fun drainPendingSharedFiles(): List<Map<String, String>> {

@@ -252,11 +252,13 @@ Cloud provider:
 
 Folder catalog / direct folder spike:
 
-- 현재 구현 기준은 persistent direct reference가 아니라 read-only catalog preview와 copy-on-select 준비다.
-- 향후 `폴더를 둘러보고 가져오기` UI가 붙으면 권한 승인/취소/상실, 빈 폴더, 큰 폴더, 읽기 실패,
-  중복 파일명, 미지원 형식이 라이브러리를 변경하지 않고 안내되는지 확인한다.
+- 현재 구현은 persistent direct reference가 아니라 Android `폴더에서 PDF 고르기`의 read-only catalog와
+  copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
+- Android 태블릿에서 권한 승인/취소, 빈 폴더, 201개 이상 폴더, 읽기 실패, 기존 및 폴더 내 중복 파일명,
+  미지원 형식이 라이브러리를 변경하지 않고 안내되는지 확인한다.
 - 선택한 항목 중 중복/읽기 실패/미지원/stale 항목이 섞이면 실제 복사 전에 차단되어야 한다.
 - 선택한 PDF는 원본 폴더를 직접 참조하지 않고 기존 import pipeline으로 앱 내부에 복사되어야 한다.
+- 가져온 뒤 Android 파일 앱에서 원본을 rename/delete해도 Clef 안의 사본이 계속 열려야 한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
   지원 보고 텍스트에 그대로 노출되지 않아야 한다.
 - 원본 폴더 삭제/rename이 이미 가져온 Clef 악보 삭제로 이어지면 안 된다.

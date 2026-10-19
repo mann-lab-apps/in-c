@@ -52,6 +52,30 @@ void main() {
     expect(preview.candidates.single.message, contains('이미'));
   });
 
+  test(
+    'keeps later duplicate names in the selected folder out of copy plans',
+    () {
+      final preview = SheetExternalFolderCatalogPreview.fromEntries(
+        const <SheetExternalFolderEntry>[
+          SheetExternalFolderEntry(displayName: 'Concert Etude.pdf'),
+          SheetExternalFolderEntry(displayName: 'concert etude.PDF'),
+        ],
+      );
+
+      expect(preview.readyCount, 1);
+      expect(
+        preview.candidates.last.status,
+        SheetExternalFolderCandidateStatus.duplicateName,
+      );
+      final plan = preview.copyPlanForSelection(
+        preview.candidates.map((candidate) => candidate.selectionId),
+      );
+      expect(plan.isReady, isFalse);
+      expect(plan.copyCandidates, hasLength(1));
+      expect(plan.blockedCandidates, hasLength(1));
+    },
+  );
+
   test('unreadable entries stay blocked even when the name is a PDF', () {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[

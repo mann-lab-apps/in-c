@@ -2705,3 +2705,11 @@ annotation anchors. The generator and CLI regression prove that only current pag
 Poppler renders show the blank first page and the expected page-2 anchors. An exporter regression also writes line
 annotations through the full 90/180/270-degree path with an offset CropBox and reopens their exact `/L` coordinates.
 External viewer confirmation remains manual QA.
+
+S255 VERIFIED LOCAL: connected the safe direct-folder catalog model to Android without turning it into persistent
+direct reference. `폴더에서 PDF 고르기` launches an `ACTION_OPEN_DOCUMENT_TREE` picker, shows direct-child candidates
+before library mutation, blocks existing or in-folder duplicate names plus unreadable/unsupported entries, and copies
+only the selected ready PDFs through the existing shared-PDF import path. SAF document URIs remain transient and are
+not written into score metadata or backups. Focused catalog/gateway/sheet tests cover duplicate blocking, token
+redaction, selected-token copy requests and disabled blocked candidates; Android provider, cancel and large-folder
+flows remain Device QA.

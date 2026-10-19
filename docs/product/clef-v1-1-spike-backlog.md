@@ -85,11 +85,11 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 ### 첫 구현 경계
 
 - 허용:
-  - Android 폴더 선택 권한 요청.
+  - Android 폴더 선택 권한 요청과 이번 선택 흐름 안의 임시 read access.
   - PDF 후보 스캔 preview.
   - display name, size, modified time, provider label 표시.
   - 선택 파일만 기존 import pipeline으로 복사.
-  - source metadata에 원본 folder hint 저장.
+  - source metadata에 원본 folder hint를 저장할 준비. 실제 score metadata 저장은 후속.
   - 권한 취소/빈 폴더/읽기 실패 안내.
 - 금지:
   - 앱 내부 사본 없이 PDF를 여는 direct score.
@@ -115,18 +115,18 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    - Android `ACTION_OPEN_DOCUMENT_TREE`로 폴더 권한을 얻고 PDF 후보 목록만 보여준다.
    - 이 단계에서는 Clef 라이브러리에 항목을 만들지 않고, provider/display name/last modified/size만 기록한다.
    - Acceptance: 권한 승인/취소/권한 상실/빈 폴더/큰 폴더가 앱 데이터를 변경하지 않고 안내된다.
-   - 구현 상태: 순수 catalog preview core는 구현됨. `SheetExternalFolderCatalogPreview`는 scan 결과를
-     복사 가능한 PDF, 중복 이름, 읽기 불가, 미지원 형식으로 분류하고 권한 거부/scan 실패/빈 폴더/큰
-     폴더 cap을 라이브러리 변경 없이 표현한다. Android SAF picker UI와 실제 파일 scan bridge는 후속.
+   - 구현 상태: Android `ACTION_OPEN_DOCUMENT_TREE` bridge와 `폴더에서 PDF 고르기` sheet가 있다.
+     직접 하위 파일을 최대 201개까지 일회성으로 읽어, PDF 후보/기존 또는 폴더 내 중복 이름/읽기 실패/
+     미지원 형식을 라이브러리 변경 전에 보여준다. URI는 preview와 즉시 복사 요청에만 쓰며 score/backup에
+     저장하지 않는다. Android tablet/provider/취소 경로는 Device QA가 남았다.
 
 2. **Copy-on-select bridge**
    - 폴더 안 PDF를 바로 참조하지 않고, 선택한 항목만 기존 import pipeline으로 복사한다.
    - folder source URI와 display path는 source metadata로 남겨 중복 탐지와 “원본 폴더에서 다시 가져오기”에 사용한다.
    - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
-   - 구현 상태: preview에서 선택된 항목을 `SheetExternalFolderCopyPlan`으로 검증하는 core는 구현됨.
-     읽기 가능한 비중복 PDF만 copy candidate가 되며, 중복/읽기 실패/미지원/stale selection은 실제 import
-     전에 차단된다. Ready plan은 batch import bridge용 redacted source list와 known/unknown size summary를
-     제공한다. SAF byte read와 기존 import pipeline 연결, source metadata 저장은 후속.
+   - 구현 상태: ready plan의 transient document token만 Android bridge에 넘겨 cache에 복사하고,
+     기존 shared-PDF import pipeline으로 앱 내부 score를 만든다. 중복/읽기 실패/미지원/stale selection은
+     바이트 복사 전에 차단한다. source metadata 저장은 후속이다.
    - 구현 상태: `SheetExternalFolderCopySource`는 display/provider/folder/size/modified hint를 score/backup
      metadata로 만들되 platform document token은 내보내지 않는다. 저장된 score metadata 연결은 후속.
 

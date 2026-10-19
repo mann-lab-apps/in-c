@@ -24,6 +24,9 @@ import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_chordpro.dart';
 import 'sheet_device_check.dart';
+import 'sheet_external_folder_catalog.dart';
+import 'sheet_external_folder_gateway.dart';
+import 'sheet_external_folder_import_sheet.dart';
 import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
@@ -538,6 +541,89 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await _openScore(score, showImportNudge: true);
   }
 
+  Future<void> _importPdfsFromAndroidFolder() async {
+    if (!Platform.isAndroid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('폴더에서 PDF 고르기는 Android에서 지원합니다.')),
+      );
+      return;
+    }
+    final gateway = MethodChannelSheetExternalFolderGateway();
+    SheetExternalFolderSelection? selection;
+    try {
+      selection = await gateway.pickFolder();
+    } on SheetExternalFolderGatewayException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+      return;
+    }
+    final pickedFolder = selection;
+    if (!mounted || pickedFolder == null) {
+      return;
+    }
+
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      pickedFolder.entries,
+      existingFileNames: controller.scores.map(_scoreFileName),
+    );
+    final plan = await showModalBottomSheet<SheetExternalFolderCopyPlan>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => ExternalFolderImportSheet(
+        folderLabel: pickedFolder.folderLabel,
+        providerLabel: pickedFolder.providerLabel,
+        preview: preview,
+      ),
+    );
+    if (!mounted || plan == null) {
+      return;
+    }
+
+    List<SheetSharedImportFile> files;
+    try {
+      files = await gateway.copySelected(
+        plan.copySources(
+          folderLabel: pickedFolder.folderLabel,
+          platform: 'android-saf-copy',
+        ),
+      );
+    } on SheetExternalFolderGatewayException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+      return;
+    }
+    if (!mounted || files.isEmpty) {
+      return;
+    }
+    final imported = await controller.importSharedPdfFiles(files);
+    if (!mounted) {
+      return;
+    }
+    if (imported.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('선택한 PDF를 라이브러리에 추가하지 못했습니다.')),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${imported.length}개 PDF를 라이브러리에 복사했습니다.')),
+    );
+  }
+
+  String _scoreFileName(SheetScore score) {
+    final path = score.filePath.replaceAll('\\', '/');
+    final fileName = path.split('/').last;
+    final prefixedId = '${score.id}-';
+    return fileName.startsWith(prefixedId)
+        ? fileName.substring(prefixedId.length)
+        : fileName;
+  }
+
   Future<bool> _addImportedScoreToSetlist(SheetScore score) async {
     final target = await _selectSetlistForBulkAdd(1);
     if (!mounted || target == null) {
@@ -623,6 +709,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 onTap: () =>
                     Navigator.of(context).pop(_LibraryImportAction.pdfs),
               ),
+              if (Platform.isAndroid)
+                ListTile(
+                  leading: const Icon(Icons.folder_copy_outlined),
+                  title: const Text('폴더에서 PDF 고르기'),
+                  subtitle: const Text('폴더를 둘러본 뒤 선택한 PDF만 앱에 복사'),
+                  onTap: () =>
+                      Navigator.of(context)
+                          .pop(_LibraryImportAction.androidFolderPdfs),
+                ),
               ListTile(
                 leading: const Icon(Icons.playlist_add_check_outlined),
                 title: const Text('여러 PDF를 세트리스트에 추가'),
@@ -667,6 +762,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _importPdf(addToSetlist: true);
       case _LibraryImportAction.pdfs:
         await _importPdfs();
+      case _LibraryImportAction.androidFolderPdfs:
+        await _importPdfsFromAndroidFolder();
       case _LibraryImportAction.pdfsToSetlist:
         await _importPdfs(addToSetlist: true);
       case _LibraryImportAction.images:
@@ -2836,6 +2933,7 @@ enum _LibraryImportAction {
   pdf,
   pdfToSetlist,
   pdfs,
+  androidFolderPdfs,
   pdfsToSetlist,
   images,
   imagesToSetlist,

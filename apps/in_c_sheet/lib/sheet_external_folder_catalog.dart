@@ -93,15 +93,22 @@ class SheetExternalFolderCatalogPreview {
         .where((name) => name.isNotEmpty)
         .toSet();
 
-    final candidates = visibleEntries.indexed
-        .map(
-          (indexedEntry) => _candidateFor(
-            indexedEntry.$2,
-            existingNames: existingNames,
-            visibleIndex: indexedEntry.$1,
-          ),
-        )
-        .toList(growable: false);
+    // Treat repeated PDF names in the selected folder like an existing score.
+    // The first ready candidate remains selectable; later duplicates stay out of
+    // the copy batch so the import pipeline never creates ambiguous copies.
+    final claimedNames = <String>{...existingNames};
+    final candidates = <SheetExternalFolderImportCandidate>[];
+    for (final indexedEntry in visibleEntries.indexed) {
+      final candidate = _candidateFor(
+        indexedEntry.$2,
+        existingNames: claimedNames,
+        visibleIndex: indexedEntry.$1,
+      );
+      candidates.add(candidate);
+      if (candidate.isReadyToCopy) {
+        claimedNames.add(candidate.entry.normalizedName);
+      }
+    }
 
     return SheetExternalFolderCatalogPreview._(
       status: capped
