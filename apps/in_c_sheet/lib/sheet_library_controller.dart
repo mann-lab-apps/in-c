@@ -3475,6 +3475,10 @@ class SheetLibraryController extends ChangeNotifier {
                 file: importedFile,
                 importedAt: importedAt,
               ),
+            SheetSetlistPackageScoreKind.rtf => await store.importRtfFileBytes(
+              file: importedFile,
+              importedAt: importedAt,
+            ),
             SheetSetlistPackageScoreKind.unsupported => throw StateError(
               'Unsupported package score file.',
             ),

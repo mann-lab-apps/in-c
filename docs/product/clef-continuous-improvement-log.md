@@ -2800,3 +2800,10 @@ viewer, keeps the original RTF as a reference linked file and includes both file
 now exposes RTF selection, and controller regressions cover success plus metadata-save cleanup without false success.
 Fonts, colors, tables, images, embedded objects and rich formatting are not reproduced by the read-only viewer. Validation
 passes focused parser/store/controller/smoke tests, `flutter analyze`, all 1,687 tests and the RC release check.
+
+S268 VERIFIED LOCAL: completed RTF round-trip through Clef setlist packages. Package export now detects the original RTF
+reference behind an extracted text score, preserves its filename/bytes and records the RTF type in the manifest. Dry-run
+preview validates the bounded RTF parser before writes, and package import uses the same atomic RTF store path as direct
+file selection. Focused codec/export/controller regressions also keep DOCX and ordinary text package behavior intact.
+Validation passes `flutter analyze`, all 1,690 tests and the RC release check; one unrelated PDF compatibility CLI test
+timed out once under the first full parallel run, then passed alone and in the complete RC rerun.

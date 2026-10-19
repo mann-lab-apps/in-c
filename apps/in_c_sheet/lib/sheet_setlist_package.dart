@@ -8,6 +8,7 @@ import 'sheet_docx.dart';
 import 'sheet_file_import.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
+import 'sheet_rtf.dart';
 import 'sheet_setlist.dart';
 import 'sheet_setlist_manifest.dart';
 
@@ -215,6 +216,8 @@ class SheetSetlistPackageArchive {
     required Future<List<int>?> Function(SheetScore score) readScoreBytes,
     Future<List<int>?> Function(SheetScore score, SheetLinkedFile originalDocx)?
     readOriginalDocxBytes,
+    Future<List<int>?> Function(SheetScore score, SheetLinkedFile originalRtf)?
+    readOriginalRtfBytes,
     List<SheetAnnotationStampPack> userStampPacks =
         const <SheetAnnotationStampPack>[],
     Future<List<int>?> Function(String assetRef)? readUserStampAssetBytes,
@@ -237,18 +240,22 @@ class SheetSetlistPackageArchive {
 
     for (final score in orderedScores) {
       final originalDocx = _originalDocxReference(score);
-      final sourcePath = originalDocx?.path.trim() ?? score.filePath.trim();
-      final sourceFileName = originalDocx == null
-          ? score.sourceFileDisplayName
-          : _docxReferenceFileName(originalDocx);
-      if (originalDocx != null) {
+      final originalRtf = _originalRtfReference(score);
+      final originalDocument = originalDocx ?? originalRtf;
+      final sourcePath = originalDocument?.path.trim() ?? score.filePath.trim();
+      final sourceFileName = switch (originalDocument) {
+        null => score.sourceFileDisplayName,
+        _ when originalDocx != null => _referenceFileName(originalDocx, 'docx'),
+        _ => _referenceFileName(originalRtf!, 'rtf'),
+      };
+      if (originalDocument != null) {
         packageFileNames[score.id] = sourceFileName;
       }
       if (entryPathBySourcePath.containsKey(sourcePath)) {
         continue;
       }
       final extension = _fileExtension(
-        originalDocx == null ? score.filePath : sourceFileName,
+        originalDocument == null ? score.filePath : sourceFileName,
       );
       final safeEntryPath = _scorePackageEntryPath(
         score,
@@ -265,9 +272,15 @@ class SheetSetlistPackageArchive {
         unsupportedScores.add(score);
         continue;
       }
-      final bytes = originalDocx == null
-          ? await readScoreBytes(score)
-          : await readOriginalDocxBytes!(score, originalDocx);
+      if (originalRtf != null && readOriginalRtfBytes == null) {
+        unsupportedScores.add(score);
+        continue;
+      }
+      final bytes = originalDocx != null
+          ? await readOriginalDocxBytes!(score, originalDocx)
+          : originalRtf != null
+          ? await readOriginalRtfBytes!(score, originalRtf)
+          : await readScoreBytes(score);
       if (bytes == null) {
         missingScores.add(score);
         continue;
@@ -409,6 +422,8 @@ class SheetSetlistPackageFile {
 
   bool get isDocx => scoreKind == SheetSetlistPackageScoreKind.docx;
 
+  bool get isRtf => scoreKind == SheetSetlistPackageScoreKind.rtf;
+
   String get validationFailure {
     final content = bytes;
     if (content == null) {
@@ -420,6 +435,14 @@ class SheetSetlistPackageFile {
         return '';
       } on FormatException catch (error) {
         return 'DOCX 파일을 읽을 수 없습니다: ${error.message}';
+      }
+    }
+    if (scoreKind == SheetSetlistPackageScoreKind.rtf) {
+      try {
+        SheetRtfTextExtractor.extract(content);
+        return '';
+      } on FormatException catch (error) {
+        return 'RTF 파일을 읽을 수 없습니다: ${error.message}';
       }
     }
     if (!scoreKind.isTextScore) return '';
@@ -447,6 +470,7 @@ enum SheetSetlistPackageScoreKind {
   plainText('텍스트'),
   chordPro('ChordPro'),
   docx('DOCX'),
+  rtf('RTF'),
   unsupported('지원하지 않음');
 
   const SheetSetlistPackageScoreKind(this.label);
@@ -461,6 +485,7 @@ enum SheetSetlistPackageScoreKind {
     if (SheetFileImportPolicy.isPlainTextFileName(fileName)) return plainText;
     if (SheetFileImportPolicy.isChordProFileName(fileName)) return chordPro;
     if (SheetFileImportPolicy.isDocxFileName(fileName)) return docx;
+    if (SheetFileImportPolicy.isRtfFileName(fileName)) return rtf;
     return unsupported;
   }
 }
@@ -1076,6 +1101,8 @@ String _mediaTypeForScoreFile(String path) {
       return 'text/vnd.chordpro';
     case SheetSetlistPackageScoreKind.docx:
       return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case SheetSetlistPackageScoreKind.rtf:
+      return 'application/rtf';
     case SheetSetlistPackageScoreKind.unsupported:
       return '';
   }
@@ -1092,12 +1119,25 @@ SheetLinkedFile? _originalDocxReference(SheetScore score) {
   return null;
 }
 
-String _docxReferenceFileName(SheetLinkedFile file) {
+SheetLinkedFile? _originalRtfReference(SheetScore score) {
+  for (final linkedFile in score.linkedFiles) {
+    if (linkedFile.role == SheetLinkedFile.referenceRole &&
+        (linkedFile.type.toLowerCase() == 'rtf' ||
+            SheetFileImportPolicy.isRtfFileName(linkedFile.path))) {
+      return linkedFile;
+    }
+  }
+  return null;
+}
+
+String _referenceFileName(SheetLinkedFile file, String extension) {
   final label = file.label.trim();
-  if (SheetFileImportPolicy.isDocxFileName(label)) return _fileName(label);
+  if (SheetFileImportPolicy.extensionOf(label) == extension) {
+    return _fileName(label);
+  }
   final pathName = _fileName(file.path);
-  if (SheetFileImportPolicy.isDocxFileName(pathName)) return pathName;
-  return 'score.docx';
+  if (SheetFileImportPolicy.extensionOf(pathName) == extension) return pathName;
+  return 'score.$extension';
 }
 
 String _mediaTypeForStampAssetFile(String path) {

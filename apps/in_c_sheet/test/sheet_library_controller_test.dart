@@ -783,6 +783,43 @@ Clef & Staff 세트리스트
     );
   });
 
+  test('setlist package imports RTF through its bounded store path', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 16);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: RTF Package
+곡 수: 1곡
+
+1. Rehearsal Notes
+   파일: rehearsal-notes.rtf
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/rehearsal-notes.rtf': latin1.encode(
+            r'{\rtf1\ansi Practice slowly.}',
+          ),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported?.scoreIds, <String>['package-rtf-0']);
+    expect(store.importedRtfNames, <String>['rehearsal-notes.rtf']);
+    expect(controller.scoreById('package-rtf-0').filePath, endsWith('.txt'));
+    expect(
+      controller.scoreById('package-rtf-0').linkedFiles.single.type,
+      'rtf',
+    );
+  });
+
   test(
     'setlist package import failure restores previous scores and setlists',
     () async {
@@ -5341,12 +5378,14 @@ class _PackageImportStore extends SheetLibraryStore {
   final importedPlainTextNames = <String>[];
   final importedChordProNames = <String>[];
   final importedDocxNames = <String>[];
+  final importedRtfNames = <String>[];
   final discardedScoreIds = <String>[];
   var _pdfCount = 0;
   var _imageCount = 0;
   var _textCount = 0;
   var _chordProCount = 0;
   var _docxCount = 0;
+  var _rtfCount = 0;
   bool failSaveScoresAndSetlists = false;
   bool failSaveUserStampPacks = false;
   Future<void> Function()? afterPdfImport;
@@ -5435,6 +5474,31 @@ class _PackageImportStore extends SheetLibraryStore {
         SheetLinkedFile(
           path: '/package/${file.name}',
           type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedRtfNames.add(file.name);
+    final index = _rtfCount++;
+    final now = importedAt ?? this.now;
+    return _score(
+      now,
+      id: 'package-rtf-$index',
+      title: 'Rehearsal Notes',
+      filePath: '/package/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/package/${file.name}',
+          type: 'rtf',
           label: file.name,
           role: SheetLinkedFile.referenceRole,
           createdAt: now,

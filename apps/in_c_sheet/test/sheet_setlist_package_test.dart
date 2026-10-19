@@ -72,7 +72,7 @@ Clef & Staff 세트리스트
 2. Duplicate
    파일: duplicate.pdf
 3. Unsupported
-   파일: chart.rtf
+   파일: chart.pages
 4. No File
 ''');
 
@@ -82,7 +82,7 @@ Clef & Staff 세트리스트
       packageFiles: const [
         SheetSetlistPackageFile(path: 'scores/duplicate.pdf'),
         SheetSetlistPackageFile(path: 'extras/duplicate.pdf'),
-        SheetSetlistPackageFile(path: 'scores/chart.rtf'),
+        SheetSetlistPackageFile(path: 'scores/chart.pages'),
       ],
     );
 
@@ -101,7 +101,7 @@ Clef & Staff 세트리스트
       containsAll([
         '패키지에서 찾을 수 없는 파일: missing.pdf',
         '패키지에 같은 이름의 파일이 여러 개 있습니다: duplicate.pdf',
-        '지원하지 않는 패키지 파일 형식: chart.rtf',
+        '지원하지 않는 패키지 파일 형식: chart.pages',
         '패키지에서 찾을 수 없는 파일: No File',
       ]),
     );
@@ -292,6 +292,54 @@ Clef & Staff 세트리스트
       SheetSetlistPackageEntryStatus.invalidFile,
     );
     expect(invalidDryRun.warnings.single, contains('DOCX 파일을 읽을 수 없습니다'));
+  });
+
+  test('codec validates RTF package scores before import', () {
+    final manifest = '''
+Clef & Staff 세트리스트
+제목: RTF Package
+곡 수: 1곡
+
+1. Rehearsal Notes
+   파일: rehearsal-notes.rtf
+''';
+    final validPackage = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: manifest,
+        scoreFiles: <String, List<int>>{
+          'scores/rehearsal-notes.rtf': latin1.encode(
+            r'{\rtf1\ansi Practice\par slowly}',
+          ),
+        },
+      ),
+    );
+    final validDryRun = validPackage.previewImport(
+      currentScores: const <SheetScore>[],
+    );
+
+    expect(
+      validPackage.packageFiles.single.scoreKind,
+      SheetSetlistPackageScoreKind.rtf,
+    );
+    expect(validPackage.packageFiles.single.mediaType, 'application/rtf');
+    expect(validDryRun.canImport, isTrue);
+
+    final invalidPackage = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: manifest,
+        scoreFiles: <String, List<int>>{
+          'scores/rehearsal-notes.rtf': latin1.encode('plain text'),
+        },
+      ),
+    );
+    final invalidDryRun = invalidPackage.previewImport(
+      currentScores: const <SheetScore>[],
+    );
+    expect(
+      invalidDryRun.entries.single.status,
+      SheetSetlistPackageEntryStatus.invalidFile,
+    );
+    expect(invalidDryRun.warnings.single, contains('RTF 파일을 읽을 수 없습니다'));
   });
 
   test('dry run rejects invalid packaged text before import', () {
@@ -776,6 +824,46 @@ Clef & Staff 세트리스트
     expect(result.manifestText, contains('형식: DOCX'));
     final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
     expect(package.packageFiles.single.path, 'scores/studio-notes.docx');
+    expect(package.packageFiles.single.bytes, bytes);
+  });
+
+  test('export preserves an RTF original instead of extracted text', () async {
+    final now = DateTime(2026, 10, 20, 16);
+    final bytes = latin1.encode(r'{\rtf1\ansi Studio notes}');
+    final score = _score(
+      id: 'rtf-score',
+      title: 'Studio Notes',
+      filePath: '/library/studio-notes.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/library/original.rtf',
+          type: 'rtf',
+          label: 'studio-notes.rtf',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+    final setlist = SheetSetlist(
+      id: 'rtf-set',
+      title: 'RTF Set',
+      scoreIds: const <String>['rtf-score'],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await SheetSetlistPackageArchive.exportSetlistBytes(
+      setlist: setlist,
+      scores: <SheetScore>[score],
+      readScoreBytes: (_) async => utf8.encode('extracted text'),
+      readOriginalRtfBytes: (_, _) async => bytes,
+    );
+
+    expect(result.didExport, isTrue);
+    expect(result.manifestText, contains('파일: studio-notes.rtf'));
+    expect(result.manifestText, contains('형식: RTF'));
+    final package = SheetSetlistPackageArchive.decodeBytes(result.bytes!);
+    expect(package.packageFiles.single.path, 'scores/studio-notes.rtf');
     expect(package.packageFiles.single.bytes, bytes);
   });
 

@@ -9853,6 +9853,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         if (!await file.exists()) return null;
         return file.readAsBytes();
       },
+      readOriginalRtfBytes: (score, originalRtf) async {
+        final file = File(originalRtf.path);
+        if (!await file.exists()) return null;
+        return file.readAsBytes();
+      },
     );
     if (!mounted) {
       return;
