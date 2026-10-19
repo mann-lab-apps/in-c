@@ -117,6 +117,25 @@ void main() {
     expect(await File(score.filePath).readAsString(), '첫 문장\n\n두 번째 문장');
   });
 
+  test(
+    'batch PDF byte import discards earlier files after a later failure',
+    () async {
+      final store = _FailingBatchPdfStore();
+
+      await expectLater(
+        store.importPdfFileBytesBatch(
+          files: <SheetImportedFile>[
+            SheetImportedFile(name: 'one.pdf', bytes: Uint8List(1)),
+            SheetImportedFile(name: 'two.pdf', bytes: Uint8List(1)),
+          ],
+        ),
+        throwsFormatException,
+      );
+
+      expect(store.discardedScoreIds, <String>['batch-1']);
+    },
+  );
+
   test('imports DOCX text and preserves the original as a reference', () async {
     final store = SheetLibraryStore();
     final bytes = _docxBytes(
@@ -3499,6 +3518,27 @@ void main() {
   });
 
   test(
+    'image PDF import discards PDF and references after a later failure',
+    () async {
+      final store = _FailingImageReferenceStore();
+
+      await expectLater(
+        store.importImagesAsPdfBytes(
+          images: <SheetImportedFile>[
+            SheetImportedFile(name: 'one.png', bytes: _onePixelPng),
+            SheetImportedFile(name: 'two.png', bytes: _onePixelPng),
+          ],
+        ),
+        throwsStateError,
+      );
+
+      expect(store.discardedScores, hasLength(1));
+      expect(store.discardedScores.single.id, 'image-pdf');
+      expect(store.discardedScores.single.linkedFiles, hasLength(1));
+    },
+  );
+
+  test(
     'full backup restores image-converted PDF and reference source image',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -3619,6 +3659,94 @@ class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
     }
     if (!failWritesOnly && _shouldFail(key)) return false;
     return super.remove(key);
+  }
+}
+
+class _FailingBatchPdfStore extends SheetLibraryStore {
+  var importCalls = 0;
+  final discardedScoreIds = <String>[];
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    importCalls += 1;
+    if (importCalls == 2) throw const FormatException('second PDF failed');
+    return SheetScore(
+      id: 'batch-$importCalls',
+      title: fileName,
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/managed/$fileName',
+      importedAt: DateTime.utc(2026, 10, 20),
+      updatedAt: DateTime.utc(2026, 10, 20),
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
+  }
+}
+
+class _FailingImageReferenceStore extends SheetLibraryStore {
+  var linkedFileCalls = 0;
+  final discardedScores = <SheetScore>[];
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    return SheetScore(
+      id: 'image-pdf',
+      title: fileName,
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/managed/image.pdf',
+      importedAt: DateTime.utc(2026, 10, 20),
+      updatedAt: DateTime.utc(2026, 10, 20),
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<SheetLinkedFile> importLinkedFileBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    linkedFileCalls += 1;
+    if (linkedFileCalls == 2) throw StateError('second image failed');
+    return SheetLinkedFile(
+      path: '/managed/$fileName',
+      type: 'png',
+      label: fileName,
+      createdAt: importedAt ?? DateTime.utc(2026, 10, 20),
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScores.addAll(candidates);
+    return candidates.length;
   }
 }
 

@@ -492,9 +492,17 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importPdf();
-      if (_activeLibraryProfile.id != libraryId) return null;
+      importedScore = await store.importPdf();
+      if (_activeLibraryProfile.id != libraryId) {
+        if (importedScore != null) {
+          await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+            importedScore,
+          ]);
+        }
+        return null;
+      }
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -503,14 +511,23 @@ class SheetLibraryController extends ChangeNotifier {
       }
       final duplicate = _findLikelyImportedDuplicate(score);
       if (duplicate != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
         _lastImportOpenedExistingScore = true;
         return duplicate;
       }
 
       _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       }
@@ -532,13 +549,18 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    var rawScores = const <SheetScore>[];
     try {
-      final rawScores = await store.importPdfs();
+      rawScores = await store.importPdfs();
       if (_activeLibraryProfile.id != libraryId || rawScores.isEmpty) {
+        if (rawScores.isNotEmpty) {
+          await store.discardUnreferencedImportedScoreFiles(rawScores);
+        }
         return SheetPdfBatchImportResult.empty;
       }
       final importedScores = <SheetScore>[];
       final existingScores = <SheetScore>[];
+      final duplicateCopies = <SheetScore>[];
       for (final rawScore in rawScores) {
         final score = _withActiveCollection(rawScore);
         final duplicate =
@@ -546,6 +568,7 @@ class SheetLibraryController extends ChangeNotifier {
             _findLikelyDuplicateIn(score, importedScores);
         if (duplicate != null) {
           existingScores.add(duplicate);
+          duplicateCopies.add(score);
         } else {
           importedScores.add(score);
         }
@@ -554,8 +577,12 @@ class SheetLibraryController extends ChangeNotifier {
       if (importedScores.isNotEmpty) {
         _scores = <SheetScore>[...importedScores, ..._scores];
         if (!await _saveImportedScores(libraryId)) {
+          await store.discardUnreferencedImportedScoreFiles(rawScores);
           return SheetPdfBatchImportResult.empty;
         }
+      }
+      if (duplicateCopies.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(duplicateCopies);
       }
       _lastImportOpenedExistingScore = existingScores.isNotEmpty;
       return SheetPdfBatchImportResult(
@@ -563,6 +590,9 @@ class SheetLibraryController extends ChangeNotifier {
         existingScores: List<SheetScore>.unmodifiable(existingScores),
       );
     } catch (error) {
+      if (rawScores.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(rawScores);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       }
@@ -584,9 +614,17 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importImagesAsPdf();
-      if (_activeLibraryProfile.id != libraryId) return null;
+      importedScore = await store.importImagesAsPdf();
+      if (_activeLibraryProfile.id != libraryId) {
+        if (importedScore != null) {
+          await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+            importedScore,
+          ]);
+        }
+        return null;
+      }
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -595,9 +633,17 @@ class SheetLibraryController extends ChangeNotifier {
       }
 
       _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = _imageImportErrorMessage(error);
       }
@@ -872,26 +918,33 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    final imported = <SheetScore>[];
     try {
-      final imported = <SheetScore>[];
       for (final sharedFile in files) {
         final rawScore = await store.importPdfFile(
           File(sharedFile.path),
           fileName: sharedFile.name,
         );
-        if (_activeLibraryProfile.id != libraryId) return const <SheetScore>[];
         final score = _withActiveCollection(
           rawScore.copyWith(importSource: sharedFile.importSource),
         );
         imported.add(score);
+        if (_activeLibraryProfile.id != libraryId) {
+          await store.discardUnreferencedImportedScoreFiles(imported);
+          return const <SheetScore>[];
+        }
       }
       if (imported.isEmpty) {
         return const <SheetScore>[];
       }
       _scores = <SheetScore>[...imported.reversed, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return const <SheetScore>[];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(imported);
+        return const <SheetScore>[];
+      }
       return List<SheetScore>.unmodifiable(imported);
     } catch (error) {
+      await store.discardUnreferencedImportedScoreFiles(imported);
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.';
       }

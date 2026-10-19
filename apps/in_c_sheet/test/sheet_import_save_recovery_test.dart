@@ -52,6 +52,10 @@ void main() {
             expect(controller.isImporting, isFalse);
             expect(controller.errorMessage, isNull);
             expect(controller.lastImportOpenedExistingScore, isFalse);
+            expect(
+              store.discardedScoreIds.contains('imported'),
+              phase == 'save' || !fails,
+            );
             await controller.switchLibraryProfile(sourceId);
             expect(
               controller.scores,
@@ -72,6 +76,7 @@ void main() {
         expect(controller.errorMessage, contains('저장'));
         expect(controller.scores.single.toJson(), original);
         expect((await store.loadScores()).single.toJson(), original);
+        expect(store.discardedScoreIds, contains('imported'));
         store.failSave = false;
         expect(await _import(controller, kind), hasLength(1));
         expect(controller.lastImportOpenedExistingScore, isFalse);
@@ -90,6 +95,7 @@ void main() {
         expect(controller.scores.single.id, 'existing');
         expect(controller.errorMessage, isNotEmpty);
         expect(store.saveCalls, 1);
+        expect(store.discardedScoreIds, isEmpty);
       },
     );
   }
@@ -123,6 +129,19 @@ void main() {
     final encoded = SheetScore.encodeList(controller.scores);
     expect(encoded, isNot(contains('content://')));
     expect(encoded, isNot(contains('documentToken')));
+  });
+
+  test('shared PDF partial failure discards earlier imported copies', () async {
+    store.failSharedImportAt = 2;
+
+    final imported = await controller.importSharedPdfFiles(const [
+      SheetSharedImportFile(path: '/tmp/one.pdf', name: 'one.pdf'),
+      SheetSharedImportFile(path: '/tmp/two.pdf', name: 'two.pdf'),
+    ]);
+
+    expect(imported, isEmpty);
+    expect(controller.scores.single.id, 'existing');
+    expect(store.discardedScoreIds, contains('imported'));
   });
 
   for (final addToSetlist in [false, true]) {
@@ -344,6 +363,7 @@ void main() {
       }
       expect(tester.takeException(), isNull);
       expect(controller.scores.single.id, 'existing');
+      expect(store.discardedScoreIds, contains('new-import-id'));
       expect(
         controller.setlistById(target.id).scoreIds,
         outcome == 'success' ? ['existing'] : isEmpty,
@@ -471,6 +491,9 @@ class _ImportStore extends SheetLibraryStore {
   Completer<void>? releaseWrite;
   List<SheetScore>? importedBatch;
   bool failRead = false;
+  int sharedImportCalls = 0;
+  int? failSharedImportAt;
+  final discardedScoreIds = <String>[];
 
   @override
   Future<List<SheetScore>> loadScores() async {
@@ -504,7 +527,19 @@ class _ImportStore extends SheetLibraryStore {
   @override
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
     await importGate?.future;
+    sharedImportCalls += 1;
+    if (sharedImportCalls == failSharedImportAt) {
+      throw const FormatException('invalid shared PDF');
+    }
     return _imported();
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
   }
 
   @override

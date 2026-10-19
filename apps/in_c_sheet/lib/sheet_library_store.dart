@@ -806,19 +806,36 @@ class SheetLibraryStore {
       return const <SheetScore>[];
     }
 
-    final scores = <SheetScore>[];
+    final importedFiles = <SheetImportedFile>[];
     for (final file in files) {
       if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
         throw FormatException('Unsupported PDF file: ${file.name}');
       }
-      scores.add(
-        await importPdfBytes(
-          bytes: await file.readAsBytes(),
-          fileName: file.name,
-        ),
+      importedFiles.add(
+        SheetImportedFile(name: file.name, bytes: await file.readAsBytes()),
       );
     }
-    return List<SheetScore>.unmodifiable(scores);
+    return importPdfFileBytesBatch(files: importedFiles);
+  }
+
+  Future<List<SheetScore>> importPdfFileBytesBatch({
+    required List<SheetImportedFile> files,
+  }) async {
+    final scores = <SheetScore>[];
+    try {
+      for (final file in files) {
+        if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
+          throw FormatException('Unsupported PDF file: ${file.name}');
+        }
+        scores.add(
+          await importPdfBytes(bytes: file.bytes, fileName: file.name),
+        );
+      }
+      return List<SheetScore>.unmodifiable(scores);
+    } catch (_) {
+      await discardUnreferencedImportedScoreFiles(scores);
+      rethrow;
+    }
   }
 
   Future<List<SheetBookmark>> importBookmarkCsv({
@@ -933,23 +950,30 @@ class SheetLibraryStore {
       importedAt: importedAt,
     );
     final linkedImages = <SheetLinkedFile>[];
-    final now = importedAt ?? DateTime.now();
-    for (var index = 0; index < images.length; index += 1) {
-      final image = images[index];
-      linkedImages.add(
-        (await importLinkedFileBytes(
-          bytes: image.bytes,
-          fileName: image.name,
-          importedAt: now.add(Duration(microseconds: index)),
-        )).copyWith(role: SheetLinkedFile.referenceRole),
+    try {
+      final now = importedAt ?? DateTime.now();
+      for (var index = 0; index < images.length; index += 1) {
+        final image = images[index];
+        linkedImages.add(
+          (await importLinkedFileBytes(
+            bytes: image.bytes,
+            fileName: image.name,
+            importedAt: now.add(Duration(microseconds: index)),
+          )).copyWith(role: SheetLinkedFile.referenceRole),
+        );
+      }
+      if (linkedImages.isEmpty) {
+        return score;
+      }
+      return score.copyWith(
+        linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
       );
+    } catch (_) {
+      await discardUnreferencedImportedScoreFiles(<SheetScore>[
+        score.copyWith(linkedFiles: linkedImages),
+      ]);
+      rethrow;
     }
-    if (linkedImages.isEmpty) {
-      return score;
-    }
-    return score.copyWith(
-      linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
-    );
   }
 
   Future<SheetScore> importChordProText({

@@ -3015,3 +3015,13 @@ numbering metadata falls back to paragraph text instead of blocking import. Pars
 starts, letter/Roman formats and damaged metadata. `dart format`, `flutter analyze`, all 1,750 tests and the RC release
 check passed. Word-specific custom numbering glyphs, layout fidelity and list override semantics remain outside the
 guarantee and require real-document QA.
+
+S299 VERIFIED LOCAL: closed orphaned app-owned file paths across PDF import failures before expanding connected-folder
+formats. Single PDF, batch PDF, image-to-PDF and shared/folder-copy imports now track newly created scores and ask the
+store to remove only files that are not referenced by any persisted library when duplicate matching, a library switch,
+a later file write or metadata persistence prevents completion. Batch PDF import reads selected inputs before writes and
+cleans earlier writes if a later write fails; image conversion likewise cleans the generated PDF and earlier source-image
+references if a later linked image fails. Existing persisted files remain protected by the store's all-profile reference
+scan. Controller/store regressions cover duplicate open, save failure, delayed library switch, shared partial failure,
+batch write failure and linked-image failure. `dart format`, `flutter analyze`, all 1,753 tests and the RC release check
+passed. Forced process termination and best-effort cleanup failure remain outside the guarantee.
