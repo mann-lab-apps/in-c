@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,58 @@ void main() {
   test('detects text annotations that need a Unicode-capable PDF font', () {
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('Cue'), isFalse);
     expect(SheetAnnotatedPdfExporter.textRequiresUnicodeFont('숨 크게'), isTrue);
+  });
+
+  test('preflights Unicode font bytes, coverage, and output budget', () async {
+    final fontBytes = await _pdfDocumentFixtureFontBytes();
+
+    final notRequired = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['Cue'],
+      fontBytes: null,
+    );
+    final unavailable = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['Ω'],
+      fontBytes: null,
+    );
+    final invalid = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['Ω'],
+      fontBytes: const <int>[1, 2, 3],
+    );
+    final ready = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['café Ω', '♪'],
+      fontBytes: fontBytes,
+    );
+    final tooLarge = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['Ω'],
+      fontBytes: fontBytes,
+      maxFontBytes: fontBytes.length - 1,
+    );
+    final missingGlyphs = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['숨 크게'],
+      fontBytes: fontBytes,
+    );
+    final projectedTooLarge = SheetAnnotatedPdfExporter.preflightUnicodeFont(
+      texts: const <String>['Ω', '♪'],
+      fontBytes: fontBytes,
+      maxProjectedBytes: fontBytes.length,
+    );
+
+    expect(notRequired.status, SheetPdfUnicodeFontPreflightStatus.notRequired);
+    expect(unavailable.status, SheetPdfUnicodeFontPreflightStatus.unavailable);
+    expect(invalid.status, SheetPdfUnicodeFontPreflightStatus.invalid);
+    expect(ready.status, SheetPdfUnicodeFontPreflightStatus.ready);
+    expect(ready.canEmbed, isTrue);
+    expect(ready.fontFamily, contains('DejaVu'));
+    expect(tooLarge.status, SheetPdfUnicodeFontPreflightStatus.tooLarge);
+    expect(
+      missingGlyphs.status,
+      SheetPdfUnicodeFontPreflightStatus.missingGlyphs,
+    );
+    expect(missingGlyphs.unsupportedTexts, contains('숨 크게'));
+    expect(
+      projectedTooLarge.status,
+      SheetPdfUnicodeFontPreflightStatus.projectedOutputTooLarge,
+    );
   });
 
   test('reports PDF annotation export capabilities before editable export', () {
@@ -194,6 +247,8 @@ void main() {
     expect(result.textCount, 1);
     expect(result.exportedTextCount, 1);
     expect(result.skippedUnicodeTextCount, 0);
+    expect(result.embeddedUnicodeTextCount, 0);
+    expect(result.unembeddedUnicodeTextCount, 0);
     expect(await File(outputPath).exists(), isTrue);
     expect(await input.readAsBytes(), originalBytes);
 
@@ -650,6 +705,127 @@ void main() {
     expect(inspection.hasUnembeddedUnicodeFreeText, isTrue);
     expect(inspection.unembeddedUnicodeFreeTextNames, contains('clef-text-kr'));
     expect(inspection.isLocallyInspectableEditableFixture, isTrue);
+  });
+
+  test('embeds a preflighted font for Unicode FreeText', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-embedded-font-export-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-embedded-font.pdf';
+    final now = DateTime.parse('2026-10-19T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-embedded-font',
+      title: 'Embedded font fixture',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'embedded-symbol',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: 'Ω ♪',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+    final fontBytes = await _pdfDocumentFixtureFontBytes();
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      readUnicodeFontBytes: () async => fontBytes,
+    );
+    final inspection =
+        await SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy(
+          outputPath,
+        );
+
+    expect(result.didWrite, isTrue);
+    expect(result.embeddedUnicodeTextCount, 1);
+    expect(result.unembeddedUnicodeTextCount, 0);
+    expect(inspection.hasEmbeddedFontFreeText, isTrue);
+    expect(inspection.hasUnembeddedUnicodeFreeText, isFalse);
+    expect(
+      inspection.embeddedFontFreeTextNames,
+      contains('clef-embedded-symbol'),
+    );
+  });
+
+  test('does not write when supplied font misses Unicode glyphs', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-standard-missing-font-glyph-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/should-not-exist.pdf';
+    final now = DateTime.parse('2026-10-19T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-missing-glyph',
+      title: 'Missing glyph fixture',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: const <SheetAnnotationStroke>[],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'missing-korean',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: '숨 크게',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+      readUnicodeFontBytes: _pdfDocumentFixtureFontBytes,
+    );
+
+    expect(result.didWrite, isFalse);
+    expect(result.hasUnicodeFontPreflightFailure, isTrue);
+    expect(
+      result.failureReason,
+      SheetAnnotatedPdfExportResult.unicodeFontMissingGlyphsReason,
+    );
+    expect(File(outputPath).existsSync(), isFalse);
   });
 
   test(
@@ -1484,6 +1660,26 @@ void main() {
     expect(exported.pageCount, 3);
     expect(await input.readAsBytes(), originalBytes);
   });
+}
+
+Future<List<int>> _pdfDocumentFixtureFontBytes() async {
+  final packageConfigFile = File('.dart_tool/package_config.json');
+  final packageConfig = jsonDecode(
+    await packageConfigFile.readAsString(),
+  ) as Map<String, dynamic>;
+  final packages = packageConfig['packages'] as List<dynamic>;
+  final pdfDocument = packages.cast<Map<String, dynamic>>().singleWhere(
+    (entry) => entry['name'] == 'pdf_document',
+  );
+  final configuredRoot = Uri.parse(pdfDocument['rootUri'] as String);
+  final resolvedRoot = configuredRoot.isAbsolute
+      ? configuredRoot
+      : packageConfigFile.parent.uri.resolveUri(configuredRoot);
+  final rootUri = resolvedRoot.path.endsWith('/')
+      ? resolvedRoot
+      : resolvedRoot.replace(path: '${resolvedRoot.path}/');
+  final fixture = File.fromUri(rootUri.resolve('test/fonts/DejaVuSans.ttf'));
+  return fixture.readAsBytes();
 }
 
 SheetAnnotationStroke _stroke(

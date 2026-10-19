@@ -2615,3 +2615,12 @@ separately names Unicode FreeText annotations that still depend on viewer font f
 fixture CLI and report surface both lists, so generated appearances and `/Contents` no longer look like
 proof of Korean/music-symbol glyph fidelity. Focused exporter/report tests passed; licensed font selection,
 glyph preflight, embedding size policy and external viewer QA remain follow-up.
+
+S242 VERIFIED LOCAL: added a guarded Unicode font supply boundary for editable PDF FreeText export without
+bundling an unreviewed font. Preflight rejects missing/invalid font bytes, files over 4 MiB, projected
+per-annotation whole-font embedding over 12 MiB, and any text with missing glyph outlines before writing an
+output PDF. A supplied font that passes preflight is embedded and the resulting PDF is re-inspected for an
+actual font program; fallback-only exports report their unembedded Unicode count. Focused tests cover all
+preflight statuses, a real embedded-font output, Korean missing-glyph rejection and no-file-on-failure.
+Noto CJK is an OFL 1.1 candidate, but production wiring remains blocked on app size and writer font-resource
+reuse/subsetting because `pdf_document 3.7.0` embeds the whole font program for every FreeText appearance.

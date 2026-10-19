@@ -214,6 +214,11 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   증가, PDF writer 지원 여부가 필요하다.
 - 결정 필요사항: Noto Sans CJK 등 폰트 후보와 license, app bundle size, subset embedding 가능성,
   fallback font list, style/weight 범위.
+- 조사 결과: Noto CJK Sans 공식 배포본은 SIL Open Font License 1.1이며 embedding/redistribution을
+  허용한다 (`https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE`). 다만 현재
+  `pdf_document 3.7.0`은 subset 없이 font program 전체를 각 FreeText appearance resource에 넣는다.
+  따라서 production font asset을 바로 연결하지 않고, 4 MiB 단일 font/12 MiB 예상 중복 크기 상한과
+  glyph coverage preflight를 먼저 구현했다. 실제 기본 font 선택 전 resource reuse/subset 경로가 필요하다.
 - 구현 후보: licensed font asset registration, text export font resolver, glyph coverage preflight,
   whole-font 중복 embedding을 피할 writer resource reuse/subset 지원, unicode text fixture, missing
   glyph preflight, export summary copy.

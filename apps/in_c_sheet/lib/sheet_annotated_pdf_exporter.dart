@@ -14,6 +14,40 @@ typedef SheetPdfImageStampAssetReader = Future<List<int>?> Function(
   String assetRef,
 );
 
+typedef SheetPdfUnicodeFontBytesReader = Future<List<int>?> Function();
+
+enum SheetPdfUnicodeFontPreflightStatus {
+  notRequired,
+  unavailable,
+  invalid,
+  tooLarge,
+  projectedOutputTooLarge,
+  missingGlyphs,
+  ready,
+}
+
+class SheetPdfUnicodeFontPreflight {
+  const SheetPdfUnicodeFontPreflight({
+    required this.status,
+    required this.unicodeTextCount,
+    this.fontFamily,
+    this.fontByteCount = 0,
+    this.projectedEmbeddedByteCount = 0,
+    this.unsupportedTexts = const <String>[],
+  });
+
+  final SheetPdfUnicodeFontPreflightStatus status;
+  final int unicodeTextCount;
+  final String? fontFamily;
+  final int fontByteCount;
+  final int projectedEmbeddedByteCount;
+  final List<String> unsupportedTexts;
+
+  bool get canEmbed =>
+      status == SheetPdfUnicodeFontPreflightStatus.ready ||
+      status == SheetPdfUnicodeFontPreflightStatus.notRequired;
+}
+
 class SheetPdfAnnotationExportCapability {
   const SheetPdfAnnotationExportCapability({
     required this.mode,
@@ -122,6 +156,8 @@ class SheetAnnotatedPdfExportResult {
     required this.didWrite,
     this.mode = SheetPdfAnnotationExportMode.renderedStamp,
     this.failureReason,
+    this.embeddedUnicodeTextCount = 0,
+    this.unembeddedUnicodeTextCount = 0,
   });
 
   final String inputPath;
@@ -134,6 +170,8 @@ class SheetAnnotatedPdfExportResult {
   final bool didWrite;
   final SheetPdfAnnotationExportMode mode;
   final String? failureReason;
+  final int embeddedUnicodeTextCount;
+  final int unembeddedUnicodeTextCount;
 
   static const unicodeTextRequiresFontEmbeddingReason =
       'unicodeTextRequiresFontEmbedding';
@@ -143,6 +181,12 @@ class SheetAnnotatedPdfExportResult {
       'standardAnnotationEmbeddingUnsupported';
   static const standardAnnotationObjectMappingUnavailableReason =
       'standardAnnotationObjectMappingUnavailable';
+  static const unicodeFontUnavailableReason = 'unicodeFontUnavailable';
+  static const unicodeFontInvalidReason = 'unicodeFontInvalid';
+  static const unicodeFontTooLargeReason = 'unicodeFontTooLarge';
+  static const unicodeFontProjectedOutputTooLargeReason =
+      'unicodeFontProjectedOutputTooLarge';
+  static const unicodeFontMissingGlyphsReason = 'unicodeFontMissingGlyphs';
 
   bool get hasAnnotations => strokeCount + textCount > 0;
 
@@ -165,10 +209,21 @@ class SheetAnnotatedPdfExportResult {
   bool get hasUnsupportedStandardAnnotationObjectMapping {
     return failureReason == standardAnnotationObjectMappingUnavailableReason;
   }
+
+  bool get hasUnicodeFontPreflightFailure {
+    return failureReason == unicodeFontUnavailableReason ||
+        failureReason == unicodeFontInvalidReason ||
+        failureReason == unicodeFontTooLargeReason ||
+        failureReason == unicodeFontProjectedOutputTooLargeReason ||
+        failureReason == unicodeFontMissingGlyphsReason;
+  }
 }
 
 class SheetAnnotatedPdfExporter {
   const SheetAnnotatedPdfExporter._();
+
+  static const maxUnicodeFontBytes = 4 * 1024 * 1024;
+  static const maxProjectedUnicodeFontBytes = 12 * 1024 * 1024;
 
   static const supportsStandardAnnotationEmbedding = true;
   static const renderedStampExportCapability =
@@ -311,6 +366,77 @@ class SheetAnnotatedPdfExporter {
     return text.runes.any((rune) => rune > 0x7f);
   }
 
+  static SheetPdfUnicodeFontPreflight preflightUnicodeFont({
+    required Iterable<String> texts,
+    required List<int>? fontBytes,
+    int maxFontBytes = maxUnicodeFontBytes,
+    int maxProjectedBytes = maxProjectedUnicodeFontBytes,
+  }) {
+    final unicodeTexts = texts
+        .map((text) => text.trim())
+        .where((text) => text.isNotEmpty && textRequiresUnicodeFont(text))
+        .toList(growable: false);
+    if (unicodeTexts.isEmpty) {
+      return const SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.notRequired,
+        unicodeTextCount: 0,
+      );
+    }
+    if (fontBytes == null || fontBytes.isEmpty) {
+      return SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.unavailable,
+        unicodeTextCount: unicodeTexts.length,
+      );
+    }
+    if (fontBytes.length > maxFontBytes) {
+      return SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.tooLarge,
+        unicodeTextCount: unicodeTexts.length,
+        fontByteCount: fontBytes.length,
+        projectedEmbeddedByteCount: fontBytes.length * unicodeTexts.length,
+      );
+    }
+    final projectedBytes = fontBytes.length * unicodeTexts.length;
+    if (projectedBytes > maxProjectedBytes) {
+      return SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.projectedOutputTooLarge,
+        unicodeTextCount: unicodeTexts.length,
+        fontByteCount: fontBytes.length,
+        projectedEmbeddedByteCount: projectedBytes,
+      );
+    }
+    try {
+      final font = PdfEmbeddedFont.parse(Uint8List.fromList(fontBytes));
+      final unsupportedTexts = unicodeTexts
+          .where((text) => !font.canRender(text))
+          .toList(growable: false);
+      if (unsupportedTexts.isNotEmpty) {
+        return SheetPdfUnicodeFontPreflight(
+          status: SheetPdfUnicodeFontPreflightStatus.missingGlyphs,
+          unicodeTextCount: unicodeTexts.length,
+          fontFamily: font.displayName,
+          fontByteCount: fontBytes.length,
+          projectedEmbeddedByteCount: projectedBytes,
+          unsupportedTexts: List.unmodifiable(unsupportedTexts),
+        );
+      }
+      return SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.ready,
+        unicodeTextCount: unicodeTexts.length,
+        fontFamily: font.displayName,
+        fontByteCount: fontBytes.length,
+        projectedEmbeddedByteCount: projectedBytes,
+      );
+    } catch (_) {
+      return SheetPdfUnicodeFontPreflight(
+        status: SheetPdfUnicodeFontPreflightStatus.invalid,
+        unicodeTextCount: unicodeTexts.length,
+        fontByteCount: fontBytes.length,
+        projectedEmbeddedByteCount: projectedBytes,
+      );
+    }
+  }
+
   static bool _isPageInRange(int pageNumber, int pageCount) {
     return pageNumber >= 1 && pageNumber <= pageCount;
   }
@@ -331,6 +457,7 @@ class SheetAnnotatedPdfExporter {
     SheetPdfAnnotationExportMode mode =
         SheetPdfAnnotationExportMode.renderedStamp,
     SheetPdfImageStampAssetReader? readImageStampAssetBytes,
+    SheetPdfUnicodeFontBytesReader? readUnicodeFontBytes,
   }) async {
     final exportableStrokes = score.annotationLayer.strokes
         .where(
@@ -362,6 +489,7 @@ class SheetAnnotatedPdfExporter {
         strokeCount: strokeCount,
         textCount: textCount,
         readImageStampAssetBytes: readImageStampAssetBytes,
+        readUnicodeFontBytes: readUnicodeFontBytes,
       );
     }
     if (strokeCount + textCount == 0) {
@@ -489,6 +617,7 @@ class SheetAnnotatedPdfExporter {
     required int strokeCount,
     required int textCount,
     SheetPdfImageStampAssetReader? readImageStampAssetBytes,
+    SheetPdfUnicodeFontBytesReader? readUnicodeFontBytes,
   }) async {
     if (strokeCount + textCount == 0) {
       return SheetAnnotatedPdfExportResult(
@@ -513,6 +642,42 @@ class SheetAnnotatedPdfExporter {
         exportableTexts,
         readImageStampAssetBytes,
       );
+      final inRangeUnicodeTexts = exportableTexts
+          .where(
+            (text) =>
+                _isPageInRange(text.pageNumber, pageCount) &&
+                !text.isImageStamp &&
+                textRequiresUnicodeFont(text.text),
+          )
+          .toList(growable: false);
+      PdfEmbeddedFont? unicodeFont;
+      if (readUnicodeFontBytes != null && inRangeUnicodeTexts.isNotEmpty) {
+        List<int>? fontBytes;
+        try {
+          fontBytes = await readUnicodeFontBytes();
+        } catch (_) {
+          fontBytes = null;
+        }
+        final preflight = preflightUnicodeFont(
+          texts: inRangeUnicodeTexts.map((text) => text.text),
+          fontBytes: fontBytes,
+        );
+        if (!preflight.canEmbed) {
+          return SheetAnnotatedPdfExportResult(
+            inputPath: score.filePath,
+            outputPath: null,
+            pageCount: pageCount,
+            strokeCount: strokeCount,
+            textCount: textCount,
+            exportedTextCount: 0,
+            skippedUnicodeTextCount: 0,
+            didWrite: false,
+            mode: SheetPdfAnnotationExportMode.standardAnnotation,
+            failureReason: _unicodeFontFailureReason(preflight.status),
+          );
+        }
+        unicodeFont = PdfEmbeddedFont.parse(Uint8List.fromList(fontBytes!));
+      }
       var wroteAnnotation = false;
       var inRangeAnnotationCount = 0;
       var exportedTextCount = 0;
@@ -541,6 +706,7 @@ class SheetAnnotatedPdfExporter {
             geometry,
             text,
             imageStampAssets,
+            unicodeFont,
           )) {
             exportedTextCount += 1;
             wroteAnnotation = true;
@@ -582,6 +748,12 @@ class SheetAnnotatedPdfExporter {
         skippedUnicodeTextCount: 0,
         didWrite: true,
         mode: SheetPdfAnnotationExportMode.standardAnnotation,
+        embeddedUnicodeTextCount: unicodeFont == null
+            ? 0
+            : inRangeUnicodeTexts.length,
+        unembeddedUnicodeTextCount: unicodeFont == null
+            ? inRangeUnicodeTexts.length
+            : 0,
       );
     } catch (error) {
       return SheetAnnotatedPdfExportResult(
@@ -817,6 +989,7 @@ class SheetAnnotatedPdfExporter {
     SheetPdfAnnotationGeometry geometry,
     SheetTextAnnotation text,
     Map<String, PdfEmbeddableImage> imageStampAssets,
+    PdfEmbeddedFont? unicodeFont,
   ) {
     if (text.isImageStamp) {
       final image = imageStampAssets[text.stampAssetRef];
@@ -863,12 +1036,36 @@ class SheetAnnotatedPdfExporter {
       rect,
       trimmedText,
       fontSize: text.fontSize,
+      font: unicodeFont != null && textRequiresUnicodeFont(trimmedText)
+          ? unicodeFont
+          : PdfStandardFont.helvetica,
       color: _rgb(text.color),
       borderColor: null,
       borderWidth: 0,
       name: _standardAnnotationName(text.id),
     );
     return true;
+  }
+
+  static String _unicodeFontFailureReason(
+    SheetPdfUnicodeFontPreflightStatus status,
+  ) {
+    switch (status) {
+      case SheetPdfUnicodeFontPreflightStatus.unavailable:
+        return SheetAnnotatedPdfExportResult.unicodeFontUnavailableReason;
+      case SheetPdfUnicodeFontPreflightStatus.invalid:
+        return SheetAnnotatedPdfExportResult.unicodeFontInvalidReason;
+      case SheetPdfUnicodeFontPreflightStatus.tooLarge:
+        return SheetAnnotatedPdfExportResult.unicodeFontTooLargeReason;
+      case SheetPdfUnicodeFontPreflightStatus.projectedOutputTooLarge:
+        return SheetAnnotatedPdfExportResult
+            .unicodeFontProjectedOutputTooLargeReason;
+      case SheetPdfUnicodeFontPreflightStatus.missingGlyphs:
+        return SheetAnnotatedPdfExportResult.unicodeFontMissingGlyphsReason;
+      case SheetPdfUnicodeFontPreflightStatus.notRequired:
+      case SheetPdfUnicodeFontPreflightStatus.ready:
+        throw ArgumentError.value(status, 'status', 'is not a failure');
+    }
   }
 
   static PdfRect _imageStampPdfRect(
