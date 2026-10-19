@@ -1038,6 +1038,53 @@ class SheetLibraryStore {
     );
   }
 
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final profiles = await loadLibraryProfiles();
+      final profileIds = <String>{
+        SheetLibraryProfile.defaultId,
+        for (final profile in profiles) profile.id,
+      };
+      final referencedPaths = <String>{
+        for (final profileId in profileIds)
+          for (final score in _readScores(preferences, profileId)) ...[
+            score.filePath,
+            for (final linkedFile in score.linkedFiles) linkedFile.path,
+          ],
+      };
+      final documents = await getApplicationDocumentsDirectory();
+      final managedDirectories = <Directory>[
+        Directory('${documents.path}/$_pdfFolderName'),
+        Directory('${documents.path}/$_textScoresFolderName'),
+        Directory('${documents.path}/$_linkedFilesFolderName'),
+      ];
+      final candidatePaths = <String>{
+        for (final score in candidates) ...[
+          score.filePath,
+          for (final linkedFile in score.linkedFiles) linkedFile.path,
+        ],
+      }..removeWhere(referencedPaths.contains);
+
+      var removed = 0;
+      for (final path in candidatePaths) {
+        final file = File(path);
+        if (!await file.exists() ||
+            !await _isInsideManagedDirectory(file, managedDirectories)) {
+          continue;
+        }
+        await file.delete();
+        removed += 1;
+      }
+      return removed;
+    } catch (_) {
+      // Cleanup is best effort and must never hide the original import error.
+      return 0;
+    }
+  }
+
   Future<SheetImportedFile?> pickChordProFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
@@ -2194,6 +2241,23 @@ class SheetLibraryStore {
     final file = File('${linkedFilesDir.path}/$id-$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<bool> _isInsideManagedDirectory(
+    File file,
+    Iterable<Directory> directories,
+  ) async {
+    final resolvedFilePath = await file.resolveSymbolicLinks();
+    for (final directory in directories) {
+      if (!await directory.exists()) continue;
+      final resolvedDirectoryPath = await directory.resolveSymbolicLinks();
+      if (resolvedFilePath.startsWith(
+        '$resolvedDirectoryPath${Platform.pathSeparator}',
+      )) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<String> _writeRestoredFile({

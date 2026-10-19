@@ -196,8 +196,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   `clef.setlist.package` v1 ZIP codec/export/dry-run/import model은 `clef-setlist-package.txt`와
   `scores/` entry를 만들고 해석하며, 세트리스트 화면의 ZIP package preview에서 실제 파일 쓰기 전에 공유 PDF dedupe, missing source,
   unsupported format, 기존 악보 재사용, package 새 파일 import 후보, missing file, duplicate filename,
-  ambiguous existing score를 구분한다. 완전히 해결된 package는 preview 확인 뒤 package 안 PDF/image를
-  라이브러리에 복사하고 기존 악보와 함께 새 score/setlist를 저장한다. MobileSheets 전용 binary package
+  ambiguous existing score를 구분한다. 완전히 해결된 package는 preview 확인 뒤 package 안
+  PDF/image/text/ChordPro를 라이브러리에 복사하고 기존 악보와 함께 새 score/setlist를 저장한다. 저장이
+  완료되지 않으면 어떤 library profile에서도 참조하지 않는 app-owned 복사본만 정리한다. MobileSheets 전용 binary package
   호환과 대용량 package 실기기 QA는 후속이다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,
   컬렉션 지정/정보 편집/제거를 더보기 메뉴로 묶는다. 넓은 화면은 기존 바로가기를 유지한다.

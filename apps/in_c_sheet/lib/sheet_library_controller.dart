@@ -3333,111 +3333,119 @@ class SheetLibraryController extends ChangeNotifier {
     final startPages = <String, int>{};
     final notes = <String, String>{};
     final durations = <String, int>{};
+    var metadataPersisted = false;
 
-    for (var index = 0; index < dryRun.entries.length; index += 1) {
-      final entry = dryRun.entries[index];
-      late final SheetScore score;
-      if (entry.status == SheetSetlistPackageEntryStatus.existingScore) {
-        final currentScore = scoreByIdOrNull(entry.existingScore?.id ?? '');
-        if (currentScore == null) {
-          throw StateError('Resolved package score is no longer available.');
-        }
-        score = currentScore;
-      } else if (entry.status ==
-          SheetSetlistPackageEntryStatus.importableFile) {
-        final packageFile = entry.packageFile;
-        final bytes = packageFile?.bytes;
-        if (packageFile == null || bytes == null) {
-          throw StateError('Package file bytes are not available.');
-        }
-        final importedAt = now.add(Duration(microseconds: index));
-        final importedFile = SheetImportedFile(
-          name: packageFile.fileName,
-          bytes: bytes,
-          mimeType: packageFile.mediaType,
-        );
-        final rawScore = switch (packageFile.scoreKind) {
-          SheetSetlistPackageScoreKind.pdf => await store.importPdfBytes(
+    try {
+      for (var index = 0; index < dryRun.entries.length; index += 1) {
+        final entry = dryRun.entries[index];
+        late final SheetScore score;
+        if (entry.status == SheetSetlistPackageEntryStatus.existingScore) {
+          final currentScore = scoreByIdOrNull(entry.existingScore?.id ?? '');
+          if (currentScore == null) {
+            throw StateError('Resolved package score is no longer available.');
+          }
+          score = currentScore;
+        } else if (entry.status ==
+            SheetSetlistPackageEntryStatus.importableFile) {
+          final packageFile = entry.packageFile;
+          final bytes = packageFile?.bytes;
+          if (packageFile == null || bytes == null) {
+            throw StateError('Package file bytes are not available.');
+          }
+          final importedAt = now.add(Duration(microseconds: index));
+          final importedFile = SheetImportedFile(
+            name: packageFile.fileName,
             bytes: bytes,
-            fileName: packageFile.fileName,
-            importedAt: importedAt,
-          ),
-          SheetSetlistPackageScoreKind.image =>
-            await store.importImagesAsPdfBytes(
-              images: [importedFile],
-              title: entry.item.title,
+            mimeType: packageFile.mediaType,
+          );
+          final rawScore = switch (packageFile.scoreKind) {
+            SheetSetlistPackageScoreKind.pdf => await store.importPdfBytes(
+              bytes: bytes,
+              fileName: packageFile.fileName,
               importedAt: importedAt,
             ),
-          SheetSetlistPackageScoreKind.plainText =>
-            await store.importPlainTextFile(
-              file: importedFile,
-              importedAt: importedAt,
+            SheetSetlistPackageScoreKind.image =>
+              await store.importImagesAsPdfBytes(
+                images: [importedFile],
+                title: entry.item.title,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.plainText =>
+              await store.importPlainTextFile(
+                file: importedFile,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.chordPro =>
+              await store.importChordProFileBytes(
+                file: importedFile,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.unsupported => throw StateError(
+              'Unsupported package score file.',
             ),
-          SheetSetlistPackageScoreKind.chordPro =>
-            await store.importChordProFileBytes(
-              file: importedFile,
-              importedAt: importedAt,
-            ),
-          SheetSetlistPackageScoreKind.unsupported => throw StateError(
-            'Unsupported package score file.',
-          ),
-        };
-        if (_activeLibraryProfile.id != libraryId) {
-          return null;
+          };
+          score = _scoreFromSetlistPackageItem(rawScore, entry.item);
+          createdScores.add(score);
+          if (_activeLibraryProfile.id != libraryId) {
+            return null;
+          }
+        } else {
+          throw StateError('Cannot import unresolved setlist package entry.');
         }
-        score = _scoreFromSetlistPackageItem(rawScore, entry.item);
-        createdScores.add(score);
-      } else {
-        throw StateError('Cannot import unresolved setlist package entry.');
+
+        scoreIds.add(score.id);
+        final startPage = _parseManifestPageNumber(entry.item.startPageLabel);
+        if (startPage > 0) {
+          startPages[score.id] = startPage;
+        }
+        final note = entry.item.setlistNote.trim();
+        if (note.isNotEmpty) {
+          notes[score.id] = note;
+        }
+        final duration = _parseManifestDurationSeconds(
+          entry.item.details['예상 시간'] ?? '',
+        );
+        if (duration > 0) {
+          durations[score.id] = duration;
+        }
       }
 
-      scoreIds.add(score.id);
-      final startPage = _parseManifestPageNumber(entry.item.startPageLabel);
-      if (startPage > 0) {
-        startPages[score.id] = startPage;
+      if (scoreIds.isEmpty || _activeLibraryProfile.id != libraryId) {
+        return null;
       }
-      final note = entry.item.setlistNote.trim();
-      if (note.isNotEmpty) {
-        notes[score.id] = note;
-      }
-      final duration = _parseManifestDurationSeconds(
-        entry.item.details['예상 시간'] ?? '',
+
+      final setlist = SheetSetlist(
+        id: _newSetlistId(now),
+        title: _uniqueSetlistTitle(
+          _normalizeSetlistTitle(package.manifest.title),
+        ),
+        scoreIds: List<String>.unmodifiable(scoreIds),
+        createdAt: now,
+        updatedAt: now,
+        scoreStartPages: Map<String, int>.unmodifiable(startPages),
+        scoreNotes: Map<String, String>.unmodifiable(notes),
+        scoreDurations: Map<String, int>.unmodifiable(durations),
+        transitionSeconds: _parseManifestDurationSeconds(
+          package.manifest.transitionLabel,
+        ),
       );
-      if (duration > 0) {
-        durations[score.id] = duration;
+
+      _scores = <SheetScore>[...createdScores.reversed, ..._scores];
+      _setlists = <SheetSetlist>[setlist, ..._setlists];
+      await _saveScoresAndSetlistsChanges();
+      metadataPersisted = true;
+      if (_activeLibraryProfile.id == libraryId) {
+        await _mergeImportedUserAnnotationStampPacks(
+          dryRun.userStampPacks,
+          libraryId: libraryId,
+        );
+      }
+      return setlist;
+    } finally {
+      if (!metadataPersisted && createdScores.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(createdScores);
       }
     }
-
-    if (scoreIds.isEmpty || _activeLibraryProfile.id != libraryId) {
-      return null;
-    }
-
-    final setlist = SheetSetlist(
-      id: _newSetlistId(now),
-      title: _uniqueSetlistTitle(
-        _normalizeSetlistTitle(package.manifest.title),
-      ),
-      scoreIds: List<String>.unmodifiable(scoreIds),
-      createdAt: now,
-      updatedAt: now,
-      scoreStartPages: Map<String, int>.unmodifiable(startPages),
-      scoreNotes: Map<String, String>.unmodifiable(notes),
-      scoreDurations: Map<String, int>.unmodifiable(durations),
-      transitionSeconds: _parseManifestDurationSeconds(
-        package.manifest.transitionLabel,
-      ),
-    );
-
-    _scores = <SheetScore>[...createdScores.reversed, ..._scores];
-    _setlists = <SheetSetlist>[setlist, ..._setlists];
-    await _saveScoresAndSetlistsChanges();
-    if (_activeLibraryProfile.id == libraryId) {
-      await _mergeImportedUserAnnotationStampPacks(
-        dryRun.userStampPacks,
-        libraryId: libraryId,
-      );
-    }
-    return setlist;
   }
 
   Future<void> renameSetlist(SheetSetlist setlist, String title) async {

@@ -50,6 +50,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   PDF, `.md`, `.onsong` 악보가 섞인 세트리스트를 package로 내보낸 뒤 다시 가져와 각 항목이 PDF,
   일반 텍스트, ChordPro viewer로 올바르게 열리는지 확인한다. 빈 text, 잘못된 UTF-8 또는 2 MiB 초과
   text가 들어 있는 package는 preview에서 확인 필요로 표시되고 partial import를 시작하지 않아야 한다.
+  저장 실패 후 재시도했을 때 실패한 첫 시도의 악보가 중복 카드로 나타나지 않아야 한다.
 - `악보 추가`의 `텍스트/ChordPro/DOCX 안내`에서 `ChordPro 붙여넣기 미리보기`를 열고 간단한
   ChordPro 텍스트를 붙여넣어 제목/작곡가/조성/박자 metadata chip과 코드/가사 preview가 보이는지
   확인한다. `악보로 저장`을 누르면 라이브러리에 ChordPro 악보가 생기고, 열었을 때 PDF viewer가 아닌

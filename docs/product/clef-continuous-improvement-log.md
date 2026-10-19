@@ -2756,3 +2756,10 @@ erases composer, note or custom fields parsed from ChordPro when the manifest om
 plain text and ChordPro bytes, extensions and setlist references survive export/restore. Focused package/controller/store
 tests pass 324/324; mixed-format package sharing and viewer routing remain Device QA.
 Full validation also passes `flutter analyze`, all 1,664 tests and the RC release check.
+
+S262 VERIFIED LOCAL: made setlist package file creation cleanup-aware. If package metadata persistence fails or the user
+switches libraries before the transaction is committed, Clef now removes newly copied PDF/image/text/ChordPro files
+only when no library profile references them. Cleanup is restricted to Clef-managed score/text/linked-file directories,
+preserves external and persisted files, and cannot hide the original import error. Store and controller regressions cover
+the reference guard and failed-save cleanup; metadata rollback failure remains outside the data-preservation guarantee.
+Validation passes focused controller/store tests, `flutter analyze`, all 1,666 tests and the RC release check.

@@ -783,6 +783,7 @@ Clef & Staff 세트리스트
       expect(controller.setlists, isEmpty);
       expect((await store.loadScores()).map((score) => score.id), ['existing']);
       expect(await store.loadSetlists(), isEmpty);
+      expect(store.discardedScoreIds, <String>['package-pdf-0']);
     },
   );
 
@@ -886,6 +887,42 @@ Clef & Staff 세트리스트
       );
     },
   );
+
+  test('setlist package library switch discards uncommitted files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 16);
+    final store = _PackageImportStore(now);
+    final otherLibrary = await store.createLibraryProfile('Other');
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.afterPdfImport = () =>
+        controller.switchLibraryProfile(otherLibrary.id);
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Switched Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: const <String, List<int>>{
+          'scores/new-sonata.pdf': <int>[1, 2, 3],
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNull);
+    expect(controller.activeLibraryProfile.id, otherLibrary.id);
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists, isEmpty);
+    expect(store.discardedScoreIds, <String>['package-pdf-0']);
+  });
 
   test('imports ChordPro text as a library score draft', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -5177,12 +5214,14 @@ class _PackageImportStore extends SheetLibraryStore {
   final importedPdfBytes = <List<int>>[];
   final importedPlainTextNames = <String>[];
   final importedChordProNames = <String>[];
+  final discardedScoreIds = <String>[];
   var _pdfCount = 0;
   var _imageCount = 0;
   var _textCount = 0;
   var _chordProCount = 0;
   bool failSaveScoresAndSetlists = false;
   bool failSaveUserStampPacks = false;
+  Future<void> Function()? afterPdfImport;
 
   @override
   Future<SheetScore> importPdfBytes({
@@ -5192,12 +5231,14 @@ class _PackageImportStore extends SheetLibraryStore {
   }) async {
     importedPdfBytes.add(List<int>.from(bytes));
     final index = _pdfCount++;
-    return _score(
+    final score = _score(
       importedAt ?? now,
       id: 'package-pdf-$index',
       title: fileName,
       filePath: '/package/$fileName',
     );
+    await afterPdfImport?.call();
+    return score;
   }
 
   @override
@@ -5247,6 +5288,14 @@ class _PackageImportStore extends SheetLibraryStore {
         SheetCustomMetadataField(key: '출처 유형', value: 'ChordPro'),
       ],
     );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
   }
 
   @override

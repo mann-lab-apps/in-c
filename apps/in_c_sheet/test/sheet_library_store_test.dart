@@ -237,6 +237,44 @@ void main() {
     ]);
   });
 
+  test('discards only unreferenced app-owned imported score files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.utc(2026, 10, 20, 12);
+    final retained = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'retained.md',
+        bytes: Uint8List.fromList(utf8.encode('Keep me.')),
+      ),
+      importedAt: now,
+    );
+    final discarded = await store.importChordProFileBytes(
+      file: SheetImportedFile(
+        name: 'discarded.cho',
+        bytes: Uint8List.fromList(utf8.encode('{title: Remove me}')),
+      ),
+      importedAt: now.add(const Duration(microseconds: 1)),
+    );
+    final externalFile = File('${documentsDir.parent.path}/external-score.txt');
+    await externalFile.writeAsString('Do not remove.');
+    final external = SheetScore.fromJson(<String, Object?>{
+      ...discarded.toJson(),
+      'id': 'external',
+      'filePath': externalFile.path,
+    });
+    await store.saveScores(<SheetScore>[retained]);
+
+    final removed = await store.discardUnreferencedImportedScoreFiles(
+      <SheetScore>[retained, discarded, external],
+    );
+
+    expect(removed, 1);
+    expect(File(retained.filePath).existsSync(), isTrue);
+    expect(File(discarded.filePath).existsSync(), isFalse);
+    expect(externalFile.existsSync(), isTrue);
+    await externalFile.delete();
+  });
+
   for (final scoped in [false, true]) {
     for (final throws in [false, true]) {
       for (final key in [
