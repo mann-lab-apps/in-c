@@ -1551,6 +1551,78 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ChordPro viewer rejects oversized and malformed source', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-invalid-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final oversized = File('${tempDir.path}/oversized.chordpro')
+      ..writeAsBytesSync(
+        List<int>.filled(SheetFileImportPolicy.maxPlainTextBytes + 1, 0x41),
+      );
+    final malformed = File('${tempDir.path}/malformed.chordpro')
+      ..writeAsBytesSync(<int>[0xc3, 0x28]);
+    final now = DateTime(2026, 10, 20, 18);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final entry in <String, File>{
+        'oversized': oversized,
+        'malformed': malformed,
+      }.entries)
+        SheetScore(
+          id: entry.key,
+          title: entry.key,
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: entry.value.path,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: now,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    Future<void> pumpScore(String scoreId) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetChordProViewerScreen(
+            key: ValueKey(scoreId),
+            controller: controller,
+            scoreId: scoreId,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+    }
+
+    await pumpScore('oversized');
+    expect(find.text('ChordPro 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('ChordPro 파일이 너무 큽니다.'), findsOneWidget);
+
+    await pumpScore('malformed');
+    expect(find.text('ChordPro 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(
+      find.textContaining('ChordPro 파일의 UTF-8 텍스트가 손상되었습니다.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('PDF를 열지 못했습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ChordPro viewer can transpose and show capo chord shapes', (
     tester,
   ) async {

@@ -2820,3 +2820,9 @@ previous/next navigation and scrolls to a visibly highlighted active line. Named
 transpose/capo display settings remain available outside search mode. Widget regression covers a two-result lyric search,
 next-result movement, active-line highlighting and closing the search surface. Editable source and a dense chord-grid
 layout remain follow-up work.
+
+S271 VERIFIED LOCAL: hardened stored ChordPro reopening against files changed after import. The viewer now enforces the
+same 2 MiB boundary as import, rejects malformed UTF-8 and empty source before parsing, and reports the failure as a
+ChordPro score problem instead of the misleading shared PDF error. Plain-text viewer failures likewise use a text-score
+label while PDF behavior remains unchanged. Widget regression covers oversized and malformed source with explicit error
+copy; file repair and source editing remain outside the read-only viewer.

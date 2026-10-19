@@ -8605,6 +8605,8 @@ class _SheetPlainTextViewerScreenState
             return _ViewerErrorBanner(
               filePath: score.filePath,
               error: snapshot.error ?? '텍스트 파일을 읽지 못했습니다.',
+              title: '텍스트 악보를 열지 못했습니다.',
+              icon: Icons.description_outlined,
             );
           }
           _loadedText = snapshot.data!;
@@ -8956,6 +8958,8 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
             return _ViewerErrorBanner(
               filePath: score.filePath,
               error: snapshot.error ?? 'ChordPro 파일을 읽지 못했습니다.',
+              title: 'ChordPro 악보를 열지 못했습니다.',
+              icon: Icons.music_note_outlined,
             );
           }
           final data = snapshot.data!;
@@ -9386,7 +9390,19 @@ class _ChordProViewerData {
 
 Future<_ChordProViewerData> _loadChordProViewerData(SheetScore score) {
   return Future<_ChordProViewerData>.sync(() {
-    final source = File(score.filePath).readAsStringSync();
+    final bytes = File(score.filePath).readAsBytesSync();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro 파일이 너무 큽니다.');
+    }
+    late final String source;
+    try {
+      source = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('ChordPro 파일의 UTF-8 텍스트가 손상되었습니다.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('ChordPro 파일이 비어 있습니다.');
+    }
     final document = SheetChordProParser.parse(source);
     return _ChordProViewerData(
       document: document,
@@ -20876,16 +20892,23 @@ class _ViewerFileStatusBanner extends StatelessWidget {
 }
 
 class _ViewerErrorBanner extends StatelessWidget {
-  const _ViewerErrorBanner({required this.filePath, required this.error});
+  const _ViewerErrorBanner({
+    required this.filePath,
+    required this.error,
+    this.title = 'PDF를 열지 못했습니다.',
+    this.icon = Icons.picture_as_pdf_outlined,
+  });
 
   final String filePath;
   final Object error;
+  final String title;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return _ViewerProblemBanner(
-      icon: Icons.picture_as_pdf_outlined,
-      title: 'PDF를 열지 못했습니다.',
+      icon: icon,
+      title: title,
       message: '파일이 삭제되었거나 손상되었을 수 있습니다. 다시 가져오거나 전체 백업을 복원해주세요.',
       detail: '$filePath\n$error',
     );
