@@ -48,6 +48,7 @@ class SheetSetlistPackageArchive {
       packageFiles: packageFiles,
       userStampPacks: userStampPacks,
       stampAssetFiles: stampAssetFiles,
+      annotationSidecars: annotationSidecars,
       currentUserStampPacks: currentUserStampPacks,
     );
   }
@@ -578,6 +579,7 @@ class SheetSetlistPackageDryRun {
     this.packageFiles = const <SheetSetlistPackageFile>[],
     this.userStampPacks = const <SheetAnnotationStampPack>[],
     this.stampAssetFiles = const <SheetSetlistPackageStampAssetFile>[],
+    this.annotationSidecars = const <SheetSetlistPackageAnnotationSidecar>[],
     this.userStampPreview = const SheetSetlistPackageUserStampPreview.empty(),
   });
 
@@ -586,6 +588,7 @@ class SheetSetlistPackageDryRun {
   final List<SheetSetlistPackageFile> packageFiles;
   final List<SheetAnnotationStampPack> userStampPacks;
   final List<SheetSetlistPackageStampAssetFile> stampAssetFiles;
+  final List<SheetSetlistPackageAnnotationSidecar> annotationSidecars;
   final SheetSetlistPackageUserStampPreview userStampPreview;
 
   factory SheetSetlistPackageDryRun.preview({
@@ -596,6 +599,8 @@ class SheetSetlistPackageDryRun {
         const <SheetAnnotationStampPack>[],
     List<SheetSetlistPackageStampAssetFile> stampAssetFiles =
         const <SheetSetlistPackageStampAssetFile>[],
+    List<SheetSetlistPackageAnnotationSidecar> annotationSidecars =
+        const <SheetSetlistPackageAnnotationSidecar>[],
     List<SheetAnnotationStampPack> currentUserStampPacks =
         const <SheetAnnotationStampPack>[],
   }) {
@@ -614,6 +619,10 @@ class SheetSetlistPackageDryRun {
       stampAssetFiles: List<SheetSetlistPackageStampAssetFile>.unmodifiable(
         stampAssetFiles,
       ),
+      annotationSidecars:
+          List<SheetSetlistPackageAnnotationSidecar>.unmodifiable(
+            annotationSidecars,
+          ),
       userStampPreview: SheetSetlistPackageUserStampPreview.compare(
         importedPacks: normalizedUserStampPacks,
         currentPacks: currentUserStampPacks,
@@ -625,6 +634,7 @@ class SheetSetlistPackageDryRun {
             item: manifest.items[index],
             existingMatch: index < matches.length ? matches[index] : null,
             packageFiles: packageFiles,
+            annotationSidecars: annotationSidecars,
           ),
       ]),
     );
@@ -657,6 +667,22 @@ class SheetSetlistPackageDryRun {
   int get unresolvedCount {
     return entries.where((entry) => !entry.isResolved).length;
   }
+
+  int get annotationCandidateCount => entries
+      .where(
+        (entry) =>
+            entry.annotationSidecar != null &&
+            entry.status == SheetSetlistPackageEntryStatus.importableFile,
+      )
+      .length;
+
+  int get protectedExistingAnnotationCount => entries
+      .where(
+        (entry) =>
+            entry.annotationSidecar != null &&
+            entry.status == SheetSetlistPackageEntryStatus.existingScore,
+      )
+      .length;
 
   List<SheetSetlistPackageEntry> get unresolvedEntries {
     return entries.where((entry) => !entry.isResolved).toList(growable: false);
@@ -750,6 +776,7 @@ class SheetSetlistPackageEntry {
     required this.status,
     this.existingScore,
     this.packageFile,
+    this.annotationSidecar,
     this.candidates = const <SheetScore>[],
     this.packageFileCandidates = const <SheetSetlistPackageFile>[],
   });
@@ -758,6 +785,7 @@ class SheetSetlistPackageEntry {
   final SheetSetlistPackageEntryStatus status;
   final SheetScore? existingScore;
   final SheetSetlistPackageFile? packageFile;
+  final SheetSetlistPackageAnnotationSidecar? annotationSidecar;
   final List<SheetScore> candidates;
   final List<SheetSetlistPackageFile> packageFileCandidates;
 
@@ -788,12 +816,25 @@ class SheetSetlistPackageEntry {
     required SheetSetlistShareItem item,
     required SheetSetlistManifestMatch? existingMatch,
     required List<SheetSetlistPackageFile> packageFiles,
+    List<SheetSetlistPackageAnnotationSidecar> annotationSidecars =
+        const <SheetSetlistPackageAnnotationSidecar>[],
   }) {
+    final packageFileMatches = _matchingPackageFiles(
+      item.fileName,
+      packageFiles,
+    );
+    final packageAnnotation = packageFileMatches.length == 1
+        ? _annotationSidecarForScorePath(
+            packageFileMatches.single.path,
+            annotationSidecars,
+          )
+        : null;
     if (existingMatch != null && existingMatch.isResolved) {
       return SheetSetlistPackageEntry(
         item: item,
         status: SheetSetlistPackageEntryStatus.existingScore,
         existingScore: existingMatch.score,
+        annotationSidecar: packageAnnotation,
         candidates: existingMatch.candidates,
       );
     }
@@ -814,7 +855,7 @@ class SheetSetlistPackageEntry {
       );
     }
 
-    final matches = _matchingPackageFiles(fileName, packageFiles);
+    final matches = packageFileMatches;
     if (matches.isEmpty) {
       return SheetSetlistPackageEntry(
         item: item,
@@ -850,9 +891,22 @@ class SheetSetlistPackageEntry {
       item: item,
       status: SheetSetlistPackageEntryStatus.importableFile,
       packageFile: file,
+      annotationSidecar: packageAnnotation,
       packageFileCandidates: matches,
     );
   }
+}
+
+SheetSetlistPackageAnnotationSidecar? _annotationSidecarForScorePath(
+  String scoreEntryPath,
+  List<SheetSetlistPackageAnnotationSidecar> sidecars,
+) {
+  for (final sidecar in sidecars) {
+    if (sidecar.scoreEntryPath == scoreEntryPath) {
+      return sidecar;
+    }
+  }
+  return null;
 }
 
 enum SheetSetlistPackageEntryStatus {

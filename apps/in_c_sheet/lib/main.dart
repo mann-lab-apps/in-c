@@ -8008,6 +8008,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
     final warnings = dryRun.warnings;
     final canImportLater = dryRun.canImport;
     final stampPreview = dryRun.userStampPreview;
+    final annotationCount = dryRun.annotationSidecars.length;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -8037,7 +8038,7 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     : Icons.info_outline,
                 title: canImportLater ? '가져올 준비가 된 패키지입니다' : '확인이 필요합니다',
                 message:
-                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 스탬프 ${stampPreview.newStampCount}개 추가 · 확인 ${dryRun.unresolvedCount}개',
+                    '${dryRun.manifest.title} · 기존 ${dryRun.existingScoreCount}곡 · 새 파일 ${dryRun.importableFileCount}개 · 스탬프 ${stampPreview.newStampCount}개 추가 · 필기 $annotationCount개 · 확인 ${dryRun.unresolvedCount}개',
                 color: canImportLater
                     ? theme.colorScheme.secondary
                     : theme.colorScheme.tertiary,
@@ -8078,6 +8079,12 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     Chip(
                       avatar: const Icon(Icons.shield_outlined, size: 16),
                       label: Text('중복 ${stampPreview.duplicateStampCount}개 보존'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (annotationCount > 0)
+                    Chip(
+                      avatar: const Icon(Icons.draw_outlined, size: 16),
+                      label: Text('필기 $annotationCount개 확인'),
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
@@ -8137,7 +8144,9 @@ class _SetlistPackageImportPreviewSheet extends StatelessWidget {
                     ? '가져오기 전에 한 번 더 확인하세요'
                     : '확인 필요 항목을 먼저 해결하세요',
                 message: canImportLater
-                    ? stampPreview.hasDuplicates
+                    ? annotationCount > 0
+                          ? '패키지 필기 $annotationCount개를 안전하게 확인했습니다. 현재 가져오기에서는 필기를 적용하지 않으며 기존 악보도 덮어쓰지 않습니다. 악보와 세트리스트만 가져옵니다.'
+                          : stampPreview.hasDuplicates
                           ? '패키지 안 새 파일은 앱 라이브러리에 복사합니다. 같은 ID의 사용자 스탬프는 기존 항목을 보존하고 건너뜁니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
                           : '패키지 안 새 파일은 앱 라이브러리에 복사하고, 기존 악보와 함께 새 세트리스트를 만듭니다. 곡별 필기와 연결 파일은 가져오지 않습니다.'
                     : 'missing/ambiguous 항목이 남아 있으면 partial import를 하지 않습니다.',
@@ -9871,10 +9880,16 @@ String _packageEntrySubtitle(SheetSetlistPackageEntry entry) {
   switch (entry.status) {
     case SheetSetlistPackageEntryStatus.existingScore:
       final score = entry.existingScore!;
-      return '현재 라이브러리 악보 · ${score.sourceFileDisplayName}';
+      final annotationLabel = entry.annotationSidecar == null
+          ? ''
+          : ' · 패키지 필기 보호(미적용)';
+      return '현재 라이브러리 악보 · ${score.sourceFileDisplayName}$annotationLabel';
     case SheetSetlistPackageEntryStatus.importableFile:
       final file = entry.packageFile;
-      return '패키지 ${file?.scoreKind.label ?? '파일'} · ${file?.path ?? entry.item.fileName}';
+      final annotationLabel = entry.annotationSidecar == null
+          ? ''
+          : ' · 필기 포함(현재 미적용)';
+      return '패키지 ${file?.scoreKind.label ?? '파일'} · ${file?.path ?? entry.item.fileName}$annotationLabel';
     case SheetSetlistPackageEntryStatus.ambiguousExistingScore:
       return '후보 ${entry.candidates.length}개 · 제목/파일명을 더 구분해야 합니다.';
     case SheetSetlistPackageEntryStatus.missingFile:

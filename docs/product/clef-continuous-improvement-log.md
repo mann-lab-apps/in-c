@@ -2887,3 +2887,10 @@ score-checksum-mismatched entries, and keeps older packages without sidecars rea
 matched scores unchanged by default, requires explicit preview for partial annotation skips and reserves export loading,
 preview and storage transaction wiring for the next slices. Regressions cover a multi-layer round trip and the principal
 corruption/collision cases.
+
+S283 VERIFIED LOCAL: carried validated annotation sidecars into setlist-package dry-run entries without applying them
+to library data prematurely. Preview now distinguishes sidecars attached to new score files from annotations belonging to
+already matched local scores, counts both groups and explicitly says the current import keeps existing annotations intact
+and imports only scores/setlist data. This avoids silent partial behavior for externally produced sidecar packages while
+the annotation storage transaction is still pending. Model regressions preserve ordinary packages with no sidecars.
+Focused package tests passed 35 cases; `flutter analyze`, all 1,707 tests and the RC release check passed.

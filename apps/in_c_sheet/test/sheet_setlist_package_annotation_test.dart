@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist_package.dart';
 import 'package:in_c_sheet/sheet_setlist_package_annotation.dart';
 
@@ -201,6 +202,22 @@ void main() {
       restored.annotationSidecars.single.annotationLayer.strokes.single.id,
       'archive-stroke',
     );
+    final newScorePreview = restored.previewImport(
+      currentScores: const <SheetScore>[],
+    );
+    expect(newScorePreview.annotationCandidateCount, 1);
+    expect(newScorePreview.protectedExistingAnnotationCount, 0);
+    expect(newScorePreview.entries.single.annotationSidecar, isNotNull);
+
+    final existingScorePreview = restored.previewImport(
+      currentScores: <SheetScore>[_existingScore()],
+    );
+    expect(existingScorePreview.annotationCandidateCount, 0);
+    expect(existingScorePreview.protectedExistingAnnotationCount, 1);
+    expect(
+      existingScorePreview.entries.single.status,
+      SheetSetlistPackageEntryStatus.existingScore,
+    );
   });
 
   test('package archive rejects orphan and checksum-mismatched sidecars', () {
@@ -272,3 +289,21 @@ Clef & Staff 세트리스트
 1. Recital Etude
    파일: recital-etude.pdf
 ''';
+
+SheetScore _existingScore() {
+  final now = DateTime.utc(2026, 10, 20);
+  return SheetScore(
+    id: 'existing-score',
+    title: 'Recital Etude',
+    composer: '',
+    tags: const <String>[],
+    note: '',
+    filePath: '/library/recital-etude.pdf',
+    importedAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    lastPage: 1,
+    isFavorite: false,
+    bookmarks: const <SheetBookmark>[],
+  );
+}
