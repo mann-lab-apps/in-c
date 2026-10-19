@@ -2624,3 +2624,10 @@ actual font program; fallback-only exports report their unembedded Unicode count
 preflight statuses, a real embedded-font output, Korean missing-glyph rejection and no-file-on-failure.
 Noto CJK is an OFL 1.1 candidate, but production wiring remains blocked on app size and writer font-resource
 reuse/subsetting because `pdf_document 3.7.0` embeds the whole font program for every FreeText appearance.
+
+S243 VERIFIED LOCAL: made editable PDF export feedback distinguish a general viewer-compatibility warning
+from a concrete unembedded Unicode-font warning. Successful fallback exports now name how many Korean or
+music-symbol annotations still rely on each PDF viewer's font substitution, while future Unicode-font
+preflight failures report unavailable, invalid, oversized or missing-glyph causes without claiming a file
+was created. A focused feedback policy test keeps these messages aligned with the exporter result contract;
+actual glyph rendering remains external viewer QA.

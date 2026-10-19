@@ -472,7 +472,8 @@
   external compatibility 완료로 보지 않는다.
   Fixture 도구가 `Unicode FreeText annotations without embedded fonts`를 출력하면 해당 주석 이름과
   한글/음악 기호 표시 결과를 함께 기록한다. `/Contents`가 보존됐다는 사실만으로 glyph 표시를 PASS로
-  처리하지 않는다.
+  처리하지 않는다. 앱에서 editable 사본을 만들 때 글꼴 미포함 한글/음악 기호 주석 개수가 안내되는지도
+  함께 기록한다.
 - blocker 여부: 예, 아니오, 모르겠음.
 - 어색한 한글 문구/표시.
 - 한 일: 누른 버튼, 메뉴, 입력값.

@@ -16,6 +16,7 @@ import 'classical_discovery_app.dart';
 import 'classical_discovery_controller.dart';
 import 'classical_discovery_store.dart';
 import 'pdf_link_policy.dart';
+import 'sheet_annotated_pdf_export_feedback.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
 import 'sheet_annotation_geometry.dart';
@@ -15541,28 +15542,17 @@ setlist=$setlistLabel
     }
     if (!result.didWrite || result.outputPath == null) {
       if (result.requiresUnicodeFontEmbedding) {
-        _showSnackBar('한글 텍스트 주석은 PDF 사본에 포함되지 않아 원본 PDF를 공유합니다.');
+        _showSnackBar(SheetAnnotatedPdfExportFeedback.failureMessage(result));
         await _shareCurrentScorePdf();
         return;
       }
-      if (result.hasOnlyAnnotationsOutsideDocumentPages) {
-        _showSnackBar('현재 PDF 페이지 범위 안에 내보낼 필기가 없습니다.');
-        return;
-      }
-      if (result.hasUnsupportedStandardAnnotationObjectMapping) {
-        _showSnackBar('편집 가능한 PDF 주석으로 내보낼 수 있는 필기가 없습니다. 일반 사본을 선택해주세요.');
-        return;
-      }
-      _showSnackBar('필기 포함 PDF를 만들지 못했습니다. 원본 PDF와 앱 안 필기는 유지됩니다.');
+      _showSnackBar(SheetAnnotatedPdfExportFeedback.failureMessage(result));
       return;
     }
-    if (result.skippedUnicodeTextCount > 0) {
-      _showSnackBar(
-        '${result.skippedUnicodeTextCount}개 한글 텍스트 주석은 PDF 사본에서 제외했습니다.',
-      );
-    }
-    if (result.mode == SheetPdfAnnotationExportMode.standardAnnotation) {
-      _showSnackBar('편집 가능한 PDF 주석은 PDF 앱마다 표시/편집 방식이 다를 수 있습니다.');
+    for (final message in SheetAnnotatedPdfExportFeedback.successMessages(
+      result,
+    )) {
+      _showSnackBar(message);
     }
 
     try {
