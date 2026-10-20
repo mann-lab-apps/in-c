@@ -28,6 +28,30 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "inspect":
+      guard
+        let arguments = call.arguments as? [String: Any],
+        let path = arguments["path"] as? String,
+        !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      else {
+        result(
+          FlutterError(
+            code: "invalid_path",
+            message: "No audio file path was provided.",
+            details: nil
+          ))
+        return
+      }
+      do {
+        result(["durationMs": try inspectDuration(path: path)])
+      } catch {
+        result(
+          FlutterError(
+            code: "inspection_error",
+            message: error.localizedDescription,
+            details: nil
+          ))
+      }
     case "play":
       guard
         let arguments = call.arguments as? [String: Any],
@@ -64,6 +88,19 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  private func inspectDuration(path: String) throws -> Int {
+    let normalizedPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard FileManager.default.fileExists(atPath: normalizedPath) else {
+      throw ClefAudioPlayerError.missingFile
+    }
+    let probe = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: normalizedPath))
+    let durationMs = Int((probe.duration * 1000).rounded())
+    guard durationMs > 0 else {
+      throw ClefAudioPlayerError.invalidDuration
+    }
+    return durationMs
   }
 
   private func play(
@@ -186,12 +223,15 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
 
 private enum ClefAudioPlayerError: LocalizedError {
   case missingFile
+  case invalidDuration
   case playbackDidNotStart
 
   var errorDescription: String? {
     switch self {
     case .missingFile:
       return "Audio file does not exist."
+    case .invalidDuration:
+      return "Audio file duration is unavailable."
     case .playbackDidNotStart:
       return "Audio playback did not start."
     }

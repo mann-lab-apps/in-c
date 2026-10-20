@@ -4921,12 +4921,89 @@ Clef & Staff 세트리스트
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls.single.method, 'play');
-    expect(calls.single.arguments, <String, Object?>{
+    final playbackCalls = calls.where((call) => call.method == 'play').toList();
+    expect(playbackCalls.single.method, 'play');
+    expect(playbackCalls.single.arguments, <String, Object?>{
       'path': '/tmp/backing-track.m4a',
       'loopStartMs': 1500,
       'loopEndMs': 8200,
     });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet adjusts A-B range on track timeline', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_timeline');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'inspect') {
+            return <String, Object?>{'durationMs': 125400};
+          }
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 10000,
+          audioLoopEndMs: 30000,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('재생 시간 2:05'), findsOneWidget);
+    expect(find.text('구간 타임라인 · 전체 2:05'), findsOneWidget);
+    final timeline = tester.widget<RangeSlider>(find.byType(RangeSlider));
+    timeline.onChanged!(const RangeValues(20, 40));
+    await tester.pump();
+
+    expect(find.text('새 구간 · A 20초 -> B 40초'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet rejects B marker after track end', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_duration');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'inspect') {
+            return <String, Object?>{'durationMs': 125400};
+          }
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).at(1), '130');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B 끝은 파일 길이 2:05 이하여야 합니다.'), findsOneWidget);
+    expect(calls.where((call) => call.method == 'play'), isEmpty);
     expect(tester.takeException(), isNull);
   });
 
@@ -4981,7 +5058,8 @@ Clef & Staff 세트리스트
     expect(find.text('저장된 구간 · A 3.5초 -> B 10초'), findsOneWidget);
     expect(savedFiles.single.audioLoopStartMs, 3500);
     expect(savedFiles.single.audioLoopEndMs, 10000);
-    expect(calls.single.arguments, <String, Object?>{
+    final playbackCalls = calls.where((call) => call.method == 'play').toList();
+    expect(playbackCalls.single.arguments, <String, Object?>{
       'path': '/tmp/backing-track.m4a',
       'loopStartMs': 3500,
       'loopEndMs': 10000,
@@ -5148,7 +5226,7 @@ Clef & Staff 세트리스트
 
     expect(savedFiles.single.audioLoopStartMs, isNull);
     expect(savedFiles.single.audioLoopEndMs, isNull);
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('2'), findsNothing);
     expect(find.text('9'), findsNothing);
     expect(find.text('저장된 구간 · A 2초 -> B 9초'), findsNothing);
@@ -5199,7 +5277,7 @@ Clef & Staff 세트리스트
 
     expect(savedFiles.single.audioLoopStartMs, isNull);
     expect(savedFiles.single.audioLoopEndMs, isNull);
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('9'), findsOneWidget);
     expect(find.text('저장된 구간 · A 2초 -> B 9초'), findsOneWidget);
@@ -5237,7 +5315,7 @@ Clef & Staff 세트리스트
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('A-B 반복 구간은 초 단위 숫자로 입력해주세요.'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).at(0), '9');
@@ -5245,7 +5323,7 @@ Clef & Staff 세트리스트
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('B 끝은 A 시작보다 커야 합니다.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -5350,7 +5428,7 @@ Clef & Staff 세트리스트
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('A-B 반복 구간을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

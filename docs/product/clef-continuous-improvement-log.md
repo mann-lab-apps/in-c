@@ -3225,3 +3225,12 @@ drone output at zero app volume, records each bridge result separately and alway
 failed Android/iOS channels remain a visible warning in the copied Markdown/JSON report; a PASS only proves native
 initialization and explicitly leaves audible volume, latency, regularity, route and Bluetooth behavior to Device QA. Unit
 regressions cover both-ready and partial-failure cleanup, while the responsive named menu test guards the user-facing entry.
+
+S322 VERIFIED LOCAL: made linked-audio A-B practice ranges easier to place without claiming waveform analysis. Android and
+iOS now expose a silent `inspect` channel method that reads a local track's duration without starting playback or changing the
+active player. When inspection succeeds, the linked-audio sheet shows the total duration and a labeled range slider that stays
+in sync with the existing second fields; enabling an empty loop starts from the whole known track, and a B marker beyond the
+reported duration is rejected before save or playback. Inspection errors preserve the existing manual fields and playback
+path. Dart/native wiring and widget regressions cover duration parsing, fallback, range adjustment and out-of-range blocking.
+Actual MP3/M4A/WAV duration accuracy, touch ergonomics and A-B boundary timing remain Android/iOS Device QA; this is a
+duration-based timeline, not a waveform, seek-position display or tempo/pitch DSP.

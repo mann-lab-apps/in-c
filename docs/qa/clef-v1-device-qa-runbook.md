@@ -117,7 +117,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/최근 사용/빠른 선택, text/icon/image 사용자 스탬프, active layer 선택/추가/표시/PDF 포함 토글, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, image picker provider, 최근 스탬프 복원, layer 전환 뒤 새 필기 저장/재열기 |
 | 연습 오디오 엔진 | 개발자용 기기 리포트에서 `엔진 확인` 실행 | NOT TESTED | native metronome/drone PASS/WARN, platform/OS, 경고 코드. PASS는 무음 초기화만 뜻함 |
 | 메트로놈 빠른 BPM | Android/iOS에서 120/180/240 BPM, 4/4·6/8, 8분·3연·16분, 전체/미니 패널 시작·정지 | NOT TESTED | 스피커/이어폰/Bluetooth, 첫 박 latency, 끊김/밀림/강세, 정지 후 잔여 click, 드론/linked audio 동시 사용 |
-| 연결 오디오/A-B | Android와 iOS에서 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장된 구간/새 구간 구분, 이름 있는 구간 2개 이상 저장/선택/삭제/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | 플랫폼/MP3/M4A/WAV, 이어폰/스피커/Bluetooth, loop timing, background/foreground, 저장 구간 chip의 손가락 조작감, 저장/입력 실패 안내 체감 |
+| 연결 오디오/A-B | Android와 iOS에서 연결 파일 목록의 오디오/PDF/이미지 구분, MP3/M4A/WAV별 재생 시간, linked audio 재생, A/B 초 입력과 길이 기반 구간 타임라인, 파일 길이 밖 B 차단, 저장된 구간/새 구간 구분, 이름 있는 구간 2개 이상 저장/선택/삭제/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | 플랫폼/codec별 duration, 이어폰/스피커/Bluetooth, loop timing, background/foreground, range slider와 저장 구간 chip의 손가락 조작감, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | Android와 iOS에서 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량, 시작/정지 반복 | NOT TESTED | 이어폰/스피커/Bluetooth/연습실, 작은 소리 여부, 시작·정지 잡음, 10초 loop 경계, linked audio 동시 재생/정지 시 session 유지 |
 | 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
 | 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 기기 리포트 감지 결과, 실제 악보 화면의 페이지 단위 이동, PDF nudge-scroll 여부, 곡 처음/끝 안내 |
@@ -420,11 +420,12 @@ Audio/tuner:
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감. 이어폰/스피커/Bluetooth/연습실
   각각에서 음량, clipping, 시작/종료 잡음, drone mode별 밸런스를 기록한다.
 - linked audio는 Android와 iOS에서 연결 파일 목록의 PDF/이미지/오디오 구분을 확인한 뒤, MP3/M4A/WAV별로
-  재생/정지, A/B 초 입력, sheet 닫기/다시 열기 후 구간 복원, `구간 지우기` 후 재진입 시
+  표시된 재생 시간이 실제 길이와 맞는지 확인한다. 재생/정지, A/B 초 입력과 구간 타임라인 조정,
+  sheet 닫기/다시 열기 후 구간 복원, `구간 지우기` 후 재진입 시
   입력값이 사라지는지 확인한다. 숫자가 아닌 값, 비어 있는 값, B가 A보다 작거나 같은 값이
-  재생 전에 이해 가능한 안내로 막히는지 확인한다.
+  재생 전에 이해 가능한 안내로 막히는지 확인하고 B가 파일 길이를 넘을 때도 재생되지 않아야 한다.
   이어폰/스피커/Bluetooth와 background/foreground 전환에서 loop가 갑자기 끊기거나 밀리는지 기록한다.
-  waveform timeline/tempo/pitch shift는 아직 후속 범위다.
+  현재 타임라인은 파일 길이 기반이며 실제 waveform/seek-position 표시와 tempo/pitch shift는 후속 범위다.
 - 필기 layer를 둘 이상 만든 뒤 stroke/text/image stamp를 한 layer에 추가하고 `현재 layer 주석 모두 이동`으로
   다른 layer에 옮긴다. 이동 개수, 확인 dialog, 원래 layer의 빈 상태, 대상 layer의 표시/PDF 포함 설정,
   앱 재시작 후 저장 상태를 확인한다. 이 검증은 임의 객체 multi-select 지원으로 기록하지 않는다.

@@ -18,6 +18,7 @@ void main() {
     expect(appDelegate, contains('ClefTonePlayerBridge.shared.configure'));
     expect(appDelegate, contains('ClefMetronomePlayerBridge.shared.configure'));
     expect(audioBridge, contains('clef/audio_player'));
+    expect(audioBridge, contains('case "inspect"'));
     expect(audioBridge, contains('case "play"'));
     expect(audioBridge, contains('case "stop"'));
     expect(audioBridge, contains('AVAudioPlayer'));

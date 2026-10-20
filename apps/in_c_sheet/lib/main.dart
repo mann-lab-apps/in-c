@@ -25803,6 +25803,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   bool _loopEnabled = false;
   int? _savedLoopStartMs;
   int? _savedLoopEndMs;
+  SheetAudioTrackInfo? _trackInfo;
   SheetAudioPlaybackResult? _lastResult;
 
   @override
@@ -25821,6 +25822,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
         widget.linkedFile.audioLoopEndMs != null;
     _savedLoopStartMs = widget.linkedFile.audioLoopStartMs;
     _savedLoopEndMs = widget.linkedFile.audioLoopEndMs;
+    unawaited(_loadTrackInfo());
   }
 
   @override
@@ -25829,6 +25831,17 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     _loopStartController.dispose();
     _loopEndController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTrackInfo() async {
+    final inspectedPath = _currentLinkedFile.path;
+    final info = await _player.inspect(inspectedPath);
+    if (!mounted || inspectedPath != _currentLinkedFile.path || info == null) {
+      return;
+    }
+    setState(() {
+      _trackInfo = info;
+    });
   }
 
   _AudioLoopInputResult _readLoopInput() {
@@ -25863,10 +25876,19 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
         errorMessage: 'B 끝은 A 시작보다 커야 합니다.',
       );
     }
+    final durationMs = _trackInfo?.duration.inMilliseconds;
+    final endMs = (endSeconds * 1000).round();
+    if (durationMs != null && endMs > durationMs) {
+      return _AudioLoopInputResult(
+        loop: null,
+        errorMessage:
+            'B 끝은 파일 길이 ${_formatTrackDuration(_trackInfo!.duration)} 이하여야 합니다.',
+      );
+    }
     return _AudioLoopInputResult(
       loop: SheetAudioLoop(
         start: Duration(milliseconds: (startSeconds * 1000).round()),
-        end: Duration(milliseconds: (endSeconds * 1000).round()),
+        end: Duration(milliseconds: endMs),
       ),
       errorMessage: null,
     );
@@ -25877,6 +25899,33 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       return '';
     }
     return _formatAudioLoopSeconds(milliseconds);
+  }
+
+  static String _formatTrackDuration(Duration duration) {
+    final totalSeconds = duration.inSeconds;
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  void _setLoopEnabled(bool value) {
+    setState(() {
+      _loopEnabled = value;
+      _lastResult = null;
+      if (value &&
+          _loopStartController.text.trim().isEmpty &&
+          _loopEndController.text.trim().isEmpty &&
+          _trackInfo != null) {
+        _loopStartController.text = '0';
+        _loopEndController.text = _formatLoopSeconds(
+          _trackInfo!.duration.inMilliseconds,
+        );
+      }
+    });
   }
 
   bool _isSavedLoopText(String start, String end) {
@@ -25957,6 +26006,85 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
         return ValueListenableBuilder<TextEditingValue>(
           valueListenable: _loopEndController,
           builder: (context, endValue, _) => buildSummary(startValue, endValue),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoopTimeline(ThemeData theme) {
+    final trackInfo = _trackInfo;
+    if (!_loopEnabled || trackInfo == null) {
+      return const SizedBox.shrink();
+    }
+    final durationSeconds = trackInfo.duration.inMilliseconds / 1000;
+    if (durationSeconds <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    Widget buildTimeline(
+      TextEditingValue startValue,
+      TextEditingValue endValue,
+    ) {
+      final startSeconds = double.tryParse(startValue.text.trim());
+      final endSeconds = double.tryParse(endValue.text.trim());
+      final hasValidRange =
+          startSeconds != null &&
+          endSeconds != null &&
+          startSeconds >= 0 &&
+          endSeconds > startSeconds &&
+          endSeconds <= durationSeconds;
+      if (!hasValidRange) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 8),
+        child: Semantics(
+          label:
+              'A-B 반복 구간, A ${_formatAudioLoopSeconds((startSeconds * 1000).round())}초, '
+              'B ${_formatAudioLoopSeconds((endSeconds * 1000).round())}초, '
+              '전체 ${_formatTrackDuration(trackInfo.duration)}',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '구간 타임라인 · 전체 ${_formatTrackDuration(trackInfo.duration)}',
+                style: theme.textTheme.labelLarge,
+              ),
+              RangeSlider(
+                values: RangeValues(startSeconds, endSeconds),
+                min: 0,
+                max: durationSeconds,
+                labels: RangeLabels(
+                  '${_formatAudioLoopSeconds((startSeconds * 1000).round())}초',
+                  '${_formatAudioLoopSeconds((endSeconds * 1000).round())}초',
+                ),
+                onChanged: _isPlaying
+                    ? null
+                    : (values) {
+                        setState(() {
+                          _loopStartController.text = _formatLoopSeconds(
+                            (values.start * 1000).round(),
+                          );
+                          _loopEndController.text = _formatLoopSeconds(
+                            (values.end * 1000).round(),
+                          );
+                          _lastResult = null;
+                        });
+                      },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _loopStartController,
+      builder: (context, startValue, _) {
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _loopEndController,
+          builder: (context, endValue, _) =>
+              buildTimeline(startValue, endValue),
         );
       },
     );
@@ -26242,20 +26370,23 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (_trackInfo != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '재생 시간 ${_formatTrackDuration(_trackInfo!.duration)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _loopEnabled,
                 title: const Text('A-B 반복'),
                 subtitle: const Text('구간을 초 단위로 입력해 반복 재생합니다.'),
-                onChanged: _isPlaying
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _loopEnabled = value;
-                          _lastResult = null;
-                        });
-                      },
+                onChanged: _isPlaying ? null : _setLoopEnabled,
               ),
               if (_loopEnabled) _buildLoopSummary(theme),
               if (_loopEnabled)
@@ -26290,6 +26421,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                     ),
                   ],
                 ),
+              _buildLoopTimeline(theme),
               if (_loopEnabled)
                 Align(
                   alignment: Alignment.centerLeft,

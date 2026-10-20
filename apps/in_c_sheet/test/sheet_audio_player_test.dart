@@ -60,6 +60,45 @@ void main() {
     });
   });
 
+  test('inspects local audio duration through method channel', () async {
+    final channel = const MethodChannel('clef/test_audio_inspection');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return <String, Object?>{'durationMs': 125400};
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final info = await SheetAudioPlayer(channel: channel)
+        .inspect(' /tmp/cue-track.mp3 ');
+
+    expect(info?.duration, const Duration(milliseconds: 125400));
+    expect(calls.single.method, 'inspect');
+    expect(calls.single.arguments, <String, Object?>{
+      'path': '/tmp/cue-track.mp3',
+    });
+  });
+
+  test('keeps playback available when audio inspection fails', () async {
+    final channel = const MethodChannel('clef/test_audio_inspection_error');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: 'inspection_error');
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final info = await SheetAudioPlayer(channel: channel).inspect('/tmp/a.m4a');
+
+    expect(info, isNull);
+  });
+
   test('reports playback errors', () async {
     final channel = const MethodChannel('clef/test_audio_error');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

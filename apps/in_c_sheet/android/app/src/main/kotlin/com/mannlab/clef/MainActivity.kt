@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
@@ -228,6 +229,26 @@ class MainActivity : FlutterActivity() {
         )
         audioPlayerChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
+                "inspect" -> {
+                    val path = call.argument<String>("path").orEmpty().trim()
+                    if (path.isEmpty()) {
+                        result.error(
+                            "invalid_path",
+                            "No audio file path was provided.",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        result.success(mapOf("durationMs" to audioPlayer.inspectDuration(path)))
+                    } catch (error: Exception) {
+                        result.error(
+                            "inspection_error",
+                            error.message ?: "Audio file duration is unavailable.",
+                            null,
+                        )
+                    }
+                }
                 "play" -> {
                     val path = call.argument<String>("path").orEmpty().trim()
                     val loopStartMs = call.argument<Int>("loopStartMs")
@@ -682,6 +703,26 @@ private class ClefAudioPlayer {
             } catch (_: IllegalStateException) {
                 stop()
             }
+        }
+    }
+
+    fun inspectDuration(path: String): Int {
+        val file = File(path)
+        if (!file.exists()) {
+            throw IllegalArgumentException("Audio file does not exist.")
+        }
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            val durationMs = retriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION,
+            )?.toIntOrNull()
+            if (durationMs == null || durationMs <= 0) {
+                throw IllegalArgumentException("Audio file duration is unavailable.")
+            }
+            durationMs
+        } finally {
+            retriever.release()
         }
     }
 

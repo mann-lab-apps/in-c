@@ -6,6 +6,29 @@ class SheetAudioPlayer {
 
   final MethodChannel _channel;
 
+  Future<SheetAudioTrackInfo?> inspect(String path) async {
+    try {
+      final response = await _channel.invokeMapMethod<String, Object?>(
+        'inspect',
+        <String, Object?>{'path': path.trim()},
+      );
+      final durationValue = response?['durationMs'];
+      final durationMs = switch (durationValue) {
+        int value => value,
+        double value => value.round(),
+        _ => null,
+      };
+      if (durationMs == null || durationMs <= 0) {
+        return null;
+      }
+      return SheetAudioTrackInfo(duration: Duration(milliseconds: durationMs));
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   Future<SheetAudioPlaybackResult> play(
     String path, {
     SheetAudioLoop? loop,
@@ -33,6 +56,12 @@ class SheetAudioPlayer {
       return;
     }
   }
+}
+
+class SheetAudioTrackInfo {
+  const SheetAudioTrackInfo({required this.duration});
+
+  final Duration duration;
 }
 
 class SheetAudioLoop {
