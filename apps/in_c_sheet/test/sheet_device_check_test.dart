@@ -6,6 +6,78 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:in_c_sheet/sheet_viewer_input.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('native practice audio check probes and stops both bridges', () async {
+    const metronomeChannel = MethodChannel('clef/test_metronome_ready');
+    const toneChannel = MethodChannel('clef/test_tone_ready');
+    final metronomeCalls = <MethodCall>[];
+    final toneCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(metronomeChannel, (call) async {
+      metronomeCalls.add(call);
+      return null;
+    });
+    messenger.setMockMethodCallHandler(toneChannel, (call) async {
+      toneCalls.add(call);
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(metronomeChannel, null);
+      messenger.setMockMethodCallHandler(toneChannel, null);
+    });
+
+    final item = await SheetPracticeAudioBridgeChecker(
+      metronomeChannel: metronomeChannel,
+      toneChannel: toneChannel,
+    ).run();
+
+    expect(item.status, SheetDeviceCheckStatus.pass);
+    expect(item.details, contains('metronome click buffer'));
+    expect(item.details, contains('drone silent output'));
+    expect(
+      metronomeCalls.map((call) => call.method),
+      orderedEquals(<String>['prepare', 'stop']),
+    );
+    expect(
+      toneCalls.map((call) => call.method),
+      orderedEquals(<String>['play', 'stop']),
+    );
+    expect(toneCalls.first.arguments, <String, Object?>{
+      'frequencies': const <double>[440],
+      'volume': 0.0,
+    });
+  });
+
+  test('native practice audio check reports one bridge failure', () async {
+    const metronomeChannel = MethodChannel('clef/test_metronome_failure');
+    const toneChannel = MethodChannel('clef/test_tone_failure');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(metronomeChannel, (call) async => null);
+    messenger.setMockMethodCallHandler(toneChannel, (call) async {
+      if (call.method == 'play') {
+        throw PlatformException(code: 'audio_route_unavailable');
+      }
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(metronomeChannel, null);
+      messenger.setMockMethodCallHandler(toneChannel, null);
+    });
+
+    final item = await SheetPracticeAudioBridgeChecker(
+      metronomeChannel: metronomeChannel,
+      toneChannel: toneChannel,
+    ).run();
+
+    expect(item.status, SheetDeviceCheckStatus.warn);
+    expect(item.details, contains('metronome click buffer 준비됨'));
+    expect(item.details, contains('drone audio_route_unavailable'));
+    expect(item.details, contains('실제 음량'));
+  });
+
   test('metronome timing analyzer passes stable intervals', () {
     final start = DateTime.utc(2026, 9, 26, 12);
     final ticks = <DateTime>[

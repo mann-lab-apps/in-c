@@ -98,9 +98,17 @@ void main() {
         await tester.tap(find.widgetWithText(ListTile, '개발자용 기기 리포트'));
         await tester.pumpAndSettle();
         expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('연습 오디오 엔진 점검'),
+          120,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('연습 오디오 엔진 점검'), findsOneWidget);
+        await tester.ensureVisible(find.text('엔진 확인'));
+        await tester.pumpAndSettle();
+        expect(find.text('엔진 확인'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'device check');
-        Navigator.of(tester.element(find.text('Clef & Staff 개발자용 기기 리포트')))
-            .pop();
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();

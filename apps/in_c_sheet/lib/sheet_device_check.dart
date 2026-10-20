@@ -1,12 +1,79 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:flutter/services.dart';
+
 import 'sheet_metronome.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_viewer_input.dart';
 
 enum SheetDeviceCheckStatus { pass, warn, fail, manual, notTested }
+
+class SheetPracticeAudioBridgeChecker {
+  SheetPracticeAudioBridgeChecker({
+    MethodChannel? metronomeChannel,
+    MethodChannel? toneChannel,
+  }) : _metronomeChannel =
+           metronomeChannel ?? const MethodChannel('clef/metronome_player'),
+       _toneChannel = toneChannel ?? const MethodChannel('clef/tone_player');
+
+  final MethodChannel _metronomeChannel;
+  final MethodChannel _toneChannel;
+
+  Future<SheetDeviceCheckItem> run() async {
+    final ready = <String>[];
+    final issues = <String>[];
+    try {
+      await _metronomeChannel.invokeMethod<void>('prepare');
+      ready.add('metronome click buffer');
+    } on MissingPluginException {
+      issues.add('metronome bridge 미등록');
+    } on PlatformException catch (error) {
+      issues.add('metronome ${error.code}');
+    } catch (error) {
+      issues.add('metronome ${error.runtimeType}');
+    }
+
+    try {
+      await _toneChannel.invokeMethod<void>('play', <String, Object?>{
+        'frequencies': const <double>[440],
+        'volume': 0.0,
+      });
+      ready.add('drone silent output');
+    } on MissingPluginException {
+      issues.add('drone bridge 미등록');
+    } on PlatformException catch (error) {
+      issues.add('drone ${error.code}');
+    } catch (error) {
+      issues.add('drone ${error.runtimeType}');
+    } finally {
+      await _stopBestEffort(_toneChannel);
+      await _stopBestEffort(_metronomeChannel);
+    }
+
+    final readyDetails = ready.isEmpty ? '' : '${ready.join(', ')} 준비됨. ';
+    final issueDetails = issues.isEmpty ? '' : '확인 필요: ${issues.join(', ')}. ';
+    return SheetDeviceCheckItem(
+      id: 'native-audio-bridges',
+      title: 'Native practice audio bridges',
+      status: issues.isEmpty
+          ? SheetDeviceCheckStatus.pass
+          : SheetDeviceCheckStatus.warn,
+      details:
+          '$readyDetails$issueDetails'
+          '무음 초기화 결과이며 실제 음량, latency, 박자 균일성은 직접 들어봐야 합니다.',
+    );
+  }
+
+  static Future<void> _stopBestEffort(MethodChannel channel) async {
+    try {
+      await channel.invokeMethod<void>('stop');
+    } catch (_) {
+      // Diagnostics cleanup must not hide the probe result.
+    }
+  }
+}
 
 extension SheetDeviceCheckStatusLabel on SheetDeviceCheckStatus {
   String get code {

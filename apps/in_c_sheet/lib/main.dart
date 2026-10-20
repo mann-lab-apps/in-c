@@ -5528,7 +5528,15 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
   final AudioRecorder _recorder = AudioRecorder();
   final SheetDeviceCheckTimingSampler _timingSampler =
       SheetDeviceCheckTimingSampler();
+  final SheetPracticeAudioBridgeChecker _audioBridgeChecker =
+      SheetPracticeAudioBridgeChecker();
   SheetViewerInputDiagnosticEntry? _lastKeyEntry;
+  SheetDeviceCheckItem _audioBridgeItem = const SheetDeviceCheckItem(
+    id: 'native-audio-bridges',
+    title: 'Native practice audio bridges',
+    status: SheetDeviceCheckStatus.notTested,
+    details: '메트로놈과 드론의 native 오디오 초기화를 아직 확인하지 않았습니다.',
+  );
   SheetDeviceCheckItem _microphoneItem = const SheetDeviceCheckItem(
     id: 'microphone-permission',
     title: 'Tuner microphone permission',
@@ -5537,6 +5545,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
   );
   final List<SheetMetronomeTimingAnalysis> _timingResults =
       <SheetMetronomeTimingAnalysis>[];
+  bool _isCheckingAudioBridges = false;
   bool _isCheckingMicrophone = false;
   bool _isCheckingTiming = false;
 
@@ -5577,7 +5586,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              '일반 연주 도구가 아니라, 이 기기에서 페이지 입력, 메트로놈 스케줄, 마이크 권한 같은 호환성 정보를 확인해 '
+              '일반 연주 도구가 아니라, 이 기기에서 페이지 입력, native 오디오 초기화, 메트로놈 스케줄, 마이크 권한 같은 호환성 정보를 확인해 '
               '개발자에게 보낼 리포트를 만듭니다. 결과는 사용자가 복사하거나 공유하기 전까지 '
               '외부로 전송되지 않습니다.',
               style: theme.textTheme.bodySmall,
@@ -5597,6 +5606,26 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
                         '${_lastKeyEntry!.action.value}',
               status: deviceCheckItemForKeyInput(_lastKeyEntry).status,
               icon: Icons.keyboard_alt_outlined,
+            ),
+            const SizedBox(height: 10),
+            _DeviceCheckActionCard(
+              title: '연습 오디오 엔진 점검',
+              subtitle: _isCheckingAudioBridges
+                  ? '메트로놈과 드론을 무음으로 초기화하는 중입니다.'
+                  : _audioBridgeItem.details,
+              status: _audioBridgeItem.status,
+              icon: Icons.graphic_eq_outlined,
+              action: OutlinedButton.icon(
+                onPressed: _isCheckingAudioBridges ? null : _checkAudioBridges,
+                icon: _isCheckingAudioBridges
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow),
+                label: Text(_isCheckingAudioBridges ? '확인 중' : '엔진 확인'),
+              ),
             ),
             const SizedBox(height: 10),
             _DeviceCheckActionCard(
@@ -5807,6 +5836,18 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
     }
   }
 
+  Future<void> _checkAudioBridges() async {
+    setState(() => _isCheckingAudioBridges = true);
+    final item = await _audioBridgeChecker.run();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _audioBridgeItem = item;
+      _isCheckingAudioBridges = false;
+    });
+  }
+
   SheetDeviceCheckReport _report() {
     return SheetDeviceCheckReport(
       appVersion: widget.appVersion,
@@ -5821,6 +5862,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
           status: SheetDeviceCheckStatus.pass,
           details: '개발자용 기기 리포트 화면이 열렸습니다.',
         ),
+        _audioBridgeItem,
         deviceCheckItemForKeyInput(_lastKeyEntry),
         if (_timingResults.isEmpty)
           for (final bpm in _timingBpms)
@@ -5966,14 +6008,18 @@ class _DeviceCheckActionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                _DeviceCheckStatusChip(status: status),
               ],
             ),
-            if (action != null) ...[
-              const SizedBox(height: 12),
-              Align(alignment: Alignment.centerLeft, child: action),
-            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _DeviceCheckStatusChip(status: status),
+                ?action,
+              ],
+            ),
           ],
         ),
       ),

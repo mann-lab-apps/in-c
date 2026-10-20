@@ -3218,3 +3218,10 @@ target-relative resource path fix, while the coordinated Android/Linux/web/Windo
 mismatch exposed by full Flutter compilation. A lockfile regression prevents returning below that compatible baseline, and
 a regenerated Flutter plugin package resolves through `xcodebuild -list` without the warning. This did not build or archive
 iOS, so final bundle privacy-manifest presence remains a release-build inspection rather than a completed claim.
+
+S321 VERIFIED LOCAL: extended the developer device report with a silent native practice-audio readiness probe rather than
+claiming listening quality from Flutter timer measurements. The action prepares the metronome click buffer, opens a 440 Hz
+drone output at zero app volume, records each bridge result separately and always sends best-effort stop calls. Missing or
+failed Android/iOS channels remain a visible warning in the copied Markdown/JSON report; a PASS only proves native
+initialization and explicitly leaves audible volume, latency, regularity, route and Bluetooth behavior to Device QA. Unit
+regressions cover both-ready and partial-failure cleanup, while the responsive named menu test guards the user-facing entry.
