@@ -429,6 +429,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('backup menu exposes a read-only three snapshot review', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3개 백업 비교'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        '기준, 로컬, 원격 정보 백업 JSON을 차례로 선택합니다. '
+        '변경과 충돌 가능성만 검토하며 현재 라이브러리에는 아무것도 적용하지 않습니다.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('비교 시작'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, '취소'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('비교 시작'), findsNothing);
+    expect(controller.scores, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in <double>[320, 360]) {
     testWidgets('compact selection actions preserve the count at $width', (
       tester,

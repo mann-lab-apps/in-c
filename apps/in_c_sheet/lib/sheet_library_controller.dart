@@ -14,6 +14,7 @@ import 'sheet_chordpro.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_backup_diff.dart';
+import 'sheet_library_sync_review.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
@@ -4821,6 +4822,20 @@ class SheetLibraryController extends ChangeNotifier {
       return null;
     }
     return previewMetadataBackupJson(value);
+  }
+
+  Future<String?> pickMetadataBackupJson() => store.pickMetadataBackupJson();
+
+  SheetLibrarySyncReviewPreview previewSyncConflictJson({
+    required String baseJson,
+    required String localJson,
+    required String remoteJson,
+  }) {
+    return SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: baseJson,
+      localJson: localJson,
+      remoteJson: remoteJson,
+    );
   }
 
   Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(

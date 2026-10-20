@@ -37,6 +37,7 @@ import 'sheet_library_backup_diff_view.dart';
 import 'sheet_library_controller.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
+import 'sheet_library_sync_review.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_linked_text_preview.dart';
 import 'sheet_metronome.dart';
@@ -1986,6 +1987,130 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     );
   }
 
+  Future<void> _showSyncConflictReview() async {
+    final shouldStart = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('3개 백업 비교'),
+        content: const Text(
+          '기준, 로컬, 원격 정보 백업 JSON을 차례로 선택합니다. '
+          '변경과 충돌 가능성만 검토하며 현재 라이브러리에는 아무것도 적용하지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('비교 시작'),
+          ),
+        ],
+      ),
+    );
+    if (shouldStart != true || !mounted) return;
+
+    try {
+      final baseJson = await _pickSyncReviewSnapshot(
+        title: '기준 백업 선택',
+        body: '두 기기가 갈라지기 전 기준이 된 정보 백업 JSON을 선택하세요.',
+      );
+      if (baseJson == null || !mounted) return;
+      final localJson = await _pickSyncReviewSnapshot(
+        title: '로컬 백업 선택',
+        body: '이 기기 또는 로컬 변경을 담은 정보 백업 JSON을 선택하세요.',
+      );
+      if (localJson == null || !mounted) return;
+      final remoteJson = await _pickSyncReviewSnapshot(
+        title: '원격 백업 선택',
+        body: '다른 기기 또는 원격 변경을 담은 정보 백업 JSON을 선택하세요.',
+      );
+      if (remoteJson == null || !mounted) return;
+
+      final preview = controller.previewSyncConflictJson(
+        baseJson: baseJson,
+        localJson: localJson,
+        remoteJson: remoteJson,
+      );
+      if (!preview.canReview) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_syncReviewFailureMessage(preview))),
+        );
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('동기화 충돌 검토'),
+          content: SizedBox(
+            width: 680,
+            child: SingleChildScrollView(
+              child: SheetLibrarySyncReviewView(preview: preview),
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(
+                  ClipboardData(text: preview.report!.toMarkdown()),
+                );
+                if (!dialogContext.mounted) return;
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('동기화 변경 검토 내용을 복사했습니다.')),
+                );
+              },
+              icon: const Icon(Icons.copy_all_outlined),
+              label: const Text('검토 복사'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('닫기'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('백업 비교 파일을 읽지 못했습니다.')));
+    }
+  }
+
+  Future<String?> _pickSyncReviewSnapshot({
+    required String title,
+    required String body,
+  }) async {
+    final shouldPick = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.file_open_outlined),
+            label: const Text('파일 선택'),
+          ),
+        ],
+      ),
+    );
+    if (shouldPick != true || !mounted) return null;
+    return controller.pickMetadataBackupJson();
+  }
+
+  String _syncReviewFailureMessage(SheetLibrarySyncReviewPreview preview) {
+    return switch (preview.status) {
+      SheetLibrarySyncReviewStatus.unsupportedVersion => '지원하지 않는 정보 백업 버전입니다.',
+      SheetLibrarySyncReviewStatus.invalid => '올바른 정보 백업 JSON이 아닙니다.',
+      SheetLibrarySyncReviewStatus.error => '동기화 변경 검토를 만들지 못했습니다.',
+      SheetLibrarySyncReviewStatus.ready => '동기화 변경 검토를 만들지 못했습니다.',
+    };
+  }
+
   String _backupExportRecordLabel(SheetLibraryBackupExportRecord record) {
     final kind = switch (record.kind) {
       SheetLibraryBackupExportKind.metadata => '정보 백업',
@@ -2672,6 +2797,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _exportFullBackup();
       case _LibraryBackupAction.importFull:
         await _importFullBackup();
+      case _LibraryBackupAction.syncReview:
+        await _showSyncConflictReview();
     }
   }
 
@@ -3336,6 +3463,17 @@ List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
       title: const Text('전체 백업 복원'),
     ),
   ),
+  const PopupMenuDivider(),
+  PopupMenuItem(
+    value: _LibraryBackupAction.syncReview,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.compare_arrows_outlined),
+      title: const Text('3개 백업 비교'),
+      subtitle: const Text('적용 없이 충돌만 검토'),
+    ),
+  ),
 ];
 
 enum _LibraryBackupAction {
@@ -3345,6 +3483,7 @@ enum _LibraryBackupAction {
   restoreAutomaticMetadata,
   exportFull,
   importFull,
+  syncReview,
 }
 
 enum _LibraryImportAction {

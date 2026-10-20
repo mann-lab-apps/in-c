@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_backup_diff.dart';
+import 'package:in_c_sheet/sheet_library_sync_review.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
@@ -656,6 +657,91 @@ void main() {
         .toMarkdown();
     expect(markdown, isNot(contains('/local/private/score.pdf')));
     expect(markdown, isNot(contains('/remote/private/score.pdf')));
+  });
+
+  test('sync review decodes three backups and warns about duplicate input', () {
+    final now = DateTime(2026, 10, 20, 20);
+    final base = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'Etude')],
+    );
+    final remote = _backup(
+      now.add(const Duration(minutes: 2)),
+      scores: [_score(now, id: 'score-a', title: 'Etude revised')],
+    );
+    final baseJson = SheetLibraryBackupCodec.encode(base);
+
+    final preview = SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: baseJson,
+      localJson: baseJson,
+      remoteJson: SheetLibraryBackupCodec.encode(remote),
+    );
+
+    expect(preview.status, SheetLibrarySyncReviewStatus.ready);
+    expect(preview.canReview, isTrue);
+    expect(preview.snapshots, hasLength(3));
+    expect(preview.report!.items, hasLength(1));
+    expect(
+      preview.report!.items.single.status,
+      SheetLibrarySyncDryRunStatus.remoteOnly,
+    );
+    expect(preview.warnings, contains('기준과 로컬에 같은 백업을 선택했습니다.'));
+    expect(
+      preview.warnings,
+      contains('백업 형식 v1에는 안정적인 라이브러리 식별자가 없어 항목 범위와 내보낸 시각으로 교차 확인해야 합니다.'),
+    );
+  });
+
+  test('sync review warns when snapshots have no shared record ids', () {
+    final now = DateTime(2026, 10, 20, 21);
+    String encoded(String id) => SheetLibraryBackupCodec.encode(
+      _backup(now, scores: [_score(now, id: id)]),
+    );
+
+    final preview = SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: encoded('base-score'),
+      localJson: encoded('local-score'),
+      remoteJson: encoded('remote-score'),
+    );
+
+    expect(preview.canReview, isTrue);
+    expect(
+      preview.warnings,
+      contains(
+        '세 백업 사이에서 공통 악보/세트리스트 식별자를 찾지 못했습니다. 같은 라이브러리에서 만든 백업인지 확인하세요.',
+      ),
+    );
+  });
+
+  test('sync review rejects invalid scope and unsupported versions', () {
+    final now = DateTime(2026, 10, 20, 22);
+    final backupJson = SheetLibraryBackupCodec.encode(_backup(now));
+    final unsupported = backupJson.replaceFirst(
+      RegExp(r'"version"\s*:\s*1'),
+      '"version":99',
+    );
+    final invalidScope = backupJson.replaceFirst(
+      RegExp(r'"scope"\s*:\s*"metadata-only"'),
+      '"scope":"full"',
+    );
+
+    final unsupportedPreview = SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: unsupported,
+      localJson: backupJson,
+      remoteJson: backupJson,
+    );
+    final invalidPreview = SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: invalidScope,
+      localJson: backupJson,
+      remoteJson: backupJson,
+    );
+
+    expect(
+      unsupportedPreview.status,
+      SheetLibrarySyncReviewStatus.unsupportedVersion,
+    );
+    expect(invalidPreview.status, SheetLibrarySyncReviewStatus.invalid);
+    expect(invalidPreview.failureReason, contains('기준 백업'));
   });
 }
 

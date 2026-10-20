@@ -3308,3 +3308,19 @@ run. A mismatch is now a WARN with both anonymous route types, while matching ro
 can expose an audio-session/routing clue without collecting device names or claiming the audible outputs are correct. A
 channel-injected regression covers built-in-speaker versus Bluetooth divergence; intentional route changes and actual
 Bluetooth stability still require the tester to interpret the report.
+
+S333 VERIFIED LOCAL: closed the native compile gate left by the recent Android/iOS practice-audio bridge changes. A Flutter
+debug APK build compiled the Kotlin route probes and produced `app-debug.apk`; the project-local wrapper executable/JAR is
+still absent, but Flutter successfully used the configured Gradle distribution. A Flutter iOS simulator debug build compiled
+the Swift bridges without the former `PrivacyInfo.xcprivacy` warning, installed on the booted iPhone 17 simulator and launched
+as `com.mannlab.inc.clefandstaff`. Both builds left the worktree clean. This is compile/start evidence only, not Android or
+iPhone/iPad audible quality, Bluetooth stability, timing, archive signing or release readiness.
+
+S334 VERIFIED LOCAL: connected the non-mutating base/local/remote conflict classifier to a user-facing backup review flow.
+The backup menu now labels a `3개 백업 비교` action as read-only, guides the user through three metadata JSON selections,
+rejects invalid scope/version/JSON, summarizes export time and item counts, warns about duplicate snapshots or three disjoint
+identifier ranges, groups bounded results by local-only/remote-only/same-change/merge-candidate/manual-conflict and copies the
+existing path-free Markdown report. The view explicitly states that it never merges or applies data. Because backup v1 has no
+stable cross-device library identifier, the UI exposes that limitation instead of claiming identity validation. Pure model,
+compact widget and backup-menu cancellation regressions passed; field-level merge, clocks/tombstones and account transport
+remain out of scope.
