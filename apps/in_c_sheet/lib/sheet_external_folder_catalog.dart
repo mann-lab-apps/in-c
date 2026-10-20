@@ -12,6 +12,7 @@ enum SheetExternalFolderCatalogStatus {
 enum SheetExternalFolderCandidateStatus {
   readyToCopy,
   duplicateName,
+  sourceChanged,
   unsupportedFormat,
   unreadable,
 }
@@ -73,6 +74,10 @@ class SheetExternalFolderCatalogPreview {
   factory SheetExternalFolderCatalogPreview.fromEntries(
     Iterable<SheetExternalFolderEntry> entries, {
     Iterable<String> existingFileNames = const <String>[],
+    Iterable<SheetScoreImportSource> existingImportSources =
+        const <SheetScoreImportSource>[],
+    String? folderLabel,
+    String? providerLabel,
     int maxEntries = 200,
   }) {
     final allEntries = entries.toList(growable: false);
@@ -93,6 +98,18 @@ class SheetExternalFolderCatalogPreview {
         .map(normalizeName)
         .where((name) => name.isNotEmpty)
         .toSet();
+    final importedSourcesByName = <String, SheetScoreImportSource>{};
+    for (final source in existingImportSources) {
+      if (source.platform != 'android-saf-copy' ||
+          !_sameLocationHint(source.folderLabel, folderLabel) ||
+          !_sameLocationHint(source.providerLabel, providerLabel)) {
+        continue;
+      }
+      final normalizedName = normalizeName(source.displayName);
+      if (normalizedName.isNotEmpty) {
+        importedSourcesByName.putIfAbsent(normalizedName, () => source);
+      }
+    }
 
     // Treat repeated file names in the selected folder like an existing score.
     // The first ready candidate remains selectable; later duplicates stay out of
@@ -103,6 +120,7 @@ class SheetExternalFolderCatalogPreview {
       final candidate = _candidateFor(
         indexedEntry.$2,
         existingNames: claimedNames,
+        importedSource: importedSourcesByName[indexedEntry.$2.normalizedName],
         visibleIndex: indexedEntry.$1,
       );
       candidates.add(candidate);
@@ -152,6 +170,10 @@ class SheetExternalFolderCatalogPreview {
   }).length;
 
   int get blockedCount => candidates.length - readyCount;
+
+  int get sourceChangedCount => candidates.where((candidate) {
+    return candidate.status == SheetExternalFolderCandidateStatus.sourceChanged;
+  }).length;
 
   bool get hasReadyCandidates => readyCount > 0;
 
@@ -222,6 +244,7 @@ class SheetExternalFolderCatalogPreview {
   static SheetExternalFolderImportCandidate _candidateFor(
     SheetExternalFolderEntry entry, {
     required Set<String> existingNames,
+    SheetScoreImportSource? importedSource,
     required int visibleIndex,
   }) {
     final normalizedName = entry.normalizedName;
@@ -243,10 +266,21 @@ class SheetExternalFolderCatalogPreview {
       );
     }
     if (existingNames.contains(normalizedName)) {
+      if (importedSource != null &&
+          _sourceFingerprintChanged(importedSource, entry)) {
+        return SheetExternalFolderImportCandidate(
+          entry: entry,
+          status: SheetExternalFolderCandidateStatus.sourceChanged,
+          message: '가져온 뒤 원본 파일이 바뀌었습니다. 자동으로 덮어쓰지 않으므로 기존 악보를 확인해주세요.',
+          selectionId: selectionId,
+        );
+      }
       return SheetExternalFolderImportCandidate(
         entry: entry,
         status: SheetExternalFolderCandidateStatus.duplicateName,
-        message: '같은 이름의 악보가 이미 라이브러리에 있습니다.',
+        message: importedSource == null
+            ? '같은 이름의 악보가 이미 라이브러리에 있습니다.'
+            : '이 폴더에서 이미 가져온 악보입니다.',
         selectionId: selectionId,
       );
     }
@@ -264,6 +298,28 @@ class SheetExternalFolderCatalogPreview {
       return 'doc:$documentId';
     }
     return 'entry:$index:${entry.normalizedName}';
+  }
+
+  static bool _sameLocationHint(String? saved, String? current) {
+    final normalizedSaved = saved?.trim().toLowerCase() ?? '';
+    final normalizedCurrent = current?.trim().toLowerCase() ?? '';
+    if (normalizedSaved.isEmpty || normalizedCurrent.isEmpty) return true;
+    return normalizedSaved == normalizedCurrent;
+  }
+
+  static bool _sourceFingerprintChanged(
+    SheetScoreImportSource source,
+    SheetExternalFolderEntry entry,
+  ) {
+    final sizeChanged =
+        source.sizeBytes != null &&
+        entry.sizeBytes != null &&
+        source.sizeBytes != entry.sizeBytes;
+    final modifiedAtChanged =
+        source.modifiedAt != null &&
+        entry.modifiedAt != null &&
+        !source.modifiedAt!.isAtSameMomentAs(entry.modifiedAt!);
+    return sizeChanged || modifiedAtChanged;
   }
 }
 

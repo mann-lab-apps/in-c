@@ -3061,3 +3061,11 @@ and a failed metadata write restores the previous value without reporting succes
 cover persistence, rollback, a 390px document viewer and unchanged search/edit boundaries. `dart format`, `flutter analyze`,
 all 1,761 tests and the RC release check passed. Tablet stand-distance readability, 130% combined with large system text and
 long real DOCX/RTF extracts remain Device QA.
+
+S304 VERIFIED LOCAL: made reusable Android folder scans distinguish a changed source without turning copy-on-select into
+live sync. When a saved `android-saf-copy` provenance record matches the reopened folder/provider and file name, the catalog
+compares available size and modified time. Changed files appear as blocked `원본 변경` items and the sheet reports their
+count; unchanged prior imports receive a clearer already-imported message. Clef never selects or overwrites either case, so
+the existing app-owned score, metadata and annotations remain untouched. Catalog/widget regressions, `flutter analyze`, all
+1,764 tests and the RC release check passed. Provider timestamp fidelity, reboot/revocation, cloud-offline behavior and any
+explicit manual-update flow remain Device QA/follow-up; this is not automatic sync or app-copy-free direct reference.

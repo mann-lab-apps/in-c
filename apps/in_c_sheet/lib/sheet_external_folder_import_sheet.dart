@@ -170,6 +170,17 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
               ],
               const SizedBox(height: 8),
               Text(widget.preview.message),
+              if (widget.preview.sourceChangedCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '원본 변경 ${widget.preview.sourceChangedCount}개 · 기존 악보를 자동으로 덮어쓰지 않습니다.',
+                  key: const ValueKey('external-folder-source-changes'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Expanded(
                 child: widget.preview.candidates.isEmpty

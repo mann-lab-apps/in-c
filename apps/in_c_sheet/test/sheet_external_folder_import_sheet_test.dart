@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_external_folder_catalog.dart';
 import 'package:in_c_sheet/sheet_external_folder_gateway.dart';
 import 'package:in_c_sheet/sheet_external_folder_import_sheet.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 
 void main() {
   testWidgets('preselects supported scores and keeps blocked files disabled', (
@@ -82,6 +83,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(result?.type, SheetExternalFolderConnectionActionType.open);
     expect(result?.connection, same(connection));
+  });
+
+  testWidgets('changed folder sources stay blocked and explain no overwrite', (
+    tester,
+  ) async {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Changed.pdf',
+          sizeBytes: 2048,
+          modifiedAt: DateTime.utc(2026, 10, 20),
+        ),
+      ],
+      existingFileNames: const <String>['Changed.pdf'],
+      existingImportSources: <SheetScoreImportSource>[
+        SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: 'Changed.pdf',
+          folderLabel: 'Recital',
+          sizeBytes: 1024,
+          modifiedAt: DateTime.utc(2026, 10, 19),
+        )!,
+      ],
+      folderLabel: 'Recital',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ExternalFolderImportSheet(
+            folderLabel: 'Recital',
+            preview: preview,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('원본 변경 1개'), findsOneWidget);
+    expect(find.textContaining('자동으로 덮어쓰지'), findsNWidgets(2));
+    final checkbox = tester.widget<CheckboxListTile>(
+      find.byType(CheckboxListTile),
+    );
+    expect(checkbox.onChanged, isNull);
+    expect(find.text('0개 악보 복사'), findsOneWidget);
   });
 
   testWidgets('unreadable connection can be forgotten on a small screen', (

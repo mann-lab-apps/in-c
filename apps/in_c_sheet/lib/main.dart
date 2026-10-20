@@ -610,6 +610,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       pickedFolder.entries,
       existingFileNames: controller.scores.expand(_scoreImportFileNames),
+      existingImportSources: controller.scores
+          .map((score) => score.importSource)
+          .whereType<SheetScoreImportSource>(),
+      folderLabel: pickedFolder.folderLabel,
+      providerLabel: pickedFolder.providerLabel,
     );
     final plan = await showModalBottomSheet<SheetExternalFolderCopyPlan>(
       context: context,

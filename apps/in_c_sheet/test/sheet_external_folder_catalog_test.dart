@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_external_folder_catalog.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 
 void main() {
   test('classifies supported score entries without mutating data', () {
@@ -66,6 +67,82 @@ void main() {
       SheetExternalFolderCandidateStatus.duplicateName,
     );
     expect(preview.candidates.single.message, contains('이미'));
+  });
+
+  test(
+    'flags changed files from the same connected folder without copying',
+    () {
+      final importedAt = DateTime.utc(2026, 10, 19, 10);
+      final preview = SheetExternalFolderCatalogPreview.fromEntries(
+        <SheetExternalFolderEntry>[
+          SheetExternalFolderEntry(
+            displayName: 'Concert Etude.pdf',
+            sizeBytes: 2400,
+            modifiedAt: DateTime.utc(2026, 10, 20, 10),
+          ),
+        ],
+        existingFileNames: const <String>['Concert Etude.pdf'],
+        existingImportSources: <SheetScoreImportSource>[
+          SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Concert Etude.pdf',
+            folderLabel: 'Recital',
+            providerLabel: 'Drive',
+            sizeBytes: 1200,
+            modifiedAt: importedAt,
+          )!,
+        ],
+        folderLabel: 'Recital',
+        providerLabel: 'Drive',
+      );
+
+      expect(preview.readyCount, 0);
+      expect(preview.sourceChangedCount, 1);
+      expect(
+        preview.candidates.single.status,
+        SheetExternalFolderCandidateStatus.sourceChanged,
+      );
+      expect(preview.candidates.single.message, contains('자동으로 덮어쓰지'));
+      expect(
+        preview.copyPlanForSelection(<String>[
+          preview.candidates.single.selectionId,
+        ]).isReady,
+        isFalse,
+      );
+    },
+  );
+
+  test('recognizes an unchanged source from the same connected folder', () {
+    final modifiedAt = DateTime.utc(2026, 10, 20, 10);
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Concert Etude.pdf',
+          sizeBytes: 1200,
+          modifiedAt: modifiedAt,
+        ),
+      ],
+      existingFileNames: const <String>['Concert Etude.pdf'],
+      existingImportSources: <SheetScoreImportSource>[
+        SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: 'Concert Etude.pdf',
+          folderLabel: 'Recital',
+          providerLabel: 'Drive',
+          sizeBytes: 1200,
+          modifiedAt: modifiedAt,
+        )!,
+      ],
+      folderLabel: 'Recital',
+      providerLabel: 'Drive',
+    );
+
+    expect(preview.sourceChangedCount, 0);
+    expect(
+      preview.candidates.single.status,
+      SheetExternalFolderCandidateStatus.duplicateName,
+    );
+    expect(preview.candidates.single.message, contains('이 폴더에서 이미'));
   });
 
   test(
