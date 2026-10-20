@@ -171,6 +171,9 @@ void main() {
         columnCount: 2,
         fontScalePercent: 130,
       ),
+      textDisplaySettings: const SheetTextDisplaySettings(
+        fontScalePercent: 115,
+      ),
     );
 
     final encoded = SheetScore.encodeList(<SheetScore>[score]);
@@ -289,6 +292,7 @@ void main() {
     expect(decoded.single.chordProDisplaySettings.capoFretsOverride, 5);
     expect(decoded.single.chordProDisplaySettings.columnCount, 2);
     expect(decoded.single.chordProDisplaySettings.fontScalePercent, 130);
+    expect(decoded.single.textDisplaySettings.fontScalePercent, 115);
   });
 
   test('normalizes ChordPro display settings safely', () {
@@ -314,6 +318,16 @@ void main() {
       isNull,
     );
     expect(SheetChordProDisplaySettings.defaultSettings.isDefault, isTrue);
+  });
+
+  test('normalizes plain text display settings safely', () {
+    final decoded = SheetTextDisplaySettings.fromJson(<String, Object?>{
+      'fontScalePercent': 122,
+    });
+
+    expect(decoded.fontScalePercent, 115);
+    expect(decoded.copyWith(fontScalePercent: 999).fontScalePercent, 130);
+    expect(SheetTextDisplaySettings.defaultSettings.isDefault, isTrue);
   });
 
   test('normalizes custom metadata fields safely', () {

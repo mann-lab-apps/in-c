@@ -1980,6 +1980,57 @@ Clef & Staff 세트리스트
     },
   );
 
+  test('persists plain text display settings per score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 22);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      _score(now, id: 'plain-text-score', filePath: '/tmp/lesson.txt'),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateTextDisplaySettings(
+      controller.scoreById('plain-text-score'),
+      const SheetTextDisplaySettings(fontScalePercent: 115),
+    );
+
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.textDisplaySettings.fontScalePercent, 115);
+  });
+
+  test(
+    'plain text display settings save failure restores previous score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 22);
+      final store = _PlainTextSourceEditStore();
+      await store.saveScores([
+        _score(now, id: 'plain-text-score', filePath: '/tmp/lesson.txt'),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updateTextDisplaySettings(
+          controller.scoreById('plain-text-score'),
+          const SheetTextDisplaySettings(fontScalePercent: 130),
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        controller.scoreById('plain-text-score').textDisplaySettings.isDefault,
+        isTrue,
+      );
+      expect(
+        (await store.loadScores()).single.textDisplaySettings.isDefault,
+        isTrue,
+      );
+    },
+  );
+
   test(
     'ChordPro source edit preserves library metadata and file extension',
     () async {

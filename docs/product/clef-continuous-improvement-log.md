@@ -3053,3 +3053,11 @@ Legacy score records default to 100%, unsupported persisted values normalize to 
 system text scale still composes with the selected score scale. Model, controller and widget regressions, `flutter analyze`,
 all 1,758 tests and the RC release check passed. Actual tablet stand-distance readability, 130% with large system text and
 very long two-column songs remain Device QA.
+
+S303 VERIFIED LOCAL: added the same per-score 85/100/115/130% reading-size control to ordinary text and extracted DOCX/RTF
+scores. The selected size scales the selectable/searchable body, survives viewer re-entry through score metadata and keeps
+document extracts explicitly read-only. Legacy records default to 100%, unsupported values normalize to the nearest step,
+and a failed metadata write restores the previous value without reporting success. Model, controller and widget regressions
+cover persistence, rollback, a 390px document viewer and unchanged search/edit boundaries. `dart format`, `flutter analyze`,
+all 1,761 tests and the RC release check passed. Tablet stand-distance readability, 130% combined with large system text and
+long real DOCX/RTF extracts remain Device QA.

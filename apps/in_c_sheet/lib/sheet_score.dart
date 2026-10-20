@@ -565,6 +565,46 @@ class SheetChordProDisplaySettings {
   }
 }
 
+class SheetTextDisplaySettings {
+  const SheetTextDisplaySettings({this.fontScalePercent = 100});
+
+  factory SheetTextDisplaySettings.fromJson(Map<String, Object?>? json) {
+    return SheetTextDisplaySettings(
+      fontScalePercent: _clampFontScalePercent(
+        _intFromJson(json?['fontScalePercent'], fallback: 100),
+      ),
+    );
+  }
+
+  static const defaultSettings = SheetTextDisplaySettings();
+
+  final int fontScalePercent;
+
+  bool get isDefault => fontScalePercent == 100;
+
+  SheetTextDisplaySettings copyWith({int? fontScalePercent}) {
+    return SheetTextDisplaySettings(
+      fontScalePercent: _clampFontScalePercent(
+        fontScalePercent ?? this.fontScalePercent,
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{'fontScalePercent': fontScalePercent};
+  }
+
+  static int _clampFontScalePercent(int value) {
+    const supported = <int>[85, 100, 115, 130];
+    return supported.reduce(
+      (closest, candidate) =>
+          (candidate - value).abs() < (closest - value).abs()
+          ? candidate
+          : closest,
+    );
+  }
+}
+
 class SheetCropPreset {
   const SheetCropPreset({
     required this.id,
@@ -2544,6 +2584,7 @@ class SheetScore {
     this.autoScrollSettings = SheetAutoScrollSettings.defaultSettings,
     this.metronomeSettings,
     this.chordProDisplaySettings = SheetChordProDisplaySettings.defaultSettings,
+    this.textDisplaySettings = SheetTextDisplaySettings.defaultSettings,
   });
 
   factory SheetScore.fromJson(Map<String, Object?> json) {
@@ -2601,6 +2642,9 @@ class SheetScore {
       metronomeSettings: _metronomeSettingsFromJson(json['metronomeSettings']),
       chordProDisplaySettings: SheetChordProDisplaySettings.fromJson(
         _asJsonMap(json['chordProDisplaySettings']),
+      ),
+      textDisplaySettings: SheetTextDisplaySettings.fromJson(
+        _asJsonMap(json['textDisplaySettings']),
       ),
     );
   }
@@ -2667,6 +2711,7 @@ class SheetScore {
   final SheetAutoScrollSettings autoScrollSettings;
   final SheetMetronomeSettings? metronomeSettings;
   final SheetChordProDisplaySettings chordProDisplaySettings;
+  final SheetTextDisplaySettings textDisplaySettings;
 
   String get displayTitle =>
       title.trim().isEmpty ? sourceFileDisplayName : title.trim();
@@ -2765,6 +2810,7 @@ class SheetScore {
     SheetAutoScrollSettings? autoScrollSettings,
     SheetMetronomeSettings? metronomeSettings,
     SheetChordProDisplaySettings? chordProDisplaySettings,
+    SheetTextDisplaySettings? textDisplaySettings,
     bool clearMetronomeSettings = false,
   }) {
     return SheetScore(
@@ -2803,6 +2849,7 @@ class SheetScore {
           : metronomeSettings ?? this.metronomeSettings,
       chordProDisplaySettings:
           chordProDisplaySettings ?? this.chordProDisplaySettings,
+      textDisplaySettings: textDisplaySettings ?? this.textDisplaySettings,
     );
   }
 
@@ -2837,6 +2884,7 @@ class SheetScore {
       if (metronomeSettings != null)
         'metronomeSettings': metronomeSettings!.toJson(),
       'chordProDisplaySettings': chordProDisplaySettings.toJson(),
+      'textDisplaySettings': textDisplaySettings.toJson(),
     };
   }
 

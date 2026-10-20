@@ -8739,6 +8739,20 @@ class _SheetPlainTextViewerScreenState
               icon: const Icon(Icons.edit_note_outlined),
               label: const Text('원문 편집'),
             ),
+          if (!_isSearching)
+            PopupMenuButton<int>(
+              key: const ValueKey('plain-text-font-scale'),
+              tooltip: '글자 크기',
+              initialValue: score.textDisplaySettings.fontScalePercent,
+              onSelected: (value) => unawaited(_setFontScale(score, value)),
+              icon: const Icon(Icons.format_size),
+              itemBuilder: (context) => const <PopupMenuEntry<int>>[
+                PopupMenuItem<int>(value: 85, child: Text('작게 (85%)')),
+                PopupMenuItem<int>(value: 100, child: Text('기본 (100%)')),
+                PopupMenuItem<int>(value: 115, child: Text('크게 (115%)')),
+                PopupMenuItem<int>(value: 130, child: Text('아주 크게 (130%)')),
+              ],
+            ),
           if (!_isSearching && score.isExtractedDocumentText)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
@@ -8807,7 +8821,9 @@ class _SheetPlainTextViewerScreenState
                             _loadedText,
                             search,
                             activeMatchIndex,
+                            score.textDisplaySettings.fontScalePercent,
                           ),
+                          key: const ValueKey('plain-text-content'),
                         ),
                       ),
                     ),
@@ -8913,6 +8929,24 @@ class _SheetPlainTextViewerScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('원문을 저장하지 못했습니다. 기존 내용은 유지됩니다.')),
+      );
+    }
+  }
+
+  Future<void> _setFontScale(SheetScore score, int fontScalePercent) async {
+    try {
+      await widget.controller.updateTextDisplaySettings(
+        score,
+        SheetTextDisplaySettings(fontScalePercent: fontScalePercent),
+      );
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('글자 크기를 저장하지 못했습니다. 다시 시도해주세요.')),
       );
     }
   }
@@ -9096,9 +9130,13 @@ TextSpan _highlightPlainText(
   String text,
   _PlainTextSearchResult search,
   int activeMatchIndex,
+  int fontScalePercent,
 ) {
-  final baseStyle = Theme.of(context).textTheme.bodyLarge
-      ?.copyWith(height: 1.55);
+  final themeStyle = Theme.of(context).textTheme.bodyLarge;
+  final baseStyle = themeStyle?.copyWith(
+    fontSize: (themeStyle.fontSize ?? 16) * fontScalePercent / 100,
+    height: 1.55,
+  );
   if (search.matches.isEmpty) {
     return TextSpan(text: text, style: baseStyle);
   }

@@ -1620,6 +1620,24 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateTextDisplaySettings(
+    SheetScore score,
+    SheetTextDisplaySettings settings,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null ||
+        current.textDisplaySettings.fontScalePercent ==
+            settings.fontScalePercent) {
+      return;
+    }
+    await _replace(
+      current.copyWith(
+        textDisplaySettings: settings,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
   Future<bool> updateChordProSource(SheetScore score, String source) async {
     final current = scoreByIdOrNull(score.id);
     if (current == null || !_chordProSourceEdits.add(score.id)) {

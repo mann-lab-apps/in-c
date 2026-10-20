@@ -1625,6 +1625,33 @@ Clef & Staff 세트리스트
     expect(find.text('Lesson notes'), findsOneWidget);
     expect(find.byType(SelectionArea), findsOneWidget);
     expect(find.textContaining('첫 문장'), findsOneWidget);
+    final contentFinder = find.byKey(const ValueKey('plain-text-content'));
+    final defaultFontSize = tester
+        .widget<Text>(contentFinder)
+        .textSpan!
+        .style!
+        .fontSize!;
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아주 크게 (130%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(
+      controller
+          .scoreById('plain-text-score')
+          .textDisplaySettings
+          .fontScalePercent,
+      130,
+    );
+    expect(
+      tester.widget<Text>(contentFinder).textSpan!.style!.fontSize,
+      closeTo(defaultFontSize * 1.3, 0.01),
+    );
 
     await tester.tap(find.text('찾기'));
     await tester.pump();
@@ -1646,6 +1673,9 @@ Clef & Staff 세트리스트
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final tempDir = Directory.systemTemp.createTempSync(
       'clef-document-text-viewer-',
     );
@@ -1696,6 +1726,24 @@ Clef & Staff 세트리스트
     expect(find.text('읽기 전용'), findsOneWidget);
     expect(find.text('찾기'), findsOneWidget);
     expect(find.byKey(const ValueKey('plain-text-edit-source')), findsNothing);
+    expect(find.byKey(const ValueKey('plain-text-font-scale')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('크게 (115%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+    expect(
+      controller
+          .scoreById('document-text-score')
+          .textDisplaySettings
+          .fontScalePercent,
+      115,
+    );
+    expect(find.text('읽기 전용'), findsOneWidget);
 
     await tester.tap(find.text('찾기'));
     await tester.pump();

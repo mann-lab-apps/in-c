@@ -84,6 +84,10 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
   라이브러리 카드가 생기고, 열었을 때 PDF viewer가 아닌 선택 가능한 텍스트 viewer가 표시되어야 한다.
   `원문 편집`으로 내용을 저장하면 즉시 다시 표시되고, 취소·빈 원문·저장 실패에서는 기존 파일과
   라이브러리 정보가 유지되어야 한다. 빈 파일과 2 MiB 초과 파일은 저장되지 않아야 한다.
+- 일반 텍스트 viewer의 `글자 크기`를 85/100/115/130%로 바꾸고 본문이 즉시 바뀌는지 확인한다. 앱을
+  닫았다가 같은 악보를 다시 열어도 선택값이 유지되어야 한다. DOCX/RTF 추출 viewer에서도 크기 조정은
+  가능하되 `읽기 전용` 표시와 검색은 유지되어야 한다. 태블릿 스탠드 거리와 큰 시스템 글자에서 130%가
+  AppBar 또는 본문을 겹치게 하지 않는지 확인한다.
 - 같은 안내에서 문단, 표, 번호 목록, 불릿과 이미지가 섞인 `.docx` 샘플을 가져온다. core title/creator가 있으면 제목/작곡가로
   반영되고 문단 텍스트와 표의 행/열 관계는 읽기 전용 viewer로 열려야 한다. 표의 행은 줄바꿈, 열은 tab,
   한 셀의 여러 문단은 구분자로 표시되고 기본 번호/불릿 목록은 순서와 중첩을 알아볼 수 있어야 한다. 원본 DOCX는 reference 연결 파일과 전체 백업에
@@ -188,7 +192,8 @@ Repo 포함 fixture:
 - 실제 CamScanner/object-stream PDF 1개.
 - JPG/PNG 이미지 악보 2-3장.
 - HEIC/HEIF 이미지 1장.
-- Text/ChordPro/DOCX/RTF 악보 샘플 1개씩. 일반 Text는 파일 선택 저장/카드 노출/읽기 viewer 진입을 확인하고,
+- Text/ChordPro/DOCX/RTF 악보 샘플 1개씩. 일반 Text는 파일 선택 저장/카드 노출/읽기 viewer 진입과
+  악보별 85/100/115/130% 글자 크기 복원을 확인하고,
   DOCX/RTF는 추출 텍스트 viewer와 원본 reference 보존을 확인한다. ChordPro는 붙여넣기와 파일 선택 모두에서 metadata/preview 또는 저장/카드 노출/읽기 viewer 진입,
   곡별 저장형 transpose/capo shape 전환까지 확인한다.
 - Drive, iCloud, Dropbox 등 cloud provider에만 있는 PDF 1개.
