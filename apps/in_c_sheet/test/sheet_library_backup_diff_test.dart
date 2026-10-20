@@ -567,6 +567,96 @@ void main() {
     expect(markdown, isNot(contains('/tmp/score.pdf')));
     expect(markdown, contains('데이터를 병합하거나 적용하지 않습니다.'));
   });
+
+  test('sync dry-run keeps destructive content conflicts manual', () {
+    final now = DateTime(2026, 10, 20, 19);
+    final base = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'annotation-score',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'base-stroke')],
+          ),
+        ),
+        _score(now, id: 'binary-score', filePath: '/base/library/score.pdf'),
+      ],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['a', 'b', 'c']),
+      ],
+    );
+    final local = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'annotation-score',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'local-stroke')],
+          ),
+        ),
+        _score(now, id: 'binary-score', filePath: '/local/private/score.pdf'),
+      ],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['b', 'a', 'c']),
+      ],
+      userAnnotationStampPacks: [_stampPack(now, name: 'Local stamps')],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'annotation-score',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'remote-stroke')],
+          ),
+        ),
+        _score(now, id: 'binary-score', filePath: '/remote/private/score.pdf'),
+      ],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['a', 'c', 'b']),
+      ],
+      userAnnotationStampPacks: [_stampPack(now, name: 'Remote stamps')],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    expect(dryRun.conflicts, hasLength(4));
+    expect(
+      dryRun.items
+          .singleWhere((item) => item.id == 'annotation-score')
+          .conflictingFieldLabels,
+      ['필기 레이어'],
+    );
+    expect(
+      dryRun.items
+          .singleWhere((item) => item.id == 'binary-score')
+          .conflictingFieldLabels,
+      ['원본 파일'],
+    );
+    expect(
+      dryRun.items
+          .singleWhere((item) => item.id == 'concert')
+          .conflictingFieldLabels,
+      ['곡 순서'],
+    );
+    expect(
+      dryRun.items
+          .singleWhere((item) => item.id == 'settings')
+          .conflictingFieldLabels,
+      ['사용자 스탬프'],
+    );
+    final markdown = SheetLibrarySyncDryRunReport.fromDryRun(dryRun)
+        .toMarkdown();
+    expect(markdown, isNot(contains('/local/private/score.pdf')));
+    expect(markdown, isNot(contains('/remote/private/score.pdf')));
+  });
 }
 
 SheetLibraryBackup _backup(
@@ -574,6 +664,8 @@ SheetLibraryBackup _backup(
   List<SheetScore> scores = const <SheetScore>[],
   List<SheetSetlist> setlists = const <SheetSetlist>[],
   SheetAnnotationToolPreset? favoriteAnnotationPreset,
+  List<SheetAnnotationStampPack> userAnnotationStampPacks =
+      const <SheetAnnotationStampPack>[],
 }) {
   return SheetLibraryBackup.fromState(
     scores: scores,
@@ -583,6 +675,7 @@ SheetLibraryBackup _backup(
     toneSettings: SheetToneSettings.defaultSettings,
     libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
     favoriteAnnotationPreset: favoriteAnnotationPreset,
+    userAnnotationStampPacks: userAnnotationStampPacks,
     exportedAt: now,
   );
 }
@@ -629,6 +722,26 @@ SheetAnnotationStroke _stroke(DateTime now, {required String id}) {
       SheetAnnotationPoint(x: 0.4, y: 0.4),
     ],
     createdAt: now,
+  );
+}
+
+SheetAnnotationStampPack _stampPack(DateTime now, {required String name}) {
+  return SheetAnnotationStampPack(
+    id: 'practice-stamps',
+    name: name,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    stamps: const <SheetAnnotationUserStamp>[
+      SheetAnnotationUserStamp(
+        id: 'remember',
+        packId: 'practice-stamps',
+        label: 'Remember',
+        category: 'Practice',
+        kind: SheetAnnotationUserStamp.textKind,
+        text: 'Remember',
+      ),
+    ],
   );
 }
 

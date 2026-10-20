@@ -3288,3 +3288,9 @@ the local/remote change direction and conflicting field labels, while duplicate 
 Markdown output explicitly states that it neither merges nor applies data, and a regression covers conflicting tags,
 identical edits, a one-sided edit, duplicate-title disambiguation, truncation and source-path exclusion. This is a support and
 future conflict-UI artifact, not an account sync or merge writer.
+
+S330 VERIFIED LOCAL: locked the destructive-content boundaries of the three-way sync classifier with an explicit fixture.
+Concurrent annotation object edits, divergent setlist order, different source-file copies and divergent user stamp packs all
+remain manual-review conflicts with named fields; the generated report still omits both local and remote source paths. This
+test does not make those structures mergeable: annotation object identity/tombstones, ordered-list operations, binary copy
+preservation and stamp-pack decisions remain required before any merge writer can safely apply them.

@@ -408,7 +408,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      이는 전체 교체 전 review 및 future sync 설계 근거이며 merge writer와 conflict UI는 후속이다.
   4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
 - 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를
-  엇갈리게 수정한 fixture, offline/online 전환, provider quota/권한 취소, iCloud/Drive/Dropbox provider smoke.
+  엇갈리게 수정한 fixture. 필기 object, 세트리스트 순서, 원본 binary, 사용자 stamp pack의 양쪽 변경은
+  현재 수동 검토 conflict로 고정한다. 후속으로 offline/online 전환, provider quota/권한 취소,
+  iCloud/Drive/Dropbox provider smoke가 필요하다.
 - Acceptance criteria: 첫 단계는 데이터를 자동 삭제/덮어쓰기하지 않고 현재 backup/sync 상태와 conflict 후보를
   설명할 수 있어야 한다. 실제 continuous sync는 conflict review UX와 privacy/security review 전에는 완료 처리하지 않는다.
 - Blocker 해제 조건: account/provider 전략, privacy policy 갱신 범위, conflict fixture, rollback plan.
