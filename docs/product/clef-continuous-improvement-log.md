@@ -3114,3 +3114,13 @@ persisted score unchanged. Widget/controller regressions cover the new named act
 importer output, two-file cleanup and cross-format rejection. `dart format`, `flutter analyze`, all 1,777 tests and the RC
 release check passed. Real provider behavior, document re-extraction and restart/backup visibility remain Device QA; this is
 still explicit copy-on-update rather than app-copy-free direct reference or automatic sync.
+
+S310 VERIFIED LOCAL: made retained text revisions usable after an explicit source refresh without switching the score back
+to an obsolete file. The linked-file sheet now recognizes plain text and ChordPro edited copies, opens a full-screen
+`읽기 전용 사본` preview and renders ChordPro through the existing readable chord/lyric renderer. The preview applies the
+same 2 MiB, strict UTF-8 and non-empty boundary as import, while keeping the current score source, metadata, annotations and
+provenance unchanged. Previous DOCX/RTF text extracts use the same preview; their retained original document references are
+still storage/share artifacts rather than app-rendered files. Policy and widget regressions cover type detection, ChordPro
+rendering, damaged/oversized input and the read-only surface. `dart format`, `flutter analyze`, all 1,781 tests and the RC
+release check passed. Real connected-folder refresh, long historical text readability and restart/backup visibility remain
+Device QA.

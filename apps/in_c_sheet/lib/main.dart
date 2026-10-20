@@ -36,6 +36,7 @@ import 'sheet_library_controller.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
+import 'sheet_linked_text_preview.dart';
 import 'sheet_metronome.dart';
 import 'sheet_metronome_player.dart';
 import 'sheet_pdf_page_transformer.dart';
@@ -4115,6 +4116,9 @@ String _linkedFileTypeLabel(SheetLinkedFile file) {
   if (_isSupportedLinkedAudio(file)) {
     return '오디오';
   }
+  if (SheetLinkedTextPreviewPolicy.supports(file)) {
+    return SheetLinkedTextPreviewPolicy.isChordPro(file) ? 'ChordPro' : '텍스트';
+  }
   return file.type.trim().isEmpty ? '파일' : file.type.toUpperCase();
 }
 
@@ -4166,6 +4170,9 @@ IconData _linkedFileIcon(SheetLinkedFile file, {bool exists = true}) {
   }
   if (_isSupportedLinkedAudio(file)) {
     return Icons.audiotrack;
+  }
+  if (SheetLinkedTextPreviewPolicy.supports(file)) {
+    return Icons.description_outlined;
   }
   return Icons.attach_file;
 }
@@ -14810,9 +14817,15 @@ setlist=$setlistLabel
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
                   final isAudio = _isSupportedLinkedAudio(linkedFile);
+                  final isText = SheetLinkedTextPreviewPolicy.supports(
+                    linkedFile,
+                  );
                   final canOpen =
                       exists &&
-                      (linkedFile.type == 'pdf' || isImage || isAudio);
+                      (linkedFile.type == 'pdf' ||
+                          isImage ||
+                          isAudio ||
+                          isText);
                   return ListTile(
                     leading: Icon(_linkedFileIcon(linkedFile, exists: exists)),
                     title: Text(linkedFile.label),
@@ -14832,6 +14845,8 @@ setlist=$setlistLabel
                               ? '이미지 보기'
                               : isAudio
                               ? '오디오 재생'
+                              : isText
+                              ? '텍스트 사본 보기'
                               : '이 파일 열기',
                           onPressed: canOpen
                               ? () => Navigator.of(context).pop(
@@ -14880,7 +14895,7 @@ setlist=$setlistLabel
         ),
       ),
     );
-    if (selected == null) {
+    if (selected == null || !mounted) {
       return;
     }
     if (selected.type == _LinkedFileActionType.updateRole) {
@@ -14900,6 +14915,14 @@ setlist=$setlistLabel
       return;
     }
     if (selected.type == _LinkedFileActionType.open) {
+      if (SheetLinkedTextPreviewPolicy.supports(selected.file)) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) =>
+              SheetLinkedTextPreviewDialog(file: selected.file),
+        );
+        return;
+      }
       if (_isSupportedLinkedImage(selected.file)) {
         await _showLinkedImageViewer(selected.file);
         return;

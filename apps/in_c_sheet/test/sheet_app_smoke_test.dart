@@ -5105,7 +5105,7 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('linked files editor labels audio image and pdf attachments', (
+  testWidgets('linked files editor labels supported attachment types', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -5133,6 +5133,20 @@ Clef & Staff 세트리스트
           role: SheetLinkedFile.referenceRole,
           createdAt: DateTime(2026, 9, 27),
         ),
+        SheetLinkedFile(
+          path: '/tmp/notes.txt',
+          type: 'text',
+          label: 'Earlier Notes',
+          role: SheetLinkedFile.editedCopyRole,
+          createdAt: DateTime(2026, 10, 20),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/song.chordpro',
+          type: 'chordpro',
+          label: 'Earlier Chords',
+          role: SheetLinkedFile.editedCopyRole,
+          createdAt: DateTime(2026, 10, 20),
+        ),
       ]),
     );
 
@@ -5148,6 +5162,17 @@ Clef & Staff 세트리스트
       find.textContaining('Reference · 이미지 · /tmp/cover.png'),
       findsOneWidget,
     );
+    expect(find.text('Earlier Notes'), findsOneWidget);
+    expect(
+      find.textContaining('Edited copy · 텍스트 · /tmp/notes.txt'),
+      findsOneWidget,
+    );
+    expect(find.text('Earlier Chords'), findsOneWidget);
+    expect(
+      find.textContaining('Edited copy · ChordPro · /tmp/song.chordpro'),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.description_outlined), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 

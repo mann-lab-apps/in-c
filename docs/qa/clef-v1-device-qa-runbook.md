@@ -325,6 +325,9 @@ Folder connection / direct folder spike:
   남으며 이전 추출본과 원본은 `Edited copy`로 보존되어야 한다. 다른 형식으로 바꿔치기하거나 provider
   오류/권한 회수/저장 실패가 발생하면 성공 안내나 부분 교체가 없어야 한다. 이 검증을 자동 동기화나 direct
   reference로 기록하지 않는다.
+- 교체된 plain text/ChordPro 또는 DOCX/RTF 추출 텍스트의 이전 `Edited copy`를 연결 파일 목록에서 열면
+  `읽기 전용 사본`으로 표시되고 선택 가능한 본문이 보여야 한다. 닫은 뒤 현재 악보 내용과 출처가 바뀌지
+  않아야 한다. 보존된 DOCX/RTF 원본 reference 자체가 앱 안에서 열릴 것이라고 기대하지 않는다.
 - 가져온 악보의 `정보 편집`에서 `가져온 위치`가 folder/provider와 원본 파일명을 읽기 전용으로 보여주는지 확인한다.
 - 앱을 재시작하거나 metadata backup을 복원한 뒤에도 이 출처 hint가 유지되는지 확인한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
