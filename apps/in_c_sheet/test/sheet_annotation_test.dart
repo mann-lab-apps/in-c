@@ -1084,6 +1084,76 @@ void main() {
     );
   });
 
+  test('selected annotations move to a display layer atomically', () {
+    final now = DateTime.parse('2026-10-21T15:00:00.000');
+    final selectedStroke = _stroke(
+      id: 'selected-stroke',
+      pageNumber: 1,
+      createdAt: now,
+    );
+    final untouchedStroke = _stroke(
+      id: 'untouched-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final selectedText = _text(
+      id: 'selected-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[selectedStroke, untouchedStroke],
+      texts: <SheetTextAnnotation>[selectedText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(selectedStroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(selectedText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final moved = layer.moveAnnotationsToDisplayLayer(
+      annotationIds: const <String>[
+        ' selected-stroke ',
+        'selected-text',
+        'selected-text',
+        'missing',
+        '',
+      ],
+      layerId: 'rehearsal',
+    );
+
+    expect(moved.strokes.first.layerId, 'rehearsal');
+    expect(moved.strokes.last.layerId, 'default');
+    expect(moved.texts.single.layerId, 'rehearsal');
+    expect(moved.redoStack, isEmpty);
+    expect(moved.eraseUndoStack, isEmpty);
+    expect(
+      identical(
+        layer.moveAnnotationsToDisplayLayer(
+          annotationIds: const <String>['missing'],
+          layerId: 'rehearsal',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationsToDisplayLayer(
+          annotationIds: const <String>['selected-stroke'],
+          layerId: 'missing-layer',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+  });
+
   test('moves every annotation and history payload between display layers', () {
     final now = DateTime.parse('2026-10-20T10:00:00.000');
     final rehearsalStroke = _stroke(

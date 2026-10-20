@@ -3881,8 +3881,20 @@ class SheetLibraryController extends ChangeNotifier {
     required String annotationId,
     required String layerId,
   }) async {
-    final nextLayer = score.annotationLayer.moveAnnotationToDisplayLayer(
-      annotationId: annotationId,
+    return moveAnnotationsToDisplayLayer(
+      score,
+      annotationIds: <String>[annotationId],
+      layerId: layerId,
+    );
+  }
+
+  Future<bool> moveAnnotationsToDisplayLayer(
+    SheetScore score, {
+    required Iterable<String> annotationIds,
+    required String layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.moveAnnotationsToDisplayLayer(
+      annotationIds: annotationIds,
       layerId: layerId,
     );
     if (identical(nextLayer, score.annotationLayer)) {

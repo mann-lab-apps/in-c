@@ -1248,8 +1248,21 @@ class SheetAnnotationLayer {
     required String annotationId,
     required String layerId,
   }) {
-    final normalizedAnnotationId = annotationId.trim();
-    if (normalizedAnnotationId.isEmpty) {
+    return moveAnnotationsToDisplayLayer(
+      annotationIds: <String>[annotationId],
+      layerId: layerId,
+    );
+  }
+
+  SheetAnnotationLayer moveAnnotationsToDisplayLayer({
+    required Iterable<String> annotationIds,
+    required String layerId,
+  }) {
+    final normalizedAnnotationIds = annotationIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (normalizedAnnotationIds.isEmpty) {
       return this;
     }
     final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
@@ -1263,7 +1276,7 @@ class SheetAnnotationLayer {
     var didUpdate = false;
     final nextStrokes = strokes
         .map((stroke) {
-          if (stroke.id != normalizedAnnotationId ||
+          if (!normalizedAnnotationIds.contains(stroke.id) ||
               stroke.layerId == normalizedLayerId) {
             return stroke;
           }
@@ -1273,7 +1286,7 @@ class SheetAnnotationLayer {
         .toList(growable: false);
     final nextTexts = texts
         .map((text) {
-          if (text.id != normalizedAnnotationId ||
+          if (!normalizedAnnotationIds.contains(text.id) ||
               text.layerId == normalizedLayerId) {
             return text;
           }

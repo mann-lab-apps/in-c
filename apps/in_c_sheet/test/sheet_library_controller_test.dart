@@ -5828,6 +5828,27 @@ Clef & Staff 세트리스트
       isFalse,
     );
 
+    final didMoveSelection = await controller.moveAnnotationsToDisplayLayer(
+      controller.scores.single,
+      annotationIds: const <String>['stroke-default', 'text-layer'],
+      layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(didMoveSelection, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+
+    await controller.moveAnnotationsToDisplayLayer(
+      controller.scores.single,
+      annotationIds: const <String>['stroke-default', 'text-layer'],
+      layerId: 'rehearsal',
+    );
+
     final didMoveLayerContents = await controller
         .moveAnnotationDisplayLayerContents(
           controller.scores.single,

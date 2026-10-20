@@ -3350,3 +3350,9 @@ of the same linked audio record remains a manual `연결 파일` conflict, and d
 renaming it on the other remains a manual `사용자 스탬프` conflict. Neither case chooses a winner or exposes private file
 paths in reports; future cloud transport must preserve this conservative boundary until asset tombstones and binary
 identity are explicit.
+
+S339 VERIFIED LOCAL: added the atomic model/controller boundary needed by a future arbitrary annotation multi-selection
+UI. A deduplicated mix of stroke, shape, text and stamp ids can move to one existing display layer in a single persisted
+score replacement; blank/unknown ids, missing targets and selections already on the target are no-ops, while a real move
+clears stale redo/erase history consistently with the existing single-object action. This does not claim that free-form
+selection or drag gestures are exposed in the viewer yet.
