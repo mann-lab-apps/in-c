@@ -4,7 +4,7 @@ import 'sheet_external_folder_catalog.dart';
 import 'sheet_external_folder_gateway.dart';
 import 'sheet_file_import.dart';
 
-enum SheetExternalFolderConnectionActionType { open, add, forget }
+enum SheetExternalFolderConnectionActionType { open, add, reconnect, forget }
 
 enum SheetExternalFolderImportActionType {
   copy,
@@ -58,6 +58,10 @@ class SheetExternalFolderConnectionAction {
     SheetExternalFolderConnection connection,
   ) : this._(SheetExternalFolderConnectionActionType.open, connection);
 
+  const SheetExternalFolderConnectionAction.reconnect(
+    SheetExternalFolderConnection connection,
+  ) : this._(SheetExternalFolderConnectionActionType.reconnect, connection);
+
   const SheetExternalFolderConnectionAction.forget(
     SheetExternalFolderConnection connection,
   ) : this._(SheetExternalFolderConnectionActionType.forget, connection);
@@ -98,11 +102,10 @@ class ExternalFolderConnectionSheet extends StatelessWidget {
                   children: [
                     for (final connection in connections)
                       ListTile(
-                        enabled: connection.canRead,
                         leading: Icon(
                           connection.canRead
                               ? Icons.folder_open_outlined
-                              : Icons.folder_off_outlined,
+                              : Icons.sync_outlined,
                         ),
                         title: Text(
                           connection.folderLabel.isEmpty
@@ -112,15 +115,17 @@ class ExternalFolderConnectionSheet extends StatelessWidget {
                         subtitle: Text(
                           connection.canRead
                               ? (connection.providerLabel ?? 'Android 파일')
-                              : '권한이 없거나 폴더를 찾을 수 없습니다.',
+                              : '권한이 없거나 폴더를 찾을 수 없습니다. 다시 연결하려면 누르세요.',
                         ),
-                        onTap: connection.canRead
-                            ? () => Navigator.of(context).pop(
-                                SheetExternalFolderConnectionAction.open(
+                        onTap: () => Navigator.of(context).pop(
+                          connection.canRead
+                              ? SheetExternalFolderConnectionAction.open(
+                                  connection,
+                                )
+                              : SheetExternalFolderConnectionAction.reconnect(
                                   connection,
                                 ),
-                              )
-                            : null,
+                        ),
                         trailing: IconButton(
                           tooltip: '폴더 연결 해제',
                           onPressed: () => Navigator.of(context).pop(

@@ -3331,3 +3331,10 @@ manual conflict. New fixtures keep both-side deletion as the same change, keep s
 layer-versus-object edits manual, and warn when a selected remote snapshot predates the base so an old offline state is not
 mistaken for a current branch. The timestamp check is advisory because device clocks can differ; no item is automatically
 merged, deleted or restored.
+
+S336 VERIFIED LOCAL: made stale Android connected folders recoverable without weakening Clef's managed-copy policy. A
+persisted tree whose provider is missing or whose permission expired remains visible, can be tapped to open the system
+picker again, and can still be explicitly forgotten. A successful persistent replacement retires the old token only when
+the token differs; cancelling or receiving transient access leaves the old connection untouched. Native folder listing now
+isolates provider exceptions per permission so one broken provider cannot hide every healthy connection. Reboot, provider
+removal and permission-revocation behavior still require Android Device QA.

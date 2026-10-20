@@ -213,7 +213,7 @@ void main() {
     );
   });
 
-  testWidgets('unreadable connection can be forgotten on a small screen', (
+  testWidgets('unreadable connection can be reconnected on a small screen', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 480);
@@ -251,7 +251,44 @@ void main() {
     await tester.tap(find.text('열기'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('권한이 없거나 폴더를 찾을 수 없습니다.'), findsOneWidget);
+    expect(find.textContaining('다시 연결하려면 누르세요'), findsOneWidget);
+
+    await tester.tap(find.text('권한이 만료된 폴더'));
+    await tester.pumpAndSettle();
+    expect(result?.type, SheetExternalFolderConnectionActionType.reconnect);
+    expect(result?.connection, same(connection));
+  });
+
+  testWidgets('unreadable connection can still be forgotten', (tester) async {
+    SheetExternalFolderConnectionAction? result;
+    const connection = SheetExternalFolderConnection(
+      folderLabel: '권한이 만료된 폴더',
+      folderToken: 'content://provider/tree/stale',
+      canRead: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () async {
+                result = await showModalBottomSheet(
+                  context: context,
+                  builder: (_) => const ExternalFolderConnectionSheet(
+                    connections: <SheetExternalFolderConnection>[connection],
+                  ),
+                );
+              },
+              child: const Text('열기'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('폴더 연결 해제'));
     await tester.pumpAndSettle();

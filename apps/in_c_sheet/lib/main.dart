@@ -675,6 +675,31 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             break;
           case SheetExternalFolderConnectionActionType.add:
             selection = await gateway.pickFolder();
+            if (selection == null) return;
+            break;
+          case SheetExternalFolderConnectionActionType.reconnect:
+            final staleConnection = action.connection!;
+            final reconnected = await gateway.pickFolder();
+            if (reconnected == null || !mounted) return;
+            selection = reconnected;
+            final replacementToken = reconnected.folderToken?.trim();
+            if (reconnected.permissionPersisted &&
+                replacementToken?.isNotEmpty == true &&
+                replacementToken != staleConnection.folderToken) {
+              try {
+                await gateway.forgetConnectedFolder(
+                  staleConnection.folderToken,
+                );
+              } on SheetExternalFolderGatewayException {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('새 폴더는 연결했지만 이전 연결은 직접 해제해야 합니다.'),
+                    ),
+                  );
+                }
+              }
+            }
             break;
           case SheetExternalFolderConnectionActionType.forget:
             await gateway.forgetConnectedFolder(action.connection!.folderToken);

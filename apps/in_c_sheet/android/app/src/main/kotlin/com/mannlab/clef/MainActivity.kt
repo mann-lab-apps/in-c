@@ -465,13 +465,22 @@ class MainActivity : FlutterActivity() {
             .filter { permission -> permission.isReadPermission }
             .map { permission ->
                 val uri = permission.uri
-                val root = DocumentFile.fromTreeUri(this, uri)
-                mapOf(
-                    "folderLabel" to (root?.name ?: "사용할 수 없는 폴더"),
-                    "providerLabel" to (uri.authority ?: "Android 파일"),
-                    "folderToken" to uri.toString(),
-                    "canRead" to (root?.canRead() == true && root.isDirectory),
-                )
+                try {
+                    val root = DocumentFile.fromTreeUri(this, uri)
+                    mapOf(
+                        "folderLabel" to (root?.name ?: "사용할 수 없는 폴더"),
+                        "providerLabel" to (uri.authority ?: "Android 파일"),
+                        "folderToken" to uri.toString(),
+                        "canRead" to (root?.canRead() == true && root.isDirectory),
+                    )
+                } catch (_: Exception) {
+                    mapOf(
+                        "folderLabel" to "사용할 수 없는 폴더",
+                        "providerLabel" to (uri.authority ?: "Android 파일"),
+                        "folderToken" to uri.toString(),
+                        "canRead" to false,
+                    )
+                }
             }
             .sortedWith(
                 compareBy<Map<String, Any?>>(

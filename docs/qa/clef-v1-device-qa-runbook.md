@@ -360,6 +360,9 @@ Folder connection / direct folder spike:
 - 앱을 재시작하거나 metadata backup을 복원한 뒤에도 이 출처 hint가 유지되는지 확인한다.
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
   지원 보고 텍스트에 그대로 노출되지 않아야 한다. 연결 목록 자체도 backup/restore 대상이 아니어야 한다.
+- 연결 권한을 Android 설정/provider에서 회수한 뒤 다시 열면 해당 폴더만 `다시 연결` 대상으로 남고 다른
+  연결은 계속 열려야 한다. 재연결 picker 취소 시 기존 항목을 지우지 않으며, 새 영구 연결 성공 후에는 이전
+  항목이 중복으로 남지 않는지 확인한다. `연결 해제`는 재연결 없이도 계속 사용할 수 있어야 한다.
 - 원본 폴더 삭제/rename이 이미 가져온 Clef 악보 삭제로 이어지면 안 된다.
 
 Leader/follower preparation:
