@@ -3234,3 +3234,10 @@ reported duration is rejected before save or playback. Inspection errors preserv
 path. Dart/native wiring and widget regressions cover duration parsing, fallback, range adjustment and out-of-range blocking.
 Actual MP3/M4A/WAV duration accuracy, touch ergonomics and A-B boundary timing remain Android/iOS Device QA; this is a
 duration-based timeline, not a waveform, seek-position display or tempo/pitch DSP.
+
+S323 VERIFIED LOCAL: expanded the developer device report's silent practice-audio probe to cover linked audio rather than
+leaving the new Android/iOS player bridge untested on each tester device. The check creates a 0.25-second mono PCM WAV in the
+OS temporary directory, verifies native duration inspection, starts the silent file, then always stops the player and deletes
+the fixture before reporting. Metronome, drone and linked-audio results remain independently visible so one failed bridge does
+not hide the others. Injected-channel regressions cover all-ready and partial-failure cleanup. This still proves only local
+file initialization; codec coverage, audible output, latency, route changes and A-B boundary timing remain Device QA.

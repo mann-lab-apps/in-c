@@ -5535,7 +5535,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
     id: 'native-audio-bridges',
     title: 'Native practice audio bridges',
     status: SheetDeviceCheckStatus.notTested,
-    details: '메트로놈과 드론의 native 오디오 초기화를 아직 확인하지 않았습니다.',
+    details: '메트로놈, 드론, 연결 오디오의 native 초기화를 아직 확인하지 않았습니다.',
   );
   SheetDeviceCheckItem _microphoneItem = const SheetDeviceCheckItem(
     id: 'microphone-permission',
@@ -5611,7 +5611,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
             _DeviceCheckActionCard(
               title: '연습 오디오 엔진 점검',
               subtitle: _isCheckingAudioBridges
-                  ? '메트로놈과 드론을 무음으로 초기화하는 중입니다.'
+                  ? '메트로놈, 드론, 연결 오디오를 무음으로 초기화하는 중입니다.'
                   : _audioBridgeItem.details,
               status: _audioBridgeItem.status,
               icon: Icons.graphic_eq_outlined,

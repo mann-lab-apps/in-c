@@ -8,11 +8,14 @@ import 'package:in_c_sheet/sheet_viewer_input.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('native practice audio check probes and stops both bridges', () async {
+  test('native practice audio check probes and stops all bridges', () async {
     const metronomeChannel = MethodChannel('clef/test_metronome_ready');
     const toneChannel = MethodChannel('clef/test_tone_ready');
+    const audioChannel = MethodChannel('clef/test_audio_ready');
     final metronomeCalls = <MethodCall>[];
     final toneCalls = <MethodCall>[];
+    final audioCalls = <MethodCall>[];
+    final deletedFixtures = <String>[];
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(metronomeChannel, (call) async {
@@ -23,19 +26,32 @@ void main() {
       toneCalls.add(call);
       return null;
     });
+    messenger.setMockMethodCallHandler(audioChannel, (call) async {
+      audioCalls.add(call);
+      if (call.method == 'inspect') {
+        return <String, Object?>{'durationMs': 250};
+      }
+      return null;
+    });
     addTearDown(() {
       messenger.setMockMethodCallHandler(metronomeChannel, null);
       messenger.setMockMethodCallHandler(toneChannel, null);
+      messenger.setMockMethodCallHandler(audioChannel, null);
     });
 
     final item = await SheetPracticeAudioBridgeChecker(
       metronomeChannel: metronomeChannel,
       toneChannel: toneChannel,
+      audioPlayerChannel: audioChannel,
+      createAudioFixture: () async => '/tmp/silent.wav',
+      deleteAudioFixture: (path) async => deletedFixtures.add(path),
     ).run();
 
     expect(item.status, SheetDeviceCheckStatus.pass);
     expect(item.details, contains('metronome click buffer'));
     expect(item.details, contains('drone silent output'));
+    expect(item.details, contains('linked audio duration'));
+    expect(item.details, contains('linked audio silent playback'));
     expect(
       metronomeCalls.map((call) => call.method),
       orderedEquals(<String>['prepare', 'stop']),
@@ -48,11 +64,17 @@ void main() {
       'frequencies': const <double>[440],
       'volume': 0.0,
     });
+    expect(
+      audioCalls.map((call) => call.method),
+      orderedEquals(<String>['inspect', 'play', 'stop']),
+    );
+    expect(deletedFixtures, <String>['/tmp/silent.wav']);
   });
 
   test('native practice audio check reports one bridge failure', () async {
     const metronomeChannel = MethodChannel('clef/test_metronome_failure');
     const toneChannel = MethodChannel('clef/test_tone_failure');
+    const audioChannel = MethodChannel('clef/test_audio_after_failure');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(metronomeChannel, (call) async => null);
@@ -62,21 +84,84 @@ void main() {
       }
       return null;
     });
+    messenger.setMockMethodCallHandler(audioChannel, (call) async {
+      if (call.method == 'inspect') {
+        return <String, Object?>{'durationMs': 250};
+      }
+      return null;
+    });
     addTearDown(() {
       messenger.setMockMethodCallHandler(metronomeChannel, null);
       messenger.setMockMethodCallHandler(toneChannel, null);
+      messenger.setMockMethodCallHandler(audioChannel, null);
     });
 
     final item = await SheetPracticeAudioBridgeChecker(
       metronomeChannel: metronomeChannel,
       toneChannel: toneChannel,
+      audioPlayerChannel: audioChannel,
+      createAudioFixture: () async => '/tmp/silent.wav',
+      deleteAudioFixture: (_) async {},
     ).run();
 
     expect(item.status, SheetDeviceCheckStatus.warn);
-    expect(item.details, contains('metronome click buffer 준비됨'));
+    expect(item.details, contains('metronome click buffer'));
+    expect(item.details, contains('linked audio silent playback 준비됨'));
     expect(item.details, contains('drone audio_route_unavailable'));
     expect(item.details, contains('실제 음량'));
   });
+
+  test(
+    'native practice audio check cleans fixture after player failure',
+    () async {
+      const metronomeChannel = MethodChannel(
+        'clef/test_metronome_audio_failure',
+      );
+      const toneChannel = MethodChannel('clef/test_tone_audio_failure');
+      const audioChannel = MethodChannel('clef/test_audio_failure');
+      final audioCalls = <MethodCall>[];
+      final deletedFixtures = <String>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(
+        metronomeChannel,
+        (call) async => null,
+      );
+      messenger.setMockMethodCallHandler(toneChannel, (call) async => null);
+      messenger.setMockMethodCallHandler(audioChannel, (call) async {
+        audioCalls.add(call);
+        if (call.method != 'stop') {
+          throw PlatformException(
+            code: 'unsupported_codec',
+            message: 'Cannot open fixture.',
+          );
+        }
+        return null;
+      });
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(metronomeChannel, null);
+        messenger.setMockMethodCallHandler(toneChannel, null);
+        messenger.setMockMethodCallHandler(audioChannel, null);
+      });
+
+      final item = await SheetPracticeAudioBridgeChecker(
+        metronomeChannel: metronomeChannel,
+        toneChannel: toneChannel,
+        audioPlayerChannel: audioChannel,
+        createAudioFixture: () async => '/tmp/failing-silent.wav',
+        deleteAudioFixture: (path) async => deletedFixtures.add(path),
+      ).run();
+
+      expect(item.status, SheetDeviceCheckStatus.warn);
+      expect(item.details, contains('linked audio duration 조회 실패'));
+      expect(item.details, contains('Cannot open fixture.'));
+      expect(
+        audioCalls.map((call) => call.method),
+        orderedEquals(<String>['inspect', 'play', 'stop']),
+      );
+      expect(deletedFixtures, <String>['/tmp/failing-silent.wav']);
+    },
+  );
 
   test('metronome timing analyzer passes stable intervals', () {
     final start = DateTime.utc(2026, 9, 26, 12);

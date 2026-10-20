@@ -1,8 +1,11 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
+import 'sheet_audio_player.dart';
 import 'sheet_metronome.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
@@ -14,12 +17,21 @@ class SheetPracticeAudioBridgeChecker {
   SheetPracticeAudioBridgeChecker({
     MethodChannel? metronomeChannel,
     MethodChannel? toneChannel,
+    MethodChannel? audioPlayerChannel,
+    Future<String> Function()? createAudioFixture,
+    Future<void> Function(String path)? deleteAudioFixture,
   }) : _metronomeChannel =
            metronomeChannel ?? const MethodChannel('clef/metronome_player'),
-       _toneChannel = toneChannel ?? const MethodChannel('clef/tone_player');
+       _toneChannel = toneChannel ?? const MethodChannel('clef/tone_player'),
+       _audioPlayer = SheetAudioPlayer(channel: audioPlayerChannel),
+       _createAudioFixture = createAudioFixture ?? _createSilentAudioFixture,
+       _deleteAudioFixture = deleteAudioFixture ?? _deleteFixtureBestEffort;
 
   final MethodChannel _metronomeChannel;
   final MethodChannel _toneChannel;
+  final SheetAudioPlayer _audioPlayer;
+  final Future<String> Function() _createAudioFixture;
+  final Future<void> Function(String path) _deleteAudioFixture;
 
   Future<SheetDeviceCheckItem> run() async {
     final ready = <String>[];
@@ -47,7 +59,34 @@ class SheetPracticeAudioBridgeChecker {
       issues.add('drone ${error.code}');
     } catch (error) {
       issues.add('drone ${error.runtimeType}');
+    }
+
+    String? audioFixturePath;
+    try {
+      audioFixturePath = await _createAudioFixture();
+      final info = await _audioPlayer.inspect(audioFixturePath);
+      if (info == null) {
+        issues.add('linked audio duration 조회 실패');
+      } else {
+        ready.add('linked audio duration');
+      }
+      final playback = await _audioPlayer.play(audioFixturePath);
+      if (playback.isPlaying) {
+        ready.add('linked audio silent playback');
+      } else {
+        issues.add(
+          playback.status == SheetAudioPlaybackStatus.unsupportedPlatform
+              ? 'linked audio bridge 미등록'
+              : 'linked audio ${playback.message.isEmpty ? '재생 실패' : playback.message}',
+        );
+      }
+    } catch (error) {
+      issues.add('linked audio ${error.runtimeType}');
     } finally {
+      await _audioPlayer.stop();
+      if (audioFixturePath != null) {
+        await _deleteAudioFixture(audioFixturePath);
+      }
       await _stopBestEffort(_toneChannel);
       await _stopBestEffort(_metronomeChannel);
     }
@@ -62,8 +101,53 @@ class SheetPracticeAudioBridgeChecker {
           : SheetDeviceCheckStatus.warn,
       details:
           '$readyDetails$issueDetails'
-          '무음 초기화 결과이며 실제 음량, latency, 박자 균일성은 직접 들어봐야 합니다.',
+          '무음 초기화 결과이며 실제 음량, latency, 박자 균일성, A-B 경계는 직접 들어봐야 합니다.',
     );
+  }
+
+  static Future<String> _createSilentAudioFixture() async {
+    const sampleRate = 8000;
+    const sampleCount = 2000;
+    const bytesPerSample = 2;
+    const dataLength = sampleCount * bytesPerSample;
+    final bytes = ByteData(44 + dataLength);
+
+    void writeAscii(int offset, String value) {
+      for (var index = 0; index < value.length; index += 1) {
+        bytes.setUint8(offset + index, value.codeUnitAt(index));
+      }
+    }
+
+    writeAscii(0, 'RIFF');
+    bytes.setUint32(4, 36 + dataLength, Endian.little);
+    writeAscii(8, 'WAVE');
+    writeAscii(12, 'fmt ');
+    bytes.setUint32(16, 16, Endian.little);
+    bytes.setUint16(20, 1, Endian.little);
+    bytes.setUint16(22, 1, Endian.little);
+    bytes.setUint32(24, sampleRate, Endian.little);
+    bytes.setUint32(28, sampleRate * bytesPerSample, Endian.little);
+    bytes.setUint16(32, bytesPerSample, Endian.little);
+    bytes.setUint16(34, bytesPerSample * 8, Endian.little);
+    writeAscii(36, 'data');
+    bytes.setUint32(40, dataLength, Endian.little);
+
+    final file = File(
+      '${Directory.systemTemp.path}/clef-audio-check-${DateTime.now().microsecondsSinceEpoch}.wav',
+    );
+    await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
+    return file.path;
+  }
+
+  static Future<void> _deleteFixtureBestEffort(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // A temporary diagnostic fixture must not change the bridge result.
+    }
   }
 
   static Future<void> _stopBestEffort(MethodChannel channel) async {
