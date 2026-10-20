@@ -394,12 +394,14 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      package export별 상세 이력은 후속이다.
   2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
   3. Sync dry-run: 두 metadata backup snapshot의 score/setlist/settings 변경과 file/annotation conflict
-     후보를 계산하고 요약/검토 필요 문구로 바꾸는 core는 구현됐다. Annotation 후보는 layer 구성,
+     후보를 계산하고 요약/검토 필요 문구로 바꾸는 restore core는 구현됐다. Annotation 후보는 layer 구성,
      stroke/text/stamp object, 외부 annotation file reference 변경을 분리한다. 자동 snapshot, 외부 JSON,
      전체 ZIP 복원 preview는 접힌 상세 목록에서 악보/세트리스트 제목, 작곡가/파일명 또는 곡 수,
      변경 유형과 필드/필기/순서 위험을 항목별로 확인할 수 있다. 같은 제목은 짧은 내부 식별자로
      구분하고 대형 목록은 첫 20개만 렌더링한다. 변경 검토는 원본 경로를 제외한 Markdown으로 복사해
-     지원/수동 비교에 남길 수 있다. 이는 전체 교체 전 review이며 field-level merge는 후속이다.
+     지원/수동 비교에 남길 수 있다. Base/local/remote 3-way core도 한쪽 변경, 동일 변경, disjoint-field
+     merge 후보와 같은 field/delete-versus-edit/settings conflict를 분류하지만 데이터를 적용하지 않는다.
+     이는 전체 교체 전 review 및 future sync 설계 근거이며 merge writer와 conflict UI는 후속이다.
   4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
 - 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를
   엇갈리게 수정한 fixture, offline/online 전환, provider quota/권한 취소, iCloud/Drive/Dropbox provider smoke.

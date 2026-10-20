@@ -3249,3 +3249,11 @@ the edited range takes effect after stopping and starting playback again rather 
 Unavailable or ended playback leaves the fields unchanged with a named prompt. Dart channel, Android/iOS wiring and widget
 regressions cover position parsing and both marker actions. Actual tap-to-sound latency and loop-boundary precision remain
 Device QA.
+
+S325 VERIFIED LOCAL: moved the cloud-sync conflict spike from a two-snapshot replacement diff toward a non-mutating
+three-way dry run. Given base, local and remote metadata snapshots, the core now classifies one-sided edits, identical edits,
+disjoint-field merge candidates and manual-review conflicts without applying any data. Same-field divergence, concurrent
+add collisions, delete-versus-edit and divergent app/practice-tool settings remain explicit conflicts; score, setlist and
+settings rows are deterministic and expose the conflicting field labels. Unit fixtures cover disjoint title/tag changes,
+overlapping title edits, delete-versus-edit, identical edits and annotation-preset settings conflicts. This does not provide
+an account, transport, timestamps/tombstones, automatic merge or rollback and must not be presented as continuous cloud sync.

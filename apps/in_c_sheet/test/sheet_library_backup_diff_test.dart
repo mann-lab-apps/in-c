@@ -345,6 +345,131 @@ void main() {
     expect(markdown, contains('식별자 setlist-old'));
     expect(markdown, contains('식별자 setlist-new'));
   });
+
+  test('sync dry-run separates one-sided and disjoint score changes', () {
+    final now = DateTime(2026, 10, 20, 14);
+    final base = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'Base')],
+    );
+    final local = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'Local title')],
+      setlists: [
+        _setlist(now, id: 'local-set', scoreIds: ['score-a']),
+      ],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Base', tags: const ['remote']),
+      ],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    expect(dryRun.hasChanges, isTrue);
+    expect(dryRun.requiresManualReview, isFalse);
+    expect(dryRun.conflicts, isEmpty);
+    final score = dryRun.items.singleWhere((item) => item.id == 'score-a');
+    expect(score.status, SheetLibrarySyncDryRunStatus.mergeable);
+    expect(score.localChange, SheetLibraryBackupDiffChange.changed);
+    expect(score.remoteChange, SheetLibraryBackupDiffChange.changed);
+    expect(score.conflictingFieldLabels, isEmpty);
+    final setlist = dryRun.items.singleWhere((item) => item.id == 'local-set');
+    expect(setlist.status, SheetLibrarySyncDryRunStatus.localOnly);
+    expect(setlist.localChange, SheetLibraryBackupDiffChange.added);
+    expect(setlist.remoteChange, isNull);
+  });
+
+  test('sync dry-run flags overlapping edits and delete-versus-edit', () {
+    final now = DateTime(2026, 10, 20, 15);
+    final base = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Base'),
+        _score(now, id: 'score-b', title: 'Delete or edit'),
+      ],
+    );
+    final local = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'Local title')],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Remote title'),
+        _score(now, id: 'score-b', title: 'Remote edit'),
+      ],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    expect(dryRun.requiresManualReview, isTrue);
+    expect(dryRun.conflicts.map((item) => item.id), ['score-a', 'score-b']);
+    final overlapping = dryRun.items.singleWhere(
+      (item) => item.id == 'score-a',
+    );
+    expect(overlapping.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(overlapping.conflictingFieldLabels, ['제목']);
+    final destructive = dryRun.items.singleWhere(
+      (item) => item.id == 'score-b',
+    );
+    expect(destructive.localChange, SheetLibraryBackupDiffChange.removed);
+    expect(destructive.remoteChange, SheetLibraryBackupDiffChange.changed);
+    expect(destructive.status, SheetLibrarySyncDryRunStatus.conflict);
+  });
+
+  test('sync dry-run accepts identical edits and flags settings conflicts', () {
+    final now = DateTime(2026, 10, 20, 16);
+    final base = _backup(
+      now,
+      scores: [_score(now, id: 'score-a', title: 'Base')],
+    );
+    final sharedScore = _score(now, id: 'score-a', title: 'Shared edit');
+    final local = _backup(
+      now,
+      scores: [sharedScore],
+      favoriteAnnotationPreset: const SheetAnnotationToolPreset(
+        toolName: 'stamp',
+        color: 0xff111111,
+        width: 3,
+        stampName: 'segno',
+      ),
+    );
+    final remote = _backup(
+      now,
+      scores: [sharedScore],
+      favoriteAnnotationPreset: const SheetAnnotationToolPreset(
+        toolName: 'stamp',
+        color: 0xff222222,
+        width: 3,
+        stampName: 'coda',
+      ),
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    final score = dryRun.items.singleWhere((item) => item.id == 'score-a');
+    expect(score.status, SheetLibrarySyncDryRunStatus.sameChange);
+    final settings = dryRun.items.singleWhere((item) => item.id == 'settings');
+    expect(settings.kind, SheetLibrarySyncDryRunItemKind.settings);
+    expect(settings.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(settings.conflictingFieldLabels, ['필기 preset']);
+    expect(dryRun.conflicts, [settings]);
+  });
 }
 
 SheetLibraryBackup _backup(
@@ -369,6 +494,7 @@ SheetScore _score(
   DateTime now, {
   required String id,
   String title = 'Score',
+  List<String> tags = const <String>[],
   String filePath = '/tmp/score.pdf',
   SheetAnnotationLayer annotationLayer = SheetAnnotationLayer.empty,
   SheetAnnotationStorageReference annotationStorage =
@@ -378,7 +504,7 @@ SheetScore _score(
     id: id,
     title: title,
     composer: 'Composer',
-    tags: const <String>[],
+    tags: tags,
     note: '',
     filePath: filePath,
     importedAt: now,

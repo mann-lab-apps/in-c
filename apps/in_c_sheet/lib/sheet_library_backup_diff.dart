@@ -305,6 +305,75 @@ class SheetLibraryBackupDiff {
   }
 }
 
+enum SheetLibrarySyncDryRunItemKind { score, setlist, settings }
+
+enum SheetLibrarySyncDryRunStatus {
+  localOnly,
+  remoteOnly,
+  sameChange,
+  mergeable,
+  conflict,
+}
+
+class SheetLibrarySyncDryRunItem {
+  const SheetLibrarySyncDryRunItem({
+    required this.kind,
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.localChange,
+    required this.remoteChange,
+    this.conflictingFieldLabels = const <String>[],
+  });
+
+  final SheetLibrarySyncDryRunItemKind kind;
+  final String id;
+  final String title;
+  final SheetLibrarySyncDryRunStatus status;
+  final SheetLibraryBackupDiffChange? localChange;
+  final SheetLibraryBackupDiffChange? remoteChange;
+  final List<String> conflictingFieldLabels;
+
+  bool get requiresManualReview =>
+      status == SheetLibrarySyncDryRunStatus.conflict;
+}
+
+class SheetLibrarySyncDryRun {
+  const SheetLibrarySyncDryRun({required this.items});
+
+  factory SheetLibrarySyncDryRun.compare({
+    required SheetLibraryBackup base,
+    required SheetLibraryBackup local,
+    required SheetLibraryBackup remote,
+  }) {
+    final items = <SheetLibrarySyncDryRunItem>[
+      ..._scoreSyncItems(base, local, remote),
+      ..._setlistSyncItems(base, local, remote),
+    ];
+    final settingsItem = _settingsSyncItem(base, local, remote);
+    if (settingsItem != null) items.add(settingsItem);
+    items.sort((left, right) {
+      final kindOrder = left.kind.index.compareTo(right.kind.index);
+      return kindOrder != 0 ? kindOrder : left.id.compareTo(right.id);
+    });
+    return SheetLibrarySyncDryRun(
+      items: List<SheetLibrarySyncDryRunItem>.unmodifiable(items),
+    );
+  }
+
+  final List<SheetLibrarySyncDryRunItem> items;
+
+  List<SheetLibrarySyncDryRunItem> get conflicts =>
+      List.unmodifiable(items.where((item) => item.requiresManualReview));
+
+  List<SheetLibrarySyncDryRunItem> get mergeable => List.unmodifiable(
+    items.where((item) => item.status != SheetLibrarySyncDryRunStatus.conflict),
+  );
+
+  bool get hasChanges => items.isNotEmpty;
+  bool get requiresManualReview => conflicts.isNotEmpty;
+}
+
 class SheetLibraryBackupDiffReport {
   const SheetLibraryBackupDiffReport({
     required this.headline,
@@ -757,3 +826,216 @@ String _shortBackupIdentifier(String value) {
   if (trimmed.length <= 12) return trimmed;
   return trimmed.substring(trimmed.length - 8);
 }
+
+List<SheetLibrarySyncDryRunItem> _scoreSyncItems(
+  SheetLibraryBackup base,
+  SheetLibraryBackup local,
+  SheetLibraryBackup remote,
+) {
+  final baseItems = _byId(base.scores);
+  final localItems = _byId(local.scores);
+  final remoteItems = _byId(remote.scores);
+  return _syncItems<SheetScore>(
+    kind: SheetLibrarySyncDryRunItemKind.score,
+    baseItems: baseItems,
+    localItems: localItems,
+    remoteItems: remoteItems,
+    toJson: (score) => score.toJson(),
+    titleFor: (score) {
+      final title = score.displayTitle.trim();
+      return title.isEmpty ? '제목 없는 악보' : title;
+    },
+    fieldLabels: _scoreFieldLabels,
+  );
+}
+
+List<SheetLibrarySyncDryRunItem> _setlistSyncItems(
+  SheetLibraryBackup base,
+  SheetLibraryBackup local,
+  SheetLibraryBackup remote,
+) {
+  final baseItems = _setlistsById(base.setlists);
+  final localItems = _setlistsById(local.setlists);
+  final remoteItems = _setlistsById(remote.setlists);
+  return _syncItems<SheetSetlist>(
+    kind: SheetLibrarySyncDryRunItemKind.setlist,
+    baseItems: baseItems,
+    localItems: localItems,
+    remoteItems: remoteItems,
+    toJson: (setlist) => setlist.toJson(),
+    titleFor: (setlist) {
+      final title = setlist.title.trim();
+      return title.isEmpty ? '제목 없는 세트리스트' : title;
+    },
+    fieldLabels: _setlistFieldLabels,
+  );
+}
+
+SheetLibrarySyncDryRunItem? _settingsSyncItem(
+  SheetLibraryBackup base,
+  SheetLibraryBackup local,
+  SheetLibraryBackup remote,
+) {
+  final baseJson = _settingsJson(base);
+  final localJson = _settingsJson(local);
+  final remoteJson = _settingsJson(remote);
+  final localChanged = !_jsonEqual(baseJson, localJson);
+  final remoteChanged = !_jsonEqual(baseJson, remoteJson);
+  if (!localChanged && !remoteChanged) return null;
+
+  final status = switch ((localChanged, remoteChanged)) {
+    (true, false) => SheetLibrarySyncDryRunStatus.localOnly,
+    (false, true) => SheetLibrarySyncDryRunStatus.remoteOnly,
+    (true, true) when _jsonEqual(localJson, remoteJson) =>
+      SheetLibrarySyncDryRunStatus.sameChange,
+    _ => SheetLibrarySyncDryRunStatus.conflict,
+  };
+  final conflictingKeys = status == SheetLibrarySyncDryRunStatus.conflict
+      ? _conflictingChangedKeys(baseJson, localJson, remoteJson)
+      : const <String>[];
+  return SheetLibrarySyncDryRunItem(
+    kind: SheetLibrarySyncDryRunItemKind.settings,
+    id: 'settings',
+    title: '앱/연습 도구 설정',
+    status: status,
+    localChange: localChanged ? SheetLibraryBackupDiffChange.changed : null,
+    remoteChange: remoteChanged ? SheetLibraryBackupDiffChange.changed : null,
+    conflictingFieldLabels: _syncFieldLabels(
+      conflictingKeys,
+      _settingsFieldLabels,
+    ),
+  );
+}
+
+List<SheetLibrarySyncDryRunItem> _syncItems<T>({
+  required SheetLibrarySyncDryRunItemKind kind,
+  required Map<String, T> baseItems,
+  required Map<String, T> localItems,
+  required Map<String, T> remoteItems,
+  required Map<String, Object?> Function(T item) toJson,
+  required String Function(T item) titleFor,
+  required Map<String, String> fieldLabels,
+}) {
+  final ids = <String>{
+    ...baseItems.keys,
+    ...localItems.keys,
+    ...remoteItems.keys,
+  }.toList(growable: false)..sort();
+  final result = <SheetLibrarySyncDryRunItem>[];
+  for (final id in ids) {
+    final baseItem = baseItems[id];
+    final localItem = localItems[id];
+    final remoteItem = remoteItems[id];
+    final localChange = _syncChange(baseItem, localItem, toJson);
+    final remoteChange = _syncChange(baseItem, remoteItem, toJson);
+    if (localChange == null && remoteChange == null) continue;
+
+    final status = _syncStatus(
+      baseItem: baseItem,
+      localItem: localItem,
+      remoteItem: remoteItem,
+      localChange: localChange,
+      remoteChange: remoteChange,
+      toJson: toJson,
+    );
+    final conflictingKeys =
+        status == SheetLibrarySyncDryRunStatus.conflict &&
+            baseItem != null &&
+            localItem != null &&
+            remoteItem != null
+        ? _conflictingChangedKeys(
+            toJson(baseItem),
+            toJson(localItem),
+            toJson(remoteItem),
+          )
+        : const <String>[];
+    final titleItem = remoteItem ?? localItem ?? baseItem;
+    result.add(
+      SheetLibrarySyncDryRunItem(
+        kind: kind,
+        id: id,
+        title: titleFor(titleItem as T),
+        status: status,
+        localChange: localChange,
+        remoteChange: remoteChange,
+        conflictingFieldLabels: _syncFieldLabels(conflictingKeys, fieldLabels),
+      ),
+    );
+  }
+  return result;
+}
+
+SheetLibraryBackupDiffChange? _syncChange<T>(
+  T? base,
+  T? side,
+  Map<String, Object?> Function(T item) toJson,
+) {
+  if (base == null && side == null) return null;
+  if (base == null) return SheetLibraryBackupDiffChange.added;
+  if (side == null) return SheetLibraryBackupDiffChange.removed;
+  return _jsonEqual(toJson(base), toJson(side))
+      ? null
+      : SheetLibraryBackupDiffChange.changed;
+}
+
+SheetLibrarySyncDryRunStatus _syncStatus<T>({
+  required T? baseItem,
+  required T? localItem,
+  required T? remoteItem,
+  required SheetLibraryBackupDiffChange? localChange,
+  required SheetLibraryBackupDiffChange? remoteChange,
+  required Map<String, Object?> Function(T item) toJson,
+}) {
+  if (remoteChange == null) return SheetLibrarySyncDryRunStatus.localOnly;
+  if (localChange == null) return SheetLibrarySyncDryRunStatus.remoteOnly;
+  if (localItem == null && remoteItem == null) {
+    return SheetLibrarySyncDryRunStatus.sameChange;
+  }
+  if (localItem != null &&
+      remoteItem != null &&
+      _jsonEqual(toJson(localItem), toJson(remoteItem))) {
+    return SheetLibrarySyncDryRunStatus.sameChange;
+  }
+  if (localItem == null || remoteItem == null || baseItem == null) {
+    return SheetLibrarySyncDryRunStatus.conflict;
+  }
+  return _conflictingChangedKeys(
+        toJson(baseItem),
+        toJson(localItem),
+        toJson(remoteItem),
+      ).isEmpty
+      ? SheetLibrarySyncDryRunStatus.mergeable
+      : SheetLibrarySyncDryRunStatus.conflict;
+}
+
+List<String> _conflictingChangedKeys(
+  Map<String, Object?> base,
+  Map<String, Object?> local,
+  Map<String, Object?> remote,
+) {
+  final keys = <String>{...base.keys, ...local.keys, ...remote.keys};
+  return keys
+      .where(
+        (key) =>
+            !_jsonEqual(base[key], local[key]) &&
+            !_jsonEqual(base[key], remote[key]) &&
+            !_jsonEqual(local[key], remote[key]),
+      )
+      .toList(growable: false)
+    ..sort();
+}
+
+List<String> _syncFieldLabels(List<String> keys, Map<String, String> labels) {
+  return List<String>.unmodifiable(keys.map((key) => labels[key] ?? key));
+}
+
+const _settingsFieldLabels = <String, String>{
+  'metronomeSettings': '메트로놈 설정',
+  'tunerSettings': '튜너 설정',
+  'toneSettings': '기준음/드론 설정',
+  'libraryViewSettings': '라이브러리 보기',
+  'globalViewerSettings': '악보 보기',
+  'performancePresetTemplates': '공연 preset',
+  'favoriteAnnotationPreset': '필기 preset',
+  'userAnnotationStampPacks': '사용자 스탬프',
+};
