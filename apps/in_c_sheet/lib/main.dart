@@ -39,6 +39,7 @@ import 'sheet_library_view_settings.dart';
 import 'sheet_linked_text_preview.dart';
 import 'sheet_metronome.dart';
 import 'sheet_metronome_player.dart';
+import 'sheet_mixed_score_import.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
@@ -543,6 +544,61 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await _openScore(score, showImportNudge: true);
   }
 
+  Future<void> _importMixedScoreFiles() async {
+    List<PlatformFile> pickedFiles;
+    try {
+      pickedFiles = await FilePicker.pickFiles(
+        dialogTitle: '여러 악보 가져오기',
+        type: FileType.custom,
+        allowedExtensions: sheetMixedScoreImportExtensions,
+      );
+    } on Exception {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('파일 선택기를 열지 못했습니다. 잠시 뒤 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
+    if (!mounted || pickedFiles.isEmpty) return;
+
+    final preview = SheetMixedScoreImportPreview.fromFiles(
+      pickedFiles.map(
+        (file) => SheetMixedScorePickedFile(name: file.name, path: file.path),
+      ),
+    );
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SheetMixedScoreImportPreviewSheet(preview: preview),
+    );
+    if (!mounted || confirmed != true) return;
+
+    final imported = await controller.importSharedScoreFiles(
+      preview.readyFiles
+          .map(
+            (file) => SheetSharedImportFile(path: file.path!, name: file.name),
+          )
+          .toList(growable: false),
+    );
+    if (!mounted) return;
+    if (imported.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            controller.errorMessage ??
+                '선택한 악보를 가져오지 못했습니다. 파일 형식과 저장 공간을 확인해주세요.',
+          ),
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('${imported.length}개 악보를 가져왔습니다.')));
+  }
+
   Future<void> _importScoresFromAndroidFolder() async {
     if (!Platform.isAndroid) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -896,6 +952,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 onTap: () =>
                     Navigator.of(context).pop(_LibraryImportAction.pdfs),
               ),
+              ListTile(
+                leading: const Icon(Icons.file_copy_outlined),
+                title: const Text('여러 악보 파일 가져오기'),
+                subtitle: const Text('PDF, 텍스트, ChordPro, DOCX, RTF 일괄 선택'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.mixedScoreFiles),
+              ),
               if (Platform.isAndroid)
                 ListTile(
                   leading: const Icon(Icons.folder_copy_outlined),
@@ -949,6 +1013,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _importPdf(addToSetlist: true);
       case _LibraryImportAction.pdfs:
         await _importPdfs();
+      case _LibraryImportAction.mixedScoreFiles:
+        await _importMixedScoreFiles();
       case _LibraryImportAction.androidFolderPdfs:
         await _importScoresFromAndroidFolder();
       case _LibraryImportAction.pdfsToSetlist:
@@ -3204,6 +3270,7 @@ enum _LibraryImportAction {
   pdf,
   pdfToSetlist,
   pdfs,
+  mixedScoreFiles,
   androidFolderPdfs,
   pdfsToSetlist,
   images,

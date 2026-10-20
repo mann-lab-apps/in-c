@@ -1190,6 +1190,8 @@ Clef & Staff 세트리스트
     expect(find.text('PDF 가져오기'), findsOneWidget);
     expect(find.text('PDF 가져와 세트리스트에 추가'), findsOneWidget);
     expect(find.text('여러 PDF 가져오기'), findsOneWidget);
+    expect(find.text('여러 악보 파일 가져오기'), findsOneWidget);
+    expect(find.text('PDF, 텍스트, ChordPro, DOCX, RTF 일괄 선택'), findsOneWidget);
     expect(find.text('여러 PDF를 세트리스트에 추가'), findsOneWidget);
     expect(find.text('이미지를 PDF 악보로 묶기'), findsOneWidget);
     expect(find.text('이미지를 묶어 세트리스트에 추가'), findsOneWidget);

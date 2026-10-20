@@ -297,6 +297,10 @@ Cloud provider:
 
 Folder connection / direct folder spike:
 
+- Android Files와 iOS Files에서 `여러 악보 파일 가져오기`로 PDF, `.txt`/`.md`, ChordPro, DOCX, RTF를
+  섞어 선택한다. 저장 전 각 형식과 전체 개수가 보이고, 확인 후 모두 기존 viewer로 열려야 한다. iCloud
+  Drive/Google Drive처럼 내려받기가 필요한 provider도 확인하되 접근 불가 파일이 있으면 부분 카드나 성공
+  안내가 남지 않아야 한다. 이 흐름은 일회성 파일 선택이며 폴더 연결/자동 동기화로 기록하지 않는다.
 - 현재 구현은 persistent direct score가 아니라 Android `연결된 폴더에서 악보 고르기`의 재사용 가능한
   read-only catalog와 copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
 - 폴더를 처음 연결하고 앱을 완전히 종료/재시작한 뒤 같은 폴더가 목록에 남아 다시 열리는지 확인한다.

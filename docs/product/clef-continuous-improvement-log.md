@@ -3124,3 +3124,12 @@ still storage/share artifacts rather than app-rendered files. Policy and widget 
 rendering, damaged/oversized input and the read-only surface. `dart format`, `flutter analyze`, all 1,781 tests and the RC
 release check passed. Real connected-folder refresh, long historical text readability and restart/backup visibility remain
 Device QA.
+
+S311 VERIFIED LOCAL: added a platform-common mixed score batch import without treating it as persistent folder sync.
+`여러 악보 파일 가져오기` uses the system picker to select up to 200 PDF, plain text, ChordPro, DOCX and RTF files,
+previews each format, path availability and duplicate status, and only hands a fully valid selection to the existing atomic
+importer. A blocked picker item or later parse, storage or metadata failure leaves no partial batch. Android connected-folder
+reuse and change detection remain separate; iOS Files and iCloud use this one-time picker and do not gain persistent folder
+references. Policy and widget regressions cover supported mixed batches, unavailable, unsupported and duplicate inputs, the
+count cap, confirmation, and a 320x568 forty-file preview. `dart format`, `flutter analyze`, all 1,787 tests and the RC
+release check passed. Real Android and iOS cloud-provider downloads and large file batches remain Device QA.

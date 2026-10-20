@@ -211,6 +211,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   각 sidecar를 복원하고, 필기가 없는 shared source는 기존처럼 한 entry로 dedupe한다.
   ZIP codec은 256MB archive/해제 크기, 128MB 단일 entry, 512 entry 한도로 과도한 메모리 사용을
   preview 전에 차단한다. MobileSheets 전용 binary package 호환과 한도 내 대용량 mixed package 실기기 QA는 후속이다.
+- 플랫폼 공통 `여러 악보 파일 가져오기`는 시스템 파일 선택기에서 PDF/plain text/ChordPro/DOCX/RTF를
+  최대 200개까지 섞어 고르고 형식·경로·중복을 preview한 뒤 기존 importer로 한 번에 저장한다. 확인이 필요한
+  항목이 하나라도 있거나 파일 처리/metadata 저장이 실패하면 이번 batch를 남기지 않는다. iOS Files와 cloud
+  provider의 일회성 선택을 지원하는 흐름이며 폴더 연결, 자동 동기화, 앱 내부 사본 없는 direct reference는 아니다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,
   컬렉션 지정/정보 편집/제거를 더보기 메뉴로 묶는다. 넓은 화면은 기존 바로가기를 유지한다.
 - 일괄 정보 편집에서 작곡가를 선택 악보에 함께 적용할 수 있다. 작곡가 입력란을 비우면

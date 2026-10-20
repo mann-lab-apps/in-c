@@ -227,7 +227,11 @@ fixture annotations land on either other page. External viewer rendering and edi
 
 ### Later / Spike 후보
 
-- Text/ChordPro/docx renderer와 transpose/capo.
+플랫폼 공통 시스템 picker에는 PDF/plain text/ChordPro/DOCX/RTF를 최대 200개까지 함께 선택하고 저장 전
+preview하는 원자적 일괄 가져오기가 추가됐다. iOS Files/iCloud provider도 같은 일회성 선택 경로를 사용하지만,
+이는 persistent folder reference나 continuous cloud sync를 구현한 것으로 분류하지 않는다.
+
+- DOCX/RTF rich layout editing과 ChordPro 실문서 tablet layout polish.
 - Android SAF direct folder reference와 iOS Files parity.
 - MIDI registration/action.
 - face gesture page turn.
