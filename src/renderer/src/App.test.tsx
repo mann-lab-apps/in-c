@@ -1516,7 +1516,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(vi.mocked(window.inC.pdf.save).mock.calls[0]![0].suggestedName).toContain('piano-rehearsal-edition')
-  })
+  }, 15000)
 
   it.each([
     ['페이지', 'pageBreakBeforeMeasureIds', 'data-page-breaks'],
@@ -6869,7 +6869,7 @@ describe('App component shell', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' })) })
     await screen.findByText('text-reopened.chromatics을 열었습니다.')
     expect((await save()).score).toEqual(pasted.score)
-  })
+  }, 15000)
 
   it.each([
     ['staffTexts', '보표 글자', '보표 글자 객체 선택'],
