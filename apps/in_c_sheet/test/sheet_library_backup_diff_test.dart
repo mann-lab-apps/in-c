@@ -857,6 +857,72 @@ void main() {
       contains('원격 백업의 내보낸 시각이 기준보다 이릅니다. 오래된 상태가 다시 나타난 것인지 확인하세요.'),
     );
   });
+
+  test('sync dry-run keeps linked audio replacement manual', () {
+    final now = DateTime(2026, 10, 21, 13);
+    final base = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'audio-score',
+          linkedFiles: [_audioFile(now, '/audio/base.wav')],
+        ),
+      ],
+    );
+    final local = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'audio-score',
+          linkedFiles: [_audioFile(now, '/audio/local.wav')],
+        ),
+      ],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'audio-score',
+          linkedFiles: [_audioFile(now, '/audio/remote.wav')],
+        ),
+      ],
+    );
+
+    final item = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    ).items.single;
+
+    expect(item.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(item.conflictingFieldLabels, ['연결 파일']);
+  });
+
+  test('sync dry-run keeps stamp pack deletion versus edit manual', () {
+    final now = DateTime(2026, 10, 21, 14);
+    final base = _backup(
+      now,
+      userAnnotationStampPacks: [_stampPack(now, name: 'Practice stamps')],
+    );
+    final local = _backup(now);
+    final remote = _backup(
+      now,
+      userAnnotationStampPacks: [_stampPack(now, name: 'Lesson stamps')],
+    );
+
+    final item = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    ).items.single;
+
+    expect(item.id, 'settings');
+    expect(item.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(item.conflictingFieldLabels, ['사용자 스탬프']);
+  });
 }
 
 SheetLibraryBackup _backup(
@@ -890,6 +956,7 @@ SheetScore _score(
   SheetAnnotationStorageReference annotationStorage =
       SheetAnnotationStorageReference.inline,
   SheetViewerSettings viewerSettings = SheetViewerSettings.defaultSettings,
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
 }) {
   return SheetScore(
     id: id,
@@ -898,6 +965,7 @@ SheetScore _score(
     tags: tags,
     note: '',
     filePath: filePath,
+    linkedFiles: linkedFiles,
     importedAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -907,6 +975,16 @@ SheetScore _score(
     viewerSettings: viewerSettings,
     annotationLayer: annotationLayer,
     annotationStorage: annotationStorage,
+  );
+}
+
+SheetLinkedFile _audioFile(DateTime now, String path) {
+  return SheetLinkedFile(
+    path: path,
+    type: 'wav',
+    label: 'Practice audio',
+    role: SheetLinkedFile.referenceRole,
+    createdAt: now,
   );
 }
 

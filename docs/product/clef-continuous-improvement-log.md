@@ -3344,3 +3344,9 @@ sheet now reports selected versus ready files and can clear or restore every imp
 unsupported, unreadable, duplicate or changed-source rows. A 201-entry mixed catalog fixture and a compact 360x640 widget
 fixture cover cap accounting, blocked-row exclusion, bulk deselection/reselection and overflow. Provider scan latency and
 actual copy throughput remain Android Device QA evidence rather than widget-test claims.
+
+S338 VERIFIED LOCAL: completed two named destructive sync fixtures before any merge writer exists. Divergent replacement
+of the same linked audio record remains a manual `연결 파일` conflict, and deleting a user stamp pack on one side while
+renaming it on the other remains a manual `사용자 스탬프` conflict. Neither case chooses a winner or exposes private file
+paths in reports; future cloud transport must preserve this conservative boundary until asset tombstones and binary
+identity are explicit.
