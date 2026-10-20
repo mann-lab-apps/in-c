@@ -9,7 +9,7 @@ enum SheetExternalFolderConnectionActionType { open, add, forget }
 enum SheetExternalFolderImportActionType {
   copy,
   openExisting,
-  replaceExistingPdf,
+  replaceExistingSource,
 }
 
 class SheetExternalFolderImportAction {
@@ -33,11 +33,11 @@ class SheetExternalFolderImportAction {
         scoreId: scoreId,
       );
 
-  const SheetExternalFolderImportAction.replaceExistingPdf(
+  const SheetExternalFolderImportAction.replaceExistingSource(
     String scoreId,
     SheetExternalFolderImportCandidate candidate,
   ) : this._(
-        type: SheetExternalFolderImportActionType.replaceExistingPdf,
+        type: SheetExternalFolderImportActionType.replaceExistingSource,
         scoreId: scoreId,
         candidate: candidate,
       );
@@ -239,8 +239,14 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                   SheetExternalFolderCandidateStatus
                                       .sourceChanged &&
                               existingScoreId != null) {
-                            final canReplacePdf =
+                            final canReplaceSource =
                                 SheetFileImportPolicy.isPdfFileName(
+                                  candidate.entry.displayName,
+                                ) ||
+                                SheetFileImportPolicy.isPlainTextFileName(
+                                  candidate.entry.displayName,
+                                ) ||
+                                SheetFileImportPolicy.isChordProFileName(
                                   candidate.entry.displayName,
                                 );
                             return ListTile(
@@ -271,11 +277,11 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                         icon: const Icon(Icons.open_in_new),
                                         label: const Text('기존 악보 열기'),
                                       ),
-                                      if (canReplacePdf)
+                                      if (canReplaceSource)
                                         TextButton.icon(
-                                          onPressed: () => Navigator.of(context)
-                                              .pop(
-                                                SheetExternalFolderImportAction.replaceExistingPdf(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(
+                                                SheetExternalFolderImportAction.replaceExistingSource(
                                                   existingScoreId,
                                                   candidate,
                                                 ),
@@ -283,7 +289,13 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                           icon: const Icon(
                                             Icons.sync_alt_outlined,
                                           ),
-                                          label: const Text('변경 PDF 적용'),
+                                          label: Text(
+                                            SheetFileImportPolicy.isPdfFileName(
+                                                  candidate.entry.displayName,
+                                                )
+                                                ? '변경 PDF 적용'
+                                                : '변경 원본 적용',
+                                          ),
                                         ),
                                     ],
                                   ),

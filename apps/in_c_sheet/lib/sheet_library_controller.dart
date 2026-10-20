@@ -177,7 +177,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool _isImporting = false;
   final Set<String> _chordProSourceEdits = <String>{};
   final Set<String> _plainTextSourceEdits = <String>{};
-  final Set<String> _connectedFolderPdfReplacements = <String>{};
+  final Set<String> _connectedFolderSourceReplacements = <String>{};
   String? _errorMessage;
   bool _lastImportOpenedExistingScore = false;
 
@@ -1540,26 +1540,22 @@ class SheetLibraryController extends ChangeNotifier {
     return switchToLinkedFile(score, linkedFile);
   }
 
-  Future<bool> replaceScorePdfFromConnectedFolder(
+  Future<bool> replaceScoreFromConnectedFolder(
     SheetScore score,
     SheetSharedImportFile replacement,
   ) async {
     final current = scoreByIdOrNull(score.id);
     if (current == null ||
-        !SheetFileImportPolicy.isPdfFileName(current.filePath) ||
-        !SheetFileImportPolicy.isPdfFileName(replacement.name) ||
+        !_isMatchingConnectedFolderReplacement(current, replacement.name) ||
         replacement.importSource?.platform != 'android-saf-copy' ||
-        !_connectedFolderPdfReplacements.add(score.id)) {
+        !_connectedFolderSourceReplacements.add(score.id)) {
       return false;
     }
 
     final libraryId = _activeLibraryProfile.id;
     SheetScore? imported;
     try {
-      imported = await store.importPdfFile(
-        File(replacement.path),
-        fileName: replacement.name,
-      );
+      imported = await _importSharedScoreFile(replacement, pdfOnly: false);
       if (_activeLibraryProfile.id != libraryId) {
         await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
           imported,
@@ -1574,18 +1570,22 @@ class SheetLibraryController extends ChangeNotifier {
         return false;
       }
 
-      final previousPdf = SheetLinkedFile(
+      final previousSource = SheetLinkedFile(
         path: latest.filePath,
-        type: 'pdf',
+        type:
+            _connectedFolderScoreType(latest.importSource?.displayName) ??
+            _connectedFolderScoreType(latest.filePath) ??
+            'file',
         label: latest.displayTitle,
         role: SheetLinkedFile.editedCopyRole,
         createdAt: DateTime.now(),
       );
       final nextLinkedFiles = <SheetLinkedFile>[
-        previousPdf,
+        previousSource,
         ...latest.linkedFiles.where(
           (file) =>
-              file.path != previousPdf.path && file.path != imported!.filePath,
+              file.path != previousSource.path &&
+              file.path != imported!.filePath,
         ),
       ];
       await _replace(
@@ -1593,7 +1593,10 @@ class SheetLibraryController extends ChangeNotifier {
           filePath: imported.filePath,
           linkedFiles: SheetScore.normalizeLinkedFiles(nextLinkedFiles),
           importSource: replacement.importSource,
-          pdfLinkSanitization: SheetPdfLinkSanitization.empty,
+          pdfLinkSanitization:
+              SheetFileImportPolicy.isPdfFileName(replacement.name)
+              ? SheetPdfLinkSanitization.empty
+              : latest.pdfLinkSanitization,
           updatedAt: DateTime.now(),
         ),
       );
@@ -1605,13 +1608,40 @@ class SheetLibraryController extends ChangeNotifier {
         ]);
       }
       if (_activeLibraryProfile.id == libraryId) {
-        _errorMessage = '변경된 PDF를 적용하지 못했습니다. 기존 악보는 그대로 유지됩니다.';
+        _errorMessage = '변경된 원본을 적용하지 못했습니다. 기존 악보는 그대로 유지됩니다.';
         notifyListeners();
       }
       return false;
     } finally {
-      _connectedFolderPdfReplacements.remove(score.id);
+      _connectedFolderSourceReplacements.remove(score.id);
     }
+  }
+
+  bool _isMatchingConnectedFolderReplacement(
+    SheetScore score,
+    String replacementName,
+  ) {
+    final existingType = _connectedFolderScoreType(
+      score.importSource?.displayName,
+    );
+    final fallbackExistingType =
+        existingType ?? _connectedFolderScoreType(score.filePath);
+    final replacementType = _connectedFolderScoreType(replacementName);
+    return replacementType != null &&
+        replacementType == fallbackExistingType &&
+        replacementType != 'docx' &&
+        replacementType != 'rtf';
+  }
+
+  String? _connectedFolderScoreType(String? fileName) {
+    final value = fileName?.trim() ?? '';
+    if (value.isEmpty) return null;
+    if (SheetFileImportPolicy.isPdfFileName(value)) return 'pdf';
+    if (SheetFileImportPolicy.isChordProFileName(value)) return 'chordpro';
+    if (SheetFileImportPolicy.isPlainTextFileName(value)) return 'text';
+    if (SheetFileImportPolicy.isDocxFileName(value)) return 'docx';
+    if (SheetFileImportPolicy.isRtfFileName(value)) return 'rtf';
+    return null;
   }
 
   Future<bool> updateLinkedFile(

@@ -648,7 +648,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       await _openScore(score);
       return;
     }
-    if (action.type == SheetExternalFolderImportActionType.replaceExistingPdf) {
+    if (action.type ==
+        SheetExternalFolderImportActionType.replaceExistingSource) {
       final scoreId = action.scoreId;
       final candidate = action.candidate;
       final score = scoreId == null
@@ -660,13 +661,16 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ).showSnackBar(const SnackBar(content: Text('교체할 기존 악보를 찾지 못했습니다.')));
         return;
       }
+      final isPdf = SheetFileImportPolicy.isPdfFileName(
+        candidate.entry.displayName,
+      );
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('변경된 PDF 적용'),
+          title: Text(isPdf ? '변경된 PDF 적용' : '변경된 원본 적용'),
           content: Text(
-            '"${score.displayTitle}"에 새 PDF 사본을 적용할까요?\n\n'
-            '제목, 메타데이터, 필기와 세트리스트 연결은 유지하고 기존 PDF는 연결 파일로 보관합니다.',
+            '"${score.displayTitle}"에 새 ${isPdf ? 'PDF' : '원본'} 사본을 적용할까요?\n\n'
+            '제목, 메타데이터, 필기와 세트리스트 연결은 유지하고 기존 파일은 연결 파일로 보관합니다.',
           ),
           actions: [
             TextButton(
@@ -675,7 +679,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('PDF 적용'),
+              child: Text(isPdf ? 'PDF 적용' : '원본 적용'),
             ),
           ],
         ),
@@ -710,7 +714,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       final replacement = files.single;
       bool didReplace;
       try {
-        didReplace = await controller.replaceScorePdfFromConnectedFolder(
+        didReplace = await controller.replaceScoreFromConnectedFolder(
           score,
           replacement,
         );
@@ -726,8 +730,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         SnackBar(
           content: Text(
             didReplace
-                ? '변경된 PDF를 적용했습니다. 기존 PDF는 연결 파일에 보관했습니다.'
-                : '변경된 PDF를 적용하지 못했습니다. 기존 악보는 그대로입니다.',
+                ? '변경된 ${isPdf ? 'PDF' : '원본'}을 적용했습니다. 기존 파일은 연결 파일에 보관했습니다.'
+                : '변경된 원본을 적용하지 못했습니다. 기존 악보는 그대로입니다.',
           ),
         ),
       );

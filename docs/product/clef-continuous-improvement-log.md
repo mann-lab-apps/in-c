@@ -3095,3 +3095,12 @@ score; unusable native cache responses are cleaned best-effort. Typed UI and con
 metadata preservation and failed-save recovery. `dart format`, `flutter analyze`, all 1,769 tests and the RC release check
 passed. Provider revocation/reboot and real replacement rendering remain Device QA; text/ChordPro/DOCX/RTF replacement,
 app-copy-free direct references, automatic sync and iOS Files parity remain separate follow-ups.
+
+S308 VERIFIED LOCAL: extended the explicit connected-folder source refresh from PDF to plain text/Markdown and ChordPro
+without turning it into synchronization. Changed rows expose `변경 원본 적용` only for formats whose existing parser and
+storage path can produce one new app-owned primary file. Clef requires the replacement to match the current source kind,
+validates it through the existing importer, preserves the score id, title/metadata, annotations and setlist references and
+keeps the prior source as a linked edited copy. DOCX/RTF remain read-only changed warnings because replacing their extracted
+text and original reference requires a separate transaction. UI/controller regressions cover PDF/text/ChordPro action
+boundaries, text/ChordPro state preservation and cross-format rejection. `dart format`, `flutter analyze`, all 1,773 tests
+and the RC release check passed. Real provider behavior and replacement rendering remain Device QA.

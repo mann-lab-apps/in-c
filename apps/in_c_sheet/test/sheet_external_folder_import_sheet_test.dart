@@ -204,7 +204,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       result?.type,
-      SheetExternalFolderImportActionType.replaceExistingPdf,
+      SheetExternalFolderImportActionType.replaceExistingSource,
     );
     expect(result?.scoreId, 'score-changed');
     expect(
@@ -257,5 +257,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(result?.type, SheetExternalFolderConnectionActionType.forget);
     expect(result?.connection, same(connection));
+  });
+
+  testWidgets('source replacement is offered only for safe source formats', (
+    tester,
+  ) async {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Chart.chordpro',
+          sizeBytes: 200,
+          modifiedAt: DateTime.utc(2026, 10, 20),
+        ),
+        SheetExternalFolderEntry(
+          displayName: 'Notes.docx',
+          sizeBytes: 300,
+          modifiedAt: DateTime.utc(2026, 10, 20),
+        ),
+      ],
+      existingFileNames: const <String>['Chart.chordpro', 'Notes.docx'],
+      existingImports: <SheetExternalFolderImportedScore>[
+        for (final entry in <(String, String)>[
+          ('chart', 'Chart.chordpro'),
+          ('notes', 'Notes.docx'),
+        ])
+          SheetExternalFolderImportedScore(
+            scoreId: entry.$1,
+            source: SheetScoreImportSource.create(
+              platform: 'android-saf-copy',
+              displayName: entry.$2,
+              folderLabel: 'Charts',
+              sizeBytes: 100,
+              modifiedAt: DateTime.utc(2026, 10, 19),
+            )!,
+          ),
+      ],
+      folderLabel: 'Charts',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ExternalFolderImportSheet(
+            folderLabel: 'Charts',
+            preview: preview,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('변경 원본 적용'), findsOneWidget);
+    expect(find.text('변경 PDF 적용'), findsNothing);
+    expect(find.text('기존 악보 열기'), findsNWidgets(2));
   });
 }
