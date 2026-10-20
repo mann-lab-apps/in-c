@@ -24,6 +24,7 @@ import 'sheet_annotation_geometry.dart';
 import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_chordpro.dart';
+import 'sheet_collaboration_lab.dart';
 import 'sheet_device_check.dart';
 import 'sheet_external_folder_catalog.dart';
 import 'sheet_external_folder_gateway.dart';
@@ -928,6 +929,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
   Future<void> _showTesterInfo() async {
     var openDeviceCheck = false;
+    var openCollaborationLab = false;
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -938,10 +940,24 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           openDeviceCheck = true;
           Navigator.of(context).pop();
         },
+        onOpenCollaborationLab: () {
+          openCollaborationLab = true;
+          Navigator.of(context).pop();
+        },
       ),
     );
     if (openDeviceCheck && mounted) {
       await _showDeviceCheck();
+    }
+    if (openCollaborationLab && mounted) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => SheetCollaborationLabScreen(
+            setlists: controller.setlists,
+            scores: controller.scores,
+          ),
+        ),
+      );
     }
   }
 
@@ -5154,11 +5170,13 @@ class _TesterInfoSheet extends StatelessWidget {
     required this.appVersion,
     required this.controller,
     this.onOpenDeviceCheck,
+    this.onOpenCollaborationLab,
   });
 
   final String appVersion;
   final SheetLibraryController controller;
   final VoidCallback? onOpenDeviceCheck;
+  final VoidCallback? onOpenCollaborationLab;
 
   static const List<String> _quickHelpItems = <String>[
     '악보 추가: PDF 또는 이미지를 가져온 뒤 정보 편집으로 제목/작곡가를 정리합니다.',
@@ -5343,6 +5361,17 @@ pageMetadataScores=$pageMetadataCount
               label: const Text('기기 리포트 만들기'),
             ),
             const SizedBox(height: 8),
+          ],
+          if (onOpenCollaborationLab != null) ...[
+            OutlinedButton.icon(
+              onPressed: onOpenCollaborationLab,
+              icon: const Icon(Icons.devices_outlined),
+              label: const Text('개발자용 협업 시뮬레이션'),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 4, bottom: 8),
+              child: Text('실제 기기 연결 없이 세트리스트 누락과 연결 끊김 상태를 점검합니다.'),
+            ),
           ],
           OutlinedButton.icon(
             onPressed: () async {

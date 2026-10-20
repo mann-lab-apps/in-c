@@ -143,7 +143,18 @@ void main() {
           scrollable: find.byType(Scrollable).last,
         );
         expect(find.text('지원 링크'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('심사/지원 URL 복사'),
+          -120,
+          scrollable: find.byType(Scrollable).last,
+        );
         expect(find.text('심사/지원 URL 복사'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('개발자용 협업 시뮬레이션'),
+          -120,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('개발자용 협업 시뮬레이션'), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'),
           180,
@@ -151,11 +162,19 @@ void main() {
         );
         expect(find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ListTile, '도움말/피드백'));
+        await tester.pumpAndSettle();
         await tester.scrollUntilVisible(
           find.text('기기 리포트 만들기'),
-          -180,
+          180,
           scrollable: find.byType(Scrollable).last,
         );
+        await tester.ensureVisible(find.text('기기 리포트 만들기'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('기기 리포트 만들기'));
         await tester.pumpAndSettle();
         expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);

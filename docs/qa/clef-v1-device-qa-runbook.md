@@ -306,6 +306,7 @@ Folder connection / direct folder spike:
 - 현재 구현은 persistent direct score가 아니라 Android `연결된 폴더에서 악보 고르기`의 재사용 가능한
   read-only catalog와 copy-on-select다. Android 외 플랫폼에는 이 import action을 노출하지 않는다.
 - 폴더를 처음 연결하고 앱을 완전히 종료/재시작한 뒤 같은 폴더가 목록에 남아 다시 열리는지 확인한다.
+
 - 연결 해제 후 목록에서 사라지는지, 마지막 연결 해제 직후 새 picker가 강제로 열리지 않는지 확인한다.
 - Android 설정/파일 provider에서 권한을 회수하거나 폴더를 제거한 뒤 `사용할 수 없는 폴더`로 표시되고
   연결 해제는 가능한지 확인한다. 앱/라이브러리 데이터가 삭제되면 안 된다.
@@ -339,6 +340,15 @@ Folder connection / direct folder spike:
 - 출처 표시는 파일명/provider/folder/size/수정 시각 같은 hint만 사용하고, SAF document token/URI는 백업이나
   지원 보고 텍스트에 그대로 노출되지 않아야 한다. 연결 목록 자체도 backup/restore 대상이 아니어야 한다.
 - 원본 폴더 삭제/rename이 이미 가져온 Clef 악보 삭제로 이어지면 안 된다.
+
+Leader/follower preparation:
+
+- `도움말/피드백 > 개발자용 협업 시뮬레이션`을 열고 화면에 실제 태블릿 연결이나 페이지 전송을 하지 않는다는
+  안내가 먼저 보이는지 확인한다. 일반 공연 기능이 아니라 개발자용 사전 점검으로 이해되어야 한다.
+- 정상 세트리스트를 골라 QR/code, 전체 악보 보유 preflight와 로컬 시뮬레이션을 실행한다. 각 곡의 저장된 쪽,
+  연결 끊김, 다음 event 복구가 단계별 report에 나타나는지 확인한다.
+- 세트리스트가 참조하는 악보 하나를 라이브러리에서 제거한 fixture에서는 누락 경고가 보이고 시작 버튼이
+  비활성화되어야 한다. 이 결과는 Wi-Fi/Bluetooth 연결, camera QR scan, 지연·재연결 품질을 검증하지 않는다.
 
 Long library navigation:
 

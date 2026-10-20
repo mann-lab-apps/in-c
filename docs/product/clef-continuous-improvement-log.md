@@ -3141,3 +3141,11 @@ the imported scores in the library and never reports that the setlist update suc
 and missing-score reporting and offer the normal setlist shortcut. Widget regressions cover the default choice, enabled
 choice, blocked choice and the forty-file compact preview. `dart format`, `flutter analyze`, all 1,788 tests and the RC release
 check passed. Real cloud-provider selection, setlist creation and large mixed batches remain Device QA.
+
+S313 VERIFIED LOCAL: exposed the existing leader/follower preflight, QR and reducer work through an explicitly developer-only
+same-device route under Help/Feedback. The lab selects a real setlist, blocks stale references to missing scores, renders the
+versioned invite QR/copy fallback and replays each available score page plus disconnect and next-event recovery into the
+existing step report. Its first banner states that no tablet connection or page transmission occurs, so it cannot be mistaken
+for released collaboration. Empty, complete and missing-score widget regressions plus the named Help route cover phone,
+landscape and tablet text scales. `dart format`, `flutter analyze`, all 1,791 tests and the RC release check passed. Camera QR
+scan, network transport, latency/reconnect behavior and two-device interoperability remain implementation and Device QA gaps.
