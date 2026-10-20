@@ -1085,17 +1085,23 @@ List<SheetLibrarySyncDryRunItem> _syncItems<T>({
       remoteChange: remoteChange,
       toJson: toJson,
     );
-    final conflictingKeys =
-        status == SheetLibrarySyncDryRunStatus.conflict &&
-            baseItem != null &&
-            localItem != null &&
-            remoteItem != null
-        ? _conflictingChangedKeys(
-            toJson(baseItem),
-            toJson(localItem),
-            toJson(remoteItem),
-          )
-        : const <String>[];
+    final conflictingKeys = switch ((status, baseItem, localItem, remoteItem)) {
+      (
+        SheetLibrarySyncDryRunStatus.conflict,
+        final T base,
+        final T local,
+        final T remote,
+      ) =>
+        _conflictingChangedKeys(toJson(base), toJson(local), toJson(remote)),
+      (
+        SheetLibrarySyncDryRunStatus.conflict,
+        null,
+        final T local,
+        final T remote,
+      ) =>
+        _changedJsonKeys(toJson(local), toJson(remote)),
+      _ => const <String>[],
+    };
     final titleItem = remoteItem ?? localItem ?? baseItem;
     result.add(
       SheetLibrarySyncDryRunItem(
@@ -1168,6 +1174,17 @@ List<String> _conflictingChangedKeys(
             !_jsonEqual(base[key], remote[key]) &&
             !_jsonEqual(local[key], remote[key]),
       )
+      .toList(growable: false)
+    ..sort();
+}
+
+List<String> _changedJsonKeys(
+  Map<String, Object?> left,
+  Map<String, Object?> right,
+) {
+  final keys = <String>{...left.keys, ...right.keys};
+  return keys
+      .where((key) => !_jsonEqual(left[key], right[key]))
       .toList(growable: false)
     ..sort();
 }

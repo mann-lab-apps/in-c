@@ -3324,3 +3324,10 @@ existing path-free Markdown report. The view explicitly states that it never mer
 stable cross-device library identifier, the UI exposes that limitation instead of claiming identity validation. Pure model,
 compact widget and backup-menu cancellation regressions passed; field-level merge, clocks/tombstones and account transport
 remain out of scope.
+
+S335 VERIFIED LOCAL: tightened the review evidence for destructive and stale three-way sync cases without adding a merge
+writer. Concurrent additions with the same internal ID now name the differing fields instead of showing an unexplained
+manual conflict. New fixtures keep both-side deletion as the same change, keep setlist reorder-versus-add and annotation
+layer-versus-object edits manual, and warn when a selected remote snapshot predates the base so an old offline state is not
+mistaken for a current branch. The timestamp check is advisory because device clocks can differ; no item is automatically
+merged, deleted or restored.

@@ -743,6 +743,120 @@ void main() {
     expect(invalidPreview.status, SheetLibrarySyncReviewStatus.invalid);
     expect(invalidPreview.failureReason, contains('기준 백업'));
   });
+
+  test('sync dry-run distinguishes same deletion from concurrent add', () {
+    final now = DateTime(2026, 10, 20, 23);
+    final base = _backup(now, scores: [_score(now, id: 'removed-score')]);
+    final local = _backup(
+      now,
+      scores: [_score(now, id: 'new-score', title: 'Local new')],
+    );
+    final remote = _backup(
+      now,
+      scores: [_score(now, id: 'new-score', title: 'Remote new')],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    final removed = dryRun.items.singleWhere(
+      (item) => item.id == 'removed-score',
+    );
+    expect(removed.status, SheetLibrarySyncDryRunStatus.sameChange);
+    expect(removed.localChange, SheetLibraryBackupDiffChange.removed);
+    expect(removed.remoteChange, SheetLibraryBackupDiffChange.removed);
+    final added = dryRun.items.singleWhere((item) => item.id == 'new-score');
+    expect(added.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(added.localChange, SheetLibraryBackupDiffChange.added);
+    expect(added.remoteChange, SheetLibraryBackupDiffChange.added);
+    expect(added.conflictingFieldLabels, ['제목']);
+  });
+
+  test('sync dry-run keeps reorder versus add and annotation edits manual', () {
+    final now = DateTime(2026, 10, 21);
+    final base = _backup(
+      now,
+      scores: [_score(now, id: 'annotated-score')],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['a', 'b']),
+      ],
+    );
+    final local = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'annotated-score',
+          annotationLayer: const SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[],
+            layers: <SheetAnnotationDisplayLayer>[
+              SheetAnnotationDisplayLayer.defaultLayer,
+              SheetAnnotationDisplayLayer(id: 'rehearsal', label: 'Rehearsal'),
+            ],
+          ),
+        ),
+      ],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['b', 'a']),
+      ],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'annotated-score',
+          annotationLayer: SheetAnnotationLayer(
+            strokes: [_stroke(now, id: 'remote-stroke')],
+          ),
+        ),
+      ],
+      setlists: [
+        _setlist(now, id: 'concert', scoreIds: const ['a', 'b', 'c']),
+      ],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    final annotation = dryRun.items.singleWhere(
+      (item) => item.id == 'annotated-score',
+    );
+    expect(annotation.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(annotation.conflictingFieldLabels, ['필기 레이어']);
+    final setlist = dryRun.items.singleWhere((item) => item.id == 'concert');
+    expect(setlist.status, SheetLibrarySyncDryRunStatus.conflict);
+    expect(setlist.conflictingFieldLabels, ['곡 순서']);
+  });
+
+  test('sync review warns when a remote snapshot predates the base', () {
+    final baseTime = DateTime(2026, 10, 21, 12);
+    final score = _score(baseTime, id: 'score-a');
+
+    final preview = SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: SheetLibraryBackupCodec.encode(
+        _backup(baseTime, scores: [score]),
+      ),
+      localJson: SheetLibraryBackupCodec.encode(
+        _backup(baseTime.add(const Duration(minutes: 5)), scores: [score]),
+      ),
+      remoteJson: SheetLibraryBackupCodec.encode(
+        _backup(baseTime.subtract(const Duration(days: 1)), scores: [score]),
+      ),
+    );
+
+    expect(preview.canReview, isTrue);
+    expect(
+      preview.warnings,
+      contains('원격 백업의 내보낸 시각이 기준보다 이릅니다. 오래된 상태가 다시 나타난 것인지 확인하세요.'),
+    );
+  });
 }
 
 SheetLibraryBackup _backup(

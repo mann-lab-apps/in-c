@@ -52,6 +52,12 @@ class SheetLibrarySyncReviewPreview {
       if (normalizedLocal == normalizedRemote) {
         warnings.add('로컬과 원격에 같은 백업을 선택했습니다.');
       }
+      if (local.backup.exportedAt.isBefore(base.backup.exportedAt)) {
+        warnings.add('로컬 백업의 내보낸 시각이 기준보다 이릅니다. 선택 순서를 확인하세요.');
+      }
+      if (remote.backup.exportedAt.isBefore(base.backup.exportedAt)) {
+        warnings.add('원격 백업의 내보낸 시각이 기준보다 이릅니다. 오래된 상태가 다시 나타난 것인지 확인하세요.');
+      }
 
       final identitySets = <Set<String>>[
         _snapshotIdentitySet(base.backup),
