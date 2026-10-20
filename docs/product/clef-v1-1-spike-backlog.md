@@ -403,6 +403,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
      merge 후보와 같은 field/delete-versus-edit/settings conflict를 분류하지만 데이터를 적용하지 않는다.
      JSON object key 순서만 다른 동일 변경은 구조 비교로 같은 변경으로 처리하고, 세트리스트처럼 의미가
      있는 list 순서는 그대로 보존한다.
+     dry-run 결과는 로컬/원격 변경 방향, 병합 후보, 수동 충돌 field를 경로 없이 요약하는 bounded Markdown
+     보고서로 남길 수 있다. 보고서는 데이터를 적용하지 않으며 실제 conflict UI/merge writer를 대신하지 않는다.
      이는 전체 교체 전 review 및 future sync 설계 근거이며 merge writer와 conflict UI는 후속이다.
   4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
 - 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를

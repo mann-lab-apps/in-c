@@ -3281,3 +3281,10 @@ into a manual-review conflict; list order remains significant for setlists and o
 the previous conflict with equivalent custom pedal mappings constructed in opposite key orders and now classifies the
 result as the same change. This only improves comparison accuracy and does not add merge application, clocks, tombstones or
 cloud transport.
+
+S329 VERIFIED LOCAL: added a deterministic, path-free review report for the base/local/remote sync dry run. The report
+counts local-only, remote-only, identical, disjoint-field merge candidates and manual conflicts; each bounded detail records
+the local/remote change direction and conflicting field labels, while duplicate titles gain a short internal identifier.
+Markdown output explicitly states that it neither merges nor applies data, and a regression covers conflicting tags,
+identical edits, a one-sided edit, duplicate-title disambiguation, truncation and source-path exclusion. This is a support and
+future conflict-UI artifact, not an account sync or merge writer.

@@ -374,6 +374,113 @@ class SheetLibrarySyncDryRun {
   bool get requiresManualReview => conflicts.isNotEmpty;
 }
 
+class SheetLibrarySyncDryRunReport {
+  const SheetLibrarySyncDryRunReport({
+    required this.headline,
+    required this.summaryLines,
+    required this.reviewLines,
+    required this.items,
+  });
+
+  factory SheetLibrarySyncDryRunReport.fromDryRun(
+    SheetLibrarySyncDryRun dryRun,
+  ) {
+    if (!dryRun.hasChanges) {
+      return const SheetLibrarySyncDryRunReport(
+        headline: '동기화 변경 없음',
+        summaryLines: <String>['기준, 로컬, 원격 정보가 같습니다.'],
+        reviewLines: <String>[],
+        items: <SheetLibrarySyncDryRunItem>[],
+      );
+    }
+    final counts = <SheetLibrarySyncDryRunStatus, int>{};
+    for (final item in dryRun.items) {
+      counts[item.status] = (counts[item.status] ?? 0) + 1;
+    }
+    final conflictCount = counts[SheetLibrarySyncDryRunStatus.conflict] ?? 0;
+    final mergeableCount = counts[SheetLibrarySyncDryRunStatus.mergeable] ?? 0;
+    return SheetLibrarySyncDryRunReport(
+      headline: '동기화 변경 ${dryRun.items.length}개 · 수동 검토 $conflictCount개',
+      summaryLines: List<String>.unmodifiable(<String>[
+        for (final status in SheetLibrarySyncDryRunStatus.values)
+          if ((counts[status] ?? 0) > 0)
+            '${_syncStatusLabel(status)} ${counts[status]}개',
+      ]),
+      reviewLines: List<String>.unmodifiable(<String>[
+        if (conflictCount > 0)
+          '$conflictCount개 항목은 자동 적용하지 말고 보존할 값을 직접 선택해야 합니다.',
+        if (mergeableCount > 0)
+          '$mergeableCount개 항목은 서로 다른 필드의 병합 후보지만 아직 데이터를 적용하지 않습니다.',
+      ]),
+      items: dryRun.items,
+    );
+  }
+
+  final String headline;
+  final List<String> summaryLines;
+  final List<String> reviewLines;
+  final List<SheetLibrarySyncDryRunItem> items;
+
+  bool get requiresReview => reviewLines.isNotEmpty;
+
+  String toMarkdown({int maxItems = 200}) {
+    final safeLimit = maxItems < 0 ? 0 : maxItems;
+    final visibleItems = items.take(safeLimit).toList(growable: false);
+    final duplicateKeys = <String, int>{};
+    for (final item in items) {
+      final key = '${item.kind.name}:${item.title}';
+      duplicateKeys[key] = (duplicateKeys[key] ?? 0) + 1;
+    }
+    final buffer = StringBuffer()
+      ..writeln('# Clef & Staff 동기화 변경 검토')
+      ..writeln()
+      ..writeln(headline)
+      ..writeln()
+      ..writeln('## 요약');
+    for (final line in summaryLines) {
+      buffer.writeln('- $line');
+    }
+    if (reviewLines.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 확인 필요');
+      for (final line in reviewLines) {
+        buffer.writeln('- $line');
+      }
+    }
+    if (items.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 변경 항목');
+      for (final item in visibleItems) {
+        final duplicateKey = '${item.kind.name}:${item.title}';
+        final context = <String>[
+          if (duplicateKeys[duplicateKey]! > 1)
+            '식별자 ${_shortBackupIdentifier(item.id)}',
+          if (item.localChange != null)
+            '로컬 ${_backupChangeLabel(item.localChange!)}',
+          if (item.remoteChange != null)
+            '원격 ${_backupChangeLabel(item.remoteChange!)}',
+          if (item.conflictingFieldLabels.isNotEmpty)
+            '충돌: ${item.conflictingFieldLabels.join(', ')}',
+        ];
+        buffer.writeln(
+          '- [${_syncKindLabel(item.kind)}/${_syncStatusLabel(item.status)}] '
+          '${item.title}${context.isEmpty ? '' : ' — ${context.join(' · ')}'}',
+        );
+      }
+      final hiddenCount = items.length - visibleItems.length;
+      if (hiddenCount > 0) {
+        buffer.writeln('- 그 외 $hiddenCount개 항목');
+      }
+    }
+    buffer
+      ..writeln()
+      ..writeln('이 보고서는 비파괴 dry-run 결과입니다. 데이터를 병합하거나 적용하지 않습니다.');
+    return buffer.toString().trimRight();
+  }
+}
+
 class SheetLibraryBackupDiffReport {
   const SheetLibraryBackupDiffReport({
     required this.headline,
@@ -499,6 +606,28 @@ class SheetLibraryBackupDiffReport {
     return buffer.toString().trimRight();
   }
 }
+
+String _syncKindLabel(SheetLibrarySyncDryRunItemKind kind) => switch (kind) {
+  SheetLibrarySyncDryRunItemKind.score => '악보',
+  SheetLibrarySyncDryRunItemKind.setlist => '세트리스트',
+  SheetLibrarySyncDryRunItemKind.settings => '설정',
+};
+
+String _syncStatusLabel(SheetLibrarySyncDryRunStatus status) =>
+    switch (status) {
+      SheetLibrarySyncDryRunStatus.localOnly => '로컬만 변경',
+      SheetLibrarySyncDryRunStatus.remoteOnly => '원격만 변경',
+      SheetLibrarySyncDryRunStatus.sameChange => '동일 변경',
+      SheetLibrarySyncDryRunStatus.mergeable => '병합 후보',
+      SheetLibrarySyncDryRunStatus.conflict => '수동 검토',
+    };
+
+String _backupChangeLabel(SheetLibraryBackupDiffChange change) =>
+    switch (change) {
+      SheetLibraryBackupDiffChange.added => '추가',
+      SheetLibraryBackupDiffChange.removed => '삭제',
+      SheetLibraryBackupDiffChange.changed => '수정',
+    };
 
 enum SheetLibraryBackupMergeRisk { none, additive, review, destructive }
 

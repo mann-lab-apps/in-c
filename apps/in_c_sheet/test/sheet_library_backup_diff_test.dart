@@ -520,6 +520,53 @@ void main() {
     expect(score.conflictingFieldLabels, isEmpty);
     expect(dryRun.requiresManualReview, isFalse);
   });
+
+  test('sync dry-run report is bounded deterministic and path-free', () {
+    final now = DateTime(2026, 10, 20, 18);
+    final base = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Etude'),
+        _score(now, id: 'score-b', title: 'Etude'),
+        _score(now, id: 'score-c', title: 'Etude'),
+      ],
+    );
+    final local = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Etude', tags: const ['local']),
+        _score(now, id: 'score-b', title: 'Etude', tags: const ['shared']),
+        _score(now, id: 'score-c', title: 'Etude', tags: const ['local']),
+      ],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(now, id: 'score-a', title: 'Etude', tags: const ['remote']),
+        _score(now, id: 'score-b', title: 'Etude', tags: const ['shared']),
+        _score(now, id: 'score-c', title: 'Etude'),
+      ],
+    );
+
+    final report = SheetLibrarySyncDryRunReport.fromDryRun(
+      SheetLibrarySyncDryRun.compare(base: base, local: local, remote: remote),
+    );
+    final markdown = report.toMarkdown(maxItems: 2);
+
+    expect(report.headline, '동기화 변경 3개 · 수동 검토 1개');
+    expect(
+      report.summaryLines,
+      containsAll(<String>['로컬만 변경 1개', '동일 변경 1개', '수동 검토 1개']),
+    );
+    expect(report.requiresReview, isTrue);
+    expect(markdown, contains('# Clef & Staff 동기화 변경 검토'));
+    expect(markdown, contains('[악보/수동 검토] Etude'));
+    expect(markdown, contains('식별자 score-a'));
+    expect(markdown, contains('로컬 수정 · 원격 수정 · 충돌: 태그'));
+    expect(markdown, contains('- 그 외 1개 항목'));
+    expect(markdown, isNot(contains('/tmp/score.pdf')));
+    expect(markdown, contains('데이터를 병합하거나 적용하지 않습니다.'));
+  });
 }
 
 SheetLibraryBackup _backup(
