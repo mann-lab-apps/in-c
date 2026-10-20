@@ -3361,3 +3361,8 @@ S340 VERIFIED LOCAL: exposed the S339 boundary through a named `현재 쪽 주�
 menu. The bounded sheet lists only the current page and active layer, supports individual/all selection, reports the live
 count and then reuses the existing target-layer chooser and scoped save feedback. A compact 360x640 widget fixture covers
 selection state without claiming canvas marquee/drag selection or stylus ergonomics, which remain follow-up Device QA.
+
+S341 VERIFIED LOCAL: reconciled the discoverability inventory with the existing app instead of adding another help surface.
+Clef already pairs toolbar tooltips with named home/viewer/annotation menus and a reopenable task-based help screen covering
+first use, library cleanup, setlists, long scores, audio, annotation/share, support URLs and feedback diagnostics. A forced
+first-run tour and a standalone icon glossary remain deliberate product choices rather than missing local implementation.
