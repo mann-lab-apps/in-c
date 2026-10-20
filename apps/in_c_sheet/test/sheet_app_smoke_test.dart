@@ -2004,6 +2004,31 @@ Clef & Staff 세트리스트
       1,
     );
 
+    final lyricFinder = find.byKey(const ValueKey('chordpro-lyric-0-0'));
+    final defaultFontSize = tester.widget<Text>(lyricFinder).style!.fontSize!;
+    expect(find.text('글자 100%'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chordpro-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아주 크게 (130%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('글자 130%'), findsOneWidget);
+    expect(
+      tester.widget<Text>(lyricFinder).style!.fontSize,
+      closeTo(defaultFontSize * 1.3, 0.01),
+    );
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .fontScalePercent,
+      130,
+    );
+
     await tester.tap(find.text('원래대로'));
     await tester.pump();
     await tester.tap(find.text('카포 운지'));
@@ -2060,6 +2085,7 @@ Clef & Staff 세트리스트
     expect(find.text('카포 운지 표시'), findsOneWidget);
     expect(find.text('카포: 1'), findsOneWidget);
     expect(find.text('카포 1'), findsOneWidget);
+    expect(find.text('글자 100%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

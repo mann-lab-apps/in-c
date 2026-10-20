@@ -3045,3 +3045,11 @@ shows a compact `읽기 전용` marker, keeps search available and omits the sou
 same edit without touching the file or library state. Ordinary `.txt/.text/.md/.markdown` source editing remains enabled.
 Model, controller and widget regressions, `flutter analyze`, all 1,758 tests and the RC release check passed. Rich document
 layout editing and round-trip writes to DOCX/RTF remain outside the supported boundary.
+
+S302 VERIFIED LOCAL: added per-score ChordPro reading size without changing source text or relying only on the device-wide
+accessibility setting. The existing display controls now offer named 85/100/115/130% choices, apply the selected scale to
+section labels, chords and lyrics together, persist it with transpose/capo/column settings and include it in `원래대로`.
+Legacy score records default to 100%, unsupported persisted values normalize to the nearest supported step, and the app's
+system text scale still composes with the selected score scale. Model, controller and widget regressions, `flutter analyze`,
+all 1,758 tests and the RC release check passed. Actual tablet stand-distance readability, 130% with large system text and
+very long two-column songs remain Device QA.

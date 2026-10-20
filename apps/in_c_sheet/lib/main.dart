@@ -9174,6 +9174,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
   bool _showCapoShapes = false;
   int? _capoFretsOverride;
   int _columnCount = 1;
+  int _fontScalePercent = 100;
   String _displaySettingsSaveError = '';
   final TextEditingController _searchController = TextEditingController();
   final List<GlobalKey> _displayLineKeys = <GlobalKey>[];
@@ -9356,10 +9357,12 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                             _transposeSemitones != 0 ||
                             _showCapoShapes ||
                             _capoFretsOverride != null ||
-                            _columnCount != 1,
+                            _columnCount != 1 ||
+                            _fontScalePercent != 100,
                         canShowCapoShapes: effectiveCapoFrets > 0,
                         showCapoShapes: _showCapoShapes,
                         columnCount: _columnCount,
+                        fontScalePercent: _fontScalePercent,
                         canUseTwoColumns: canUseTwoColumns,
                         saveError: _displaySettingsSaveError,
                         onTransposeDown: () => _shiftTranspose(-1),
@@ -9374,6 +9377,13 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                         onColumnCountChanged: (value) {
                           setState(() {
                             _columnCount = value;
+                            _displaySettingsSaveError = '';
+                          });
+                          unawaited(_persistDisplaySettings());
+                        },
+                        onFontScaleChanged: (value) {
+                          setState(() {
+                            _fontScalePercent = value;
                             _displaySettingsSaveError = '';
                           });
                           unawaited(_persistDisplaySettings());
@@ -9403,6 +9413,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
                         matchedLineIndexes: search.lineIndexes.toSet(),
                         activeLineIndex: activeLineIndex,
                         columnCount: effectiveColumnCount,
+                        fontScalePercent: _fontScalePercent,
                       ),
                     ],
                   ),
@@ -9471,6 +9482,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
     _showCapoShapes = settings.showCapoShapes;
     _capoFretsOverride = settings.capoFretsOverride;
     _columnCount = settings.columnCount;
+    _fontScalePercent = settings.fontScalePercent;
     _displaySettingsSaveError = '';
   }
 
@@ -9521,6 +9533,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       _showCapoShapes = false;
       _capoFretsOverride = null;
       _columnCount = 1;
+      _fontScalePercent = 100;
       _displaySettingsSaveError = '';
     });
     unawaited(_persistDisplaySettings());
@@ -9536,6 +9549,7 @@ class _SheetChordProViewerScreenState extends State<SheetChordProViewerScreen> {
       showCapoShapes: _showCapoShapes,
       capoFretsOverride: _capoFretsOverride,
       columnCount: _columnCount,
+      fontScalePercent: _fontScalePercent,
     );
     try {
       await widget.controller.updateChordProDisplaySettings(score, settings);
@@ -9615,6 +9629,7 @@ class _ChordProDisplayLinesView extends StatelessWidget {
     this.matchedLineIndexes = const <int>{},
     this.activeLineIndex,
     this.columnCount = 1,
+    this.fontScalePercent = 100,
   });
 
   final List<SheetChordProDisplayLine> lines;
@@ -9622,6 +9637,7 @@ class _ChordProDisplayLinesView extends StatelessWidget {
   final Set<int> matchedLineIndexes;
   final int? activeLineIndex;
   final int columnCount;
+  final int fontScalePercent;
 
   @override
   Widget build(BuildContext context) {
@@ -9660,6 +9676,7 @@ class _ChordProDisplayLinesView extends StatelessWidget {
         isSearchMatch: matchedLineIndexes.contains(index),
         isActiveSearchMatch: activeLineIndex == index,
         lineIndex: index,
+        fontScalePercent: fontScalePercent,
       ),
     );
   }
@@ -9669,12 +9686,14 @@ class _ChordProDisplayLineView extends StatelessWidget {
   const _ChordProDisplayLineView({
     required this.line,
     required this.lineIndex,
+    required this.fontScalePercent,
     this.isSearchMatch = false,
     this.isActiveSearchMatch = false,
   });
 
   final SheetChordProDisplayLine line;
   final int lineIndex;
+  final int fontScalePercent;
   final bool isSearchMatch;
   final bool isActiveSearchMatch;
 
@@ -9686,16 +9705,25 @@ class _ChordProDisplayLineView extends StatelessWidget {
         padding: const EdgeInsets.only(top: 12, bottom: 4),
         child: Text(
           line.label,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w800,
+          style: _scaledChordProTextStyle(
+            theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+            fontScalePercent,
           ),
         ),
       ),
       SheetChordProDisplayLineKind.blank => const SizedBox(height: 12),
       SheetChordProDisplayLineKind.lyric => Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: Text(line.lyricText, style: theme.textTheme.bodyLarge),
+        child: Text(
+          line.lyricText,
+          style: _scaledChordProTextStyle(
+            theme.textTheme.bodyLarge,
+            fontScalePercent,
+          ),
+        ),
       ),
       SheetChordProDisplayLineKind.chordLyric => Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -9703,6 +9731,7 @@ class _ChordProDisplayLineView extends StatelessWidget {
           segments: line.segments,
           lineIndex: lineIndex,
           showLyricRow: line.lyricText.isNotEmpty,
+          fontScalePercent: fontScalePercent,
         ),
       ),
     };
@@ -9735,21 +9764,29 @@ class _ChordProSegmentWrap extends StatelessWidget {
     required this.segments,
     required this.lineIndex,
     required this.showLyricRow,
+    required this.fontScalePercent,
   });
 
   final List<SheetChordProDisplaySegment> segments;
   final int lineIndex;
   final bool showLyricRow;
+  final int fontScalePercent;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final chordStyle = theme.textTheme.bodyLarge?.copyWith(
-      color: theme.colorScheme.primary,
-      fontWeight: FontWeight.w800,
-      height: 1.15,
+    final chordStyle = _scaledChordProTextStyle(
+      theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.primary,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
+      ),
+      fontScalePercent,
     );
-    final lyricStyle = theme.textTheme.bodyLarge?.copyWith(height: 1.35);
+    final lyricStyle = _scaledChordProTextStyle(
+      theme.textTheme.bodyLarge?.copyWith(height: 1.35),
+      fontScalePercent,
+    );
     return Semantics(
       label: [
         for (final segment in segments)
@@ -9788,6 +9825,12 @@ class _ChordProSegmentWrap extends StatelessWidget {
       ),
     );
   }
+}
+
+TextStyle? _scaledChordProTextStyle(TextStyle? style, int scalePercent) {
+  if (style == null) return null;
+  final scale = scalePercent / 100;
+  return style.copyWith(fontSize: (style.fontSize ?? 16) * scale);
 }
 
 String _chordProDisplayChordRow(SheetChordProDisplayLine line) {
@@ -9997,6 +10040,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
     required this.canShowCapoShapes,
     required this.showCapoShapes,
     required this.columnCount,
+    required this.fontScalePercent,
     required this.canUseTwoColumns,
     required this.saveError,
     required this.onTransposeDown,
@@ -10005,6 +10049,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
     required this.onCapoUp,
     required this.onReset,
     required this.onColumnCountChanged,
+    required this.onFontScaleChanged,
     required this.onShowCapoShapesChanged,
   });
 
@@ -10014,6 +10059,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
   final bool canShowCapoShapes;
   final bool showCapoShapes;
   final int columnCount;
+  final int fontScalePercent;
   final bool canUseTwoColumns;
   final String saveError;
   final VoidCallback onTransposeDown;
@@ -10022,6 +10068,7 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
   final VoidCallback? onCapoUp;
   final VoidCallback onReset;
   final ValueChanged<int> onColumnCountChanged;
+  final ValueChanged<int> onFontScaleChanged;
   final ValueChanged<bool> onShowCapoShapesChanged;
 
   @override
@@ -10076,6 +10123,29 @@ class _ChordProViewerDisplayControls extends StatelessWidget {
                   onSelected: canShowCapoShapes
                       ? onShowCapoShapesChanged
                       : null,
+                ),
+                PopupMenuButton<int>(
+                  key: const ValueKey('chordpro-font-scale'),
+                  tooltip: '글자 크기',
+                  initialValue: fontScalePercent,
+                  onSelected: onFontScaleChanged,
+                  itemBuilder: (context) => const <PopupMenuEntry<int>>[
+                    PopupMenuItem<int>(value: 85, child: Text('작게 (85%)')),
+                    PopupMenuItem<int>(value: 100, child: Text('기본 (100%)')),
+                    PopupMenuItem<int>(value: 115, child: Text('크게 (115%)')),
+                    PopupMenuItem<int>(value: 130, child: Text('아주 크게 (130%)')),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.format_size),
+                        const SizedBox(width: 6),
+                        Text('글자 $fontScalePercent%'),
+                      ],
+                    ),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: canReset ? onReset : null,

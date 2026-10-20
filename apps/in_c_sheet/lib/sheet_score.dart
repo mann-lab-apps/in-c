@@ -458,6 +458,7 @@ class SheetChordProDisplaySettings {
     this.showCapoShapes = false,
     this.capoFretsOverride,
     this.columnCount = 1,
+    this.fontScalePercent = 100,
   });
 
   factory SheetChordProDisplaySettings.fromJson(Map<String, Object?>? json) {
@@ -470,6 +471,7 @@ class SheetChordProDisplaySettings {
         json?['capoFretsOverride'],
       ),
       columnCount: _normalizeColumnCount(json?['columnCount']),
+      fontScalePercent: _normalizeFontScalePercent(json?['fontScalePercent']),
     );
   }
 
@@ -479,18 +481,21 @@ class SheetChordProDisplaySettings {
   final bool showCapoShapes;
   final int? capoFretsOverride;
   final int columnCount;
+  final int fontScalePercent;
 
   bool get isDefault =>
       transposeSemitones == 0 &&
       !showCapoShapes &&
       capoFretsOverride == null &&
-      columnCount == 1;
+      columnCount == 1 &&
+      fontScalePercent == 100;
 
   SheetChordProDisplaySettings copyWith({
     int? transposeSemitones,
     bool? showCapoShapes,
     int? capoFretsOverride,
     int? columnCount,
+    int? fontScalePercent,
     bool clearCapoFretsOverride = false,
   }) {
     return SheetChordProDisplaySettings(
@@ -502,6 +507,9 @@ class SheetChordProDisplaySettings {
           ? null
           : _clampCapoFrets(capoFretsOverride ?? this.capoFretsOverride),
       columnCount: _clampColumnCount(columnCount ?? this.columnCount),
+      fontScalePercent: _clampFontScalePercent(
+        fontScalePercent ?? this.fontScalePercent,
+      ),
     );
   }
 
@@ -511,6 +519,7 @@ class SheetChordProDisplaySettings {
       'showCapoShapes': showCapoShapes,
       if (capoFretsOverride != null) 'capoFretsOverride': capoFretsOverride,
       'columnCount': columnCount,
+      'fontScalePercent': fontScalePercent,
     };
   }
 
@@ -539,6 +548,20 @@ class SheetChordProDisplaySettings {
 
   static int _clampColumnCount(int value) {
     return value.clamp(1, 2).toInt();
+  }
+
+  static int _normalizeFontScalePercent(Object? value) {
+    return _clampFontScalePercent(_intFromJson(value, fallback: 100));
+  }
+
+  static int _clampFontScalePercent(int value) {
+    const supported = <int>[85, 100, 115, 130];
+    return supported.reduce(
+      (closest, candidate) =>
+          (candidate - value).abs() < (closest - value).abs()
+          ? candidate
+          : closest,
+    );
   }
 }
 

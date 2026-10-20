@@ -1933,6 +1933,7 @@ Clef & Staff 세트리스트
         showCapoShapes: true,
         capoFretsOverride: 4,
         columnCount: 2,
+        fontScalePercent: 115,
       ),
     );
 
@@ -1941,6 +1942,7 @@ Clef & Staff 세트리스트
     expect(persisted.chordProDisplaySettings.showCapoShapes, isTrue);
     expect(persisted.chordProDisplaySettings.capoFretsOverride, 4);
     expect(persisted.chordProDisplaySettings.columnCount, 2);
+    expect(persisted.chordProDisplaySettings.fontScalePercent, 115);
   });
 
   test(
