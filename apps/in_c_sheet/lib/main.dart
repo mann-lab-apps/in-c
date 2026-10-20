@@ -2163,7 +2163,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
-          SheetLibraryBackupDetailsView(details: report.details),
+          ..._backupDiffDetailsContent(report),
         ],
         ..._backupMergeReviewContent(preview.mergeReview),
       ],
@@ -2260,7 +2260,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
-          SheetLibraryBackupDetailsView(details: report.details),
+          ..._backupDiffDetailsContent(report),
         ],
       ],
     );
@@ -2584,7 +2584,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
-          SheetLibraryBackupDetailsView(details: report.details),
+          ..._backupDiffDetailsContent(report),
         ],
         ..._backupMergeReviewContent(preview.mergeReview),
       ],
@@ -2610,6 +2610,30 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       const SizedBox(height: 4),
       for (final line in review.lines) Text('• $line'),
     ];
+  }
+
+  List<Widget> _backupDiffDetailsContent(SheetLibraryBackupDiffReport report) {
+    return <Widget>[
+      if (report.details.isNotEmpty)
+        SheetLibraryBackupDetailsView(details: report.details),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => _copyBackupDiffReport(report),
+          icon: const Icon(Icons.copy_all_outlined),
+          label: const Text('변경 검토 복사'),
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _copyBackupDiffReport(
+    SheetLibraryBackupDiffReport report,
+  ) async {
+    await Clipboard.setData(ClipboardData(text: report.toMarkdown()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('백업 변경 검토 내용을 복사했습니다.')));
   }
 
   String _fullBackupPreviewFailureMessage(

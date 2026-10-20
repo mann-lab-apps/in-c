@@ -793,6 +793,22 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
     final now = DateTime(2026, 9, 27, 10);
     final store = SheetLibraryStore();
     await store.saveScores(<SheetScore>[
@@ -834,6 +850,11 @@ void main() {
     await tester.tap(find.text('변경 항목 자세히 보기 (1)'));
     await tester.pumpAndSettle();
     expect(find.text('Automatic Backup Score'), findsOneWidget);
+    await tester.ensureVisible(find.text('변경 검토 복사'));
+    await tester.tap(find.text('변경 검토 복사'));
+    await tester.pumpAndSettle();
+    expect(copied, contains('Automatic Backup Score'));
+    expect(find.text('백업 변경 검토 내용을 복사했습니다.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

@@ -3159,3 +3159,11 @@ still a full-backup replacement preview, not field-level merge or continuous clo
 dialog regressions cover conflict labels, duplicate disambiguation and bounded lists. `dart format`, `flutter analyze`, all
 1,793 tests and the RC release check passed. Account/provider sync, merge decisions and two-device conflict fixtures remain
 Later work.
+
+S315 VERIFIED LOCAL: made the same restore dry-run review portable without exposing original storage paths. Automatic
+metadata, selected JSON and full ZIP previews now offer `변경 검토 복사`; its bounded Markdown report includes summary,
+manual-review warnings and per-item type/change/title/context/risk labels, disambiguates duplicate titles with a short internal
+identifier and states that restore is a full replacement rather than field-level merge. The formatter can cap oversized
+reports and reports the hidden count. Unit and widget regressions cover redaction, duplicate labels, item limits, clipboard
+content and visible success feedback. `dart format`, `flutter analyze`, all 1,794 tests and the RC release check passed. It
+does not upload the report, synchronize accounts or make an automatic merge decision.

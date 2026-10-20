@@ -92,6 +92,13 @@ void main() {
     );
     expect(report.requiresReview, isTrue);
     expect(report.details, same(diff.details));
+    final markdown = report.toMarkdown(maxItems: 2);
+    expect(markdown, contains('# Clef & Staff 백업 변경 검토'));
+    expect(markdown, contains('- [악보/추가] C'));
+    expect(markdown, contains('- [악보/삭제] A'));
+    expect(markdown, contains('- 그 외 3개 항목'));
+    expect(markdown, contains('백업 전체 교체'));
+    expect(markdown, isNot(contains('/tmp/score.pdf')));
 
     final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
     expect(mergeReview.risk, SheetLibraryBackupMergeRisk.destructive);
@@ -318,6 +325,25 @@ void main() {
     expect(mergeReview.risk, SheetLibraryBackupMergeRisk.none);
     expect(mergeReview.title, '변경 없음');
     expect(mergeReview.requiresManualReview, isFalse);
+  });
+
+  test('backup review markdown disambiguates duplicate item titles', () {
+    final now = DateTime(2026, 10, 20, 10);
+    final base = _backup(
+      now,
+      setlists: [_setlist(now, id: 'setlist-old', scoreIds: const <String>[])],
+    );
+    final incoming = _backup(
+      now,
+      setlists: [_setlist(now, id: 'setlist-new', scoreIds: const <String>[])],
+    );
+
+    final markdown = SheetLibraryBackupDiffReport.fromDiff(
+      SheetLibraryBackupDiff.compare(base, incoming),
+    ).toMarkdown();
+
+    expect(markdown, contains('식별자 setlist-old'));
+    expect(markdown, contains('식별자 setlist-new'));
   });
 }
 

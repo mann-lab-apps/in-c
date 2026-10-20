@@ -374,6 +374,61 @@ class SheetLibraryBackupDiffReport {
   final List<SheetLibraryBackupDiffDetail> details;
 
   bool get requiresReview => reviewLines.isNotEmpty;
+
+  String toMarkdown({int maxItems = 200}) {
+    final safeLimit = maxItems < 0 ? 0 : maxItems;
+    final visibleDetails = details.take(safeLimit).toList(growable: false);
+    final duplicateKeys = <String, int>{};
+    for (final detail in details) {
+      final key = '${detail.kind.name}:${detail.title}';
+      duplicateKeys[key] = (duplicateKeys[key] ?? 0) + 1;
+    }
+    final buffer = StringBuffer()
+      ..writeln('# Clef & Staff 백업 변경 검토')
+      ..writeln()
+      ..writeln(headline)
+      ..writeln()
+      ..writeln('## 요약');
+    for (final line in summaryLines) {
+      buffer.writeln('- $line');
+    }
+    if (reviewLines.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 확인 필요');
+      for (final line in reviewLines) {
+        buffer.writeln('- $line');
+      }
+    }
+    if (details.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 변경 항목');
+      for (final detail in visibleDetails) {
+        final duplicateKey = '${detail.kind.name}:${detail.title}';
+        final contextParts = <String>[
+          if (detail.contextLabel.isNotEmpty) detail.contextLabel,
+          if (duplicateKeys[duplicateKey]! > 1)
+            '식별자 ${_shortBackupIdentifier(detail.id)}',
+          if (detail.reviewLabels.isNotEmpty) detail.reviewLabels.join(', '),
+        ];
+        final context = contextParts.isEmpty
+            ? ''
+            : ' — ${contextParts.join(' · ')}';
+        buffer.writeln(
+          '- [${detail.kindLabel}/${detail.changeLabel}] ${detail.title}$context',
+        );
+      }
+      final hiddenCount = details.length - visibleDetails.length;
+      if (hiddenCount > 0) {
+        buffer.writeln('- 그 외 $hiddenCount개 항목');
+      }
+    }
+    buffer
+      ..writeln()
+      ..writeln('이 보고서는 복원 전 검토용입니다. 복원은 field-level 병합이 아니라 백업 전체 교체입니다.');
+    return buffer.toString().trimRight();
+  }
 }
 
 enum SheetLibraryBackupMergeRisk { none, additive, review, destructive }
@@ -695,4 +750,10 @@ bool _stringListsEqual(List<String> left, List<String> right) {
     }
   }
   return true;
+}
+
+String _shortBackupIdentifier(String value) {
+  final trimmed = value.trim();
+  if (trimmed.length <= 12) return trimmed;
+  return trimmed.substring(trimmed.length - 8);
 }
