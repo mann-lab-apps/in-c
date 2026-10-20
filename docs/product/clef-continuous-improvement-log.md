@@ -3085,3 +3085,13 @@ but empty, unrelated layers stay unchanged, the target becomes active and same/m
 controller and widget regressions cover persisted moves, history payload rekeying, menu access and count copy. `dart format`,
 `flutter analyze`, all 1,767 tests and the RC release check passed. Arbitrary-object multi-select/drag remains a separate gap,
 and real stylus use, layer visibility/export behavior after moving and restart persistence remain Device QA.
+
+S307 VERIFIED LOCAL: turned a changed Android connected-folder PDF warning into an explicit, non-sync replacement flow.
+The changed row still blocks ordinary import and opens the existing score first, but now also offers `변경 PDF 적용` for
+PDFs only. After confirmation Clef asks the provider for a fresh cache copy, writes a new app-owned PDF and preserves the
+score id, title/metadata, annotations and setlist references while retaining the previous PDF as a linked edited copy. A
+library/score change or metadata save failure discards the unreferenced new copy, reports no success and restores the prior
+score; unusable native cache responses are cleaned best-effort. Typed UI and controller regressions cover the action,
+metadata preservation and failed-save recovery. `dart format`, `flutter analyze`, all 1,769 tests and the RC release check
+passed. Provider revocation/reboot and real replacement rendering remain Device QA; text/ChordPro/DOCX/RTF replacement,
+app-copy-free direct references, automatic sync and iOS Files parity remain separate follow-ups.

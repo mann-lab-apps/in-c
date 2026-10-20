@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 
 import 'sheet_external_folder_catalog.dart';
 import 'sheet_external_folder_gateway.dart';
+import 'sheet_file_import.dart';
 
 enum SheetExternalFolderConnectionActionType { open, add, forget }
 
-enum SheetExternalFolderImportActionType { copy, openExisting }
+enum SheetExternalFolderImportActionType {
+  copy,
+  openExisting,
+  replaceExistingPdf,
+}
 
 class SheetExternalFolderImportAction {
   const SheetExternalFolderImportAction._({
     required this.type,
     this.copyPlan,
     this.scoreId,
+    this.candidate,
   });
 
   const SheetExternalFolderImportAction.copy(
@@ -27,9 +33,19 @@ class SheetExternalFolderImportAction {
         scoreId: scoreId,
       );
 
+  const SheetExternalFolderImportAction.replaceExistingPdf(
+    String scoreId,
+    SheetExternalFolderImportCandidate candidate,
+  ) : this._(
+        type: SheetExternalFolderImportActionType.replaceExistingPdf,
+        scoreId: scoreId,
+        candidate: candidate,
+      );
+
   final SheetExternalFolderImportActionType type;
   final SheetExternalFolderCopyPlan? copyPlan;
   final String? scoreId;
+  final SheetExternalFolderImportCandidate? candidate;
 }
 
 class SheetExternalFolderConnectionAction {
@@ -223,6 +239,10 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                   SheetExternalFolderCandidateStatus
                                       .sourceChanged &&
                               existingScoreId != null) {
+                            final canReplacePdf =
+                                SheetFileImportPolicy.isPdfFileName(
+                                  candidate.entry.displayName,
+                                );
                             return ListTile(
                               leading: Icon(
                                 Icons.warning_amber_rounded,
@@ -233,19 +253,41 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              subtitle: Text(candidate.message),
-                              trailing: TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(candidate.message),
+                                  const SizedBox(height: 4),
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: () => Navigator.of(context).pop(
+                                          SheetExternalFolderImportAction.openExisting(
+                                            existingScoreId,
+                                          ),
+                                        ),
+                                        icon: const Icon(Icons.open_in_new),
+                                        label: const Text('기존 악보 열기'),
+                                      ),
+                                      if (canReplacePdf)
+                                        TextButton.icon(
+                                          onPressed: () => Navigator.of(context)
+                                              .pop(
+                                                SheetExternalFolderImportAction.replaceExistingPdf(
+                                                  existingScoreId,
+                                                  candidate,
+                                                ),
+                                              ),
+                                          icon: const Icon(
+                                            Icons.sync_alt_outlined,
+                                          ),
+                                          label: const Text('변경 PDF 적용'),
+                                        ),
+                                    ],
                                   ),
-                                ),
-                                onPressed: () => Navigator.of(context).pop(
-                                  SheetExternalFolderImportAction.openExisting(
-                                    existingScoreId,
-                                  ),
-                                ),
-                                child: const Text('기존 악보 열기'),
+                                ],
                               ),
                             );
                           }

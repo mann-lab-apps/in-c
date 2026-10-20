@@ -189,12 +189,28 @@ void main() {
     expect(find.textContaining('자동으로 덮어쓰지'), findsNWidgets(2));
     expect(find.byType(CheckboxListTile), findsNothing);
     expect(find.text('기존 악보 열기'), findsOneWidget);
+    expect(find.text('변경 PDF 적용'), findsOneWidget);
     expect(find.text('0개 악보 복사'), findsOneWidget);
 
     await tester.tap(find.text('기존 악보 열기'));
     await tester.pumpAndSettle();
     expect(result?.type, SheetExternalFolderImportActionType.openExisting);
     expect(result?.scoreId, 'score-changed');
+
+    result = null;
+    await tester.tap(find.text('폴더 열기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('변경 PDF 적용'));
+    await tester.pumpAndSettle();
+    expect(
+      result?.type,
+      SheetExternalFolderImportActionType.replaceExistingPdf,
+    );
+    expect(result?.scoreId, 'score-changed');
+    expect(
+      result?.candidate?.entry.displayName,
+      'Changed concert score with a very long title.pdf',
+    );
   });
 
   testWidgets('unreadable connection can be forgotten on a small screen', (

@@ -648,6 +648,91 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       await _openScore(score);
       return;
     }
+    if (action.type == SheetExternalFolderImportActionType.replaceExistingPdf) {
+      final scoreId = action.scoreId;
+      final candidate = action.candidate;
+      final score = scoreId == null
+          ? null
+          : controller.scoreByIdOrNull(scoreId);
+      if (score == null || candidate == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('교체할 기존 악보를 찾지 못했습니다.')));
+        return;
+      }
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('변경된 PDF 적용'),
+          content: Text(
+            '"${score.displayTitle}"에 새 PDF 사본을 적용할까요?\n\n'
+            '제목, 메타데이터, 필기와 세트리스트 연결은 유지하고 기존 PDF는 연결 파일로 보관합니다.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('PDF 적용'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      List<SheetSharedImportFile> files;
+      try {
+        files = await gateway.copySelected(<SheetExternalFolderCopySource>[
+          SheetExternalFolderCopySource.fromCandidate(
+            candidate,
+            platform: 'android-saf-copy',
+            folderLabel: pickedFolder.folderLabel,
+          ),
+        ]);
+      } on SheetExternalFolderGatewayException catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error.message)));
+        }
+        return;
+      }
+      if (!mounted || files.length != 1) {
+        for (final file in files) {
+          try {
+            await File(file.path).delete();
+          } on FileSystemException {
+            // Native cache cleanup is best effort when the copy is unusable.
+          }
+        }
+        return;
+      }
+      final replacement = files.single;
+      bool didReplace;
+      try {
+        didReplace = await controller.replaceScorePdfFromConnectedFolder(
+          score,
+          replacement,
+        );
+      } finally {
+        try {
+          await File(replacement.path).delete();
+        } on FileSystemException {
+          // Native cache cleanup is best effort after the app-owned copy exists.
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            didReplace
+                ? '변경된 PDF를 적용했습니다. 기존 PDF는 연결 파일에 보관했습니다.'
+                : '변경된 PDF를 적용하지 못했습니다. 기존 악보는 그대로입니다.',
+          ),
+        ),
+      );
+      return;
+    }
     final plan = action.copyPlan;
     if (plan == null) {
       return;

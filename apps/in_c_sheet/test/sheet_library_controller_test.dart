@@ -3348,6 +3348,103 @@ Clef & Staff 세트리스트
   });
 
   test(
+    'applies a changed connected-folder PDF without losing score metadata',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final previousSource = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 100,
+        modifiedAt: now.subtract(const Duration(days: 1)),
+      )!;
+      final nextSource = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 200,
+        modifiedAt: now,
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          title: 'My Sonata',
+          composer: 'Composer',
+          tags: const <String>['recital'],
+          isFavorite: true,
+          bookmarks: <SheetBookmark>[
+            SheetBookmark(pageNumber: 2, label: 'Coda', createdAt: now),
+          ],
+        ).copyWith(importSource: previousSource),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScorePdfFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: '/cache/Sonata.pdf',
+          name: 'Sonata.pdf',
+          importSource: nextSource,
+        ),
+      );
+
+      final updated = controller.scores.single;
+      expect(didReplace, isTrue);
+      expect(updated.id, 'score-1');
+      expect(updated.filePath, '/managed/revised-Sonata.pdf');
+      expect(updated.title, 'My Sonata');
+      expect(updated.composer, 'Composer');
+      expect(updated.tags, <String>['recital']);
+      expect(updated.isFavorite, isTrue);
+      expect(updated.bookmarks.single.label, 'Coda');
+      expect(updated.importSource?.sizeBytes, 200);
+      expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
+      expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
+      expect(store.discardedScoreIds, isEmpty);
+      expect((await store.loadScores()).single.filePath, updated.filePath);
+    },
+  );
+
+  test(
+    'failed connected-folder PDF replacement keeps the prior score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 200,
+        modifiedAt: now,
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[_score(now)]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSave = true;
+
+      final didReplace = await controller.replaceScorePdfFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: '/cache/Sonata.pdf',
+          name: 'Sonata.pdf',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+      expect(controller.scores.single.linkedFiles, isEmpty);
+      expect((await store.loadScores()).single.filePath, '/tmp/score-1.pdf');
+      expect(store.discardedScoreIds, <String>['folder-replacement']);
+      expect(controller.errorMessage, contains('기존 악보는 그대로'));
+    },
+  );
+
+  test(
     'updates and removes linked file metadata without deleting files',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -6888,6 +6985,40 @@ class _LinkedPdfPickerStore extends SheetLibraryStore {
   @override
   Future<SheetLinkedFile?> pickLinkedPdfFile() async {
     return file;
+  }
+}
+
+class _ConnectedFolderPdfReplacementStore extends SheetLibraryStore {
+  _ConnectedFolderPdfReplacementStore(this.now);
+
+  final DateTime now;
+  final discardedScoreIds = <String>[];
+  bool failSave = false;
+
+  @override
+  Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
+    return _score(
+      now,
+      id: 'folder-replacement',
+      title: fileName ?? 'replacement.pdf',
+      filePath: '/managed/revised-${fileName ?? 'replacement.pdf'}',
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSave) {
+      throw StateError('connected-folder replacement save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }
 

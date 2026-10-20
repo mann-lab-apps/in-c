@@ -177,6 +177,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool _isImporting = false;
   final Set<String> _chordProSourceEdits = <String>{};
   final Set<String> _plainTextSourceEdits = <String>{};
+  final Set<String> _connectedFolderPdfReplacements = <String>{};
   String? _errorMessage;
   bool _lastImportOpenedExistingScore = false;
 
@@ -1537,6 +1538,80 @@ class SheetLibraryController extends ChangeNotifier {
       return false;
     }
     return switchToLinkedFile(score, linkedFile);
+  }
+
+  Future<bool> replaceScorePdfFromConnectedFolder(
+    SheetScore score,
+    SheetSharedImportFile replacement,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null ||
+        !SheetFileImportPolicy.isPdfFileName(current.filePath) ||
+        !SheetFileImportPolicy.isPdfFileName(replacement.name) ||
+        replacement.importSource?.platform != 'android-saf-copy' ||
+        !_connectedFolderPdfReplacements.add(score.id)) {
+      return false;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? imported;
+    try {
+      imported = await store.importPdfFile(
+        File(replacement.path),
+        fileName: replacement.name,
+      );
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+        return false;
+      }
+      final latest = scoreByIdOrNull(score.id);
+      if (latest == null || latest.filePath != current.filePath) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+        return false;
+      }
+
+      final previousPdf = SheetLinkedFile(
+        path: latest.filePath,
+        type: 'pdf',
+        label: latest.displayTitle,
+        role: SheetLinkedFile.editedCopyRole,
+        createdAt: DateTime.now(),
+      );
+      final nextLinkedFiles = <SheetLinkedFile>[
+        previousPdf,
+        ...latest.linkedFiles.where(
+          (file) =>
+              file.path != previousPdf.path && file.path != imported!.filePath,
+        ),
+      ];
+      await _replace(
+        latest.copyWith(
+          filePath: imported.filePath,
+          linkedFiles: SheetScore.normalizeLinkedFiles(nextLinkedFiles),
+          importSource: replacement.importSource,
+          pdfLinkSanitization: SheetPdfLinkSanitization.empty,
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return true;
+    } catch (_) {
+      if (imported != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = '변경된 PDF를 적용하지 못했습니다. 기존 악보는 그대로 유지됩니다.';
+        notifyListeners();
+      }
+      return false;
+    } finally {
+      _connectedFolderPdfReplacements.remove(score.id);
+    }
   }
 
   Future<bool> updateLinkedFile(
