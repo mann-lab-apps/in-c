@@ -40,6 +40,13 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
     const staff = score.parts.find(part => part.id === address.partId)?.staves.find(staff => staff.id === address.staffId)
     return `${staff?.measures.find(measure => measure.id === address.startMeasureId)?.number ?? '?'} - ${staff?.measures.find(measure => measure.id === address.endMeasureId)?.number ?? '?'}마디 구간`
   }
+  const geometrySummary = describeGeometry({
+    geometry,
+    independentGeometry,
+    partId,
+    segmentLabel: segment ? segmentLabel(segment) : '객체 전체',
+    inheritsObjectGeometry: Boolean(segment && !segmentOverride)
+  })
   return (
     <section className="selection-properties span-properties" aria-label="범위 표기 속성">
       <h3>범위 표기</h3>
@@ -65,6 +72,9 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
           <div className="selection-properties__row"><dt>보표</dt><dd>{owner ? owner.staves.findIndex(staff => staff.id === start?.address.staffId) + 1 : '?'}</dd></div>
           <div className="selection-properties__row"><dt>성부</dt><dd>{start ? start.measure.voices.findIndex(voice => voice.id === start.address.voiceId) + 1 : '?'}</dd></div>
         </dl>
+        <output aria-label="현재 표기 배치" className="span-properties__geometry-summary">
+          {geometrySummary}
+        </output>
         {(['startEventId', 'endEventId'] as const).map(endpoint => <label className="selection-properties__edit" key={endpoint}>
           <span>{endpoint === 'startEventId' ? '시작' : '끝'}</span>
           <select aria-label={endpoint === 'startEventId' ? '표기 시작점' : '표기 끝점'} value={span[endpoint]}
@@ -110,6 +120,44 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
       </> : null}
     </section>
   )
+}
+
+function describeGeometry({
+  geometry,
+  independentGeometry,
+  partId,
+  segmentLabel,
+  inheritsObjectGeometry
+}: {
+  geometry?: SpanGeometry
+  independentGeometry?: boolean
+  partId?: string
+  segmentLabel: string
+  inheritsObjectGeometry: boolean
+}) {
+  const scope = partId ? independentGeometry ? '독립 파트보' : '총보 연동' : '총보'
+  const adjustments = [
+    geometry?.offsetX === undefined ? undefined : `가로 ${formatSp(geometry.offsetX)}`,
+    geometry?.offsetY === undefined ? undefined : `세로 ${formatSp(geometry.offsetY)}`,
+    geometry?.height === undefined ? undefined : `높이 ${formatSp(geometry.height)}`
+  ].filter((value): value is string => Boolean(value))
+  const placement = geometry?.placement === 'above'
+    ? '보표 위'
+    : geometry?.placement === 'below'
+      ? '보표 아래'
+      : '자동 배치'
+
+  return [
+    scope,
+    segmentLabel,
+    ...(inheritsObjectGeometry ? ['객체 전체 배치 따름'] : []),
+    placement,
+    ...adjustments
+  ].join(' · ')
+}
+
+function formatSp(value: number) {
+  return `${value > 0 ? '+' : ''}${value}sp`
 }
 
 function GeometryInput({ label, min, placeholder, value, onCommit, disabled }: {

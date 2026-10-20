@@ -48,6 +48,8 @@ describe('VexFlow adapter', () => {
   it('maps major and minor key signatures', () => {
     expect(toVexFlowKeySignature({ fifths: 0, mode: 'major' })).toBe('C')
     expect(toVexFlowKeySignature({ fifths: 2, mode: 'major' })).toBe('D')
+    expect(toVexFlowKeySignature({ fifths: 4, mode: 'major' })).toBe('E')
+    expect(toVexFlowKeySignature({ fifths: -7, mode: 'major' })).toBe('Cb')
     expect(toVexFlowKeySignature({ fifths: -3, mode: 'minor' })).toBe('Cm')
   })
 })

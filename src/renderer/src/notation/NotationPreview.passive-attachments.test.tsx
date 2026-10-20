@@ -677,6 +677,77 @@ describe('NotationPreview passive lower-staff attachments', () => {
     }
   })
 
+  it('keeps an automatic lower slur clear of endpoint staccato dots', async () => {
+    const events = [
+      createNote({
+        id: 'staccato-slur-start',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 },
+        articulations: ['staccato']
+      }),
+      createNote({
+        id: 'staccato-slur-end',
+        position: createTimePosition(TICKS_PER_QUARTER),
+        pitch: { step: 'D', octave: 4 },
+        articulations: ['staccato']
+      })
+    ]
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Melody',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [createVoice({ events })]
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      slurs: [
+        {
+          id: 'staccato-slur',
+          startEventId: events[0].id,
+          endEventId: events[1].id
+        }
+      ]
+    })
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.notation-slur')).toBeInTheDocument()
+    })
+
+    const slur = container.querySelector<SVGPathElement>('.notation-slur')!
+    expect(slur).toHaveAttribute('data-annotation-lane', 'lower-slur')
+    const startDot = container.querySelector<SVGCircleElement>(
+      '.notation-articulation[data-event-id="staccato-slur-start"]'
+    )!
+    const endDot = container.querySelector<SVGCircleElement>(
+      '.notation-articulation[data-event-id="staccato-slur-end"]'
+    )!
+    const y1 = Number(slur.getAttribute('data-slur-y1'))
+    const y2 = Number(slur.getAttribute('data-slur-y2'))
+
+    expect(y1).toBeGreaterThanOrEqual(Number(startDot.getAttribute('cy')) + 5)
+    expect(y2).toBeGreaterThanOrEqual(Number(endDot.getAttribute('cy')) + 5)
+  })
+
   it('separates overlapping automatic hairpins into lower lanes', async () => {
     const events = [
       createNote({

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { TICKS_PER_QUARTER, measureDurationTicks } from '../../../score-core'
-import { createNewScore } from './new-score'
+import {
+  createNewScore,
+  keySignaturePresets,
+  resolveKeySignaturePreset,
+  resolveKeySignaturePresetId
+} from './new-score'
 
 const commonOptions = {
   title: 'New Work',
@@ -13,6 +18,20 @@ const commonOptions = {
 }
 
 describe('new score setup', () => {
+  it('score-setup.key-signature-presets covers every standard sharp and flat major/minor key', () => {
+    expect(keySignaturePresets).toHaveLength(30)
+    expect(resolveKeySignaturePreset('e-major')).toMatchObject({
+      label: '마장조 (♯ 4개)',
+      value: { fifths: 4, mode: 'major' }
+    })
+    expect(resolveKeySignaturePreset('ab-minor')).toMatchObject({
+      value: { fifths: -7, mode: 'minor' }
+    })
+    expect(resolveKeySignaturePresetId({ fifths: 7, mode: 'major' })).toBe(
+      'c-sharp-major'
+    )
+  })
+
   it('score-setup.create-grand-staff-score creates a piano part with treble and bass staves', () => {
     const score = createNewScore({
       ...commonOptions,

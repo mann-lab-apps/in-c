@@ -2254,6 +2254,145 @@ async function verifyPropertiesDockEditing(window) {
   return captures
 }
 
+async function verifyNotationPaletteWorkspace(window) {
+  await loadFixture(window, 'release-test')
+  const captures = []
+
+  for (const width of [960, 1400]) {
+    await window.webContents.executeJavaScript(`
+      localStorage.removeItem('chromatics.notation-palette-workspace.v1')
+      localStorage.removeItem('chromatics.notation-palette-one-at-a-time.v1')
+      localStorage.removeItem('chromatics.notation-palette-panel-order.v1')
+      localStorage.removeItem('chromatics.notation-palette-recent-items.v1')
+      localStorage.removeItem('chromatics.notation-palette-favorite-items.v1')
+    `)
+    await loadFixture(window, 'release-test')
+    window.setSize(width, 900)
+    await new Promise((resolve) => setTimeout(resolve, 250))
+
+    const result = await window.webContents.executeJavaScript(`
+      (async () => {
+        const wait = () => new Promise((resolve) => setTimeout(resolve, 100))
+        const clickByName = (name) => {
+          const button = [...document.querySelectorAll('button')]
+            .find((candidate) =>
+              candidate.getAttribute('aria-label') === name || candidate.textContent.trim() === name
+            )
+          if (!button) throw new Error('Missing button: ' + name)
+          button.click()
+          return button
+        }
+        const palette = () => document.querySelector('.selection-toolbar[aria-label="표기 객체"]')
+        const region = (name) => document.querySelector('section[aria-label="' + name + '"]')
+        const visible = (element) => {
+          const style = getComputedStyle(element)
+          const box = element.getBoundingClientRect()
+          return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0
+        }
+
+        clickByName('표기 객체')
+        await wait()
+        const toolbar = palette()
+        const lines = region('라인과 범위 기호')
+        const noteSymbols = region('음표 기호 팔레트')
+        if (!toolbar || !lines || !noteSymbols) throw new Error('Notation palette regions are missing')
+
+        const sourceFavorite = [...noteSymbols.querySelectorAll('button')]
+          .find((button) => button.getAttribute('aria-label') === '악센트 즐겨찾기에 추가')
+        if (!sourceFavorite) throw new Error('Source notation favorite control is missing')
+        sourceFavorite.click()
+        await wait()
+        const sourceFavorites = region('즐겨찾는 표기')
+        if (!sourceFavorites) throw new Error('Source notation favorite was not pinned')
+        clickByName('악센트 적용')
+        await wait()
+        const recent = region('최근 사용 표기')
+        const recentAccent = recent && [...recent.querySelectorAll('button')]
+          .find((button) => button.getAttribute('aria-label') === '최근 사용: 악센트 적용')
+        if (!recentAccent) throw new Error('Recent notation palette item is missing')
+        const favorites = region('즐겨찾는 표기')
+        const favoritesAccent = favorites && [...favorites.querySelectorAll('button')]
+          .find((button) => button.getAttribute('aria-label') === '즐겨찾기: 악센트 적용')
+        if (!favoritesAccent) throw new Error('Pinned notation favorite is missing')
+        const recentToolbarOverflow = toolbar.scrollWidth > toolbar.clientWidth + 1
+
+        const oneAtATime = document.querySelector('input[aria-label="한 번에 하나씩 팔레트 보기"]')
+        if (!oneAtATime || oneAtATime.disabled) throw new Error('One-at-a-time workspace control is unavailable')
+        oneAtATime.click()
+        await wait()
+        clickByName('음표 기호 팔레트 펼치기')
+        await wait()
+
+        const moved = clickByName('음표 기호 팔레트 위로 이동')
+        await wait()
+        const search = document.querySelector('input[aria-label="기호 검색"]')
+        if (!search) throw new Error('Palette search is missing')
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(search, '트릴')
+        search.dispatchEvent(new Event('input', { bubbles: true }))
+        await wait()
+
+        const visibleControls = [...toolbar.querySelectorAll('button, input, select')]
+          .filter(visible)
+        const toolbarBox = toolbar.getBoundingClientRect()
+        const horizontalEscape = visibleControls.some((control) => {
+          const box = control.getBoundingClientRect()
+          return box.left < toolbarBox.left - 1 || box.right > toolbarBox.right + 1
+        })
+        const state = {
+          width: window.innerWidth,
+          documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          toolbarOverflow: toolbar.scrollWidth > toolbar.clientWidth + 1,
+          horizontalEscape,
+          noteOrder: noteSymbols.getAttribute('data-palette-order'),
+          linesOrder: lines.getAttribute('data-palette-order'),
+          noteCollapsed: noteSymbols.getAttribute('data-collapsed'),
+          linesVisible: Boolean(region('라인과 범위 기호')),
+          recentVisibleAfterSearch: Boolean(region('최근 사용 표기')),
+          favoritesVisibleAfterSearch: Boolean(region('즐겨찾는 표기')),
+          recentToolbarOverflow,
+          oneAtATimeDisabledDuringSearch: oneAtATime.disabled,
+          moveDisabledDuringSearch: moved.disabled,
+          trillVisible: Boolean(document.querySelector('button[aria-label="트릴 꾸밈음 기호 적용"]')),
+          storedOneAtATime: localStorage.getItem('chromatics.notation-palette-one-at-a-time.v1'),
+          storedOrder: localStorage.getItem('chromatics.notation-palette-panel-order.v1'),
+          storedRecentItems: localStorage.getItem('chromatics.notation-palette-recent-items.v1'),
+          storedFavoriteItems: localStorage.getItem('chromatics.notation-palette-favorite-items.v1')
+        }
+        return state
+      })()
+    `)
+
+    if (
+      result.width !== width ||
+      result.documentOverflow ||
+      result.toolbarOverflow ||
+      result.horizontalEscape ||
+      result.noteOrder !== '0' ||
+      result.linesOrder !== '1' ||
+      result.noteCollapsed !== 'false' ||
+      result.linesVisible ||
+      result.recentVisibleAfterSearch ||
+      result.favoritesVisibleAfterSearch ||
+      result.recentToolbarOverflow ||
+      !result.oneAtATimeDisabledDuringSearch ||
+      !result.moveDisabledDuringSearch ||
+      !result.trillVisible ||
+      result.storedOneAtATime !== 'true' ||
+      result.storedOrder !== '["noteSymbols","lines","measureNotation","repeats"]' ||
+      result.storedRecentItems !== '["articulation:accent"]' ||
+      result.storedFavoriteItems !== '["articulation:accent"]'
+    ) {
+      throw new Error(`Notation palette workspace verification failed: ${JSON.stringify(result)}`)
+    }
+
+    const screenshot = path.join(app.getPath('temp'), `chromatics-v1-notation-palette-${width}.png`)
+    fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+    captures.push({ width, screenshot, ...result })
+  }
+
+  return captures
+}
+
 async function verifyPartViewHeadlessExportState(window) {
   await loadFixture(window)
   window.setSize(1400, 900)
@@ -2804,10 +2943,10 @@ async function verifyGrandStaffPreview(window) {
     result.eventCount !== 6 ||
     result.passiveEventCount !== 3 ||
     result.lowerStaffEventCount !== 3 ||
+    labelTexts.length !== 1 ||
     !labelTexts.includes('Piano') ||
-    !labelTexts.includes('Staff 2') ||
     !staffKeys.includes('part-1:staff-1') ||
-    !staffKeys.includes('part-1:staff-2') ||
+    staffKeys.includes('part-1:staff-2') ||
     result.svgHeight < 250 ||
     result.status !== '새 악보를 만들었습니다.'
   ) {
@@ -2944,7 +3083,7 @@ async function verifyGrandStaffPreview(window) {
       input.blur()
     }
 
-    setInputByLabel('보표 글자', 'lower dolce')
+    setInputByLabel('선택 요약 보표 글자', 'lower dolce')
   `
   )
   await new Promise((resolve) => setTimeout(resolve, 300))
@@ -2968,7 +3107,7 @@ async function verifyGrandStaffPreview(window) {
       select.dispatchEvent(new Event('change', { bubbles: true }))
     }
 
-    setSelectByLabel('셈여림', 'mf')
+    setSelectByLabel('선택 요약 셈여림', 'mf')
   `
   )
   await new Promise((resolve) => setTimeout(resolve, 300))
@@ -3029,15 +3168,28 @@ async function verifyGrandStaffPreview(window) {
 async function verifyKeySignatureControl(window) {
   await loadFixture(window)
 
+  await executeMetadataStep(window, 'open notation toolbar for key signature', `
+    const notationTab = [...document.querySelectorAll('nav[aria-label="편집 도구 카테고리"] button')]
+      .find((button) => button.textContent?.trim() === '표기 객체')
+    if (!notationTab) {
+      throw new Error('Notation toolbar tab not found.')
+    }
+    notationTab.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  await executeMetadataStep(window, 'select key signature target measure', `
+    document
+      .querySelector('.notation-measure[data-measure-id="measure-2"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
   await executeMetadataStep(
     window,
     'change key signature from selected measure',
     `
-    document
-      .querySelector('.notation-measure[data-measure-id="measure-2"]')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-
-    const select = document.querySelector('select[aria-label="조표"]')
+    const select = document.querySelector('select[aria-label="선택 마디부터 조표"]')
 
     if (!select) {
       throw new Error('조표 select not found.')
@@ -3066,7 +3218,7 @@ async function verifyKeySignatureControl(window) {
           ?.getAttribute('data-measure-id')
           ?.match(/^measure-(\\d+)/)?.[1],
         status: statusValues.at(-1),
-        value: document.querySelector('select[aria-label="조표"]')
+        value: document.querySelector('select[aria-label="선택 마디부터 조표"]')
           ?.value
       }
     })()
@@ -3089,6 +3241,16 @@ async function verifyKeySignatureControl(window) {
 async function verifyTimeSignatureControl(window) {
   await loadFixture(window)
 
+  await executeMetadataStep(window, 'open notation toolbar for time signature', `
+    const notationTab = [...document.querySelectorAll('nav[aria-label="편집 도구 카테고리"] button')]
+      .find((button) => button.textContent?.trim() === '표기 객체')
+    if (!notationTab) {
+      throw new Error('Notation toolbar tab not found.')
+    }
+    notationTab.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
   await executeMetadataStep(
     window,
     'select measure for time signature change',
@@ -3104,7 +3266,7 @@ async function verifyTimeSignatureControl(window) {
     window,
     'change time signature for selected measure',
     `
-    const select = document.querySelector('select[aria-label="박자표"]')
+    const select = document.querySelector('select[aria-label="선택 마디 박자표"]')
 
     if (!select) {
       throw new Error('박자표 select not found.')
@@ -3134,7 +3296,7 @@ async function verifyTimeSignatureControl(window) {
           ?.getAttribute('data-measure-id')
           ?.match(/^measure-(\\d+)/)?.[1],
         status: statusValues.at(-1),
-        value: document.querySelector('select[aria-label="박자표"]')
+        value: document.querySelector('select[aria-label="선택 마디 박자표"]')
           ?.value
       }
     })()
@@ -3461,6 +3623,10 @@ app.whenReady().then(async () => {
   const propertiesDockEditing = await runStep('properties dock editing', () =>
     verifyPropertiesDockEditing(window)
   )
+  const notationPaletteWorkspace = await runStep(
+    'notation palette workspace',
+    () => verifyNotationPaletteWorkspace(window)
+  )
   const partViewHeadlessExportState = await runStep(
     'part view headless export state',
     () => verifyPartViewHeadlessExportState(window)
@@ -3539,6 +3705,7 @@ app.whenReady().then(async () => {
         compactToolbarModes,
         commercialHeadlessViewports,
         propertiesDockEditing,
+        notationPaletteWorkspace,
         partViewHeadlessExportState,
         partXmlExportRoundTrip,
         playbackMixerHeadlessState,
