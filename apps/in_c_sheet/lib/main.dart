@@ -33,6 +33,7 @@ import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_backup_diff.dart';
+import 'sheet_library_backup_diff_view.dart';
 import 'sheet_library_controller.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
@@ -2162,6 +2163,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
+          SheetLibraryBackupDetailsView(details: report.details),
         ],
         ..._backupMergeReviewContent(preview.mergeReview),
       ],
@@ -2258,6 +2260,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
+          SheetLibraryBackupDetailsView(details: report.details),
         ],
       ],
     );
@@ -2581,6 +2584,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             const SizedBox(height: 4),
             for (final line in report.reviewLines) Text('• $line'),
           ],
+          SheetLibraryBackupDetailsView(details: report.details),
         ],
         ..._backupMergeReviewContent(preview.mergeReview),
       ],

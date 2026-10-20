@@ -47,6 +47,27 @@ void main() {
     expect(diff.setlistOrderChangedIds, ['setlist-1']);
     expect(diff.settingsChanged, isFalse);
     expect(diff.hasChanges, isTrue);
+    expect(diff.details, hasLength(5));
+    expect(diff.details.map((detail) => detail.title), <String>[
+      'C',
+      'A',
+      'B revised',
+      'Setlist',
+      'Setlist',
+    ]);
+    final changedScore = diff.details.singleWhere(
+      (detail) => detail.id == 'score-b',
+    );
+    expect(changedScore.kind, SheetLibraryBackupDiffItemKind.score);
+    expect(changedScore.change, SheetLibraryBackupDiffChange.changed);
+    expect(changedScore.contextLabel, 'Composer · score');
+    expect(changedScore.reviewLabels, ['제목']);
+    final changedSetlist = diff.details.singleWhere(
+      (detail) => detail.id == 'setlist-1',
+    );
+    expect(changedSetlist.kind, SheetLibraryBackupDiffItemKind.setlist);
+    expect(changedSetlist.contextLabel, '2곡');
+    expect(changedSetlist.reviewLabels, ['곡 순서']);
 
     final report = SheetLibraryBackupDiffReport.fromDiff(diff);
     expect(report.headline, '백업 변경 5종 감지');
@@ -70,6 +91,7 @@ void main() {
       ]),
     );
     expect(report.requiresReview, isTrue);
+    expect(report.details, same(diff.details));
 
     final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);
     expect(mergeReview.risk, SheetLibraryBackupMergeRisk.destructive);
@@ -209,6 +231,18 @@ void main() {
     expect(diff.annotationObjectChangedScoreIds, ['score-a']);
     expect(diff.annotationStorageChangedScoreIds, ['score-c']);
     expect(diff.changedScoreFieldLabels, ['필기 레이어', '필기 저장소']);
+    expect(
+      diff.details.singleWhere((detail) => detail.id == 'score-a').reviewLabels,
+      contains('필기 내용'),
+    );
+    expect(
+      diff.details.singleWhere((detail) => detail.id == 'score-b').reviewLabels,
+      contains('필기 레이어 구성'),
+    );
+    expect(
+      diff.details.singleWhere((detail) => detail.id == 'score-c').reviewLabels,
+      contains('필기 저장 파일'),
+    );
 
     final report = SheetLibraryBackupDiffReport.fromDiff(diff);
     expect(
@@ -277,6 +311,7 @@ void main() {
     expect(report.headline, '변경 없음');
     expect(report.summaryLines, ['두 백업의 악보, 세트리스트, 설정이 같습니다.']);
     expect(report.reviewLines, isEmpty);
+    expect(report.details, isEmpty);
     expect(report.requiresReview, isFalse);
 
     final mergeReview = SheetLibraryBackupMergeReview.fromDiff(diff);

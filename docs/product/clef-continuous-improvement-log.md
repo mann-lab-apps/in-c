@@ -3149,3 +3149,13 @@ existing step report. Its first banner states that no tablet connection or page 
 for released collaboration. Empty, complete and missing-score widget regressions plus the named Help route cover phone,
 landscape and tablet text scales. `dart format`, `flutter analyze`, all 1,791 tests and the RC release check passed. Camera QR
 scan, network transport, latency/reconnect behavior and two-device interoperability remain implementation and Device QA gaps.
+
+S314 VERIFIED LOCAL: made backup restore conflict review specific enough to act on before a destructive replacement. The
+backup diff now retains per-score and per-setlist details for additions, removals and changes, including safe titles,
+composer/source or score-count context, changed metadata fields, original/linked file changes, annotation layer/object/storage
+risks and setlist order changes. Automatic metadata, selected JSON and full ZIP restore previews share a collapsed detail view;
+duplicate titles gain a short internal identifier and large libraries render the first 20 items plus the hidden count. This is
+still a full-backup replacement preview, not field-level merge or continuous cloud sync. Model, compact widget and restore
+dialog regressions cover conflict labels, duplicate disambiguation and bounded lists. `dart format`, `flutter analyze`, all
+1,793 tests and the RC release check passed. Account/provider sync, merge decisions and two-device conflict fixtures remain
+Later work.

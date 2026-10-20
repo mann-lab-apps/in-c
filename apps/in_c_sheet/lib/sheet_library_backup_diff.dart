@@ -4,6 +4,67 @@ import 'sheet_library_backup.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 
+enum SheetLibraryBackupDiffItemKind { score, setlist }
+
+enum SheetLibraryBackupDiffChange { added, removed, changed }
+
+class SheetLibraryBackupDiffDetail {
+  const SheetLibraryBackupDiffDetail({
+    required this.kind,
+    required this.change,
+    required this.id,
+    required this.title,
+    required this.contextLabel,
+    this.fieldLabels = const <String>[],
+    this.fileChanged = false,
+    this.annotationChanged = false,
+    this.annotationLayerChanged = false,
+    this.annotationObjectChanged = false,
+    this.annotationStorageChanged = false,
+    this.setlistOrderChanged = false,
+  });
+
+  final SheetLibraryBackupDiffItemKind kind;
+  final SheetLibraryBackupDiffChange change;
+  final String id;
+  final String title;
+  final String contextLabel;
+  final List<String> fieldLabels;
+  final bool fileChanged;
+  final bool annotationChanged;
+  final bool annotationLayerChanged;
+  final bool annotationObjectChanged;
+  final bool annotationStorageChanged;
+  final bool setlistOrderChanged;
+
+  String get kindLabel => switch (kind) {
+    SheetLibraryBackupDiffItemKind.score => '악보',
+    SheetLibraryBackupDiffItemKind.setlist => '세트리스트',
+  };
+
+  String get changeLabel => switch (change) {
+    SheetLibraryBackupDiffChange.added => '추가',
+    SheetLibraryBackupDiffChange.removed => '삭제',
+    SheetLibraryBackupDiffChange.changed => '수정',
+  };
+
+  List<String> get reviewLabels {
+    final labels = <String>{...fieldLabels};
+    if (fileChanged) labels.add('원본/연결 파일');
+    if (annotationLayerChanged) labels.add('필기 레이어 구성');
+    if (annotationObjectChanged) labels.add('필기 내용');
+    if (annotationStorageChanged) labels.add('필기 저장 파일');
+    if (annotationChanged &&
+        !annotationLayerChanged &&
+        !annotationObjectChanged &&
+        !annotationStorageChanged) {
+      labels.add('필기 데이터');
+    }
+    if (setlistOrderChanged) labels.add('곡 순서');
+    return List<String>.unmodifiable(labels);
+  }
+}
+
 class SheetLibraryBackupDiff {
   const SheetLibraryBackupDiff({
     required this.addedScoreIds,
@@ -21,6 +82,7 @@ class SheetLibraryBackupDiff {
     required this.changedSetlistFieldLabels,
     required this.setlistOrderChangedIds,
     required this.settingsChanged,
+    required this.details,
   });
 
   factory SheetLibraryBackupDiff.compare(
@@ -33,6 +95,7 @@ class SheetLibraryBackupDiff {
       ..retainAll(incomingScores.keys);
 
     final changedScoreIds = <String>[];
+    final changedScoreFields = <String, List<String>>{};
     final changedScoreFieldLabels = <String>{};
     final fileChangedScoreIds = <String>[];
     final annotationChangedScoreIds = <String>[];
@@ -46,9 +109,13 @@ class SheetLibraryBackupDiff {
       final incomingJson = incomingScore.toJson();
       if (!_jsonEqual(baseJson, incomingJson)) {
         changedScoreIds.add(id);
-        changedScoreFieldLabels.addAll(
-          _changedFieldLabels(baseJson, incomingJson, _scoreFieldLabels),
+        final labels = _changedFieldLabels(
+          baseJson,
+          incomingJson,
+          _scoreFieldLabels,
         );
+        changedScoreFields[id] = labels;
+        changedScoreFieldLabels.addAll(labels);
       }
       if (_scoreFileSignature(baseScore) !=
           _scoreFileSignature(incomingScore)) {
@@ -78,6 +145,7 @@ class SheetLibraryBackupDiff {
       ..retainAll(incomingSetlists.keys);
 
     final changedSetlistIds = <String>[];
+    final changedSetlistFields = <String, List<String>>{};
     final changedSetlistFieldLabels = <String>{};
     final setlistOrderChangedIds = <String>[];
     for (final id in sharedSetlistIds) {
@@ -87,19 +155,75 @@ class SheetLibraryBackupDiff {
       final incomingJson = incomingSetlist.toJson();
       if (!_jsonEqual(baseJson, incomingJson)) {
         changedSetlistIds.add(id);
-        changedSetlistFieldLabels.addAll(
-          _changedFieldLabels(baseJson, incomingJson, _setlistFieldLabels),
+        final labels = _changedFieldLabels(
+          baseJson,
+          incomingJson,
+          _setlistFieldLabels,
         );
+        changedSetlistFields[id] = labels;
+        changedSetlistFieldLabels.addAll(labels);
       }
       if (!_stringListsEqual(baseSetlist.scoreIds, incomingSetlist.scoreIds)) {
         setlistOrderChangedIds.add(id);
       }
     }
 
+    final addedScoreIds = _sortedDifference(
+      incomingScores.keys,
+      baseScores.keys,
+    );
+    final removedScoreIds = _sortedDifference(
+      baseScores.keys,
+      incomingScores.keys,
+    );
+    final addedSetlistIds = _sortedDifference(
+      incomingSetlists.keys,
+      baseSetlists.keys,
+    );
+    final removedSetlistIds = _sortedDifference(
+      baseSetlists.keys,
+      incomingSetlists.keys,
+    );
+    final sortedChangedScoreIds = _sorted(changedScoreIds);
+    final sortedChangedSetlistIds = _sorted(changedSetlistIds);
+    final details = <SheetLibraryBackupDiffDetail>[
+      for (final id in addedScoreIds)
+        _scoreDetail(incomingScores[id]!, SheetLibraryBackupDiffChange.added),
+      for (final id in removedScoreIds)
+        _scoreDetail(baseScores[id]!, SheetLibraryBackupDiffChange.removed),
+      for (final id in sortedChangedScoreIds)
+        _scoreDetail(
+          incomingScores[id]!,
+          SheetLibraryBackupDiffChange.changed,
+          fieldLabels: changedScoreFields[id] ?? const <String>[],
+          fileChanged: fileChangedScoreIds.contains(id),
+          annotationChanged: annotationChangedScoreIds.contains(id),
+          annotationLayerChanged: annotationLayerChangedScoreIds.contains(id),
+          annotationObjectChanged: annotationObjectChangedScoreIds.contains(id),
+          annotationStorageChanged: annotationStorageChangedScoreIds.contains(
+            id,
+          ),
+        ),
+      for (final id in addedSetlistIds)
+        _setlistDetail(
+          incomingSetlists[id]!,
+          SheetLibraryBackupDiffChange.added,
+        ),
+      for (final id in removedSetlistIds)
+        _setlistDetail(baseSetlists[id]!, SheetLibraryBackupDiffChange.removed),
+      for (final id in sortedChangedSetlistIds)
+        _setlistDetail(
+          incomingSetlists[id]!,
+          SheetLibraryBackupDiffChange.changed,
+          fieldLabels: changedSetlistFields[id] ?? const <String>[],
+          setlistOrderChanged: setlistOrderChangedIds.contains(id),
+        ),
+    ];
+
     return SheetLibraryBackupDiff(
-      addedScoreIds: _sortedDifference(incomingScores.keys, baseScores.keys),
-      removedScoreIds: _sortedDifference(baseScores.keys, incomingScores.keys),
-      changedScoreIds: _sorted(changedScoreIds),
+      addedScoreIds: addedScoreIds,
+      removedScoreIds: removedScoreIds,
+      changedScoreIds: sortedChangedScoreIds,
       changedScoreFieldLabels: _orderedLabels(
         changedScoreFieldLabels,
         _scoreFieldLabels,
@@ -111,15 +235,9 @@ class SheetLibraryBackupDiff {
       annotationStorageChangedScoreIds: _sorted(
         annotationStorageChangedScoreIds,
       ),
-      addedSetlistIds: _sortedDifference(
-        incomingSetlists.keys,
-        baseSetlists.keys,
-      ),
-      removedSetlistIds: _sortedDifference(
-        baseSetlists.keys,
-        incomingSetlists.keys,
-      ),
-      changedSetlistIds: _sorted(changedSetlistIds),
+      addedSetlistIds: addedSetlistIds,
+      removedSetlistIds: removedSetlistIds,
+      changedSetlistIds: sortedChangedSetlistIds,
       changedSetlistFieldLabels: _orderedLabels(
         changedSetlistFieldLabels,
         _setlistFieldLabels,
@@ -129,6 +247,7 @@ class SheetLibraryBackupDiff {
         _settingsJson(base),
         _settingsJson(incoming),
       ),
+      details: List<SheetLibraryBackupDiffDetail>.unmodifiable(details),
     );
   }
 
@@ -147,6 +266,7 @@ class SheetLibraryBackupDiff {
   final List<String> changedSetlistFieldLabels;
   final List<String> setlistOrderChangedIds;
   final bool settingsChanged;
+  final List<SheetLibraryBackupDiffDetail> details;
 
   bool get hasChanges {
     return addedScoreIds.isNotEmpty ||
@@ -190,6 +310,7 @@ class SheetLibraryBackupDiffReport {
     required this.headline,
     required this.summaryLines,
     required this.reviewLines,
+    required this.details,
   });
 
   factory SheetLibraryBackupDiffReport.fromDiff(SheetLibraryBackupDiff diff) {
@@ -198,6 +319,7 @@ class SheetLibraryBackupDiffReport {
         headline: '변경 없음',
         summaryLines: <String>['두 백업의 악보, 세트리스트, 설정이 같습니다.'],
         reviewLines: <String>[],
+        details: <SheetLibraryBackupDiffDetail>[],
       );
     }
 
@@ -242,12 +364,14 @@ class SheetLibraryBackupDiffReport {
       headline: '백업 변경 ${diff.changedGroupCount}종 감지',
       summaryLines: List<String>.unmodifiable(summaryLines),
       reviewLines: List<String>.unmodifiable(reviewLines),
+      details: diff.details,
     );
   }
 
   final String headline;
   final List<String> summaryLines;
   final List<String> reviewLines;
+  final List<SheetLibraryBackupDiffDetail> details;
 
   bool get requiresReview => reviewLines.isNotEmpty;
 }
@@ -371,6 +495,56 @@ Map<String, SheetSetlist> _setlistsById(List<SheetSetlist> setlists) {
   return <String, SheetSetlist>{
     for (final setlist in setlists) setlist.id: setlist,
   };
+}
+
+SheetLibraryBackupDiffDetail _scoreDetail(
+  SheetScore score,
+  SheetLibraryBackupDiffChange change, {
+  List<String> fieldLabels = const <String>[],
+  bool fileChanged = false,
+  bool annotationChanged = false,
+  bool annotationLayerChanged = false,
+  bool annotationObjectChanged = false,
+  bool annotationStorageChanged = false,
+}) {
+  final composer = score.composer.trim();
+  final sourceName = score.sourceFileDisplayName.trim();
+  final title = score.displayTitle.trim();
+  final contextParts = <String>[
+    if (composer.isNotEmpty) composer,
+    if (sourceName.isNotEmpty && sourceName != title) sourceName,
+  ];
+  return SheetLibraryBackupDiffDetail(
+    kind: SheetLibraryBackupDiffItemKind.score,
+    change: change,
+    id: score.id,
+    title: title.isEmpty ? '제목 없는 악보' : title,
+    contextLabel: contextParts.join(' · '),
+    fieldLabels: fieldLabels,
+    fileChanged: fileChanged,
+    annotationChanged: annotationChanged,
+    annotationLayerChanged: annotationLayerChanged,
+    annotationObjectChanged: annotationObjectChanged,
+    annotationStorageChanged: annotationStorageChanged,
+  );
+}
+
+SheetLibraryBackupDiffDetail _setlistDetail(
+  SheetSetlist setlist,
+  SheetLibraryBackupDiffChange change, {
+  List<String> fieldLabels = const <String>[],
+  bool setlistOrderChanged = false,
+}) {
+  final title = setlist.title.trim();
+  return SheetLibraryBackupDiffDetail(
+    kind: SheetLibraryBackupDiffItemKind.setlist,
+    change: change,
+    id: setlist.id,
+    title: title.isEmpty ? '제목 없는 세트리스트' : title,
+    contextLabel: '${setlist.scoreIds.length}곡',
+    fieldLabels: fieldLabels,
+    setlistOrderChanged: setlistOrderChanged,
+  );
 }
 
 List<String> _sortedDifference(Iterable<String> left, Iterable<String> right) {

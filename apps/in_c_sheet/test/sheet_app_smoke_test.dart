@@ -830,6 +830,10 @@ void main() {
     expect(find.text('자동 정보 복원'), findsOneWidget);
     expect(find.text('백업 변경 1종 감지'), findsOneWidget);
     expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(find.text('변경 항목 자세히 보기 (1)'), findsOneWidget);
+    await tester.tap(find.text('변경 항목 자세히 보기 (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Automatic Backup Score'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -896,6 +900,7 @@ void main() {
     expect(find.text('백업 변경 2종 감지'), findsOneWidget);
     expect(find.text('• 새 악보 1개'), findsOneWidget);
     expect(find.text('• 삭제된 악보 1개'), findsOneWidget);
+    expect(find.text('변경 항목 자세히 보기 (2)'), findsOneWidget);
     expect(find.text('삭제 포함 전체 교체'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
