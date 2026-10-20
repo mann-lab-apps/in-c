@@ -3210,3 +3210,11 @@ format/typecheck, project plist validation, Xcode project resolution, focused li
 compile. Actual Android/iPhone/iPad first-beat latency, 120/180/240 BPM regularity, drift, route changes, Bluetooth and
 concurrent practice-tool behavior remain Device QA; beat scheduling is still driven by Flutter timers rather than an audio
 clock.
+
+S320 VERIFIED LOCAL: traced the iOS package-resolution `Resources/PrivacyInfo.xcprivacy` warning to the locked
+`file_picker_darwin` 1.0.1 SwiftPM resource declaration rather than Clef's Runner privacy metadata. Updated the compatible
+`file_picker` 12.x federated set to 12.3.0 with Darwin 1.2.0 and platform interface 3.4.0; Darwin 1.2.0 carries the upstream
+target-relative resource path fix, while the coordinated Android/Linux/web/Windows implementations avoid the interface
+mismatch exposed by full Flutter compilation. A lockfile regression prevents returning below that compatible baseline, and
+a regenerated Flutter plugin package resolves through `xcodebuild -list` without the warning. This did not build or archive
+iOS, so final bundle privacy-manifest presence remains a release-build inspection rather than a completed claim.

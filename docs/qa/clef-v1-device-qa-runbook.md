@@ -131,12 +131,18 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 실행 위치는 `apps/in_c_sheet`다.
 
 ```sh
+flutter pub get
+xcodebuild -project ios/Runner.xcodeproj -scheme Runner -list
 dart run tool/rc_release_check.dart
 flutter build apk --debug
 flutter build apk
 flutter build appbundle
 flutter build ios --release --no-codesign
 ```
+
+`xcodebuild -list`의 package graph에 `file_picker_darwin 1.2.0` 이상이 표시되고
+`Invalid Resource 'Resources/PrivacyInfo.xcprivacy'` 경고가 없어야 한다. 이 확인은 dependency graph만 검증하며,
+archive 안의 privacy manifest 포함 여부는 실제 iOS release build 산출물에서 별도로 확인한다.
 
 빌드 산출물:
 
