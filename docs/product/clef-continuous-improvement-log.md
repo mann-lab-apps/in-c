@@ -3104,3 +3104,13 @@ keeps the prior source as a linked edited copy. DOCX/RTF remain read-only change
 text and original reference requires a separate transaction. UI/controller regressions cover PDF/text/ChordPro action
 boundaries, text/ChordPro state preservation and cross-format rejection. `dart format`, `flutter analyze`, all 1,773 tests
 and the RC release check passed. Real provider behavior and replacement rendering remain Device QA.
+
+S309 VERIFIED LOCAL: completed the explicit connected-folder refresh boundary for imported DOCX and RTF without adding
+live synchronization. The existing bounded document importer now supplies a new read-only text extract and a new original
+reference as one replacement transaction. Clef refuses a document result without that reference, preserves the score id,
+user metadata, annotations and setlist references, keeps exactly the new source as `Reference` and retains the previous
+extract and original as `Edited copy` files. Save failure asks the store to discard both newly managed files and leaves the
+persisted score unchanged. Widget/controller regressions cover the new named action, DOCX/RTF state preservation, malformed
+importer output, two-file cleanup and cross-format rejection. `dart format`, `flutter analyze`, all 1,777 tests and the RC
+release check passed. Real provider behavior, document re-extraction and restart/backup visibility remain Device QA; this is
+still explicit copy-on-update rather than app-copy-free direct reference or automatic sync.

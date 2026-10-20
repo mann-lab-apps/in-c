@@ -3503,6 +3503,217 @@ Clef & Staff 세트리스트
     );
   }
 
+  for (final fixture in <({String name, String type})>[
+    (name: 'Studio Notes.docx', type: 'docx'),
+    (name: 'Rehearsal Notes.rtf', type: 'rtf'),
+  ]) {
+    test(
+      'replaces a connected-folder ${fixture.type} extract and reference atomically',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime.parse('2026-10-20T10:00:00.000');
+        final directory = await Directory.systemTemp.createTemp(
+          'clef-document-replacement-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final cacheFile = File('${directory.path}/${fixture.name}');
+        await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+        final source = SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: fixture.name,
+          folderLabel: 'Lesson notes',
+          sizeBytes: await cacheFile.length(),
+          modifiedAt: now,
+        )!;
+        final oldReference = SheetLinkedFile(
+          path: '/managed/old-${fixture.name}',
+          type: fixture.type,
+          label: fixture.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now.subtract(const Duration(days: 1)),
+        );
+        final store = _ConnectedFolderPdfReplacementStore(now);
+        await store.saveScores(<SheetScore>[
+          _score(
+            now,
+            title: 'Curated notes',
+            composer: 'Teacher',
+            filePath: '/managed/old-${fixture.name}.txt',
+            linkedFiles: <SheetLinkedFile>[oldReference],
+          ).copyWith(
+            importSource: source,
+            customFields: <SheetCustomMetadataField>[
+              SheetCustomMetadataField(
+                key: '출처 유형',
+                value: fixture.type.toUpperCase(),
+              ),
+              SheetCustomMetadataField(key: '원본 파일', value: fixture.name),
+            ],
+          ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+
+        final didReplace = await controller.replaceScoreFromConnectedFolder(
+          controller.scores.single,
+          SheetSharedImportFile(
+            path: cacheFile.path,
+            name: fixture.name,
+            importSource: source,
+          ),
+        );
+
+        final updated = controller.scores.single;
+        expect(didReplace, isTrue);
+        expect(updated.id, 'score-1');
+        expect(updated.title, 'Curated notes');
+        expect(updated.composer, 'Teacher');
+        expect(updated.filePath, '/managed/revised-${fixture.name}.txt');
+        expect(updated.isExtractedDocumentText, isTrue);
+        expect(updated.linkedFiles, hasLength(3));
+        expect(
+          updated.linkedFiles.first,
+          isA<SheetLinkedFile>()
+              .having(
+                (file) => file.path,
+                'new reference path',
+                '/managed/revised-${fixture.name}',
+              )
+              .having(
+                (file) => file.role,
+                'new reference role',
+                SheetLinkedFile.referenceRole,
+              ),
+        );
+        expect(
+          updated.linkedFiles.skip(1).map((file) => file.role),
+          everyElement(SheetLinkedFile.editedCopyRole),
+        );
+        expect(
+          updated.linkedFiles.skip(1).map((file) => file.path),
+          containsAll(<String>[
+            '/managed/old-${fixture.name}.txt',
+            oldReference.path,
+          ]),
+        );
+      },
+    );
+  }
+
+  test(
+    'rejects a document replacement without a preserved source reference',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-invalid-document-replacement-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final cacheFile = File('${directory.path}/Notes.docx');
+      await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Notes.docx',
+        folderLabel: 'Lesson notes',
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now)
+        ..omitDocumentReference = true;
+      await store.saveScores(<SheetScore>[
+        _score(now, filePath: '/managed/old-notes.txt').copyWith(
+          importSource: source,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          ],
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: cacheFile.path,
+          name: 'Notes.docx',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/managed/old-notes.txt');
+      expect(store.discardedScoreIds, <String>['folder-replacement']);
+      expect(controller.errorMessage, contains('기존 악보는 그대로'));
+    },
+  );
+
+  test(
+    'failed document replacement discards its extract and source reference',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-failed-document-replacement-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final cacheFile = File('${directory.path}/Notes.docx');
+      await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Notes.docx',
+        folderLabel: 'Lesson notes',
+      )!;
+      final oldReference = SheetLinkedFile(
+        path: '/managed/old-Notes.docx',
+        type: 'docx',
+        label: 'Notes.docx',
+        role: SheetLinkedFile.referenceRole,
+        createdAt: now.subtract(const Duration(days: 1)),
+      );
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          filePath: '/managed/old-Notes.docx.txt',
+          linkedFiles: <SheetLinkedFile>[oldReference],
+        ).copyWith(
+          importSource: source,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          ],
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSave = true;
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: cacheFile.path,
+          name: 'Notes.docx',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/managed/old-Notes.docx.txt');
+      expect(
+        controller.scores.single.linkedFiles.single.path,
+        oldReference.path,
+      );
+      expect(store.discardedScores, hasLength(1));
+      expect(
+        <String>[
+          store.discardedScores.single.filePath,
+          ...store.discardedScores.single.linkedFiles.map((file) => file.path),
+        ],
+        containsAll(<String>[
+          '/managed/revised-Notes.docx.txt',
+          '/managed/revised-Notes.docx',
+        ]),
+      );
+    },
+  );
+
   test(
     'rejects a connected-folder replacement with a different format',
     () async {
@@ -7089,8 +7300,10 @@ class _ConnectedFolderPdfReplacementStore extends SheetLibraryStore {
 
   final DateTime now;
   final discardedScoreIds = <String>[];
+  final discardedScores = <SheetScore>[];
   final importedNames = <String>[];
   bool failSave = false;
+  bool omitDocumentReference = false;
 
   @override
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
@@ -7132,11 +7345,55 @@ class _ConnectedFolderPdfReplacementStore extends SheetLibraryStore {
   }
 
   @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) {
+    return _importDocument(file, type: 'docx', importedAt: importedAt);
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) {
+    return _importDocument(file, type: 'rtf', importedAt: importedAt);
+  }
+
+  Future<SheetScore> _importDocument(
+    SheetImportedFile file, {
+    required String type,
+    DateTime? importedAt,
+  }) async {
+    importedNames.add(file.name);
+    final createdAt = importedAt ?? now;
+    return _score(
+      createdAt,
+      id: 'folder-replacement',
+      title: file.name,
+      filePath: '/managed/revised-${file.name}.txt',
+      linkedFiles: omitDocumentReference
+          ? const <SheetLinkedFile>[]
+          : <SheetLinkedFile>[
+              SheetLinkedFile(
+                path: '/managed/revised-${file.name}',
+                type: type,
+                label: file.name,
+                role: SheetLinkedFile.referenceRole,
+                createdAt: createdAt,
+              ),
+            ],
+    );
+  }
+
+  @override
   Future<int> discardUnreferencedImportedScoreFiles(
     Iterable<SheetScore> candidates,
   ) async {
-    discardedScoreIds.addAll(candidates.map((score) => score.id));
-    return candidates.length;
+    final scores = candidates.toList(growable: false);
+    discardedScores.addAll(scores);
+    discardedScoreIds.addAll(scores.map((score) => score.id));
+    return scores.length;
   }
 
   @override

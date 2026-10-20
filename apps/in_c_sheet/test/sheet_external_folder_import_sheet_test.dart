@@ -259,7 +259,7 @@ void main() {
     expect(result?.connection, same(connection));
   });
 
-  testWidgets('source replacement is offered only for safe source formats', (
+  testWidgets('source replacement covers supported connected-folder formats', (
     tester,
   ) async {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
@@ -306,7 +306,7 @@ void main() {
       ),
     );
 
-    expect(find.text('변경 원본 적용'), findsOneWidget);
+    expect(find.text('변경 원본 적용'), findsNWidgets(2));
     expect(find.text('변경 PDF 적용'), findsNothing);
     expect(find.text('기존 악보 열기'), findsNWidgets(2));
   });

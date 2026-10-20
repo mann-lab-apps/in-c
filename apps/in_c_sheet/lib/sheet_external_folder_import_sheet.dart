@@ -248,6 +248,12 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                                 ) ||
                                 SheetFileImportPolicy.isChordProFileName(
                                   candidate.entry.displayName,
+                                ) ||
+                                SheetFileImportPolicy.isDocxFileName(
+                                  candidate.entry.displayName,
+                                ) ||
+                                SheetFileImportPolicy.isRtfFileName(
+                                  candidate.entry.displayName,
                                 );
                             return ListTile(
                               leading: Icon(

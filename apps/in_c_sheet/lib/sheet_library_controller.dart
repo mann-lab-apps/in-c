@@ -1570,23 +1570,39 @@ class SheetLibraryController extends ChangeNotifier {
         return false;
       }
 
+      final replacementType = _connectedFolderScoreType(replacement.name)!;
+      if (_isExtractedDocumentType(replacementType) &&
+          !_hasDocumentReference(imported, replacementType)) {
+        throw StateError('Imported document is missing its source reference.');
+      }
       final previousSource = SheetLinkedFile(
         path: latest.filePath,
-        type:
-            _connectedFolderScoreType(latest.importSource?.displayName) ??
-            _connectedFolderScoreType(latest.filePath) ??
-            'file',
+        type: _isExtractedDocumentType(replacementType)
+            ? 'text'
+            : replacementType,
         label: latest.displayTitle,
         role: SheetLinkedFile.editedCopyRole,
         createdAt: DateTime.now(),
       );
       final nextLinkedFiles = <SheetLinkedFile>[
+        ...imported.linkedFiles,
         previousSource,
-        ...latest.linkedFiles.where(
-          (file) =>
-              file.path != previousSource.path &&
-              file.path != imported!.filePath,
-        ),
+        ...latest.linkedFiles
+            .where(
+              (file) =>
+                  file.path != previousSource.path &&
+                  file.path != imported!.filePath &&
+                  !imported.linkedFiles.any(
+                    (importedFile) => importedFile.path == file.path,
+                  ),
+            )
+            .map(
+              (file) =>
+                  _isExtractedDocumentType(replacementType) &&
+                      _isDocumentReference(file, replacementType)
+                  ? file.copyWith(role: SheetLinkedFile.editedCopyRole)
+                  : file,
+            ),
       ];
       await _replace(
         latest.copyWith(
@@ -1627,10 +1643,19 @@ class SheetLibraryController extends ChangeNotifier {
     final fallbackExistingType =
         existingType ?? _connectedFolderScoreType(score.filePath);
     final replacementType = _connectedFolderScoreType(replacementName);
-    return replacementType != null &&
-        replacementType == fallbackExistingType &&
-        replacementType != 'docx' &&
-        replacementType != 'rtf';
+    return replacementType != null && replacementType == fallbackExistingType;
+  }
+
+  bool _isExtractedDocumentType(String type) => type == 'docx' || type == 'rtf';
+
+  bool _hasDocumentReference(SheetScore score, String type) {
+    return score.linkedFiles.any((file) => _isDocumentReference(file, type));
+  }
+
+  bool _isDocumentReference(SheetLinkedFile file, String type) {
+    return file.role == SheetLinkedFile.referenceRole &&
+        (_connectedFolderScoreType(file.path) == type ||
+            file.type.trim().toLowerCase() == type);
   }
 
   String? _connectedFolderScoreType(String? fileName) {

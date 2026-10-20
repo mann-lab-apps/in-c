@@ -80,10 +80,10 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   다시 고르는 수고만 줄이며 score path, metadata, backup 또는 자동 동기화 대상으로 승격하지 않는다.
 - 다시 연 폴더의 파일명과 저장된 provenance가 맞고 크기 또는 수정 시각이 달라지면 `원본 변경`으로
   표시한다. 변경 파일은 일반 복사 선택이나 자동 덮어쓰기 대상이 아니며 `기존 악보 열기`로 앱 내부 사본을
-  먼저 확인하게 한다. PDF/plain text/ChordPro는 사용자가 확인 dialog를 승인하고 기존 형식 parser를
-  통과한 경우에만 새 관리 사본을 적용하고, score ID와 metadata/필기/세트리스트 참조를 유지한 채 이전
-  파일을 linked edited copy로 남긴다. 이 흐름도 live reference나 sync 완료를 뜻하지 않으며, DOCX/RTF
-  형식 변경 적용은 추출본과 원본 reference를 함께 다뤄야 하므로 후속이다.
+  먼저 확인하게 한다. PDF/plain text/ChordPro/DOCX/RTF는 사용자가 확인 dialog를 승인하고 기존 형식
+  parser를 통과한 경우에만 새 관리 사본을 적용하고, score ID와 metadata/필기/세트리스트 참조를 유지한 채
+  이전 파일을 linked edited copy로 남긴다. DOCX/RTF는 새 추출본과 원본 reference가 모두 있어야 교체한다.
+  이 흐름도 live reference나 sync 완료를 뜻하지 않는다.
 - provider가 persistable permission을 주지 않으면 기존 가져오기를 막지 않고 그 선택에서만 읽은 뒤 내부
   사본을 만든다.
 - 사용자-facing copy:
@@ -101,8 +101,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   - 선택 파일만 기존 import pipeline으로 복사.
   - 복사 결과 이름이 선택 원본과 일치할 때 원본 folder/provider/file hint를 읽기 전용 score provenance로 저장.
   - 같은 연결 폴더 재확인 시 provenance의 크기/수정 시각과 달라진 원본을 선택 불가 경고로 표시.
-  - 변경된 PDF/plain text/ChordPro를 사용자가 명시적으로 승인하면 같은 형식의 새 앱 내부 사본으로
-    적용하고 이전 파일을 연결 파일로 보존.
+  - 변경된 PDF/plain text/ChordPro/DOCX/RTF를 사용자가 명시적으로 승인하면 같은 형식의 새 앱 내부
+    사본으로 적용하고 이전 파일을 연결 파일로 보존. DOCX/RTF는 추출본과 원본 reference를 함께 교체.
   - 권한 취소/빈 폴더/읽기 실패 안내.
 - 금지:
   - 앱 내부 사본 없이 PDF를 여는 direct score.
