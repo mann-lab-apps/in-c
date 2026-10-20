@@ -153,6 +153,8 @@ const LYRIC_EDITOR_BASELINE_OFFSET = 22
 const MAX_AUTO_VOLTA_VISIBLE_MEASURES = 3
 
 interface CursorPoint {
+  articulationAboveClearance?: number
+  articulationBelowClearance?: number
   measureId?: string
   x: number
   y: number
@@ -879,7 +881,8 @@ export function NotationPreview({
             measureId: measure.id,
             x: eventX,
             y: placement.y,
-            ...resolveSlurAnchorMetrics(note)
+            ...resolveSlurAnchorMetrics(note),
+            ...resolveSlurAttachmentClearance(event, note, placement.y)
           })
           firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
@@ -1874,7 +1877,8 @@ function drawPassiveStaffMeasure(
         measureId: measure.id,
         x: eventX,
         y,
-        ...resolveSlurAnchorMetrics(note)
+        ...resolveSlurAnchorMetrics(note),
+        ...resolveSlurAttachmentClearance(event, note, y)
       })
       firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
@@ -2754,8 +2758,8 @@ function drawSlurSegments(
     const x2 = isLast
       ? Math.max(x1 + 28, resolveSlurEndpointX(end, side, 'end'))
       : resolveSlurContinuationEndX(bounds, x1)
-    const startY = resolveSlurEndpointY(start, side)
-    const endY = resolveSlurEndpointY(end, side)
+    const startY = resolveSlurEndpointY(start, side, !geometry)
+    const endY = resolveSlurEndpointY(end, side, !geometry)
     const continuationY = resolveSlurContinuationY(bounds, side)
     const y1 = isFirst ? startY : isLast ? endY : continuationY
     const y2 = isLast ? endY : isFirst ? startY : continuationY
@@ -2897,13 +2901,20 @@ function resolveSlurContinuationEndX(bounds: SystemBounds, x1: number): number {
 
 function resolveSlurEndpointY(
   point: CursorPoint,
-  side: 'above' | 'below'
+  side: 'above' | 'below',
+  clearAttachments: boolean
 ): number {
   if (side === 'above') {
-    return (point.noteHeadTopY ?? point.y) - 10
+    return (point.noteHeadTopY ?? point.y) - Math.max(
+      10,
+      clearAttachments ? (point.articulationAboveClearance ?? 0) : 0
+    )
   }
 
-  return (point.noteHeadBottomY ?? point.y + 40) + 10
+  return (point.noteHeadBottomY ?? point.y + 40) + Math.max(
+    10,
+    clearAttachments ? (point.articulationBelowClearance ?? 0) : 0
+  )
 }
 
 function resolveSlurContinuationY(
@@ -2977,6 +2988,38 @@ function resolveArticulationPlacement(
     noteheadY,
     y: placeAbove ? noteheadY - offset : noteheadY + offset
   }
+}
+
+function resolveSlurAttachmentClearance(
+  event: VoiceEvent | undefined,
+  note: StaveNote,
+  staffY: number
+): Pick<CursorPoint, 'articulationAboveClearance' | 'articulationBelowClearance'> {
+  if (event?.type !== 'note' || !event.articulations?.length) {
+    return {}
+  }
+
+  let articulationAboveClearance: number | undefined
+  let articulationBelowClearance: number | undefined
+
+  event.articulations.forEach((_, index) => {
+    const placement = resolveArticulationPlacement(note, staffY, index)
+    const clearance = Math.abs(placement.y - placement.noteheadY) + 5
+
+    if (placement.y < placement.noteheadY) {
+      articulationAboveClearance = Math.max(
+        articulationAboveClearance ?? 0,
+        clearance
+      )
+    } else {
+      articulationBelowClearance = Math.max(
+        articulationBelowClearance ?? 0,
+        clearance
+      )
+    }
+  })
+
+  return { articulationAboveClearance, articulationBelowClearance }
 }
 
 function resolveNoteheadYs(note: StaveNote, staffY: number): number[] {

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Score } from '../../../score-core'
+import type { Score, VoiceAddress } from '../../../score-core'
 import {
   beatDeltaToSeconds,
   createPlaybackTimeline,
   elapsedSecondsToBeat,
   findPlaybackEvent,
+  findPlaybackEventStartBeat,
   tempoMarkingToQuarterBpm,
   type PlaybackTimeline,
   type PlaybackEvent
@@ -251,6 +252,22 @@ export function useScorePlayback(
     void startFromBeat(startBeatRef.current, tempoRef.current)
   }, [startFromBeat])
 
+  const playFromEvent = useCallback(
+    (eventId: string, address?: VoiceAddress) => {
+      const eventStartBeat = findPlaybackEventStartBeat(
+        timelineRef.current,
+        eventId,
+        address
+      )
+
+      void startFromBeat(
+        eventStartBeat ?? startBeatRef.current,
+        tempoRef.current
+      )
+    },
+    [startFromBeat]
+  )
+
   const pause = useCallback(() => {
     if (statusRef.current !== 'playing') {
       return
@@ -351,6 +368,7 @@ export function useScorePlayback(
     activeEvent,
     activeEventId: activeEvent?.eventId,
     play,
+    playFromEvent,
     pause,
     stop,
     jumpToStart

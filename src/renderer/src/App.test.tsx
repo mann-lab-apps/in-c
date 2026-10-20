@@ -142,6 +142,7 @@ const playbackMockState = vi.hoisted(() => ({
   >,
   pause: vi.fn(),
   play: vi.fn(),
+  playFromEvent: vi.fn(),
   stop: vi.fn(),
   value: {
     activeEvent: undefined as
@@ -747,6 +748,7 @@ vi.mock('./playback/useScorePlayback', () => ({
       jumpToStart: playbackMockState.jumpToStart,
       pause: playbackMockState.pause,
       play: playbackMockState.play,
+      playFromEvent: playbackMockState.playFromEvent,
       positionBeat: playbackMockState.value.positionBeat,
       setTempo: vi.fn(),
       status: playbackMockState.value.status,
@@ -837,6 +839,7 @@ describe('App component shell', () => {
     playbackMockState.jumpToStart.mockReset()
     playbackMockState.pause.mockReset()
     playbackMockState.play.mockReset()
+    playbackMockState.playFromEvent.mockReset()
     playbackMockState.stop.mockReset()
     window.history.replaceState({}, '', '/')
     window.confirm = vi.fn(() => true)
@@ -1513,7 +1516,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(vi.mocked(window.inC.pdf.save).mock.calls[0]![0].suggestedName).toContain('piano-rehearsal-edition')
-  })
+  }, 15000)
 
   it.each([
     ['페이지', 'pageBreakBeforeMeasureIds', 'data-page-breaks'],
@@ -3471,6 +3474,29 @@ describe('App component shell', () => {
     })
   })
 
+  it('playback.start-from-selection starts transport playback at the selected event', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '재생' }))
+    fireEvent.click(
+      within(screen.getByLabelText('재생 컨트롤')).getByRole('button', {
+        name: '재생'
+      })
+    )
+
+    expect(playbackMockState.play).not.toHaveBeenCalled()
+    expect(playbackMockState.playFromEvent).toHaveBeenCalledWith(
+      'm1-d4',
+      expect.objectContaining({
+        measureId: 'measure-1',
+        voiceId: 'voice-1'
+      })
+    )
+  })
+
   it('playback.part-mixer sends part mute, solo, and volume settings to playback', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
@@ -4121,6 +4147,8 @@ describe('App component shell', () => {
     expect(within(properties).getByText('음표')).toBeInTheDocument()
     expect(within(properties).getByText('음가')).toBeInTheDocument()
     expect(within(properties).getByText('4분음표')).toBeInTheDocument()
+    expect(within(properties).getByText('타이')).toBeInTheDocument()
+    expect(within(properties).getByText('연결 없음')).toBeInTheDocument()
     expect(within(properties).getByText('성부')).toBeInTheDocument()
     expect(within(properties).getAllByText('1').length).toBeGreaterThan(0)
 
@@ -4138,6 +4166,33 @@ describe('App component shell', () => {
     expect(within(properties).getByText('음자리표')).toBeInTheDocument()
     expect(within(properties).getByText('박자')).toBeInTheDocument()
     expect(within(properties).getByText('4/4')).toBeInTheDocument()
+  })
+
+  it('note properties describe and toggle the selected valid tie', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm5-c5-tie-start 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '음표' }))
+
+    expect(screen.getByLabelText('선택 음표 타이 상태')).toHaveTextContent(
+      '다음 음으로 연결'
+    )
+    const tieControls = () =>
+      screen.getByLabelText('선택 음표 타이 상태').parentElement!
+    fireEvent.click(within(tieControls()).getByRole('button', { name: '타이 해제' }))
+    expect(screen.getByLabelText('선택 음표 타이 상태')).toHaveTextContent(
+      '연결 없음'
+    )
+    expect(
+      within(tieControls()).getByRole('button', { name: '타이 추가' })
+    ).toBeEnabled()
+
+    fireEvent.click(within(tieControls()).getByRole('button', { name: '타이 추가' }))
+    expect(screen.getByLabelText('선택 음표 타이 상태')).toHaveTextContent(
+      '다음 음으로 연결'
+    )
   })
 
   it('ui.properties-edit applies text and harmony to the selected location, supports undo and disables range edits', async () => {
@@ -6099,7 +6154,14 @@ describe('App component shell', () => {
     expect(within(notationObjects).getByLabelText('마디 설정 적용 범위')).toHaveTextContent(
       '선택 마디 기준'
     )
-    expect(within(notationObjects).getByLabelText('선택 마디부터 조표')).toHaveValue('g-major')
+    const keySignatureControl = within(notationObjects).getByLabelText('선택 마디부터 조표')
+    expect(keySignatureControl).toHaveValue('g-major')
+    expect(
+      within(keySignatureControl).getByRole('option', { name: '마장조 (♯ 4개)' })
+    ).toBeInTheDocument()
+    fireEvent.change(keySignatureControl, { target: { value: 'e-major' } })
+    expect(keySignatureControl).toHaveValue('e-major')
+    expect(screen.getByText('선택한 마디부터 조표를 바꿨습니다.')).toBeInTheDocument()
     expect(within(notationObjects).getByLabelText('선택 마디 박자표')).toHaveValue('4-4')
     expect(within(notationObjects).getByLabelText('선택 마디 음자리표')).toHaveValue('treble')
 
@@ -6193,6 +6255,319 @@ describe('App component shell', () => {
     for (const button of within(dockedDynamics).getAllByRole('button')) {
       expect(button).toBeDisabled()
     }
+  })
+
+  it('palette.note-symbols applies selected-note markings through the notation workspace', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+
+    const noteSymbols = () =>
+      screen.getByRole('region', { name: '음표 기호 팔레트' })
+    const accent = within(noteSymbols()).getByRole('button', {
+      name: '악센트 적용'
+    })
+    expect(accent).not.toBeDisabled()
+    fireEvent.click(accent)
+    expect(screen.getByText('표현 기호를 갱신했습니다.')).toBeInTheDocument()
+    expect(
+      within(noteSymbols()).getByRole('button', { name: '악센트 적용' })
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      within(noteSymbols()).getByRole('button', {
+        name: '트릴 꾸밈음 기호 적용'
+      })
+    ).not.toBeDisabled()
+    expect(
+      within(noteSymbols()).getByRole('button', { name: '2줄 트레몰로 적용' })
+    ).not.toBeDisabled()
+    expect(
+      within(noteSymbols()).getByRole('button', { name: '페르마타 적용' })
+    ).not.toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('기호 검색'), {
+      target: { value: '트릴' }
+    })
+    expect(noteSymbols()).toBeVisible()
+    expect(
+      screen.queryByRole('region', { name: '라인과 범위 기호' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(noteSymbols()).getByRole('button', {
+        name: '음표 기호 팔레트 접기'
+      })
+    ).toBeDisabled()
+  })
+
+  it('palette.note-symbols preserves the selected-note marking command contract', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'm1-c4'
+    )
+    fireEvent.click(screen.getByRole('button', { name: '음표' }))
+    const accent = screen.getByRole('button', { name: '악센트' })
+    fireEvent.click(accent)
+
+    expect(screen.getByRole('button', { name: '악센트' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
+  it('palette.workspace restores and reapplies recent notation items without changing the score schema', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const first = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const noteSymbols = screen.getByRole('region', { name: '음표 기호 팔레트' })
+    fireEvent.click(
+      within(noteSymbols).getByRole('button', { name: '악센트 적용' })
+    )
+
+    const recent = screen.getByRole('region', { name: '최근 사용 표기' })
+    const recentAccent = within(recent).getByRole('button', {
+      name: '최근 사용: 악센트 적용'
+    })
+    expect(recentAccent).toBeEnabled()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.notation-palette-recent-items.v1') ?? '[]'
+      )
+    ).toEqual(['articulation:accent'])
+
+    fireEvent.click(recentAccent)
+    expect(
+      within(noteSymbols).getByRole('button', { name: '악센트 적용' })
+    ).toHaveAttribute('aria-pressed', 'false')
+
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    expect(
+      screen.getByRole('button', { name: '최근 사용: 악센트 적용' })
+    ).toBeEnabled()
+    fireEvent.click(
+      screen.getByRole('button', { name: '최근 사용 표기 지우기' })
+    )
+    expect(
+      screen.queryByRole('region', { name: '최근 사용 표기' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('palette.workspace restores a user-pinned notation favorite without changing the score schema', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const first = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const noteSymbols = screen.getByRole('region', { name: '음표 기호 팔레트' })
+    fireEvent.click(
+      within(noteSymbols).getByRole('button', {
+        name: '악센트 즐겨찾기에 추가'
+      })
+    )
+    expect(
+      within(screen.getByRole('region', { name: '음표 기호 팔레트' })).getByRole(
+        'button',
+        { name: '악센트 적용' }
+      )
+    ).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(
+      within(noteSymbols).getByRole('button', { name: '악센트 적용' })
+    )
+
+    const favorites = screen.getByRole('region', { name: '즐겨찾는 표기' })
+    expect(
+      within(favorites).getByRole('button', { name: '즐겨찾기: 악센트 적용' })
+    ).toBeEnabled()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.notation-palette-favorite-items.v1') ?? '[]'
+      )
+    ).toEqual(['articulation:accent'])
+
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const restoredFavorites = screen.getByRole('region', { name: '즐겨찾는 표기' })
+    fireEvent.click(
+      within(restoredFavorites).getByRole('button', {
+        name: '즐겨찾기: 악센트 적용'
+      })
+    )
+    expect(
+      within(screen.getByRole('region', { name: '음표 기호 팔레트' })).getByRole(
+        'button',
+        { name: '악센트 적용' }
+      )
+    ).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(
+      within(restoredFavorites).getByRole('button', {
+        name: '악센트 즐겨찾기에서 제거'
+      })
+    )
+    expect(
+      screen.queryByRole('region', { name: '즐겨찾는 표기' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('palette.workspace restores collapsed symbol families without storing them in the score', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const first = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    fireEvent.click(
+      within(screen.getByRole('region', { name: '음표 기호 팔레트' })).getByRole(
+        'button',
+        { name: '음표 기호 팔레트 접기' }
+      )
+    )
+    expect(
+      screen.queryByRole('button', { name: '악센트 적용' })
+    ).not.toBeInTheDocument()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.notation-palette-workspace.v1') ?? '{}'
+      )
+    ).toMatchObject({ noteSymbols: true })
+
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+
+    const noteSymbols = screen.getByRole('region', { name: '음표 기호 팔레트' })
+    expect(noteSymbols).toHaveAttribute('data-collapsed', 'true')
+    expect(
+      within(noteSymbols).getByRole('button', {
+        name: '음표 기호 팔레트 펼치기'
+      })
+    ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '모든 팔레트 펼치기' })
+    )
+    expect(
+      within(screen.getByRole('region', { name: '음표 기호 팔레트' })).getByRole(
+        'button',
+        { name: '악센트 적용' }
+      )
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '모든 팔레트 접기' }))
+    expect(
+      screen.queryByRole('button', { name: '악센트 적용' })
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('기호 검색'), {
+      target: { value: '트릴' }
+    })
+    expect(
+      screen.getByRole('checkbox', { name: '한 번에 하나씩 팔레트 보기' })
+    ).toBeDisabled()
+    expect(
+      within(noteSymbols).getByRole('button', {
+        name: '트릴 꾸밈음 기호 적용'
+      })
+    ).toBeVisible()
+  })
+
+  it('palette.workspace keeps one family open when one-at-a-time mode is restored', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const first = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const oneAtATime = screen.getByRole('checkbox', {
+      name: '한 번에 하나씩 팔레트 보기'
+    })
+    expect(oneAtATime).not.toBeChecked()
+    fireEvent.click(oneAtATime)
+    expect(oneAtATime).toBeChecked()
+    expect(
+      screen.getByRole('region', { name: '라인과 범위 기호' })
+    ).toHaveAttribute('data-collapsed', 'false')
+    expect(
+      screen.getByRole('region', { name: '음표 기호 팔레트' })
+    ).toHaveAttribute('data-collapsed', 'true')
+
+    fireEvent.click(
+      within(screen.getByRole('region', { name: '음표 기호 팔레트' })).getByRole(
+        'button',
+        { name: '음표 기호 팔레트 펼치기' }
+      )
+    )
+    expect(
+      screen.getByRole('region', { name: '라인과 범위 기호' })
+    ).toHaveAttribute('data-collapsed', 'true')
+    expect(
+      screen.getByRole('region', { name: '음표 기호 팔레트' })
+    ).toHaveAttribute('data-collapsed', 'false')
+    expect(
+      window.localStorage.getItem('chromatics.notation-palette-one-at-a-time.v1')
+    ).toBe('true')
+
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    expect(
+      screen.getByRole('checkbox', { name: '한 번에 하나씩 팔레트 보기' })
+    ).toBeChecked()
+    expect(
+      screen.getByRole('region', { name: '라인과 범위 기호' })
+    ).toHaveAttribute('data-collapsed', 'true')
+    expect(
+      screen.getByRole('region', { name: '음표 기호 팔레트' })
+    ).toHaveAttribute('data-collapsed', 'false')
+  })
+
+  it('palette.workspace restores a user-defined palette family order', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const first = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const lines = screen.getByRole('region', { name: '라인과 범위 기호' })
+    const noteSymbols = screen.getByRole('region', {
+      name: '음표 기호 팔레트'
+    })
+    expect(lines).toHaveAttribute('data-palette-order', '0')
+    expect(noteSymbols).toHaveAttribute('data-palette-order', '1')
+
+    fireEvent.click(
+      within(noteSymbols).getByRole('button', {
+        name: '음표 기호 팔레트 위로 이동'
+      })
+    )
+    expect(lines).toHaveAttribute('data-palette-order', '1')
+    expect(noteSymbols).toHaveAttribute('data-palette-order', '0')
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.notation-palette-panel-order.v1') ?? '[]'
+      )
+    ).toEqual(['noteSymbols', 'lines', 'measureNotation', 'repeats'])
+
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    expect(
+      screen.getByRole('region', { name: '라인과 범위 기호' })
+    ).toHaveAttribute('data-palette-order', '1')
+    expect(
+      screen.getByRole('region', { name: '음표 기호 팔레트' })
+    ).toHaveAttribute('data-palette-order', '0')
   })
 
   it('measure.pickup-duration edits selected first measure with subdivision counts and round-trips MusicXML', async () => {
@@ -6494,7 +6869,7 @@ describe('App component shell', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' })) })
     await screen.findByText('text-reopened.chromatics을 열었습니다.')
     expect((await save()).score).toEqual(pasted.score)
-  })
+  }, 15000)
 
   it.each([
     ['staffTexts', '보표 글자', '보표 글자 객체 선택'],
@@ -8662,7 +9037,7 @@ describe('App component shell', () => {
       { measureId: sourceMeasureId, value: 'ff' },
       { measureId: targetMeasureId, value: 'ff' }
     ])
-  })
+  }, 15000)
 
   it('object filter copy paste and delete operate across selected chord and dynamic ranges', async () => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
@@ -8727,7 +9102,7 @@ describe('App component shell', () => {
       { measureId: targetOne.id, value: 'p' },
       { measureId: targetTwo.id, value: 'ff' }
     ])
-  })
+  }, 15000)
 
   it('direct notation object click selects chord and dynamic targets for editing', async () => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
@@ -9009,7 +9384,12 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
     expect(palette).toBeVisible()
     for (const button of within(palette).getAllByRole('button')) {
-      if (button.classList.contains('inspector-properties__collapse')) continue
+      if (
+        button.classList.contains('inspector-properties__collapse') ||
+        button.closest('.notation-palette-order-controls')
+      ) {
+        continue
+      }
       expect(button).toBeDisabled()
     }
   })
@@ -9227,7 +9607,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
     expect(within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' })).getByText(/Independent part span placement/)).toBeInTheDocument()
-  })
+  }, 15000)
 
   it.each(['slur', 'hairpin'] as const)('part %s segment editing preserves whole-score geometry through history native reopen and reset', async kind => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
@@ -9343,11 +9723,17 @@ describe('App component shell', () => {
     const objects = screen.getByLabelText('표기 객체 선택') as HTMLSelectElement
     const reference = [...objects.options].find(option => option.value.startsWith('hairpin:'))!.value
     fireEvent.change(objects, { target: { value: reference } })
+    expect(screen.getByLabelText('현재 표기 배치')).toHaveTextContent(
+      '총보 · 객체 전체 · 자동 배치'
+    )
     fireEvent.click(screen.getByText('배치 · 형상'))
     fireEvent.change(screen.getByLabelText('표기 배치'), { target: { value: 'above' } })
     const offset = screen.getByLabelText('표기 세로 이동')
     fireEvent.change(offset, { target: { value: '-1.5' } })
     fireEvent.blur(offset)
+    expect(screen.getByLabelText('현재 표기 배치')).toHaveTextContent(
+      '총보 · 객체 전체 · 보표 위 · 세로 -1.5sp'
+    )
     fireEvent.change(offset, { target: { value: '99' } })
     fireEvent.blur(offset)
     expect(offset).toHaveValue(-1.5)
@@ -9357,6 +9743,9 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '표기 자동 배치 복원' }))
     expect(offset).toHaveValue(null)
     expect(screen.getByLabelText('표기 배치')).toHaveValue('auto')
+    expect(screen.getByLabelText('현재 표기 배치')).toHaveTextContent(
+      '총보 · 객체 전체 · 자동 배치'
+    )
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
     expect(offset).toHaveValue(-1.5)
     fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })

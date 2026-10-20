@@ -49,6 +49,7 @@ import {
   Search,
   SkipBack,
   Square,
+  Star,
   Unlink2
 } from 'lucide-react'
 
@@ -738,8 +739,55 @@ const ornamentOptions = [
   ['mordent', 'mord.'],
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
+const ornamentPaletteLabels: Record<Ornament, string> = {
+  trill: '트릴',
+  mordent: '모르덴트',
+  turn: '턴'
+}
+const notationPaletteRecentItemDefinitions = {
+  'articulation:staccato': { label: '스타카토', symbol: '•' },
+  'articulation:accent': { label: '악센트', symbol: '>' },
+  'articulation:tenuto': { label: '테누토', symbol: '−' },
+  'articulation:marcato': { label: '마르카토', symbol: '^' },
+  'ornament:trill': { label: '트릴', symbol: 'tr' },
+  'ornament:mordent': { label: '모르덴트', symbol: 'mord.' },
+  'ornament:turn': { label: '턴', symbol: 'turn' },
+  'tremolo:1': { label: '1줄 트레몰로', symbol: '1줄' },
+  'tremolo:2': { label: '2줄 트레몰로', symbol: '2줄' },
+  'tremolo:3': { label: '3줄 트레몰로', symbol: '3줄' },
+  fermata: { label: '페르마타', symbol: '𝄐' },
+  'breath:breath': { label: '숨표', symbol: ',' },
+  'breath:caesura': { label: '중지표', symbol: '//' },
+  grace: { label: '꾸밈음', symbol: '꾸밈음' }
+} as const
+type NotationPaletteRecentItemId = keyof typeof notationPaletteRecentItemDefinitions
+const notationPaletteRecentItemIds = Object.keys(
+  notationPaletteRecentItemDefinitions
+) as NotationPaletteRecentItemId[]
+const maxNotationPaletteRecentItems = 6
+
+function describeNoteTie(note: Note | undefined): string {
+  if (!note?.ties?.start && !note?.ties?.stop) return '연결 없음'
+  if (note.ties.start && note.ties.stop) return '앞·뒤 음 연결'
+  return note.ties.start ? '다음 음으로 연결' : '앞 음에서 연결'
+}
+
 const notationPaletteGroups = {
   lines: ['라인', '범위', '헤어핀', '크레셴도', '디미누엔도', '슬러', '옥타브', '8va', '8vb', '15ma', '15mb'],
+  noteSymbols: [
+    '음표 기호',
+    '아티큘레이션',
+    '스타카토',
+    '악센트',
+    '트릴',
+    '모르덴트',
+    '턴',
+    '트레몰로',
+    '페르마타',
+    '숨표',
+    '중지표',
+    '꾸밈음'
+  ],
   rehearsal: ['연습표', '리허설', 'rehearsal', 'A', 'B'],
   text: ['텍스트', '보표 글자', '시스템 텍스트', '표현 텍스트', 'dolce', 'espressivo', 'Chorus'],
   dynamics: ['셈여림', '다이내믹', 'dynamic', 'p', 'mf', 'ff', 'sfz'],
@@ -747,8 +795,16 @@ const notationPaletteGroups = {
   repeats: ['반복', '볼타', '도돌이표', 'repeat', 'volta', '1번', '2번']
 } as const
 type NotationPaletteSectionId = keyof typeof notationPaletteGroups
+const notationPalettePanelIds = [
+  'lines',
+  'noteSymbols',
+  'measureNotation',
+  'repeats'
+] as const
+type NotationPalettePanelId = (typeof notationPalettePanelIds)[number]
 const defaultNotationPaletteSectionCollapse = {
   lines: false,
+  noteSymbols: false,
   rehearsal: false,
   text: false,
   dynamics: false,
@@ -836,6 +892,99 @@ const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+const notationPaletteWorkspaceStorageKey =
+  'chromatics.notation-palette-workspace.v1'
+const notationPaletteOneAtATimeStorageKey =
+  'chromatics.notation-palette-one-at-a-time.v1'
+const notationPalettePanelOrderStorageKey =
+  'chromatics.notation-palette-panel-order.v1'
+const notationPaletteRecentItemsStorageKey =
+  'chromatics.notation-palette-recent-items.v1'
+const notationPaletteFavoriteItemsStorageKey =
+  'chromatics.notation-palette-favorite-items.v1'
+
+function readStoredNotationPaletteSectionCollapse(): Record<
+  NotationPaletteSectionId,
+  boolean
+> {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(notationPaletteWorkspaceStorageKey) ?? '{}'
+    ) as Partial<Record<NotationPaletteSectionId, unknown>>
+    const result = {} as Record<NotationPaletteSectionId, boolean>
+
+    for (const sectionId of Object.keys(
+      defaultNotationPaletteSectionCollapse
+    ) as NotationPaletteSectionId[]) {
+      result[sectionId] = stored[sectionId] === true
+    }
+
+    return result
+  } catch {
+    return { ...defaultNotationPaletteSectionCollapse }
+  }
+}
+
+function readStoredNotationPalettePanelOrder(): NotationPalettePanelId[] {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(notationPalettePanelOrderStorageKey) ?? '[]'
+    )
+
+    if (
+      Array.isArray(stored) &&
+      stored.length === notationPalettePanelIds.length &&
+      notationPalettePanelIds.every((id) => stored.includes(id))
+    ) {
+      return stored as NotationPalettePanelId[]
+    }
+  } catch {
+    // Fall through to the default palette order.
+  }
+
+  return [...notationPalettePanelIds]
+}
+
+function readStoredNotationPaletteRecentItems(): NotationPaletteRecentItemId[] {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(notationPaletteRecentItemsStorageKey) ?? '[]'
+    )
+
+    if (Array.isArray(stored)) {
+      return stored
+        .filter((item): item is NotationPaletteRecentItemId =>
+          typeof item === 'string' &&
+          notationPaletteRecentItemIds.includes(item as NotationPaletteRecentItemId)
+        )
+        .slice(0, maxNotationPaletteRecentItems)
+    }
+  } catch {
+    // Fall through to an empty recent-items palette.
+  }
+
+  return []
+}
+
+function readStoredNotationPaletteFavoriteItems(): NotationPaletteRecentItemId[] {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(notationPaletteFavoriteItemsStorageKey) ?? '[]'
+    )
+
+    if (Array.isArray(stored)) {
+      return stored.filter(
+        (item): item is NotationPaletteRecentItemId =>
+          typeof item === 'string' &&
+          notationPaletteRecentItemIds.includes(item as NotationPaletteRecentItemId)
+      )
+    }
+  } catch {
+    // Fall through to an empty favorites palette.
+  }
+
+  return []
+}
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -888,8 +1037,79 @@ export const App = () => {
     collapsedNotationPaletteSections,
     setCollapsedNotationPaletteSections
   ] = useState<Record<NotationPaletteSectionId, boolean>>(
-    defaultNotationPaletteSectionCollapse
+    readStoredNotationPaletteSectionCollapse
   )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notationPaletteWorkspaceStorageKey,
+        JSON.stringify(collapsedNotationPaletteSections)
+      )
+    } catch {
+      // Palette workspace remains usable when browser storage is unavailable.
+    }
+  }, [collapsedNotationPaletteSections])
+  const [notationPaletteOneAtATime, setNotationPaletteOneAtATime] =
+    useState(() => {
+      try {
+        return (
+          window.localStorage.getItem(notationPaletteOneAtATimeStorageKey) ===
+          'true'
+        )
+      } catch {
+        return false
+      }
+    })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notationPaletteOneAtATimeStorageKey,
+        String(notationPaletteOneAtATime)
+      )
+    } catch {
+      // Palette workspace remains usable when browser storage is unavailable.
+    }
+  }, [notationPaletteOneAtATime])
+  const [notationPalettePanelOrder, setNotationPalettePanelOrder] =
+    useState<NotationPalettePanelId[]>(readStoredNotationPalettePanelOrder)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notationPalettePanelOrderStorageKey,
+        JSON.stringify(notationPalettePanelOrder)
+      )
+    } catch {
+      // Palette workspace remains usable when browser storage is unavailable.
+    }
+  }, [notationPalettePanelOrder])
+  const [notationPaletteRecentItems, setNotationPaletteRecentItems] =
+    useState<NotationPaletteRecentItemId[]>(
+      readStoredNotationPaletteRecentItems
+    )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notationPaletteRecentItemsStorageKey,
+        JSON.stringify(notationPaletteRecentItems)
+      )
+    } catch {
+      // Recent palette remains usable when browser storage is unavailable.
+    }
+  }, [notationPaletteRecentItems])
+  const [notationPaletteFavoriteItems, setNotationPaletteFavoriteItems] =
+    useState<NotationPaletteRecentItemId[]>(
+      readStoredNotationPaletteFavoriteItems
+    )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notationPaletteFavoriteItemsStorageKey,
+        JSON.stringify(notationPaletteFavoriteItems)
+      )
+    } catch {
+      // Favorites remain usable when browser storage is unavailable.
+    }
+  }, [notationPaletteFavoriteItems])
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
     useState<PdfTargetPagesValue>('2')
@@ -1048,6 +1268,14 @@ export const App = () => {
     },
     [activeSpanReference, score, selection]
   )
+  const playFromSelection = useCallback(() => {
+    if (eventLocation) {
+      playback.playFromEvent(eventLocation.event.id, eventLocation.address)
+      return
+    }
+
+    playback.play()
+  }, [eventLocation, playback.play, playback.playFromEvent])
   const measureLocation = useMemo(
     () =>
       selection.type === 'measure'
@@ -1204,6 +1432,10 @@ export const App = () => {
   const normalizedNotationPaletteQuery = normalizePaletteQuery(notationPaletteQuery)
   const notationPaletteMatches = {
     lines: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.lines),
+    noteSymbols: matchesNotationPaletteGroup(
+      normalizedNotationPaletteQuery,
+      notationPaletteGroups.noteSymbols
+    ),
     rehearsal: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.rehearsal),
     text: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.text),
     dynamics: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.dynamics),
@@ -1217,8 +1449,24 @@ export const App = () => {
     notationPaletteMatches.dynamics ||
     notationPaletteMatches.measureSettings
   const notationPaletteSearchActive = normalizedNotationPaletteQuery.length > 0
+  const visibleNotationPaletteRecentItems = notationPaletteRecentItems.filter(
+    (itemId) =>
+      !notationPaletteSearchActive ||
+      normalizePaletteQuery(
+        notationPaletteRecentItemDefinitions[itemId].label
+      ).includes(normalizedNotationPaletteQuery)
+  )
+  const visibleNotationPaletteFavoriteItems = notationPaletteFavoriteItems.filter(
+    (itemId) =>
+      !notationPaletteSearchActive ||
+      normalizePaletteQuery(
+        notationPaletteRecentItemDefinitions[itemId].label
+      ).includes(normalizedNotationPaletteQuery)
+  )
   const notationPaletteSectionsExpanded = {
     lines: notationPaletteSearchActive || !collapsedNotationPaletteSections.lines,
+    noteSymbols:
+      notationPaletteSearchActive || !collapsedNotationPaletteSections.noteSymbols,
     rehearsal: notationPaletteSearchActive || !collapsedNotationPaletteSections.rehearsal,
     text: notationPaletteSearchActive || !collapsedNotationPaletteSections.text,
     dynamics: notationPaletteSearchActive || !collapsedNotationPaletteSections.dynamics,
@@ -1233,13 +1481,132 @@ export const App = () => {
     notationPaletteSectionsExpanded.measureSettings
   const toggleNotationPaletteSection = useCallback(
     (sectionId: NotationPaletteSectionId) => {
-      setCollapsedNotationPaletteSections((current) => ({
-        ...current,
-        [sectionId]: !current[sectionId]
-      }))
+      setCollapsedNotationPaletteSections((current) => {
+        if (!notationPaletteOneAtATime || !current[sectionId]) {
+          return { ...current, [sectionId]: !current[sectionId] }
+        }
+
+        return Object.fromEntries(
+          (Object.keys(defaultNotationPaletteSectionCollapse) as NotationPaletteSectionId[]).map(
+            (candidate) => [candidate, candidate !== sectionId]
+          )
+        ) as Record<NotationPaletteSectionId, boolean>
+      })
+    },
+    [notationPaletteOneAtATime]
+  )
+  const changeNotationPaletteOneAtATime = useCallback((enabled: boolean) => {
+    setNotationPaletteOneAtATime(enabled)
+    if (!enabled) return
+
+    setCollapsedNotationPaletteSections((current) => {
+      const sectionIds = Object.keys(
+        defaultNotationPaletteSectionCollapse
+      ) as NotationPaletteSectionId[]
+      const retained = sectionIds.find((sectionId) => !current[sectionId]) ?? sectionIds[0]
+
+      return Object.fromEntries(
+        sectionIds.map((sectionId) => [sectionId, sectionId !== retained])
+      ) as Record<NotationPaletteSectionId, boolean>
+    })
+  }, [])
+  const moveNotationPalettePanel = useCallback(
+    (panelId: NotationPalettePanelId, direction: -1 | 1) => {
+      setNotationPalettePanelOrder((current) => {
+        const index = current.indexOf(panelId)
+        const nextIndex = index + direction
+
+        if (index === -1 || nextIndex < 0 || nextIndex >= current.length) {
+          return current
+        }
+
+        const next = [...current]
+        ;[next[index], next[nextIndex]] = [next[nextIndex]!, next[index]!]
+        return next
+      })
     },
     []
   )
+  const notationPalettePanelOrderIndex = new Map(
+    notationPalettePanelOrder.map((panelId, index) => [panelId, index])
+  )
+  const notationPalettePanelStyle = (panelId: NotationPalettePanelId) => ({
+    order: notationPalettePanelOrderIndex.get(panelId) ?? 0
+  })
+  const notationPaletteOrderControls = (panelId: NotationPalettePanelId) => {
+    const index = notationPalettePanelOrderIndex.get(panelId) ?? 0
+    const label = {
+      lines: '라인과 범위 기호',
+      noteSymbols: '음표 기호 팔레트',
+      measureNotation: '마디 표기',
+      repeats: '반복과 볼타'
+    }[panelId]
+
+    return (
+      <span className="notation-palette-order-controls">
+        <button
+          aria-label={`${label} 위로 이동`}
+          className="icon-button"
+          disabled={notationPaletteSearchActive || index === 0}
+          onClick={() => moveNotationPalettePanel(panelId, -1)}
+          title={`${label} 위로 이동`}
+          type="button"
+        >
+          <ArrowUp aria-hidden="true" size={14} />
+        </button>
+        <button
+          aria-label={`${label} 아래로 이동`}
+          className="icon-button"
+          disabled={
+            notationPaletteSearchActive ||
+            index === notationPalettePanelOrder.length - 1
+          }
+          onClick={() => moveNotationPalettePanel(panelId, 1)}
+          title={`${label} 아래로 이동`}
+          type="button"
+        >
+          <ArrowDown aria-hidden="true" size={14} />
+        </button>
+      </span>
+    )
+  }
+  const setAllNotationPaletteSectionsCollapsed = useCallback(
+    (collapsed: boolean) => {
+      setCollapsedNotationPaletteSections(() =>
+        Object.fromEntries(
+          (Object.keys(defaultNotationPaletteSectionCollapse) as NotationPaletteSectionId[]).map(
+            (sectionId) => [sectionId, collapsed]
+          )
+        ) as Record<NotationPaletteSectionId, boolean>
+      )
+    },
+    []
+  )
+  const recordNotationPaletteRecentItem = useCallback(
+    (itemId: NotationPaletteRecentItemId) => {
+      setNotationPaletteRecentItems((current) => [
+        itemId,
+        ...current.filter((candidate) => candidate !== itemId)
+      ].slice(0, maxNotationPaletteRecentItems))
+    },
+    []
+  )
+  const toggleNotationPaletteFavoriteItem = useCallback(
+    (itemId: NotationPaletteRecentItemId) => {
+      setNotationPaletteFavoriteItems((current) =>
+        current.includes(itemId)
+          ? current.filter((candidate) => candidate !== itemId)
+          : [...current, itemId]
+      )
+    },
+    []
+  )
+  const allNotationPaletteSectionsCollapsed = Object.values(
+    collapsedNotationPaletteSections
+  ).every(Boolean)
+  const allNotationPaletteSectionsExpanded = Object.values(
+    collapsedNotationPaletteSections
+  ).every((collapsed) => !collapsed)
   const selectedSpanObject = activeSpanReference && findSpan(score, activeSpanReference)
   const activeScopeLabel = resolveActiveScopeLabel(score, activeSpanReference
     ? selectedSpanObject && locateEvent(score, selectedSpanObject.startEventId)?.address
@@ -2536,7 +2903,7 @@ export const App = () => {
         label: playback.status === 'playing' ? '재생 일시정지' : '재생 시작',
         run: () => {
           if (playback.status === 'playing') playback.pause()
-          else playback.play()
+          else playFromSelection()
           closeCommandPalette()
         },
         shortcut: 'Space'
@@ -2568,6 +2935,7 @@ export const App = () => {
     dockVisibility.properties,
     openNewScoreWizard,
     playback,
+    playFromSelection,
     redo,
     switchActiveVoice,
     undo
@@ -4828,6 +5196,89 @@ export const App = () => {
     [eventLocation, executeCommand]
   )
 
+  const applyNotationPaletteRecentItem = useCallback(
+    (itemId: NotationPaletteRecentItemId) => {
+      recordNotationPaletteRecentItem(itemId)
+
+      switch (itemId) {
+        case 'articulation:staccato':
+          toggleArticulation('staccato')
+          return
+        case 'articulation:accent':
+          toggleArticulation('accent')
+          return
+        case 'articulation:tenuto':
+          toggleArticulation('tenuto')
+          return
+        case 'articulation:marcato':
+          toggleArticulation('marcato')
+          return
+        case 'ornament:trill':
+          toggleOrnament('trill')
+          return
+        case 'ornament:mordent':
+          toggleOrnament('mordent')
+          return
+        case 'ornament:turn':
+          toggleOrnament('turn')
+          return
+        case 'tremolo:1':
+          toggleTremoloMarks(1)
+          return
+        case 'tremolo:2':
+          toggleTremoloMarks(2)
+          return
+        case 'tremolo:3':
+          toggleTremoloMarks(3)
+          return
+        case 'fermata':
+          toggleFermata()
+          return
+        case 'breath:breath':
+          toggleBreathMark('breath')
+          return
+        case 'breath:caesura':
+          toggleBreathMark('caesura')
+          return
+        case 'grace':
+          convertSelectedNoteToGraceNote()
+      }
+    },
+    [
+      convertSelectedNoteToGraceNote,
+      recordNotationPaletteRecentItem,
+      toggleArticulation,
+      toggleBreathMark,
+      toggleFermata,
+      toggleOrnament,
+      toggleTremoloMarks
+    ]
+  )
+  const notationPaletteFavoriteButton = useCallback(
+    (itemId: NotationPaletteRecentItemId) => {
+      const item = notationPaletteRecentItemDefinitions[itemId]
+      const isFavorite = notationPaletteFavoriteItems.includes(itemId)
+
+      return (
+        <button
+          aria-label={`${item.label} 즐겨찾기에 ${isFavorite ? '제거' : '추가'}`}
+          aria-pressed={isFavorite}
+          className="icon-button notation-palette-symbol-favorite"
+          onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
+          title={`${item.label} 즐겨찾기에 ${isFavorite ? '제거' : '추가'}`}
+          type="button"
+        >
+          <Star
+            aria-hidden="true"
+            fill={isFavorite ? 'currentColor' : 'none'}
+            size={14}
+          />
+        </button>
+      )
+    },
+    [notationPaletteFavoriteItems, toggleNotationPaletteFavoriteItem]
+  )
+
   const toggleHairpin = useCallback(
     (type: HairpinType) => {
       if (selection.type !== 'range' || selection.eventIds.length < 2) {
@@ -6097,7 +6548,7 @@ export const App = () => {
         else if (usesCommandKey && !event.altKey && event.code === 'KeyC') { event.preventDefault(); copySelection() }
         else if (event.key === 'Escape') { event.preventDefault(); setSpanSelection(undefined) }
         else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSpan() }
-        else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playback.play() }
+        else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playFromSelection() }
         else if (event.key !== 'Tab' && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)) event.preventDefault()
         return
       }
@@ -6324,7 +6775,7 @@ export const App = () => {
           if (playback.status === 'playing') {
             playback.pause()
           } else {
-            playback.play()
+            playFromSelection()
           }
           break
         case 't':
@@ -6409,7 +6860,7 @@ export const App = () => {
     eventLocation,
     measureContextMenu,
     playback.pause,
-    playback.play,
+    playFromSelection,
     playback.status,
     pasteSelection,
     pendingSlurAnchorEventId,
@@ -6613,6 +7064,7 @@ export const App = () => {
           ['성부', eventLocation.address.voiceId.replace('voice-', '')],
           ['틱', `${event.position.tick}`],
           ['음가', durationLabels[event.duration.value]],
+          ['타이', event.type === 'note' ? describeNoteTie(event) : '—'],
           [
             '음높이',
             event.type === 'note'
@@ -7131,6 +7583,30 @@ export const App = () => {
                 {selectedNote ? (
                   <>
                     <div className="inspector-properties__row">
+                      <span>타이</span>
+                      <div className="inspector-properties__buttons">
+                        <output aria-label="선택 음표 타이 상태">
+                          {describeNoteTie(selectedNote)}
+                        </output>
+                        <button
+                          aria-label={tieSelected ? '타이 해제' : '타이 추가'}
+                          disabled={!tieCommand}
+                          onClick={toggleTie}
+                          title={
+                            tieCommand
+                              ? tieSelected
+                                ? '선택한 타이 해제'
+                                : '인접한 같은 음높이에 타이 추가'
+                              : '인접한 같은 음높이의 음표가 필요합니다'
+                          }
+                          type="button"
+                        >
+                          {tieSelected ? '해제' : '추가'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="inspector-properties__row">
                       <span>화음</span>
                       <div className="inspector-properties__buttons">
                         <button
@@ -7263,15 +7739,159 @@ export const App = () => {
                   지우기
                 </button>
               ) : null}
+              <div className="inspector-properties__buttons">
+                <label className="notation-palette-workspace-toggle">
+                  <input
+                    aria-label="한 번에 하나씩 팔레트 보기"
+                    checked={notationPaletteOneAtATime}
+                    disabled={notationPaletteSearchActive}
+                    onChange={(event) =>
+                      changeNotationPaletteOneAtATime(event.currentTarget.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>하나씩 보기</span>
+                </label>
+                <button
+                  aria-label="모든 팔레트 접기"
+                  className="icon-button"
+                  disabled={
+                    notationPaletteSearchActive || allNotationPaletteSectionsCollapsed
+                  }
+                  onClick={() => setAllNotationPaletteSectionsCollapsed(true)}
+                  title="모든 팔레트 접기"
+                  type="button"
+                >
+                  <ChevronsUp aria-hidden="true" size={16} />
+                </button>
+                <button
+                  aria-label="모든 팔레트 펼치기"
+                  className="icon-button"
+                  disabled={
+                    notationPaletteSearchActive || allNotationPaletteSectionsExpanded
+                  }
+                  onClick={() => setAllNotationPaletteSectionsCollapsed(false)}
+                  title="모든 팔레트 펼치기"
+                  type="button"
+                >
+                  <ChevronsDown aria-hidden="true" size={16} />
+                </button>
+              </div>
             </section>
+        {visibleNotationPaletteFavoriteItems.length > 0 ? (
+          <section
+            aria-label="즐겨찾는 표기"
+            className="inspector-properties inspector-properties--compact notation-palette-favorites"
+            data-favorite-count={visibleNotationPaletteFavoriteItems.length}
+          >
+            <div className="inspector-properties__header">
+              <h3>즐겨찾기</h3>
+            </div>
+            <div className="inspector-properties__buttons">
+              {visibleNotationPaletteFavoriteItems.map((itemId) => {
+                const item = notationPaletteRecentItemDefinitions[itemId]
+                const requiresNote =
+                  itemId !== 'fermata' && !itemId.startsWith('breath:')
+                const actionLabel = itemId === 'grace' ? '변환' : '적용'
+
+                return (
+                  <span className="notation-palette-saved-item" key={itemId}>
+                    <button
+                      aria-label={`즐겨찾기: ${item.label} ${actionLabel}`}
+                      disabled={requiresNote ? !selectedNote : !eventLocation}
+                      onClick={() => applyNotationPaletteRecentItem(itemId)}
+                      title={`${item.label} ${actionLabel}`}
+                      type="button"
+                    >
+                      {item.symbol}
+                    </button>
+                    <button
+                      aria-label={`${item.label} 즐겨찾기에서 제거`}
+                      className="icon-button"
+                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
+                      title={`${item.label} 즐겨찾기에서 제거`}
+                      type="button"
+                    >
+                      <Star aria-hidden="true" fill="currentColor" size={14} />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
+        {visibleNotationPaletteRecentItems.length > 0 ? (
+          <section
+            aria-label="최근 사용 표기"
+            className="inspector-properties inspector-properties--compact notation-palette-recent"
+            data-recent-count={visibleNotationPaletteRecentItems.length}
+          >
+            <div className="inspector-properties__header">
+              <h3>최근 사용</h3>
+              <button
+                aria-label="최근 사용 표기 지우기"
+                disabled={notationPaletteSearchActive}
+                onClick={() => setNotationPaletteRecentItems([])}
+                type="button"
+              >
+                지우기
+              </button>
+            </div>
+            <div className="inspector-properties__buttons">
+              {visibleNotationPaletteRecentItems.map((itemId) => {
+                const item = notationPaletteRecentItemDefinitions[itemId]
+                const requiresNote =
+                  itemId !== 'fermata' && !itemId.startsWith('breath:')
+                const actionLabel = itemId === 'grace' ? '변환' : '적용'
+
+                const isFavorite = notationPaletteFavoriteItems.includes(itemId)
+
+                return (
+                  <span className="notation-palette-saved-item" key={itemId}>
+                    <button
+                      aria-label={`최근 사용: ${item.label} ${actionLabel}`}
+                      disabled={requiresNote ? !selectedNote : !eventLocation}
+                      onClick={() => applyNotationPaletteRecentItem(itemId)}
+                      title={`${item.label} ${actionLabel}`}
+                      type="button"
+                    >
+                      {item.symbol}
+                    </button>
+                    <button
+                      aria-label={`${item.label} 즐겨찾기에 ${
+                        isFavorite ? '제거' : '추가'
+                      }`}
+                      aria-pressed={isFavorite}
+                      className="icon-button"
+                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
+                      title={`${item.label} 즐겨찾기에 ${
+                        isFavorite ? '제거' : '추가'
+                      }`}
+                      type="button"
+                    >
+                      <Star
+                        aria-hidden="true"
+                        fill={isFavorite ? 'currentColor' : 'none'}
+                        size={14}
+                      />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
         {notationPaletteMatches.lines ? (
             <section
               className="inspector-properties inspector-properties--compact range-notation-palette"
               aria-label="라인과 범위 기호"
               data-collapsed={!notationPaletteSectionsExpanded.lines}
+              data-palette-order={notationPalettePanelOrderIndex.get('lines')}
+              style={notationPalettePanelStyle('lines')}
             >
               <div className="inspector-properties__header">
                 <h3>라인/범위</h3>
+                {notationPaletteOrderControls('lines')}
                 <button
                   aria-expanded={notationPaletteSectionsExpanded.lines}
                   aria-label={
@@ -7355,6 +7975,201 @@ export const App = () => {
               ) : null}
             </section>
         ) : null}
+        {notationPaletteMatches.noteSymbols ? (
+          <section
+            className="inspector-properties inspector-properties--compact"
+            aria-label="음표 기호 팔레트"
+            data-collapsed={!notationPaletteSectionsExpanded.noteSymbols}
+            data-palette-order={notationPalettePanelOrderIndex.get('noteSymbols')}
+            style={notationPalettePanelStyle('noteSymbols')}
+          >
+            <div className="inspector-properties__header">
+              <h3>음표 기호</h3>
+              {notationPaletteOrderControls('noteSymbols')}
+              <button
+                aria-expanded={notationPaletteSectionsExpanded.noteSymbols}
+                aria-label={
+                  notationPaletteSectionsExpanded.noteSymbols
+                    ? '음표 기호 팔레트 접기'
+                    : '음표 기호 팔레트 펼치기'
+                }
+                className="inspector-properties__collapse"
+                disabled={notationPaletteSearchActive}
+                onClick={() => toggleNotationPaletteSection('noteSymbols')}
+                title={
+                  notationPaletteSearchActive
+                    ? '검색 중에는 결과가 자동으로 펼쳐집니다'
+                    : undefined
+                }
+                type="button"
+              >
+                {notationPaletteSectionsExpanded.noteSymbols ? (
+                  <ChevronsUp aria-hidden="true" size={14} />
+                ) : (
+                  <ChevronsDown aria-hidden="true" size={14} />
+                )}
+              </button>
+            </div>
+            {notationPaletteSectionsExpanded.noteSymbols ? (
+              <div className="inspector-properties__grid">
+                <div className="inspector-properties__row">
+                  <span>{koreanMusicTerms.expressiveSymbols}</span>
+                  <div className="inspector-properties__buttons">
+                    {articulationTermOptions.map(({ label, symbol, value }) => {
+                      const itemId = `articulation:${value}` as NotationPaletteRecentItemId
+
+                      return (
+                        <span className="notation-palette-symbol-item" key={value}>
+                          <button
+                            aria-label={`${label} 적용`}
+                            aria-pressed={selectedNoteArticulations.has(value)}
+                            className={
+                              selectedNoteArticulations.has(value)
+                                ? 'is-active'
+                                : undefined
+                            }
+                            disabled={!selectedNote}
+                            onClick={() => {
+                              toggleArticulation(value)
+                              recordNotationPaletteRecentItem(itemId)
+                            }}
+                            title={commandTooltip(label, articulationShortcuts[value])}
+                            type="button"
+                          >
+                            {symbol}
+                          </button>
+                          {notationPaletteFavoriteButton(itemId)}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="inspector-properties__row">
+                  <span>장식음</span>
+                  <div className="inspector-properties__buttons">
+                    {ornamentOptions.map(([value, label]) => {
+                      const itemId = `ornament:${value}` as NotationPaletteRecentItemId
+
+                      return (
+                        <span className="notation-palette-symbol-item" key={value}>
+                          <button
+                            aria-label={`${ornamentPaletteLabels[value]} 꾸밈음 기호 적용`}
+                            aria-pressed={selectedNote?.ornaments?.includes(value) ?? false}
+                            className={
+                              selectedNote?.ornaments?.includes(value)
+                                ? 'is-active'
+                                : undefined
+                            }
+                            disabled={!selectedNote}
+                            onClick={() => {
+                              toggleOrnament(value)
+                              recordNotationPaletteRecentItem(itemId)
+                            }}
+                            type="button"
+                          >
+                            {label}
+                          </button>
+                          {notationPaletteFavoriteButton(itemId)}
+                        </span>
+                      )
+                    })}
+                    <span className="notation-palette-symbol-item">
+                      <button
+                        aria-label="꾸밈음으로 변환"
+                        disabled={!selectedNote}
+                        onClick={() => {
+                          convertSelectedNoteToGraceNote()
+                          recordNotationPaletteRecentItem('grace')
+                        }}
+                        type="button"
+                      >
+                        꾸밈음
+                      </button>
+                      {notationPaletteFavoriteButton('grace')}
+                    </span>
+                  </div>
+                </div>
+                <div className="inspector-properties__row">
+                  <span>트레몰로</span>
+                  <div className="inspector-properties__buttons">
+                    {([1, 2, 3] as const).map((marks) => {
+                      const itemId = `tremolo:${marks}` as NotationPaletteRecentItemId
+
+                      return (
+                        <span className="notation-palette-symbol-item" key={marks}>
+                          <button
+                            aria-label={`${marks}줄 트레몰로 적용`}
+                            aria-pressed={(selectedNote?.tremolo?.marks ?? 0) === marks}
+                            className={
+                              (selectedNote?.tremolo?.marks ?? 0) === marks
+                                ? 'is-active'
+                                : undefined
+                            }
+                            disabled={!selectedNote}
+                            onClick={() => {
+                              toggleTremoloMarks(marks)
+                              recordNotationPaletteRecentItem(itemId)
+                            }}
+                            type="button"
+                          >
+                            {marks}줄
+                          </button>
+                          {notationPaletteFavoriteButton(itemId)}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="inspector-properties__row">
+                  <span>정지 기호</span>
+                  <div className="inspector-properties__buttons">
+                    <span className="notation-palette-symbol-item">
+                      <button
+                        aria-label="페르마타 적용"
+                        aria-pressed={selectedEventHasFermata}
+                        className={selectedEventHasFermata ? 'is-active' : undefined}
+                        disabled={!eventLocation}
+                        onClick={() => {
+                          toggleFermata()
+                          recordNotationPaletteRecentItem('fermata')
+                        }}
+                        title={koreanMusicTerms.fermata}
+                        type="button"
+                      >
+                        𝄐
+                      </button>
+                      {notationPaletteFavoriteButton('fermata')}
+                    </span>
+                    {breathMarkTermOptions.map(({ label, symbol, value }) => {
+                      const itemId = `breath:${value}` as NotationPaletteRecentItemId
+
+                      return (
+                        <span className="notation-palette-symbol-item" key={value}>
+                          <button
+                            aria-label={`${label} 적용`}
+                            aria-pressed={selectedEventBreathMark === value}
+                            className={
+                              selectedEventBreathMark === value ? 'is-active' : undefined
+                            }
+                            disabled={!eventLocation}
+                            onClick={() => {
+                              toggleBreathMark(value)
+                              recordNotationPaletteRecentItem(itemId)
+                            }}
+                            type="button"
+                          >
+                            {symbol}
+                          </button>
+                          {notationPaletteFavoriteButton(itemId)}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
         {activeMeasureId && hasMeasureNotationPaletteMatches ? (
           <section
             className="inspector-properties inspector-properties--grouped"
@@ -7363,9 +8178,12 @@ export const App = () => {
               canEditMeasureNotation ? 'active-measure' : 'range-disabled'
             }
             data-collapsed={!isMeasureNotationPaletteExpanded}
+            data-palette-order={notationPalettePanelOrderIndex.get('measureNotation')}
+            style={notationPalettePanelStyle('measureNotation')}
           >
             <div className="inspector-properties__header">
               <h3>마디 표기</h3>
+              {notationPaletteOrderControls('measureNotation')}
               <button
                 aria-expanded={isMeasureNotationPaletteExpanded}
                 aria-label={
@@ -7689,7 +8507,12 @@ export const App = () => {
             ) : null}
           </section>
         ) : !activeMeasureId && hasMeasureNotationPaletteMatches ? (
-          <section className="inspector-properties" aria-label="마디 표기">
+          <section
+            className="inspector-properties"
+            aria-label="마디 표기"
+            data-palette-order={notationPalettePanelOrderIndex.get('measureNotation')}
+            style={notationPalettePanelStyle('measureNotation')}
+          >
             <h3>마디 표기</h3>
             <p className="inspector-properties__empty">
               음표나 마디를 선택하면 마디 단위 표기 항목이 표시됩니다.
@@ -7702,9 +8525,12 @@ export const App = () => {
             className="inspector-properties inspector-properties--compact"
             aria-label="반복과 볼타"
             data-collapsed={!notationPaletteSectionsExpanded.repeats}
+            data-palette-order={notationPalettePanelOrderIndex.get('repeats')}
+            style={notationPalettePanelStyle('repeats')}
           >
             <div className="inspector-properties__header">
               <h3>반복/볼타</h3>
+              {notationPaletteOrderControls('repeats')}
               <button
                 aria-expanded={notationPaletteSectionsExpanded.repeats}
                 aria-label={
@@ -8964,7 +9790,7 @@ export const App = () => {
               aria-label="재생"
               className="icon-button"
               disabled={playback.status === 'playing'}
-              onClick={playback.play}
+              onClick={playFromSelection}
               title="재생"
               type="button"
             >
