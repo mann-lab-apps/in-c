@@ -6,6 +6,29 @@ class SheetAudioPlayer {
 
   final MethodChannel _channel;
 
+  Future<SheetAudioPlaybackPosition?> readPosition() async {
+    try {
+      final response = await _channel.invokeMapMethod<String, Object?>(
+        'position',
+      );
+      final positionMs = _positiveOrZeroInt(response?['positionMs']);
+      final durationMs = _positiveInt(response?['durationMs']);
+      final isPlaying = response?['isPlaying'];
+      if (positionMs == null || durationMs == null || isPlaying is! bool) {
+        return null;
+      }
+      return SheetAudioPlaybackPosition(
+        position: Duration(milliseconds: positionMs.clamp(0, durationMs)),
+        duration: Duration(milliseconds: durationMs),
+        isPlaying: isPlaying,
+      );
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   Future<SheetAudioTrackInfo?> inspect(String path) async {
     try {
       final response = await _channel.invokeMapMethod<String, Object?>(
@@ -27,6 +50,24 @@ class SheetAudioPlayer {
     } on PlatformException {
       return null;
     }
+  }
+
+  static int? _positiveInt(Object? value) {
+    final parsed = switch (value) {
+      int number => number,
+      double number => number.round(),
+      _ => null,
+    };
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
+  static int? _positiveOrZeroInt(Object? value) {
+    final parsed = switch (value) {
+      int number => number,
+      double number => number.round(),
+      _ => null,
+    };
+    return parsed != null && parsed >= 0 ? parsed : null;
   }
 
   Future<SheetAudioPlaybackResult> play(
@@ -62,6 +103,18 @@ class SheetAudioTrackInfo {
   const SheetAudioTrackInfo({required this.duration});
 
   final Duration duration;
+}
+
+class SheetAudioPlaybackPosition {
+  const SheetAudioPlaybackPosition({
+    required this.position,
+    required this.duration,
+    required this.isPlaying,
+  });
+
+  final Duration position;
+  final Duration duration;
+  final bool isPlaying;
 }
 
 class SheetAudioLoop {

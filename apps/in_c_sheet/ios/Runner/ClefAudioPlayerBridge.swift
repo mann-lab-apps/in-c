@@ -28,6 +28,21 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "position":
+      guard let player else {
+        result(
+          FlutterError(
+            code: "not_playing",
+            message: "No linked audio track is active.",
+            details: nil
+          ))
+        return
+      }
+      result([
+        "positionMs": Int((player.currentTime * 1000).rounded()),
+        "durationMs": Int((player.duration * 1000).rounded()),
+        "isPlaying": player.isPlaying,
+      ])
     case "inspect":
       guard
         let arguments = call.arguments as? [String: Any],

@@ -3241,3 +3241,11 @@ OS temporary directory, verifies native duration inspection, starts the silent f
 the fixture before reporting. Metronome, drone and linked-audio results remain independently visible so one failed bridge does
 not hide the others. Injected-channel regressions cover all-ready and partial-failure cleanup. This still proves only local
 file initialization; codec coverage, audible output, latency, route changes and A-B boundary timing remain Device QA.
+
+S324 VERIFIED LOCAL: reduced guesswork when setting a linked-audio practice range without adding background polling or
+waveform decoding. Both native players now expose a one-shot current-position snapshot while a track is active. The A-B sheet
+lets a performer capture the current playback position as A or B, rejects markers that would invert the range and states that
+the edited range takes effect after stopping and starting playback again rather than mutating an active native loop mid-beat.
+Unavailable or ended playback leaves the fields unchanged with a named prompt. Dart channel, Android/iOS wiring and widget
+regressions cover position parsing and both marker actions. Actual tap-to-sound latency and loop-boundary precision remain
+Device QA.

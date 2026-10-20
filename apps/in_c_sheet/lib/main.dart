@@ -25805,6 +25805,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   int? _savedLoopEndMs;
   SheetAudioTrackInfo? _trackInfo;
   SheetAudioPlaybackResult? _lastResult;
+  bool _hasPendingPlaybackLoopChange = false;
 
   @override
   void initState() {
@@ -26090,6 +26091,64 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     );
   }
 
+  Future<void> _captureLoopBoundary({required bool captureStart}) async {
+    final snapshot = await _player.readPosition();
+    if (!mounted) {
+      return;
+    }
+    if (snapshot == null || !snapshot.isPlaying) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          '연결 오디오를 재생하는 동안 현재 위치를 찍어주세요.',
+        );
+      });
+      return;
+    }
+    final positionMs = snapshot.position.inMilliseconds;
+    final startMs =
+        ((double.tryParse(_loopStartController.text.trim()) ?? 0) * 1000)
+            .round();
+    final endMs =
+        ((double.tryParse(_loopEndController.text.trim()) ??
+                    snapshot.duration.inMilliseconds / 1000) *
+                1000)
+            .round();
+    if (captureStart && positionMs >= endMs) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'A 시작은 현재 B 끝보다 앞에서 찍어주세요.',
+        );
+      });
+      return;
+    }
+    if (!captureStart && positionMs <= startMs) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'B 끝은 현재 A 시작보다 뒤에서 찍어주세요.',
+        );
+      });
+      return;
+    }
+    setState(() {
+      _loopEnabled = true;
+      if (captureStart) {
+        _loopStartController.text = _formatLoopSeconds(positionMs);
+        if (_loopEndController.text.trim().isEmpty) {
+          _loopEndController.text = _formatLoopSeconds(
+            snapshot.duration.inMilliseconds,
+          );
+        }
+      } else {
+        if (_loopStartController.text.trim().isEmpty) {
+          _loopStartController.text = '0';
+        }
+        _loopEndController.text = _formatLoopSeconds(positionMs);
+      }
+      _lastResult = null;
+      _hasPendingPlaybackLoopChange = true;
+    });
+  }
+
   Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
     final updated = _currentLinkedFile.copyWith(
       audioLoopStartMs: loop.start.inMilliseconds,
@@ -26297,6 +26356,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       setState(() {
         _isPlaying = false;
         _lastResult = null;
+        _hasPendingPlaybackLoopChange = false;
       });
       return;
     }
@@ -26326,6 +26386,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     setState(() {
       _isPlaying = result.isPlaying;
       _lastResult = result;
+      _hasPendingPlaybackLoopChange = false;
     });
   }
 
@@ -26422,6 +26483,40 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                   ],
                 ),
               _buildLoopTimeline(theme),
+              if (_loopEnabled)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _isPlaying
+                            ? () => _captureLoopBoundary(captureStart: true)
+                            : null,
+                        icon: const Icon(Icons.first_page),
+                        label: const Text('현재 위치를 A로'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _isPlaying
+                            ? () => _captureLoopBoundary(captureStart: false)
+                            : null,
+                        icon: const Icon(Icons.last_page),
+                        label: const Text('현재 위치를 B로'),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_hasPendingPlaybackLoopChange)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '찍은 A-B 구간은 정지한 뒤 다음 재생부터 적용됩니다.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               if (_loopEnabled)
                 Align(
                   alignment: Alignment.centerLeft,

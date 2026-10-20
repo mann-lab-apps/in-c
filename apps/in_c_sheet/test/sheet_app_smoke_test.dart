@@ -4974,6 +4974,58 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'linked audio sheet captures A-B markers from playback position',
+    (tester) async {
+      final channel = const MethodChannel('clef/test_linked_audio_position');
+      final calls = <MethodCall>[];
+      var positionCallCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return switch (call.method) {
+              'inspect' => <String, Object?>{'durationMs': 125400},
+              'position' => <String, Object?>{
+                'positionMs': positionCallCount++ == 0 ? 12340 : 25000,
+                'durationMs': 125400,
+                'isPlaying': true,
+              },
+              _ => null,
+            };
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      await tester.pumpWidget(
+        buildLinkedAudioPlayerSheetForTest(
+          channel: channel,
+          linkedFile: SheetLinkedFile(
+            path: '/tmp/backing-track.m4a',
+            type: 'm4a',
+            label: 'Backing Track',
+            createdAt: DateTime(2026, 10, 20),
+            audioLoopStartMs: 10000,
+            audioLoopEndMs: 30000,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '재생'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, '현재 위치를 A로'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, '현재 위치를 B로'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('새 구간 · A 12.34초 -> B 25초'), findsOneWidget);
+      expect(find.textContaining('다음 재생부터 적용됩니다.'), findsOneWidget);
+      expect(calls.where((call) => call.method == 'position'), hasLength(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('linked audio sheet rejects B marker after track end', (
     tester,
   ) async {

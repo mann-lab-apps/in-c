@@ -229,6 +229,17 @@ class MainActivity : FlutterActivity() {
         )
         audioPlayerChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
+                "position" -> {
+                    try {
+                        result.success(audioPlayer.position())
+                    } catch (error: Exception) {
+                        result.error(
+                            "not_playing",
+                            error.message ?: "No linked audio track is active.",
+                            null,
+                        )
+                    }
+                }
                 "inspect" -> {
                     val path = call.argument<String>("path").orEmpty().trim()
                     if (path.isEmpty()) {
@@ -703,6 +714,20 @@ private class ClefAudioPlayer {
             } catch (_: IllegalStateException) {
                 stop()
             }
+        }
+    }
+
+    fun position(): Map<String, Any> {
+        val player = mediaPlayer
+            ?: throw IllegalStateException("No linked audio track is active.")
+        return try {
+            mapOf(
+                "positionMs" to player.currentPosition,
+                "durationMs" to player.duration,
+                "isPlaying" to player.isPlaying,
+            )
+        } catch (error: IllegalStateException) {
+            throw IllegalStateException("Linked audio position is unavailable.", error)
         }
     }
 

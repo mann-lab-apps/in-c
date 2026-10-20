@@ -9,6 +9,7 @@ void main() {
     ).readAsStringSync();
 
     expect(activity, contains('clef/audio_player'));
+    expect(activity, contains('"position" ->'));
     expect(activity, contains('"inspect" ->'));
     expect(activity, contains('MediaMetadataRetriever.METADATA_KEY_DURATION'));
     expect(activity, contains('"play" ->'));

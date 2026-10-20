@@ -83,6 +83,29 @@ void main() {
     });
   });
 
+  test('reads current linked audio position through method channel', () async {
+    final channel = const MethodChannel('clef/test_audio_position');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, 'position');
+          return <String, Object?>{
+            'positionMs': 12340,
+            'durationMs': 125400,
+            'isPlaying': true,
+          };
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final position = await SheetAudioPlayer(channel: channel).readPosition();
+
+    expect(position?.position, const Duration(milliseconds: 12340));
+    expect(position?.duration, const Duration(milliseconds: 125400));
+    expect(position?.isPlaying, isTrue);
+  });
+
   test('keeps playback available when audio inspection fails', () async {
     final channel = const MethodChannel('clef/test_audio_inspection_error');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
