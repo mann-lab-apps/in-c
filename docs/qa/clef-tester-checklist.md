@@ -170,6 +170,7 @@
 19. `개발자용 기기 리포트`에서 `엔진 확인`을 실행해 native metronome/drone과 임시 무음 WAV 기반
     linked audio 길이 조회/재생 초기화/현재 위치/정지 후 해제 결과 및 drone/linked audio 각각의 익명화된 output route 유형과
     system volume을 남기고,
+    두 route가 다르면 점검 중 출력 장치를 바꿨는지 메모하며,
     방향키 또는 페달 입력이 감지되는지 확인한다. 가능하면 `타이밍 측정`도 실행한 뒤 결과를 복사한다.
     120/180/240 BPM의 내부 timing 결과가 `PASS/WARN/FAIL`로 기록되어야 한다.
     엔진 PASS는 무음 초기화만 뜻하며 실제 청취 품질 PASS로 바꾸지 않는다.

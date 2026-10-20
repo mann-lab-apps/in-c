@@ -36,6 +36,7 @@ class SheetPracticeAudioBridgeChecker {
   Future<SheetDeviceCheckItem> run() async {
     final ready = <String>[];
     final issues = <String>[];
+    Set<String>? toneRouteOutputs;
     try {
       await _metronomeChannel.invokeMethod<void>('prepare');
       ready.add('metronome click buffer');
@@ -67,6 +68,7 @@ class SheetPracticeAudioBridgeChecker {
         final route = await _toneChannel.invokeMapMethod<String, Object?>(
           'routeInfo',
         );
+        toneRouteOutputs = _audioRouteOutputs(route);
         final routeDetails = _audioRouteDetails(route);
         if (routeDetails == null) {
           issues.add('audio route 조회 실패');
@@ -95,14 +97,27 @@ class SheetPracticeAudioBridgeChecker {
       final playback = await _audioPlayer.play(audioFixturePath);
       if (playback.isPlaying) {
         ready.add('linked audio silent playback');
+        final linkedAudioRoute = await _audioPlayer.readRouteInfo();
+        final linkedAudioRouteOutputs = _audioRouteOutputs(linkedAudioRoute);
         final routeDetails = _audioRouteDetails(
-          await _audioPlayer.readRouteInfo(),
+          linkedAudioRoute,
           label: 'linked audio route',
         );
         if (routeDetails == null) {
           issues.add('linked audio route 조회 실패');
         } else {
           ready.add(routeDetails);
+        }
+        if (toneRouteOutputs != null &&
+            linkedAudioRouteOutputs != null &&
+            !_sameAudioRouteOutputs(
+              toneRouteOutputs,
+              linkedAudioRouteOutputs,
+            )) {
+          issues.add(
+            'audio route 불일치: drone ${toneRouteOutputs.join('/')} / '
+            'linked ${linkedAudioRouteOutputs.join('/')}',
+          );
         }
         final position = await _audioPlayer.readPosition();
         if (position == null) {
@@ -212,15 +227,8 @@ class SheetPracticeAudioBridgeChecker {
     Map<String, Object?>? response, {
     String label = 'audio route',
   }) {
-    final rawOutputs = response?['outputs'];
-    if (rawOutputs is! List) return null;
-    final outputs = rawOutputs
-        .whereType<String>()
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty && value != 'unknown')
-        .toSet()
-        .toList(growable: false);
-    if (outputs.isEmpty) return null;
+    final outputs = _audioRouteOutputs(response);
+    if (outputs == null) return null;
     final rawVolume = response?['systemVolume'];
     final volume = switch (rawVolume) {
       num value when value.isFinite => value.toDouble().clamp(0.0, 1.0),
@@ -230,6 +238,22 @@ class SheetPracticeAudioBridgeChecker {
         ? ''
         : ' · system volume ${(volume * 100).round()}%';
     return '$label ${outputs.join('/')}$volumeLabel';
+  }
+
+  static Set<String>? _audioRouteOutputs(Map<String, Object?>? response) {
+    final rawOutputs = response?['outputs'];
+    if (rawOutputs is! List) return null;
+    final outputs = rawOutputs
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty && value != 'unknown')
+        .toSet();
+    if (outputs.isEmpty) return null;
+    return outputs;
+  }
+
+  static bool _sameAudioRouteOutputs(Set<String> left, Set<String> right) {
+    return left.length == right.length && left.containsAll(right);
   }
 }
 

@@ -171,6 +171,76 @@ void main() {
   });
 
   test(
+    'native practice audio check warns when output routes disagree',
+    () async {
+      const metronomeChannel = MethodChannel(
+        'clef/test_metronome_route_mismatch',
+      );
+      const toneChannel = MethodChannel('clef/test_tone_route_mismatch');
+      const audioChannel = MethodChannel('clef/test_audio_route_mismatch');
+      var audioPlaying = false;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(metronomeChannel, (_) async => null);
+      messenger.setMockMethodCallHandler(toneChannel, (call) async {
+        if (call.method == 'routeInfo') {
+          return <String, Object?>{
+            'outputs': <String>['builtInSpeaker'],
+            'systemVolume': 0.5,
+          };
+        }
+        return null;
+      });
+      messenger.setMockMethodCallHandler(audioChannel, (call) async {
+        switch (call.method) {
+          case 'inspect':
+            return <String, Object?>{'durationMs': 250};
+          case 'play':
+            audioPlaying = true;
+            return null;
+          case 'routeInfo':
+            return <String, Object?>{
+              'outputs': <String>['bluetoothA2dp'],
+              'systemVolume': 0.5,
+            };
+          case 'position':
+            if (!audioPlaying) throw PlatformException(code: 'not_playing');
+            return <String, Object?>{
+              'positionMs': 20,
+              'durationMs': 250,
+              'isPlaying': true,
+            };
+          case 'stop':
+            audioPlaying = false;
+            return null;
+        }
+        return null;
+      });
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(metronomeChannel, null);
+        messenger.setMockMethodCallHandler(toneChannel, null);
+        messenger.setMockMethodCallHandler(audioChannel, null);
+      });
+
+      final item = await SheetPracticeAudioBridgeChecker(
+        metronomeChannel: metronomeChannel,
+        toneChannel: toneChannel,
+        audioPlayerChannel: audioChannel,
+        createAudioFixture: () async => '/tmp/silent.wav',
+        deleteAudioFixture: (_) async {},
+      ).run();
+
+      expect(item.status, SheetDeviceCheckStatus.warn);
+      expect(
+        item.details,
+        contains(
+          'audio route 불일치: drone builtInSpeaker / linked bluetoothA2dp',
+        ),
+      );
+    },
+  );
+
+  test(
     'native practice audio check cleans fixture after player failure',
     () async {
       const metronomeChannel = MethodChannel(

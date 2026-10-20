@@ -3302,3 +3302,9 @@ system volume and omit product names, addresses and identifiers. Missing route d
 stop-lifecycle checks continue. Dart/native wiring tests and Swift format/parse validation pass; Android native compilation
 remains gated by the next approved build because this worktree has no Gradle wrapper. The snapshot does not prove audible
 quality, Bluetooth stability, latency or A-B boundary precision, which remain Device QA.
+
+S332 VERIFIED LOCAL: made the Device QA probe compare the drone and linked-audio output classes captured during the same
+run. A mismatch is now a WARN with both anonymous route types, while matching routes keep the existing PASS boundary. This
+can expose an audio-session/routing clue without collecting device names or claiming the audible outputs are correct. A
+channel-injected regression covers built-in-speaker versus Bluetooth divergence; intentional route changes and actual
+Bluetooth stability still require the tester to interpret the report.
