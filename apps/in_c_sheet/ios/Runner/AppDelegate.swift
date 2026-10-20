@@ -14,6 +14,7 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     ClefSharedImportBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
+    ClefAudioPlayerBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
     InCDailyNotificationBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
   }
 

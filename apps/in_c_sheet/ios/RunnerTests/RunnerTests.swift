@@ -43,6 +43,23 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(bridge.consumeOpenPayload(), "valid")
   }
 
+  func testAudioLoopNormalizationMatchesFlutterContract() {
+    XCTAssertEqual(
+      ClefAudioPlayerBridge.normalizeLoop(startMs: 1_500, endMs: 8_200, durationMs: 10_000),
+      ClefAudioLoopRange(startMs: 1_500, endMs: 8_200)
+    )
+    XCTAssertEqual(
+      ClefAudioPlayerBridge.normalizeLoop(startMs: -500, endMs: 12_000, durationMs: 10_000),
+      ClefAudioLoopRange(startMs: 0, endMs: 10_000)
+    )
+    XCTAssertNil(
+      ClefAudioPlayerBridge.normalizeLoop(startMs: 9_000, endMs: 8_000, durationMs: 10_000)
+    )
+    XCTAssertNil(
+      ClefAudioPlayerBridge.normalizeLoop(startMs: nil, endMs: nil, durationMs: 10_000)
+    )
+  }
+
   func testExample() {
     // If you add code to the Runner application, consider adding tests here.
     // See https://developer.apple.com/documentation/xctest for more information about using XCTest.

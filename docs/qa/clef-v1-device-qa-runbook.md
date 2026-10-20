@@ -116,7 +116,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, 스탬프 검색/카테고리 칩/최근 사용/빠른 선택, text/icon/image 사용자 스탬프, active layer 선택/추가/표시/PDF 포함 토글, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, image picker provider, 최근 스탬프 복원, layer 전환 뒤 새 필기 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
-| 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장된 구간/새 구간 구분, 이름 있는 구간 2개 이상 저장/선택/삭제/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장 구간 chip의 손가락 조작감, 저장/입력 실패 안내 체감 |
+| 연결 오디오/A-B | Android와 iOS에서 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장된 구간/새 구간 구분, 이름 있는 구간 2개 이상 저장/선택/삭제/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | 플랫폼/MP3/M4A/WAV, 이어폰/스피커/Bluetooth, loop timing, background/foreground, 저장 구간 chip의 손가락 조작감, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
 | 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
 | 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 기기 리포트 감지 결과, 실제 악보 화면의 페이지 단위 이동, PDF nudge-scroll 여부, 곡 처음/끝 안내 |
@@ -410,11 +410,11 @@ Audio/tuner:
 - 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감. 이어폰/스피커/Bluetooth/연습실
   각각에서 음량, clipping, 시작/종료 잡음, drone mode별 밸런스를 기록한다.
-- linked audio는 연결 파일 목록에서 PDF/이미지/오디오가 구분되는지 확인한 뒤, MP3/M4A/WAV별로
+- linked audio는 Android와 iOS에서 연결 파일 목록의 PDF/이미지/오디오 구분을 확인한 뒤, MP3/M4A/WAV별로
   재생/정지, A/B 초 입력, sheet 닫기/다시 열기 후 구간 복원, `구간 지우기` 후 재진입 시
   입력값이 사라지는지 확인한다. 숫자가 아닌 값, 비어 있는 값, B가 A보다 작거나 같은 값이
   재생 전에 이해 가능한 안내로 막히는지 확인한다.
-  이어폰/스피커/Bluetooth에서 loop가 갑자기 끊기거나 밀리는지 기록한다.
+  이어폰/스피커/Bluetooth와 background/foreground 전환에서 loop가 갑자기 끊기거나 밀리는지 기록한다.
   waveform timeline/tempo/pitch shift는 아직 후속 범위다.
 - 필기 layer를 둘 이상 만든 뒤 stroke/text/image stamp를 한 layer에 추가하고 `현재 layer 주석 모두 이동`으로
   다른 layer에 옮긴다. 이동 개수, 확인 dialog, 원래 layer의 빈 상태, 대상 layer의 표시/PDF 포함 설정,

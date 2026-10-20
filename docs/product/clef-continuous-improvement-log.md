@@ -3176,3 +3176,13 @@ metadata. Add/delete failures leave the visible and persisted preset list unchan
 the ranges. Model, widget and backup regressions cover normalization, limits, selection, save/delete failure and round-trip.
 `dart format`, `flutter analyze`, all 1,799 tests and the RC release check passed. Waveform navigation, iOS playback parity
 and actual loop timing remain separate implementation or Device QA work.
+
+S317 VERIFIED LOCAL: closed the missing iOS linked-audio method-channel path without claiming device audio quality. A
+dedicated AVAudioPlayer bridge now implements the same `clef/audio_player` play/stop and bounded A-B loop contract as the
+Android MediaPlayer path, uses a playback session that can mix with other practice audio, releases its timer/player/session
+on stop or decode failure and reports missing or failed files through the existing Flutter error surface. AppDelegate and
+the Xcode source phase wire the bridge explicitly; an XCTest source covers loop normalization and a Dart wiring regression
+guards the channel, methods and project membership. Swift format/typecheck, project plist validation, Xcode project resolution,
+`flutter analyze`, all 1,800 Flutter tests and the RC release check pass. The XCTest was not executed because this slice did
+not run an iOS build. Actual iPhone/iPad codecs, route changes, background behavior, Bluetooth and loop timing remain Device
+QA; metronome and drone iOS native parity remain separate work.

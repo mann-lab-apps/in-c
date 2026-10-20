@@ -118,8 +118,8 @@ current page; Acrobat, Preview, MobileSheets, Piascore, and Android viewer place
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
-| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, 연결 파일 목록의 오디오 라벨/아이콘과 저장된 A-B 구간 표시, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
-| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력, linked audio 전용 마지막 A/B 구간 저장/복원/지우기와 이름 있는 구간 최대 12개 저장/선택/삭제, 목록/파트 sheet와 재생 sheet의 저장 구간 표시, 저장된 구간/새 입력 구간 구분, 숫자/순서 입력 오류 안내, native MediaPlayer loop. 이름 있는 구간은 metadata/full backup과 함께 보존되고 PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. waveform marker/timeline, iOS parity는 후속 |
+| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, 연결 파일 목록의 오디오 라벨/아이콘과 저장된 A-B 구간 표시, Android MediaPlayer와 iOS AVAudioPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. iOS bridge wiring/Swift parse는 로컬 확인했으며 codec/latency/route는 실기기 QA 필요 |
+| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android/iOS linked audio sheet의 A/B 초 단위 입력, linked audio 전용 마지막 A/B 구간 저장/복원/지우기와 이름 있는 구간 최대 12개 저장/선택/삭제, 목록/파트 sheet와 재생 sheet의 저장 구간 표시, 저장된 구간/새 입력 구간 구분, 숫자/순서 입력 오류 안내, native player loop. 이름 있는 구간은 metadata/full backup과 함께 보존되고 PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. waveform marker/timeline은 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
 | 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 로컬 keyboard substitute matrix는 통과했으며 실제 USB 페달 장비 QA는 blocker |
@@ -355,7 +355,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - Cloud provider 실기기 import QA. system picker/provider 우선 정책과 내려받기 안내는 구현됨.
 - 실제 페이지 회전 live 렌더링. source/instance rotation metadata와 적용 사본은 구현했고, `PdfViewer.file` 경로의 page별 live rotation 안정 API 확인은 후속 spike다.
 - S Pen pressure/palm rejection 실기기 튜닝. pressure metadata/render/export와 stylus 직후 touch rejection window는 구현됨.
-- 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
+- 로컬 오디오 플레이어의 iOS codec/latency/audio-route 실기기 QA.
 
 위 후보 중 engine/API/device/sample/license 결정이 필요한 항목은
 [`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)의 spike 항목으로 추적한다.
