@@ -3077,3 +3077,11 @@ remain unselected and never overwrite the score, metadata or annotations; a miss
 message instead of importing another copy. Typed copy/open actions and a 390px long-file-name layout have widget coverage.
 `dart format`, `flutter analyze`, all 1,765 tests and the RC release check passed. Explicit format-aware source replacement,
 provider timestamp fidelity and Android provider lifecycle remain follow-up/Device QA.
+
+S306 VERIFIED LOCAL: added an explicit layer-wide annotation move for reorganizing a score without tapping every object.
+The active layer menu reports the number of stroke/text/stamp annotations, lets the user choose another existing layer and
+requires confirmation before moving all objects plus related undo/redo and erase payloads. The source layer remains available
+but empty, unrelated layers stay unchanged, the target becomes active and same/missing/empty moves are safe no-ops. Model,
+controller and widget regressions cover persisted moves, history payload rekeying, menu access and count copy. `dart format`,
+`flutter analyze`, all 1,767 tests and the RC release check passed. Arbitrary-object multi-select/drag remains a separate gap,
+and real stylus use, layer visibility/export behavior after moving and restart persistence remain Device QA.

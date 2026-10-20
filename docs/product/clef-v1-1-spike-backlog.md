@@ -582,10 +582,12 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   7. 완료: 기존 annotation layer 이동과 hidden layer hit-test/eraser/undo/redo 차단.
   8. 완료: toolbar undo/redo를 active display layer로 좁힌다. 숨김 layer entry는 보존하지만 숨김 중에는
      계속 건너뛴다.
+  9. 완료: 확인 후 현재 layer의 모든 stroke/text와 관련 undo/redo payload를 다른 기존 layer로 함께
+     이동한다. 원래 layer는 비운 상태로 보존하며 임의 객체 multi-select는 별도 후속이다.
 - 검증 완료: 기존 annotation default fallback, hidden layer visible filter, hidden layer hit-test/eraser/undo/redo
   exclusion, active-layer undo/redo targeting, export-disabled layer export filter, removed/unknown layer default
   fallback, active layer selector UI, non-default layer state persistence, layer rename/delete UI와 삭제 후
-  annotation fallback.
+  annotation fallback, 현재 layer 전체 이동과 이력 payload 재키잉.
 - 남은 테스트/fixture/실기기 조건: stylus drawing while switching layers,
   PDF export with multiple layers on device, large annotation layer performance.
 - Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는

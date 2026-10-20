@@ -3766,6 +3766,27 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> moveAnnotationDisplayLayerContents(
+    SheetScore score, {
+    required String sourceLayerId,
+    required String targetLayerId,
+  }) async {
+    final nextLayer = score.annotationLayer.moveDisplayLayerAnnotations(
+      sourceLayerId: sourceLayerId,
+      targetLayerId: targetLayerId,
+    );
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
   Future<SheetSetlist> createSetlist(String title) async {
     final now = DateTime.now();
     final setlist = SheetSetlist(

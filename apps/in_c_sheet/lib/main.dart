@@ -17632,6 +17632,68 @@ setlist=$setlistLabel
     _showSnackBar('${displayLayer.label} layer를 삭제했습니다.');
   }
 
+  Future<void> _moveActiveAnnotationLayerContents() async {
+    final currentScore = score;
+    final sourceLayer = _activeAnnotationDisplayLayer(
+      currentScore.annotationLayer,
+    );
+    final annotationCount = currentScore.annotationLayer
+        .annotationCountForDisplayLayer(sourceLayer.id);
+    if (annotationCount == 0) {
+      _showSnackBar('${sourceLayer.label} layer에 이동할 주석이 없습니다.');
+      return;
+    }
+    final targetLayerId = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _AnnotationMoveLayerSheet(
+        layers: currentScore.annotationLayer.layers,
+        currentLayerId: sourceLayer.id,
+        annotationCount: annotationCount,
+      ),
+    );
+    if (targetLayerId == null || !mounted) return;
+    final targetLayer = currentScore.annotationLayer.displayLayerForAnnotation(
+      targetLayerId,
+    );
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('layer 주석 모두 이동'),
+        content: Text(
+          '${sourceLayer.label} layer의 주석 $annotationCount개를 '
+          '${targetLayer.label} layer로 옮길까요?\n\n'
+          '원래 layer는 비어 있는 상태로 남습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('모두 이동'),
+          ),
+        ],
+      ),
+    );
+    if (didConfirm != true || !mounted) return;
+    final request = _annotationLayerSaveRequest = Object();
+    final didMove = await _saveAnnotationChange(
+      () => widget.controller.moveAnnotationDisplayLayerContents(
+        currentScore,
+        sourceLayerId: sourceLayer.id,
+        targetLayerId: targetLayer.id,
+      ),
+      isCurrent: () => identical(_annotationLayerSaveRequest, request),
+    );
+    if (didMove != true || !mounted) return;
+    setState(() {
+      _activeAnnotationLayerId = targetLayer.id;
+    });
+    _showSnackBar('주석 $annotationCount개를 ${targetLayer.label} layer로 이동했습니다.');
+  }
+
   List<_AnnotationStamp> _recentAnnotationStamps() {
     final seen = <_AnnotationStamp>{};
     final stamps = <_AnnotationStamp>[];
@@ -20207,6 +20269,8 @@ setlist=$setlistLabel
                           onCreateLayer: _createAnnotationDisplayLayer,
                           onRenameLayer: _renameAnnotationDisplayLayer,
                           onDeleteLayer: _deleteAnnotationDisplayLayer,
+                          onMoveLayerContents:
+                              _moveActiveAnnotationLayerContents,
                           onStampSelected: _selectAnnotationStamp,
                           onCreateUserStamp: (label, text) async {
                             final didSave = await widget.controller
@@ -22867,10 +22931,12 @@ class _AnnotationMoveLayerSheet extends StatelessWidget {
   const _AnnotationMoveLayerSheet({
     required this.layers,
     required this.currentLayerId,
+    this.annotationCount,
   });
 
   final List<SheetAnnotationDisplayLayer> layers;
   final String currentLayerId;
+  final int? annotationCount;
 
   @override
   Widget build(BuildContext context) {
@@ -22885,7 +22951,14 @@ class _AnnotationMoveLayerSheet extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.layers_outlined),
             title: Text('다른 layer로 이동'),
-            subtitle: Text('선택한 주석만 대상 layer로 옮깁니다.'),
+          ),
+          ListTile(
+            dense: true,
+            title: Text(
+              annotationCount == null
+                  ? '선택한 주석만 대상 layer로 옮깁니다.'
+                  : '현재 layer의 주석 $annotationCount개를 함께 옮깁니다.',
+            ),
           ),
           if (targetLayers.isEmpty)
             const ListTile(
@@ -22962,6 +23035,7 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onCreateLayer,
     required this.onRenameLayer,
     required this.onDeleteLayer,
+    required this.onMoveLayerContents,
     required this.onStampSelected,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
@@ -22994,6 +23068,7 @@ class _AnnotationToolbar extends StatelessWidget {
   final VoidCallback onCreateLayer;
   final VoidCallback onRenameLayer;
   final VoidCallback onDeleteLayer;
+  final VoidCallback onMoveLayerContents;
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
@@ -23056,6 +23131,10 @@ class _AnnotationToolbar extends StatelessWidget {
               onDeleteLayer();
               return;
             }
+            if (value == '__move_layer_contents__') {
+              onMoveLayerContents();
+              return;
+            }
             onLayerSelected(value);
           },
           itemBuilder: (context) => <PopupMenuEntry<String>>[
@@ -23094,6 +23173,16 @@ class _AnnotationToolbar extends StatelessWidget {
                   dense: true,
                   leading: Icon(Icons.edit_outlined),
                   title: Text('현재 layer 이름 변경'),
+                ),
+              ),
+            if (displayLayers.length > 1)
+              const PopupMenuItem<String>(
+                value: '__move_layer_contents__',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.drive_file_move_outline),
+                  title: Text('현재 layer 주석 모두 이동'),
+                  subtitle: Text('layer는 남기고 주석만 이동'),
                 ),
               ),
             if (activeLayer.id != SheetAnnotationDisplayLayer.defaultLayerId)
@@ -27127,6 +27216,7 @@ Widget buildAnnotationToolbarForTest({
   Future<PickedUserImageStampFile?> Function()? onPickImageStampFile,
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onDeleteUserStamp,
+  VoidCallback? onMoveLayerContents,
 }) {
   final recentStamps = recentStampNames
       .map(_AnnotationStamp.tryFromName)
@@ -27164,6 +27254,7 @@ Widget buildAnnotationToolbarForTest({
           onCreateLayer: () {},
           onRenameLayer: () {},
           onDeleteLayer: () {},
+          onMoveLayerContents: onMoveLayerContents ?? () {},
           onColorSelected: (_) {},
           onWidthChanged: (_) {},
           onStampSelected: (selection) {
@@ -27205,6 +27296,7 @@ Widget buildAnnotationMoveLayerSheetForTest({
     SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
   ],
   String currentLayerId = SheetAnnotationDisplayLayer.defaultLayerId,
+  int? annotationCount,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -27212,6 +27304,7 @@ Widget buildAnnotationMoveLayerSheetForTest({
         builder: (context) => _AnnotationMoveLayerSheet(
           layers: layers,
           currentLayerId: currentLayerId,
+          annotationCount: annotationCount,
         ),
       ),
     ),

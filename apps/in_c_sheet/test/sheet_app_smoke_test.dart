@@ -4414,12 +4414,14 @@ Clef & Staff 세트리스트
   testWidgets('annotation toolbar exposes named layer selection', (
     tester,
   ) async {
+    var didRequestLayerMove = false;
     await tester.pumpWidget(
       buildAnnotationToolbarForTest(
         displayLayers: const <SheetAnnotationDisplayLayer>[
           SheetAnnotationDisplayLayer.defaultLayer,
           SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
         ],
+        onMoveLayerContents: () => didRequestLayerMove = true,
       ),
     );
 
@@ -4442,7 +4444,12 @@ Clef & Staff 세트리스트
 
     expect(find.text('현재 layer 이름 변경'), findsOneWidget);
     expect(find.text('현재 layer 삭제'), findsOneWidget);
+    expect(find.text('현재 layer 주석 모두 이동'), findsOneWidget);
     expect(find.text('주석은 기본 필기로 유지'), findsOneWidget);
+
+    await tester.tap(find.text('현재 layer 주석 모두 이동'));
+    await tester.pumpAndSettle();
+    expect(didRequestLayerMove, isTrue);
     expect(tester.takeException(), isNull);
   });
 
@@ -4471,6 +4478,25 @@ Clef & Staff 세트리스트
     expect(find.text('개인 메모'), findsOneWidget);
     expect(find.text('숨김 · PDF 제외'), findsOneWidget);
     expect(find.text('리허설 메모'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation bulk move sheet explains the moved count', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildAnnotationMoveLayerSheetForTest(
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+        ],
+        currentLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        annotationCount: 12,
+      ),
+    );
+
+    expect(find.text('현재 layer의 주석 12개를 함께 옮깁니다.'), findsOneWidget);
+    expect(find.text('리허설 메모'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

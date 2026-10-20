@@ -5424,6 +5424,30 @@ Clef & Staff 세트리스트
       isFalse,
     );
 
+    final didMoveLayerContents = await controller
+        .moveAnnotationDisplayLayerContents(
+          controller.scores.single,
+          sourceLayerId: 'rehearsal',
+          targetLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        );
+    expect(didMoveLayerContents, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      await controller.moveAnnotationDisplayLayerContents(
+        controller.scores.single,
+        sourceLayerId: 'rehearsal',
+        targetLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+      ),
+      isFalse,
+    );
+
     final didRename = await controller.updateAnnotationDisplayLayer(
       controller.scores.single,
       layer.displayLayerForAnnotation('rehearsal').copyWith(label: '공연 메모'),

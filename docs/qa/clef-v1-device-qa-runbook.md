@@ -387,6 +387,9 @@ Audio/tuner:
   재생 전에 이해 가능한 안내로 막히는지 확인한다.
   이어폰/스피커/Bluetooth에서 loop가 갑자기 끊기거나 밀리는지 기록한다.
   waveform timeline/tempo/pitch shift는 아직 후속 범위다.
+- 필기 layer를 둘 이상 만든 뒤 stroke/text/image stamp를 한 layer에 추가하고 `현재 layer 주석 모두 이동`으로
+  다른 layer에 옮긴다. 이동 개수, 확인 dialog, 원래 layer의 빈 상태, 대상 layer의 표시/PDF 포함 설정,
+  앱 재시작 후 저장 상태를 확인한다. 이 검증은 임의 객체 multi-select 지원으로 기록하지 않는다.
 - 메트로놈 BPM/박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, tick sound, viewer mini
   panel 전환과 장시간 사용 중 page turn/tap zone 충돌 여부.
 - 다중 선택 bulk setlist add, 세트리스트 drag reorder, 최근 세트리스트 rail, tap zone hint,

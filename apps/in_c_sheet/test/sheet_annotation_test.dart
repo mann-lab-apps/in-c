@@ -1084,6 +1084,67 @@ void main() {
     );
   });
 
+  test('moves every annotation and history payload between display layers', () {
+    final now = DateTime.parse('2026-10-20T10:00:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'rehearsal-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final defaultStroke = _stroke(
+      id: 'default-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final rehearsalText = _text(
+      id: 'rehearsal-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+      layerId: 'rehearsal',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke, defaultStroke],
+      texts: <SheetTextAnnotation>[rehearsalText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(rehearsalText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+        SheetAnnotationDisplayLayer(id: 'private', label: '개인'),
+      ],
+    );
+
+    final moved = layer.moveDisplayLayerAnnotations(
+      sourceLayerId: 'rehearsal',
+      targetLayerId: 'private',
+    );
+
+    expect(layer.annotationCountForDisplayLayer('rehearsal'), 2);
+    expect(moved.annotationCountForDisplayLayer('rehearsal'), 0);
+    expect(moved.annotationCountForDisplayLayer('private'), 2);
+    expect(moved.strokes.first.layerId, 'private');
+    expect(moved.strokes.last.layerId, 'default');
+    expect(moved.texts.single.layerId, 'private');
+    expect(moved.redoStack.single.stroke?.layerId, 'private');
+    expect(moved.eraseUndoStack.single.text?.layerId, 'private');
+    expect(moved.displayLayerLabels, <String>['기본 필기', '리허설', '개인']);
+    expect(
+      identical(
+        moved.moveDisplayLayerAnnotations(
+          sourceLayerId: 'rehearsal',
+          targetLayerId: 'default',
+        ),
+        moved,
+      ),
+      isTrue,
+    );
+  });
+
   test('removing a display layer rekeys undo payloads to default', () {
     final now = DateTime.parse('2026-10-08T10:00:00.000');
     final rehearsalStroke = _stroke(

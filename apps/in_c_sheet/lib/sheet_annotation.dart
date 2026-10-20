@@ -1079,6 +1079,14 @@ class SheetAnnotationLayer {
   List<String> get displayLayerLabels =>
       layers.map((layer) => layer.label).toList(growable: false);
 
+  int annotationCountForDisplayLayer(String layerId) {
+    final normalizedLayerId = displayLayerForAnnotation(layerId).id;
+    return strokes
+            .where((stroke) => stroke.layerId == normalizedLayerId)
+            .length +
+        texts.where((text) => text.layerId == normalizedLayerId).length;
+  }
+
   SheetAnnotationDisplayLayer displayLayerForAnnotation(String layerId) {
     final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
     for (final layer in layers) {
@@ -1282,6 +1290,53 @@ class SheetAnnotationLayer {
       texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
       redoStack: const <SheetAnnotationRedoEntry>[],
       eraseUndoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
+    );
+  }
+
+  SheetAnnotationLayer moveDisplayLayerAnnotations({
+    required String sourceLayerId,
+    required String targetLayerId,
+  }) {
+    final normalizedSourceId = displayLayerForAnnotation(sourceLayerId).id;
+    final normalizedTargetId = _normalizeAnnotationLayerId(targetLayerId);
+    if (normalizedSourceId == normalizedTargetId ||
+        !layers.any((layer) => layer.id == normalizedTargetId) ||
+        annotationCountForDisplayLayer(normalizedSourceId) == 0) {
+      return this;
+    }
+
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        strokes.map(
+          (stroke) =>
+              _moveStrokeLayer(stroke, normalizedSourceId, normalizedTargetId),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        texts.map(
+          (text) =>
+              _moveTextLayer(text, normalizedSourceId, normalizedTargetId),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        redoStack.map(
+          (entry) => _moveRedoEntryLayer(
+            entry,
+            normalizedSourceId,
+            normalizedTargetId,
+          ),
+        ),
+      ),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        eraseUndoStack.map(
+          (entry) => _moveRedoEntryLayer(
+            entry,
+            normalizedSourceId,
+            normalizedTargetId,
+          ),
+        ),
+      ),
       layers: layers,
     );
   }
@@ -1876,6 +1931,17 @@ class SheetAnnotationLayer {
     );
   }
 
+  static SheetAnnotationStroke _moveStrokeLayer(
+    SheetAnnotationStroke stroke,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    if (stroke.layerId != sourceLayerId) {
+      return stroke;
+    }
+    return stroke.copyWith(layerId: targetLayerId);
+  }
+
   static SheetTextAnnotation _rekeyTextLayer(
     SheetTextAnnotation text,
     String removedLayerId,
@@ -1884,6 +1950,17 @@ class SheetAnnotationLayer {
       return text;
     }
     return text.copyWith(layerId: SheetAnnotationDisplayLayer.defaultLayerId);
+  }
+
+  static SheetTextAnnotation _moveTextLayer(
+    SheetTextAnnotation text,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    if (text.layerId != sourceLayerId) {
+      return text;
+    }
+    return text.copyWith(layerId: targetLayerId);
   }
 
   static SheetAnnotationRedoEntry _rekeyRedoEntryLayer(
@@ -1906,6 +1983,30 @@ class SheetAnnotationLayer {
       if (identical(nextText, text)) {
         return entry;
       }
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseText(nextText)
+          : SheetAnnotationRedoEntry.text(nextText);
+    }
+    return entry;
+  }
+
+  static SheetAnnotationRedoEntry _moveRedoEntryLayer(
+    SheetAnnotationRedoEntry entry,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      final nextStroke = _moveStrokeLayer(stroke, sourceLayerId, targetLayerId);
+      if (identical(nextStroke, stroke)) return entry;
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseStroke(nextStroke)
+          : SheetAnnotationRedoEntry.stroke(nextStroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      final nextText = _moveTextLayer(text, sourceLayerId, targetLayerId);
+      if (identical(nextText, text)) return entry;
       return entry.erasesAnnotation
           ? SheetAnnotationRedoEntry.eraseText(nextText)
           : SheetAnnotationRedoEntry.text(nextText);
