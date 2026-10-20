@@ -3265,3 +3265,12 @@ player retained after stop remains a WARN instead of being hidden by the earlier
 still excluded from the report and cleaned after the probe. Injected-channel regressions cover a complete pass, an unrelated
 drone failure, player-open failure and a deliberately retained player. This remains an initialization/lifecycle signal, not
 evidence of audible output, route behavior, latency, codec breadth or A-B boundary precision.
+
+S327 VERIFIED LOCAL: made the device report capture an anonymous output-route class during its silent drone probe instead of
+asking testers to infer every route manually. iOS reports only `AVAudioSession` port-type values and normalized system output
+volume; Android reports the active tone `AudioTrack` routed-device type after a short settle delay plus normalized music
+stream volume. Neither platform returns Bluetooth product names, addresses or identifiers. Missing/unknown route data is a
+WARN while the other bridge checks continue. Injected-channel and source-wiring regressions cover the route response and
+privacy boundary; Swift formatting/parsing passes. Android native compilation remains for the next approved build because the
+project has no Gradle wrapper. Route detection does not prove audible quality, latency, Bluetooth stability or correct user
+device selection, so those remain Device QA.

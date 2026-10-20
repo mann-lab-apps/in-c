@@ -76,6 +76,12 @@ final class ClefTonePlayerBridge {
     case "stop":
       stop()
       result(nil)
+    case "routeInfo":
+      let session = AVAudioSession.sharedInstance()
+      result([
+        "outputs": session.currentRoute.outputs.map { $0.portType.rawValue },
+        "systemVolume": session.outputVolume,
+      ])
     default:
       result(FlutterMethodNotImplemented)
     }

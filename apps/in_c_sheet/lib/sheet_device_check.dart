@@ -47,18 +47,39 @@ class SheetPracticeAudioBridgeChecker {
       issues.add('metronome ${error.runtimeType}');
     }
 
+    var toneStarted = false;
     try {
       await _toneChannel.invokeMethod<void>('play', <String, Object?>{
         'frequencies': const <double>[440],
         'volume': 0.0,
       });
       ready.add('drone silent output');
+      toneStarted = true;
     } on MissingPluginException {
       issues.add('drone bridge 미등록');
     } on PlatformException catch (error) {
       issues.add('drone ${error.code}');
     } catch (error) {
       issues.add('drone ${error.runtimeType}');
+    }
+    if (toneStarted) {
+      try {
+        final route = await _toneChannel.invokeMapMethod<String, Object?>(
+          'routeInfo',
+        );
+        final routeDetails = _audioRouteDetails(route);
+        if (routeDetails == null) {
+          issues.add('audio route 조회 실패');
+        } else {
+          ready.add(routeDetails);
+        }
+      } on MissingPluginException {
+        issues.add('audio route bridge 미등록');
+      } on PlatformException catch (error) {
+        issues.add('audio route ${error.code}');
+      } catch (error) {
+        issues.add('audio route ${error.runtimeType}');
+      }
     }
 
     String? audioFixturePath;
@@ -176,6 +197,27 @@ class SheetPracticeAudioBridgeChecker {
     } catch (_) {
       // Diagnostics cleanup must not hide the probe result.
     }
+  }
+
+  static String? _audioRouteDetails(Map<String, Object?>? response) {
+    final rawOutputs = response?['outputs'];
+    if (rawOutputs is! List) return null;
+    final outputs = rawOutputs
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty && value != 'unknown')
+        .toSet()
+        .toList(growable: false);
+    if (outputs.isEmpty) return null;
+    final rawVolume = response?['systemVolume'];
+    final volume = switch (rawVolume) {
+      num value when value.isFinite => value.toDouble().clamp(0.0, 1.0),
+      _ => null,
+    };
+    final volumeLabel = volume == null
+        ? ''
+        : ' · system volume ${(volume * 100).round()}%';
+    return 'audio route ${outputs.join('/')}$volumeLabel';
   }
 }
 

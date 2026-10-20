@@ -26,6 +26,8 @@ void main() {
     expect(toneBridge, contains('clef/tone_player'));
     expect(toneBridge, contains('case "play"'));
     expect(toneBridge, contains('case "stop"'));
+    expect(toneBridge, contains('case "routeInfo"'));
+    expect(toneBridge, contains('currentRoute.outputs'));
     expect(toneBridge, contains('AVAudioEngine'));
     expect(metronomeBridge, contains('clef/metronome_player'));
     expect(metronomeBridge, contains('case "prepare"'));

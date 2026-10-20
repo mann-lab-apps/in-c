@@ -25,6 +25,12 @@ void main() {
     });
     messenger.setMockMethodCallHandler(toneChannel, (call) async {
       toneCalls.add(call);
+      if (call.method == 'routeInfo') {
+        return <String, Object?>{
+          'outputs': <String>['builtInSpeaker'],
+          'systemVolume': 0.4,
+        };
+      }
       return null;
     });
     messenger.setMockMethodCallHandler(audioChannel, (call) async {
@@ -71,13 +77,15 @@ void main() {
     expect(item.details, contains('linked audio silent playback'));
     expect(item.details, contains('linked audio position 20/250ms'));
     expect(item.details, contains('linked audio stop lifecycle'));
+    expect(item.details, contains('audio route builtInSpeaker'));
+    expect(item.details, contains('system volume 40%'));
     expect(
       metronomeCalls.map((call) => call.method),
       orderedEquals(<String>['prepare', 'stop']),
     );
     expect(
       toneCalls.map((call) => call.method),
-      orderedEquals(<String>['play', 'stop']),
+      orderedEquals(<String>['play', 'routeInfo', 'stop']),
     );
     expect(toneCalls.first.arguments, <String, Object?>{
       'frequencies': const <double>[440],

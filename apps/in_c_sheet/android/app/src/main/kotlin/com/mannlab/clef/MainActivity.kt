@@ -1,7 +1,9 @@
 package com.mannlab.clef
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
@@ -182,6 +184,26 @@ class MainActivity : FlutterActivity() {
                 "stop" -> {
                     tonePlayer.stop()
                     result.success(null)
+                }
+                "routeInfo" -> {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        val audioManager =
+                            getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        result.success(
+                            mapOf(
+                                "outputs" to listOf(
+                                    audioOutputTypeLabel(tonePlayer.routedDeviceType()),
+                                ),
+                                "systemVolume" to if (maxVolume > 0) {
+                                    currentVolume.toDouble() / maxVolume
+                                } else {
+                                    0.0
+                                },
+                            ),
+                        )
+                    }, 50L)
                 }
                 else -> result.notImplemented()
             }
@@ -656,6 +678,15 @@ private class ClefTonePlayer {
         audioTrack = null
     }
 
+    @Synchronized
+    fun routedDeviceType(): Int? {
+        return try {
+            audioTrack?.routedDevice?.type
+        } catch (_: IllegalStateException) {
+            null
+        }
+    }
+
     private fun streamSineDrone(
         track: AudioTrack,
         frequencies: List<Double>,
@@ -689,6 +720,21 @@ private class ClefTonePlayer {
         } catch (_: IllegalStateException) {
             isRunning = false
         }
+    }
+}
+
+private fun audioOutputTypeLabel(type: Int?): String {
+    return when (type) {
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "builtInSpeaker"
+        AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wiredHeadset"
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wiredHeadphones"
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bluetoothSco"
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bluetoothA2dp"
+        AudioDeviceInfo.TYPE_HDMI -> "hdmi"
+        AudioDeviceInfo.TYPE_USB_DEVICE -> "usbDevice"
+        AudioDeviceInfo.TYPE_USB_ACCESSORY -> "usbAccessory"
+        null -> "unknown"
+        else -> "type-$type"
     }
 }
 
