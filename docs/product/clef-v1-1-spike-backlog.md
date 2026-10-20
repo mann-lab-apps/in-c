@@ -285,8 +285,9 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 ## 9. 저지연 Metronome/Audio/iOS Playback Parity
 
 - 현재 v1 상태: visual metronome, Android native metronome tick volume/accent click, Android native
-  tone/drone, Android `MediaPlayer`와 iOS `AVAudioPlayer` local audio playback/A-B loop,
-  linked audio metadata/backup이 있다. iOS bridge wiring과 Swift parse는 로컬 확인했지만 실제 codec,
+  tone/drone과 iOS `AVAudioEngine` PCM tone/drone, Android `MediaPlayer`와 iOS `AVAudioPlayer` local
+  audio playback/A-B loop, linked audio metadata/backup이 있다. 두 iOS bridge wiring과 Swift parse는
+  로컬 확인했고 공동 audio-session ownership을 사용하지만 실제 codec, 음량, 시작/종료 잡음,
   audio route, background/foreground와 loop timing은 Device QA다. 튜너는
   Chromatic-only UI, sharp/flat 표기, LED/input bar, A4 quick/history/보정 제안, adaptive noise
   floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
@@ -298,8 +299,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   bridge, codec support를 결정해야 한다.
 - 결정 필요사항: audio package/native bridge, tick/accent asset, latency target, background/lock
   screen policy, iOS audio session category, codec matrix.
-- 구현 후보: native low-latency audio engine, preloaded tick/accent buffers, shared transport state,
-  iOS tone player bridge, latency debug screen, tuner noise calibration dashboard와 MPM/native
+- 구현 후보: native low-latency metronome engine, preloaded tick/accent buffers, shared transport state,
+  latency debug screen, tuner noise calibration dashboard와 MPM/native
   detector 비교 spike.
 - 테스트/fixture/실기기 조건: Android tablet, iPhone/iPad, wired/Bluetooth output, MP3/M4A/WAV,
   BPM 40-240, accent drift measurement, tuner concurrent use, 실제 악기/외부 마이크 cents jitter 측정,

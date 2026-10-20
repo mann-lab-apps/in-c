@@ -60,6 +60,16 @@ class RunnerTests: XCTestCase {
     )
   }
 
+  func testToneInputNormalizationMatchesFlutterContract() {
+    XCTAssertEqual(
+      ClefTonePlayerBridge.normalizeFrequencies([19, 440, "660", 20_001]),
+      [440, 660]
+    )
+    XCTAssertEqual(ClefTonePlayerBridge.normalizeVolume(-0.5), 0)
+    XCTAssertEqual(ClefTonePlayerBridge.normalizeVolume(1.5), 1)
+    XCTAssertEqual(ClefTonePlayerBridge.normalizeVolume(nil), 0.35)
+  }
+
   func testExample() {
     // If you add code to the Runner application, consider adding tests here.
     // See https://developer.apple.com/documentation/xctest for more information about using XCTest.

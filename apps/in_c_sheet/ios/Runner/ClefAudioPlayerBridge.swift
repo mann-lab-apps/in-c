@@ -11,6 +11,7 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
   static let shared = ClefAudioPlayerBridge()
 
   private let channelName = "clef/audio_player"
+  private let sessionOwner = "clef-linked-audio-player"
   private var channel: FlutterMethodChannel?
   private var player: AVAudioPlayer?
   private var loopRange: ClefAudioLoopRange?
@@ -76,9 +77,7 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
       throw ClefAudioPlayerError.missingFile
     }
 
-    let session = AVAudioSession.sharedInstance()
-    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-    try session.setActive(true)
+    try ClefAudioSessionCoordinator.shared.activate(owner: sessionOwner)
 
     let nextPlayer = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: normalizedPath))
     nextPlayer.delegate = self
@@ -107,10 +106,7 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
     player?.stop()
     player = nil
     loopRange = nil
-    try? AVAudioSession.sharedInstance().setActive(
-      false,
-      options: [.notifyOthersOnDeactivation]
-    )
+    ClefAudioSessionCoordinator.shared.deactivate(owner: sessionOwner)
   }
 
   func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {

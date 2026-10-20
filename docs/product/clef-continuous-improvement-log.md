@@ -3186,3 +3186,14 @@ guards the channel, methods and project membership. Swift format/typecheck, proj
 `flutter analyze`, all 1,800 Flutter tests and the RC release check pass. The XCTest was not executed because this slice did
 not run an iOS build. Actual iPhone/iPad codecs, route changes, background behavior, Bluetooth and loop timing remain Device
 QA; metronome and drone iOS native parity remain separate work.
+
+S318 VERIFIED LOCAL: added the missing iOS native reference-tone/drone path without changing Clef's tuner controls. The
+`clef/tone_player` bridge now generates a bounded one-to-eight-frequency mono PCM buffer with `AVAudioEngine`, applies the
+existing clipping-safe app volume and loops a ten-second buffer whose component cycle counts are integral to reduce boundary
+seams. Input frequency and volume normalization match the Flutter contract. A shared owner-aware playback-session coordinator
+lets the tone bridge and linked-audio bridge coexist, and stopping either owner no longer deactivates the other's session.
+AppDelegate/Xcode source wiring, XCTest source normalization coverage and the Dart project-wiring regression were updated.
+Swift format/typecheck, project plist validation, Xcode project resolution, `flutter analyze`, all 1,800 Flutter tests and the
+RC release check pass. Xcode project resolution still reports the pre-existing generated-package warning for a missing
+`Resources/PrivacyInfo.xcprivacy`; this slice did not build iOS or execute XCTest. Actual iPhone/iPad volume, ten-second loop
+boundary, start/stop noise, latency, route changes, Bluetooth and concurrent linked-audio behavior remain Device QA.

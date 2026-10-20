@@ -13,6 +13,7 @@
 		4F5C4C132D6A100000000001 /* ClefSharedImportBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5C4C122D6A100000000001 /* ClefSharedImportBridge.swift */; };
 		4F5C4C152D6A100000000001 /* InCDailyNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5C4C142D6A100000000001 /* InCDailyNotificationBridge.swift */; };
 		4F5C4C172D6A100000000001 /* ClefAudioPlayerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5C4C162D6A100000000001 /* ClefAudioPlayerBridge.swift */; };
+		4F5C4C192D6A100000000001 /* ClefTonePlayerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5C4C182D6A100000000001 /* ClefTonePlayerBridge.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
@@ -53,6 +54,7 @@
 		4F5C4C122D6A100000000001 /* ClefSharedImportBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClefSharedImportBridge.swift; sourceTree = "<group>"; };
 		4F5C4C142D6A100000000001 /* InCDailyNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InCDailyNotificationBridge.swift; sourceTree = "<group>"; };
 		4F5C4C162D6A100000000001 /* ClefAudioPlayerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClefAudioPlayerBridge.swift; sourceTree = "<group>"; };
+		4F5C4C182D6A100000000001 /* ClefTonePlayerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClefTonePlayerBridge.swift; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				4F5C4C122D6A100000000001 /* ClefSharedImportBridge.swift */,
 				4F5C4C142D6A100000000001 /* InCDailyNotificationBridge.swift */,
 				4F5C4C162D6A100000000001 /* ClefAudioPlayerBridge.swift */,
+				4F5C4C182D6A100000000001 /* ClefTonePlayerBridge.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -294,6 +297,7 @@
 				4F5C4C132D6A100000000001 /* ClefSharedImportBridge.swift in Sources */,
 				4F5C4C152D6A100000000001 /* InCDailyNotificationBridge.swift in Sources */,
 				4F5C4C172D6A100000000001 /* ClefAudioPlayerBridge.swift in Sources */,
+				4F5C4C192D6A100000000001 /* ClefTonePlayerBridge.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);
