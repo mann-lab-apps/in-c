@@ -41,6 +41,11 @@ void main() {
         case 'play':
           audioPlaying = true;
           return null;
+        case 'routeInfo':
+          return <String, Object?>{
+            'outputs': <String>['builtInSpeaker'],
+            'systemVolume': 0.4,
+          };
         case 'position':
           if (!audioPlaying) {
             throw PlatformException(code: 'not_playing');
@@ -75,6 +80,7 @@ void main() {
     expect(item.details, contains('drone silent output'));
     expect(item.details, contains('linked audio duration'));
     expect(item.details, contains('linked audio silent playback'));
+    expect(item.details, contains('linked audio route builtInSpeaker'));
     expect(item.details, contains('linked audio position 20/250ms'));
     expect(item.details, contains('linked audio stop lifecycle'));
     expect(item.details, contains('audio route builtInSpeaker'));
@@ -96,6 +102,7 @@ void main() {
       orderedEquals(<String>[
         'inspect',
         'play',
+        'routeInfo',
         'position',
         'stop',
         'position',

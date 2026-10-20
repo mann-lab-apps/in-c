@@ -95,6 +95,15 @@ class SheetPracticeAudioBridgeChecker {
       final playback = await _audioPlayer.play(audioFixturePath);
       if (playback.isPlaying) {
         ready.add('linked audio silent playback');
+        final routeDetails = _audioRouteDetails(
+          await _audioPlayer.readRouteInfo(),
+          label: 'linked audio route',
+        );
+        if (routeDetails == null) {
+          issues.add('linked audio route 조회 실패');
+        } else {
+          ready.add(routeDetails);
+        }
         final position = await _audioPlayer.readPosition();
         if (position == null) {
           issues.add('linked audio position 조회 실패');
@@ -199,7 +208,10 @@ class SheetPracticeAudioBridgeChecker {
     }
   }
 
-  static String? _audioRouteDetails(Map<String, Object?>? response) {
+  static String? _audioRouteDetails(
+    Map<String, Object?>? response, {
+    String label = 'audio route',
+  }) {
     final rawOutputs = response?['outputs'];
     if (rawOutputs is! List) return null;
     final outputs = rawOutputs
@@ -217,7 +229,7 @@ class SheetPracticeAudioBridgeChecker {
     final volumeLabel = volume == null
         ? ''
         : ' · system volume ${(volume * 100).round()}%';
-    return 'audio route ${outputs.join('/')}$volumeLabel';
+    return '$label ${outputs.join('/')}$volumeLabel';
   }
 }
 

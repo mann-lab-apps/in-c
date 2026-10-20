@@ -16,6 +16,7 @@ void main() {
     expect(activity, contains('"stop" ->'));
     expect(activity, contains('"routeInfo" ->'));
     expect(activity, contains('routedDeviceType()'));
+    expect(activity, contains('audioPlayer.routedDeviceType()'));
     expect(activity, isNot(contains('routedDevice?.productName')));
   });
 }

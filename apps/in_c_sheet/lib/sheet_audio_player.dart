@@ -6,6 +6,16 @@ class SheetAudioPlayer {
 
   final MethodChannel _channel;
 
+  Future<Map<String, Object?>?> readRouteInfo() async {
+    try {
+      return await _channel.invokeMapMethod<String, Object?>('routeInfo');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   Future<SheetAudioPlaybackPosition?> readPosition() async {
     try {
       final response = await _channel.invokeMapMethod<String, Object?>(

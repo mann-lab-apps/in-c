@@ -305,6 +305,26 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                 }
+                "routeInfo" -> {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        val audioManager =
+                            getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        result.success(
+                            mapOf(
+                                "outputs" to listOf(
+                                    audioOutputTypeLabel(audioPlayer.routedDeviceType()),
+                                ),
+                                "systemVolume" to if (maxVolume > 0) {
+                                    currentVolume.toDouble() / maxVolume
+                                } else {
+                                    0.0
+                                },
+                            ),
+                        )
+                    }, 50L)
+                }
                 "stop" -> {
                     audioPlayer.stop()
                     result.success(null)
@@ -774,6 +794,15 @@ private class ClefAudioPlayer {
             )
         } catch (error: IllegalStateException) {
             throw IllegalStateException("Linked audio position is unavailable.", error)
+        }
+    }
+
+    @Synchronized
+    fun routedDeviceType(): Int? {
+        return try {
+            mediaPlayer?.routedDevice?.type
+        } catch (_: IllegalStateException) {
+            null
         }
     }
 

@@ -43,6 +43,21 @@ final class ClefAudioPlayerBridge: NSObject, AVAudioPlayerDelegate {
         "durationMs": Int((player.duration * 1000).rounded()),
         "isPlaying": player.isPlaying,
       ])
+    case "routeInfo":
+      guard player != nil else {
+        result(
+          FlutterError(
+            code: "not_playing",
+            message: "No linked audio track is active.",
+            details: nil
+          ))
+        return
+      }
+      let session = AVAudioSession.sharedInstance()
+      result([
+        "outputs": session.currentRoute.outputs.map { $0.portType.rawValue },
+        "systemVolume": session.outputVolume,
+      ])
     case "inspect":
       guard
         let arguments = call.arguments as? [String: Any],

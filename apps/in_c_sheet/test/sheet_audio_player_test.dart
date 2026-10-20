@@ -5,6 +5,25 @@ import 'package:in_c_sheet/sheet_audio_player.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('reads anonymous linked-audio output route info', () async {
+    const channel = MethodChannel('clef/test_audio_route');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'routeInfo');
+      return <String, Object?>{
+        'outputs': <String>['builtInSpeaker'],
+        'systemVolume': 0.5,
+      };
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    final route = await SheetAudioPlayer(channel: channel).readRouteInfo();
+
+    expect(route?['outputs'], <String>['builtInSpeaker']);
+    expect(route?['systemVolume'], 0.5);
+  });
+
   test('sends local audio path through method channel', () async {
     final channel = const MethodChannel('clef/test_audio_player');
     final calls = <MethodCall>[];

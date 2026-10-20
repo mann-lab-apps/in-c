@@ -3294,3 +3294,11 @@ Concurrent annotation object edits, divergent setlist order, different source-fi
 remain manual-review conflicts with named fields; the generated report still omits both local and remote source paths. This
 test does not make those structures mergeable: annotation object identity/tombstones, ordered-list operations, binary copy
 preservation and stamp-pack decisions remain required before any merge writer can safely apply them.
+
+S331 VERIFIED LOCAL: extended the silent linked-audio Device QA probe with its own anonymous output-route snapshot instead
+of assuming the drone route proves the file player route. Android samples the active `MediaPlayer` routed-device type after
+playback starts; iOS samples the shared audio-session port types while `AVAudioPlayer` is active. Both return normalized
+system volume and omit product names, addresses and identifiers. Missing route data is a WARN while duration, position and
+stop-lifecycle checks continue. Dart/native wiring tests and Swift format/parse validation pass; Android native compilation
+remains gated by the next approved build because this worktree has no Gradle wrapper. The snapshot does not prove audible
+quality, Bluetooth stability, latency or A-B boundary precision, which remain Device QA.
