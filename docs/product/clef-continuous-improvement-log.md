@@ -3257,3 +3257,11 @@ add collisions, delete-versus-edit and divergent app/practice-tool settings rema
 settings rows are deterministic and expose the conflicting field labels. Unit fixtures cover disjoint title/tag changes,
 overlapping title edits, delete-versus-edit, identical edits and annotation-preset settings conflicts. This does not provide
 an account, transport, timestamps/tombstones, automatic merge or rollback and must not be presented as continuous cloud sync.
+
+S326 VERIFIED LOCAL: extended the developer device report's temporary-WAV linked-audio probe through the new position and
+stop lifecycle contract. After native duration inspection and silent playback initialize, the checker records a bounded
+current-position/duration snapshot, sends stop and requires the active player to disappear; a missing position response or a
+player retained after stop remains a WARN instead of being hidden by the earlier play PASS. The fixture path and bytes are
+still excluded from the report and cleaned after the probe. Injected-channel regressions cover a complete pass, an unrelated
+drone failure, player-open failure and a deliberately retained player. This remains an initialization/lifecycle signal, not
+evidence of audible output, route behavior, latency, codec breadth or A-B boundary precision.

@@ -16,6 +16,7 @@ void main() {
     final toneCalls = <MethodCall>[];
     final audioCalls = <MethodCall>[];
     final deletedFixtures = <String>[];
+    var audioPlaying = false;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(metronomeChannel, (call) async {
@@ -28,8 +29,24 @@ void main() {
     });
     messenger.setMockMethodCallHandler(audioChannel, (call) async {
       audioCalls.add(call);
-      if (call.method == 'inspect') {
-        return <String, Object?>{'durationMs': 250};
+      switch (call.method) {
+        case 'inspect':
+          return <String, Object?>{'durationMs': 250};
+        case 'play':
+          audioPlaying = true;
+          return null;
+        case 'position':
+          if (!audioPlaying) {
+            throw PlatformException(code: 'not_playing');
+          }
+          return <String, Object?>{
+            'positionMs': 20,
+            'durationMs': 250,
+            'isPlaying': true,
+          };
+        case 'stop':
+          audioPlaying = false;
+          return null;
       }
       return null;
     });
@@ -52,6 +69,8 @@ void main() {
     expect(item.details, contains('drone silent output'));
     expect(item.details, contains('linked audio duration'));
     expect(item.details, contains('linked audio silent playback'));
+    expect(item.details, contains('linked audio position 20/250ms'));
+    expect(item.details, contains('linked audio stop lifecycle'));
     expect(
       metronomeCalls.map((call) => call.method),
       orderedEquals(<String>['prepare', 'stop']),
@@ -66,7 +85,13 @@ void main() {
     });
     expect(
       audioCalls.map((call) => call.method),
-      orderedEquals(<String>['inspect', 'play', 'stop']),
+      orderedEquals(<String>[
+        'inspect',
+        'play',
+        'position',
+        'stop',
+        'position',
+      ]),
     );
     expect(deletedFixtures, <String>['/tmp/silent.wav']);
   });
@@ -75,6 +100,7 @@ void main() {
     const metronomeChannel = MethodChannel('clef/test_metronome_failure');
     const toneChannel = MethodChannel('clef/test_tone_failure');
     const audioChannel = MethodChannel('clef/test_audio_after_failure');
+    var audioPlaying = false;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(metronomeChannel, (call) async => null);
@@ -85,8 +111,24 @@ void main() {
       return null;
     });
     messenger.setMockMethodCallHandler(audioChannel, (call) async {
-      if (call.method == 'inspect') {
-        return <String, Object?>{'durationMs': 250};
+      switch (call.method) {
+        case 'inspect':
+          return <String, Object?>{'durationMs': 250};
+        case 'play':
+          audioPlaying = true;
+          return null;
+        case 'position':
+          if (!audioPlaying) {
+            throw PlatformException(code: 'not_playing');
+          }
+          return <String, Object?>{
+            'positionMs': 10,
+            'durationMs': 250,
+            'isPlaying': true,
+          };
+        case 'stop':
+          audioPlaying = false;
+          return null;
       }
       return null;
     });
@@ -106,7 +148,9 @@ void main() {
 
     expect(item.status, SheetDeviceCheckStatus.warn);
     expect(item.details, contains('metronome click buffer'));
-    expect(item.details, contains('linked audio silent playback 준비됨'));
+    expect(item.details, contains('linked audio silent playback'));
+    expect(item.details, contains('linked audio position 10/250ms'));
+    expect(item.details, contains('linked audio stop lifecycle'));
     expect(item.details, contains('drone audio_route_unavailable'));
     expect(item.details, contains('실제 음량'));
   });
@@ -160,6 +204,51 @@ void main() {
         orderedEquals(<String>['inspect', 'play', 'stop']),
       );
       expect(deletedFixtures, <String>['/tmp/failing-silent.wav']);
+    },
+  );
+
+  test(
+    'native practice audio check warns when stop keeps player active',
+    () async {
+      const metronomeChannel = MethodChannel('clef/test_metronome_stop_state');
+      const toneChannel = MethodChannel('clef/test_tone_stop_state');
+      const audioChannel = MethodChannel('clef/test_audio_stop_state');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(
+        metronomeChannel,
+        (call) async => null,
+      );
+      messenger.setMockMethodCallHandler(toneChannel, (call) async => null);
+      messenger.setMockMethodCallHandler(audioChannel, (call) async {
+        if (call.method == 'inspect') {
+          return <String, Object?>{'durationMs': 250};
+        }
+        if (call.method == 'position') {
+          return <String, Object?>{
+            'positionMs': 30,
+            'durationMs': 250,
+            'isPlaying': true,
+          };
+        }
+        return null;
+      });
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(metronomeChannel, null);
+        messenger.setMockMethodCallHandler(toneChannel, null);
+        messenger.setMockMethodCallHandler(audioChannel, null);
+      });
+
+      final item = await SheetPracticeAudioBridgeChecker(
+        metronomeChannel: metronomeChannel,
+        toneChannel: toneChannel,
+        audioPlayerChannel: audioChannel,
+        createAudioFixture: () async => '/tmp/silent.wav',
+        deleteAudioFixture: (_) async {},
+      ).run();
+
+      expect(item.status, SheetDeviceCheckStatus.warn);
+      expect(item.details, contains('linked audio stop 후 player 유지'));
     },
   );
 

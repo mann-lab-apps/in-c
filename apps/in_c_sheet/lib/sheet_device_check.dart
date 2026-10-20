@@ -62,6 +62,7 @@ class SheetPracticeAudioBridgeChecker {
     }
 
     String? audioFixturePath;
+    var audioPlayerStopped = false;
     try {
       audioFixturePath = await _createAudioFixture();
       final info = await _audioPlayer.inspect(audioFixturePath);
@@ -73,6 +74,23 @@ class SheetPracticeAudioBridgeChecker {
       final playback = await _audioPlayer.play(audioFixturePath);
       if (playback.isPlaying) {
         ready.add('linked audio silent playback');
+        final position = await _audioPlayer.readPosition();
+        if (position == null) {
+          issues.add('linked audio position 조회 실패');
+        } else {
+          ready.add(
+            'linked audio position ${position.position.inMilliseconds}/'
+            '${position.duration.inMilliseconds}ms',
+          );
+        }
+        await _audioPlayer.stop();
+        audioPlayerStopped = true;
+        final stoppedPosition = await _audioPlayer.readPosition();
+        if (stoppedPosition == null) {
+          ready.add('linked audio stop lifecycle');
+        } else {
+          issues.add('linked audio stop 후 player 유지');
+        }
       } else {
         issues.add(
           playback.status == SheetAudioPlaybackStatus.unsupportedPlatform
@@ -83,7 +101,9 @@ class SheetPracticeAudioBridgeChecker {
     } catch (error) {
       issues.add('linked audio ${error.runtimeType}');
     } finally {
-      await _audioPlayer.stop();
+      if (!audioPlayerStopped) {
+        await _audioPlayer.stop();
+      }
       if (audioFixturePath != null) {
         await _deleteAudioFixture(audioFixturePath);
       }
@@ -101,7 +121,7 @@ class SheetPracticeAudioBridgeChecker {
           : SheetDeviceCheckStatus.warn,
       details:
           '$readyDetails$issueDetails'
-          '무음 초기화 결과이며 실제 음량, latency, 박자 균일성, A-B 경계는 직접 들어봐야 합니다.',
+          '무음 초기화와 재생 위치/정지 lifecycle 결과이며 실제 음량, latency, 박자 균일성, A-B 경계는 직접 들어봐야 합니다.',
     );
   }
 
