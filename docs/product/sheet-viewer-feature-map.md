@@ -343,7 +343,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 ## V1 후보
 
 - HEIC/HEIF 직접 변환. 현재 감지와 안내만 제공하며 native decoder/dependency 결정과 실제 사진 샘플 QA가 필요하다.
-- 기존 폴더 직접 참조. Android SAF persistent tree permission을 연결 목록에 재사용하고, 같은 폴더를 다시 열 때 저장된 원본 크기/수정 시각과 달라진 파일을 경고하는 단계까지 구현했지만 악보는 여전히 앱 내부 사본이다. 변경된 원본도 자동 덮어쓰지 않는다. 앱 내부 사본 없는 direct score와 iOS Files/security-scoped resource는 별도 spike가 필요하다.
+- 기존 폴더 직접 참조. Android SAF persistent tree permission을 연결 목록에 재사용하고, 같은 폴더를 다시 열 때 저장된 원본 크기/수정 시각과 달라진 파일을 경고하는 단계까지 구현했지만 악보는 여전히 앱 내부 사본이다. 변경된 행에서는 매칭된 기존 악보를 바로 열어 확인할 수 있으며 원본을 자동 덮어쓰지는 않는다. 앱 내부 사본 없는 direct score와 iOS Files/security-scoped resource는 별도 spike가 필요하다.
 - iOS Share Extension이 필요한 출처 앱 대응. document open URL bridge는 구현했고 Share Extension은 Xcode target/App Group/provisioning이 필요하다.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - Cloud provider 실기기 import QA. system picker/provider 우선 정책과 내려받기 안내는 구현됨.

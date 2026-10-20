@@ -3069,3 +3069,11 @@ count; unchanged prior imports receive a clearer already-imported message. Clef 
 the existing app-owned score, metadata and annotations remain untouched. Catalog/widget regressions, `flutter analyze`, all
 1,764 tests and the RC release check passed. Provider timestamp fidelity, reboot/revocation, cloud-offline behavior and any
 explicit manual-update flow remain Device QA/follow-up; this is not automatic sync or app-copy-free direct reference.
+
+S305 VERIFIED LOCAL: connected each changed Android folder source warning to its exact app-owned score without adding an
+implicit update path. The catalog now retains the matched score id only for sanitized `android-saf-copy` provenance from the
+same folder/provider, and `기존 악보 열기` dismisses the import sheet before using the normal viewer route. Changed files
+remain unselected and never overwrite the score, metadata or annotations; a missing score id produces a safe library-check
+message instead of importing another copy. Typed copy/open actions and a 390px long-file-name layout have widget coverage.
+`dart format`, `flutter analyze`, all 1,765 tests and the RC release check passed. Explicit format-aware source replacement,
+provider timestamp fidelity and Android provider lifecycle remain follow-up/Device QA.

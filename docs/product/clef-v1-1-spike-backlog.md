@@ -79,7 +79,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - Android tree read permission은 기기 안의 `연결된 폴더` 목록에서 재사용/해제할 수 있다. 이 연결은 폴더를
   다시 고르는 수고만 줄이며 score path, metadata, backup 또는 자동 동기화 대상으로 승격하지 않는다.
 - 다시 연 폴더의 파일명과 저장된 provenance가 맞고 크기 또는 수정 시각이 달라지면 `원본 변경`으로
-  표시한다. 변경 파일은 선택/자동 덮어쓰기하지 않으며, 이 신호는 live reference나 sync 완료를 뜻하지 않는다.
+  표시한다. 변경 파일은 선택/자동 덮어쓰기하지 않고 `기존 악보 열기`로 앱 내부 사본을 먼저 확인하게 하며,
+  이 신호는 live reference나 sync 완료를 뜻하지 않는다.
 - provider가 persistable permission을 주지 않으면 기존 가져오기를 막지 않고 그 선택에서만 읽은 뒤 내부
   사본을 만든다.
 - 사용자-facing copy:

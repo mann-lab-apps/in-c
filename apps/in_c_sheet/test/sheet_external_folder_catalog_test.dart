@@ -82,15 +82,18 @@ void main() {
           ),
         ],
         existingFileNames: const <String>['Concert Etude.pdf'],
-        existingImportSources: <SheetScoreImportSource>[
-          SheetScoreImportSource.create(
-            platform: 'android-saf-copy',
-            displayName: 'Concert Etude.pdf',
-            folderLabel: 'Recital',
-            providerLabel: 'Drive',
-            sizeBytes: 1200,
-            modifiedAt: importedAt,
-          )!,
+        existingImports: <SheetExternalFolderImportedScore>[
+          SheetExternalFolderImportedScore(
+            scoreId: 'score-concert-etude',
+            source: SheetScoreImportSource.create(
+              platform: 'android-saf-copy',
+              displayName: 'Concert Etude.pdf',
+              folderLabel: 'Recital',
+              providerLabel: 'Drive',
+              sizeBytes: 1200,
+              modifiedAt: importedAt,
+            )!,
+          ),
         ],
         folderLabel: 'Recital',
         providerLabel: 'Drive',
@@ -103,6 +106,7 @@ void main() {
         SheetExternalFolderCandidateStatus.sourceChanged,
       );
       expect(preview.candidates.single.message, contains('자동으로 덮어쓰지'));
+      expect(preview.candidates.single.existingScoreId, 'score-concert-etude');
       expect(
         preview.copyPlanForSelection(<String>[
           preview.candidates.single.selectionId,
@@ -123,15 +127,18 @@ void main() {
         ),
       ],
       existingFileNames: const <String>['Concert Etude.pdf'],
-      existingImportSources: <SheetScoreImportSource>[
-        SheetScoreImportSource.create(
-          platform: 'android-saf-copy',
-          displayName: 'Concert Etude.pdf',
-          folderLabel: 'Recital',
-          providerLabel: 'Drive',
-          sizeBytes: 1200,
-          modifiedAt: modifiedAt,
-        )!,
+      existingImports: <SheetExternalFolderImportedScore>[
+        SheetExternalFolderImportedScore(
+          scoreId: 'score-concert-etude',
+          source: SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Concert Etude.pdf',
+            folderLabel: 'Recital',
+            providerLabel: 'Drive',
+            sizeBytes: 1200,
+            modifiedAt: modifiedAt,
+          )!,
+        ),
       ],
       folderLabel: 'Recital',
       providerLabel: 'Drive',
@@ -143,6 +150,7 @@ void main() {
       SheetExternalFolderCandidateStatus.duplicateName,
     );
     expect(preview.candidates.single.message, contains('이 폴더에서 이미'));
+    expect(preview.candidates.single.existingScoreId, 'score-concert-etude');
   });
 
   test(

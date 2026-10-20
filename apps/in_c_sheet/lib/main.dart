@@ -610,13 +610,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       pickedFolder.entries,
       existingFileNames: controller.scores.expand(_scoreImportFileNames),
-      existingImportSources: controller.scores
-          .map((score) => score.importSource)
-          .whereType<SheetScoreImportSource>(),
+      existingImports: controller.scores
+          .where((score) => score.importSource != null)
+          .map(
+            (score) => SheetExternalFolderImportedScore(
+              scoreId: score.id,
+              source: score.importSource!,
+            ),
+          ),
       folderLabel: pickedFolder.folderLabel,
       providerLabel: pickedFolder.providerLabel,
     );
-    final plan = await showModalBottomSheet<SheetExternalFolderCopyPlan>(
+    final action = await showModalBottomSheet<SheetExternalFolderImportAction>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
@@ -626,7 +631,25 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         preview: preview,
       ),
     );
-    if (!mounted || plan == null) {
+    if (!mounted || action == null) {
+      return;
+    }
+    if (action.type == SheetExternalFolderImportActionType.openExisting) {
+      final scoreId = action.scoreId;
+      final score = scoreId == null
+          ? null
+          : controller.scoreByIdOrNull(scoreId);
+      if (score == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('기존 악보를 찾지 못했습니다. 라이브러리를 다시 확인해주세요.')),
+        );
+        return;
+      }
+      await _openScore(score);
+      return;
+    }
+    final plan = action.copyPlan;
+    if (plan == null) {
       return;
     }
 

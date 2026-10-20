@@ -5,6 +5,33 @@ import 'sheet_external_folder_gateway.dart';
 
 enum SheetExternalFolderConnectionActionType { open, add, forget }
 
+enum SheetExternalFolderImportActionType { copy, openExisting }
+
+class SheetExternalFolderImportAction {
+  const SheetExternalFolderImportAction._({
+    required this.type,
+    this.copyPlan,
+    this.scoreId,
+  });
+
+  const SheetExternalFolderImportAction.copy(
+    SheetExternalFolderCopyPlan copyPlan,
+  ) : this._(
+        type: SheetExternalFolderImportActionType.copy,
+        copyPlan: copyPlan,
+      );
+
+  const SheetExternalFolderImportAction.openExisting(String scoreId)
+    : this._(
+        type: SheetExternalFolderImportActionType.openExisting,
+        scoreId: scoreId,
+      );
+
+  final SheetExternalFolderImportActionType type;
+  final SheetExternalFolderCopyPlan? copyPlan;
+  final String? scoreId;
+}
+
 class SheetExternalFolderConnectionAction {
   const SheetExternalFolderConnectionAction._(this.type, [this.connection]);
 
@@ -191,6 +218,37 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                         itemBuilder: (context, index) {
                           final candidate = widget.preview.candidates[index];
                           final enabled = candidate.isReadyToCopy;
+                          final existingScoreId = candidate.existingScoreId;
+                          if (candidate.status ==
+                                  SheetExternalFolderCandidateStatus
+                                      .sourceChanged &&
+                              existingScoreId != null) {
+                            return ListTile(
+                              leading: Icon(
+                                Icons.warning_amber_rounded,
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                              title: Text(
+                                candidate.entry.displayName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(candidate.message),
+                              trailing: TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                ),
+                                onPressed: () => Navigator.of(context).pop(
+                                  SheetExternalFolderImportAction.openExisting(
+                                    existingScoreId,
+                                  ),
+                                ),
+                                child: const Text('기존 악보 열기'),
+                              ),
+                            );
+                          }
                           return CheckboxListTile(
                             value: _selectedIds.contains(candidate.selectionId),
                             onChanged: enabled
@@ -220,7 +278,9 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: plan.isReady
-                      ? () => Navigator.of(context).pop(plan)
+                      ? () =>
+                            Navigator.of(context)
+                                .pop(SheetExternalFolderImportAction.copy(plan))
                       : null,
                   icon: const Icon(Icons.copy_outlined),
                   label: Text('${plan.copyCount}개 악보 복사'),

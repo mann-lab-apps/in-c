@@ -41,6 +41,46 @@ void main() {
     expect(checkboxes.last.onChanged, isNull);
   });
 
+  testWidgets('copy button returns a typed import action', (tester) async {
+    SheetExternalFolderImportAction? result;
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      const <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(displayName: 'Ready.pdf'),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () async {
+                result =
+                    await showModalBottomSheet<SheetExternalFolderImportAction>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => ExternalFolderImportSheet(
+                        folderLabel: 'Recital',
+                        preview: preview,
+                      ),
+                    );
+              },
+              child: const Text('폴더 열기'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('폴더 열기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1개 악보 복사'));
+    await tester.pumpAndSettle();
+
+    expect(result?.type, SheetExternalFolderImportActionType.copy);
+    expect(result?.copyPlan?.copyCount, 1);
+  });
+
   testWidgets('connected folder sheet exposes open add and forget actions', (
     tester,
   ) async {
@@ -88,23 +128,33 @@ void main() {
   testWidgets('changed folder sources stay blocked and explain no overwrite', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SheetExternalFolderImportAction? result;
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[
         SheetExternalFolderEntry(
-          displayName: 'Changed.pdf',
+          displayName: 'Changed concert score with a very long title.pdf',
           sizeBytes: 2048,
           modifiedAt: DateTime.utc(2026, 10, 20),
         ),
       ],
-      existingFileNames: const <String>['Changed.pdf'],
-      existingImportSources: <SheetScoreImportSource>[
-        SheetScoreImportSource.create(
-          platform: 'android-saf-copy',
-          displayName: 'Changed.pdf',
-          folderLabel: 'Recital',
-          sizeBytes: 1024,
-          modifiedAt: DateTime.utc(2026, 10, 19),
-        )!,
+      existingFileNames: const <String>[
+        'Changed concert score with a very long title.pdf',
+      ],
+      existingImports: <SheetExternalFolderImportedScore>[
+        SheetExternalFolderImportedScore(
+          scoreId: 'score-changed',
+          source: SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Changed concert score with a very long title.pdf',
+            folderLabel: 'Recital',
+            sizeBytes: 1024,
+            modifiedAt: DateTime.utc(2026, 10, 19),
+          )!,
+        ),
       ],
       folderLabel: 'Recital',
     );
@@ -112,21 +162,39 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ExternalFolderImportSheet(
-            folderLabel: 'Recital',
-            preview: preview,
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () async {
+                result =
+                    await showModalBottomSheet<SheetExternalFolderImportAction>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => ExternalFolderImportSheet(
+                        folderLabel: 'Recital',
+                        preview: preview,
+                      ),
+                    );
+              },
+              child: const Text('폴더 열기'),
+            ),
           ),
         ),
       ),
     );
 
+    await tester.tap(find.text('폴더 열기'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     expect(find.textContaining('원본 변경 1개'), findsOneWidget);
     expect(find.textContaining('자동으로 덮어쓰지'), findsNWidgets(2));
-    final checkbox = tester.widget<CheckboxListTile>(
-      find.byType(CheckboxListTile),
-    );
-    expect(checkbox.onChanged, isNull);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.text('기존 악보 열기'), findsOneWidget);
     expect(find.text('0개 악보 복사'), findsOneWidget);
+
+    await tester.tap(find.text('기존 악보 열기'));
+    await tester.pumpAndSettle();
+    expect(result?.type, SheetExternalFolderImportActionType.openExisting);
+    expect(result?.scoreId, 'score-changed');
   });
 
   testWidgets('unreadable connection can be forgotten on a small screen', (

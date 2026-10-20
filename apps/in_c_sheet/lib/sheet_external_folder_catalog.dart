@@ -45,18 +45,30 @@ class SheetExternalFolderEntry {
       SheetExternalFolderCatalogPreview.normalizeName(displayName);
 }
 
+class SheetExternalFolderImportedScore {
+  const SheetExternalFolderImportedScore({
+    required this.scoreId,
+    required this.source,
+  });
+
+  final String scoreId;
+  final SheetScoreImportSource source;
+}
+
 class SheetExternalFolderImportCandidate {
   const SheetExternalFolderImportCandidate({
     required this.entry,
     required this.status,
     required this.message,
     required this.selectionId,
+    this.existingScoreId,
   });
 
   final SheetExternalFolderEntry entry;
   final SheetExternalFolderCandidateStatus status;
   final String message;
   final String selectionId;
+  final String? existingScoreId;
 
   bool get isReadyToCopy =>
       status == SheetExternalFolderCandidateStatus.readyToCopy;
@@ -74,8 +86,8 @@ class SheetExternalFolderCatalogPreview {
   factory SheetExternalFolderCatalogPreview.fromEntries(
     Iterable<SheetExternalFolderEntry> entries, {
     Iterable<String> existingFileNames = const <String>[],
-    Iterable<SheetScoreImportSource> existingImportSources =
-        const <SheetScoreImportSource>[],
+    Iterable<SheetExternalFolderImportedScore> existingImports =
+        const <SheetExternalFolderImportedScore>[],
     String? folderLabel,
     String? providerLabel,
     int maxEntries = 200,
@@ -98,8 +110,9 @@ class SheetExternalFolderCatalogPreview {
         .map(normalizeName)
         .where((name) => name.isNotEmpty)
         .toSet();
-    final importedSourcesByName = <String, SheetScoreImportSource>{};
-    for (final source in existingImportSources) {
+    final importedScoresByName = <String, SheetExternalFolderImportedScore>{};
+    for (final imported in existingImports) {
+      final source = imported.source;
       if (source.platform != 'android-saf-copy' ||
           !_sameLocationHint(source.folderLabel, folderLabel) ||
           !_sameLocationHint(source.providerLabel, providerLabel)) {
@@ -107,7 +120,7 @@ class SheetExternalFolderCatalogPreview {
       }
       final normalizedName = normalizeName(source.displayName);
       if (normalizedName.isNotEmpty) {
-        importedSourcesByName.putIfAbsent(normalizedName, () => source);
+        importedScoresByName.putIfAbsent(normalizedName, () => imported);
       }
     }
 
@@ -120,7 +133,7 @@ class SheetExternalFolderCatalogPreview {
       final candidate = _candidateFor(
         indexedEntry.$2,
         existingNames: claimedNames,
-        importedSource: importedSourcesByName[indexedEntry.$2.normalizedName],
+        importedScore: importedScoresByName[indexedEntry.$2.normalizedName],
         visibleIndex: indexedEntry.$1,
       );
       candidates.add(candidate);
@@ -244,7 +257,7 @@ class SheetExternalFolderCatalogPreview {
   static SheetExternalFolderImportCandidate _candidateFor(
     SheetExternalFolderEntry entry, {
     required Set<String> existingNames,
-    SheetScoreImportSource? importedSource,
+    SheetExternalFolderImportedScore? importedScore,
     required int visibleIndex,
   }) {
     final normalizedName = entry.normalizedName;
@@ -266,22 +279,24 @@ class SheetExternalFolderCatalogPreview {
       );
     }
     if (existingNames.contains(normalizedName)) {
-      if (importedSource != null &&
-          _sourceFingerprintChanged(importedSource, entry)) {
+      if (importedScore != null &&
+          _sourceFingerprintChanged(importedScore.source, entry)) {
         return SheetExternalFolderImportCandidate(
           entry: entry,
           status: SheetExternalFolderCandidateStatus.sourceChanged,
           message: '가져온 뒤 원본 파일이 바뀌었습니다. 자동으로 덮어쓰지 않으므로 기존 악보를 확인해주세요.',
           selectionId: selectionId,
+          existingScoreId: importedScore.scoreId,
         );
       }
       return SheetExternalFolderImportCandidate(
         entry: entry,
         status: SheetExternalFolderCandidateStatus.duplicateName,
-        message: importedSource == null
+        message: importedScore == null
             ? '같은 이름의 악보가 이미 라이브러리에 있습니다.'
             : '이 폴더에서 이미 가져온 악보입니다.',
         selectionId: selectionId,
+        existingScoreId: importedScore?.scoreId,
       );
     }
     return SheetExternalFolderImportCandidate(
