@@ -85,6 +85,10 @@ void main() {
       find.widgetWithText(FilledButton, '1개 가져오기'),
     );
     expect(importButton.onPressed, isNull);
+    final setlistChoice = tester.widget<CheckboxListTile>(
+      find.byType(CheckboxListTile),
+    );
+    expect(setlistChoice.onChanged, isNull);
     expect(tester.takeException(), isNull);
   });
 
@@ -94,18 +98,19 @@ void main() {
     final preview = SheetMixedScoreImportPreview.fromFiles(const [
       SheetMixedScorePickedFile(name: 'notes.txt', path: '/tmp/notes.txt'),
     ]);
-    bool? result;
+    SheetMixedScoreImportDecision? result;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
           builder: (context) => FilledButton(
             onPressed: () async {
-              result = await showModalBottomSheet<bool>(
-                context: context,
-                builder: (context) =>
-                    SheetMixedScoreImportPreviewSheet(preview: preview),
-              );
+              result =
+                  await showModalBottomSheet<SheetMixedScoreImportDecision>(
+                    context: context,
+                    builder: (context) =>
+                        SheetMixedScoreImportPreviewSheet(preview: preview),
+                  );
             },
             child: const Text('열기'),
           ),
@@ -117,7 +122,42 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '1개 가져오기'));
     await tester.pumpAndSettle();
 
-    expect(result, isTrue);
+    expect(result?.addToSetlist, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('preview carries the setlist choice into confirmation', (
+    tester,
+  ) async {
+    final preview = SheetMixedScoreImportPreview.fromFiles(const [
+      SheetMixedScorePickedFile(name: 'notes.txt', path: '/tmp/notes.txt'),
+    ]);
+    SheetMixedScoreImportDecision? result;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => FilledButton(
+            onPressed: () async {
+              result =
+                  await showModalBottomSheet<SheetMixedScoreImportDecision>(
+                    context: context,
+                    builder: (context) =>
+                        SheetMixedScoreImportPreviewSheet(preview: preview),
+                  );
+            },
+            child: const Text('열기'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('가져온 악보를 세트리스트에 바로 추가'));
+    await tester.tap(find.widgetWithText(FilledButton, '1개 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(result?.addToSetlist, isTrue);
     expect(tester.takeException(), isNull);
   });
 

@@ -3133,3 +3133,11 @@ reuse and change detection remain separate; iOS Files and iCloud use this one-ti
 references. Policy and widget regressions cover supported mixed batches, unavailable, unsupported and duplicate inputs, the
 count cap, confirmation, and a 320x568 forty-file preview. `dart format`, `flutter analyze`, all 1,787 tests and the RC
 release check passed. Real Android and iOS cloud-provider downloads and large file batches remain Device QA.
+
+S312 VERIFIED LOCAL: connected the mixed score preview to the existing bulk setlist workflow without adding another import
+menu item. A named checkbox lets the user request an existing or new setlist after the atomic PDF/text/ChordPro/DOCX/RTF
+import succeeds. Invalid batches cannot select the option; cancelling the target picker or a later setlist-save failure keeps
+the imported scores in the library and never reports that the setlist update succeeded. Successful additions reuse duplicate
+and missing-score reporting and offer the normal setlist shortcut. Widget regressions cover the default choice, enabled
+choice, blocked choice and the forty-file compact preview. `dart format`, `flutter analyze`, all 1,788 tests and the RC release
+check passed. Real cloud-provider selection, setlist creation and large mixed batches remain Device QA.

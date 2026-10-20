@@ -567,13 +567,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         (file) => SheetMixedScorePickedFile(name: file.name, path: file.path),
       ),
     );
-    final confirmed = await showModalBottomSheet<bool>(
+    final decision = await showModalBottomSheet<SheetMixedScoreImportDecision>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) => SheetMixedScoreImportPreviewSheet(preview: preview),
     );
-    if (!mounted || confirmed != true) return;
+    if (!mounted || decision == null) return;
 
     final imported = await controller.importSharedScoreFiles(
       preview.readyFiles
@@ -589,6 +589,43 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           content: Text(
             controller.errorMessage ??
                 '선택한 악보를 가져오지 못했습니다. 파일 형식과 저장 공간을 확인해주세요.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (decision.addToSetlist) {
+      final target = await _selectSetlistForBulkAdd(imported.length);
+      if (!mounted) return;
+      if (target == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${imported.length}개 악보를 가져왔습니다. 세트리스트에는 추가하지 않았습니다.',
+            ),
+          ),
+        );
+        return;
+      }
+      final setlistResult = await _trySetlistSave(
+        context,
+        () => controller.addScoresToSetlist(target, imported),
+        errorMessage: _importedSetlistSaveFailure,
+      );
+      if (!mounted || setlistResult == null) return;
+      if (_showSetlistAddFailure(context, setlistResult)) return;
+      final skipped = setlistResult.skippedDuplicateCount;
+      final skippedSuffix = skipped == 0 ? '' : ' · 중복 $skipped개 제외';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${imported.length}개 악보를 가져오고 "${target.title}"에 '
+            '${setlistResult.addedCount}개 추가했습니다$skippedSuffix.'
+            '${_setlistMissingScoreSuffix(setlistResult)}',
+          ),
+          action: SnackBarAction(
+            label: '열기',
+            onPressed: () => unawaited(_openSetlistDetail(target)),
           ),
         ),
       );
