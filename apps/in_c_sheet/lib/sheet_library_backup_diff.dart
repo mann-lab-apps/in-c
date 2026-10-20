@@ -680,7 +680,25 @@ List<String> _sorted(Iterable<String> values) {
 }
 
 bool _jsonEqual(Object? left, Object? right) {
-  return jsonEncode(left) == jsonEncode(right);
+  if (identical(left, right)) return true;
+  if (left is num && right is num) return left == right;
+  if (left is List && right is List) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index += 1) {
+      if (!_jsonEqual(left[index], right[index])) return false;
+    }
+    return true;
+  }
+  if (left is Map && right is Map) {
+    if (left.length != right.length) return false;
+    for (final key in left.keys) {
+      if (!right.containsKey(key) || !_jsonEqual(left[key], right[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return left == right;
 }
 
 List<String> _changedFieldLabels(

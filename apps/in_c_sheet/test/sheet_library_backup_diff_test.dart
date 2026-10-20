@@ -470,6 +470,56 @@ void main() {
     expect(settings.conflictingFieldLabels, ['필기 preset']);
     expect(dryRun.conflicts, [settings]);
   });
+
+  test('sync dry-run ignores nested JSON map insertion order', () {
+    final now = DateTime(2026, 10, 20, 17);
+    final base = _backup(now, scores: [_score(now, id: 'score-a')]);
+    final local = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'score-a',
+          viewerSettings: const SheetViewerSettings(
+            displayMode: 'auto',
+            halfPageTurn: false,
+            customPedalMapping: <String, String>{
+              'PedalA': 'previousPage',
+              'PedalB': 'nextPage',
+            },
+          ),
+        ),
+      ],
+    );
+    final remote = _backup(
+      now,
+      scores: [
+        _score(
+          now,
+          id: 'score-a',
+          viewerSettings: const SheetViewerSettings(
+            displayMode: 'auto',
+            halfPageTurn: false,
+            customPedalMapping: <String, String>{
+              'PedalB': 'nextPage',
+              'PedalA': 'previousPage',
+            },
+          ),
+        ),
+      ],
+    );
+
+    final dryRun = SheetLibrarySyncDryRun.compare(
+      base: base,
+      local: local,
+      remote: remote,
+    );
+
+    final score = dryRun.items.singleWhere((item) => item.id == 'score-a');
+    expect(score.status, SheetLibrarySyncDryRunStatus.sameChange);
+    expect(score.conflictingFieldLabels, isEmpty);
+    expect(dryRun.requiresManualReview, isFalse);
+  });
 }
 
 SheetLibraryBackup _backup(
@@ -499,6 +549,7 @@ SheetScore _score(
   SheetAnnotationLayer annotationLayer = SheetAnnotationLayer.empty,
   SheetAnnotationStorageReference annotationStorage =
       SheetAnnotationStorageReference.inline,
+  SheetViewerSettings viewerSettings = SheetViewerSettings.defaultSettings,
 }) {
   return SheetScore(
     id: id,
@@ -513,6 +564,7 @@ SheetScore _score(
     lastPage: 1,
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
+    viewerSettings: viewerSettings,
     annotationLayer: annotationLayer,
     annotationStorage: annotationStorage,
   );

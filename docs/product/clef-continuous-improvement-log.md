@@ -3274,3 +3274,10 @@ WARN while the other bridge checks continue. Injected-channel and source-wiring 
 privacy boundary; Swift formatting/parsing passes. Android native compilation remains for the next approved build because the
 project has no Gradle wrapper. Route detection does not prove audible quality, latency, Bluetooth stability or correct user
 device selection, so those remain Device QA.
+
+S328 VERIFIED LOCAL: removed a false conflict from the non-mutating three-way sync dry run. JSON-shaped values are now
+compared structurally, so nested map key insertion order does not turn two otherwise identical viewer/pedal settings edits
+into a manual-review conflict; list order remains significant for setlists and other ordered data. A regression reproduces
+the previous conflict with equivalent custom pedal mappings constructed in opposite key orders and now classifies the
+result as the same change. This only improves comparison accuracy and does not add merge application, clocks, tombstones or
+cloud transport.
