@@ -1,9 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_annotation_stamp_asset_store.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_backup_diff.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -12,6 +22,8 @@ import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_setlist_package.dart';
+import 'package:in_c_sheet/sheet_setlist_package_annotation.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -553,6 +565,1776 @@ void main() {
     },
   );
 
+  test('imports a resolved setlist package into scores and setlists', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 15);
+    final existing = _score(
+      now,
+      id: 'existing',
+      title: 'Existing Etude',
+      composer: 'Goedicke',
+      filePath: '/library/existing-etude.pdf',
+    );
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    await store.saveUserAnnotationStampPacks([
+      SheetAnnotationStampPack(
+        id: 'user',
+        name: '사용자 스탬프',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'repeat-cue',
+            packId: 'user',
+            label: 'Local repeat cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.iconKind,
+            iconName: 'repeat',
+          ),
+        ],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final packageStampPack = SheetAnnotationStampPack(
+      id: 'user',
+      name: '사용자 스탬프',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      stamps: const <SheetAnnotationUserStamp>[
+        SheetAnnotationUserStamp(
+          id: 'repeat-cue',
+          packId: 'user',
+          label: 'Package repeat cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.iconKind,
+          iconName: 'repeat',
+        ),
+        SheetAnnotationUserStamp(
+          id: 'bow-cue',
+          packId: 'user',
+          label: 'Bow cue',
+          category: '사용자',
+          kind: SheetAnnotationUserStamp.textKind,
+          text: 'BOW',
+        ),
+      ],
+    );
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 2곡 · 총 7분 40초
+전환 10초
+
+1. Existing Etude
+   작곡가: Goedicke
+   파일: existing-etude.pdf
+   시작: 3쪽
+   예상 시간: 3분 30초
+   세트 메모: mute ready
+   메트로놈: 120 BPM · 3/4 · 8분 · 소리 70% · 카운트인 1마디
+2. New Sonata
+   작곡가: Mozart
+   파일: new-sonata.pdf
+   예상 시간: 4분
+   악보 메모: imported note
+   태그: recital, piano
+   컬렉션: Autumn
+   장르: Sonata
+''',
+        scoreFiles: const {
+          'scores/new-sonata.pdf': [1, 2, 3],
+        },
+        userStampPacks: [packageStampPack],
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'Package Recital');
+    expect(imported.scoreIds, ['existing', 'package-pdf-0']);
+    expect(imported.scoreStartPages, {'existing': 3});
+    expect(imported.scoreNotes, {'existing': 'mute ready'});
+    expect(imported.scoreDurations, {'existing': 210, 'package-pdf-0': 240});
+    final importedMetronome = imported.scoreMetronomeSettings['existing'];
+    expect(importedMetronome?.bpm, 120);
+    expect(importedMetronome?.meter, SheetMetronomeMeter.threeFour);
+    expect(importedMetronome?.subdivision, SheetMetronomeSubdivision.eighth);
+    expect(importedMetronome?.volumePercent, 70);
+    expect(importedMetronome?.countInBars, 1);
+    expect(imported.transitionSeconds, 10);
+    final newScore = controller.scoreById('package-pdf-0');
+    expect(newScore.title, 'New Sonata');
+    expect(newScore.composer, 'Mozart');
+    expect(newScore.tags, ['recital', 'piano']);
+    expect(newScore.note, 'imported note');
+    expect(newScore.collection, 'Autumn');
+    expect(newScore.customFields.single.key, '장르');
+    expect(newScore.customFields.single.value, 'Sonata');
+    expect(store.importedPdfBytes.single, [1, 2, 3]);
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.map(
+        (stamp) => stamp.id,
+      ),
+      ['repeat-cue', 'bow-cue'],
+    );
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.first.iconName,
+      'repeat',
+    );
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.first.label,
+      'Local repeat cue',
+    );
+
+    await controller.load();
+    expect(controller.setlists.single.scoreIds, ['existing', 'package-pdf-0']);
+    expect(
+      controller.setlists.single.scoreMetronomeSettings['existing']?.toJson(),
+      importedMetronome?.toJson(),
+    );
+    expect(controller.scoreById('package-pdf-0').title, 'New Sonata');
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.map(
+        (stamp) => stamp.id,
+      ),
+      ['repeat-cue', 'bow-cue'],
+    );
+  });
+
+  test('setlist package imports plain text and ChordPro scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 10);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Text Package
+곡 수: 2곡
+
+1. Lesson Notes
+   파일: lesson-notes.md
+2. Autumn Song
+   파일: autumn-song.onsong
+   출처 유형: 공연 패키지
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/lesson-notes.md': utf8.encode('Practice slowly.'),
+          'scores/autumn-song.onsong': utf8.encode('''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+'''),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported!.scoreIds, <String>[
+      'package-text-0',
+      'package-chordpro-0',
+    ]);
+    expect(store.importedPlainTextNames, <String>['lesson-notes.md']);
+    expect(store.importedChordProNames, <String>['autumn-song.onsong']);
+    final chordPro = controller.scoreById('package-chordpro-0');
+    expect(chordPro.title, 'Autumn Song');
+    expect(chordPro.composer, 'Kim');
+    expect(
+      chordPro.customFields
+          .where((field) => field.key == '출처 유형')
+          .map((field) => field.value),
+      <String>['공연 패키지'],
+    );
+  });
+
+  test('setlist package restores new score annotations without overwriting existing scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 11);
+    final localLayer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[_annotationStroke('local-stroke', now)],
+    );
+    final existing = _score(
+      now,
+      id: 'existing',
+      title: 'Existing Etude',
+    ).copyWith(annotationLayer: localLayer);
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final existingBytes = <int>[9, 8, 7];
+    final newBytes = <int>[1, 2, 3];
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Annotated Package
+곡 수: 2곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+2. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/existing-etude.pdf': existingBytes,
+          'scores/new-sonata.pdf': newBytes,
+        },
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/existing-etude.pdf',
+            scoreSha256: sha256.convert(existingBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[
+                _annotationStroke('package-existing-stroke', now),
+              ],
+            ),
+          ),
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/new-sonata.pdf',
+            scoreSha256: sha256.convert(newBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[
+                _annotationStroke('package-new-stroke', now),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(dryRun.restorableAnnotationCount, 1);
+    expect(dryRun.protectedExistingAnnotationCount, 1);
+    expect(
+      controller.scoreById('existing').annotationLayer.strokes.single.id,
+      'local-stroke',
+    );
+    expect(
+      controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+      'package-new-stroke',
+    );
+
+    await controller.load();
+    expect(
+      controller.scoreById('existing').annotationLayer.strokes.single.id,
+      'local-stroke',
+    );
+    expect(
+      controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+      'package-new-stroke',
+    );
+  });
+
+  test(
+    'setlist package restores separate annotations for shared PDF scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 21);
+      final scores = <SheetScore>[
+        _score(
+          now,
+          id: 'movement-a',
+          title: 'Movement A',
+          filePath: '/library/songbook.pdf',
+        ).copyWith(
+          annotationLayer: SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[
+              _annotationStroke('movement-a-stroke', now),
+            ],
+          ),
+        ),
+        _score(
+          now,
+          id: 'movement-b',
+          title: 'Movement B',
+          filePath: '/library/songbook.pdf',
+        ).copyWith(
+          annotationLayer: SheetAnnotationLayer(
+            strokes: <SheetAnnotationStroke>[
+              _annotationStroke('movement-b-stroke', now),
+            ],
+          ),
+        ),
+      ];
+      final sourceSetlist = SheetSetlist(
+        id: 'songbook-set',
+        title: 'Songbook Set',
+        scoreIds: const <String>['movement-a', 'movement-b'],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final exported = await SheetSetlistPackageArchive.exportSetlistBytes(
+        setlist: sourceSetlist,
+        scores: scores,
+        readScoreBytes: (_) async => <int>[1, 2, 3],
+      );
+      final package = SheetSetlistPackageArchive.decodeBytes(exported.bytes!);
+      final store = _PackageImportStore(now);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final dryRun = package.previewImport(currentScores: controller.scores);
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(imported!.scoreIds, <String>['package-pdf-0', 'package-pdf-1']);
+      expect(dryRun.restorableAnnotationCount, 2);
+      expect(
+        controller.scoreById('package-pdf-0').annotationLayer.strokes.single.id,
+        'movement-a-stroke',
+      );
+      expect(
+        controller.scoreById('package-pdf-1').annotationLayer.strokes.single.id,
+        'movement-b-stroke',
+      );
+    },
+  );
+
+  test('setlist package stores image stamp assets before metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-stamp-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing Etude');
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final imageBytes = _tinyPngBytes();
+    final stampPack = _packageImageStampPack(imageBytes, now);
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _packageImageStampManifest,
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: [stampPack],
+        stampAssetFiles: <String, List<int>>{
+          'stamps/package/photo-cue.png': imageBytes,
+        },
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    expect(
+      controller.userAnnotationStampPacks.single.stamps.single.assetRef,
+      'stamps/package/photo-cue.png',
+    );
+    expect(
+      await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+      isTrue,
+    );
+    expect(controller.errorMessage, isNull);
+  });
+
+  test(
+    'setlist package restores image stamp annotations after asset storage',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-annotation-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 19);
+      final store = _PackageImportStore(now);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final imageBytes = _tinyPngBytes();
+      final scoreBytes = <int>[1, 2, 3];
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Image Annotation Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+          userStampPacks: <SheetAnnotationStampPack>[
+            _packageImageStampPack(imageBytes, now),
+          ],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': imageBytes,
+          },
+          annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+            SheetSetlistPackageAnnotationSidecar(
+              scoreEntryPath: 'scores/new-sonata.pdf',
+              scoreSha256: sha256.convert(scoreBytes).toString(),
+              annotationLayer: SheetAnnotationLayer(
+                strokes: const <SheetAnnotationStroke>[],
+                texts: <SheetTextAnnotation>[
+                  SheetTextAnnotation(
+                    id: 'photo-cue',
+                    pageNumber: 1,
+                    position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                    text: 'Photo cue',
+                    color: 0xff111111,
+                    fontSize: 18,
+                    createdAt: now,
+                    stampKind: SheetAnnotationUserStamp.imageKind,
+                    stampAssetRef: 'stamps/package/photo-cue.png',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(dryRun.restorableAnnotationCount, 1);
+      expect(
+        controller
+            .scoreById('package-pdf-0')
+            .annotationLayer
+            .texts
+            .single
+            .isImageStamp,
+        isTrue,
+      );
+      expect(
+        await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+        isTrue,
+      );
+      expect(controller.userAnnotationStampPacks, hasLength(1));
+    },
+  );
+
+  test('setlist package restores placed image assets without recreating deleted stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-orphan-image-annotation-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 20);
+    final store = _PackageImportStore(now);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final imageBytes = _tinyPngBytes();
+    final scoreBytes = <int>[1, 2, 3];
+    const assetRef = 'stamps/package/deleted-photo-cue.png';
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Deleted Stamp Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+        stampAssetFiles: <String, List<int>>{assetRef: imageBytes},
+        annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+          SheetSetlistPackageAnnotationSidecar(
+            scoreEntryPath: 'scores/new-sonata.pdf',
+            scoreSha256: sha256.convert(scoreBytes).toString(),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: const <SheetAnnotationStroke>[],
+              texts: <SheetTextAnnotation>[
+                SheetTextAnnotation(
+                  id: 'photo-cue',
+                  pageNumber: 1,
+                  position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                  text: 'Photo cue',
+                  color: 0xff111111,
+                  fontSize: 18,
+                  createdAt: now,
+                  stampKind: SheetAnnotationUserStamp.imageKind,
+                  stampAssetRef: assetRef,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(dryRun.restorableAnnotationCount, 1);
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(
+      controller
+          .scoreById('package-pdf-0')
+          .annotationLayer
+          .texts
+          .single
+          .stampAssetRef,
+      assetRef,
+    );
+    expect(await stampAssetStore.assetExists(assetRef), isTrue);
+    expect(controller.errorMessage, isNull);
+  });
+
+  test(
+    'setlist package blocks image annotations on local asset conflict',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-annotation-conflict-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 19);
+      final store = _PackageImportStore(now);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final localBytes = image.encodePng(image.Image(width: 3, height: 1));
+      await stampAssetStore.restoreImageStampAsset(
+        assetRef: 'stamps/package/photo-cue.png',
+        bytes: localBytes,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final packageBytes = _tinyPngBytes();
+      final scoreBytes = <int>[1, 2, 3];
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Conflicting Image Annotation
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+          userStampPacks: <SheetAnnotationStampPack>[
+            _packageImageStampPack(packageBytes, now),
+          ],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': packageBytes,
+          },
+          annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+            SheetSetlistPackageAnnotationSidecar(
+              scoreEntryPath: 'scores/new-sonata.pdf',
+              scoreSha256: sha256.convert(scoreBytes).toString(),
+              annotationLayer: SheetAnnotationLayer(
+                strokes: const <SheetAnnotationStroke>[],
+                texts: <SheetTextAnnotation>[
+                  SheetTextAnnotation(
+                    id: 'photo-cue',
+                    pageNumber: 1,
+                    position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                    text: 'Photo cue',
+                    color: 0xff111111,
+                    fontSize: 18,
+                    createdAt: now,
+                    stampKind: SheetAnnotationUserStamp.imageKind,
+                    stampAssetRef: 'stamps/package/photo-cue.png',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNull);
+      expect(controller.scores, isEmpty);
+      expect(controller.setlists, isEmpty);
+      expect(controller.errorMessage, contains('이미지 스탬프 파일'));
+      expect(
+        await (await stampAssetStore.assetFileForRef(
+          'stamps/package/photo-cue.png',
+        )).readAsBytes(),
+        localBytes,
+      );
+    },
+  );
+
+  test('setlist package preserves a conflicting local stamp asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-stamp-conflict-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing Etude');
+    final store = _PackageImportStore(now);
+    await store.saveScores([existing]);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final localBytes = image.encodePng(image.Image(width: 3, height: 1));
+    await stampAssetStore.restoreImageStampAsset(
+      assetRef: 'stamps/package/photo-cue.png',
+      bytes: localBytes,
+    );
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final packageBytes = _tinyPngBytes();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: _packageImageStampManifest,
+        scoreFiles: const <String, List<int>>{},
+        userStampPacks: [_packageImageStampPack(packageBytes, now)],
+        stampAssetFiles: <String, List<int>>{
+          'stamps/package/photo-cue.png': packageBytes,
+        },
+      ),
+    );
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(controller.errorMessage, contains('사용자 스탬프'));
+    expect(
+      await (await stampAssetStore.assetFileForRef(
+        'stamps/package/photo-cue.png',
+      )).readAsBytes(),
+      localBytes,
+    );
+  });
+
+  test(
+    'setlist package removes a new stamp asset after save failure',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-package-image-stamp-save-failure-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime(2026, 10, 20, 12);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now)..failSaveUserStampPacks = true;
+      await store.saveScores([existing]);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      final imageBytes = _tinyPngBytes();
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: _packageImageStampManifest,
+          scoreFiles: const <String, List<int>>{},
+          userStampPacks: [_packageImageStampPack(imageBytes, now)],
+          stampAssetFiles: <String, List<int>>{
+            'stamps/package/photo-cue.png': imageBytes,
+          },
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(controller.setlists, hasLength(1));
+      expect(controller.userAnnotationStampPacks, isEmpty);
+      expect(controller.errorMessage, contains('사용자 스탬프'));
+      expect(
+        await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+        isFalse,
+      );
+    },
+  );
+
+  test('setlist package imports DOCX through its bounded store path', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 14);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: DOCX Package
+곡 수: 1곡
+
+1. Studio Notes
+   파일: studio-notes.docx
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/studio-notes.docx': _packageDocxBytes('Practice slowly.'),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported?.scoreIds, <String>['package-docx-0']);
+    expect(store.importedDocxNames, <String>['studio-notes.docx']);
+    expect(controller.scoreById('package-docx-0').filePath, endsWith('.txt'));
+    expect(
+      controller.scoreById('package-docx-0').linkedFiles.single.type,
+      'docx',
+    );
+  });
+
+  test('setlist package imports RTF through its bounded store path', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 16);
+    final store = _PackageImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: RTF Package
+곡 수: 1곡
+
+1. Rehearsal Notes
+   파일: rehearsal-notes.rtf
+''',
+        scoreFiles: <String, List<int>>{
+          'scores/rehearsal-notes.rtf': latin1.encode(
+            r'{\rtf1\ansi Practice slowly.}',
+          ),
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNotNull);
+    expect(imported?.scoreIds, <String>['package-rtf-0']);
+    expect(store.importedRtfNames, <String>['rehearsal-notes.rtf']);
+    expect(controller.scoreById('package-rtf-0').filePath, endsWith('.txt'));
+    expect(
+      controller.scoreById('package-rtf-0').linkedFiles.single.type,
+      'rtf',
+    );
+  });
+
+  test(
+    'setlist package import failure restores previous scores and setlists',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 28, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now)..failSaveScoresAndSetlists = true;
+      await store.saveScores([existing]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+          scoreFiles: const {
+            'scores/new-sonata.pdf': [1, 2, 3],
+          },
+        ),
+      );
+      final dryRun = package.previewImport(currentScores: controller.scores);
+
+      await expectLater(
+        controller.importSetlistPackage(package, dryRun),
+        throwsStateError,
+      );
+
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect(controller.setlists, isEmpty);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(await store.loadSetlists(), isEmpty);
+      expect(store.discardedScoreIds, <String>['package-pdf-0']);
+    },
+  );
+
+  test('setlist package save failure cleans a new annotation asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-package-image-annotation-save-failure-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final now = DateTime(2026, 10, 20, 19);
+    final store = _PackageImportStore(now)..failSaveScoresAndSetlists = true;
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    final package = _packageWithImageAnnotation(_tinyPngBytes(), now);
+    final dryRun = package.previewImport(
+      currentScores: controller.scores,
+      currentUserStampPacks: controller.userAnnotationStampPacks,
+    );
+
+    await expectLater(
+      controller.importSetlistPackage(package, dryRun),
+      throwsStateError,
+    );
+
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists, isEmpty);
+    expect(store.discardedScoreIds, <String>['package-pdf-0']);
+    expect(
+      await stampAssetStore.assetExists('stamps/package/photo-cue.png'),
+      isFalse,
+    );
+  });
+
+  test(
+    'setlist package stamp merge failure preserves imported setlist',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 28, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing Etude');
+      final store = _PackageImportStore(now);
+      await store.saveScores([existing]);
+      await store.saveUserAnnotationStampPacks([
+        SheetAnnotationStampPack(
+          id: 'user',
+          name: '사용자 스탬프',
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          stamps: const <SheetAnnotationUserStamp>[
+            SheetAnnotationUserStamp(
+              id: 'repeat-cue',
+              packId: 'user',
+              label: 'Local repeat cue',
+              category: '사용자',
+              kind: SheetAnnotationUserStamp.iconKind,
+              iconName: 'repeat',
+            ),
+          ],
+        ),
+      ]);
+      store.failSaveUserStampPacks = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final packageStampPack = SheetAnnotationStampPack(
+        id: 'user',
+        name: '사용자 스탬프',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'repeat-cue',
+            packId: 'user',
+            label: 'Package repeat cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.iconKind,
+            iconName: 'repeat',
+          ),
+          SheetAnnotationUserStamp(
+            id: 'bow-cue',
+            packId: 'user',
+            label: 'Bow cue',
+            category: '사용자',
+            kind: SheetAnnotationUserStamp.textKind,
+            text: 'BOW',
+          ),
+        ],
+      );
+      final package = SheetSetlistPackageArchive.decodeBytes(
+        SheetSetlistPackageArchive.encodeBytes(
+          manifestText: '''
+Clef & Staff 세트리스트
+제목: Package Recital
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''',
+          scoreFiles: const <String, List<int>>{},
+          userStampPacks: [packageStampPack],
+        ),
+      );
+      final dryRun = package.previewImport(
+        currentScores: controller.scores,
+        currentUserStampPacks: controller.userAnnotationStampPacks,
+      );
+
+      final imported = await controller.importSetlistPackage(package, dryRun);
+
+      expect(imported, isNotNull);
+      expect(controller.setlists.single.title, 'Package Recital');
+      expect(
+        controller.userAnnotationStampPacks.single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+      expect(
+        (await store.loadUserAnnotationStampPacks()).single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+      await controller.load();
+      expect(controller.setlists.single.title, 'Package Recital');
+      expect(
+        controller.userAnnotationStampPacks.single.stamps.map(
+          (stamp) => stamp.id,
+        ),
+        <String>['repeat-cue'],
+      );
+    },
+  );
+
+  test('setlist package library switch discards uncommitted files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 16);
+    final store = _PackageImportStore(now);
+    final otherLibrary = await store.createLibraryProfile('Other');
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.afterPdfImport = () =>
+        controller.switchLibraryProfile(otherLibrary.id);
+    final package = SheetSetlistPackageArchive.decodeBytes(
+      SheetSetlistPackageArchive.encodeBytes(
+        manifestText: '''
+Clef & Staff 세트리스트
+제목: Switched Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+        scoreFiles: const <String, List<int>>{
+          'scores/new-sonata.pdf': <int>[1, 2, 3],
+        },
+      ),
+    );
+    final dryRun = package.previewImport(currentScores: controller.scores);
+
+    final imported = await controller.importSetlistPackage(package, dryRun);
+
+    expect(imported, isNull);
+    expect(controller.activeLibraryProfile.id, otherLibrary.id);
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists, isEmpty);
+    expect(store.discardedScoreIds, <String>['package-pdf-0']);
+  });
+
+  test('imports ChordPro text as a library score draft', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final store = _ChordProImportStore(now);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProText('''
+{title: Autumn Tune}
+{composer: Lee}
+{key: D}
+{time: 6/8}
+{tag: recital, lesson}
+[D]가을 [A]노래
+''');
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'Autumn Tune');
+    expect(imported.composer, 'Lee');
+    expect(imported.tags, ['recital', 'lesson']);
+    expect(imported.filePath, endsWith('.chordpro'));
+    expect(imported.customFields.map((field) => field.key), contains('조성'));
+    expect(store.importedSource, contains('[D]가을 [A]노래'));
+    await controller.load();
+    expect(controller.scores.single.title, 'Autumn Tune');
+  });
+
+  test('imports a ChordPro file with filename fallback metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'late-autumn.onsong',
+        bytes: Uint8List.fromList(
+          utf8.encode('''
+{key: G}
+[G]늦가을 [D]노래
+'''),
+        ),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProFile();
+
+    expect(imported, isNotNull);
+    expect(imported!.title, 'late autumn');
+    expect(imported.filePath, endsWith('.onsong'));
+    expect(imported.customFields.map((field) => field.key), contains('조성'));
+    expect(store.importedChordProFile?.name, 'late-autumn.onsong');
+    expect(utf8.decode(store.importedChordProFile!.bytes), contains('늦가을'));
+    expect(controller.scores.single.title, 'late autumn');
+  });
+
+  test('imports a plain text file as a library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 19, 12);
+    final store = _ChordProImportStore(now)
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'lesson-notes.txt',
+        bytes: Uint8List.fromList(utf8.encode('첫 문장\n두 번째 문장')),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importPlainTextFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'lesson notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(controller.scores.single.title, 'lesson notes');
+    await controller.load();
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+  });
+
+  test('file text imports reject malformed UTF-8 before mutation', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 19);
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'broken.chordpro',
+        bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+      )
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'broken.txt',
+        bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(await controller.importChordProFile(), isNull);
+    expect(store.importedChordProFile, isNull);
+    expect(controller.scores, isEmpty);
+
+    expect(await controller.importPlainTextFile(), isNull);
+    expect(controller.scores, isEmpty);
+    expect(await store.loadScores(), isEmpty);
+  });
+
+  test('imports a DOCX file as a readable library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 13);
+    final store = _ChordProImportStore(now)
+      ..pickedDocxFile = SheetImportedFile(
+        name: 'studio-notes.docx',
+        bytes: Uint8List.fromList(<int>[1, 2, 3]),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importDocxFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'studio notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(imported?.linkedFiles.single.type, 'docx');
+    expect(controller.scores.single.id, 'docx-1');
+  });
+
+  test('imports an RTF file as a readable library score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 15);
+    final store = _ChordProImportStore(now)
+      ..pickedRtfFile = SheetImportedFile(
+        name: 'rehearsal-notes.rtf',
+        bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+      );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importRtfFile();
+
+    expect(imported, isNotNull);
+    expect(imported?.title, 'rehearsal notes');
+    expect(imported?.filePath, endsWith('.txt'));
+    expect(imported?.linkedFiles.single.type, 'rtf');
+    expect(controller.scores.single.id, 'rtf-1');
+  });
+
+  test('ChordPro import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now);
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProText('''
+{title: Broken Save}
+[C]Line
+''');
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+  });
+
+  test('ChordPro file import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 28, 16);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now)
+      ..pickedChordProFile = SheetImportedFile(
+        name: 'broken-save.chordpro',
+        bytes: Uint8List.fromList(
+          utf8.encode('''
+{title: Broken Save}
+[C]Line
+'''),
+        ),
+      );
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importChordProFile();
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+    expect(store.discardedScoreIds, contains('chordpro-file-1'));
+  });
+
+  test('plain text import save failure restores previous scores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 19, 12);
+    final existing = _score(now, id: 'existing', title: 'Existing');
+    final store = _ChordProImportStore(now)
+      ..pickedPlainTextFile = SheetImportedFile(
+        name: 'lesson.txt',
+        bytes: Uint8List.fromList(utf8.encode('Lesson notes')),
+      );
+    await store.saveScores([existing]);
+    store.failSaveScores = true;
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final imported = await controller.importPlainTextFile();
+
+    expect(imported, isNull);
+    expect(controller.scores.map((score) => score.id), ['existing']);
+    expect((await store.loadScores()).map((score) => score.id), ['existing']);
+    expect(store.discardedScoreIds, contains('plain-text-1'));
+  });
+
+  for (final kind in <String>['ChordPro', 'plain text']) {
+    test(
+      '$kind file import discards its copy after a library switch',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 10, 20, 20);
+        final existing = _score(now, id: 'existing', title: 'Existing');
+        final store = _ChordProImportStore(now)
+          ..pickedChordProFile = SheetImportedFile(
+            name: 'switch.onsong',
+            bytes: Uint8List.fromList(utf8.encode('{title: Switch}\n[C]Line')),
+          )
+          ..pickedPlainTextFile = SheetImportedFile(
+            name: 'switch.txt',
+            bytes: Uint8List.fromList(utf8.encode('Switch notes')),
+          )
+          ..fileImportReady = Completer<void>()
+          ..releaseFileImport = Completer<void>();
+        await store.saveScores([existing]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final sourceLibraryId = controller.activeLibraryProfile.id;
+
+        final pending = kind == 'ChordPro'
+            ? controller.importChordProFile()
+            : controller.importPlainTextFile();
+        await store.fileImportReady!.future;
+        await controller.createLibraryProfile('Destination');
+        store.releaseFileImport!.complete();
+
+        expect(await pending, isNull);
+        expect(controller.scores, isEmpty);
+        expect(controller.errorMessage, isNull);
+        expect(
+          store.discardedScoreIds,
+          contains(kind == 'ChordPro' ? 'chordpro-file-1' : 'plain-text-1'),
+        );
+        await controller.switchLibraryProfile(sourceLibraryId);
+        expect(controller.scores.map((score) => score.id), ['existing']);
+      },
+    );
+  }
+
+  test(
+    'DOCX import save failure restores scores and discards copied files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 13);
+      final existing = _score(now, id: 'existing', title: 'Existing');
+      final store = _ChordProImportStore(now)
+        ..pickedDocxFile = SheetImportedFile(
+          name: 'broken-save.docx',
+          bytes: Uint8List.fromList(<int>[1, 2, 3]),
+        );
+      await store.saveScores([existing]);
+      store.failSaveScores = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importDocxFile();
+
+      expect(imported, isNull);
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(store.discardedScoreIds, ['docx-1']);
+    },
+  );
+
+  test(
+    'RTF import save failure restores scores and discards copied files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 15);
+      final existing = _score(now, id: 'existing', title: 'Existing');
+      final store = _ChordProImportStore(now)
+        ..pickedRtfFile = SheetImportedFile(
+          name: 'broken-save.rtf',
+          bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+        );
+      await store.saveScores([existing]);
+      store.failSaveScores = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importRtfFile();
+
+      expect(imported, isNull);
+      expect(controller.scores.map((score) => score.id), ['existing']);
+      expect((await store.loadScores()).map((score) => score.id), ['existing']);
+      expect(store.discardedScoreIds, ['rtf-1']);
+    },
+  );
+
+  test('persists ChordPro display settings per score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 13, 11);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      _score(now, id: 'chordpro-score', filePath: '/tmp/tune.chordpro'),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateChordProDisplaySettings(
+      controller.scoreById('chordpro-score'),
+      const SheetChordProDisplaySettings(
+        transposeSemitones: 2,
+        showCapoShapes: true,
+        capoFretsOverride: 4,
+        columnCount: 2,
+        fontScalePercent: 115,
+      ),
+    );
+
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.chordProDisplaySettings.transposeSemitones, 2);
+    expect(persisted.chordProDisplaySettings.showCapoShapes, isTrue);
+    expect(persisted.chordProDisplaySettings.capoFretsOverride, 4);
+    expect(persisted.chordProDisplaySettings.columnCount, 2);
+    expect(persisted.chordProDisplaySettings.fontScalePercent, 115);
+  });
+
+  test(
+    'ChordPro display settings save failure restores previous score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 13, 11);
+      final store = _ChordProImportStore(now);
+      await store.saveScores([
+        _score(now, id: 'chordpro-score', filePath: '/tmp/tune.chordpro'),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updateChordProDisplaySettings(
+          controller.scoreById('chordpro-score'),
+          const SheetChordProDisplaySettings(transposeSemitones: -3),
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        controller
+            .scoreById('chordpro-score')
+            .chordProDisplaySettings
+            .isDefault,
+        isTrue,
+      );
+      expect(
+        (await store.loadScores()).single.chordProDisplaySettings.isDefault,
+        isTrue,
+      );
+    },
+  );
+
+  test('persists plain text display settings per score', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 10, 20, 22);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      _score(now, id: 'plain-text-score', filePath: '/tmp/lesson.txt'),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateTextDisplaySettings(
+      controller.scoreById('plain-text-score'),
+      const SheetTextDisplaySettings(fontScalePercent: 115),
+    );
+
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.textDisplaySettings.fontScalePercent, 115);
+  });
+
+  test(
+    'plain text display settings save failure restores previous score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 10, 20, 22);
+      final store = _PlainTextSourceEditStore();
+      await store.saveScores([
+        _score(now, id: 'plain-text-score', filePath: '/tmp/lesson.txt'),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updateTextDisplaySettings(
+          controller.scoreById('plain-text-score'),
+          const SheetTextDisplaySettings(fontScalePercent: 130),
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        controller.scoreById('plain-text-score').textDisplaySettings.isDefault,
+        isTrue,
+      );
+      expect(
+        (await store.loadScores()).single.textDisplaySettings.isDefault,
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'ChordPro source edit preserves library metadata and file extension',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp('clef-chordpro-edit-');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/concert.onsong');
+      const originalSource = '{title: Source title}\n[C]Old line';
+      const revisedSource = '{title: Revised source title}\n[G]New line';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 20);
+      final original = _score(
+        now,
+        id: 'chordpro-edit',
+        title: 'My library title',
+        composer: 'My composer',
+        filePath: sourceFile.path,
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        await controller.updateChordProSource(
+          controller.scoreById(original.id),
+          revisedSource,
+        ),
+        isTrue,
+      );
+
+      expect(await sourceFile.readAsString(), revisedSource);
+      expect(sourceFile.path, endsWith('.onsong'));
+      final current = controller.scoreById(original.id);
+      expect(current.title, 'My library title');
+      expect(current.composer, 'My composer');
+      final persisted = (await store.loadScores()).single;
+      expect(persisted.title, 'My library title');
+      expect(persisted.filePath, sourceFile.path);
+    },
+  );
+
+  test('ChordPro source edit restores file after score save failure', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-failure-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/failure.chordpro');
+    const originalSource = '{title: Original}\n[C]Old line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-failure',
+      filePath: sourceFile.path,
+    );
+    final store = _ChordProImportStore(now);
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.failSaveScores = true;
+
+    await expectLater(
+      controller.updateChordProSource(
+        controller.scoreById(original.id),
+        '{title: Revised}\n[D]New line',
+      ),
+      throwsStateError,
+    );
+
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scoreById(original.id).toJson(), original.toJson());
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
+  test('ChordPro source edit rejects empty and oversized content', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-invalid-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/invalid.chordpro');
+    const originalSource = '{title: Original}\n[C]Line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-invalid',
+      filePath: sourceFile.path,
+    );
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await expectLater(
+      controller.updateChordProSource(original, ' \n'),
+      throwsFormatException,
+    );
+    await expectLater(
+      controller.updateChordProSource(
+        original,
+        'A' * (SheetFileImportPolicy.maxPlainTextBytes + 1),
+      ),
+      throwsFormatException,
+    );
+
+    expect(await sourceFile.readAsString(), originalSource);
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
+  test('late ChordPro source edit rolls back after a library switch', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-chordpro-edit-switch-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/switch.chordpro');
+    const originalSource = '{title: Source}\n[C]Old line';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 20);
+    final original = _score(
+      now,
+      id: 'chordpro-edit-switch',
+      filePath: sourceFile.path,
+    );
+    final store = _DelayedChordProSourceEditStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final sourceLibraryId = controller.activeLibraryProfile.id;
+
+    final pending = controller.updateChordProSource(
+      original,
+      '{title: Revised}\n[D]New line',
+    );
+    await store.firstReplacementStarted.future;
+    await controller.createLibraryProfile('Destination');
+    store.releaseFirstReplacement.complete();
+
+    expect(await pending, isFalse);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scores, isEmpty);
+    await controller.switchLibraryProfile(sourceLibraryId);
+    expect(controller.scores.single.toJson(), original.toJson());
+  });
+
+  test(
+    'plain text source edit preserves library metadata and file extension',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp('clef-text-edit-');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/lesson.md');
+      const originalSource = '# Original\nPractice slowly.';
+      const revisedSource = '# Revised\nPractice in short phrases.';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 21);
+      final original = _score(
+        now,
+        id: 'plain-text-edit',
+        title: 'Library title',
+        composer: 'Teacher',
+        filePath: sourceFile.path,
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        await controller.updatePlainTextSource(
+          controller.scoreById(original.id),
+          revisedSource,
+        ),
+        isTrue,
+      );
+
+      expect(await sourceFile.readAsString(), revisedSource);
+      expect(sourceFile.path, endsWith('.md'));
+      final current = controller.scoreById(original.id);
+      expect(current.title, 'Library title');
+      expect(current.composer, 'Teacher');
+      expect((await store.loadScores()).single.filePath, sourceFile.path);
+    },
+  );
+
+  test('plain text source edit rejects extracted document text', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-document-text-edit-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/document.txt');
+    const originalSource = 'Extracted document text';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 21);
+    final original = _score(
+      now,
+      id: 'document-text-edit',
+      filePath: sourceFile.path,
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+      ],
+    );
+    final store = _PlainTextSourceEditStore();
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.updatePlainTextSource(original, 'Changed extract'),
+      isFalse,
+    );
+    expect(store.replacementCount, 0);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scoreById(original.id).toJson(), original.toJson());
+    expect((await store.loadScores()).single.toJson(), original.toJson());
+  });
+
+  test(
+    'plain text source edit restores file after score save failure',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-text-edit-failure-',
+      );
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final sourceFile = File('${root.path}/failure.txt');
+      const originalSource = 'Original notes';
+      await sourceFile.writeAsString(originalSource);
+      final now = DateTime(2026, 10, 20, 21);
+      final original = _score(
+        now,
+        id: 'plain-text-edit-failure',
+        filePath: sourceFile.path,
+      );
+      final store = _PlainTextSourceEditStore();
+      await store.saveScores(<SheetScore>[original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSaveScores = true;
+
+      await expectLater(
+        controller.updatePlainTextSource(original, 'Revised notes'),
+        throwsStateError,
+      );
+
+      expect(await sourceFile.readAsString(), originalSource);
+      expect(controller.scoreById(original.id).toJson(), original.toJson());
+      expect((await store.loadScores()).single.toJson(), original.toJson());
+    },
+  );
+
+  test('late plain text edit rolls back after a library switch', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-text-edit-switch-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final sourceFile = File('${root.path}/switch.txt');
+    const originalSource = 'Original notes';
+    await sourceFile.writeAsString(originalSource);
+    final now = DateTime(2026, 10, 20, 21);
+    final original = _score(
+      now,
+      id: 'plain-text-edit-switch',
+      filePath: sourceFile.path,
+    );
+    final store = _PlainTextSourceEditStore(delayFirstReplacement: true);
+    await store.saveScores(<SheetScore>[original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final sourceLibraryId = controller.activeLibraryProfile.id;
+
+    final pending = controller.updatePlainTextSource(original, 'Revised notes');
+    await store.firstReplacementStarted.future;
+    await controller.createLibraryProfile('Destination');
+    store.releaseFirstReplacement.complete();
+
+    expect(await pending, isFalse);
+    expect(await sourceFile.readAsString(), originalSource);
+    expect(controller.scores, isEmpty);
+    await controller.switchLibraryProfile(sourceLibraryId);
+    expect(controller.scores.single.toJson(), original.toJson());
+  });
+
   test(
     'appends another setlist while preserving target performance settings',
     () async {
@@ -993,6 +2775,216 @@ void main() {
     },
   );
 
+  test('previews automatic metadata restore changes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
+    ]);
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final report = await controller.loadAutomaticBackupDiffReport();
+    expect(report?.headline, '백업 변경 1종 감지');
+    expect(report?.summaryLines, contains('새 악보 1개'));
+    expect(report?.requiresReview, isFalse);
+  });
+
+  test('previews external metadata backup JSON without restoring it', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'current-score', title: 'Current Score'),
+    ]);
+    final incomingJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: <SheetScore>[
+          _score(now, id: 'incoming-score', title: 'Incoming Score'),
+        ],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final preview = await controller.previewMetadataBackupJson(incomingJson);
+    expect(preview.status, SheetLibraryBackupPreviewStatus.ready);
+    expect(preview.canRestore, isTrue);
+    expect(preview.scoreCount, 1);
+    expect(preview.setlistCount, 0);
+    expect(preview.report?.summaryLines, contains('새 악보 1개'));
+    expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(preview.mergeReview?.risk, SheetLibraryBackupMergeRisk.destructive);
+    expect(controller.scores.single.id, 'current-score');
+  });
+
+  test('classifies invalid metadata backup preview input', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    final invalid = await controller.previewMetadataBackupJson('[]');
+    expect(invalid.status, SheetLibraryBackupPreviewStatus.invalid);
+    expect(invalid.canRestore, isFalse);
+
+    final unsupportedJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: const <SheetScore>[],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    ).replaceFirst('"version": 1', '"version": 999');
+    final unsupported = await controller.previewMetadataBackupJson(
+      unsupportedJson,
+    );
+    expect(
+      unsupported.status,
+      SheetLibraryBackupPreviewStatus.unsupportedVersion,
+    );
+    expect(unsupported.canRestore, isFalse);
+  });
+
+  test('previews full backup zip without restoring it', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final backupSource = SheetLibraryStore();
+    await backupSource.saveScores(<SheetScore>[
+      _score(now, id: 'incoming-score', title: 'Incoming Score'),
+    ]);
+    final zipBytes = await backupSource.exportFullBackupZipBytes();
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'current-score', title: 'Current Score'),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final preview = await controller.previewFullBackupZipBytes(zipBytes);
+    expect(preview.status, SheetLibraryBackupPreviewStatus.ready);
+    expect(preview.canRestore, isTrue);
+    expect(preview.scoreCount, 1);
+    expect(preview.setlistCount, 0);
+    expect(preview.fileMappingCount, 1);
+    expect(preview.missingFileCount, 1);
+    expect(preview.report?.summaryLines, contains('새 악보 1개'));
+    expect(preview.report?.summaryLines, contains('삭제된 악보 1개'));
+    expect(preview.mergeReview?.risk, SheetLibraryBackupMergeRisk.destructive);
+    expect(controller.scores.single.id, 'current-score');
+  });
+
+  test('classifies invalid full backup preview input', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    final preview = await controller.previewFullBackupZipBytes(
+      utf8.encode('not a zip'),
+    );
+    expect(preview.status, SheetLibraryBackupPreviewStatus.invalid);
+    expect(preview.canRestore, isFalse);
+  });
+
+  test('reports backup health without claiming cloud sync', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-09-27T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'pdf-score', filePath: '/tmp/missing-score.pdf'),
+      _score(now, id: 'text-score', filePath: '/tmp/text-score.chordpro'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['pdf-score', 'text-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    await store.saveUserAnnotationStampPacks(<SheetAnnotationStampPack>[
+      SheetAnnotationStampPack(
+        id: 'user-pack',
+        name: 'My stamps',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        stamps: const <SheetAnnotationUserStamp>[
+          SheetAnnotationUserStamp(
+            id: 'user-ok',
+            packId: 'user-pack',
+            label: 'OK',
+            category: 'Marks',
+            kind: SheetAnnotationUserStamp.textKind,
+            text: 'OK',
+          ),
+        ],
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final health = await controller.loadBackupHealth();
+    expect(health.hasAutomaticMetadataBackup, isTrue);
+    expect(health.automaticMetadataScoreCount, 2);
+    expect(health.automaticMetadataSetlistCount, 1);
+    expect(health.currentScoreCount, 2);
+    expect(health.currentSetlistCount, 1);
+    expect(health.currentPdfScoreCount, 1);
+    expect(health.currentTextScoreCount, 1);
+    expect(health.userStampPackCount, 1);
+    expect(health.missingPrimaryFileCount, 2);
+    expect(health.lastBackupExportRecord, isNull);
+  });
+
+  test('reports the last manual backup export record', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-09-27T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', filePath: '/tmp/score.pdf'),
+    ]);
+    await store.saveLastBackupExportRecord(
+      SheetLibraryBackupExportRecord(
+        kind: SheetLibraryBackupExportKind.full,
+        exportedAt: now,
+        outputUri: 'file:///tmp/clef-full-backup.zip',
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final health = await controller.loadBackupHealth();
+    expect(
+      health.lastBackupExportRecord?.kind,
+      SheetLibraryBackupExportKind.full,
+    );
+    expect(health.lastBackupExportRecord?.exportedAt, now);
+    expect(
+      health.lastBackupExportRecord?.outputUri,
+      'file:///tmp/clef-full-backup.zip',
+    );
+  });
+
   test('updates and reloads global viewer action defaults', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1354,6 +3346,410 @@ void main() {
     expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
     expect(controller.scores.single.linkedFiles, isEmpty);
   });
+
+  test(
+    'applies a changed connected-folder PDF without losing score metadata',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final previousSource = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 100,
+        modifiedAt: now.subtract(const Duration(days: 1)),
+      )!;
+      final nextSource = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 200,
+        modifiedAt: now,
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          title: 'My Sonata',
+          composer: 'Composer',
+          tags: const <String>['recital'],
+          isFavorite: true,
+          bookmarks: <SheetBookmark>[
+            SheetBookmark(pageNumber: 2, label: 'Coda', createdAt: now),
+          ],
+        ).copyWith(importSource: previousSource),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: '/cache/Sonata.pdf',
+          name: 'Sonata.pdf',
+          importSource: nextSource,
+        ),
+      );
+
+      final updated = controller.scores.single;
+      expect(didReplace, isTrue);
+      expect(updated.id, 'score-1');
+      expect(updated.filePath, '/managed/revised-Sonata.pdf');
+      expect(updated.title, 'My Sonata');
+      expect(updated.composer, 'Composer');
+      expect(updated.tags, <String>['recital']);
+      expect(updated.isFavorite, isTrue);
+      expect(updated.bookmarks.single.label, 'Coda');
+      expect(updated.importSource?.sizeBytes, 200);
+      expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
+      expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
+      expect(store.discardedScoreIds, isEmpty);
+      expect((await store.loadScores()).single.filePath, updated.filePath);
+    },
+  );
+
+  test(
+    'failed connected-folder PDF replacement keeps the prior score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Sonata.pdf',
+        folderLabel: 'Recital',
+        sizeBytes: 200,
+        modifiedAt: now,
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[_score(now)]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSave = true;
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: '/cache/Sonata.pdf',
+          name: 'Sonata.pdf',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+      expect(controller.scores.single.linkedFiles, isEmpty);
+      expect((await store.loadScores()).single.filePath, '/tmp/score-1.pdf');
+      expect(store.discardedScoreIds, <String>['folder-replacement']);
+      expect(controller.errorMessage, contains('기존 악보는 그대로'));
+    },
+  );
+
+  for (final fixture in <({String name, String source, String type})>[
+    (name: 'Lyrics.txt', source: 'Verse one', type: 'text'),
+    (
+      name: 'Autumn.chordpro',
+      source: '{title: Autumn}\n[C]Verse one',
+      type: 'chordpro',
+    ),
+  ]) {
+    test(
+      'applies a changed connected-folder ${fixture.type} source safely',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime.parse('2026-10-20T10:00:00.000');
+        final directory = await Directory.systemTemp.createTemp(
+          'clef-source-replacement-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final cacheFile = File('${directory.path}/${fixture.name}');
+        await cacheFile.writeAsString(fixture.source);
+        final source = SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: fixture.name,
+          folderLabel: 'Charts',
+          sizeBytes: await cacheFile.length(),
+          modifiedAt: now,
+        )!;
+        final store = _ConnectedFolderPdfReplacementStore(now);
+        await store.saveScores(<SheetScore>[
+          _score(
+            now,
+            title: 'Curated title',
+            composer: 'Teacher',
+            filePath: '/managed/old-${fixture.name}',
+          ).copyWith(importSource: source),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+
+        final didReplace = await controller.replaceScoreFromConnectedFolder(
+          controller.scores.single,
+          SheetSharedImportFile(
+            path: cacheFile.path,
+            name: fixture.name,
+            importSource: source,
+          ),
+        );
+
+        final updated = controller.scores.single;
+        expect(didReplace, isTrue);
+        expect(updated.id, 'score-1');
+        expect(updated.title, 'Curated title');
+        expect(updated.composer, 'Teacher');
+        expect(updated.filePath, '/managed/revised-${fixture.name}');
+        expect(updated.linkedFiles.single.path, '/managed/old-${fixture.name}');
+        expect(updated.linkedFiles.single.type, fixture.type);
+      },
+    );
+  }
+
+  for (final fixture in <({String name, String type})>[
+    (name: 'Studio Notes.docx', type: 'docx'),
+    (name: 'Rehearsal Notes.rtf', type: 'rtf'),
+  ]) {
+    test(
+      'replaces a connected-folder ${fixture.type} extract and reference atomically',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime.parse('2026-10-20T10:00:00.000');
+        final directory = await Directory.systemTemp.createTemp(
+          'clef-document-replacement-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final cacheFile = File('${directory.path}/${fixture.name}');
+        await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+        final source = SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: fixture.name,
+          folderLabel: 'Lesson notes',
+          sizeBytes: await cacheFile.length(),
+          modifiedAt: now,
+        )!;
+        final oldReference = SheetLinkedFile(
+          path: '/managed/old-${fixture.name}',
+          type: fixture.type,
+          label: fixture.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now.subtract(const Duration(days: 1)),
+        );
+        final store = _ConnectedFolderPdfReplacementStore(now);
+        await store.saveScores(<SheetScore>[
+          _score(
+            now,
+            title: 'Curated notes',
+            composer: 'Teacher',
+            filePath: '/managed/old-${fixture.name}.txt',
+            linkedFiles: <SheetLinkedFile>[oldReference],
+          ).copyWith(
+            importSource: source,
+            customFields: <SheetCustomMetadataField>[
+              SheetCustomMetadataField(
+                key: '출처 유형',
+                value: fixture.type.toUpperCase(),
+              ),
+              SheetCustomMetadataField(key: '원본 파일', value: fixture.name),
+            ],
+          ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+
+        final didReplace = await controller.replaceScoreFromConnectedFolder(
+          controller.scores.single,
+          SheetSharedImportFile(
+            path: cacheFile.path,
+            name: fixture.name,
+            importSource: source,
+          ),
+        );
+
+        final updated = controller.scores.single;
+        expect(didReplace, isTrue);
+        expect(updated.id, 'score-1');
+        expect(updated.title, 'Curated notes');
+        expect(updated.composer, 'Teacher');
+        expect(updated.filePath, '/managed/revised-${fixture.name}.txt');
+        expect(updated.isExtractedDocumentText, isTrue);
+        expect(updated.linkedFiles, hasLength(3));
+        expect(
+          updated.linkedFiles.first,
+          isA<SheetLinkedFile>()
+              .having(
+                (file) => file.path,
+                'new reference path',
+                '/managed/revised-${fixture.name}',
+              )
+              .having(
+                (file) => file.role,
+                'new reference role',
+                SheetLinkedFile.referenceRole,
+              ),
+        );
+        expect(
+          updated.linkedFiles.skip(1).map((file) => file.role),
+          everyElement(SheetLinkedFile.editedCopyRole),
+        );
+        expect(
+          updated.linkedFiles.skip(1).map((file) => file.path),
+          containsAll(<String>[
+            '/managed/old-${fixture.name}.txt',
+            oldReference.path,
+          ]),
+        );
+      },
+    );
+  }
+
+  test(
+    'rejects a document replacement without a preserved source reference',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-invalid-document-replacement-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final cacheFile = File('${directory.path}/Notes.docx');
+      await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Notes.docx',
+        folderLabel: 'Lesson notes',
+      )!;
+      final store = _ConnectedFolderPdfReplacementStore(now)
+        ..omitDocumentReference = true;
+      await store.saveScores(<SheetScore>[
+        _score(now, filePath: '/managed/old-notes.txt').copyWith(
+          importSource: source,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          ],
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: cacheFile.path,
+          name: 'Notes.docx',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/managed/old-notes.txt');
+      expect(store.discardedScoreIds, <String>['folder-replacement']);
+      expect(controller.errorMessage, contains('기존 악보는 그대로'));
+    },
+  );
+
+  test(
+    'failed document replacement discards its extract and source reference',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-failed-document-replacement-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final cacheFile = File('${directory.path}/Notes.docx');
+      await cacheFile.writeAsBytes(<int>[1, 2, 3]);
+      final source = SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'Notes.docx',
+        folderLabel: 'Lesson notes',
+      )!;
+      final oldReference = SheetLinkedFile(
+        path: '/managed/old-Notes.docx',
+        type: 'docx',
+        label: 'Notes.docx',
+        role: SheetLinkedFile.referenceRole,
+        createdAt: now.subtract(const Duration(days: 1)),
+      );
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          filePath: '/managed/old-Notes.docx.txt',
+          linkedFiles: <SheetLinkedFile>[oldReference],
+        ).copyWith(
+          importSource: source,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          ],
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.failSave = true;
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: cacheFile.path,
+          name: 'Notes.docx',
+          importSource: source,
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/managed/old-Notes.docx.txt');
+      expect(
+        controller.scores.single.linkedFiles.single.path,
+        oldReference.path,
+      );
+      expect(store.discardedScores, hasLength(1));
+      expect(
+        <String>[
+          store.discardedScores.single.filePath,
+          ...store.discardedScores.single.linkedFiles.map((file) => file.path),
+        ],
+        containsAll(<String>[
+          '/managed/revised-Notes.docx.txt',
+          '/managed/revised-Notes.docx',
+        ]),
+      );
+    },
+  );
+
+  test(
+    'rejects a connected-folder replacement with a different format',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-20T10:00:00.000');
+      final store = _ConnectedFolderPdfReplacementStore(now);
+      await store.saveScores(<SheetScore>[
+        _score(now).copyWith(
+          importSource: SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Sonata.pdf',
+            folderLabel: 'Recital',
+          ),
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScoreFromConnectedFolder(
+        controller.scores.single,
+        SheetSharedImportFile(
+          path: '/cache/Sonata.txt',
+          name: 'Sonata.txt',
+          importSource: SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Sonata.txt',
+            folderLabel: 'Recital',
+          ),
+        ),
+      );
+
+      expect(didReplace, isFalse);
+      expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+      expect(store.importedNames, isEmpty);
+    },
+  );
 
   test(
     'updates and removes linked file metadata without deleting files',
@@ -2811,6 +5207,314 @@ void main() {
     expect(await store.loadFavoriteAnnotationPreset(), isNull);
   });
 
+  test('records and restores recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    for (final stampName in const <String>[
+      'cue',
+      'fine',
+      'rit',
+      'cue',
+      'dc',
+      'ok',
+      'mark',
+    ]) {
+      expect(
+        await controller.recordRecentAnnotationStampName(stampName),
+        isTrue,
+      );
+    }
+
+    expect(controller.recentAnnotationStampNames, <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+    expect(await store.loadRecentAnnotationStampNames(), <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(nextController.recentAnnotationStampNames, <String>[
+      'mark',
+      'ok',
+      'dc',
+      'cue',
+      'rit',
+    ]);
+  });
+
+  test('creates deletes and restores user annotation text stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.createTextUserAnnotationStamp(
+        label: 'Bow cue',
+        text: 'BOW',
+      ),
+      isTrue,
+    );
+
+    expect(controller.userAnnotationStampPacks, hasLength(1));
+    final pack = controller.userAnnotationStampPacks.single;
+    expect(pack.id, 'user');
+    expect(pack.stamps.single.label, 'Bow cue');
+    expect(pack.stamps.single.text, 'BOW');
+    expect(pack.stamps.single.kind, SheetAnnotationUserStamp.textKind);
+    expect((await store.loadUserAnnotationStampPacks()).single.id, 'user');
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(
+      nextController.userAnnotationStampPacks.single.stamps.single.text,
+      'BOW',
+    );
+
+    expect(
+      await nextController.deleteUserAnnotationStamp(
+        packId: 'user',
+        stampId: pack.stamps.single.id,
+      ),
+      isTrue,
+    );
+    expect(nextController.userAnnotationStampPacks, isEmpty);
+    expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+
+    expect(
+      await nextController.createIconUserAnnotationStamp(
+        label: 'Repeat cue',
+        iconName: 'repeat',
+      ),
+      isTrue,
+    );
+    expect(
+      await nextController.createIconUserAnnotationStamp(
+        label: 'Bad icon',
+        iconName: 'unknown',
+      ),
+      isFalse,
+    );
+    final iconPack = nextController.userAnnotationStampPacks.single;
+    expect(iconPack.stamps.single.kind, SheetAnnotationUserStamp.iconKind);
+    expect(iconPack.stamps.single.iconName, 'repeat');
+
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    expect(
+      restoredController.userAnnotationStampPacks.single.stamps.single.iconName,
+      'repeat',
+    );
+  });
+
+  test('creates and restores image user annotation stamps', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-controller-image-stamp-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final source = File('${root.path}/source/photo cue.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(_tinyPngBytes(), flush: true);
+    final store = SheetLibraryStore();
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: store,
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+
+    expect(
+      await controller.createImageUserAnnotationStamp(
+        label: 'Photo cue',
+        sourceFile: source,
+      ),
+      isTrue,
+    );
+
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+    expect(stamp.kind, SheetAnnotationUserStamp.imageKind);
+    expect(stamp.label, 'Photo cue');
+    expect(stamp.assetRef, 'stamps/user/photo-cue.png');
+    expect(stamp.licenseLabel, '사용자 제공 이미지');
+    expect(await stampAssetStore.assetExists(stamp.assetRef), isTrue);
+
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    final restoredStamp =
+        restoredController.userAnnotationStampPacks.single.stamps.single;
+    expect(restoredStamp.kind, SheetAnnotationUserStamp.imageKind);
+    expect(restoredStamp.assetRef, stamp.assetRef);
+  });
+
+  test('deleting unused image user stamp cleans up its asset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final root = await Directory.systemTemp.createTemp(
+      'clef-controller-image-stamp-delete-',
+    );
+    addTearDown(() async {
+      if (root.existsSync()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final source = File('${root.path}/source/photo.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(_tinyPngBytes(), flush: true);
+    final stampAssetStore = SheetAnnotationStampAssetStore(rootDirectory: root);
+    final controller = SheetLibraryController(
+      store: SheetLibraryStore(),
+      stampAssetStore: stampAssetStore,
+    );
+    await controller.load();
+    await controller.createImageUserAnnotationStamp(
+      label: 'Photo cue',
+      sourceFile: source,
+    );
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+
+    expect(
+      await controller.deleteUserAnnotationStamp(
+        packId: stamp.packId,
+        stampId: stamp.id,
+      ),
+      isTrue,
+    );
+
+    expect(await stampAssetStore.assetExists(stamp.assetRef), isFalse);
+  });
+
+  test(
+    'deleting image user stamp preserves placed image annotations',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final root = await Directory.systemTemp.createTemp(
+        'clef-controller-image-stamp-placed-',
+      );
+      addTearDown(() async {
+        if (root.existsSync()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final now = DateTime.parse('2026-10-08T12:00:00.000');
+      final source = File('${root.path}/source/photo.png');
+      await source.parent.create(recursive: true);
+      await source.writeAsBytes(_tinyPngBytes(), flush: true);
+      final store = SheetLibraryStore();
+      final score = _score(now, id: 'solo', title: 'Solo');
+      await store.saveScores(<SheetScore>[score]);
+      final stampAssetStore = SheetAnnotationStampAssetStore(
+        rootDirectory: root,
+      );
+      final controller = SheetLibraryController(
+        store: store,
+        stampAssetStore: stampAssetStore,
+      );
+      await controller.load();
+      await controller.createImageUserAnnotationStamp(
+        label: 'Photo cue',
+        sourceFile: source,
+      );
+      final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+      await controller.addTextAnnotation(
+        controller.scores.single,
+        SheetTextAnnotation(
+          id: 'placed-image',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+          text: stamp.label,
+          color: 0xff111111,
+          fontSize: 18,
+          createdAt: now,
+          stampKind: SheetAnnotationUserStamp.imageKind,
+          stampAssetRef: stamp.assetRef,
+        ),
+      );
+
+      expect(
+        await controller.deleteUserAnnotationStamp(
+          packId: stamp.packId,
+          stampId: stamp.id,
+        ),
+        isTrue,
+      );
+
+      expect(await stampAssetStore.assetExists(stamp.assetRef), isTrue);
+      expect(controller.userAnnotationStampPacks, isEmpty);
+      expect(
+        controller.scores.single.annotationLayer.texts.single.stampAssetRef,
+        stamp.assetRef,
+      );
+    },
+  );
+
+  test('deleting a user stamp preserves placed stamp annotations', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-10-02T10:00:00.000');
+    final store = SheetLibraryStore();
+    final score = _score(now, id: 'solo', title: 'Solo');
+    await store.saveScores(<SheetScore>[score]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      await controller.createTextUserAnnotationStamp(
+        label: 'Bow cue',
+        text: 'BOW',
+      ),
+      isTrue,
+    );
+    final stamp = controller.userAnnotationStampPacks.single.stamps.single;
+    await controller.addTextAnnotation(
+      controller.scoreById(score.id),
+      SheetTextAnnotation(
+        id: 'placed-stamp',
+        pageNumber: 1,
+        position: const SheetAnnotationPoint(x: 0.32, y: 0.4),
+        text: stamp.text,
+        color: 0xff111111,
+        fontSize: 18,
+        createdAt: now,
+      ),
+    );
+
+    expect(
+      await controller.deleteUserAnnotationStamp(
+        packId: stamp.packId,
+        stampId: stamp.id,
+      ),
+      isTrue,
+    );
+
+    expect(controller.userAnnotationStampPacks, isEmpty);
+    expect(
+      controller.scoreById(score.id).annotationLayer.texts.single.text,
+      'BOW',
+    );
+    final restoredController = SheetLibraryController(store: store);
+    await restoredController.load();
+    expect(restoredController.userAnnotationStampPacks, isEmpty);
+    expect(
+      restoredController.scoreById(score.id).annotationLayer.texts.single.text,
+      'BOW',
+    );
+  });
+
   test('clears library query and filters for empty result recovery', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -2975,6 +5679,19 @@ void main() {
     expect(controller.scores.single.annotationLayer.strokes, hasLength(1));
     expect(controller.scores.single.annotationLayer.texts, hasLength(1));
 
+    final didUpdateStroke = await controller.updateStrokeAnnotation(
+      controller.scores.single,
+      controller.scores.single.annotationLayer.strokes.single.shiftedBy(
+        dx: 0.1,
+        dy: 0.05,
+      ),
+    );
+    expect(didUpdateStroke, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.points.first.x,
+      moreOrLessEquals(0.2),
+    );
+
     final didUpdate = await controller.updateTextAnnotation(
       controller.scores.single,
       controller.scores.single.annotationLayer.texts.single.copyWith(
@@ -3033,6 +5750,174 @@ void main() {
     final persisted = (await store.loadScores()).single;
     expect(persisted.annotationLayer.isDefaultLayerVisible, isFalse);
     expect(persisted.annotationLayer.includeDefaultLayerInExport, isFalse);
+  });
+
+  test('creates and updates non-default annotation display layers', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final didCreate = await controller.updateAnnotationDisplayLayer(
+      controller.scores.single,
+      const SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+    );
+    expect(didCreate, isTrue);
+
+    await controller.addTextAnnotation(
+      controller.scores.single,
+      SheetTextAnnotation(
+        id: 'text-layer',
+        pageNumber: 1,
+        position: const SheetAnnotationPoint(x: 0.2, y: 0.2),
+        text: '리허설 확인',
+        color: 0xff111111,
+        fontSize: 18,
+        createdAt: now,
+        layerId: 'rehearsal',
+      ),
+    );
+    await controller.addAnnotationStroke(
+      controller.scores.single,
+      SheetAnnotationStroke(
+        id: 'stroke-default',
+        pageNumber: 1,
+        tool: SheetAnnotationTool.arrow,
+        color: 0xff111111,
+        width: 4,
+        points: const <SheetAnnotationPoint>[
+          SheetAnnotationPoint(x: 0.2, y: 0.2),
+          SheetAnnotationPoint(x: 0.4, y: 0.4),
+        ],
+        createdAt: now.add(const Duration(seconds: 1)),
+      ),
+    );
+
+    await controller.updateAnnotationLayerState(
+      controller.scores.single,
+      layerId: 'rehearsal',
+      isVisible: false,
+      includeInExport: false,
+    );
+
+    final layer = controller.scores.single.annotationLayer;
+    expect(layer.displayLayerForAnnotation('rehearsal').label, '리허설');
+    expect(layer.visibleTextsForPage(1), isEmpty);
+    expect(layer.exportableTextsForPage(1), isEmpty);
+    expect(layer.texts.single.layerId, 'rehearsal');
+
+    final didMove = await controller.moveAnnotationToDisplayLayer(
+      controller.scores.single,
+      annotationId: 'stroke-default',
+      layerId: 'rehearsal',
+    );
+    expect(didMove, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      'rehearsal',
+    );
+    expect(
+      await controller.moveAnnotationToDisplayLayer(
+        controller.scores.single,
+        annotationId: 'stroke-default',
+        layerId: 'missing-layer',
+      ),
+      isFalse,
+    );
+
+    final didMoveSelection = await controller.moveAnnotationsToDisplayLayer(
+      controller.scores.single,
+      annotationIds: const <String>['stroke-default', 'text-layer'],
+      layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(didMoveSelection, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+
+    await controller.moveAnnotationsToDisplayLayer(
+      controller.scores.single,
+      annotationIds: const <String>['stroke-default', 'text-layer'],
+      layerId: 'rehearsal',
+    );
+
+    final didMoveLayerContents = await controller
+        .moveAnnotationDisplayLayerContents(
+          controller.scores.single,
+          sourceLayerId: 'rehearsal',
+          targetLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        );
+    expect(didMoveLayerContents, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      await controller.moveAnnotationDisplayLayerContents(
+        controller.scores.single,
+        sourceLayerId: 'rehearsal',
+        targetLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+      ),
+      isFalse,
+    );
+
+    final didRename = await controller.updateAnnotationDisplayLayer(
+      controller.scores.single,
+      layer.displayLayerForAnnotation('rehearsal').copyWith(label: '공연 메모'),
+    );
+    expect(didRename, isTrue);
+    expect(
+      controller.scores.single.annotationLayer
+          .displayLayerForAnnotation('rehearsal')
+          .label,
+      '공연 메모',
+    );
+
+    final didDelete = await controller.removeAnnotationDisplayLayer(
+      controller.scores.single,
+      'rehearsal',
+    );
+    expect(didDelete, isTrue);
+    final afterDelete = controller.scores.single.annotationLayer;
+    expect(afterDelete.displayLayerLabels, isNot(contains('공연 메모')));
+    expect(
+      afterDelete.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+      reason:
+          'Deleting a display layer must keep existing annotations on the '
+          'default layer.',
+    );
+    expect(
+      afterDelete.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(afterDelete.visibleTextsForPage(1), hasLength(1));
+
+    final persisted = (await store.loadScores()).single.annotationLayer;
+    expect(
+      persisted.texts.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      persisted.strokes.single.layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      persisted.displayLayerForAnnotation('rehearsal').id,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
   });
 
   test('sorts and filters library scores', () async {
@@ -3309,14 +6194,24 @@ void main() {
     final controller = SheetLibraryController(store: store);
     await controller.load();
 
+    final firstContext = controller.setlistPlaybackContext(
+      setlistId: 'setlist-1',
+      scoreId: 'score-1',
+    );
     final context = controller.setlistPlaybackContext(
       setlistId: 'setlist-1',
       scoreId: 'score-2',
     );
 
+    expect(firstContext?.title, 'Recital');
+    expect(firstContext?.positionLabel, '1/2');
+    expect(firstContext?.previousScoreTitle, isNull);
+    expect(firstContext?.nextScoreTitle, 'Second');
     expect(context?.title, 'Recital');
     expect(context?.positionLabel, '2/2');
     expect(context?.currentNote, '반복 없이 바로 다음 곡');
+    expect(context?.previousScoreTitle, 'First');
+    expect(context?.nextScoreTitle, isNull);
   });
 
   test('bulk adds scores to setlist and skips duplicates', () async {
@@ -3749,6 +6644,109 @@ void main() {
   });
 }
 
+List<int> _tinyPngBytes() {
+  return image.encodePng(image.Image(width: 2, height: 1));
+}
+
+const _packageImageStampManifest = '''
+Clef & Staff 세트리스트
+제목: Image Stamp Package
+곡 수: 1곡
+
+1. Existing Etude
+   파일: existing-etude.pdf
+''';
+
+SheetAnnotationStampPack _packageImageStampPack(
+  List<int> imageBytes,
+  DateTime now,
+) {
+  return SheetAnnotationStampPack(
+    id: 'package',
+    name: 'Package stamps',
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    stamps: <SheetAnnotationUserStamp>[
+      SheetAnnotationUserStamp(
+        id: 'photo-cue',
+        packId: 'package',
+        label: 'Photo cue',
+        category: '사용자',
+        kind: SheetAnnotationUserStamp.imageKind,
+        assetRef: 'stamps/package/photo-cue.png',
+        checksum: sha256.convert(imageBytes).toString(),
+        assetSizeBytes: imageBytes.length,
+        assetWidthPixels: 2,
+        assetHeightPixels: 1,
+      ),
+    ],
+  );
+}
+
+SheetSetlistPackageArchive _packageWithImageAnnotation(
+  List<int> imageBytes,
+  DateTime now,
+) {
+  final scoreBytes = <int>[1, 2, 3];
+  return SheetSetlistPackageArchive.decodeBytes(
+    SheetSetlistPackageArchive.encodeBytes(
+      manifestText: '''
+Clef & Staff 세트리스트
+제목: Image Annotation Package
+곡 수: 1곡
+
+1. New Sonata
+   파일: new-sonata.pdf
+''',
+      scoreFiles: <String, List<int>>{'scores/new-sonata.pdf': scoreBytes},
+      userStampPacks: <SheetAnnotationStampPack>[
+        _packageImageStampPack(imageBytes, now),
+      ],
+      stampAssetFiles: <String, List<int>>{
+        'stamps/package/photo-cue.png': imageBytes,
+      },
+      annotationSidecars: <SheetSetlistPackageAnnotationSidecar>[
+        SheetSetlistPackageAnnotationSidecar(
+          scoreEntryPath: 'scores/new-sonata.pdf',
+          scoreSha256: sha256.convert(scoreBytes).toString(),
+          annotationLayer: SheetAnnotationLayer(
+            strokes: const <SheetAnnotationStroke>[],
+            texts: <SheetTextAnnotation>[
+              SheetTextAnnotation(
+                id: 'photo-cue',
+                pageNumber: 1,
+                position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+                text: 'Photo cue',
+                color: 0xff111111,
+                fontSize: 18,
+                createdAt: now,
+                stampKind: SheetAnnotationUserStamp.imageKind,
+                stampAssetRef: 'stamps/package/photo-cue.png',
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+SheetAnnotationStroke _annotationStroke(String id, DateTime createdAt) {
+  return SheetAnnotationStroke(
+    id: id,
+    pageNumber: 1,
+    tool: SheetAnnotationTool.pen,
+    color: 0xff111111,
+    width: 3,
+    points: const <SheetAnnotationPoint>[
+      SheetAnnotationPoint(x: 0.1, y: 0.2),
+      SheetAnnotationPoint(x: 0.3, y: 0.4),
+    ],
+    createdAt: createdAt,
+  );
+}
+
 class _PageRotationCopyStore extends SheetLibraryStore {
   _PageRotationCopyStore({
     required List<SheetScore> scores,
@@ -3969,6 +6967,344 @@ class _ImportScoreStore extends SheetLibraryStore {
   }
 }
 
+class _PackageImportStore extends SheetLibraryStore {
+  _PackageImportStore(this.now);
+
+  final DateTime now;
+  final importedPdfBytes = <List<int>>[];
+  final importedPlainTextNames = <String>[];
+  final importedChordProNames = <String>[];
+  final importedDocxNames = <String>[];
+  final importedRtfNames = <String>[];
+  final discardedScoreIds = <String>[];
+  var _pdfCount = 0;
+  var _imageCount = 0;
+  var _textCount = 0;
+  var _chordProCount = 0;
+  var _docxCount = 0;
+  var _rtfCount = 0;
+  bool failSaveScoresAndSetlists = false;
+  bool failSaveUserStampPacks = false;
+  Future<void> Function()? afterPdfImport;
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    importedPdfBytes.add(List<int>.from(bytes));
+    final index = _pdfCount++;
+    final score = _score(
+      importedAt ?? now,
+      id: 'package-pdf-$index',
+      title: fileName,
+      filePath: '/package/$fileName',
+    );
+    await afterPdfImport?.call();
+    return score;
+  }
+
+  @override
+  Future<SheetScore> importImagesAsPdfBytes({
+    required List<SheetImportedFile> images,
+    String? title,
+    DateTime? importedAt,
+  }) async {
+    final index = _imageCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-image-$index',
+      title: title ?? images.first.name,
+      filePath: '/package/${title ?? images.first.name}.pdf',
+    );
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedPlainTextNames.add(file.name);
+    final index = _textCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-text-$index',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/package/${file.name}',
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedChordProNames.add(file.name);
+    final index = _chordProCount++;
+    return _score(
+      importedAt ?? now,
+      id: 'package-chordpro-$index',
+      title: 'Autumn Song',
+      composer: 'Kim',
+      filePath: '/package/${file.name}',
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '출처 유형', value: 'ChordPro'),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedDocxNames.add(file.name);
+    final index = _docxCount++;
+    final now = importedAt ?? this.now;
+    return _score(
+      now,
+      id: 'package-docx-$index',
+      title: 'Studio Notes',
+      filePath: '/package/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/package/${file.name}',
+          type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedRtfNames.add(file.name);
+    final index = _rtfCount++;
+    final now = importedAt ?? this.now;
+    return _score(
+      now,
+      id: 'package-rtf-$index',
+      title: 'Rehearsal Notes',
+      filePath: '/package/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/package/${file.name}',
+          type: 'rtf',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
+  }
+
+  @override
+  Future<void> saveScoresAndSetlists(
+    List<SheetScore> scores,
+    List<SheetSetlist> setlists, {
+    required String libraryId,
+  }) async {
+    if (failSaveScoresAndSetlists) {
+      throw StateError('package import save failed');
+    }
+    await super.saveScoresAndSetlists(scores, setlists, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> saveUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    String? libraryId,
+  }) async {
+    if (failSaveUserStampPacks) {
+      throw StateError('user stamp save failed');
+    }
+    await super.saveUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+}
+
+class _ChordProImportStore extends SheetLibraryStore {
+  _ChordProImportStore(this.now);
+
+  final DateTime now;
+  String importedSource = '';
+  bool failSaveScores = false;
+  SheetImportedFile? pickedChordProFile;
+  SheetImportedFile? importedChordProFile;
+  SheetImportedFile? pickedPlainTextFile;
+  SheetImportedFile? pickedDocxFile;
+  SheetImportedFile? pickedRtfFile;
+  Completer<void>? fileImportReady;
+  Completer<void>? releaseFileImport;
+  final discardedScoreIds = <String>[];
+
+  Future<void> _waitForFileImportRelease() async {
+    final ready = fileImportReady;
+    if (ready != null && !ready.isCompleted) {
+      ready.complete();
+    }
+    await releaseFileImport?.future;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickChordProFile() async {
+    return pickedChordProFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedChordProFile = file;
+    final document = SheetChordProParser.parse(utf8.decode(file.bytes));
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    final score = _score(
+      importedAt ?? now,
+      id: 'chordpro-file-1',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      filePath: '/text/${file.name}',
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+    await _waitForFileImportRelease();
+    return score;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickDocxFile() async {
+    return pickedDocxFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickRtfFile() async {
+    return pickedRtfFile;
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final score = _score(
+      importedAt ?? now,
+      id: 'plain-text-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}',
+    );
+    await _waitForFileImportRelease();
+    return score;
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final importedAtOrNow = importedAt ?? now;
+    return _score(
+      importedAtOrNow,
+      id: 'docx-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: importedAtOrNow,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final importedAtOrNow = importedAt ?? now;
+    return _score(
+      importedAtOrNow,
+      id: 'rtf-1',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      filePath: '/text/${file.name}.txt',
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'rtf',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: importedAtOrNow,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
+  }
+
+  @override
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    importedSource = source;
+    return _score(
+      importedAt ?? now,
+      id: 'chordpro-1',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      filePath: '/text/${draft.title}.chordpro',
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSaveScores) {
+      throw StateError('ChordPro score save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
+  }
+}
+
 class _LinkedPdfPickerStore extends SheetLibraryStore {
   _LinkedPdfPickerStore(this.file);
 
@@ -3977,6 +7313,168 @@ class _LinkedPdfPickerStore extends SheetLibraryStore {
   @override
   Future<SheetLinkedFile?> pickLinkedPdfFile() async {
     return file;
+  }
+}
+
+class _ConnectedFolderPdfReplacementStore extends SheetLibraryStore {
+  _ConnectedFolderPdfReplacementStore(this.now);
+
+  final DateTime now;
+  final discardedScoreIds = <String>[];
+  final discardedScores = <SheetScore>[];
+  final importedNames = <String>[];
+  bool failSave = false;
+  bool omitDocumentReference = false;
+
+  @override
+  Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
+    importedNames.add(fileName ?? 'replacement.pdf');
+    return _score(
+      now,
+      id: 'folder-replacement',
+      title: fileName ?? 'replacement.pdf',
+      filePath: '/managed/revised-${fileName ?? 'replacement.pdf'}',
+    );
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedNames.add(file.name);
+    return _score(
+      importedAt ?? now,
+      id: 'folder-replacement',
+      title: file.name,
+      filePath: '/managed/revised-${file.name}',
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    importedNames.add(file.name);
+    return _score(
+      importedAt ?? now,
+      id: 'folder-replacement',
+      title: file.name,
+      filePath: '/managed/revised-${file.name}',
+    );
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) {
+    return _importDocument(file, type: 'docx', importedAt: importedAt);
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) {
+    return _importDocument(file, type: 'rtf', importedAt: importedAt);
+  }
+
+  Future<SheetScore> _importDocument(
+    SheetImportedFile file, {
+    required String type,
+    DateTime? importedAt,
+  }) async {
+    importedNames.add(file.name);
+    final createdAt = importedAt ?? now;
+    return _score(
+      createdAt,
+      id: 'folder-replacement',
+      title: file.name,
+      filePath: '/managed/revised-${file.name}.txt',
+      linkedFiles: omitDocumentReference
+          ? const <SheetLinkedFile>[]
+          : <SheetLinkedFile>[
+              SheetLinkedFile(
+                path: '/managed/revised-${file.name}',
+                type: type,
+                label: file.name,
+                role: SheetLinkedFile.referenceRole,
+                createdAt: createdAt,
+              ),
+            ],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    final scores = candidates.toList(growable: false);
+    discardedScores.addAll(scores);
+    discardedScoreIds.addAll(scores.map((score) => score.id));
+    return scores.length;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSave) {
+      throw StateError('connected-folder replacement save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
+  }
+}
+
+class _DelayedChordProSourceEditStore extends SheetLibraryStore {
+  final firstReplacementStarted = Completer<void>();
+  final releaseFirstReplacement = Completer<void>();
+  var _replacementCount = 0;
+
+  @override
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    _replacementCount += 1;
+    if (_replacementCount == 1) {
+      firstReplacementStarted.complete();
+      await releaseFirstReplacement.future;
+    }
+    await super.replaceChordProSource(score: score, source: source);
+  }
+}
+
+class _PlainTextSourceEditStore extends SheetLibraryStore {
+  _PlainTextSourceEditStore({this.delayFirstReplacement = false});
+
+  final bool delayFirstReplacement;
+  final firstReplacementStarted = Completer<void>();
+  final releaseFirstReplacement = Completer<void>();
+  bool failSaveScores = false;
+  var _replacementCount = 0;
+
+  int get replacementCount => _replacementCount;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failSaveScores) {
+      throw StateError('Plain text score save failed');
+    }
+    await super.saveScores(scores, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> replacePlainTextSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    _replacementCount += 1;
+    if (delayFirstReplacement && _replacementCount == 1) {
+      firstReplacementStarted.complete();
+      await releaseFirstReplacement.future;
+    }
+    await super.replacePlainTextSource(score: score, source: source);
   }
 }
 
@@ -4034,4 +7532,15 @@ SheetScore _score(
     bookmarks: bookmarks,
     metronomeSettings: metronomeSettings,
   );
+}
+
+Uint8List _packageDocxBytes(String text) {
+  final archive = Archive()
+    ..addFile(
+      ArchiveFile.string(
+        'word/document.xml',
+        '<w:document xmlns:w="urn:word"><w:body><w:p><w:r><w:t>${htmlEscape.convert(text)}</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    );
+  return Uint8List.fromList(ZipEncoder().encode(archive));
 }

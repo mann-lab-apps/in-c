@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -12,6 +17,8 @@ import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
+import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -154,6 +161,80 @@ void main() {
     );
   }
 
+  testWidgets('metadata dialog suggests existing custom field values', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 27);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'target',
+        title: 'Target score',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/target.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+      SheetScore(
+        id: 'source',
+        title: 'Source score',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/source.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+        customFields: const [
+          SheetCustomMetadataField(key: '조성', value: 'A minor'),
+        ],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Target score').first);
+    await tester.pumpAndSettle();
+    final keyChip = find.widgetWithText(ActionChip, '조성').last;
+    await tester.ensureVisible(keyChip);
+    await tester.tap(keyChip);
+    await tester.pumpAndSettle();
+
+    expect(find.text('이전에 쓴 값'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'A minor'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, 'A minor'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '저장').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('target').customFields.single.key, '조성');
+    expect(controller.scoreById('target').customFields.single.value, 'A minor');
+    expect(tester.takeException(), isNull);
+  });
+
   for (final action in <String>['정보 복원', '자동 정보 복원', '전체 백업 복원']) {
     for (final outcome in <String>['success', 'cancel', 'error']) {
       testWidgets('$action blocks editing until restore $outcome', (
@@ -236,7 +317,8 @@ void main() {
     await tester.tap(find.byTooltip('백업/복원'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('전체 백업 복원'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.widgetWithText(FilledButton, '복원'));
     await tester.pump(const Duration(milliseconds: 350));
     final reply = Completer<void>();
@@ -296,6 +378,85 @@ void main() {
     await importing;
     await tester.pumpAndSettle();
     expect(tester.widget<PopupMenuButton<dynamic>>(menu).enabled, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('backup status explains automatic snapshot and full backup', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = _BackupHealthController(
+      SheetLibraryBackupHealth(
+        currentScoreCount: 3,
+        currentSetlistCount: 1,
+        currentTextScoreCount: 1,
+        currentPdfScoreCount: 2,
+        missingPrimaryFileCount: 1,
+        linkedFileCount: 2,
+        fileBackedAnnotationCount: 1,
+        userStampPackCount: 1,
+        hasAutomaticMetadataBackup: true,
+        automaticMetadataExportedAt: DateTime(2026, 9, 27, 10),
+        automaticMetadataScoreCount: 3,
+        automaticMetadataSetlistCount: 1,
+        lastBackupExportRecord: SheetLibraryBackupExportRecord(
+          kind: SheetLibraryBackupExportKind.full,
+          exportedAt: DateTime(2026, 9, 27, 11),
+          outputUri: 'file:///tmp/clef-full-backup.zip',
+        ),
+      ),
+    );
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('백업 상태'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('백업 상태'), findsWidgets);
+    expect(find.text('자동 정보 백업 있음'), findsOneWidget);
+    expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
+    expect(find.text('최근 수동 백업'), findsOneWidget);
+    expect(find.textContaining('PDF 포함 전체 백업 ·'), findsOneWidget);
+    expect(find.textContaining('clef-full-backup.zip'), findsOneWidget);
+    expect(
+      find.textContaining('동기화 완료 표시가 아닙니다', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('backup menu exposes a read-only three snapshot review', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3개 백업 비교'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        '기준, 로컬, 원격 정보 백업 JSON을 차례로 선택합니다. '
+        '변경과 충돌 가능성만 검토하며 현재 라이브러리에는 아무것도 적용하지 않습니다.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('비교 시작'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, '취소'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('비교 시작'), findsNothing);
+    expect(controller.scores, isEmpty);
     expect(tester.takeException(), isNull);
   });
 
@@ -520,6 +681,74 @@ void main() {
     });
   }
 
+  testWidgets('library quick index opens grouped title picker', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 27);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (var index = 0; index < 6; index += 1)
+        SheetScore(
+          id: 'alpha-$index',
+          title: 'Alpha score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/alpha-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+      for (var index = 0; index < 6; index += 1)
+        SheetScore(
+          id: 'beta-$index',
+          title: 'Beta score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/beta-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('빠른 찾기'), findsOneWidget);
+    expect(find.text('A 6'), findsOneWidget);
+    expect(find.text('B 6'), findsOneWidget);
+
+    await tester.tap(find.text('B 6'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B 빠른 찾기'), findsOneWidget);
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Beta score 0')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sheet, matching: find.text('Alpha score 5')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('untitled scores remain identifiable in library and setlist', (
     tester,
   ) async {
@@ -591,6 +820,143 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('automatic restore dialog previews backup changes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final now = DateTime(2026, 9, 27, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'auto-backup-score',
+        title: 'Automatic Backup Score',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/automatic-backup-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('자동 정보 복원'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('자동 정보 복원'), findsOneWidget);
+    expect(find.text('백업 변경 1종 감지'), findsOneWidget);
+    expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(find.text('변경 항목 자세히 보기 (1)'), findsOneWidget);
+    await tester.tap(find.text('변경 항목 자세히 보기 (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Automatic Backup Score'), findsOneWidget);
+    await tester.ensureVisible(find.text('변경 검토 복사'));
+    await tester.tap(find.text('변경 검토 복사'));
+    await tester.pumpAndSettle();
+    expect(copied, contains('Automatic Backup Score'));
+    expect(find.text('백업 변경 검토 내용을 복사했습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('metadata restore dialog previews selected backup changes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 27, 10);
+    final store = _MetadataPreviewStore();
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'current-score',
+        title: 'Current Score',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/current-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    store.backupJson = SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: <SheetScore>[
+          SheetScore(
+            id: 'incoming-score',
+            title: 'Incoming Score',
+            composer: 'Mozart',
+            tags: const <String>[],
+            note: '',
+            filePath: '/tmp/incoming-score.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const [],
+          ),
+        ],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('정보 복원'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('정보 복원'), findsOneWidget);
+    expect(find.textContaining('선택한 백업 JSON의 1개 악보'), findsOneWidget);
+    expect(find.text('백업 변경 2종 감지'), findsOneWidget);
+    expect(find.text('• 새 악보 1개'), findsOneWidget);
+    expect(find.text('• 삭제된 악보 1개'), findsOneWidget);
+    expect(find.text('변경 항목 자세히 보기 (2)'), findsOneWidget);
+    expect(find.text('삭제 포함 전체 교체'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Clef home exposes RC actions without discovery surface', (
     tester,
   ) async {
@@ -604,7 +970,7 @@ void main() {
     expect(find.byTooltip('악보 추가'), findsOneWidget);
     await tester.tap(find.byTooltip('라이브러리 메뉴'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '앱 상태 점검'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, '개발자용 기기 리포트'), findsOneWidget);
     expect(find.widgetWithText(ListTile, '도움말/피드백'), findsOneWidget);
     expect(find.byTooltip('클래식 듣기'), findsNothing);
   });
@@ -626,6 +992,7 @@ void main() {
 
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
+    expect(find.text('ChordPro 원문 편집'), findsNothing);
 
     expect(controller.setlists, hasLength(1));
     expect(controller.setlists.single.title, '새 세트리스트');
@@ -666,6 +1033,206 @@ void main() {
     },
   );
 
+  testWidgets('setlist manifest import creates matched setlist', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 12);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'goedicke',
+        title: 'Goedicke Concert Etude',
+        composer: 'Goedicke',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/goedicke-concert-etude.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'bach',
+        title: 'Bach Cello Suite No. 1',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/bach-suite.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(OutlinedButton, '패키지'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '''
+Clef & Staff 세트리스트
+제목: Autumn Recital
+곡 수: 2곡 · 총 7분 30초
+전환 10초
+
+1. Goedicke Concert Etude
+   작곡가: Goedicke
+   파일: goedicke-concert-etude.pdf
+   시작: 3쪽
+   예상 시간: 3분 30초
+   세트 메모: mute ready
+2. Bach Cello Suite No. 1
+   작곡가: Bach
+   파일: bach-suite.pdf
+   시작: 1쪽
+   예상 시간: 4분
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('모든 곡을 찾았습니다'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists, hasLength(1));
+    final imported = controller.setlists.single;
+    expect(imported.title, 'Autumn Recital');
+    expect(imported.scoreIds, ['goedicke', 'bach']);
+    expect(imported.scoreStartPages, {'goedicke': 3, 'bach': 1});
+    expect(imported.scoreNotes, {'goedicke': 'mute ready'});
+    expect(imported.scoreDurations, {'goedicke': 210, 'bach': 240});
+    expect(imported.transitionSeconds, 10);
+    expect(find.textContaining('세트리스트를 2곡으로 만들었습니다'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('setlist manifest import blocks unresolved matches', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '''
+Clef & Staff 세트리스트
+제목: Autumn Recital
+곡 수: 1곡
+
+1. Missing Score
+   파일: missing.pdf
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('확인이 필요합니다'), findsOneWidget);
+    expect(find.textContaining('라이브러리에서 찾을 수 없는 곡'), findsOneWidget);
+    final createButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '세트리스트 만들기'),
+    );
+    expect(createButton.onPressed, isNull);
+    expect(controller.setlists, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('setlist manifest import summarizes long lists on phone width', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 12);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (var index = 1; index <= 20; index++)
+        SheetScore(
+          id: 'score-$index',
+          title: 'Score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/score-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final manifest = StringBuffer('''
+Clef & Staff 세트리스트
+제목: Long Recital
+곡 수: 20곡 · 총 20분
+전환 5초
+
+''');
+    for (var index = 1; index <= 20; index++) {
+      manifest
+        ..writeln('$index. Score $index')
+        ..writeln('   작곡가: Composer')
+        ..writeln('   파일: score-$index.pdf')
+        ..writeln('   예상 시간: 1분');
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '텍스트'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '텍스트'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), manifest.toString());
+    await tester.pumpAndSettle();
+
+    expect(find.text('모든 곡을 찾았습니다'), findsOneWidget);
+    expect(find.text('매칭 20개'), findsOneWidget);
+    expect(find.text('확인 0개'), findsOneWidget);
+    expect(find.text('외 12곡'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.tap(find.widgetWithText(FilledButton, '세트리스트 만들기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists.single.title, 'Long Recital');
+    expect(controller.setlists.single.scoreIds, hasLength(20));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('import menu exposes setlist assignment actions', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final controller = SheetLibraryController(store: SheetLibraryStore());
@@ -680,9 +1247,1041 @@ void main() {
     expect(find.text('PDF 가져오기'), findsOneWidget);
     expect(find.text('PDF 가져와 세트리스트에 추가'), findsOneWidget);
     expect(find.text('여러 PDF 가져오기'), findsOneWidget);
+    expect(find.text('여러 악보 파일 가져오기'), findsOneWidget);
+    expect(find.text('PDF, 텍스트, ChordPro, DOCX, RTF 일괄 선택'), findsOneWidget);
     expect(find.text('여러 PDF를 세트리스트에 추가'), findsOneWidget);
     expect(find.text('이미지를 PDF 악보로 묶기'), findsOneWidget);
     expect(find.text('이미지를 묶어 세트리스트에 추가'), findsOneWidget);
+    expect(find.text('텍스트/ChordPro/DOCX/RTF 안내'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('import menu explains supported text score formats', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('지금 가능한 저장 흐름'), findsOneWidget);
+    expect(find.textContaining('ChordPro 붙여넣기 미리보기'), findsWidgets);
+    expect(find.text('ChordPro 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('텍스트 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('DOCX 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('RTF 파일 선택 가져오기'), findsOneWidget);
+    expect(find.text('ChordPro 표시 조정 지원'), findsOneWidget);
+    expect(find.textContaining('일반 텍스트'), findsOneWidget);
+    expect(find.textContaining('DOCX 직접 읽기는 후속입니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro info can preview and save pasted text', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: _SmokeChordProStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ChordPro 붙여넣기 미리보기'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'ChordPro 텍스트'), '''
+{title: Autumn Tune}
+{artist: Lee}
+{key: D}
+{time: 6/8}
+[D]가을 [A]노래
+''');
+    await tester.pumpAndSettle();
+
+    expect(find.text('코드를 읽었습니다'), findsOneWidget);
+    expect(find.text('제목: Autumn Tune'), findsOneWidget);
+    expect(find.text('작곡가: Lee'), findsOneWidget);
+    expect(find.text('조성: D'), findsOneWidget);
+    expect(find.textContaining('가을 노래'), findsOneWidget);
+    expect(find.textContaining('DOCX/RTF는 파일 선택으로'), findsOneWidget);
+    await tester.tap(find.text('악보로 저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"Autumn Tune" ChordPro 악보를 저장했습니다.'), findsOneWidget);
+    expect(controller.scores.single.title, 'Autumn Tune');
+    expect(find.text('Autumn Tune'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro info can import a selected ChordPro file', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedChordProFile = SheetImportedFile(
+          name: 'winter-song.onsong',
+          bytes: Uint8List.fromList(
+            utf8.encode('''
+{title: Winter Song}
+{artist: Kim}
+{key: F}
+[F]겨울 [C]노래
+'''),
+          ),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ChordPro 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"Winter Song" ChordPro 파일을 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.title, 'Winter Song');
+    expect(controller.scores.single.filePath, endsWith('.onsong'));
+    expect(find.text('Winter Song'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('text score info can import a selected plain text file', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedPlainTextFile = SheetImportedFile(
+          name: 'lesson-notes.txt',
+          bytes: Uint8List.fromList(utf8.encode('첫 문장\n두 번째 문장')),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('텍스트 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"lesson notes" 텍스트 악보를 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+    expect(find.text('lesson notes'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('text score info can import a selected DOCX file', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedDocxFile = SheetImportedFile(
+          name: 'studio-notes.docx',
+          bytes: Uint8List.fromList(<int>[1, 2, 3]),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('DOCX 파일 선택 가져오기'));
+    await tester.tap(find.text('DOCX 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"studio notes" DOCX 악보를 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+    expect(controller.scores.single.linkedFiles.single.type, 'docx');
+    expect(find.text('studio notes'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('text score info can import a selected RTF file', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(
+      store: _SmokeChordProStore()
+        ..pickedRtfFile = SheetImportedFile(
+          name: 'rehearsal-notes.rtf',
+          bytes: Uint8List.fromList(latin1.encode(r'{\rtf1\ansi Notes}')),
+        ),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.tap(find.text('텍스트/ChordPro/DOCX/RTF 안내'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('RTF 파일 선택 가져오기'));
+    await tester.tap(find.text('RTF 파일 선택 가져오기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"rehearsal notes" RTF 악보를 가져왔습니다.'), findsOneWidget);
+    expect(controller.scores.single.filePath, endsWith('.txt'));
+    expect(controller.scores.single.linkedFiles.single.type, 'rtf');
+    expect(find.text('rehearsal notes'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved ChordPro score opens a read-only chord lyric viewer', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-viewer-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/autumn.chordpro')
+      ..writeAsStringSync('''
+{title: Autumn Tune}
+{composer: Lee}
+{key: D}
+{section: Verse 1}
+[D]가을 [A]노래
+{soc: label="Big Chorus"}
+[G]다시 [D]노래
+''');
+    final now = DateTime(2026, 9, 28, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-score',
+        title: 'Autumn Tune',
+        composer: 'Lee',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('Autumn Tune'), findsWidgets);
+    expect(find.text('ChordPro'), findsOneWidget);
+    expect(find.text('조성: D'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chordpro-lyric-1-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chordpro-lyric-1-1')), findsOneWidget);
+    expect(find.text('구간'), findsOneWidget);
+
+    await tester.tap(find.text('구간'));
+    await tester.pumpAndSettle();
+    expect(find.text('[Verse 1]'), findsWidgets);
+    expect(find.text('[Big Chorus]'), findsWidgets);
+    await tester.tap(find.text('[Big Chorus]').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('코드/가사 찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '노래');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1/2'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('chordpro-search-active-1')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('다음 일치'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('chordpro-search-active-3')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('찾기 닫기'));
+    await tester.pump();
+    expect(find.byTooltip('코드/가사 찾기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro viewer edits source and reloads rendered chords', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-source-editor-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/editor.chordpro')
+      ..writeAsStringSync('{title: Editor Tune}\n[C]Old lyric');
+    final now = DateTime(2026, 10, 20, 20);
+    final store = _SynchronousChordProEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-editor',
+        title: 'Library title',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-editor',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('chordpro-edit-source')),
+    );
+    await tester.tap(find.byKey(const ValueKey('chordpro-edit-source')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ChordPro 원문 편집'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('chordpro-source-editor')),
+      '{title: Source title changed}\n[G]New lyric',
+    );
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+    var savedSource = '';
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 20; attempt += 1) {
+        savedSource = await file.readAsString();
+        if (savedSource.contains('[G]New lyric')) return;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    expect(savedSource, contains('[G]New lyric'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('chordpro-editor').title, 'Library title');
+    expect(find.text('G'), findsOneWidget);
+    expect(find.text('New lyric'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved plain text score opens a selectable text viewer', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync('clef-text-viewer-');
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/lesson.txt')
+      ..writeAsStringSync('첫 문장\n\n두 번째 문장');
+    final now = DateTime(2026, 10, 19, 12);
+    final store = _SynchronousPlainTextEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'plain-text-score',
+        title: 'Lesson notes',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'plain-text-score',
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await file.readAsBytes();
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Lesson notes'), findsOneWidget);
+    expect(find.byType(SelectionArea), findsOneWidget);
+    expect(find.textContaining('첫 문장'), findsOneWidget);
+    final contentFinder = find.byKey(const ValueKey('plain-text-content'));
+    final defaultFontSize = tester
+        .widget<Text>(contentFinder)
+        .textSpan!
+        .style!
+        .fontSize!;
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아주 크게 (130%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(
+      controller
+          .scoreById('plain-text-score')
+          .textDisplaySettings
+          .fontScalePercent,
+      130,
+    );
+    expect(
+      tester.widget<Text>(contentFinder).textSpan!.style!.fontSize,
+      closeTo(defaultFontSize * 1.3, 0.01),
+    );
+
+    await tester.tap(find.text('찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '문장');
+    await tester.pump();
+    expect(find.text('1/2'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('다음 일치'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('찾기 닫기'));
+    await tester.pump();
+    expect(find.text('찾기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('extracted document viewer stays searchable and read-only', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-document-text-viewer-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/document.txt')
+      ..writeAsStringSync('Extracted rehearsal notes');
+    final now = DateTime(2026, 10, 20, 21);
+    final store = _SynchronousPlainTextEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'document-text-score',
+        title: 'Studio document',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '출처 유형', value: 'RTF'),
+        ],
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'document-text-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.textContaining('Extracted rehearsal notes'), findsOneWidget);
+    expect(find.text('읽기 전용'), findsOneWidget);
+    expect(find.text('찾기'), findsOneWidget);
+    expect(find.byKey(const ValueKey('plain-text-edit-source')), findsNothing);
+    expect(find.byKey(const ValueKey('plain-text-font-scale')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('크게 (115%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+    expect(
+      controller
+          .scoreById('document-text-score')
+          .textDisplaySettings
+          .fontScalePercent,
+      115,
+    );
+    expect(find.text('읽기 전용'), findsOneWidget);
+
+    await tester.tap(find.text('찾기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'rehearsal');
+    await tester.pump();
+    expect(find.text('1/1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('plain text viewer edits source and reloads content', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-text-source-editor-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/lesson.txt')
+      ..writeAsStringSync('Original notes');
+    final now = DateTime(2026, 10, 20, 21);
+    final store = _SynchronousPlainTextEditStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'plain-text-editor',
+        title: 'Lesson notes',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetPlainTextViewerScreen(
+          controller: controller,
+          scoreId: 'plain-text-editor',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('plain-text-edit-source')));
+    await tester.pumpAndSettle();
+    expect(find.text('텍스트 원문 편집'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('plain-text-source-editor')),
+      'Revised notes',
+    );
+    await tester.tap(find.widgetWithText(TextButton, '저장'));
+    await tester.pumpAndSettle();
+    var savedSource = '';
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 20; attempt += 1) {
+        savedSource = await file.readAsString();
+        if (savedSource == 'Revised notes') return;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    expect(savedSource, 'Revised notes');
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Revised notes'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('plain text viewer rejects changed invalid source', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-text-viewer-invalid-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final oversized = File('${tempDir.path}/oversized.txt')
+      ..writeAsBytesSync(
+        List<int>.filled(SheetFileImportPolicy.maxPlainTextBytes + 1, 0x41),
+      );
+    final malformed = File('${tempDir.path}/malformed.txt')
+      ..writeAsBytesSync(<int>[0xc3, 0x28]);
+    final empty = File('${tempDir.path}/empty.txt')..writeAsStringSync(' \n');
+    final now = DateTime(2026, 10, 20, 19);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final entry in <String, File>{
+        'oversized-text': oversized,
+        'malformed-text': malformed,
+        'empty-text': empty,
+      }.entries)
+        SheetScore(
+          id: entry.key,
+          title: entry.key,
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: entry.value.path,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: now,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    Future<void> pumpScore(String scoreId) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetPlainTextViewerScreen(
+            key: ValueKey(scoreId),
+            controller: controller,
+            scoreId: scoreId,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+    }
+
+    await pumpScore('oversized-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일이 너무 큽니다.'), findsOneWidget);
+
+    await pumpScore('malformed-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일의 UTF-8 내용이 손상되었습니다.'), findsOneWidget);
+
+    await pumpScore('empty-text');
+    expect(find.text('텍스트 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('텍스트 파일이 비어 있습니다.'), findsOneWidget);
+    expect(find.textContaining('PDF를 열지 못했습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro viewer rejects oversized and malformed source', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-invalid-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final oversized = File('${tempDir.path}/oversized.chordpro')
+      ..writeAsBytesSync(
+        List<int>.filled(SheetFileImportPolicy.maxPlainTextBytes + 1, 0x41),
+      );
+    final malformed = File('${tempDir.path}/malformed.chordpro')
+      ..writeAsBytesSync(<int>[0xc3, 0x28]);
+    final now = DateTime(2026, 10, 20, 18);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final entry in <String, File>{
+        'oversized': oversized,
+        'malformed': malformed,
+      }.entries)
+        SheetScore(
+          id: entry.key,
+          title: entry.key,
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: entry.value.path,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: now,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    Future<void> pumpScore(String scoreId) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetChordProViewerScreen(
+            key: ValueKey(scoreId),
+            controller: controller,
+            scoreId: scoreId,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+    }
+
+    await pumpScore('oversized');
+    expect(find.text('ChordPro 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(find.textContaining('ChordPro 파일이 너무 큽니다.'), findsOneWidget);
+
+    await pumpScore('malformed');
+    expect(find.text('ChordPro 악보를 열지 못했습니다.'), findsOneWidget);
+    expect(
+      find.textContaining('ChordPro 파일의 UTF-8 텍스트가 손상되었습니다.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('PDF를 열지 못했습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro viewer can transpose and show capo chord shapes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-display-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/capo.chordpro')
+      ..writeAsStringSync('''
+{title: Capo Tune}
+{composer: Lee}
+{key: E}
+{capo: 2}
+[E]가을 [B]노래
+''');
+    final now = DateTime(2026, 9, 28, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-capo-score',
+        title: 'Capo Tune',
+        composer: 'Lee',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-capo-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('조성: E'), findsOneWidget);
+    expect(find.text('E'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
+    expect(find.text('이 악보를 다시 열어도 표시 조정이 유지됩니다.'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('반음 올림'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('조성: F'), findsOneWidget);
+    expect(find.text('이조: +1'), findsOneWidget);
+    expect(find.text('F'), findsOneWidget);
+    expect(find.text('C'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .transposeSemitones,
+      1,
+    );
+
+    final lyricFinder = find.byKey(const ValueKey('chordpro-lyric-0-0'));
+    final defaultFontSize = tester.widget<Text>(lyricFinder).style!.fontSize!;
+    expect(find.text('글자 100%'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chordpro-font-scale')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아주 크게 (130%)'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('글자 130%'), findsOneWidget);
+    expect(
+      tester.widget<Text>(lyricFinder).style!.fontSize,
+      closeTo(defaultFontSize * 1.3, 0.01),
+    );
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .fontScalePercent,
+      130,
+    );
+
+    await tester.tap(find.text('원래대로'));
+    await tester.pump();
+    await tester.tap(find.text('카포 운지'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('카포 운지 표시'), findsOneWidget);
+    expect(find.text('D'), findsOneWidget);
+    expect(find.text('A'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .showCapoShapes,
+      isTrue,
+    );
+
+    await tester.tap(find.byTooltip('카포 내림'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('카포: 1'), findsOneWidget);
+    expect(find.text('카포 1'), findsOneWidget);
+    expect(
+      controller
+          .scoreById('chordpro-capo-score')
+          .chordProDisplaySettings
+          .capoFretsOverride,
+      1,
+    );
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-capo-score',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.text('카포 운지 표시'), findsOneWidget);
+    expect(find.text('카포: 1'), findsOneWidget);
+    expect(find.text('카포 1'), findsOneWidget);
+    expect(find.text('글자 100%'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ChordPro viewer persists two columns and falls back on phones', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1100, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-chordpro-columns-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final file = File('${tempDir.path}/columns.chordpro')
+      ..writeAsStringSync('''
+{title: Column Tune}
+{section: Verse}
+[C]First
+[G]Second
+{section: Chorus}
+[Am]Third
+[F]Fourth
+''');
+    final now = DateTime(2026, 10, 20, 17);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'chordpro-columns',
+        title: 'Column Tune',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: file.path,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetChordProViewerScreen(
+          controller: controller,
+          scoreId: 'chordpro-columns',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('chordpro-column-count')), findsOneWidget);
+    await tester.tap(find.text('2단'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.pump();
+
+    expect(tester.getCenter(find.text('Third')).dx, greaterThan(550));
+    expect(tester.getCenter(find.text('First')).dx, lessThan(550));
+    expect(
+      controller
+          .scoreById('chordpro-columns')
+          .chordProDisplaySettings
+          .columnCount,
+      2,
+    );
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('chordpro-column-count')), findsNothing);
+    expect(
+      (tester.getCenter(find.text('Third')).dx -
+              tester.getCenter(find.text('First')).dx)
+          .abs(),
+      lessThan(40),
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -928,9 +2527,15 @@ void main() {
         id: 'score-1',
         title: 'First',
         composer: 'Bach',
-        tags: const <String>[],
+        tags: const <String>['recital'],
         note: '',
         filePath: '/tmp/first.pdf',
+        collection: 'Autumn',
+        group: 'Cello',
+        rating: 4,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'G major'),
+        ],
         importedAt: now,
         updatedAt: now,
         lastOpenedAt: null,
@@ -989,19 +2594,39 @@ void main() {
           scoreStartPages: const <String, int>{'score-1': 2, 'score-2': 5},
           scoreDurations: const <String, int>{'score-1': 180},
           scoreNotes: const <String, String>{'score-2': '반복 없이'},
+          scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+            'score-1': SheetMetronomeSettings(
+              bpm: 88,
+              meter: SheetMetronomeMeter.threeFour,
+              subdivision: SheetMetronomeSubdivision.eighth,
+              volumePercent: 70,
+            ),
+          },
           transitionSeconds: 15,
         ),
         scores,
       ),
       [
-        '공연 순서',
-        '2곡 · 총 3분 15초',
+        'Clef & Staff 세트리스트',
+        '제목: 공연 순서',
+        '곡 수: 2곡 · 총 3분 15초',
         '전환 15초',
         '',
         '1. First',
-        '   Bach · 2쪽부터 · 3분',
+        '   작곡가: Bach',
+        '   파일: first',
+        '   시작: 2쪽',
+        '   예상 시간: 3분',
+        '   태그: recital',
+        '   컬렉션: Autumn',
+        '   그룹: Cello',
+        '   별점: 4/5',
+        '   조성: G major',
+        '   메트로놈: 88 BPM · 3/4 · 8분 · 소리 70%',
         '2. Second',
-        '   5쪽부터 · 반복 없이',
+        '   파일: second',
+        '   시작: 5쪽',
+        '   세트 메모: 반복 없이',
       ].join('\n'),
     );
   });
@@ -1012,12 +2637,12 @@ void main() {
     await tester.pumpWidget(
       buildSetlistProgressBadgeForTest(
         scoreTitle: 'G선상의 아리아',
-        subtitle: '공연 순서 · 2/8 · 3분 · 반복 없이',
+        subtitle: '공연 순서 · 2/8 · 3분 · 반복 없이 · 다음: 앙코르',
       ),
     );
 
     expect(find.text('G선상의 아리아'), findsOneWidget);
-    expect(find.text('공연 순서 · 2/8 · 3분 · 반복 없이'), findsOneWidget);
+    expect(find.text('공연 순서 · 2/8 · 3분 · 반복 없이 · 다음: 앙코르'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -1119,7 +2744,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('long press score').first);
+    await tester.longPress(find.text('long press score').last);
     await tester.pumpAndSettle();
 
     expect(find.text('1개 선택'), findsOneWidget);
@@ -1158,6 +2783,23 @@ void main() {
         isFavorite: false,
         bookmarks: const <SheetBookmark>[],
       ),
+      SheetScore(
+        id: 'score-2',
+        title: 'metadata source score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/metadata-source-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'F minor'),
+        ],
+      ),
     ]);
     final controller = SheetLibraryController(store: store);
     await controller.load();
@@ -1165,7 +2807,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('bulk edit score').first);
+    await tester.longPress(find.text('bulk edit score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 정보 일괄 편집'));
     await tester.pumpAndSettle();
@@ -1178,22 +2820,32 @@ void main() {
       '  Bach  ',
     );
     expect(find.text('사용자 필드 일괄 지정'), findsOneWidget);
-    expect(find.text('조성'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '조성'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '박자'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '조표'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '앨범'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '출처'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '출처 유형'), findsOneWidget);
     expect(find.text('필드 이름'), findsOneWidget);
     expect(find.text('필드 값'), findsOneWidget);
 
-    await tester.tap(find.text('조성'));
+    await tester.tap(find.widgetWithText(ActionChip, '조성'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '필드 값'), 'D');
+    expect(find.text('이전에 쓴 값'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'F minor'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ActionChip, 'F minor'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
     final apply = find.widgetWithText(FilledButton, '적용');
-    await tester.ensureVisible(apply);
-    await tester.pumpAndSettle();
     await tester.tap(apply);
     await tester.pumpAndSettle();
 
     expect(controller.scoreById('score-1').customFields.single.key, '조성');
-    expect(controller.scoreById('score-1').customFields.single.value, 'D');
+    expect(
+      controller.scoreById('score-1').customFields.single.value,
+      'F minor',
+    );
     expect(controller.scoreById('score-1').composer, 'Bach');
     await tester.tap(find.byTooltip('여러 악보 선택'));
     await tester.pumpAndSettle();
@@ -1206,9 +2858,10 @@ void main() {
       find.widgetWithText(TextField, '추가할 태그'),
       'practice',
     );
-    await tester.ensureVisible(apply);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
-    await tester.tap(apply);
+    final secondApply = find.widgetWithText(FilledButton, '적용');
+    await tester.tap(secondApply);
     await tester.pumpAndSettle();
     expect(controller.scoreById('score-1').composer, 'Bach');
     expect(controller.scoreById('score-1').tags, contains('practice'));
@@ -1262,7 +2915,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('delete me score').first);
+    await tester.longPress(find.text('delete me score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
     await tester.pumpAndSettle();
@@ -1330,7 +2983,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('uncollected score').first);
+    await tester.longPress(find.text('uncollected score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 컬렉션 지정'));
     await tester.pumpAndSettle();
@@ -1389,7 +3042,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('bulk setlist score').first);
+    await tester.longPress(find.text('bulk setlist score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보를 세트리스트에 추가'));
     await tester.pumpAndSettle();
@@ -1491,6 +3144,12 @@ void main() {
         tags: const <String>[],
         note: '',
         filePath: '/tmp/score-1-clef-imported-score.pdf',
+        importSource: SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: 'clef-imported-score.pdf',
+          folderLabel: 'Recital PDFs',
+          providerLabel: 'Downloads',
+        )!,
         importedAt: now,
         updatedAt: now,
         lastOpenedAt: now,
@@ -1520,7 +3179,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('정보 정리 필요'), findsOneWidget);
-    expect(find.text('제목/작곡가 등이 비어 있어요. 누르면 정보 편집.'), findsOneWidget);
+    expect(find.text('악보 열기 목록이 아니라 제목/작곡가를 보강할 작업입니다.'), findsOneWidget);
+    expect(find.text('정보 보강'), findsOneWidget);
     expect(find.text('정보 편집'), findsOneWidget);
     expect(find.text('최근 악보'), findsOneWidget);
     expect(find.text('마지막으로 연 악보'), findsOneWidget);
@@ -1531,11 +3191,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('악보 정보 편집'), findsOneWidget);
+    expect(find.text('가져온 위치'), findsOneWidget);
+    expect(find.textContaining('Recital PDFs · Downloads'), findsOneWidget);
+    expect(
+      find.textContaining('원본 파일 · clef-imported-score.pdf'),
+      findsOneWidget,
+    );
     expect(find.text('자주 쓰는 필드'), findsOneWidget);
     expect(find.text('조성'), findsOneWidget);
+    expect(find.text('박자'), findsOneWidget);
+    expect(find.text('조표'), findsOneWidget);
     expect(find.text('장르'), findsOneWidget);
+    expect(find.text('앨범'), findsOneWidget);
     expect(find.text('난이도'), findsOneWidget);
     expect(find.text('편성'), findsOneWidget);
+    expect(find.text('출처'), findsOneWidget);
+    expect(find.text('출처 유형'), findsOneWidget);
+    expect(find.text('연도'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1594,9 +3266,25 @@ void main() {
       final more = find.byTooltip('세트리스트 작업 더 보기');
       await tester.tap(more);
       await tester.pumpAndSettle();
-      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in [
+        '공유용 목록 보기',
+        '목록 복사',
+        '패키지 내보내기',
+        '세트리스트 복제',
+        '이름 변경',
+        '삭제',
+      ]) {
         expect(find.text(label).hitTestable(), findsOneWidget);
       }
+      await tester.tap(find.text('공유용 목록 보기'));
+      await tester.pumpAndSettle();
+      expect(find.text('복사할 내용 미리보기'), findsOneWidget);
+      expect(find.textContaining('Clef & Staff 세트리스트'), findsOneWidget);
+      expect(find.textContaining('제목: 공연 순서'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, '닫기'));
+      await tester.pumpAndSettle();
+      await tester.tap(more);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('목록 복사'));
       await tester.pumpAndSettle();
       expect(copied, contains('공연 순서'));
@@ -1637,12 +3325,71 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpAndSettle();
       expect(more, findsNothing);
-      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+      for (final label in [
+        '공유용 목록 보기',
+        '목록 복사',
+        '패키지 내보내기',
+        '세트리스트 복제',
+        '이름 변경',
+        '삭제',
+      ]) {
         expect(find.byTooltip(label).hitTestable(), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('setlist package export explains empty package before sharing', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 28, 15);
+    final setlist = SheetSetlist(
+      id: 'package-recital',
+      title: 'Package Recital',
+      scoreIds: const <String>[],
+      createdAt: now,
+      updatedAt: now,
+    );
+    final store = SheetLibraryStore();
+    await store.saveSetlists(<SheetSetlist>[setlist]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: setlist.id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('패키지 내보내기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('세트리스트 패키지 내보내기'), findsOneWidget);
+    expect(find.textContaining('ChordPro/DOCX/RTF 원본'), findsOneWidget);
+    expect(find.textContaining('PDF/이미지 악보의 일반 필기는 함께 묶습니다'), findsOneWidget);
+    expect(find.text('패키지를 만들 수 없습니다'), findsOneWidget);
+    expect(find.text('곡 0개'), findsOneWidget);
+    expect(find.text('파일 0개'), findsOneWidget);
+    expect(find.textContaining('세트리스트에 내보낼 악보가 없습니다'), findsOneWidget);
+    expect(find.textContaining('제목: Package Recital'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '패키지 공유'))
+          .onPressed,
+      isNull,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   for (final listChanged in [false, true]) {
     testWidgets('setlist direct order entry with changed list: $listChanged', (
@@ -2374,6 +4121,236 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('page picker offers quick jump targets for long scores', (
+    tester,
+  ) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 120,
+        currentPage: 54,
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('빠른 이동'), findsOneWidget);
+    expect(find.text('처음'), findsOneWidget);
+    expect(find.text('10쪽 전'), findsOneWidget);
+    expect(find.text('현재'), findsOneWidget);
+    expect(find.text('10쪽 후'), findsOneWidget);
+    expect(find.text('끝'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, '10쪽 전'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 44/120쪽'), findsOneWidget);
+    expect(requestedPages, isEmpty);
+
+    await tester.tap(find.widgetWithText(ActionChip, '10쪽 후'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 64/120쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, '끝'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 120/120쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[120]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('page picker exposes bookmark and rehearsal mark targets', (
+    tester,
+  ) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 80,
+        currentPage: 10,
+        bookmarks: [
+          SheetBookmark(
+            pageNumber: 32,
+            label: 'Cadenza',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+        ],
+        pageSettings: SheetPageSettings(
+          hiddenPages: const <int>[],
+          pageRotations: const <int, int>{},
+          jumpPoints: [
+            SheetPageJumpPoint(
+              id: 'jump-solo',
+              sourcePage: 8,
+              targetPage: 12,
+              label: 'Solo',
+              createdAt: DateTime(2026, 9, 27),
+            ),
+          ],
+          rehearsalMarks: [
+            SheetRehearsalMark(
+              id: 'mark-a',
+              pageNumber: 18,
+              label: 'A',
+              kind: SheetRehearsalMark.rehearsalKind,
+              createdAt: DateTime(2026, 9, 27),
+            ),
+          ],
+        ),
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('표시 지점 3개'), findsOneWidget);
+    expect(find.text('점프 1 · 북마크 1 · 리허설 1'), findsOneWidget);
+    expect(find.text('점프 · Solo · 12쪽'), findsWidgets);
+    expect(find.text('북마크 · Cadenza · 32쪽'), findsWidgets);
+    expect(find.text('리허설 · A · 18쪽'), findsWidgets);
+    expect(find.text('12쪽으로 선택'), findsOneWidget);
+    expect(find.text('18쪽으로 선택'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ListTile, '점프 · Solo · 12쪽'));
+    await tester.pump();
+    expect(find.text('현재 10쪽 · 선택 12/80쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[12]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('PDF outline browser preserves hierarchy and opens its page', (
+    tester,
+  ) async {
+    final openedPages = <int>[];
+    await tester.pumpWidget(
+      buildPdfOutlineBrowserForTest(
+        currentPage: 4,
+        entries: const [
+          (label: 'Part I', pageNumber: 1, depth: 0),
+          (label: 'Allegro', pageNumber: 4, depth: 1),
+          (label: 'Coda', pageNumber: 28, depth: 1),
+        ],
+        onGoToPage: openedPages.add,
+      ),
+    );
+
+    expect(find.text('PDF 목차'), findsOneWidget);
+    expect(find.text('Part I'), findsOneWidget);
+    expect(find.text('Allegro'), findsOneWidget);
+    expect(find.text('1쪽'), findsOneWidget);
+    expect(find.text('4쪽'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Allegro')).dx,
+      greaterThan(tester.getTopLeft(find.text('Part I')).dx),
+    );
+
+    await tester.tap(find.text('Coda'));
+    await tester.pump();
+
+    expect(openedPages, <int>[28]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('PDF outline browser scrolls a long outline on a small screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final openedPages = <int>[];
+    await tester.pumpWidget(
+      buildPdfOutlineBrowserForTest(
+        textScale: 1.6,
+        entries: List.generate(
+          40,
+          (index) => (
+            label: 'Section ${index + 1}',
+            pageNumber: index + 1,
+            depth: index % 4,
+          ),
+        ),
+        onGoToPage: openedPages.add,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Section 40'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Section 40'));
+    await tester.pump();
+
+    expect(openedPages, <int>[40]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('quick jump overflow labels named target types', (tester) async {
+    final jumps = <SheetPageJumpPoint>[];
+    final pages = <int>[];
+    final createdAt = DateTime(2026, 9, 28);
+
+    await tester.pumpWidget(
+      buildQuickJumpButtonsForTest(
+        jumpPoints: [
+          SheetPageJumpPoint(
+            id: 'jump-a',
+            sourcePage: 2,
+            targetPage: 4,
+            label: 'To A',
+            createdAt: createdAt,
+          ),
+          SheetPageJumpPoint(
+            id: 'jump-b',
+            sourcePage: 6,
+            targetPage: 8,
+            label: 'To B',
+            createdAt: createdAt,
+          ),
+          SheetPageJumpPoint(
+            id: 'jump-c',
+            sourcePage: 10,
+            targetPage: 12,
+            label: 'To C',
+            createdAt: createdAt,
+          ),
+        ],
+        rehearsalMarks: [
+          SheetRehearsalMark(
+            id: 'mark-a',
+            pageNumber: 18,
+            label: 'A',
+            kind: SheetRehearsalMark.rehearsalKind,
+            createdAt: createdAt,
+          ),
+        ],
+        bookmarks: [
+          SheetBookmark(pageNumber: 32, label: 'Cadenza', createdAt: createdAt),
+        ],
+        onJump: jumps.add,
+        onPageSelected: pages.add,
+      ),
+    );
+
+    await tester.tap(find.text('+3'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('점프 · To C · 12쪽'), findsOneWidget);
+    expect(find.text('리허설 · A · 18쪽'), findsOneWidget);
+    expect(find.text('북마크 · Cadenza · 32쪽'), findsOneWidget);
+
+    await tester.tap(find.text('북마크 · Cadenza · 32쪽'));
+    await tester.pumpAndSettle();
+
+    expect(jumps, isEmpty);
+    expect(pages, <int>[32]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('crop settings sheet offers quick margin presets', (
     tester,
   ) async {
@@ -2448,25 +4425,545 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('스탬프 선택'), findsWidgets);
+    expect(find.text('빠른 선택'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'OK'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'CUE'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, '!'), findsOneWidget);
+    expect(find.text('사용자 스탬프'), findsOneWidget);
+    expect(find.text('추가된 사용자 스탬프가 없습니다.'), findsOneWidget);
+    expect(find.text('텍스트 스탬프 추가'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '전체'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '리허설 표시'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '반복/마침'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '템포 변화'), findsOneWidget);
     expect(find.text('리허설 표시'), findsWidgets);
     expect(find.text('OK'), findsWidgets);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '템포 변화'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('rit.'), findsAtLeastNWidgets(1));
+    expect(find.text('Fine'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '반복');
     await tester.pumpAndSettle();
 
     expect(find.text('반복/마침'), findsWidgets);
     expect(find.text('Fine'), findsOneWidget);
-    expect(find.text('D.C.'), findsOneWidget);
+    expect(find.text('D.C.'), findsAtLeastNWidgets(1));
 
     await tester.enterText(find.byType(TextField), '템포');
     await tester.pumpAndSettle();
 
     expect(find.text('템포 변화'), findsWidgets);
-    expect(find.text('rit.'), findsOneWidget);
-    expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('rit.'), findsAtLeastNWidgets(1));
     expect(find.text('Fine'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ActionChip, 'CUE'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('빠른 선택'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('annotation toolbar exposes named layer selection', (
+    tester,
+  ) async {
+    var didRequestLayerMove = false;
+    var didRequestSelectionMove = false;
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        displayLayers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+        ],
+        onMoveLayerContents: () => didRequestLayerMove = true,
+        onMoveSelectedAnnotations: () => didRequestSelectionMove = true,
+      ),
+    );
+
+    expect(find.text('기본 필기'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('필기 layer 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('리허설 메모'), findsOneWidget);
+    expect(find.text('새 layer 추가'), findsOneWidget);
+
+    await tester.tap(find.text('리허설 메모').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('리허설 메모'), findsOneWidget);
+    expect(find.byTooltip('리허설 메모 layer 숨기기'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('필기 layer 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('현재 layer 이름 변경'), findsOneWidget);
+    expect(find.text('현재 layer 삭제'), findsOneWidget);
+    expect(find.text('현재 쪽 주석 선택 이동'), findsOneWidget);
+    expect(find.text('현재 layer 주석 모두 이동'), findsOneWidget);
+    expect(find.text('주석은 기본 필기로 유지'), findsOneWidget);
+
+    await tester.tap(find.text('현재 쪽 주석 선택 이동'));
+    await tester.pumpAndSettle();
+    expect(didRequestSelectionMove, isTrue);
+
+    await tester.tap(find.byTooltip('필기 layer 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('현재 layer 주석 모두 이동'));
+    await tester.pumpAndSettle();
+    expect(didRequestLayerMove, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation selection sheet works on a compact screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildAnnotationSelectionSheetForTest());
+    await tester.pumpAndSettle();
+
+    expect(find.text('현재 쪽 주석 선택'), findsOneWidget);
+    expect(find.text('3쪽 · 리허설 메모 · 0/2개 선택'), findsOneWidget);
+    expect(find.text('선택한 0개 이동'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('annotation-select-stroke-1')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('3쪽 · 리허설 메모 · 1/2개 선택'), findsOneWidget);
+    expect(find.text('선택한 1개 이동'), findsOneWidget);
+
+    await tester.tap(find.text('전체 선택'));
+    await tester.pumpAndSettle();
+    expect(find.text('3쪽 · 리허설 메모 · 2/2개 선택'), findsOneWidget);
+    expect(find.text('전체 해제'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation move layer sheet shows only target layers', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildAnnotationMoveLayerSheetForTest(
+        currentLayerId: 'rehearsal',
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+          SheetAnnotationDisplayLayer(
+            id: 'private',
+            label: '개인 메모',
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('다른 layer로 이동'), findsOneWidget);
+    expect(find.text('선택한 주석만 대상 layer로 옮깁니다.'), findsOneWidget);
+    expect(find.text('기본 필기'), findsOneWidget);
+    expect(find.text('개인 메모'), findsOneWidget);
+    expect(find.text('숨김 · PDF 제외'), findsOneWidget);
+    expect(find.text('리허설 메모'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation bulk move sheet explains the moved count', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildAnnotationMoveLayerSheetForTest(
+        layers: const <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer,
+          SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
+        ],
+        currentLayerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        annotationCount: 12,
+      ),
+    );
+
+    expect(find.text('현재 layer의 주석 12개를 함께 옮깁니다.'), findsOneWidget);
+    expect(find.text('리허설 메모'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker creates and deletes user stamps', (
+    tester,
+  ) async {
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'bow-cue',
+          'packId': 'user',
+          'label': 'Bow cue',
+          'category': '사용자',
+          'kind': 'text',
+          'text': 'BOW',
+        },
+      ],
+    });
+    var currentPacks = <SheetAnnotationStampPack>[];
+    var didCreate = false;
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: currentPacks,
+        onCreateUserStamp: (_, _) async {
+          didCreate = true;
+          currentPacks = <SheetAnnotationStampPack>[userPack];
+          return currentPacks;
+        },
+        onDeleteUserStamp: (_, _) async {
+          currentPacks = const <SheetAnnotationStampPack>[];
+          return currentPacks;
+        },
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('텍스트 스탬프 추가'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '이름'), 'Bow cue');
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, '악보에 찍을 글자'), 'BOW');
+    await tester.pump();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(didCreate, isTrue);
+    expect(find.text('Bow cue'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('삭제'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('추가된 사용자 스탬프가 없습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker selects a user text stamp', (
+    tester,
+  ) async {
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'bow-cue',
+          'packId': 'user',
+          'label': 'Bow cue',
+          'category': '사용자',
+          'kind': 'text',
+          'text': 'BOW',
+        },
+      ],
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[userPack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bow cue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Bow cue'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'annotation stamp picker filters user stamps by search and category',
+    (tester) async {
+      final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+        'id': 'user',
+        'name': '사용자 스탬프',
+        'createdAt': '2026-10-02T10:00:00.000',
+        'updatedAt': '2026-10-02T10:00:00.000',
+        'stamps': const <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'bow-cue',
+            'packId': 'user',
+            'label': 'Bow cue',
+            'category': '개인 표시',
+            'kind': 'text',
+            'text': 'BOW',
+          },
+          <String, Object?>{
+            'id': 'repeat-cue',
+            'packId': 'user',
+            'label': 'Repeat cue',
+            'category': '사용자',
+            'kind': 'icon',
+            'iconName': 'repeat',
+          },
+          <String, Object?>{
+            'id': 'breath-cue',
+            'packId': 'user',
+            'label': '숨표',
+            'category': '한글 표시',
+            'kind': 'text',
+            'text': '숨',
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        buildAnnotationToolbarForTest(
+          userStampPacks: <SheetAnnotationStampPack>[userPack],
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('스탬프 선택'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('스탬프 선택'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsOneWidget);
+      expect(find.text('숨표'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'bow');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, '개인 표시'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsOneWidget);
+      expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsNothing);
+
+      await tester.ensureVisible(find.widgetWithText(ChoiceChip, '한글 표시'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, '한글 표시'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bow cue'), findsNothing);
+      expect(find.text('Repeat cue'), findsNothing);
+      expect(find.text('숨표'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('annotation stamp picker summarizes near-limit user stamps', (
+    tester,
+  ) async {
+    final targetIndex = SheetAnnotationStampPack.maxStampCount - 1;
+    final userPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'large-user-pack',
+      'name': 'Large user pack',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': List<Map<String, Object?>>.generate(
+        SheetAnnotationStampPack.maxStampCount,
+        (index) => <String, Object?>{
+          'id': 'stamp-$index',
+          'packId': 'large-user-pack',
+          'label': index == targetIndex ? 'Target $index' : 'Bulk $index',
+          'category': index == targetIndex ? 'Target Category' : 'Bulk',
+          'kind': 'text',
+          'text': index == targetIndex ? 'TARGET' : 'B$index',
+        },
+      ),
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[userPack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bulk 0'), findsOneWidget);
+    expect(find.text('Target $targetIndex'), findsNothing);
+    expect(find.textContaining('122개 더 있습니다.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'target');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bulk 0'), findsNothing);
+    expect(find.text('Target $targetIndex'), findsOneWidget);
+    expect(find.textContaining('122개 더 있습니다.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker creates and selects user icon stamps', (
+    tester,
+  ) async {
+    final iconPack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'repeat-cue',
+          'packId': 'user',
+          'label': 'Repeat cue',
+          'category': '사용자',
+          'kind': 'icon',
+          'iconName': 'repeat',
+        },
+      ],
+    });
+    var currentPacks = <SheetAnnotationStampPack>[];
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: currentPacks,
+        onCreateIconUserStamp: (_, _) async {
+          currentPacks = <SheetAnnotationStampPack>[iconPack];
+          return currentPacks;
+        },
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('아이콘 스탬프 추가'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '이름'), 'Repeat cue');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ChoiceChip, '반복'));
+    await tester.pump();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repeat cue'), findsOneWidget);
+
+    await tester.tap(find.text('Repeat cue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Repeat cue'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation stamp picker selects image stamps', (tester) async {
+    final imagePack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'user',
+      'name': '사용자 스탬프',
+      'createdAt': '2026-10-02T10:00:00.000',
+      'updatedAt': '2026-10-02T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'cue-photo',
+          'packId': 'user',
+          'label': 'Cue photo',
+          'category': '이미지',
+          'kind': 'image',
+          'assetRef': 'stamps/user/cue-photo.png',
+          'licenseLabel': '사용자 제공 이미지',
+          'checksum': '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'assetSizeBytes': 123,
+          'assetWidthPixels': 32,
+          'assetHeightPixels': 24,
+        },
+      ],
+    });
+    await tester.pumpWidget(
+      buildAnnotationToolbarForTest(
+        userStampPacks: <SheetAnnotationStampPack>[imagePack],
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('이미지 스탬프 추가'), findsOneWidget);
+    expect(find.text('Cue photo'), findsOneWidget);
+
+    await tester.tap(find.text('Cue photo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('스탬프 선택'), findsOneWidget);
+    expect(find.text('Cue photo'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'annotation stamp picker restores recent stamps without duplicates',
+    (tester) async {
+      await tester.pumpWidget(
+        buildAnnotationToolbarForTest(
+          recentStampNames: const <String>['fine', 'unknown', 'cue', 'rit'],
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('스탬프 선택'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('스탬프 선택'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('최근 사용'), findsOneWidget);
+      expect(find.text('빠른 선택'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'Fine'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'CUE'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'rit.'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'OK'), findsOneWidget);
+      expect(find.text('unknown'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('linked audio sheet sends A-B loop points to player', (
     tester,
@@ -2494,12 +4991,141 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls.single.method, 'play');
-    expect(calls.single.arguments, <String, Object?>{
+    final playbackCalls = calls.where((call) => call.method == 'play').toList();
+    expect(playbackCalls.single.method, 'play');
+    expect(playbackCalls.single.arguments, <String, Object?>{
       'path': '/tmp/backing-track.m4a',
       'loopStartMs': 1500,
       'loopEndMs': 8200,
     });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet adjusts A-B range on track timeline', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_timeline');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'inspect') {
+            return <String, Object?>{'durationMs': 125400};
+          }
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 10000,
+          audioLoopEndMs: 30000,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('재생 시간 2:05'), findsOneWidget);
+    expect(find.text('구간 타임라인 · 전체 2:05'), findsOneWidget);
+    final timeline = tester.widget<RangeSlider>(find.byType(RangeSlider));
+    timeline.onChanged!(const RangeValues(20, 40));
+    await tester.pump();
+
+    expect(find.text('새 구간 · A 20초 -> B 40초'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'linked audio sheet captures A-B markers from playback position',
+    (tester) async {
+      final channel = const MethodChannel('clef/test_linked_audio_position');
+      final calls = <MethodCall>[];
+      var positionCallCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return switch (call.method) {
+              'inspect' => <String, Object?>{'durationMs': 125400},
+              'position' => <String, Object?>{
+                'positionMs': positionCallCount++ == 0 ? 12340 : 25000,
+                'durationMs': 125400,
+                'isPlaying': true,
+              },
+              _ => null,
+            };
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      await tester.pumpWidget(
+        buildLinkedAudioPlayerSheetForTest(
+          channel: channel,
+          linkedFile: SheetLinkedFile(
+            path: '/tmp/backing-track.m4a',
+            type: 'm4a',
+            label: 'Backing Track',
+            createdAt: DateTime(2026, 10, 20),
+            audioLoopStartMs: 10000,
+            audioLoopEndMs: 30000,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '재생'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, '현재 위치를 A로'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, '현재 위치를 B로'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('새 구간 · A 12.34초 -> B 25초'), findsOneWidget);
+      expect(find.textContaining('다음 재생부터 적용됩니다.'), findsOneWidget);
+      expect(calls.where((call) => call.method == 'position'), hasLength(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('linked audio sheet rejects B marker after track end', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_duration');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'inspect') {
+            return <String, Object?>{'durationMs': 125400};
+          }
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).at(1), '130');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B 끝은 파일 길이 2:05 이하여야 합니다.'), findsOneWidget);
+    expect(calls.where((call) => call.method == 'play'), isEmpty);
     expect(tester.takeException(), isNull);
   });
 
@@ -2540,19 +5166,358 @@ void main() {
     expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('9'), findsOneWidget);
+    expect(find.text('저장된 구간 · A 2초 -> B 9초'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).at(0), '3.5');
     await tester.enterText(find.byType(TextField).at(1), '10');
+    await tester.pumpAndSettle();
+
+    expect(find.text('새 구간 · A 3.5초 -> B 10초'), findsOneWidget);
+
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
+    expect(find.text('저장된 구간 · A 3.5초 -> B 10초'), findsOneWidget);
     expect(savedFiles.single.audioLoopStartMs, 3500);
     expect(savedFiles.single.audioLoopEndMs, 10000);
-    expect(calls.single.arguments, <String, Object?>{
+    final playbackCalls = calls.where((call) => call.method == 'play').toList();
+    expect(playbackCalls.single.arguments, <String, Object?>{
       'path': '/tmp/backing-track.m4a',
       'loopStartMs': 3500,
       'loopEndMs': 10000,
     });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet saves and reuses named A-B loop presets', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return true;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '현재 구간 저장'));
+    await tester.pumpAndSettle();
+    expect(find.text('현재 구간 저장'), findsNWidgets(2));
+    await tester.enterText(find.byType(TextField).last, '도입');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers.single.label, '도입');
+    expect(savedFiles.single.audioLoopMarkers.single.startMs, 2000);
+    expect(savedFiles.single.audioLoopMarkers.single.endMs, 9000);
+    expect(find.text('저장한 구간'), findsOneWidget);
+    expect(find.text('도입 · 2-9초'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(0), '12');
+    await tester.enterText(find.byType(TextField).at(1), '18');
+    await tester.tap(find.text('도입 · 2-9초'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet preserves named preset when deletion fails', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopMarkers: const <SheetAudioLoopMarker>[
+            SheetAudioLoopMarker(
+              id: 'intro',
+              label: '도입',
+              startMs: 2000,
+              endMs: 9000,
+            ),
+          ],
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.byTooltip('도입 삭제'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, isEmpty);
+    expect(find.text('도입 · 2-9초'), findsOneWidget);
+    expect(find.text('저장 구간을 삭제하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet does not add named preset when save fails', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '현재 구간 저장'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '도입');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, hasLength(1));
+    expect(find.text('저장한 구간'), findsNothing);
+    expect(find.text('저장 구간을 추가하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet clears saved A-B loop markers', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_clear_loop');
+    final calls = <MethodCall>[];
+    final savedFiles = <SheetLinkedFile>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return true;
+        },
+      ),
+    );
+
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, '구간 지우기'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles.single.audioLoopStartMs, isNull);
+    expect(savedFiles.single.audioLoopEndMs, isNull);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
+    expect(find.text('2'), findsNothing);
+    expect(find.text('9'), findsNothing);
+    expect(find.text('저장된 구간 · A 2초 -> B 9초'), findsNothing);
+    expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
+    final loopSwitch = tester.widget<SwitchListTile>(
+      find.widgetWithText(SwitchListTile, 'A-B 반복'),
+    );
+    expect(loopSwitch.value, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet keeps saved loop when clear save fails', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_clear_failure');
+    final calls = <MethodCall>[];
+    final savedFiles = <SheetLinkedFile>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '구간 지우기'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles.single.audioLoopStartMs, isNull);
+    expect(savedFiles.single.audioLoopEndMs, isNull);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(find.text('저장된 구간 · A 2초 -> B 9초'), findsOneWidget);
+    expect(find.text('A-B 반복 구간을 지우지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    final loopSwitch = tester.widget<SwitchListTile>(
+      find.widgetWithText(SwitchListTile, 'A-B 반복'),
+    );
+    expect(loopSwitch.value, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet explains invalid A-B loop input', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_invalid_loop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'intro');
+    await tester.enterText(find.byType(TextField).at(1), '8');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
+    expect(find.text('A-B 반복 구간은 초 단위 숫자로 입력해주세요.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(0), '9');
+    await tester.enterText(find.byType(TextField).at(1), '8');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
+    expect(find.text('B 끝은 A 시작보다 커야 합니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked files editor labels supported attachment types', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildLinkedFilesEditorForTest([
+        SheetLinkedFile(
+          path: '/tmp/part.pdf',
+          type: 'pdf',
+          label: 'Trumpet Part',
+          role: SheetLinkedFile.partRole,
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/backing.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: DateTime(2026, 9, 27),
+          audioLoopStartMs: 1500,
+          audioLoopEndMs: 8250,
+        ),
+        SheetLinkedFile(
+          path: '/tmp/cover.png',
+          type: 'png',
+          label: 'Cover Scan',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/notes.txt',
+          type: 'text',
+          label: 'Earlier Notes',
+          role: SheetLinkedFile.editedCopyRole,
+          createdAt: DateTime(2026, 10, 20),
+        ),
+        SheetLinkedFile(
+          path: '/tmp/song.chordpro',
+          type: 'chordpro',
+          label: 'Earlier Chords',
+          role: SheetLinkedFile.editedCopyRole,
+          createdAt: DateTime(2026, 10, 20),
+        ),
+      ]),
+    );
+
+    expect(find.text('Trumpet Part'), findsOneWidget);
+    expect(find.textContaining('Part · PDF · /tmp/part.pdf'), findsOneWidget);
+    expect(find.text('Backing Track'), findsOneWidget);
+    expect(
+      find.textContaining('Reference · 오디오 · A-B 1.5-8.25초 · /tmp/backing.m4a'),
+      findsOneWidget,
+    );
+    expect(find.text('Cover Scan'), findsOneWidget);
+    expect(
+      find.textContaining('Reference · 이미지 · /tmp/cover.png'),
+      findsOneWidget,
+    );
+    expect(find.text('Earlier Notes'), findsOneWidget);
+    expect(
+      find.textContaining('Edited copy · 텍스트 · /tmp/notes.txt'),
+      findsOneWidget,
+    );
+    expect(find.text('Earlier Chords'), findsOneWidget);
+    expect(
+      find.textContaining('Edited copy · ChordPro · /tmp/song.chordpro'),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.description_outlined), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 
@@ -2585,7 +5550,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '재생'));
     await tester.pumpAndSettle();
 
-    expect(calls, isEmpty);
+    expect(calls.where((call) => call.method != 'inspect'), isEmpty);
     expect(find.text('A-B 반복 구간을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -2714,6 +5679,175 @@ class _RecordingSharedImportController extends SheetLibraryController {
   }
 }
 
+class _SmokeChordProStore extends SheetLibraryStore {
+  SheetImportedFile? pickedChordProFile;
+  SheetImportedFile? pickedPlainTextFile;
+  SheetImportedFile? pickedDocxFile;
+  SheetImportedFile? pickedRtfFile;
+
+  @override
+  Future<SheetImportedFile?> pickChordProFile() async {
+    return pickedChordProFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    return pickedPlainTextFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickDocxFile() async {
+    return pickedDocxFile;
+  }
+
+  @override
+  Future<SheetImportedFile?> pickRtfFile() async {
+    return pickedRtfFile;
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 10, 19, 12);
+    return SheetScore(
+      id: 'smoke-plain-text',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/text/${file.name}',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 9, 28, 17);
+    final document = SheetChordProParser.parse(utf8.decode(file.bytes));
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    return SheetScore(
+      id: 'smoke-chordpro-file',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: '/text/${file.name}',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 10, 20, 13);
+    return SheetScore(
+      id: 'smoke-docx',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/text/${file.name}.txt',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'docx',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 10, 20, 15);
+    return SheetScore(
+      id: 'smoke-rtf',
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/text/${file.name}.txt',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/text/${file.name}',
+          type: 'rtf',
+          label: file.name,
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    final now = importedAt ?? DateTime(2026, 9, 28, 17);
+    return SheetScore(
+      id: 'smoke-chordpro',
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: '/text/${draft.title}.chordpro',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+}
+
 class _DelayedRestoreStore extends SheetLibraryStore {
   final completion = Completer<SheetLibraryBackupRestoreResult>();
   final importCompletion = Completer<SheetScore?>();
@@ -2730,15 +5864,113 @@ class _DelayedRestoreStore extends SheetLibraryStore {
   @override
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() => _restore();
   @override
+  Future<String?> pickMetadataBackupJson() async {
+    return SheetLibraryBackupCodec.encode(
+      SheetLibraryBackup.fromState(
+        scores: const <SheetScore>[],
+        setlists: const <SheetSetlist>[],
+        metronomeSettings: SheetMetronomeSettings.defaultSettings,
+        tunerSettings: SheetTunerSettings.defaultSettings,
+        toneSettings: SheetToneSettings.defaultSettings,
+        libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      ),
+    );
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
+    String value,
+  ) => _restore();
+
+  @override
   Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() =>
       _restore();
+
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() => _restore();
+
+  @override
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    return await exportFullBackupZipBytes();
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) => _restore();
+}
+
+class _SynchronousChordProEditStore extends SheetLibraryStore {
+  @override
+  Future<String> readChordProSource(SheetScore score) {
+    return Future<String>.value(File(score.filePath).readAsStringSync());
+  }
+
+  @override
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) {
+    File(score.filePath).writeAsStringSync(source, flush: true);
+    return Future<void>.value();
+  }
+}
+
+class _SynchronousPlainTextEditStore extends SheetLibraryStore {
+  @override
+  Future<String> readPlainTextSource(SheetScore score) {
+    return Future<String>.value(File(score.filePath).readAsStringSync());
+  }
+
+  @override
+  Future<void> replacePlainTextSource({
+    required SheetScore score,
+    required String source,
+  }) {
+    File(score.filePath).writeAsStringSync(source, flush: true);
+    return Future<void>.value();
+  }
+}
+
+class _MetadataPreviewStore extends SheetLibraryStore {
+  String? backupJson;
+
+  @override
+  Future<String?> pickMetadataBackupJson() async {
+    return backupJson;
+  }
+}
+
+class _BackupHealthController extends SheetLibraryController {
+  _BackupHealthController(this.health) : super(store: SheetLibraryStore());
+
+  final SheetLibraryBackupHealth health;
+
+  @override
+  Future<SheetLibraryBackupHealth> loadBackupHealth() async {
+    return health;
+  }
 }
 
 class _PartialBackupStore extends SheetLibraryStore {
   @override
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
+    return _fullBackupResult();
+  }
+
+  @override
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    return await exportFullBackupZipBytes();
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    return _fullBackupResult();
+  }
+
+  SheetLibraryBackupRestoreResult _fullBackupResult() {
     return const SheetLibraryBackupRestoreResult(
       status: SheetLibraryBackupRestoreStatus.restored,
       restoredScoreCount: 3,

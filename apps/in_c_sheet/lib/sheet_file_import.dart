@@ -18,6 +18,8 @@ class SheetImportedFile {
 class SheetFileImportPolicy {
   const SheetFileImportPolicy._();
 
+  static const maxPlainTextBytes = 2 * 1024 * 1024;
+
   static const pdfExtensions = <String>{'pdf'};
   static const imageExtensions = <String>{'jpg', 'jpeg', 'png'};
   static const audioExtensions = <String>{
@@ -29,6 +31,20 @@ class SheetFileImportPolicy {
     'ogg',
   };
   static const unsupportedImageExtensions = <String>{'heic', 'heif'};
+  static const unsupportedTextScoreExtensions = <String>{...chordProExtensions};
+  static const docxExtensions = <String>{'docx'};
+  static const rtfExtensions = <String>{'rtf'};
+  static const plainTextExtensions = <String>{'txt', 'text', 'md', 'markdown'};
+  static const chordProExtensions = <String>{
+    'cho',
+    'chordpro',
+    'chopro',
+    'chord',
+    'crd',
+    'pro',
+    'song',
+    'onsong',
+  };
 
   static bool isPdfFileName(String name) {
     return pdfExtensions.contains(extensionOf(name));
@@ -47,6 +63,35 @@ class SheetFileImportPolicy {
     return audioExtensions.contains(extensionOf(name));
   }
 
+  static bool isChordProFileName(String name) {
+    final extension = extensionOf(name);
+    return chordProExtensions.contains(extension);
+  }
+
+  static bool isPlainTextFileName(String name) {
+    return plainTextExtensions.contains(extensionOf(name));
+  }
+
+  static bool isDocxFileName(String name) {
+    return docxExtensions.contains(extensionOf(name));
+  }
+
+  static bool isRtfFileName(String name) {
+    return rtfExtensions.contains(extensionOf(name));
+  }
+
+  static bool isSupportedScoreFileName(String name) {
+    return isPdfFileName(name) ||
+        isPlainTextFileName(name) ||
+        isChordProFileName(name) ||
+        isDocxFileName(name) ||
+        isRtfFileName(name);
+  }
+
+  static bool isTextScoreFileName(String name) {
+    return isChordProFileName(name) || isPlainTextFileName(name);
+  }
+
   static bool isSupportedAudioExtension(String extension) {
     final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
     return audioExtensions.contains(normalized);
@@ -56,12 +101,38 @@ class SheetFileImportPolicy {
     return unsupportedImageExtensions.contains(extensionOf(name));
   }
 
+  static bool isKnownButUnsupportedTextScoreFileName(String name) {
+    return unsupportedTextScoreExtensions.contains(extensionOf(name));
+  }
+
   static String unsupportedImportMessage(String value) {
     final name = _fileNameFromMessage(value);
     if (isKnownButUnsupportedImageFileName(name)) {
       return 'HEIC/HEIF 이미지는 바로 가져올 수 없습니다. 사진 앱에서 JPG로 저장한 뒤 다시 가져와주세요.';
     }
+    if (isKnownButUnsupportedTextScoreFileName(name)) {
+      return unsupportedTextScoreImportMessage(name);
+    }
     return '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지, 클라우드 파일이 기기에 내려받아져 있는지 확인해주세요.';
+  }
+
+  static String unsupportedTextScoreImportMessage(String value) {
+    final name = _fileNameFromMessage(value);
+    final extension = extensionOf(name);
+    final label = _unsupportedTextScoreLabel(extension);
+    if (isChordProFileName(name)) {
+      return '$label 파일은 텍스트/ChordPro 안내에서 파일 선택으로 가져올 수 있습니다. 저장 전에 metadata와 코드/가사를 확인하려면 붙여넣기 미리보기를 사용하세요.';
+    }
+    if (isPlainTextFileName(name)) {
+      return '$label 파일은 텍스트/ChordPro 안내에서 파일 선택으로 가져올 수 있습니다.';
+    }
+    if (isDocxFileName(name)) {
+      return 'DOCX 파일은 텍스트/ChordPro 안내에서 읽기 전용 악보로 가져올 수 있습니다.';
+    }
+    if (isRtfFileName(name)) {
+      return 'RTF 파일은 텍스트/ChordPro 안내에서 읽기 전용 악보로 가져올 수 있습니다.';
+    }
+    return '$label 파일은 아직 Clef & Staff 악보로 직접 추가할 수 없습니다. 현재 버전은 PDF/JPG/PNG, 일반 텍스트, ChordPro, DOCX, RTF 읽기 전용 저장을 지원합니다. 원본 앱에서 지원 형식이나 PDF로 내보낸 뒤 가져와주세요.';
   }
 
   static String extensionOf(String name) {
@@ -77,6 +148,16 @@ class SheetFileImportPolicy {
     final trimmed = value.trim();
     final separator = trimmed.lastIndexOf(':');
     return separator == -1 ? trimmed : trimmed.substring(separator + 1).trim();
+  }
+
+  static String _unsupportedTextScoreLabel(String extension) {
+    if (extension == 'docx') {
+      return 'DOCX';
+    }
+    if (chordProExtensions.contains(extension)) {
+      return 'ChordPro';
+    }
+    return '텍스트 악보';
   }
 
   static String titleFromFileName(String name) {

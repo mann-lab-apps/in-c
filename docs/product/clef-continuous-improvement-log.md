@@ -1275,7 +1275,7 @@ No app build performed; new changes have widget/source evidence only.
 
 - Selected slice: reduce the recurring 10-15 minute manual pre-distribution check
   without creating a separate QA app or uploading diagnostics automatically. Clef now
-  exposes `앱 상태 점검` from the home `메뉴` as a user-safe support/diagnostic surface.
+  originally exposed a home-menu support/diagnostic surface for device checks.
 - Implementation intent: keep the feature inside the real app code path while avoiding
   destructive actions and user-data writes. The sheet records app/version/platform/OS/build
   mode, captures page-turn key input, measures internal metronome scheduling timing for
@@ -1314,7 +1314,7 @@ artifacts so tester reports include the actual installed build code.
 S69 VERIFIED LOCAL: Device QA could not be exercised on the local Android emulator because
 `clef_rc_tablet_api35` did not attach to ADB in this session, but the in-app tester handoff
 still needed less friction. The `도움말/피드백` sheet now shows the App Store review/support
-URLs, copies the review URL bundle, and opens `앱 상태 점검` directly after closing the help
+URLs, copies the review URL bundle, and opens the device report directly after closing the help
 sheet. No diagnostics are uploaded automatically; testers still choose copy/share. Regression
 coverage extends the home named-menu widget test so the support URL and help-to-device-check
 handoff are visible on phone/tablet/landscape and large text sizes. Actual emulator install
@@ -1324,7 +1324,7 @@ available.
 S70 IN PROGRESS: Preparing the next Android internal-test AAB for 실기기 QA. Because
 `1.0.1+26` already exists in the archived AAB folder, source/app info and active QA docs
 were bumped to `1.0.1+27`. The device runbook now points testers through
-`도움말/피드백` -> `앱 상태 점검 열기` so the copied Markdown report includes version,
+`도움말/피드백` -> `기기 리포트 만들기` so the copied Markdown report includes version,
 platform, key input, internal metronome timing and microphone permission evidence before
 manual audio, pedal, stylus, tuner and long-session checks.
 
@@ -1370,3 +1370,1999 @@ without those markers, and changing an audio linked file to a non-audio type cle
 This keeps backup/restore metadata from making non-audio attachments look loopable while
 preserving marker edits across audio label/role changes. Targeted score/store/audio/widget
 tests passed, full 1,404-test suite passed, analyze passed, and RC release check passed.
+
+S75 VERIFIED LOCAL: continuing the linked audio A-B loop slice with the smallest missing
+control before waveform timelines or multiple marker presets. Clef now adds an explicit
+`구간 지우기` action in the linked audio sheet. The action clears persisted linked-audio
+loop markers only after the existing linked-file save callback succeeds; failed clears keep
+the visible A/B values and report retry guidance instead of implying that the saved loop
+was removed. Regression coverage targets successful clear, failed clear and no accidental
+playback during clear. Targeted linked-audio widget tests and the audio-marker model test
+passed, full 1,406-test suite passed, analyze passed, and RC release check passed. Actual
+speaker/earphone loop timing remains DEVICE QA.
+
+S76 VERIFIED LOCAL: continuing the long-PDF navigation gap without adding thumbnails or a
+new PDF renderer. The page picker now adds `빠른 이동` chips for first/current/last page and,
+on long scores, ten pages back/forward. Chips only update the selected page; the existing
+`이동` action still performs the actual navigation, so hidden-page fallback and page-order
+cursor behavior continue to use the established viewer path. Regression coverage targets
+the quick-jump labels, selection updates and no immediate navigation before confirmation.
+Targeted page-picker tests passed, full 1,407-test suite passed, analyze passed, and RC
+release check passed. Actual finger ergonomics on large PDFs remain DEVICE QA.
+
+S77 VERIFIED LOCAL: reducing the MobileSheets metadata depth gap without adding a dense
+multi-tab schema. Clef's existing custom metadata suggestion chips now include `박자`,
+`출처` and `연도` alongside `조성`/`장르`/`난이도`/`편성`, and the facet icon mapping covers the
+new common fields. This keeps the lightweight custom-field model while making common
+library cleanup faster after import or bulk edit. Regression coverage targets the metadata
+dialog and bulk edit suggestion chips. Targeted smoke tests passed, full 1,407-test suite
+passed and analyze passed. Dedicated album/source-type tabs remain future work.
+
+S78 VERIFIED LOCAL: reducing the MobileSheets alphabet-list gap without adding an edge rail
+or configurable library tabs. Clef now shows a lightweight `빠른 찾기` band for current
+lists with at least 12 scores and multiple title initials. Each chip opens a grouped title
+picker so long libraries can jump to a score by first letter while keeping the existing
+search/facet/filter model unchanged. Regression coverage targets the quick-index chips
+and grouped picker. Targeted smoke passed, full 1,408-test suite passed and analyze
+passed. MobileSheets-style alphabet scroll rail and voice search remain future work.
+
+S79 VERIFIED LOCAL: continuing the MobileSheets metadata cleanup gap without introducing
+heavy metadata tabs. Clef now derives per-field custom metadata value suggestions from the
+current library and shows them as `이전에 쓴 값` chips in both single-score metadata editing
+and bulk edit. This lets repeated values such as key, meter, genre, source or year be reused
+after import while preserving the existing custom-field schema and facet model. The slice also
+fixed the custom field dialog lifecycle by waiting for the dialog route to complete before
+disposing text controllers. Targeted smoke tests cover single-score and bulk value reuse.
+Full 1,409-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.
+
+S80 VERIFIED LOCAL: tightening the linked-audio A-B loop UX without adding waveform
+timelines or duration probing. Invalid loop input now reports the specific correction before
+playback starts: missing A/B values, non-numeric seconds, negative A start, or B not greater
+than A. This keeps the existing seconds-based loop model and prevents silent no-op playback
+attempts. Targeted linked-audio widget tests cover invalid input, save failure, clear failure,
+saved marker preload and playback arguments. Full 1,410-test suite, analyze and RC release
+check passed. No app build/version change/push/merge.
+
+S81 VERIFIED LOCAL: connecting long-score page navigation to musical landmarks before adding
+heavier thumbnail or waveform-style timelines. The page picker now receives the current
+score's bookmarks and rehearsal marks and exposes them as horizontal `표시 지점` chips, so
+long PDFs can jump by Cadenza/A/B section labels from the same sheet that already has
+slider/direct page entry. Targeted smoke test covers selecting a rehearsal-mark chip and then
+confirming navigation. Full 1,411-test suite, analyze and RC release check passed. No app
+build/version change/push/merge.
+
+S82 VERIFIED LOCAL: polishing linked file and backing-track identification without changing the
+storage model or adding a full track router. Linked file lists now use type-aware icons and
+human labels for PDF, image and audio attachments instead of a generic attachment glyph and
+raw extension text. Targeted smoke test covers PDF/audio/image rows in the metadata editor
+linked-files list. Full 1,412-test suite, analyze and RC release check passed. No app
+build/version change/push/merge.
+
+S83 VERIFIED LOCAL: improving setlist continuation affordance without adding a separate
+MobileSheets-style next-song bar. The controller now exposes adjacent score titles in the
+viewer setlist context, and the viewer app bar/progress badge shows `다음: ...` when a
+following score exists. Targeted controller and progress-badge smoke tests passed. Full
+1,412-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.
+
+S84 VERIFIED LOCAL: absorbing a little more MobileSheets metadata depth without adding dense
+tabs or a fixed twenty-field schema. Clef's common custom metadata chips now include `조표`,
+`앨범` and `출처 유형` alongside the previous key/meter/genre/difficulty/instrumentation/source/year
+set, with matching facet icons. Metadata smoke tests and bulk-edit recovery tests passed
+after making the recovery helper close text input before tapping the longer sheet. Full
+1,412-test suite, analyze and RC release check passed. No app build/version change/push/merge.
+
+S85 VERIFIED LOCAL: tightening the MobileSheets discoverability gap without adding a dense
+manual or icon glossary. The existing `도움말/피드백` sheet now adds a task-based help section
+for library cleanup, metadata, setlists, long-score navigation, linked audio A/B practice,
+and annotation/share flows so users can find features by job rather than by icon alone.
+Targeted home-tools smoke coverage passed across compact, landscape and tablet sizes. Full
+1,412-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.
+
+S86 VERIFIED LOCAL: starting a small annotation nudge slice without introducing a full
+selection model. Text and stamp annotations already open an action sheet when tapped; this
+slice adds four small move actions for those annotation types only. Stroke/shape selection
+and multi-object nudge remain future work. Targeted model coverage checks normalized
+position clamping, and the full 1,413-test suite, analyze and RC release check passed.
+No app build/version change/push/merge.
+
+S87 VERIFIED LOCAL: continuing the linked-audio workflow without adding waveform timelines or
+multiple marker presets. The selected slice is saved-loop discoverability: linked audio rows
+now show the stored A-B range in the metadata editor and viewer part/version sheet so a
+performer can tell which backing track already has a practice loop before opening the player.
+Regression coverage targets the linked-files editor subtitle. Targeted smoke passed, full
+1,413-test suite, analyze and RC release check passed. Actual loop timing and output route
+remain DEVICE QA. No app build/version change/push/merge.
+
+S88 VERIFIED LOCAL: tightening stamp discovery without adding custom stamp packs or a large
+asset library. The selected slice is category filtering in the existing stamp picker so
+performers can narrow built-in marks by rehearsal, repeat/ending and tempo-change roles
+without knowing the exact search keyword. Regression coverage extends the annotation stamp
+picker smoke test. Targeted smoke passed, full 1,413-test suite, analyze and RC release
+check passed. S Pen feel and palm rejection remain DEVICE QA. No app build/version
+change/push/merge.
+
+S89 VERIFIED LOCAL: prepared the remaining MobileSheets nudge gap without introducing a full
+viewer selection model in one step. Stroke and shape annotations now have normalized point
+movement and controller update plumbing, so line/arrow/rectangle/hairpin/staff/grid marks can
+be safely shifted and saved once a viewer selection affordance is added. Regression coverage
+targets clamping, layer update behavior and controller persistence. Targeted annotation and
+controller tests passed, full 1,414-test suite, analyze and RC release check passed.
+User-facing stroke/shape selection UI remains the next slice. No app build/version
+change/push/merge.
+
+S90 VERIFIED LOCAL: connected the stroke/shape nudge plumbing to the viewer without adding a
+large multi-selection model. When annotation mode is active with a pen/shape tool, tapping an
+existing stroke, line, arrow, rectangle, hairpin, staff or grid mark opens the same small
+movement/delete action pattern used for text and stamps. Regression coverage extends stroke
+hit-test and clamped movement behavior. Targeted annotation tests passed, full 1,414-test
+suite and analyze passed. RC release check reached format/whitespace/stale/debug scans but
+Flutter analyze/test inside the script could not complete because pub.dev advisory lookup reset
+the connection; rerun RC from this checkpoint before release packaging. No app build/version
+change/push/merge.
+
+S91 VERIFIED LOCAL: reframed the in-app device QA surface so regular users do not mistake it
+for a normal score feature. The home menu entry is now `개발자용 기기 리포트`, the help sheet opens
+`기기 리포트 만들기`, and the sheet/report copy explains that it creates a compatibility and
+performance report for the developer without uploading automatically or modifying scores.
+Regression coverage updated the home tools menu and Clef home smoke tests. Targeted tests,
+analyze and `git diff --check` passed. No app build/version change/push/merge.
+
+S92 VERIFIED LOCAL: physical-device report showed PageUp/PageDown turn pages but arrow keys
+still nudge-scroll the PDF surface. The viewer now registers a route-scoped hardware keyboard
+handler so standard page-turn keys are consumed before the PDF viewer can treat arrows as
+small scroll deltas. Volume keys remain unmapped by default to avoid stealing system volume;
+they can be considered as custom pedal inputs if a real pedal sends them. Viewer input unit
+tests, analyze and format passed. Actual Android tablet Arrow/Page key behavior needs the next
+internal-test build/device check.
+
+S93 VERIFIED LOCAL: tightened the device performance report after the same physical tablet
+showed PageUp/PageDown turning pages while Arrow keys previously behaved like PDF nudge-scroll.
+The report now separates key mapping detection from actual viewer behavior: mapped Arrow/Page
+keys ask the tester to confirm page-unit movement in a real score, and volume keys explicitly
+remain unmapped so system volume is not stolen. The PDF viewer manual item repeats that the
+reported key must turn pages rather than scroll the PDF surface. Targeted device-check tests,
+format, analyze and `git diff --check` passed. New build/device QA still needs to confirm the
+S92 route-scoped handler on the tablet.
+
+S94 VERIFIED LOCAL: user still found the home `정보 정리 필요` area too similar to normal
+score-opening rails. The metadata review section is now a separate task panel with `정보 보강`
+cards and explicit `정보 편집` buttons instead of reusing the quick-access score chip. `고정`,
+`즐겨찾기` and `최근 악보` remain regular score-opening rails. The metadata review smoke test
+now asserts the task-oriented copy and the layout no longer overflows at tablet size. Feature
+map, MobileSheets inventory and Device QA runbook were updated to describe the separated task
+panel.
+
+S95 VERIFIED LOCAL: reducing the MobileSheets setlist package gap without adding a binary
+package/import format. Existing `목록 복사` now copies a richer Clef setlist manifest with
+setlist title, score count, estimated duration, transition, per-score file display name,
+start page, duration, set note, score note, tags, collection/group/rating, custom fields and
+per-score metronome settings. This remains a lightweight text share path and does not bundle
+PDF files or auto-import into another library. Regression coverage extends the setlist share
+text test; feature map, MobileSheets inventory and QA docs describe the new boundary.
+
+S96 VERIFIED LOCAL: tightened the S95 setlist manifest flow before adding any OS-level share
+handoff. The setlist detail toolbar and compact overflow menu now expose `공유용 목록 보기`,
+which previews the exact manifest text and explains that PDF files are not included before the
+user copies it. Existing one-tap `목록 복사` remains available for fast local clipboard use.
+Widget coverage checks compact preview visibility, manifest copy text and tablet toolbar
+affordances. Direct external sharing remains intentionally unimplemented without explicit
+approval because the manifest can include titles, filenames, notes and custom metadata.
+
+S97 VERIFIED LOCAL: reduced a small long-PDF navigation gap without adding thumbnail rendering
+or a separate outline browser. The existing page picker still keeps the slider, typed page
+entry and quick jump chips, but named targets now show a `표시 지점 n개` summary and distinguish
+bookmarks from rehearsal marks in the chip text and icon. Focused widget coverage verifies the
+typed labels and page selection behavior; actual long-score touch comfort remains Device QA.
+
+S98 VERIFIED LOCAL: applied the same named-target clarity to the viewer's on-score quick jump
+overflow. The popup now labels overflow entries as `점프`, `리허설` or `북마크` with matching
+icons before the target label/page, so the compact overlay no longer mixes different jump
+sources as visually identical text. A focused widget test verifies the overflow labels and
+bookmark selection callback. No thumbnail/outline browser or new navigation model was added.
+
+S99 VERIFIED LOCAL: continued the linked-audio A-B loop polish without adding waveform
+timelines or a new audio engine. The player sheet now shows a compact
+`반복 구간 A ... -> B ...` summary when an audio file has A/B markers, updates it while the
+user edits the numbers, and removes it after a successful clear. Regression coverage extends
+the existing linked-audio widget tests. Format, analyze, full 1,415-test suite and RC release
+check passed; actual route timing remains Device QA.
+
+S100 VERIFIED LOCAL: connected the recent long-score navigation and linked-audio polish back
+to the named help surface. `도움말/피드백` now names `북마크/리허설 표시 지점` and `반복 구간 요약`
+so users can find the new affordances by task instead of memorizing toolbar icons. The home
+tools menu smoke test covers the updated help copy across phone/tablet and larger text sizes.
+
+S101 VERIFIED LOCAL: made long-score named navigation less chip-only. The existing page picker
+now keeps the horizontal `표시 지점` chips for quick access, but also shows a compact list of
+bookmark/rehearsal targets with page-selection copy and selected-state feedback. This improves
+MobileSheets-style outline browsing for long PDFs without adding thumbnails, a separate outline
+browser or a new renderer. Widget coverage verifies list visibility and row selection; actual
+long-score hand comfort remains Device QA.
+
+S102 VERIFIED LOCAL: reduced the stamp-picker depth gap without adding a custom stamp asset
+system. The annotation stamp picker now keeps search and category chips, and adds a `빠른 선택`
+row with the current stamp plus common rehearsal/tempo stamps for one-tap reuse. Widget coverage
+verifies the quick row and one-tap quick selection path. User-provided stamp packs, snipping and
+editable PDF annotation export remain separate MobileSheets-gap items.
+
+S103 VERIFIED LOCAL: rechecked the user-reported home metadata confusion against source,
+widget coverage and MobileSheets inventory. The requested UI separation is already in the current
+source: `정보 정리 필요` is a task panel with `정보 보강` cards and explicit `정보 편집` actions,
+while `최근 악보`, `최근 세트리스트`, `고정` and `즐겨찾기` remain ordinary open rails. Updated
+the MobileSheets gap refresh and Device QA checklist/runbook so testers verify the task-panel
+visual distinction, tap expectation, file fallback and phone/tablet/large-text readability.
+
+S104 VERIFIED LOCAL: expanded tuner/drone Device QA automation without claiming real audio
+quality from internal checks. The device report now records current tuner setup
+(A4 reference, detection algorithm, notation and chromatic-only state) and drone setup
+(mode, note/frequency, volume and simple clipping-risk warnings for muted or loud multi-voice
+drones). Unit coverage verifies chromatic tuner setup reporting and risky drone settings.
+QA docs now separate automated setup evidence from manual reference-tone, real-instrument,
+earphone/speaker/Bluetooth and rehearsal-room checks.
+
+S105 VERIFIED LOCAL: reduced the Text/ChordPro/DOCX MobileSheets gap at the import boundary
+without pretending Clef has a parser/renderer. The import policy now recognizes common text
+score extensions as known unsupported formats and returns a PDF conversion message instead of a
+generic image import error. The home import menu adds a named `텍스트/ChordPro/DOCX 안내` entry
+that explains the current PDF/JPG/PNG focus and the follow-up ChordPro/transpose/capo scope.
+Policy and widget smoke tests cover the classification and visible guidance; actual
+Text/ChordPro rendering remains V2/spike work.
+
+S106 VERIFIED LOCAL: opened the next Text/ChordPro step as a pure parser core rather than a
+user-facing renderer. `sheet_chordpro.dart` parses title/artist/key/capo directives, chord lyric
+tokens and plain lyric lines, and can transpose root notes, suffix chords, slash bass notes and
+the key directive by semitones. Focused tests cover metadata parsing, slash chords, flat/sharp
+preference and stable handling of unrecognized chord markers. Import UI, ChordPro rendering,
+capo-aware display and DOCX parsing remain later work.
+
+S107 VERIFIED LOCAL: extended the ChordPro core with capo shape derivation so a future viewer can
+show concert chords and player chord shapes without re-solving the transposition rules. The helper
+derives capo shapes from concert chords by transposing root and slash bass notes downward by the
+capo fret count, preserves non-positive capo values as no-op, and keeps the existing flat/sharp
+preference behavior. Focused tests cover ordinary, slash-bass and flat-preferred shapes. No
+user-facing ChordPro renderer/import flow was added in this slice.
+
+S108 VERIFIED LOCAL: added a pure ChordPro plain-text rendering core as the next small step toward
+Text/ChordPro score support. `SheetChordProTextRenderer` converts parsed chord/lyric lines into
+readable chord rows above lyric rows, can render transposed concert chords, can render capo player
+shapes using the saved capo directive or an explicit fret override, and suppresses the common
+trailing empty line from files ending with a newline. Focused tests cover plain rendering,
+transposed rendering, capo-shape rendering and trailing newline behavior. Import UI, styled
+viewer layout and DOCX parsing remain later work.
+
+S109 VERIFIED LOCAL: refreshed the text-score import guidance now that ChordPro parser/rendering
+core exists. The import policy and home import info sheet no longer imply that Clef has no
+ChordPro work at all; they now say ChordPro code/lyric, transpose and capo support is being
+prepared while the current safe library path remains PDF/JPG/PNG. Widget and policy tests cover
+the updated copy. Direct Text/ChordPro import/viewer UI is still not enabled.
+
+S110 VERIFIED LOCAL: hardened the ChordPro plain-text rendering core for chord-only lines such as
+intros, interludes and rehearsal vamps. The renderer should keep the chord row but avoid adding a
+blank lyric row underneath it, so future ChordPro display does not look double-spaced on common
+lead sheet sections. Focused tests cover the chord-only line behavior.
+
+S111 VERIFIED LOCAL: preserved common ChordPro rehearsal structure in the plain-text renderer.
+`comment`/`section` directives and common short aliases such as `c` and `soc` should render as
+simple bracketed labels, while title/key/capo metadata remains out of the body. This keeps
+intro/chorus/bridge cues visible for future text-score display without enabling direct ChordPro
+import yet.
+
+S112 VERIFIED LOCAL: decomposed the MobileSheets-style direct folder reference gap before writing
+SAF/iOS code. The spike now recommends a read-only catalog preview, a copy-on-select bridge that
+reuses the existing import pipeline, and only then a persistent direct-reference storage type with
+permission-lost recovery. This keeps Clef's backup/export guarantees intact while leaving a clear
+path toward Android folder workflows.
+
+S113 VERIFIED LOCAL: widened the known text-score import guard so more ChordPro/OnSong-style files
+land on the helpful PDF conversion message instead of the generic image failure path. Added
+recognition for `.chord`, `.song` and `.onsong` alongside existing ChordPro extensions while
+keeping direct text-score import disabled. Focused import tests, full analyze, 1,428 tests,
+RC release check, whitespace scan, tab scan and stale wording scan passed.
+
+S114 VERIFIED LOCAL: made the device check surface harder to mistake for a normal player feature.
+The home menu entry, sheet title, share subject, report markdown header and QA wording now use
+`개발자용 기기 리포트`, and the sheet intro states that it is not a general practice tool.
+Targeted device/home/smoke tests, full analyze, 1,428 tests and RC release check passed.
+
+S115 VERIFIED LOCAL: reducing another small Text/ChordPro gap before opening user-facing import.
+The ChordPro parser now normalizes `{sot}`/`{eot}` tab block aliases, and the plain text renderer
+keeps start-of-tab cues as `[Tab]` or the supplied label so guitar tab sections do not vanish in
+future text-score display. Focused ChordPro tests, full analyze, 1,429 tests and RC release check
+passed.
+
+S116 VERIFIED LOCAL: preserving ChordPro layout cues without enabling a full text-score viewer.
+The parser now normalizes `{np}`, `{npp}` and `{colb}` into page/column directives, and the plain
+text renderer keeps them as `[Page break]` or `[Column break]` so future ChordPro display does not
+silently flatten rehearsal layout hints. Focused ChordPro tests, full analyze, 1,430 tests and RC
+release check passed.
+
+S117 VERIFIED LOCAL: preparing ChordPro metadata for a future text-score import/viewer path.
+The document model now exposes common ChordPro metadata getters for subtitle, sort title,
+composer, lyricist, arranger, album, year, time signature, tempo, duration, copyright and tag.
+Explicit `{meta: name value}` directives populate the same normalized metadata map, and blank
+artist values fall back to composer instead of hiding useful attribution. Focused ChordPro tests,
+full analyze, 1,432 tests and RC release check passed.
+
+S118 VERIFIED LOCAL: accepting common ChordPro directive argument forms before enabling direct
+text-score import. Directive parsing now handles both `{name: value}` and `{name value}` forms, and
+plain text rendering extracts section labels from `label="..."` attributes so rehearsal labels do
+not appear as raw attributes. Focused ChordPro tests, full analyze, 1,433 tests and RC release
+check passed.
+
+S119 VERIFIED LOCAL: closing a long-score navigation gap between the viewer quick-jump overlay and
+the full page picker. The page picker already exposed direct page entry, slider, quick page chips,
+bookmarks and rehearsal marks, but page jump points were only visible through the compact overlay.
+This slice adds jump points to the `페이지 탐색` named-target list so long PDFs can use one surface
+for explicit link points, bookmarks and rehearsal locations. Focused page picker widget test, full
+analyze, 1,433 tests and RC release check passed.
+
+S120 VERIFIED LOCAL: tightening the current linked-audio A-B loop model before considering multiple
+marker presets or waveform timelines. The player sheet already saves one A/B range per linked
+audio file, but the summary did not say whether the visible values were the saved range or an
+unsaved edit. This slice labels the summary as `저장된 구간` or `새 구간` and updates that state after
+a successful save or clear. Focused linked-audio loop widget tests, full analyze, 1,433 tests and
+RC release check passed.
+
+S121 VERIFIED LOCAL: reducing the Text/ChordPro import gap without enabling a half-finished viewer.
+The parser/rendering core already understands common metadata, transpose/capo, rehearsal labels,
+tab and page/column cues. This slice adds a future import draft model that converts ChordPro
+metadata into Clef title/composer/tags/custom fields and produces preview text, so a later
+user-facing import UI can reuse tested mapping instead of inventing metadata rules in the widget.
+Focused ChordPro tests, full analyze, 1,435 tests and RC release check passed.
+
+S122 VERIFIED LOCAL: reducing the setlist package gap without adding an opaque MobileSheets-style
+binary format. Clef already previews and copies a rich text manifest for setlists. This slice adds
+a pure parser for copied Clef manifests so title, item order, file names, notes, custom fields and
+warnings can be read back into a draft structure later, while leaving actual setlist import UI and
+PDF bundling for a separate scope.
+Focused setlist manifest tests, full analyze, 1,438 tests and RC release check passed.
+
+S123 VERIFIED LOCAL: continuing the same setlist package gap with a local matching preview instead
+of adding a binary package importer. Parsed Clef manifests can now be compared with the current
+library by source file display name, title plus composer and title fallback, while ambiguous or
+missing matches stay unresolved with warnings. This keeps later import UI honest about skipped
+items and avoids silently creating a setlist from the wrong scores.
+Focused setlist manifest tests, full analyze, 1,441 tests and RC release check passed.
+
+S124 VERIFIED LOCAL: preparing a safe same-library setlist import draft without adding a user-facing
+paste/import flow yet. When every parsed manifest item resolves to exactly one existing score,
+the match preview can now produce a `SheetSetlist` draft preserving item order, title, start page,
+per-song note, per-song duration and transition duration. Missing or ambiguous matches still
+return no draft, so later UI cannot silently import a partial or wrong list.
+Focused setlist manifest tests, full analyze, 1,443 tests and RC release check passed.
+
+S125 VERIFIED LOCAL: closed the next small setlist package gap by adding a user-facing paste import
+flow on the setlist screen. The new import sheet accepts copied Clef setlist manifest text, previews
+parsed title/count and per-item matching against the current library, blocks saving while matches are
+missing or ambiguous, and creates a new setlist only from a fully resolved preview. The saved draft
+preserves item order, start pages, per-song notes, per-song durations and transition duration, while
+PDF bundling/external missing-file import remains out of scope.
+Focused setlist manifest import widget tests, full analyze, 1,445 tests and RC release check passed.
+
+S126 VERIFIED LOCAL: reducing the remaining risk in the new setlist manifest import flow before treating
+it as a safer same-library transfer path. The narrow-width import callout now stacks its action below
+the explanatory copy, and long pasted manifests show matched/unresolved/ambiguous summary chips while
+keeping only the first eight rows expanded with an `외 N곡` tail. Regression coverage now verifies that
+storage failure during fully matched import restores the durable setlist list, reports only failure
+guidance, does not navigate or show success, and preserves retry context. Duplicate imported titles and
+draft ID collisions now get a safe title suffix/new ID before saving. This remains a lightweight import
+for scores already present in the current library; PDF bundling or automatic external file import is
+still a separate MobileSheets-style package spike.
+Focused save-failure, duplicate/id-collision and phone-width long-manifest tests passed. Format, analyze,
+full 1,449-test suite, RC release check, git diff whitespace check, trailing whitespace scan, tab scan and
+stale wording scan passed.
+
+S127 VERIFIED LOCAL: starting the larger MobileSheets-style setlist package gap without adding an unsafe
+archive importer. Added a pure dry-run model for a future Clef setlist package format
+(`clef.setlist.package` v1): given a parsed setlist manifest, current library scores and package file
+entries, it separates items that already match library scores from files that could be imported from
+the package, while keeping missing files, duplicate package filenames, unsupported formats and ambiguous
+existing-score matches unresolved. This does not read ZIP bytes, copy files, create scores or save
+setlists yet; it fixes the preview boundary needed before any package import UI/storage flow.
+Focused package dry-run model tests passed. Format, analyze, full 1,453-test suite, RC release check,
+git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.
+
+S128 VERIFIED LOCAL: continuing the package path with a codec boundary instead of jumping straight to
+library writes. `clef.setlist.package` v1 archives now have a tested manifest entry
+(`clef-setlist-package.txt`) and `scores/` file-entry policy. The pure codec can encode/decode package
+bytes, parse the embedded Clef setlist manifest, list package score files with media types, reject
+missing/non-Clef manifests and block unsafe ZIP paths before handing the result to the existing dry-run
+preview. This still does not copy files, create scores, save setlists or expose a user-facing package
+import UI; those remain separate steps after export/import storage rollback is designed.
+Focused package codec tests passed.
+
+S129 VERIFIED LOCAL: added the first export-side package model for MobileSheets-style setlist transfer
+without exposing a half-finished UI. A `SheetSetlist` plus its ordered scores can now produce
+`clef.setlist.package` ZIP bytes containing the text manifest and `scores/` entries. The exporter
+deduplicates shared source PDFs, uses the user-facing source display name for package file stems,
+reports missing source files or unsupported formats without returning bytes, and round-trips through
+the existing codec/dry-run preview. This still does not save/share a package from the UI and does not
+import files into the library; those remain the next storage/UI slices.
+Focused package export tests passed.
+
+S130 VERIFIED LOCAL: added the first user-facing package import preview boundary without library writes.
+The setlist screen now separates copied manifest text from ZIP package preview. Choosing a Clef
+setlist package ZIP decodes the package, runs the existing dry-run against the current library and
+shows existing scores, importable package files and unresolved entries before any save path exists.
+The sheet explicitly says package file storage/import is still the next slice, so users cannot mistake
+preview for a completed import.
+Focused package/smoke/save-recovery tests passed. Format, analyze, full 1,461-test suite, RC release
+check, git diff whitespace check, trailing whitespace scan, tab scan and stale wording scan passed.
+
+S131 VERIFIED LOCAL: exposed the existing ChordPro parser/rendering core through a no-save paste
+preview. The import menu's Text/ChordPro/DOCX help now opens a ChordPro preview sheet that parses
+pasted text, surfaces title/composer/key/time/capo metadata as chips, renders chord-over-lyric plain
+text, and states that DOCX parsing/library save is still follow-up. No score/library writes occur.
+Focused smoke test passed; full validation is recorded with the commit.
+
+S132 VERIFIED LOCAL: added the missing user-facing export boundary for Clef setlist packages.
+Setlist detail now exposes `패키지 내보내기` beside the text manifest copy flow. The export sheet builds
+the `clef.setlist.package` ZIP from current setlist scores, previews the manifest and included file
+count, disables sharing when the package cannot be built, and shares the generated ZIP only after the
+preview step. Package import storage still remains follow-up; the existing package import path previews
+existing scores, importable files and unresolved entries without writing library data. Superseded by
+S133 for the first Clef ZIP package import storage path.
+
+S133 VERIFIED LOCAL: closed the first `clef.setlist.package` import storage path. Decoded package
+files now retain bytes, and the setlist package preview can create a new setlist after the user
+confirms. Existing library scores are reused, package PDFs/images are imported through the existing
+score import byte APIs, manifest title/composer/tags/notes/collection/custom fields and setlist
+start pages/notes/durations/transitions are applied, and unresolved/missing/ambiguous entries still
+block import. Scores and setlist metadata are saved together; injected persistence failure restores
+the previous in-memory and durable score/setlist state and does not show success. Targeted package
+and controller tests passed. MobileSheets proprietary/binary package compatibility remains out of
+scope; this is the Clef v1 ZIP package flow.
+
+S134 VERIFIED LOCAL: opened the first saved Text/ChordPro score path instead of leaving ChordPro as
+preview-only. The import help explained that PDF/JPG/PNG import and ChordPro paste-to-save were
+available, while DOCX and file picker based ChordPro import were still follow-up at that point. The ChordPro preview
+sheet can save pasted source as a library `SheetScore`; the store preserves the raw `.chordpro`
+file, maps parsed title/composer/tags/subtitle/custom metadata into Clef score metadata, and uses the
+existing score save recovery path so injected persistence failure restores the previous library
+state without false success. Opening a saved ChordPro score now routes to a read-only chord/lyric
+viewer instead of the PDF viewer. Targeted ChordPro/controller/smoke tests passed. Styled ChordPro
+layout, transpose/capo controls, DOCX parsing, and direct file selection remain later work.
+
+S135 VERIFIED LOCAL: closed the first direct ChordPro file selection gap without expanding into DOCX
+or styled editing. The text-score help sheet now offers `ChordPro 파일 선택 가져오기` alongside paste
+preview, and the store picker accepts common ChordPro/OnSong-style extensions before decoding the
+file as UTF-8. The controller reuses the saved ChordPro score path with filename fallback metadata,
+active-library ownership and existing imported-score rollback, so injected save failure preserves
+the previous library without false success. Smoke coverage confirms the named UI entry, successful
+file import snackbar/card creation, and controller coverage verifies fallback title/custom metadata
+plus save failure recovery. Styled ChordPro layout, transpose/capo controls and DOCX parsing remain
+later work.
+
+S136 VERIFIED LOCAL: surfaced the existing ChordPro transpose/capo rendering core in the saved
+ChordPro viewer. The read-only viewer now has `표시 조정` controls for semitone down/up, reset and
+capo-shape display; these change only the displayed chord/key text and do not rewrite the original
+`.chordpro` source. Widget coverage verifies the key chip and chord row update for transpose and
+capo shape mode. Styled chord-grid layout, persisted transpose/capo edits and DOCX parsing remain
+later work.
+
+S137 VERIFIED LOCAL: reduced the direct-folder/cloud/leader-follower gap from a broad MobileSheets
+comparison item into implementable spikes. The v1.1 spike backlog now separates cloud work into
+backup health/status, user-selected cloud-folder export, sync dry-run and account-backed sync, with
+explicit conflict rules for metadata, annotations, setlist order and binary files. It also defines
+leader/follower tablet session state, QR/code pairing, mismatch/disconnect behavior, out-of-order
+event handling and simulator-first implementation steps. The feature map and MobileSheets inventory
+now point to those first safe slices instead of treating cloud/collaboration as a single vague gap.
+
+S138 VERIFIED LOCAL: shrinking the advanced annotation gap with recent stamp reuse before custom
+stamp packs or multi-layer annotation. Clef now stores the last five built-in stamp names per
+library, restores them when the viewer opens, and shows a non-duplicated `최근 사용` row above the
+existing quick-pick row. Store/controller/widget coverage verifies duplicate removal, corrupt or
+unknown name fallback, persistence across app reopen and unchanged search/category quick-pick
+behavior. Full 1,480-test suite, analyze and RC release check passed.
+
+S139 VERIFIED LOCAL: reduced the custom stamp pack gap without opening image asset import yet.
+The v1.1 spike backlog now defines a Clef-first text/icon stamp pack model, backup/restore and
+setlist package questions, deletion fallback policy, license/source metadata, and the reason image
+stamp import remains gated behind size/license/export compatibility decisions. The MobileSheets
+inventory and feature map now point to this schema-first path instead of treating custom stamps as
+a vague missing feature. This was a docs-only slice; git diff whitespace, trailing whitespace, tab
+and stale wording scans passed.
+
+S140 VERIFIED LOCAL: moved the custom stamp pack path from docs-only schema into code without
+opening picker UI or image asset import. `SheetAnnotationStampPack` and `SheetAnnotationUserStamp`
+now round-trip text/icon/image-reserved JSON, normalize keywords, validate duplicate ids, pack id
+mismatches, missing text/icon payloads, allow-listed icon names, malformed source URLs and the
+image-stamp gate. Focused annotation tests cover valid text/icon packs, unsafe/ambiguous entries
+and explicit image-stamp allowance. Next safe slice is a user-stamp empty state or text/icon-only
+creation flow; backup/restore and setlist package fixtures still need to be wired before external
+stamp pack sharing.
+
+S141 VERIFIED LOCAL: added the first user-facing custom stamp scaffold without enabling stamp
+creation or image import. The annotation stamp picker now separates a `사용자 스탬프` empty state from
+built-in recent/quick/category/search rows, so the next text/icon-only creation slice has a stable
+home without making built-in stamps harder to reach. Widget coverage verifies the empty state stays
+visible alongside existing quick stamps and category filters. Text/icon custom stamp creation,
+backup/restore fixtures and setlist package inclusion remain follow-up work.
+
+S142 VERIFIED LOCAL: wired the custom stamp pack schema into Clef's library-scoped metadata store
+and metadata backup/restore path before exposing creation UI. The store now saves only valid
+text/icon/image-reserved stamp packs, drops duplicate pack ids, ignores malformed JSON and clears
+empty pack lists without blocking built-in stamps. Metadata backup export/import round-trips valid
+packs, and the automatic metadata backup now includes them with the rest of the library-scoped
+settings. Focused store tests cover valid save/load, malformed storage fallback and metadata backup
+restore; text/icon custom stamp creation, setlist package inclusion and image stamp import remain
+follow-up work.
+
+S143 VERIFIED LOCAL: turned the custom stamp scaffold into a usable text-stamp flow while keeping
+image stamps closed. The annotation stamp picker can now create text-only user stamps, show them as
+chips, select them for the stamp tool, place their text through the existing `SheetTextAnnotation`
+path and delete them without breaking built-in stamps. Controller coverage verifies create/delete
+and reload persistence; widget coverage verifies picker creation, selection and deletion. Icon-only
+custom stamps, setlist package inclusion, image stamp import, multi-layer annotation and editable
+PDF annotation export remain follow-up work.
+
+S144 VERIFIED LOCAL: extended the custom stamp picker from text-only to allow-listed icon stamps
+without opening image asset import. Users can create a named icon stamp from the safe built-in icon
+set, select it in the same `사용자 스탬프` section, place it through the existing text-annotation
+rendering path using a compact symbol fallback, and delete it without affecting built-in stamps.
+Controller coverage verifies create/reject/reload persistence for icon stamps, and widget coverage
+verifies picker creation and selection. Setlist package inclusion, image stamp import, multi-layer
+annotation and editable PDF annotation export remain follow-up work.
+
+S145 VERIFIED LOCAL: included text/icon custom stamp metadata in Clef setlist packages without
+bundling external image stamp assets. The package ZIP codec now writes and reads optional
+`clef-user-stamps.json`, filters invalid or image-gated packs, surfaces stamp pack counts in export
+and import previews, and merges new stamp ids into the active library after a successful package
+import. Codec and controller tests cover round-trip metadata and import persistence. Image stamp
+assets, package conflict review UI, multi-layer annotation and editable PDF annotation export remain
+follow-up work.
+
+S146 VERIFIED LOCAL: reduced the remaining custom-stamp package conflict risk. Setlist package
+dry runs now compare incoming text/icon stamp packs with the active library and report new stamp
+counts separately from duplicate stamp ids, so import preview can say when local stamps will be
+preserved instead of overwritten. Package import still skips duplicate ids and only appends new
+stamps to existing packs. Codec and controller coverage now verify duplicate-preview counts and
+that a package stamp with the same id cannot replace the user's local stamp. Image stamp assets,
+explicit conflict-resolution UI, multi-layer annotation and editable PDF annotation export remain
+follow-up work.
+
+S147 VERIFIED LOCAL: brought user-created text/icon stamps into the same discovery controls as
+built-in stamps. The stamp picker now adds user stamp categories to the category chips and filters
+user stamps by label, category, printable text, icon name and keywords when the search box changes.
+The user-stamp section distinguishes an empty library from a filtered-empty result, while keeping
+creation/deletion and built-in stamp search intact. Widget coverage verifies search and category
+filtering for user stamps. Image stamp assets, advanced stamp conflict resolution, multi-layer
+annotation and editable PDF annotation export remain follow-up work.
+
+S148 VERIFIED LOCAL: sharpened the direct-folder reference spike before opening SAF code. The
+v1.1 plan now explicitly limits the first implementation to Android folder catalog preview plus
+copy-on-select, keeping Clef's existing internal-copy backup/export guarantees intact. It separates
+allowed first-slice work from persistent direct-reference score storage, automatic folder sync,
+backup URI export and iOS Files parity, and records a risk matrix for permission loss, provider
+offline state, large folders, duplicate files and backup privacy. This was a docs-only slice; code
+implementation remains follow-up.
+
+S149 VERIFIED LOCAL: added the first backup health/status surface before attempting cloud sync.
+The backup menu now exposes `백업 상태`, which reports whether an automatic metadata snapshot is
+available, what library counts it covers, the current library's score/setlist/text-score/custom
+stamp counts, and why PDF-including full backup is still a separate manual action. The status copy
+explicitly says it is not a cloud-sync completion indicator. Controller and widget tests cover
+health calculation and menu access. User-selected cloud folder export and sync dry-run remain the
+next cloud/sync slices.
+
+S150 VERIFIED LOCAL: added a local sync dry-run comparison core without performing any merge or
+remote write. `SheetLibraryBackupDiff.compare` now compares two metadata backup snapshots and
+reports added/removed/changed score ids, file-path/link candidates, annotation candidates,
+added/removed/changed setlists, setlist order changes and global settings changes. Unit coverage
+verifies score/setlist diffs, file-change conflict candidates, settings changes and no-op backups.
+User-facing import/export selection and conflict review UI remain follow-up work.
+
+S151 VERIFIED LOCAL: added the first human-readable sync dry-run report model on top of the
+backup snapshot diff. `SheetLibraryBackupDiffReport` turns changed score/setlist/settings groups
+into concise Korean summary lines and separates review-needed cases such as removed scores,
+file/link changes, annotation changes, setlist order changes and global settings changes. Unit
+coverage verifies no-op backups, mixed score/setlist changes and file/settings review warnings.
+Actual cloud-folder selection, side-by-side conflict UI and any merge/apply action remain follow-up.
+
+S152 VERIFIED LOCAL: closed one backup confidence gap before cloud sync by recording the most recent
+manual metadata/full backup export per active library. Successful metadata and PDF-including full
+backup exports now store the export kind, timestamp and output URI; the backup status sheet shows a
+`최근 수동 백업` card instead of only describing what should be backed up. Store/controller/widget
+tests cover record persistence and status surface display. This is still a local backup status hint,
+not cloud sync or a guarantee that the target provider retained the file.
+
+S153 VERIFIED LOCAL: connected the backup diff/report core to the first user-facing restore review
+surface. `자동 정보 복원` now computes a dry-run comparison between the current library metadata and
+the last automatic metadata snapshot, then shows a concise change summary and review warnings before
+the destructive restore confirmation. The restore operation itself still uses the existing rollback
+path; this slice only improves pre-restore visibility. Controller and widget tests cover the automatic
+backup diff report and dialog summary. External metadata JSON/full ZIP import previews and merge
+resolution remain follow-up.
+
+S154 VERIFIED LOCAL: added the controller-level preview result for external metadata backup JSON.
+`previewMetadataBackupJson` decodes an incoming backup, compares it with the current library snapshot,
+returns restore-safe status categories (`ready`, invalid, unsupported version, error), score/setlist
+counts and the existing dry-run report without mutating library state. Tests cover a ready preview,
+invalid JSON and unsupported backup version. User-facing file-picker preview UI and full ZIP preview
+remain follow-up.
+
+S155 VERIFIED LOCAL: wired the external metadata JSON preview into the user-facing `정보 복원` flow.
+The backup menu now reads the selected JSON first, blocks invalid/unsupported previews before restore,
+shows the incoming score/setlist counts plus dry-run change summary, and only calls the existing
+metadata restore path after the user confirms. The old direct restore API remains available for tests
+and lower-level callers. Widget coverage verifies the selected-backup preview dialog; restore blocking
+coverage now exercises the preview-to-restore path. Full ZIP preview and merge resolution remain
+follow-up.
+
+S156 VERIFIED LOCAL: extended the same pre-restore safety surface to PDF-including full ZIP backups.
+The store now separates ZIP file picking, manifest/file validation, and destructive restore execution
+so the controller can inspect a selected ZIP without writing restored files. `전체 백업 복원` now reads
+the ZIP first, blocks invalid archives before restore, shows incoming score/setlist/file counts,
+missing-file warnings, and the dry-run change summary, then calls the existing full restore path only
+after confirmation. Controller tests cover ready and invalid previews, while existing widget restore
+coverage now exercises the preview-to-restore path. Merge resolution is still not implemented;
+restores remain whole-library replacement.
+
+S157 VERIFIED LOCAL: added a first merge-risk review layer on top of the backup diff model. Metadata
+JSON and full ZIP previews now classify selected backups as `변경 없음`, `새 항목 중심 변경`, `수정 포함
+전체 교체`, or `삭제 포함 전체 교체` and show the corresponding guidance in restore confirmation dialogs.
+This still does not perform field-level merge; it makes whole-library replacement risk explicit before
+the user confirms. Diff/controller/widget tests cover additive, destructive and review-required cases.
+
+S158 VERIFIED LOCAL: made the backup dry-run review more actionable without applying field-level
+merge. Changed score and setlist entries now aggregate changed top-level field labels such as `제목`,
+`원본 파일`, `필기 레이어`, `곡 순서`, or `곡별 메모`, and the existing restore preview review text shows
+those labels before the user confirms a whole-library replacement. Diff tests cover score and setlist
+field-label summaries plus the existing file/settings review warnings. Actual conflict resolution,
+field-selective apply and remote sync remain follow-up work.
+
+S159 VERIFIED LOCAL: opened the leader/follower tablet gap with an offline reducer core instead of
+network transport. `SheetFollowerSyncState` applies leader page events only when the session id matches,
+the event sequence is newer and the follower already has the score. Missing-score events advance the
+leader sequence without moving to a wrong score, stale events cannot roll the page back, and disconnect
+keeps the last synced page visible. Unit tests cover synced, stale, missing score, session mismatch and
+disconnect states. QR pairing, local simulator UI, network transport and two-device QA remain follow-up.
+
+S160 VERIFIED LOCAL: added the offline QR/code pairing payload core for leader/follower sessions.
+`SheetCollaborationInvite` serializes the session id, leader device, setlist id and short-lived expiry
+into a versioned Clef invite payload before any network transport exists. Decode results distinguish
+valid, malformed, unsupported-version and expired invites, so a future pairing UI can reject stale or
+foreign codes without starting a follower session. Unit tests cover payload round trip, expiry, version
+gate and malformed/missing lifetime data. QR rendering, local simulator UI, transport and two-device QA
+remain follow-up.
+
+S161 VERIFIED LOCAL: added a same-device leader/follower simulator core without network transport.
+`SheetCollaborationLocalSimulator` uses a valid invite to generate monotonic leader page events and
+feeds them through the follower reducer with a controlled follower score set. Tests cover normal page
+sync, missing-score hold, recovery after the follower library gains the score and disconnect preserving
+the last visible page. This makes mismatch/reconnect behavior testable before QR UI, transport, local
+network permission and two-device QA.
+
+S162 VERIFIED LOCAL: opened the direct-folder gap with a read-only catalog preview core instead of
+persistent SAF references. `SheetExternalFolderCatalogPreview` classifies scanned folder entries into
+copy-ready PDF candidates, duplicate names, unreadable files and unsupported formats while preserving
+the product rule that selected files will be copied into the Clef library. It also models permission
+denial, scan failure, empty folders and large-folder caps without mutating app data. Unit tests cover
+candidate classification, duplicate blocking, unreadable entries, empty/permission/scan states and
+large-folder caps. Android SAF picker UI, copy-on-select import, source-folder metadata and any
+persistent direct reference remain follow-up work.
+
+S163 VERIFIED LOCAL: reduced the next direct-folder risk by adding a copy-on-select plan model on top
+of the read-only catalog preview. Each folder candidate now has a preview-scoped selection id, and
+`copyPlanForSelection` only produces an import-ready plan when every selected item is a readable,
+non-duplicate PDF candidate. Empty, stale/unknown, duplicate, unreadable and unsupported selections
+stay blocked before any file bytes reach the existing import pipeline. Unit tests cover ready plans,
+blocked mixed selections and stale selection ids. Actual SAF byte reading, source-folder metadata and
+user-facing folder picker UI remain follow-up work.
+
+S164 VERIFIED LOCAL: added the safe source-metadata draft for future folder copy imports. The new
+`SheetExternalFolderCopySource` preserves user-facing hints such as display name, provider label,
+folder label, size and modified time, but keeps the platform document token out of score/backup JSON.
+Focused tests cover token redaction, ISO modified timestamps and omission of empty/invalid optional
+fields. Wiring this metadata into saved scores, SAF byte reads and the user-facing folder picker UI
+remain follow-up work.
+
+S165 VERIFIED LOCAL: removed stale ChordPro import guidance now that the saved ChordPro viewer has
+display controls. The text-score import sheet no longer says transpose/capo controls are future work;
+it points users to the saved ChordPro viewer for semitone transposition and capo-shape display while
+keeping DOCX direct reading as follow-up. The ChordPro preview sheet copy was updated the same way,
+and the import menu smoke test now asserts the current `ChordPro 표시 조정 지원` entry.
+
+S166 VERIFIED LOCAL: added the structured ChordPro display-line renderer as a safe bridge toward a
+styled code/lyric viewer. `SheetChordProTextRenderer.renderDisplayLines` now returns directive,
+blank, lyric and chord/lyric lines with chord cells, lyric columns and associated lyric fragments,
+while preserving the existing monospace plain-text output. Focused tests cover rehearsal directives,
+blank lines, transposed chord cells and capo-shape display cells. The user-facing viewer remains the
+current read-only text viewer; styled chord-grid UI and persisted transpose/capo edits remain follow-up.
+
+S167 VERIFIED LOCAL: applied the structured ChordPro display lines to the saved ChordPro viewer.
+The viewer now renders rehearsal/directive labels, chord rows and lyric rows as separate widgets
+instead of a single monospace text block, while keeping the existing read-only source preservation and
+display-only transpose/capo controls. Existing viewer smoke coverage still checks title/key, chord row
+updates and capo-shape display. A denser chord-grid layout, saved display preferences and editable
+ChordPro source remain follow-up work.
+
+S168 VERIFIED LOCAL: closed the safest remaining custom-stamp deletion fallback. User text/icon stamps
+are still copied into normal text annotations when placed, and controller coverage now verifies that
+deleting the custom stamp definition leaves already placed stamp annotations intact after reload. Image
+stamp assets, large-pack performance, explicit conflict-resolution UI, multi-layer annotation and
+editable PDF annotation export remain follow-up work.
+
+S169 VERIFIED LOCAL: covered mixed Korean/English custom stamp discovery. The stamp picker regression
+now includes an English text stamp, an English icon stamp and a Korean text stamp, then verifies search
+and category filtering keep the right user stamp visible without breaking the built-in picker controls.
+Large stamp-pack performance, PDF export, S Pen picker use and image stamp asset policy remain follow-up.
+
+S170 VERIFIED LOCAL: added a custom stamp pack size guard regression. The schema already capped user
+stamp packs at 128 entries; unit coverage now verifies that an oversized pack is rejected before it can
+reach picker/storage flows. Interactive performance with a near-limit pack, PDF export, S Pen picker use
+and image stamp asset policy remain follow-up.
+
+S171 VERIFIED LOCAL: hardened custom stamp backup restore coverage for unsafe external data. Metadata
+backup restore now has regression coverage for a mixed incoming stamp pack list containing one valid
+pack, a duplicate pack id, an allow-list violating icon stamp and a reserved image stamp. The restore
+path keeps the valid text/icon pack and drops unsafe entries before saving them into the active library.
+Near-limit picker interaction, actual S Pen/stylus picker use, image stamp asset policy and editable PDF
+annotation export remain follow-up.
+
+S172 VERIFIED LOCAL: reduced near-limit custom stamp picker overflow risk. The user stamp section now
+shows a bounded first set of stamp chips with a count of hidden stamps and asks the user to narrow by
+name, role or category. A widget regression loads a max-size 128-stamp pack, verifies the hidden target
+does not overflow the sheet, then finds the final stamp through search. Actual S Pen/stylus picker use,
+image stamp asset policy, multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S173 VERIFIED LOCAL: hardened setlist package user-stamp import coverage for unsafe external metadata.
+The package ZIP codec already normalizes optional `clef-user-stamps.json`; regression coverage now
+builds an external package with one valid text pack plus duplicate pack id, non-allow-listed icon and
+reserved image stamp data. Decode and dry-run keep only the safe text/icon metadata before package
+import preview can merge it into the active library. Actual image stamp assets, package annotation
+fidelity, multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S174 VERIFIED LOCAL: covered setlist package import when optional user-stamp merge storage fails. A
+controller regression now imports a resolved package, forces the custom stamp save to fail, and verifies
+the imported setlist remains durable while the existing local user-stamp pack is restored instead of
+being replaced by a partial merge. This keeps package sharing useful even when optional custom stamp
+metadata cannot be saved. Actual image stamp assets, package annotation fidelity and multi-layer
+annotation remain follow-up.
+
+S175 VERIFIED LOCAL: reduced image stamp asset risk without opening image import UI. The custom stamp
+schema now preserves image asset size and dimensions, and the validator only accepts image stamps when
+the caller explicitly allows them and the asset manifest uses a `stamps/` relative path, PNG/JPEG/WebP
+extension, SHA-256 checksum, 2MB file cap and 2048px edge/pixel budget. Focused annotation tests cover
+the valid manifest path plus remote URLs, traversal paths, unsupported extensions, invalid checksums,
+oversized files and missing asset metadata. Actual image file storage, package asset round-trip,
+multi-layer annotation and editable PDF annotation export remain follow-up.
+
+S176 VERIFIED LOCAL: added a low-risk multi-layer annotation scaffold without opening layer UI or
+moving annotations between layers. `SheetAnnotationLayer` now exposes layer stack counts/labels and
+helpers to add, replace and remove non-default display layers while preserving the default layer and
+normalizing duplicate ids. Focused annotation tests cover hidden/export-disabled layer summaries,
+replacement, removal and invalid layer fallback. Annotation-level layer keys, layer management UI,
+package fidelity and editable PDF annotation export remain follow-up.
+
+S177 VERIFIED LOCAL: clarified editable PDF annotation export capability before attempting a writer
+implementation. `SheetAnnotatedPdfExporter` now reports separate capability records for flattened
+rendered-stamp copies and unsupported standard editable annotation embedding, including supported
+rendered annotation types, unsupported editable object types and required spike items such as PDF
+writer API, annotation mapping, font embedding and viewer compatibility fixtures. Focused exporter
+tests cover the capability model and the existing unsupported standard export result remains unchanged.
+Actual standard Ink/FreeText/Stamp object writing and cross-viewer compatibility remain follow-up.
+
+S178 VERIFIED LOCAL: reduced image stamp import/export risk by adding a deterministic internal asset
+planning model without opening the file picker or package asset round-trip yet. `SheetAnnotationImageStampAssetPlan`
+normalizes incoming pack/stamp IDs into a safe `stamps/<pack>/<stamp>.<ext>` asset reference, preserves
+checksum, byte size and pixel dimensions, and can create an image `SheetAnnotationUserStamp` that reuses
+the existing allow-image validation policy. Focused annotation tests cover a safe PNG source path with
+deduplicated keywords and an unsupported GIF/invalid checksum/oversized file path that remains rejected.
+Actual file copy/storage, image preview UI, backup/package asset inclusion and cleanup remain follow-up.
+
+S179 VERIFIED LOCAL: added annotation-level layer keys before opening layer management UI. Stroke and
+text annotations now carry an optional `layerId`, old metadata falls back to the default layer, shifted/
+rebased/cropped annotations preserve their layer id, and visible/exportable page filters now honor the
+target layer visibility/export flags. Unknown or deleted layer ids fall back to the default layer so
+older annotations do not disappear if a layer is removed. Focused annotation coverage verifies hidden,
+export-disabled and removed-layer behavior. Active-layer UI, layer rename/delete UX and per-layer undo
+controls remain follow-up.
+
+S180 VERIFIED LOCAL: aligned flattened annotated PDF export with annotation-level layer keys before
+attempting standard editable PDF annotation writing. The export preflight now counts only strokes/texts
+whose layer is marked for export, Unicode text detection follows the same per-layer rule, and non-default
+export layers still share correctly even when the default layer is excluded. Focused exporter coverage
+verifies default-excluded, export-enabled and export-disabled layer combinations. Standard Ink/FreeText/
+Stamp object writing, cross-viewer compatibility fixtures and active layer UI remain follow-up.
+
+S181 VERIFIED LOCAL: implemented the first actual image stamp asset storage slice without exposing the
+image picker UI yet. `SheetAnnotationStampAssetStore` now reads local PNG/JPEG/WebP files, enforces the
+existing 2MB and 2048px image policy, computes a SHA-256 checksum, creates a deterministic
+`stamps/<pack>/<stamp>.<ext>` metadata plan and copies bytes into the app-owned `annotation-stamps/`
+directory via a temp-file replace path. Focused tests cover safe path normalization, identical asset
+reuse, changed asset replacement, missing files, unsupported extensions, corrupt image bytes, oversized
+files and unsafe stored refs. Picker UI, package/backup asset round-trip, cleanup and image rendering
+remain follow-up.
+
+S182 VERIFIED LOCAL: opened the first active annotation layer UI without attempting full layer
+management yet. The annotation toolbar now has a named layer selector, can add a new layer, and applies
+visibility/export toggles to the active layer instead of only the default layer. New pen/highlighter/
+shape strokes, text notes and stamps store the selected `layerId`, while old or deleted layer ids still
+fall back to the default layer for safety. Focused widget/controller/model tests cover layer selection
+UI, non-default layer state persistence and layer-aware visibility/export filtering. Layer rename/delete,
+moving existing annotations between layers, per-layer undo controls and editable PDF annotation export
+remain follow-up.
+
+S183 VERIFIED LOCAL: added the first editable PDF standard annotation writer while keeping the
+flattened rendered-stamp export path and exposing both choices from `필기 포함 PDF 공유/인쇄`.
+`SheetAnnotatedPdfExporter` can now write export-enabled Clef
+pen/highlighter strokes as `/Ink`, line/arrow tools as `/Line`, rectangles as `/Square`, and text notes
+as `/FreeText` annotation objects with generated appearances via the existing `pdf_document` editor.
+The standard export result reopens as a PDF with the expected annotation subtypes, preserves the source
+PDF bytes, supports Unicode FreeText through the writer path, and returns a clear unsupported-mapping
+result when only music-specific hairpins/staff/grid/stamp objects are present. Focused exporter tests
+cover capability reporting, editable object creation, Unicode FreeText, unsupported-only tools, and the
+existing flattened fallback. External Acrobat/Preview/MobileSheets/Piascore compatibility, image stamp
+PDF appearances, and richer layer management remain Device QA/follow-up.
+
+S184 VERIFIED LOCAL: added a local editable-PDF export inspection fixture before claiming external
+viewer compatibility. `SheetAnnotatedPdfExporter.inspectStandardAnnotationCopy` reopens an exported
+PDF and reports total annotations, Clef-owned `/NM` names, subtype counts, annotation contents and
+missing generated appearances. Focused tests now verify that Clef-created `/Ink`, `/Line`, `/Square`
+and `/FreeText` objects are locally inspectable, named with the `clef-` prefix, retain Unicode FreeText
+contents, and include generated appearance dictionaries. This does not replace Acrobat, Preview,
+MobileSheets or Piascore manual QA; it prevents obviously malformed editable exports from entering that
+manual compatibility pass. Image stamp appearances, layer rename/delete and richer external fixtures
+remain follow-up.
+
+S185 VERIFIED LOCAL: reduced the actual image stamp sharing gap without opening the image stamp
+picker UI. Clef setlist package ZIPs can now carry referenced image stamp assets under safe `stamps/`
+paths, and the codec only preserves image stamp metadata when the matching PNG/JPEG/WebP asset bytes
+are present. Export can read user stamp asset bytes, count included image assets, and round-trip them
+through decode and import dry-run preview. Focused tests cover image metadata plus bytes, missing
+assets being dropped, and export-side asset inclusion. This is still a codec/export slice: local image
+stamp creation UI, metadata backup asset round-trip, orphan cleanup, and PDF image-stamp appearance
+mapping remain follow-up.
+
+S186 VERIFIED LOCAL: completed the first active annotation layer management UI slice. The annotation
+toolbar layer menu now exposes rename and delete actions for non-default layers, while keeping the
+default layer protected. Rename reuses the existing layer update path; delete removes only the display
+layer and leaves existing annotations intact so orphaned annotations fall back to the default layer
+instead of disappearing. Focused controller and widget tests verify rename, delete, fallback visibility,
+and the named toolbar affordances. Moving existing annotations between layers, per-layer undo and
+multi-select layer operations remain follow-up.
+
+S187 VERIFIED LOCAL: opened the user-facing image stamp import path on top of the existing asset
+storage and package codec. The stamp picker can now choose a PNG/JPEG/WebP file, ask for a display
+name, copy the image into app-owned `annotation-stamps/` storage, preserve SHA-256/size/dimension
+metadata in the active user stamp pack, and show/select the resulting image stamp alongside text/icon
+custom stamps. User stamp pack normalization now allows validated image stamps so they survive reload
+and metadata backup restore instead of being filtered out by the older text/icon-only gate. Focused
+controller and widget tests cover image asset creation/restore and picker selection. Rendering the
+bitmap directly onto the page/PDF, full-backup asset byte round-trip, orphan cleanup and external PDF
+image-stamp compatibility remain follow-up.
+
+S188 VERIFIED LOCAL: connected image stamp selection to placed annotations instead of flattening it
+down to plain text metadata. `SheetTextAnnotation` now preserves `stampKind` and `stampAssetRef`, image
+stamps hit-test with a stamp-sized region, and the PDF viewer overlay decodes app-owned image stamp
+assets into a small cache so selected image stamps render as bitmaps on the score page with a safe label
+fallback when the asset is missing. Standard editable PDF export now treats image stamps as an
+unsupported object mapping instead of silently writing them as `/FreeText`, while flattened export still
+has a label fallback until bitmap PDF drawing is implemented. Focused tests cover JSON/hit-test
+metadata and the editable-PDF unsupported-image fixture. Full backup asset byte round-trip, orphan
+cleanup, flattened/exported bitmap drawing, and external Acrobat/Preview/MobileSheets/Piascore
+compatibility remain follow-up.
+
+S189 VERIFIED LOCAL: tightened image stamp asset lifecycle after custom stamp deletion. Deleting an
+unused image user stamp now removes its app-owned asset file, but the cleanup scans remaining user stamp
+packs and already placed image stamp annotations first so a deleted stamp definition cannot break
+existing score markings. Unsafe cleanup refs are ignored and cleanup failures do not block the stamp
+delete path. Focused asset-store and controller tests cover unreferenced deletion, referenced
+preservation, and placed annotation preservation. Full backup asset byte round-trip and PDF bitmap
+appearance export remain follow-up.
+
+S190 VERIFIED LOCAL: closed the full-backup gap for image stamp asset bytes. Full backup ZIP manifests
+now include `stampAssetRef` file mappings under `stamp-assets/` for validated image user stamps, export
+the app-owned PNG/JPEG/WebP bytes when present, restore them back into annotation stamp storage before
+metadata replacement, and count missing stamp assets without dropping the stamp metadata. The backup
+codec now normalizes validated image stamp packs consistently with the active library store instead of
+filtering them through the older text/icon-only gate. Focused full-backup tests cover image stamp asset
+byte round-trip. Flattened PDF bitmap drawing and editable PDF image stamp appearance mapping remain
+follow-up.
+
+S191 VERIFIED LOCAL: reduced the PDF export gap for image stamps in the flattened copy path. Annotated
+PDF export can now receive an image stamp asset reader, decode app-owned PNG/JPEG bytes as PDF image
+XObjects, and draw them at the placed stamp position with a small border. The library store wires this
+reader to `SheetAnnotationStampAssetStore`, so normal "필기 포함 PDF 공유/인쇄" flattened copies include
+supported bitmap image stamps instead of only their label. Missing, corrupt or currently unsupported
+WebP assets keep the label fallback, and editable standard PDF export still treats image stamps as an
+unsupported mapping rather than silently emitting `/FreeText`. Focused exporter tests cover flattened
+PNG image stamp output. External Acrobat/Preview/MobileSheets/Piascore compatibility and editable image
+stamp appearance streams remain follow-up.
+
+S192 VERIFIED LOCAL: closed the local editable PDF image stamp mapping gap. Standard annotation export
+now reuses the same image stamp asset reader and emits PNG/JPEG image stamps as `/Stamp` annotations
+with generated image appearances instead of rejecting them or degrading them to `/FreeText`. The local
+inspection fixture now treats Clef `Stamp` annotations as supported and verifies the image stamp flag
+after reopening the exported PDF. WebP remains a rendered-label fallback until the PDF embedding layer
+supports it. Acrobat/Preview/MobileSheets/Piascore compatibility still needs external viewer QA.
+
+S193 VERIFIED LOCAL: tightened annotation layer deletion semantics before adding deeper multi-layer
+editing. Removing a non-default display layer now rekeys strokes, text/image stamp annotations and
+undo/erase payloads from that layer onto the default layer, rather than leaving orphan layer ids that
+only happened to fall back at read time. This keeps JSON, backup/export and future layer operations
+consistent with the UI promise that deleted-layer annotations remain as default handwriting. Focused
+model and controller tests cover current annotations plus redo/erase payloads. Moving selected
+annotations between existing layers, per-layer undo and multi-select layer operations remain follow-up.
+
+S194 VERIFIED LOCAL: expanded the editable PDF writer for hairpin annotations. Standard annotation
+export now maps crescendo/diminuendo strokes to paired `/Line` annotations with generated appearances
+instead of rejecting hairpins as an unsupported object mapping. The capability model and local
+inspection test were updated so hairpins are covered by the same malformed-export guard as ink, line,
+rectangle, text and image stamp annotations. Staff/grid standard mapping and external
+Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S195 VERIFIED LOCAL: reduced the remaining music-guide gap in editable PDF export. Standard annotation
+export now maps staff and grid guide tools to editable `/Line` annotation groups with generated
+appearances instead of forcing those guides through the rendered-only path. Staff guides export as five
+parallel line annotations; grid guides export as a 4x4 guide line set. The local inspection fixture now
+verifies the resulting Clef `/Line` annotations, contents and generated appearances. Text-template
+stamp mapping and external Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S196 VERIFIED LOCAL: clarified and locked the editable PDF mapping for text-template stamps. Built-in
+text stamps plus user text/icon stamps now have explicit capability coverage as editable `/FreeText`
+annotations, including Unicode music-symbol text and Korean stamp text. The exporter test reopens the
+generated PDF and verifies subtype, contents and generated appearances so these stamps are no longer
+tracked as an unmapped standard-export gap. Rich non-text stamp appearances and external
+Acrobat/Preview/MobileSheets/Piascore compatibility remain follow-up.
+
+S197 VERIFIED LOCAL: added a generated editable-PDF compatibility fixture path before asking testers
+to compare external viewers. `dart run tool/generate_pdf_annotation_compatibility_fixture.dart` now
+creates `.dart_tool/clef-pdf-compatibility/clef-editable-annotation-compatibility.pdf` with Clef
+pen/highlighter, line/arrow, rectangle, hairpin, staff/grid, free text, text/icon stamp and PNG image
+stamp annotations. The tool inspects the generated file and requires locally supported `/Ink`,
+`/Line`, `/Square`, `/FreeText` and `/Stamp` subtypes plus generated appearances before reporting the
+fixture path. A mixed exporter regression test locks the expected 28 Clef annotations. Local Poppler
+rendering confirmed the fixture draws the geometry/image paths, but also showed Korean FreeText can
+render as missing glyph boxes despite preserved `/Contents`; external Acrobat/Preview/MobileSheets/
+Piascore compatibility and font fallback policy remain Device QA/follow-up work.
+
+S198 VERIFIED LOCAL: tightened the local inspection signal for Unicode FreeText compatibility. The
+standard PDF annotation inspector now records non-ASCII `/FreeText` contents separately and exposes
+`hasUnicodeFreeTextContents`, so fixture generation can warn testers that structure/content passed but
+external glyph rendering still needs Acrobat/Preview/MobileSheets/Piascore QA. Focused exporter tests
+cover Korean text and music-symbol stamp contents. This does not claim font fallback or embedding is
+solved; it makes the remaining risk visible before manual compatibility checks.
+
+S199 VERIFIED LOCAL: closed the model/controller side of the remaining annotation layer organization
+gap by adding a safe path for moving existing stroke/text/stamp annotations to another existing display
+layer. Missing annotation ids, missing target layers and same-layer moves stay no-op, while successful
+moves clear redo/erase redo stacks like other annotation edits to avoid stale replay payloads. Focused
+model and controller tests verify stroke/text moves, persistence, missing-layer rejection and deleted
+layer fallback. User-facing move-to-layer menu, per-layer undo and multi-select operations remain
+follow-up.
+
+S200 VERIFIED LOCAL: opened the user-facing move-to-layer path for existing annotations. Tapped
+stroke/text/stamp action sheets now expose `다른 layer로 이동` only when multiple display layers exist,
+then show a target layer picker that excludes the current layer and includes visibility/PDF export
+state. The action reuses the S199 controller path and reports save failures without moving unrelated
+annotations. Widget coverage verifies the target picker, and full format, analyze, 1,577-test suite
+and RC release checks passed.
+
+S201 VERIFIED LOCAL: tightened the editable PDF image stamp policy so the UI and capability model no
+longer imply every image stamp can become a standard `/Stamp`. PNG/JPEG image stamp bytes remain the
+supported editable path; WebP, missing or corrupt image stamp bytes stay on the general flattened-copy
+fallback path with a clear unsupported mapping result. Focused exporter tests cover unsupported image
+bytes, and full format, analyze, 1,578-test suite and RC release checks passed.
+
+S202 VERIFIED LOCAL: extended the editable PDF compatibility fixture workflow so manual Acrobat,
+Preview, MobileSheets, Piascore and Android viewer results can be collected in a consistent report
+instead of scattered notes. The generator now writes a Markdown matrix next to the fixture PDF,
+prints both paths, carries local inspection counts into the report, and flags Unicode FreeText
+contents as a separate viewer-risk row. Generated the fixture/report locally, and full format,
+analyze, 1,578-test suite and RC release checks passed.
+
+S203 VERIFIED LOCAL: reduced the ChordPro transpose/capo gap by making display adjustments persist
+per score instead of resetting on every viewer reopen. The model now carries normalized ChordPro
+display settings, the controller saves them through the normal score replacement path with rollback on
+save failure, and the viewer saves semitone and capo-shape display changes without modifying the
+original `.chordpro` source. Focused model/controller/smoke tests, full analyze, 1,581-test suite and
+RC release checks passed.
+
+S204 VERIFIED LOCAL: reduced the direct-folder bridge gap without opening SAF UI yet. The existing
+copy-on-select plan now exposes a redacted batch of copy sources and known/unknown byte-size summary
+only when every selected entry is a readable, non-duplicate PDF, so a future platform picker bridge can
+hand safe candidates to the current import pipeline without leaking provider document tokens. Focused
+external-folder catalog tests, full analyze, 1,582-test suite and RC release checks passed.
+
+S205 VERIFIED LOCAL: reduced the cloud/annotation sync gap without adding automatic merge yet. The
+backup dry-run diff now separates annotation changes into display layer configuration, stroke/text/stamp
+object payloads, and external annotation file references, so future conflict review can explain what
+needs human attention before any restore or sync apply path. Focused backup-diff tests, full analyze,
+1,583-test suite and RC release checks passed.
+
+S206 VERIFIED LOCAL: reduced the leader/follower tablet risk before choosing a network transport.
+`SheetCollaborationPreflightCheck` now compares a leader setlist against follower-owned score ids and
+reports ready, missing-score and empty-setlist states, so a future pairing UI can block sessions that
+would otherwise leave the follower on the wrong score. Focused collaboration session tests, full
+analyze, 1,586-test suite and RC release checks passed.
+
+S207 VERIFIED LOCAL: prepared QR pairing UI without opening network transport yet.
+`SheetCollaborationInviteQrPlan` turns the versioned collaboration invite payload into a portable QR
+module matrix and keeps the raw copy fallback available when the payload is too large or QR generation
+fails. This narrows the next UI slice to rendering/copying an already validated invite, while still
+leaving camera scanning, transport and two-device QA as follow-up work. Focused collaboration session
+tests, full analyze, 1,588-test suite and RC release checks passed.
+
+S208 VERIFIED LOCAL: moved leader/follower QR pairing from pure model toward reusable UI without
+enabling a network session yet. `SheetCollaborationInviteQrView` renders a validated QR module matrix,
+keeps a named copy-code action, and falls back to selectable invite payload text when QR generation is
+blocked. Widget coverage checks the scannable QR view and the copy fallback view before any route is
+added to the app. Focused QR view tests, full analyze, 1,590-test suite and RC release checks passed.
+
+S209 VERIFIED LOCAL: prepared leader/follower mismatch and reconnect UI copy before network transport.
+`SheetFollowerSyncReview` converts reducer states into a headline, review lines and an attention flag
+so a future simulator or follower screen can explain synced, missing-score, stale-event, disconnected
+and wrong-session states without duplicating status logic in widgets. Focused collaboration tests, full
+analyze, 1,591-test suite and RC release checks passed.
+
+S210 VERIFIED LOCAL: prepared a single collaboration session preview model before adding a route.
+`SheetCollaborationSessionPreview` combines the invite QR/copy plan, follower setlist preflight and
+current follower review into startability, blocking reasons and review lines, so a future local
+simulator screen can avoid showing an apparently ready collaboration when scores are missing or the
+follower state already needs attention. Focused collaboration tests, full analyze, 1,593-test suite
+and RC release checks passed.
+
+S211 VERIFIED LOCAL: rendered the collaboration session preview as a reusable widget without adding an
+app route or network transport. `SheetCollaborationSessionPreviewView` shows follower readiness,
+current follower state, blocking reasons, QR/copy fallback and a disabled/enabled local simulation
+action from the already validated preview model. Focused QR/preview widget tests, full analyze,
+1,595-test suite and RC release checks passed.
+
+S212 VERIFIED LOCAL: added a local collaboration simulation report model before exposing any simulator
+route. The report replays leader page moves, follower library refreshes and disconnects through the
+existing reducer, then summarizes attention steps and the final follower state so a future same-device
+simulator can show missing-score recovery and disconnect risk without opening real network transport.
+Focused collaboration tests, full analyze, 1,597-test suite and RC release checks passed.
+
+S213 VERIFIED LOCAL: rendered the local collaboration simulation report as a reusable widget without
+adding a route. `SheetCollaborationSimulationReportView` shows the report headline, summary lines,
+per-step follower status and final disconnect/missing-score attention states so the eventual simulator
+screen can reuse tested UI. Focused QR/report widget tests, full analyze, 1,599-test suite and RC
+release checks passed.
+
+S214 VERIFIED LOCAL: tightened the editable PDF compatibility evidence path instead of claiming
+external viewer compatibility from local inspection alone. The compatibility report Markdown now comes
+from a reusable template with explicit PASS/ISSUE/BLOCKED/NOT_TESTED states, viewer-specific required
+checks and known local limits so Acrobat/Preview/MobileSheets/Piascore results can be collected
+consistently. The generator still creates and locally inspects the PDF fixture, and a Poppler render
+confirmed the geometry/image paths while preserving the known Unicode glyph-box risk. Focused report
+tests, full analyze, 1,601-test suite and RC release checks passed. External viewer
+rendering/editability remains Device QA.
+
+S215 VERIFIED LOCAL: reduced the hidden annotation layer editing risk. Rendering and export already
+respected layer visibility/export flags; model hit-test and eraser paths now also use visible layer
+filters so a hidden layer cannot be selected, nudged or erased by tapping an invisible annotation.
+Focused annotation tests, full analyze, 1,602-test suite and RC release checks passed. Per-layer undo
+and multi-select layer operations remain follow-up.
+
+S216 VERIFIED LOCAL: reduced the hidden annotation layer undo/redo risk. Hidden layer entries stay in
+their undo/redo stacks, but are skipped while the layer is hidden so toolbar undo/redo cannot mutate
+invisible annotations. Focused annotation tests, full analyze, 1,603-test suite and RC release checks
+passed. True active-layer-only undo remains a separate UX decision because the current toolbar undo is
+page scoped rather than layer scoped.
+
+S217 VERIFIED LOCAL: narrowed annotation undo/redo to the active display layer. The viewer already
+tracks the selected layer for new strokes/text/stamps, so toolbar undo/redo now routes through the
+same layer id instead of operating across every visible layer on the page. This keeps ensemble or
+private layers from being changed while the user is editing a different layer. Focused annotation
+tests, full analyze, 1,604-test suite and RC release checks passed.
+
+S218 VERIFIED LOCAL: tightened the editable PDF external-viewer compatibility gate. The generated
+compatibility report now has an explicit completion gate: every Acrobat/Preview/MobileSheets/Piascore/
+Android viewer matrix cell must move out of NOT_TESTED and no ISSUE/BLOCKED cells can remain before
+external compatibility is claimed. A reusable review model summarizes missing viewer rows, untested
+cells, issues and blockers, so manual QA evidence cannot be confused with local PDF inspection alone.
+Focused compatibility report tests, fixture generation/report inspection, Poppler first-page render,
+full analyze, 1,606-test suite and RC release checks passed. External viewer behavior remains
+Device QA.
+
+S219 VERIFIED LOCAL: made filled editable PDF compatibility reports machine-checkable. The
+compatibility fixture tool can read a manually filled report with `--review-report`, summarize
+missing viewer rows, NOT_TESTED cells, ISSUE cells and BLOCKED cells, and return a non-zero review
+exit until the gate is ready. This keeps external viewer QA evidence easy to pass back without
+treating screenshots or local inspection as enough by themselves. Focused report parser tests,
+manual NOT_READY review-mode run, full analyze, 1,607-test suite and RC release checks passed.
+
+S220 VERIFIED LOCAL: closed the local WebP image stamp PDF export gap. PNG/JPEG/WebP image stamp
+bytes now share the same export path: PDF-native image bytes are embedded directly and WebP bytes are
+decoded with the app image pipeline, converted to a PNG appearance, then written as flattened bitmap
+content or editable standard `/Stamp` annotations. Missing or corrupt assets still keep the existing
+rendered-label fallback / standard-export block. The compatibility fixture now includes both PNG and
+WebP image stamps, local inspection reports two `Stamp` annotations, and Poppler rendering showed both
+bitmap stamps while preserving the known Unicode FreeText font fallback warnings. Focused exporter and
+compatibility report tests, fixture generation, `pdfinfo`, Poppler first-page render, full analyze,
+1,608-test suite and RC release checks passed.
+
+S221 VERIFIED LOCAL: tightened the external compatibility report so WebP image stamp support cannot
+be claimed through the older generic image-stamp column. The fixture already includes both PNG and
+WebP image stamps; the manual viewer matrix now splits PNG and WebP image-stamp checks, the required
+external checks for music-app viewers and Android PDF viewers call out both formats, and report
+parsing/gating treats an unfilled WebP cell as not ready. Focused report tests, regenerated report
+inspection, full analyze, 1,608-test suite and RC release checks passed.
+
+S222 VERIFIED LOCAL: split editable PDF text-stamp and music-symbol stamp compatibility claims.
+Both stamp styles export as FreeText-style PDF annotations today, but external viewers can render
+Korean text and music symbols differently depending on font fallback. The manual viewer matrix now
+requires separate text-stamp and music-symbol stamp evidence, required checks call out both classes,
+and the local report keeps them distinct from generic FreeText and Unicode text. Focused report tests
+and regenerated report inspection passed, with full analyze, 1,608-test suite and RC release checks.
+
+S223 VERIFIED LOCAL: made the editable PDF external compatibility gate enforce the report's evidence
+rule. The report has said every viewer row needs evidence, but the local gate could still pass rows
+that only changed cells to PASS and left result notes blank. The gate now tracks missing viewer
+evidence, blocks external compatibility claims until each row includes notes/evidence, and summarizes
+the missing viewer ids during report review. Focused report tests, a NOT_READY generated-report
+review, full analyze, 1,609-test suite and RC release checks passed.
+
+S224 VERIFIED LOCAL: aligned QA handoff docs with the stricter editable PDF compatibility gate. The
+code now separates text stamp, music-symbol stamp, PNG image stamp, WebP image stamp and requires
+viewer evidence before claiming external compatibility, so the runbook, tester checklist, feature
+map and MobileSheets inventory now use the same wording. `git diff --check`, targeted trailing
+whitespace scan, tab scan and stale wording scan passed.
+
+S225 VERIFIED LOCAL: kept the editable PDF fixture handoff list in sync with the compatibility
+template. The template includes Android PDF viewer rows and required checks, but the generator stdout
+only listed Acrobat, Preview, MobileSheets and Piascore. The generator now prints manual viewer QA
+targets from the template, including Android PDF viewer, so future target changes cannot drift.
+Fixture generation, full analyze and RC release checks with the 1,609-test suite passed.
+
+S226 VERIFIED LOCAL: tightened editable PDF compatibility report review so manually supplied evidence
+links are not ignored. The report template has a separate `Evidence link / screenshot` column in the
+required-check table, but parser review only counted `Result notes` in the viewer matrix. The parser
+now reads required-check evidence links by viewer and lets either notes or evidence satisfy the
+external compatibility evidence gate. The report template, device QA runbook and tester checklist now
+describe that behavior. Focused compatibility report tests, full analyze, the 1,610-test suite and RC
+release checks passed.
+
+S227 VERIFIED LOCAL: removed another hardcoded editable PDF compatibility viewer list. The report
+template and generated fixture score note still named Acrobat/Preview/MobileSheets/Piascore directly,
+which could drift from the template target list and omit Android PDF viewer. Those viewer references
+now derive from `viewerTargets`, so the report body and fixture metadata include Android PDF viewer
+whenever the target list does. Focused compatibility report tests, fixture generation, full analyze,
+the 1,610-test suite and RC release checks passed.
+
+S228 VERIFIED LOCAL: aligned current product and QA docs with the editable PDF compatibility target
+set. The generator/report template now includes Android PDF viewer, but several current docs still
+described only Acrobat/Preview/MobileSheets/Piascore as the external viewer set. The current runbook,
+feature map, MobileSheets inventory and spike backlog now include Android PDF viewer in the external
+compatibility target wording while older historical log entries remain unchanged. `git diff --check`,
+targeted trailing whitespace/tab scans and a PCRE stale target wording scan passed.
+
+S229 VERIFIED LOCAL: aligned the standard PDF annotation capability model with the same external
+compatibility target set. The report/template/docs include Android PDF viewer, but the capability's
+required spike item list still only named Acrobat/Preview and MobileSheets/Piascore fixtures. The
+capability now includes an explicit Android PDF viewer fixture requirement, and exporter capability
+tests lock all three external fixture requirements. Focused exporter tests, full analyze, the
+1,610-test suite and RC release checks passed.
+
+S230 VERIFIED LOCAL: made the editable PDF capability model expose the remaining Unicode FreeText
+appearance risk. Standard mode preserves Korean/music-symbol FreeText contents locally, but external
+viewer rendering still needs a font fallback/appearance fixture. This slice adds an explicit
+`unicodeFreeTextAppearanceFixture` required spike item and updates the current product docs so the
+capability model matches the known manual QA gap. Focused exporter tests, full analyze, the
+1,610-test suite and RC release checks passed.
+
+S231 VERIFIED LOCAL: kept editable PDF compatibility handoff tied to the capability model. The
+report template and generator explained manual viewer checks, but they did not surface the
+`standardAnnotationExportCapability.requiredSpikeItems` list that now includes external viewer and
+Unicode FreeText appearance fixtures. This slice prints the required spike list in both places and
+locks the markdown template with compatibility report tests. Focused report tests, fixture
+generation, full analyze, the 1,610-test suite and RC release checks passed.
+
+S232 VERIFIED LOCAL: polished editable PDF compatibility review output for human handoff. The gate
+still tracks viewer IDs internally, but `--review-report` summaries now render missing/evidence/issue
+summaries with the same visible labels shown in the report, such as Android PDF viewer and macOS
+Preview. Focused report tests, full analyze, the 1,610-test suite and RC release checks passed.
+
+S233 VERIFIED LOCAL: added a dedicated Unicode FreeText appearance fixture to reduce the remaining
+editable PDF export handoff risk. The mixed compatibility fixture still covers every editable
+annotation class, and the generator now also emits a Unicode-focused PDF/report section so external
+viewer QA can compare Korean text, text-stamp Unicode and music-symbol FreeText rendering without
+treating local `/Contents` preservation as proof of glyph compatibility. The Unicode fixture was
+rendered locally with Poppler and reproduced the expected missing-glyph risk, so font fallback policy
+and real viewer compatibility remain follow-up. Focused exporter/report tests, fixture generation,
+full analyze, the 1,610-test suite and RC release checks passed.
+
+S234 VERIFIED LOCAL: aligned the user-facing editable PDF export copy with the remaining Unicode/font
+fallback risk. Standard PDF annotation export can write text and music-symbol stamps as editable
+FreeText objects, but external PDF apps may render glyphs differently until a font fallback policy is
+chosen. The export mode sheet and snackbar copy now warn about viewer variation instead of implying
+currently supported stamps are simply excluded. Full analyze, the 1,610-test suite and RC release
+checks passed.
+
+S235 VERIFIED LOCAL: tightened the editable PDF external compatibility gate so Unicode text cannot be
+marked PASS with only generic viewer evidence. The report review now tracks missing Unicode/glyph
+evidence separately from generic screenshot/notes evidence, and the QA docs require Unicode/glyph/font
+proof whenever a viewer row marks `Unicode text` as PASS. Focused report tests, full analyze, the
+1,611-test suite and RC release checks passed.
+
+S236 VERIFIED LOCAL: made the editable PDF report's remaining spike list human-readable. The report kept
+raw capability IDs such as `unicodeFontFallbackPolicy`, but testers and future implementation passes
+need the corresponding viewer/font action beside each ID. Focused report tests, full analyze, the
+1,611-test suite and RC release checks passed.
+
+S237 VERIFIED LOCAL: made hand-filled editable PDF compatibility reports more forgiving without weakening
+the gate. The generated report uses exact viewer labels, but testers may shorten them to "Preview",
+"Mobile Sheets" or "Android viewer"; the parser now normalizes common aliases back to the same target
+IDs before checking evidence and PASS/ISSUE/BLOCKED cells. Focused report tests, full analyze, the
+1,612-test suite and RC release checks passed.
+
+S238 VERIFIED LOCAL: surfaced unknown viewer names in editable PDF compatibility reports. The parser now
+reads the viewer matrix and required-check evidence from their named sections instead of every Markdown
+table, and `--review-report` warns when a hand-filled report contains unrecognized viewer rows such as
+typos or unsupported apps. Focused report tests, full analyze, the 1,613-test suite and RC release
+checks passed.
+
+S239 VERIFIED LOCAL: surfaced invalid status values in hand-filled editable PDF compatibility reports. The
+report review path now distinguishes typos such as `PAS` or prose like `needs retest` from valid
+PASS/ISSUE/BLOCKED/NOT_TESTED cells instead of letting them look like ordinary untested cells. Focused
+report tests, full analyze, the 1,614-test suite and RC release checks passed.
+
+S240 VERIFIED LOCAL: locked the editable PDF compatibility report CLI contract with end-to-end process
+tests. Temporary hand-filled reports now prove that a complete PASS matrix exits 0, while unknown viewer
+rows or invalid status cells exit 2 and print actionable diagnostics before the NOT READY gate summary.
+This prevents parser-only coverage from hiding command wiring or exit-code regressions. Focused CLI tests,
+full analyze, the 1,616-test suite and RC release checks passed.
+
+S241 VERIFIED LOCAL: made the editable PDF inspector distinguish preserved Unicode contents from actual
+font embedding evidence. Local inspection now records FreeText annotations backed by an embedded font and
+separately names Unicode FreeText annotations that still depend on viewer font fallback. The compatibility
+fixture CLI and report surface both lists, so generated appearances and `/Contents` no longer look like
+proof of Korean/music-symbol glyph fidelity. Focused exporter/report tests passed; licensed font selection,
+glyph preflight, embedding size policy and external viewer QA remain follow-up.
+
+S242 VERIFIED LOCAL: added a guarded Unicode font supply boundary for editable PDF FreeText export without
+bundling an unreviewed font. Preflight rejects missing/invalid font bytes, files over 4 MiB, projected
+per-annotation whole-font embedding over 12 MiB, and any text with missing glyph outlines before writing an
+output PDF. A supplied font that passes preflight is embedded and the resulting PDF is re-inspected for an
+actual font program; fallback-only exports report their unembedded Unicode count. Focused tests cover all
+preflight statuses, a real embedded-font output, Korean missing-glyph rejection and no-file-on-failure.
+Noto CJK is an OFL 1.1 candidate, but production wiring remains blocked on app size and writer font-resource
+reuse/subsetting because `pdf_document 3.7.0` embeds the whole font program for every FreeText appearance.
+
+S243 VERIFIED LOCAL: made editable PDF export feedback distinguish a general viewer-compatibility warning
+from a concrete unembedded Unicode-font warning. Successful fallback exports now name how many Korean or
+music-symbol annotations still rely on each PDF viewer's font substitution, while future Unicode-font
+preflight failures report unavailable, invalid, oversized or missing-glyph causes without claiming a file
+was created. A focused feedback policy test keeps these messages aligned with the exporter result contract;
+actual glyph rendering remains external viewer QA.
+
+S244 VERIFIED LOCAL: moved the editable PDF Unicode tradeoff into the export-mode chooser instead of a
+two-second snackbar that was immediately replaced by the progress message. The chooser now counts only
+Unicode text annotations on PDF-enabled layers: the flattened option names how many text annotations will
+be omitted, while the editable option names how many still depend on the destination viewer's font. Unit
+tests cover layer-aware counting and both mode descriptions; actual viewer glyph rendering remains manual QA.
+
+S245 VERIFIED LOCAL: hardened editable PDF fixture inspection before external viewer handoff. Local
+inspection now rejects duplicate Clef annotation names, non-positive or page-escaping annotation rectangles,
+and Clef annotations that carry `/A` or `/AA` actions. The fixture CLI and generated compatibility report
+surface each offending annotation name instead of reducing the failure to a generic local-inspection error.
+Regression tests cover a deliberately malformed export containing all three hazards. This gate verifies the
+structure Clef generated; Acrobat, Preview, MobileSheets, Piascore and Android rendering/editability remain
+manual compatibility QA.
+
+S246 VERIFIED LOCAL: extended the editable PDF fixture gate to presentation flags that can disappear between
+screen viewing and printing. Every generated Clef annotation must carry the PDF Print flag and must not carry
+Hidden or NoView; the inspector, fixture CLI and report now name non-printable and hidden annotations. The
+malformed regression fixture proves these failures join duplicate names, out-of-page rectangles and actions in
+blocking local handoff, while normal Clef output remains printable. Actual print rendering and viewer editing
+still require the external compatibility matrix.
+
+S247 VERIFIED LOCAL: added source-versus-output PDF/A-2b conformance delta diagnostics to the editable PDF
+fixture handoff. The checker compares findings as a multiset without relying on rewritten PDF object numbers,
+so defects already present in the source are not attributed to Clef and newly introduced errors or warnings are
+listed in the generated report. Regression coverage proves ordinary Clef Ink export adds no detected finding
+and a deliberately hidden/non-printable annotation is reported as a new warning. The current `pdf_document`
+validator does not traverse fonts inside annotation appearance streams, so a clean delta is not a PDF/A
+certificate and does not replace the dedicated FreeText font inspector or external viewer/glyph QA.
+
+S248 VERIFIED LOCAL: connected introduced PDF/A findings to the filled compatibility report review gate.
+`--review-report` now parses non-empty `Introduced PDF/A-* errors/warnings` rows, prints their details and
+returns exit code 2 even if every external viewer cell is PASS. Existing reports without those diagnostic rows
+remain reviewable, while generated reports can no longer hide a local conformance regression behind a complete
+viewer matrix. Parser and end-to-end process tests cover `none` filtering, warning diagnostics and exit codes.
+
+S249 VERIFIED LOCAL: bound editable PDF compatibility reports to the exact generated artifacts. New reports
+record SHA-256 digests for both the mixed editable-annotation fixture and the Unicode appearance fixture.
+`--review-report` verifies every listed local file and returns exit code 2 for a missing or changed artifact,
+while legacy reports without the artifact table remain reviewable. Parser, template and end-to-end CLI tests
+cover paths with spaces, digest normalization, mismatch diagnostics and missing-file diagnostics.
+
+S250 VERIFIED LOCAL: made the editable PDF external-viewer handoff portable. Fixture generation now also
+creates one ZIP containing the mixed fixture, Unicode appearance fixture and a report whose artifact paths are
+relative to the extracted report. Report review resolves relative paths against the report directory and keeps
+the same SHA-256 checks, so moving the bundle to another machine does not weaken artifact identity. End-to-end
+tests generate and inspect the ZIP, verify all three entries and prove relative artifact review succeeds.
+
+S251 VERIFIED LOCAL: fixed editable and flattened annotation export coordinates for source PDFs whose page
+dictionary already carries `/Rotate`. Clef annotation points are stored against the rotated page overlay shown by
+`pdfrx`; export geometry now reverses 90/180/270-degree display rotation before writing into the original CropBox
+coordinate system. Pure geometry tests cover all rotations and offset CropBox origins, while an end-to-end fixture
+rotates a real PDF page, exports a line and reopens its `/L` coordinates. External viewer visual confirmation of
+rotated/cropped pages remains part of the compatibility matrix.
+
+S252 VERIFIED LOCAL: extended the external editable-PDF handoff to cover the rotated-page path that S251 opened.
+The portable compatibility ZIP now includes a 90-degree rotated source page with an offset CropBox, crossed line and
+arrow annotations, and TL/CENTER/BR text anchors. Text and image-stamp rectangles are calculated from the displayed
+page dimensions before mapping back to source PDF coordinates, so their width and height do not swap incorrectly on
+90/270-degree pages. Focused exporter, report and CLI tests plus a Poppler render verify local structure and visual
+placement; Acrobat, Preview, MobileSheets, Piascore and Android viewer checks remain manual QA.
+
+S253 VERIFIED LOCAL: added a pressure-sensitive pen path to the editable-PDF compatibility fixture and made every
+external viewer target list its variable-width `/Ink` appearance as a required check. The exporter regression reads
+the generated `/AP` stream and requires distinct segment widths; fixture generation also names the pressure annotation.
+Focused exporter/report/CLI tests, full format, analyze, regression suite and RC release checks passed. Poppler render
+shows the expected thin-to-thick-to-thin stroke; real stylus capture and external viewer appearance remain device/manual QA.
+
+S254 VERIFIED LOCAL: the external compatibility fixture now begins from a real three-page score, reorders its PDF page
+tree to `3, 1, 2`, and applies the 90-degree rotation plus offset CropBox to the current second page before exporting
+annotation anchors. The generator and CLI regression prove that only current page 2 carries the fixture annotations;
+Poppler renders show the blank first page and the expected page-2 anchors. An exporter regression also writes line
+annotations through the full 90/180/270-degree path with an offset CropBox and reopens their exact `/L` coordinates.
+External viewer confirmation remains manual QA.
+
+S255 VERIFIED LOCAL: connected the safe direct-folder catalog model to Android without turning it into persistent
+direct reference. `폴더에서 PDF 고르기` launches an `ACTION_OPEN_DOCUMENT_TREE` picker, shows direct-child candidates
+before library mutation, blocks existing or in-folder duplicate names plus unreadable/unsupported entries, and copies
+only the selected ready PDFs through the existing shared-PDF import path. SAF document URIs remain transient and are
+not written into score metadata or backups. Focused catalog/gateway/sheet tests cover duplicate blocking, token
+redaction, selected-token copy requests and disabled blocked candidates; Android provider, cancel and large-folder
+flows remain Device QA.
+
+S256 IMPLEMENTED — ANDROID COMPILE/DEVICE QA PENDING: made Android folder-copy batches all-or-nothing before they enter the library pipeline. The
+native bridge now rejects non-content tokens and cleans every cache copy made for the batch when any selected PDF
+cannot be read, rather than importing a silent subset. The shared-PDF cache helper also removes a partially written
+file after a stream failure. Provider-offline and permission-loss behavior remains Android Device QA.
+
+S257 VERIFIED LOCAL: added a read-only PDF outline browser for long scores without adding thumbnail rendering or
+mutating the score library. The viewer keeps each loaded outline item's nesting depth, shows the hierarchy and target
+page in a scrollable sheet, marks the current page and jumps directly when an item is tapped. The existing explicit
+`PDF 목차 가져오기` action remains separate for users who want persistent Clef bookmarks. Focused widget coverage
+checks hierarchy display, current-page state and page selection; nested/large outlines and real PDF navigation remain
+Device QA.
+
+S258 VERIFIED LOCAL: connected Android folder-copy hints to persisted score provenance without turning the feature
+into direct reference. Native copy results receive provenance only when their returned file name matches one unique
+selected source; mismatches remain unlabelled rather than guessing by batch order. The score stores platform,
+folder/provider labels, original display name, size and modification time, and the metadata editor shows the location
+read-only. The model has no URI or document-token field, and focused model/gateway/import/UI tests prove round-trip,
+restart persistence, mismatch fallback and sensitive-token redaction. Android native compilation and real provider,
+backup-restore and information-dialog checks remain Device QA.
+
+S259 VERIFIED LOCAL: hardened the folder-provenance boundary against provider-controlled labels. URI-shaped required
+hints now discard provenance without blocking the copied PDF, URI-shaped optional folder/provider labels are omitted,
+and persisted hint lengths are capped. Metadata backup coverage explicitly verifies the remaining display hints survive
+round-trip while no content URI or document-token key is emitted. Real Android providers and full backup handoff remain
+Device QA because the native bridge is still uncompiled in this checkpoint.
+
+S260 VERIFIED LOCAL: closed the basic plain-text score gap without treating arbitrary rich documents as safe text.
+The named Text/ChordPro import surface now accepts `.txt`, `.text`, `.md` and `.markdown` files up to 2 MiB, rejects
+empty or oversized input before library mutation, copies accepted bytes into app-owned storage and saves a normal
+library score through the existing rollback-aware import path. Opening that score routes to a selectable read-only
+text viewer rather than the PDF viewer; the bounded loader caches its file Future so rebuilds cannot restart loading.
+ChordPro retains its structured viewer and DOCX/RTF still receive PDF-conversion guidance. Focused policy, store,
+controller and widget tests cover extension recognition, storage, failure recovery, UI import and viewer rendering.
+
+S261 VERIFIED LOCAL: extended Clef setlist packages beyond PDF/image-only assumptions. Package ZIP export/import now
+classifies PDF, JPG/PNG, plain text and ChordPro explicitly, preserves text source bytes and extensions, records each
+score format in the readable manifest and routes imported files through their existing app-owned storage paths.
+Dry-run preview blocks empty, over-2-MiB and malformed UTF-8 text before library mutation; package metadata no longer
+erases composer, note or custom fields parsed from ChordPro when the manifest omits them. Full-backup regression proves
+plain text and ChordPro bytes, extensions and setlist references survive export/restore. Focused package/controller/store
+tests pass 324/324; mixed-format package sharing and viewer routing remain Device QA.
+Full validation also passes `flutter analyze`, all 1,664 tests and the RC release check.
+
+S262 VERIFIED LOCAL: made setlist package file creation cleanup-aware. If package metadata persistence fails or the user
+switches libraries before the transaction is committed, Clef now removes newly copied PDF/image/text/ChordPro files
+only when no library profile references them. Cleanup is restricted to Clef-managed score/text/linked-file directories,
+preserves external and persisted files, and cannot hide the original import error. Store and controller regressions cover
+the reference guard and failed-save cleanup; metadata rollback failure remains outside the data-preservation guarantee.
+Validation passes focused controller/store tests, `flutter analyze`, all 1,666 tests and the RC release check.
+
+S263 VERIFIED LOCAL: added long ChordPro score navigation without changing source or display settings. The viewer now
+derives named jump targets from rendered section/comment/chorus/verse/bridge/tab/page/column directives and exposes a
+text-labelled `구간` menu in the app bar. Selecting a target scrolls its rendered line into view; scores without named
+directives keep the action hidden. Parser/renderer and widget regressions cover labels, indexes and the menu-to-line path.
+Validation passes `flutter analyze`, all 1,667 tests and the RC release check.
+
+S264 VERIFIED LOCAL: added in-view search for stored plain-text scores. A text-labelled `찾기` action opens an app-bar
+query field, highlights case-insensitive matches and provides named previous/next controls with the active result count.
+Navigation scrolls toward each match, wraps at either end and caps highlighted results at 500 to keep near-limit files
+responsive. Closing search restores the score title and selection-oriented viewer. Widget regression covers the full flow.
+Validation passes focused smoke tests, `flutter analyze`, all 1,667 tests and the RC release check.
+
+S265 VERIFIED LOCAL: added bounded DOCX-to-text import without introducing a full document editor. Clef reads paragraph,
+tab and line-break content plus optional core title/creator from `word/document.xml`, stores the extracted UTF-8 text in
+the existing selectable/searchable viewer and preserves the original DOCX as a reference linked file. Input, expanded ZIP
+and XML size caps plus malformed/empty document rejection run before library mutation. Save failure removes unreferenced
+managed copies, and full-backup regression restores both extracted text and original DOCX bytes. Table structure, images,
+footnotes and formatting fidelity, RTF parsing and DOCX originals inside setlist packages remain explicit follow-up gaps.
+Validation passes 425 focused tests, `flutter analyze`, all 1,675 tests and the RC release check.
+
+S266 VERIFIED LOCAL: preserved imported DOCX originals when sharing and restoring Clef setlist packages. Package export
+now detects the managed DOCX reference behind an extracted text score, writes that original `.docx` entry instead of a
+lossy `.txt` substitute, records DOCX in the manifest and validates the bounded ZIP/XML payload before import. Package
+import routes DOCX bytes through the existing atomic DOCX store path, so a failed metadata/setlist save still cleans up
+new managed files. Regression coverage keeps ordinary PDF/text/ChordPro extension handling unchanged and proves DOCX
+export, validation and controller import. Table structure, images, footnotes and Word formatting fidelity remain outside
+the read-only viewer guarantee. Validation passes focused package/controller tests, `flutter analyze`, all 1,678 tests
+and the RC release check.
+
+S267 VERIFIED LOCAL: added bounded RTF-to-text import instead of treating `.rtf` as an opaque unsupported document.
+The parser preserves paragraphs, line breaks, tabs, escaped punctuation and signed Unicode text while skipping font/color
+tables, images, objects and optional destinations. Clef stores the extracted text in the existing selectable/searchable
+viewer, keeps the original RTF as a reference linked file and includes both files in full backup. The named import surface
+now exposes RTF selection, and controller regressions cover success plus metadata-save cleanup without false success.
+Fonts, colors, tables, images, embedded objects and rich formatting are not reproduced by the read-only viewer. Validation
+passes focused parser/store/controller/smoke tests, `flutter analyze`, all 1,687 tests and the RC release check.
+
+S268 VERIFIED LOCAL: completed RTF round-trip through Clef setlist packages. Package export now detects the original RTF
+reference behind an extracted text score, preserves its filename/bytes and records the RTF type in the manifest. Dry-run
+preview validates the bounded RTF parser before writes, and package import uses the same atomic RTF store path as direct
+file selection. Focused codec/export/controller regressions also keep DOCX and ordinary text package behavior intact.
+Validation passes `flutter analyze`, all 1,690 tests and the RC release check; one unrelated PDF compatibility CLI test
+timed out once under the first full parallel run, then passed alone and in the complete RC rerun.
+
+S269 VERIFIED LOCAL: bounded RTF parser structure as well as byte size. Clef now rejects documents whose group nesting
+exceeds 256 levels before extending parser state and continues to reject truncated `\\bin` payloads instead of treating
+their bytes as visible score text. Focused regressions cover both malformed inputs while preserving ordinary grouped RTF.
+Rich formatting fidelity, embedded binary assets and compatibility with every RTF producer remain outside this text-only
+import guarantee.
+
+S270 VERIFIED LOCAL: added in-view search to stored ChordPro scores without editing their source. The familiar search
+action matches the currently rendered chord rows, lyrics and rehearsal labels, reports up to 500 matching lines, wraps
+previous/next navigation and scrolls to a visibly highlighted active line. Named section navigation and persisted
+transpose/capo display settings remain available outside search mode. Widget regression covers a two-result lyric search,
+next-result movement, active-line highlighting and closing the search surface. Editable source and a dense chord-grid
+layout remain follow-up work.
+
+S271 VERIFIED LOCAL: hardened stored ChordPro reopening against files changed after import. The viewer now enforces the
+same 2 MiB boundary as import, rejects malformed UTF-8 and empty source before parsing, and reports the failure as a
+ChordPro score problem instead of the misleading shared PDF error. Plain-text viewer failures likewise use a text-score
+label while PDF behavior remains unchanged. Widget regression covers oversized and malformed source with explicit error
+copy; file repair and source editing remain outside the read-only viewer.
+
+S272 VERIFIED LOCAL: removed stale text-import guidance after DOCX and RTF support landed. The ChordPro preview no longer
+claims direct DOCX reading is future work, the unsupported-format fallback lists the actual PDF/image/text/ChordPro/DOCX/
+RTF read-only boundary, and QA wording names the same import surface. Smoke and policy assertions prevent the obsolete
+copy from returning while keeping unsupported legacy formats on the PDF-conversion path.
+
+S273 VERIFIED LOCAL: aligned setlist package copy with its mixed-format codec. Import preview, export preview and
+unsupported-entry guidance now share one PDF/image/text/ChordPro/DOCX/RTF label instead of omitting the original DOCX and
+RTF files that the package already validates and preserves. Unit and widget regressions keep the shared label and export
+surface synchronized; rich DOCX/RTF layout remains outside the read-only import guarantee.
+
+S274 VERIFIED LOCAL: hardened stored plain-text reopening against files changed after import. The selectable viewer now
+reapplies the import boundary for 2 MiB size, strict UTF-8 and non-empty content instead of rendering replacement glyphs
+or a blank document as if it were valid. Widget regression covers all three failures with text-specific recovery copy;
+source repair and editing remain outside the read-only viewer.
+
+S275 VERIFIED LOCAL: closed malformed-text and oversized-paste bypasses in the user-facing text import paths. Plain-text
+and ChordPro file selection now reject empty, over-2-MiB and non-UTF-8 bytes in the controller before even a mocked store
+can mutate the library, while the concrete plain-text store also decodes strictly. Pasted ChordPro enforces the same byte
+ceiling in controller and store. Store/controller regressions verify rejection without a score or rewritten replacement
+glyphs; editable source remains outside this read-only flow.
+
+S276 VERIFIED LOCAL: routed selected ChordPro files through the byte-preserving store path instead of decoding and
+rewriting every source as `.chordpro`. `.onsong` and the other supported extensions now retain their original bytes and
+extension. ChordPro and plain-text file imports also use the DOCX/RTF cleanup pattern: a library switch, metadata save
+failure or later exception discards only the newly copied unreferenced file and never reports success. Controller
+regressions cover original-file handoff and cleanup after failed persistence.
+
+S277 VERIFIED LOCAL: added delayed file-import regressions for ChordPro and plain text. When a copied file finishes after
+the user has switched libraries, neither destination library receives a stale card or error, the source library keeps its
+previous durable scores, and the uncommitted copied file is offered to the cross-profile reference-aware cleanup path.
+
+S278 VERIFIED LOCAL: added a persisted 0-12 fret capo override to the stored ChordPro viewer so players can test alternate
+capo shapes without editing the original source. The source capo remains the default, each step immediately enables the
+matching fingering view, zero disables it, and `원래대로` clears the override. Model normalization/round-trip, controller
+persistence and viewer reopen regressions cover clamping, reset and restoration; actual readability remains Device QA.
+
+S279 VERIFIED LOCAL: restored per-song metronome settings when importing Clef setlist packages. A backward-compatible
+manifest codec reads the existing BPM/meter/volume text and now preserves subdivision, muted volume, accent state/pattern
+and count-in for new packages. Imported settings are stored as setlist overrides for both existing and newly copied scores,
+survive reload, and malformed core settings are ignored rather than producing unsafe performance defaults.
+
+S280 VERIFIED LOCAL: closed the matching metronome gap in copied-manifest setlist import. Package and plain-text sharing
+now use one manifest codec, so pasted fully matched lists restore the same per-song BPM, meter, subdivision, sound/volume,
+accent and count-in overrides as ZIP packages. Draft and UI sharing regressions preserve the legacy text format while
+avoiding divergent encoders.
+
+S281 VERIFIED LOCAL: made the setlist package boundary explicit before annotation fidelity work. Export and import
+previews now state that per-score annotations and linked audio/files are not transferred and direct users to full backup
+when they need complete library movement. This prevents the lightweight performance package from being mistaken for a
+full backup while annotation merge and collision policy remain unresolved.
+
+S282 VERIFIED LOCAL: defined and enforced the first safe setlist-package annotation sidecar boundary without claiming
+that library import already restores handwriting. The optional envelope binds one committed annotation document to a
+safe `scores/` entry and its SHA-256 under a deterministic `annotations/` path, excludes undo history and local score ids,
+and rejects unsafe paths, malformed UTF-8/JSON, silent object loss, duplicate ids, unknown layers and bounded-size/object/
+point violations. Package ZIP encode/decode now carries validated optional sidecars, rejects orphan, duplicate and
+score-checksum-mismatched entries, and keeps older packages without sidecars readable. The spike contract keeps existing
+matched scores unchanged by default, requires explicit preview for partial annotation skips and reserves export loading,
+preview and storage transaction wiring for the next slices. Regressions cover a multi-layer round trip and the principal
+corruption/collision cases.
+
+S283 VERIFIED LOCAL: carried validated annotation sidecars into setlist-package dry-run entries without applying them
+to library data prematurely. Preview now distinguishes sidecars attached to new score files from annotations belonging to
+already matched local scores, counts both groups and explicitly says the current import keeps existing annotations intact
+and imports only scores/setlist data. This avoids silent partial behavior for externally produced sidecar packages while
+the annotation storage transaction is still pending. Model regressions preserve ordinary packages with no sidecars.
+Focused package tests passed 35 cases; `flutter analyze`, all 1,707 tests and the RC release check passed.
+
+S284 VERIFIED LOCAL: tightened the package image-stamp boundary before wiring imported assets into local storage. ZIP
+encode and decode now compare every included image stamp's actual SHA-256, byte size, decodability and pixel dimensions
+with its metadata and reject mismatches instead of allowing a broken or substituted asset to reach the library import.
+Real PNG fixtures replace placeholder bytes and cover both locally encoded and externally assembled mismatched packages.
+
+S285 VERIFIED LOCAL: completed collision-safe image stamp asset storage for setlist package import. Only newly added stamp
+ids request their referenced assets; identical local bytes are reused, a different file at the same asset path is never
+replaced, and metadata is merged only after every required asset is available. A failed stamp metadata save or library
+switch removes assets created by that request while preserving the already committed score/setlist import and reports the
+non-fatal stamp failure. Controller regressions cover successful storage, path conflict preservation and save-failure
+cleanup without weakening built-in stamp availability. `flutter analyze`, all 1,712 tests and the RC release check passed.
+
+S286 VERIFIED LOCAL: opened the first annotation sidecar restore path without weakening the no-overwrite rule. Import
+preview now separates restorable new PDF/image score annotations from protected existing-score, text-score and image-stamp
+sidecars. New eligible scores persist their committed stroke/text/multi-layer document in the same score/setlist metadata
+transaction, while an existing local score keeps its own annotations unchanged. Image-stamp sidecars remain deferred until
+their placed asset references can be bound to the collision-safe package asset transaction. `flutter analyze`, all 1,714
+tests and the RC release check passed.
+
+S287 VERIFIED LOCAL: connected app-generated setlist packages to the safe annotation sidecar path. Export now includes
+committed stroke/text/multi-layer documents for uniquely sourced PDF/image scores, binds each sidecar to the exact bytes
+placed in the ZIP and reports included/omitted annotation counts before sharing. It deliberately omits annotations for
+scores sharing one source file, text/DOCX/RTF scores and documents containing image stamps instead of choosing or claiming
+a partial result. The normal UI export path now also reads app-owned image stamp assets so referenced user stamp packs can
+carry their validated PNG/JPEG/WebP files. Regressions cover sidecar round-trip, shared-source protection and explicit
+text/image-stamp deferral; external package size and Device QA remain follow-up.
+`flutter analyze`, all 1,717 tests and the RC release check passed.
+
+S288 VERIFIED LOCAL: completed collision-safe image-stamp annotation transfer for setlist packages. ZIP encode/decode now
+rejects annotation sidecars whose image stamp references are not backed by validated package stamp metadata and asset
+bytes. Export includes those sidecars when every referenced PNG/JPEG/WebP asset is complete and reports only incomplete
+image-stamp documents as omitted. Import preview marks complete sidecars as restorable; the controller stores their assets
+before the score/setlist metadata transaction, reuses identical local bytes, refuses a different file at the same path,
+and removes only assets created by the failed request when metadata persistence fails. Existing local scores and text
+scores remain protected from annotation overwrite. Regressions cover codec rejection, export/dry-run eligibility,
+successful restore, local collision preservation and save-failure cleanup. Large mixed-package and external-device QA
+remain follow-up.
+`flutter analyze`, all 1,721 tests and the RC release check passed.
+
+S289 VERIFIED LOCAL: bounded setlist package ZIP resource use before the next mixed-package Device QA pass. Import and
+export now share limits of 256 MiB compressed, 512 archive entries, 128 MiB per entry and 256 MiB total uncompressed
+content. The picker rejects an oversized archive before loading its bytes, while the lazy ZIP directory is checked before
+entry contents are decompressed. App-generated packages pass through the same policy so Clef cannot create an archive it
+will immediately refuse. Codec regressions cover compressed size, per-entry size, expanded total, entry count and export
+limits. Real large PDF/image/text/stamp combinations within the boundary remain Device QA.
+`flutter analyze`, all 1,724 tests and the RC release check passed.
+
+S290 VERIFIED LOCAL: preserved placed image-stamp annotations in setlist packages after their picker definition is
+deleted. Export now reads image assets referenced directly by eligible annotation sidecars, validates safe `stamps/`
+paths, size, decodability and pixel limits, and includes the bytes without synthesizing user stamp metadata. Import stores
+the asset collision-safely using its actual SHA-256, restores the annotation on a new PDF/image score and leaves the user
+stamp picker unchanged. Malformed image decoders are normalized to package format failures instead of leaking arbitrary
+decoder exceptions. Regressions cover export/dry-run, restore without picker resurrection and malformed image rejection.
+Large mixed-package and external-device QA remain follow-up.
+`flutter analyze`, all 1,728 tests and the RC release check passed.
+
+S291 VERIFIED LOCAL: preserved separate annotations for songbook entries that share one source PDF. Export now keeps the
+existing single-file deduplication when the shared source has no transferable annotations, but assigns a distinct package
+score entry to each annotated card so the existing v1 sidecar path/checksum contract remains unambiguous. Import restores
+each card and its own committed stroke/text/layer document without introducing a new sidecar schema or choosing one card's
+annotations for another. Package codec and controller regressions cover both distinct restore and the unchanged unannotated
+dedupe path. Text/DOCX/RTF annotations remain outside this transfer boundary.
+`flutter analyze`, all 1,729 tests and the RC release check passed.
+
+S292 VERIFIED LOCAL: kept ChordPro chords attached to their lyric segments instead of rendering an independent monospace
+chord row over proportional Korean/Latin lyrics. Structured display lines now retain every source token, including text
+before the first chord, and the viewer wraps chord/lyric cells together when space is narrow. Transpose, capo-shape,
+search and section navigation continue to use the same rendered document. Parser/widget regressions cover segment content,
+capo shapes and a 320px-wide viewer without overflow; multi-column chord-grid layout and source editing remain follow-up.
+`flutter analyze`, all 1,730 tests and the RC release check passed.
+
+S293 VERIFIED LOCAL: added a named `원문 편집` flow to stored ChordPro scores. The full-screen editor enforces the existing
+strict UTF-8, non-empty and 2 MiB boundary, replaces the source through a same-directory temporary file and immediately
+reloads rendered chords/lyrics. Library title, composer and other curated metadata are deliberately preserved instead of
+being silently replaced by edited directives. If score metadata persistence fails, the previous source bytes and score
+record are restored; a delayed edit that completes after a library switch also rolls the source back and cannot write into
+the destination library. Controller and widget regressions cover success, invalid input, save failure, library switching
+and viewer reload. Multi-column chord-grid layout remains follow-up.
+
+S294 VERIFIED LOCAL: made Android SAF folder access reusable without turning external files into fragile live scores.
+Folders whose providers grant persistent read access now appear in a device-local connection sheet and can be reopened or
+forgotten after app restart; providers that only grant transient access still complete the current import and show a clear
+one-use notice. Selected PDFs continue through the existing cache copy and library import pipeline, so removing or
+renaming the source cannot break an imported score. Tree/document URIs remain outside score metadata, backups and support
+reports. Gateway and small-screen widget regressions cover listing, reopening, forgetting, unavailable connections and
+the transient fallback. Android Kotlin compilation, `flutter analyze`, all 1,739 tests and the RC release check passed.
+Reboot, provider revocation and removable-storage behavior remain Device QA; app-copy-free direct scores and iOS Files
+parity remain separate gaps.
+
+S295 VERIFIED LOCAL: added a per-score `1단`/`2단` layout to the stored ChordPro viewer on wide tablet screens without
+rewriting the source. Two-column layout prefers an explicit `{colb}` marker and otherwise splits near the document midpoint
+at a section directive, while transpose/capo display settings, search and section navigation continue to use the same
+rendered lines. Narrow phones force an effective single column without discarding the saved tablet preference. Model,
+controller, renderer and widget regressions cover normalization, persistence, explicit and automatic splitting, tablet
+placement and phone fallback. `dart format`, `flutter analyze`, all 1,742 tests and the RC release check passed. Actual
+tablet readability, large text scaling and very long performance documents remain Device QA.
+
+S296 VERIFIED LOCAL: closed the plain-text source editing gap without treating extracted DOCX/RTF text as an editable
+original. Stored `.txt`, `.text`, `.md` and `.markdown` scores now expose a named `원문 편집` action, apply the existing
+strict UTF-8, non-empty and 2 MiB boundary, replace the app-owned file atomically and reload the viewer immediately.
+Library title/composer metadata stays independent from the file body. Metadata save failure or a library switch during a
+late edit restores the previous source and cannot report success in the destination library. Controller and widget
+regressions cover successful editing, extension/metadata preservation, failed-save rollback, library-switch rollback and
+viewer refresh. `dart format`, `flutter analyze`, all 1,746 tests and the RC release check passed. DOCX/RTF extracted
+views remain intentionally read-only so edits cannot diverge silently from their preserved original documents.
+
+S297 VERIFIED LOCAL: improved DOCX table readability without claiming Word layout fidelity. The bounded extractor now
+walks body blocks in document order, emits each table row on one line, separates cells with tabs and keeps multiple
+paragraphs in a cell with a readable separator. Nested table ownership avoids duplicating inner rows into outer tables.
+The original DOCX remains a reference file and package/backup behavior is unchanged. Focused parser regression,
+`flutter analyze`, all 1,747 tests and the RC release check passed. Merged cells, images, footnotes, fonts and visual table
+layout remain outside the guarantee and require real-document QA.
+
+S298 VERIFIED LOCAL: preserved the readable meaning of common DOCX numbered and bulleted lists. The bounded extractor
+reads an optional 1 MiB `numbering.xml`, tracks list counters in document order and renders nested decimal, letter, Roman
+and bullet markers with indentation while leaving the original DOCX untouched. Missing, oversized or malformed optional
+numbering metadata falls back to paragraph text instead of blocking import. Parser regressions cover nested lists, custom
+starts, letter/Roman formats and damaged metadata. `dart format`, `flutter analyze`, all 1,750 tests and the RC release
+check passed. Word-specific custom numbering glyphs, layout fidelity and list override semantics remain outside the
+guarantee and require real-document QA.
+
+S299 VERIFIED LOCAL: closed orphaned app-owned file paths across PDF import failures before expanding connected-folder
+formats. Single PDF, batch PDF, image-to-PDF and shared/folder-copy imports now track newly created scores and ask the
+store to remove only files that are not referenced by any persisted library when duplicate matching, a library switch,
+a later file write or metadata persistence prevents completion. Batch PDF import reads selected inputs before writes and
+cleans earlier writes if a later write fails; image conversion likewise cleans the generated PDF and earlier source-image
+references if a later linked image fails. Existing persisted files remain protected by the store's all-profile reference
+scan. Controller/store regressions cover duplicate open, save failure, delayed library switch, shared partial failure,
+batch write failure and linked-image failure. `dart format`, `flutter analyze`, all 1,753 tests and the RC release check
+passed. Forced process termination and best-effort cleanup failure remain outside the guarantee.
+
+S300 VERIFIED LOCAL: expanded the Android connected-folder copy flow from PDF-only to the score formats Clef already
+understands: PDF, plain text/Markdown, ChordPro, DOCX and RTF. The read-only SAF catalog identifies those formats before
+copying, keeps unsupported/unreadable/duplicate names blocked and sends only the selected transient document tokens to a
+native cache copy. The controller dispatches each copied file through its existing format parser and app-owned storage,
+preserves redacted folder/provider provenance and commits the mixed batch only after every item succeeds. Unsupported or
+damaged later items clean earlier app-owned results without saving a partial list; the UI also removes consumed native
+cache files best-effort. Existing score primary paths, provenance names and linked original labels all participate in
+repeat-folder duplicate checks, including DOCX/RTF scores whose readable primary file is extracted text. Catalog, widget,
+gateway and controller regressions, Android `compileDebugKotlin`, `flutter analyze`, all 1,755 tests and the RC release
+check passed. Provider reboot/revocation, cloud-offline behavior, large mixed folders and original-file deletion remain
+Device QA; this is still copy-on-select rather than live folder synchronization or app-copy-free direct reference.
+
+S301 VERIFIED LOCAL: enforced the existing DOCX/RTF read-only promise at the viewer and controller boundaries. Extracted
+document scores are identified by their normalized source metadata or preserved DOCX/RTF reference file, so editing the
+visible `.txt` extract cannot silently diverge from the original document even if metadata is changed. The text viewer now
+shows a compact `읽기 전용` marker, keeps search available and omits the source editor; direct controller calls reject the
+same edit without touching the file or library state. Ordinary `.txt/.text/.md/.markdown` source editing remains enabled.
+Model, controller and widget regressions, `flutter analyze`, all 1,758 tests and the RC release check passed. Rich document
+layout editing and round-trip writes to DOCX/RTF remain outside the supported boundary.
+
+S302 VERIFIED LOCAL: added per-score ChordPro reading size without changing source text or relying only on the device-wide
+accessibility setting. The existing display controls now offer named 85/100/115/130% choices, apply the selected scale to
+section labels, chords and lyrics together, persist it with transpose/capo/column settings and include it in `원래대로`.
+Legacy score records default to 100%, unsupported persisted values normalize to the nearest supported step, and the app's
+system text scale still composes with the selected score scale. Model, controller and widget regressions, `flutter analyze`,
+all 1,758 tests and the RC release check passed. Actual tablet stand-distance readability, 130% with large system text and
+very long two-column songs remain Device QA.
+
+S303 VERIFIED LOCAL: added the same per-score 85/100/115/130% reading-size control to ordinary text and extracted DOCX/RTF
+scores. The selected size scales the selectable/searchable body, survives viewer re-entry through score metadata and keeps
+document extracts explicitly read-only. Legacy records default to 100%, unsupported values normalize to the nearest step,
+and a failed metadata write restores the previous value without reporting success. Model, controller and widget regressions
+cover persistence, rollback, a 390px document viewer and unchanged search/edit boundaries. `dart format`, `flutter analyze`,
+all 1,761 tests and the RC release check passed. Tablet stand-distance readability, 130% combined with large system text and
+long real DOCX/RTF extracts remain Device QA.
+
+S304 VERIFIED LOCAL: made reusable Android folder scans distinguish a changed source without turning copy-on-select into
+live sync. When a saved `android-saf-copy` provenance record matches the reopened folder/provider and file name, the catalog
+compares available size and modified time. Changed files appear as blocked `원본 변경` items and the sheet reports their
+count; unchanged prior imports receive a clearer already-imported message. Clef never selects or overwrites either case, so
+the existing app-owned score, metadata and annotations remain untouched. Catalog/widget regressions, `flutter analyze`, all
+1,764 tests and the RC release check passed. Provider timestamp fidelity, reboot/revocation, cloud-offline behavior and any
+explicit manual-update flow remain Device QA/follow-up; this is not automatic sync or app-copy-free direct reference.
+
+S305 VERIFIED LOCAL: connected each changed Android folder source warning to its exact app-owned score without adding an
+implicit update path. The catalog now retains the matched score id only for sanitized `android-saf-copy` provenance from the
+same folder/provider, and `기존 악보 열기` dismisses the import sheet before using the normal viewer route. Changed files
+remain unselected and never overwrite the score, metadata or annotations; a missing score id produces a safe library-check
+message instead of importing another copy. Typed copy/open actions and a 390px long-file-name layout have widget coverage.
+`dart format`, `flutter analyze`, all 1,765 tests and the RC release check passed. Explicit format-aware source replacement,
+provider timestamp fidelity and Android provider lifecycle remain follow-up/Device QA.
+
+S306 VERIFIED LOCAL: added an explicit layer-wide annotation move for reorganizing a score without tapping every object.
+The active layer menu reports the number of stroke/text/stamp annotations, lets the user choose another existing layer and
+requires confirmation before moving all objects plus related undo/redo and erase payloads. The source layer remains available
+but empty, unrelated layers stay unchanged, the target becomes active and same/missing/empty moves are safe no-ops. Model,
+controller and widget regressions cover persisted moves, history payload rekeying, menu access and count copy. `dart format`,
+`flutter analyze`, all 1,767 tests and the RC release check passed. Arbitrary-object multi-select/drag remains a separate gap,
+and real stylus use, layer visibility/export behavior after moving and restart persistence remain Device QA.
+
+S307 VERIFIED LOCAL: turned a changed Android connected-folder PDF warning into an explicit, non-sync replacement flow.
+The changed row still blocks ordinary import and opens the existing score first, but now also offers `변경 PDF 적용` for
+PDFs only. After confirmation Clef asks the provider for a fresh cache copy, writes a new app-owned PDF and preserves the
+score id, title/metadata, annotations and setlist references while retaining the previous PDF as a linked edited copy. A
+library/score change or metadata save failure discards the unreferenced new copy, reports no success and restores the prior
+score; unusable native cache responses are cleaned best-effort. Typed UI and controller regressions cover the action,
+metadata preservation and failed-save recovery. `dart format`, `flutter analyze`, all 1,769 tests and the RC release check
+passed. Provider revocation/reboot and real replacement rendering remain Device QA; text/ChordPro/DOCX/RTF replacement,
+app-copy-free direct references, automatic sync and iOS Files parity remain separate follow-ups.
+
+S308 VERIFIED LOCAL: extended the explicit connected-folder source refresh from PDF to plain text/Markdown and ChordPro
+without turning it into synchronization. Changed rows expose `변경 원본 적용` only for formats whose existing parser and
+storage path can produce one new app-owned primary file. Clef requires the replacement to match the current source kind,
+validates it through the existing importer, preserves the score id, title/metadata, annotations and setlist references and
+keeps the prior source as a linked edited copy. DOCX/RTF remain read-only changed warnings because replacing their extracted
+text and original reference requires a separate transaction. UI/controller regressions cover PDF/text/ChordPro action
+boundaries, text/ChordPro state preservation and cross-format rejection. `dart format`, `flutter analyze`, all 1,773 tests
+and the RC release check passed. Real provider behavior and replacement rendering remain Device QA.
+
+S309 VERIFIED LOCAL: completed the explicit connected-folder refresh boundary for imported DOCX and RTF without adding
+live synchronization. The existing bounded document importer now supplies a new read-only text extract and a new original
+reference as one replacement transaction. Clef refuses a document result without that reference, preserves the score id,
+user metadata, annotations and setlist references, keeps exactly the new source as `Reference` and retains the previous
+extract and original as `Edited copy` files. Save failure asks the store to discard both newly managed files and leaves the
+persisted score unchanged. Widget/controller regressions cover the new named action, DOCX/RTF state preservation, malformed
+importer output, two-file cleanup and cross-format rejection. `dart format`, `flutter analyze`, all 1,777 tests and the RC
+release check passed. Real provider behavior, document re-extraction and restart/backup visibility remain Device QA; this is
+still explicit copy-on-update rather than app-copy-free direct reference or automatic sync.
+
+S310 VERIFIED LOCAL: made retained text revisions usable after an explicit source refresh without switching the score back
+to an obsolete file. The linked-file sheet now recognizes plain text and ChordPro edited copies, opens a full-screen
+`읽기 전용 사본` preview and renders ChordPro through the existing readable chord/lyric renderer. The preview applies the
+same 2 MiB, strict UTF-8 and non-empty boundary as import, while keeping the current score source, metadata, annotations and
+provenance unchanged. Previous DOCX/RTF text extracts use the same preview; their retained original document references are
+still storage/share artifacts rather than app-rendered files. Policy and widget regressions cover type detection, ChordPro
+rendering, damaged/oversized input and the read-only surface. `dart format`, `flutter analyze`, all 1,781 tests and the RC
+release check passed. Real connected-folder refresh, long historical text readability and restart/backup visibility remain
+Device QA.
+
+S311 VERIFIED LOCAL: added a platform-common mixed score batch import without treating it as persistent folder sync.
+`여러 악보 파일 가져오기` uses the system picker to select up to 200 PDF, plain text, ChordPro, DOCX and RTF files,
+previews each format, path availability and duplicate status, and only hands a fully valid selection to the existing atomic
+importer. A blocked picker item or later parse, storage or metadata failure leaves no partial batch. Android connected-folder
+reuse and change detection remain separate; iOS Files and iCloud use this one-time picker and do not gain persistent folder
+references. Policy and widget regressions cover supported mixed batches, unavailable, unsupported and duplicate inputs, the
+count cap, confirmation, and a 320x568 forty-file preview. `dart format`, `flutter analyze`, all 1,787 tests and the RC
+release check passed. Real Android and iOS cloud-provider downloads and large file batches remain Device QA.
+
+S312 VERIFIED LOCAL: connected the mixed score preview to the existing bulk setlist workflow without adding another import
+menu item. A named checkbox lets the user request an existing or new setlist after the atomic PDF/text/ChordPro/DOCX/RTF
+import succeeds. Invalid batches cannot select the option; cancelling the target picker or a later setlist-save failure keeps
+the imported scores in the library and never reports that the setlist update succeeded. Successful additions reuse duplicate
+and missing-score reporting and offer the normal setlist shortcut. Widget regressions cover the default choice, enabled
+choice, blocked choice and the forty-file compact preview. `dart format`, `flutter analyze`, all 1,788 tests and the RC release
+check passed. Real cloud-provider selection, setlist creation and large mixed batches remain Device QA.
+
+S313 VERIFIED LOCAL: exposed the existing leader/follower preflight, QR and reducer work through an explicitly developer-only
+same-device route under Help/Feedback. The lab selects a real setlist, blocks stale references to missing scores, renders the
+versioned invite QR/copy fallback and replays each available score page plus disconnect and next-event recovery into the
+existing step report. Its first banner states that no tablet connection or page transmission occurs, so it cannot be mistaken
+for released collaboration. Empty, complete and missing-score widget regressions plus the named Help route cover phone,
+landscape and tablet text scales. `dart format`, `flutter analyze`, all 1,791 tests and the RC release check passed. Camera QR
+scan, network transport, latency/reconnect behavior and two-device interoperability remain implementation and Device QA gaps.
+
+S314 VERIFIED LOCAL: made backup restore conflict review specific enough to act on before a destructive replacement. The
+backup diff now retains per-score and per-setlist details for additions, removals and changes, including safe titles,
+composer/source or score-count context, changed metadata fields, original/linked file changes, annotation layer/object/storage
+risks and setlist order changes. Automatic metadata, selected JSON and full ZIP restore previews share a collapsed detail view;
+duplicate titles gain a short internal identifier and large libraries render the first 20 items plus the hidden count. This is
+still a full-backup replacement preview, not field-level merge or continuous cloud sync. Model, compact widget and restore
+dialog regressions cover conflict labels, duplicate disambiguation and bounded lists. `dart format`, `flutter analyze`, all
+1,793 tests and the RC release check passed. Account/provider sync, merge decisions and two-device conflict fixtures remain
+Later work.
+
+S315 VERIFIED LOCAL: made the same restore dry-run review portable without exposing original storage paths. Automatic
+metadata, selected JSON and full ZIP previews now offer `변경 검토 복사`; its bounded Markdown report includes summary,
+manual-review warnings and per-item type/change/title/context/risk labels, disambiguates duplicate titles with a short internal
+identifier and states that restore is a full replacement rather than field-level merge. The formatter can cap oversized
+reports and reports the hidden count. Unit and widget regressions cover redaction, duplicate labels, item limits, clipboard
+content and visible success feedback. `dart format`, `flutter analyze`, all 1,794 tests and the RC release check passed. It
+does not upload the report, synchronize accounts or make an automatic merge decision.
+
+S316 VERIFIED LOCAL: reduced the linked-audio practice gap without introducing waveform or DSP scope. Each audio link can
+now keep up to 12 named A-B ranges in addition to its backward-compatible last active range. The player sheet saves the
+current valid range under a short user name, exposes saved ranges as selectable/deletable chips and keeps the current range
+when a preset is removed. Invalid, duplicate-id or excess persisted markers are normalized; non-audio links discard marker
+metadata. Add/delete failures leave the visible and persisted preset list unchanged, while metadata backup/restore preserves
+the ranges. Model, widget and backup regressions cover normalization, limits, selection, save/delete failure and round-trip.
+`dart format`, `flutter analyze`, all 1,799 tests and the RC release check passed. Waveform navigation, iOS playback parity
+and actual loop timing remain separate implementation or Device QA work.
+
+S317 VERIFIED LOCAL: closed the missing iOS linked-audio method-channel path without claiming device audio quality. A
+dedicated AVAudioPlayer bridge now implements the same `clef/audio_player` play/stop and bounded A-B loop contract as the
+Android MediaPlayer path, uses a playback session that can mix with other practice audio, releases its timer/player/session
+on stop or decode failure and reports missing or failed files through the existing Flutter error surface. AppDelegate and
+the Xcode source phase wire the bridge explicitly; an XCTest source covers loop normalization and a Dart wiring regression
+guards the channel, methods and project membership. Swift format/typecheck, project plist validation, Xcode project resolution,
+`flutter analyze`, all 1,800 Flutter tests and the RC release check pass. The XCTest was not executed because this slice did
+not run an iOS build. Actual iPhone/iPad codecs, route changes, background behavior, Bluetooth and loop timing remain Device
+QA; metronome and drone iOS native parity remain separate work.
+
+S318 VERIFIED LOCAL: added the missing iOS native reference-tone/drone path without changing Clef's tuner controls. The
+`clef/tone_player` bridge now generates a bounded one-to-eight-frequency mono PCM buffer with `AVAudioEngine`, applies the
+existing clipping-safe app volume and loops a ten-second buffer whose component cycle counts are integral to reduce boundary
+seams. Input frequency and volume normalization match the Flutter contract. A shared owner-aware playback-session coordinator
+lets the tone bridge and linked-audio bridge coexist, and stopping either owner no longer deactivates the other's session.
+AppDelegate/Xcode source wiring, XCTest source normalization coverage and the Dart project-wiring regression were updated.
+Swift format/typecheck, project plist validation, Xcode project resolution, `flutter analyze`, all 1,800 Flutter tests and the
+RC release check pass. Xcode project resolution still reports the pre-existing generated-package warning for a missing
+`Resources/PrivacyInfo.xcprivacy`; this slice did not build iOS or execute XCTest. Actual iPhone/iPad volume, ten-second loop
+boundary, start/stop noise, latency, route changes, Bluetooth and concurrent linked-audio behavior remain Device QA.
+
+S319 VERIFIED LOCAL: replaced the missing iOS metronome native channel with preloaded AVAudioEngine clicks while retaining
+the existing Flutter beat/count-in/accent contract. The bridge prepares separate 45 ms regular/accent PCM buffers, applies
+the saved normalized volume, restarts a prepared node per audible beat and shares the owner-aware playback session with the
+tone and linked-audio bridges. A new best-effort `stop` contract releases the iOS engine/session when a running full or mini
+metronome stops or closes; Android accepts the same lifecycle call without discarding its static tracks. A two-second idle
+guard cleans up one-shot sound previews, while inactive metronome surfaces do not stop another active surface. Swift
+format/typecheck, project plist validation, Xcode project resolution, focused lifecycle/timing tests, `flutter analyze`, all
+1,801 Flutter tests and the RC release check pass. Xcode still reports the pre-existing generated-package
+`Resources/PrivacyInfo.xcprivacy` warning; this slice did not build iOS, execute XCTest or run a separate Android native
+compile. Actual Android/iPhone/iPad first-beat latency, 120/180/240 BPM regularity, drift, route changes, Bluetooth and
+concurrent practice-tool behavior remain Device QA; beat scheduling is still driven by Flutter timers rather than an audio
+clock.
+
+S320 VERIFIED LOCAL: traced the iOS package-resolution `Resources/PrivacyInfo.xcprivacy` warning to the locked
+`file_picker_darwin` 1.0.1 SwiftPM resource declaration rather than Clef's Runner privacy metadata. Updated the compatible
+`file_picker` 12.x federated set to 12.3.0 with Darwin 1.2.0 and platform interface 3.4.0; Darwin 1.2.0 carries the upstream
+target-relative resource path fix, while the coordinated Android/Linux/web/Windows implementations avoid the interface
+mismatch exposed by full Flutter compilation. A lockfile regression prevents returning below that compatible baseline, and
+a regenerated Flutter plugin package resolves through `xcodebuild -list` without the warning. This did not build or archive
+iOS, so final bundle privacy-manifest presence remains a release-build inspection rather than a completed claim.
+
+S321 VERIFIED LOCAL: extended the developer device report with a silent native practice-audio readiness probe rather than
+claiming listening quality from Flutter timer measurements. The action prepares the metronome click buffer, opens a 440 Hz
+drone output at zero app volume, records each bridge result separately and always sends best-effort stop calls. Missing or
+failed Android/iOS channels remain a visible warning in the copied Markdown/JSON report; a PASS only proves native
+initialization and explicitly leaves audible volume, latency, regularity, route and Bluetooth behavior to Device QA. Unit
+regressions cover both-ready and partial-failure cleanup, while the responsive named menu test guards the user-facing entry.
+
+S322 VERIFIED LOCAL: made linked-audio A-B practice ranges easier to place without claiming waveform analysis. Android and
+iOS now expose a silent `inspect` channel method that reads a local track's duration without starting playback or changing the
+active player. When inspection succeeds, the linked-audio sheet shows the total duration and a labeled range slider that stays
+in sync with the existing second fields; enabling an empty loop starts from the whole known track, and a B marker beyond the
+reported duration is rejected before save or playback. Inspection errors preserve the existing manual fields and playback
+path. Dart/native wiring and widget regressions cover duration parsing, fallback, range adjustment and out-of-range blocking.
+Actual MP3/M4A/WAV duration accuracy, touch ergonomics and A-B boundary timing remain Android/iOS Device QA; this is a
+duration-based timeline, not a waveform, seek-position display or tempo/pitch DSP.
+
+S323 VERIFIED LOCAL: expanded the developer device report's silent practice-audio probe to cover linked audio rather than
+leaving the new Android/iOS player bridge untested on each tester device. The check creates a 0.25-second mono PCM WAV in the
+OS temporary directory, verifies native duration inspection, starts the silent file, then always stops the player and deletes
+the fixture before reporting. Metronome, drone and linked-audio results remain independently visible so one failed bridge does
+not hide the others. Injected-channel regressions cover all-ready and partial-failure cleanup. This still proves only local
+file initialization; codec coverage, audible output, latency, route changes and A-B boundary timing remain Device QA.
+
+S324 VERIFIED LOCAL: reduced guesswork when setting a linked-audio practice range without adding background polling or
+waveform decoding. Both native players now expose a one-shot current-position snapshot while a track is active. The A-B sheet
+lets a performer capture the current playback position as A or B, rejects markers that would invert the range and states that
+the edited range takes effect after stopping and starting playback again rather than mutating an active native loop mid-beat.
+Unavailable or ended playback leaves the fields unchanged with a named prompt. Dart channel, Android/iOS wiring and widget
+regressions cover position parsing and both marker actions. Actual tap-to-sound latency and loop-boundary precision remain
+Device QA.
+
+S325 VERIFIED LOCAL: moved the cloud-sync conflict spike from a two-snapshot replacement diff toward a non-mutating
+three-way dry run. Given base, local and remote metadata snapshots, the core now classifies one-sided edits, identical edits,
+disjoint-field merge candidates and manual-review conflicts without applying any data. Same-field divergence, concurrent
+add collisions, delete-versus-edit and divergent app/practice-tool settings remain explicit conflicts; score, setlist and
+settings rows are deterministic and expose the conflicting field labels. Unit fixtures cover disjoint title/tag changes,
+overlapping title edits, delete-versus-edit, identical edits and annotation-preset settings conflicts. This does not provide
+an account, transport, timestamps/tombstones, automatic merge or rollback and must not be presented as continuous cloud sync.
+
+S326 VERIFIED LOCAL: extended the developer device report's temporary-WAV linked-audio probe through the new position and
+stop lifecycle contract. After native duration inspection and silent playback initialize, the checker records a bounded
+current-position/duration snapshot, sends stop and requires the active player to disappear; a missing position response or a
+player retained after stop remains a WARN instead of being hidden by the earlier play PASS. The fixture path and bytes are
+still excluded from the report and cleaned after the probe. Injected-channel regressions cover a complete pass, an unrelated
+drone failure, player-open failure and a deliberately retained player. This remains an initialization/lifecycle signal, not
+evidence of audible output, route behavior, latency, codec breadth or A-B boundary precision.
+
+S327 VERIFIED LOCAL: made the device report capture an anonymous output-route class during its silent drone probe instead of
+asking testers to infer every route manually. iOS reports only `AVAudioSession` port-type values and normalized system output
+volume; Android reports the active tone `AudioTrack` routed-device type after a short settle delay plus normalized music
+stream volume. Neither platform returns Bluetooth product names, addresses or identifiers. Missing/unknown route data is a
+WARN while the other bridge checks continue. Injected-channel and source-wiring regressions cover the route response and
+privacy boundary; Swift formatting/parsing passes. Android native compilation remains for the next approved build because the
+project has no Gradle wrapper. Route detection does not prove audible quality, latency, Bluetooth stability or correct user
+device selection, so those remain Device QA.
+
+S328 VERIFIED LOCAL: removed a false conflict from the non-mutating three-way sync dry run. JSON-shaped values are now
+compared structurally, so nested map key insertion order does not turn two otherwise identical viewer/pedal settings edits
+into a manual-review conflict; list order remains significant for setlists and other ordered data. A regression reproduces
+the previous conflict with equivalent custom pedal mappings constructed in opposite key orders and now classifies the
+result as the same change. This only improves comparison accuracy and does not add merge application, clocks, tombstones or
+cloud transport.
+
+S329 VERIFIED LOCAL: added a deterministic, path-free review report for the base/local/remote sync dry run. The report
+counts local-only, remote-only, identical, disjoint-field merge candidates and manual conflicts; each bounded detail records
+the local/remote change direction and conflicting field labels, while duplicate titles gain a short internal identifier.
+Markdown output explicitly states that it neither merges nor applies data, and a regression covers conflicting tags,
+identical edits, a one-sided edit, duplicate-title disambiguation, truncation and source-path exclusion. This is a support and
+future conflict-UI artifact, not an account sync or merge writer.
+
+S330 VERIFIED LOCAL: locked the destructive-content boundaries of the three-way sync classifier with an explicit fixture.
+Concurrent annotation object edits, divergent setlist order, different source-file copies and divergent user stamp packs all
+remain manual-review conflicts with named fields; the generated report still omits both local and remote source paths. This
+test does not make those structures mergeable: annotation object identity/tombstones, ordered-list operations, binary copy
+preservation and stamp-pack decisions remain required before any merge writer can safely apply them.
+
+S331 VERIFIED LOCAL: extended the silent linked-audio Device QA probe with its own anonymous output-route snapshot instead
+of assuming the drone route proves the file player route. Android samples the active `MediaPlayer` routed-device type after
+playback starts; iOS samples the shared audio-session port types while `AVAudioPlayer` is active. Both return normalized
+system volume and omit product names, addresses and identifiers. Missing route data is a WARN while duration, position and
+stop-lifecycle checks continue. Dart/native wiring tests and Swift format/parse validation pass; Android native compilation
+remains gated by the next approved build because this worktree has no Gradle wrapper. The snapshot does not prove audible
+quality, Bluetooth stability, latency or A-B boundary precision, which remain Device QA.
+
+S332 VERIFIED LOCAL: made the Device QA probe compare the drone and linked-audio output classes captured during the same
+run. A mismatch is now a WARN with both anonymous route types, while matching routes keep the existing PASS boundary. This
+can expose an audio-session/routing clue without collecting device names or claiming the audible outputs are correct. A
+channel-injected regression covers built-in-speaker versus Bluetooth divergence; intentional route changes and actual
+Bluetooth stability still require the tester to interpret the report.
+
+S333 VERIFIED LOCAL: closed the native compile gate left by the recent Android/iOS practice-audio bridge changes. A Flutter
+debug APK build compiled the Kotlin route probes and produced `app-debug.apk`; the project-local wrapper executable/JAR is
+still absent, but Flutter successfully used the configured Gradle distribution. A Flutter iOS simulator debug build compiled
+the Swift bridges without the former `PrivacyInfo.xcprivacy` warning, installed on the booted iPhone 17 simulator and launched
+as `com.mannlab.inc.clefandstaff`. Both builds left the worktree clean. This is compile/start evidence only, not Android or
+iPhone/iPad audible quality, Bluetooth stability, timing, archive signing or release readiness.
+
+S334 VERIFIED LOCAL: connected the non-mutating base/local/remote conflict classifier to a user-facing backup review flow.
+The backup menu now labels a `3개 백업 비교` action as read-only, guides the user through three metadata JSON selections,
+rejects invalid scope/version/JSON, summarizes export time and item counts, warns about duplicate snapshots or three disjoint
+identifier ranges, groups bounded results by local-only/remote-only/same-change/merge-candidate/manual-conflict and copies the
+existing path-free Markdown report. The view explicitly states that it never merges or applies data. Because backup v1 has no
+stable cross-device library identifier, the UI exposes that limitation instead of claiming identity validation. Pure model,
+compact widget and backup-menu cancellation regressions passed; field-level merge, clocks/tombstones and account transport
+remain out of scope.
+
+S335 VERIFIED LOCAL: tightened the review evidence for destructive and stale three-way sync cases without adding a merge
+writer. Concurrent additions with the same internal ID now name the differing fields instead of showing an unexplained
+manual conflict. New fixtures keep both-side deletion as the same change, keep setlist reorder-versus-add and annotation
+layer-versus-object edits manual, and warn when a selected remote snapshot predates the base so an old offline state is not
+mistaken for a current branch. The timestamp check is advisory because device clocks can differ; no item is automatically
+merged, deleted or restored.
+
+S336 VERIFIED LOCAL: made stale Android connected folders recoverable without weakening Clef's managed-copy policy. A
+persisted tree whose provider is missing or whose permission expired remains visible, can be tapped to open the system
+picker again, and can still be explicitly forgotten. A successful persistent replacement retires the old token only when
+the token differs; cancelling or receiving transient access leaves the old connection untouched. Native folder listing now
+isolates provider exceptions per permission so one broken provider cannot hide every healthy connection. Reboot, provider
+removal and permission-revocation behavior still require Android Device QA.
+
+S337 VERIFIED LOCAL: reduced large connected-folder selection work while retaining the 200-row preview cap. The import
+sheet now reports selected versus ready files and can clear or restore every importable candidate without selecting
+unsupported, unreadable, duplicate or changed-source rows. A 201-entry mixed catalog fixture and a compact 360x640 widget
+fixture cover cap accounting, blocked-row exclusion, bulk deselection/reselection and overflow. Provider scan latency and
+actual copy throughput remain Android Device QA evidence rather than widget-test claims.
+
+S338 VERIFIED LOCAL: completed two named destructive sync fixtures before any merge writer exists. Divergent replacement
+of the same linked audio record remains a manual `연결 파일` conflict, and deleting a user stamp pack on one side while
+renaming it on the other remains a manual `사용자 스탬프` conflict. Neither case chooses a winner or exposes private file
+paths in reports; future cloud transport must preserve this conservative boundary until asset tombstones and binary
+identity are explicit.
+
+S339 VERIFIED LOCAL: added the atomic model/controller boundary needed by a future arbitrary annotation multi-selection
+UI. A deduplicated mix of stroke, shape, text and stamp ids can move to one existing display layer in a single persisted
+score replacement; blank/unknown ids, missing targets and selections already on the target are no-ops, while a real move
+clears stale redo/erase history consistently with the existing single-object action. This does not claim that free-form
+selection or drag gestures are exposed in the viewer yet.
+
+S340 VERIFIED LOCAL: exposed the S339 boundary through a named `현재 쪽 주석 선택 이동` action in the annotation layer
+menu. The bounded sheet lists only the current page and active layer, supports individual/all selection, reports the live
+count and then reuses the existing target-layer chooser and scoped save feedback. A compact 360x640 widget fixture covers
+selection state without claiming canvas marquee/drag selection or stylus ergonomics, which remain follow-up Device QA.
+
+S341 VERIFIED LOCAL: reconciled the discoverability inventory with the existing app instead of adding another help surface.
+Clef already pairs toolbar tooltips with named home/viewer/annotation menus and a reopenable task-based help screen covering
+first use, library cleanup, setlists, long scores, audio, annotation/share, support URLs and feedback diagnostics. A forced
+first-run tour and a standalone icon glossary remain deliberate product choices rather than missing local implementation.

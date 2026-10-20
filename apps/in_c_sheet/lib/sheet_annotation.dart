@@ -89,6 +89,408 @@ class SheetAnnotationToolPreset {
   }
 }
 
+class SheetAnnotationStampPackValidationResult {
+  const SheetAnnotationStampPackValidationResult({
+    this.errors = const <String>[],
+    this.warnings = const <String>[],
+  });
+
+  final List<String> errors;
+  final List<String> warnings;
+
+  bool get isValid => errors.isEmpty;
+}
+
+class SheetAnnotationUserStamp {
+  const SheetAnnotationUserStamp({
+    required this.id,
+    required this.packId,
+    required this.label,
+    required this.category,
+    required this.kind,
+    this.iconName = '',
+    this.text = '',
+    this.assetRef = '',
+    this.keywords = const <String>[],
+    this.licenseLabel = '',
+    this.sourceUrl = '',
+    this.checksum = '',
+    this.assetSizeBytes = 0,
+    this.assetWidthPixels = 0,
+    this.assetHeightPixels = 0,
+  });
+
+  factory SheetAnnotationUserStamp.fromJson(
+    Map<String, Object?>? json, {
+    String fallbackPackId = '',
+  }) {
+    final rawPackId = _normalizeStampToken(json?['packId']);
+    return SheetAnnotationUserStamp(
+      id: _normalizeStampToken(json?['id']),
+      packId: rawPackId.isEmpty ? fallbackPackId : rawPackId,
+      label: _stringFromJson(json?['label']).trim(),
+      category: _stringFromJson(json?['category']).trim(),
+      kind: _normalizeStampToken(json?['kind']),
+      iconName: _normalizeStampToken(json?['iconName']),
+      text: _stringFromJson(json?['text']).trim(),
+      assetRef: _stringFromJson(json?['assetRef']).trim(),
+      keywords: _normalizeStampKeywords(json?['keywords']),
+      licenseLabel: _stringFromJson(json?['licenseLabel']).trim(),
+      sourceUrl: _stringFromJson(json?['sourceUrl']).trim(),
+      checksum: _stringFromJson(json?['checksum']).trim(),
+      assetSizeBytes: _intFromJson(json?['assetSizeBytes'], fallback: 0),
+      assetWidthPixels: _intFromJson(json?['assetWidthPixels'], fallback: 0),
+      assetHeightPixels: _intFromJson(json?['assetHeightPixels'], fallback: 0),
+    );
+  }
+
+  static const String textKind = 'text';
+  static const String iconKind = 'icon';
+  static const String imageKind = 'image';
+  static const Set<String> supportedKinds = <String>{
+    textKind,
+    iconKind,
+    imageKind,
+  };
+
+  final String id;
+  final String packId;
+  final String label;
+  final String category;
+  final String kind;
+  final String iconName;
+  final String text;
+  final String assetRef;
+  final List<String> keywords;
+  final String licenseLabel;
+  final String sourceUrl;
+  final String checksum;
+  final int assetSizeBytes;
+  final int assetWidthPixels;
+  final int assetHeightPixels;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'packId': packId,
+      'label': label,
+      'category': category,
+      'kind': kind,
+      if (iconName.isNotEmpty) 'iconName': iconName,
+      if (text.isNotEmpty) 'text': text,
+      if (assetRef.isNotEmpty) 'assetRef': assetRef,
+      if (keywords.isNotEmpty) 'keywords': keywords,
+      if (licenseLabel.isNotEmpty) 'licenseLabel': licenseLabel,
+      if (sourceUrl.isNotEmpty) 'sourceUrl': sourceUrl,
+      if (checksum.isNotEmpty) 'checksum': checksum,
+      if (assetSizeBytes > 0) 'assetSizeBytes': assetSizeBytes,
+      if (assetWidthPixels > 0) 'assetWidthPixels': assetWidthPixels,
+      if (assetHeightPixels > 0) 'assetHeightPixels': assetHeightPixels,
+    };
+  }
+}
+
+class SheetAnnotationImageStampAssetPlan {
+  const SheetAnnotationImageStampAssetPlan({
+    required this.packId,
+    required this.stampId,
+    required this.assetRef,
+    required this.checksum,
+    required this.assetSizeBytes,
+    required this.assetWidthPixels,
+    required this.assetHeightPixels,
+  });
+
+  factory SheetAnnotationImageStampAssetPlan.forImport({
+    required String packId,
+    required String stampId,
+    required String sourceFileName,
+    required String checksum,
+    required int assetSizeBytes,
+    required int assetWidthPixels,
+    required int assetHeightPixels,
+  }) {
+    final normalizedPackId = _safeImageAssetPathSegment(
+      packId,
+      fallback: 'pack',
+    );
+    final normalizedStampId = _safeImageAssetPathSegment(
+      stampId,
+      fallback: 'stamp',
+    );
+    final extension = _imageAssetExtension(sourceFileName);
+    final assetRef =
+        '${SheetAnnotationStampPack.imageAssetPathPrefix}'
+        '$normalizedPackId/$normalizedStampId$extension';
+    return SheetAnnotationImageStampAssetPlan(
+      packId: normalizedPackId,
+      stampId: normalizedStampId,
+      assetRef: assetRef,
+      checksum: checksum.trim(),
+      assetSizeBytes: assetSizeBytes,
+      assetWidthPixels: assetWidthPixels,
+      assetHeightPixels: assetHeightPixels,
+    );
+  }
+
+  final String packId;
+  final String stampId;
+  final String assetRef;
+  final String checksum;
+  final int assetSizeBytes;
+  final int assetWidthPixels;
+  final int assetHeightPixels;
+
+  bool get hasSupportedExtension {
+    return SheetAnnotationStampPack.allowedImageAssetExtensions.contains(
+      assetExtension,
+    );
+  }
+
+  String get assetExtension {
+    final dot = assetRef.lastIndexOf('.');
+    if (dot < 0 || dot == assetRef.length - 1) {
+      return '';
+    }
+    return assetRef.substring(dot + 1).toLowerCase();
+  }
+
+  SheetAnnotationUserStamp toUserStamp({
+    required String label,
+    String category = '',
+    String licenseLabel = '',
+    String sourceUrl = '',
+    List<String> keywords = const <String>[],
+  }) {
+    return SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: label.trim(),
+      category: category.trim(),
+      kind: SheetAnnotationUserStamp.imageKind,
+      assetRef: assetRef,
+      keywords: keywords
+          .map((keyword) => keyword.trim().toLowerCase())
+          .where((keyword) => keyword.isNotEmpty)
+          .toSet()
+          .toList(growable: false),
+      licenseLabel: licenseLabel.trim(),
+      sourceUrl: sourceUrl.trim(),
+      checksum: checksum,
+      assetSizeBytes: assetSizeBytes,
+      assetWidthPixels: assetWidthPixels,
+      assetHeightPixels: assetHeightPixels,
+    );
+  }
+}
+
+class SheetAnnotationStampPack {
+  const SheetAnnotationStampPack({
+    required this.id,
+    required this.name,
+    required this.version,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.stamps,
+  });
+
+  factory SheetAnnotationStampPack.fromJson(Map<String, Object?>? json) {
+    final id = _normalizeStampToken(json?['id']);
+    return SheetAnnotationStampPack(
+      id: id,
+      name: _stringFromJson(json?['name']).trim(),
+      version: _intFromJson(json?['version'], fallback: 1).clamp(1, 9999),
+      createdAt: _dateTimeFromJson(json?['createdAt']),
+      updatedAt: _dateTimeFromJson(json?['updatedAt']),
+      stamps: _jsonMaps(json?['stamps'])
+          .map(
+            (stampJson) => SheetAnnotationUserStamp.fromJson(
+              stampJson,
+              fallbackPackId: id,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  static const int maxStampCount = 128;
+  static const int maxImageAssetBytes = 2 * 1024 * 1024;
+  static const int maxImageAssetDimensionPixels = 2048;
+  static const int maxImageAssetPixels =
+      maxImageAssetDimensionPixels * maxImageAssetDimensionPixels;
+  static const String imageAssetPathPrefix = 'stamps/';
+  static const Set<String> allowedImageAssetExtensions = <String>{
+    'png',
+    'jpg',
+    'jpeg',
+    'webp',
+  };
+  static const Set<String> defaultAllowedIconNames = <String>{
+    'check',
+    'star',
+    'flag',
+    'music-note',
+    'repeat',
+    'coda',
+    'segno',
+    'tempo',
+    'warning',
+  };
+
+  final String id;
+  final String name;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<SheetAnnotationUserStamp> stamps;
+
+  SheetAnnotationStampPackValidationResult validate({
+    Set<String>? allowedIconNames,
+    bool allowImageStamps = false,
+  }) {
+    final errors = <String>[];
+    final warnings = <String>[];
+    final allowedIcons = allowedIconNames ?? defaultAllowedIconNames;
+    final stampIds = <String>{};
+
+    if (id.isEmpty) {
+      errors.add('pack.id is required');
+    }
+    if (name.isEmpty) {
+      errors.add('pack.name is required');
+    }
+    if (stamps.length > maxStampCount) {
+      errors.add('pack.stamps must contain $maxStampCount items or fewer');
+    }
+
+    for (final stamp in stamps) {
+      final prefix = stamp.id.isEmpty ? 'stamp' : 'stamp.${stamp.id}';
+      if (stamp.id.isEmpty) {
+        errors.add('$prefix.id is required');
+      } else if (!stampIds.add(stamp.id)) {
+        errors.add('stamp.${stamp.id}.id is duplicated');
+      }
+      if (stamp.packId != id) {
+        errors.add('$prefix.packId must match pack.id');
+      }
+      if (stamp.label.isEmpty) {
+        errors.add('$prefix.label is required');
+      }
+      if (!SheetAnnotationUserStamp.supportedKinds.contains(stamp.kind)) {
+        errors.add('$prefix.kind is unsupported');
+        continue;
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.textKind &&
+          stamp.text.isEmpty) {
+        errors.add('$prefix.text is required for text stamps');
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.iconKind) {
+        if (stamp.iconName.isEmpty) {
+          errors.add('$prefix.iconName is required for icon stamps');
+        } else if (!allowedIcons.contains(stamp.iconName)) {
+          errors.add('$prefix.iconName is not allow-listed');
+        }
+      }
+      if (stamp.kind == SheetAnnotationUserStamp.imageKind) {
+        if (!allowImageStamps) {
+          errors.add('$prefix.kind image is reserved for a later slice');
+        } else {
+          _validateImageStampAsset(stamp, prefix, errors, warnings);
+        }
+      }
+      if (stamp.sourceUrl.isNotEmpty &&
+          Uri.tryParse(stamp.sourceUrl)?.hasScheme != true) {
+        warnings.add('$prefix.sourceUrl is not an absolute URL');
+      }
+      if (stamp.licenseLabel.isEmpty && stamp.sourceUrl.isNotEmpty) {
+        warnings.add('$prefix.licenseLabel is recommended with sourceUrl');
+      }
+    }
+
+    return SheetAnnotationStampPackValidationResult(
+      errors: errors,
+      warnings: warnings,
+    );
+  }
+
+  static void _validateImageStampAsset(
+    SheetAnnotationUserStamp stamp,
+    String prefix,
+    List<String> errors,
+    List<String> warnings,
+  ) {
+    final assetRef = stamp.assetRef.replaceAll('\\', '/');
+    if (assetRef.isEmpty) {
+      errors.add('$prefix.assetRef is required for image stamps');
+    } else {
+      final uri = Uri.tryParse(assetRef);
+      if (uri?.hasScheme == true ||
+          assetRef.startsWith('/') ||
+          !assetRef.startsWith(imageAssetPathPrefix) ||
+          assetRef.split('/').contains('..')) {
+        errors.add(
+          '$prefix.assetRef must be a relative path under '
+          '$imageAssetPathPrefix',
+        );
+      }
+      final extensionIndex = assetRef.lastIndexOf('.');
+      final extension = extensionIndex < 0
+          ? ''
+          : assetRef.substring(extensionIndex + 1).toLowerCase();
+      if (!allowedImageAssetExtensions.contains(extension)) {
+        errors.add('$prefix.assetRef extension is unsupported');
+      }
+    }
+
+    if (stamp.checksum.isEmpty) {
+      errors.add('$prefix.checksum is required for image stamps');
+    } else if (!RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(stamp.checksum)) {
+      errors.add('$prefix.checksum must be a SHA-256 hex digest');
+    }
+
+    if (stamp.assetSizeBytes <= 0) {
+      errors.add('$prefix.assetSizeBytes is required for image stamps');
+    } else if (stamp.assetSizeBytes > maxImageAssetBytes) {
+      errors.add(
+        '$prefix.assetSizeBytes must be $maxImageAssetBytes bytes or fewer',
+      );
+    }
+
+    if (stamp.assetWidthPixels <= 0 || stamp.assetHeightPixels <= 0) {
+      errors.add('$prefix asset dimensions are required for image stamps');
+    } else {
+      if (stamp.assetWidthPixels > maxImageAssetDimensionPixels ||
+          stamp.assetHeightPixels > maxImageAssetDimensionPixels) {
+        errors.add(
+          '$prefix asset dimensions must be '
+          '$maxImageAssetDimensionPixels px or smaller',
+        );
+      }
+      if (stamp.assetWidthPixels * stamp.assetHeightPixels >
+          maxImageAssetPixels) {
+        errors.add(
+          '$prefix asset pixel count must be $maxImageAssetPixels or fewer',
+        );
+      }
+    }
+
+    if (stamp.licenseLabel.isEmpty) {
+      warnings.add('$prefix.licenseLabel is recommended for image stamps');
+    }
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'name': name,
+      'version': version,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'stamps': stamps.map((stamp) => stamp.toJson()).toList(),
+    };
+  }
+}
+
 class SheetAnnotationPoint {
   const SheetAnnotationPoint({
     required this.x,
@@ -122,6 +524,14 @@ class SheetAnnotationPoint {
     return math.sqrt((dx * dx) + (dy * dy));
   }
 
+  SheetAnnotationPoint shiftedBy({required double dx, required double dy}) {
+    return SheetAnnotationPoint(
+      x: (x + dx).clamp(0.0, 1.0).toDouble(),
+      y: (y + dy).clamp(0.0, 1.0).toDouble(),
+      pressure: pressure,
+    );
+  }
+
   static double _normalizeCoordinate(Object? value) {
     final coordinate = value is num ? value.toDouble() : 0.0;
     return coordinate.clamp(0.0, 1.0).toDouble();
@@ -142,6 +552,7 @@ class SheetAnnotationStroke {
     required this.width,
     required this.points,
     required this.createdAt,
+    this.layerId = SheetAnnotationDisplayLayer.defaultLayerId,
   });
 
   factory SheetAnnotationStroke.fromJson(Map<String, Object?> json) {
@@ -156,6 +567,7 @@ class SheetAnnotationStroke {
       createdAt:
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      layerId: _normalizeAnnotationLayerId(json['layerId']),
     );
   }
 
@@ -166,6 +578,39 @@ class SheetAnnotationStroke {
   final double width;
   final List<SheetAnnotationPoint> points;
   final DateTime createdAt;
+  final String layerId;
+
+  SheetAnnotationStroke copyWith({
+    String? id,
+    int? pageNumber,
+    SheetAnnotationTool? tool,
+    int? color,
+    double? width,
+    List<SheetAnnotationPoint>? points,
+    DateTime? createdAt,
+    String? layerId,
+  }) {
+    return SheetAnnotationStroke(
+      id: id ?? this.id,
+      pageNumber: pageNumber ?? this.pageNumber,
+      tool: tool ?? this.tool,
+      color: color ?? this.color,
+      width: width ?? this.width,
+      points: points ?? this.points,
+      createdAt: createdAt ?? this.createdAt,
+      layerId: layerId == null
+          ? this.layerId
+          : _normalizeAnnotationLayerId(layerId),
+    );
+  }
+
+  SheetAnnotationStroke shiftedBy({required double dx, required double dy}) {
+    return copyWith(
+      points: points
+          .map((point) => point.shiftedBy(dx: dx, dy: dy))
+          .toList(growable: false),
+    );
+  }
 
   bool hitTest(SheetAnnotationPoint point, {required double tolerance}) {
     if (points.isEmpty) {
@@ -215,6 +660,8 @@ class SheetAnnotationStroke {
       'width': width,
       'points': points.map((point) => point.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
+      if (layerId != SheetAnnotationDisplayLayer.defaultLayerId)
+        'layerId': layerId,
     };
   }
 
@@ -330,6 +777,9 @@ class SheetTextAnnotation {
     required this.color,
     required this.fontSize,
     required this.createdAt,
+    this.layerId = SheetAnnotationDisplayLayer.defaultLayerId,
+    this.stampKind = '',
+    this.stampAssetRef = '',
   });
 
   factory SheetTextAnnotation.fromJson(Map<String, Object?> json) {
@@ -346,6 +796,9 @@ class SheetTextAnnotation {
       createdAt:
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      layerId: _normalizeAnnotationLayerId(json['layerId']),
+      stampKind: _normalizeStampToken(json['stampKind']),
+      stampAssetRef: _stringFromJson(json['stampAssetRef']).trim(),
     );
   }
 
@@ -356,6 +809,13 @@ class SheetTextAnnotation {
   final int color;
   final double fontSize;
   final DateTime createdAt;
+  final String layerId;
+  final String stampKind;
+  final String stampAssetRef;
+
+  bool get isImageStamp =>
+      stampKind == SheetAnnotationUserStamp.imageKind &&
+      stampAssetRef.trim().isNotEmpty;
 
   SheetTextAnnotation copyWith({
     String? id,
@@ -365,6 +825,9 @@ class SheetTextAnnotation {
     int? color,
     double? fontSize,
     DateTime? createdAt,
+    String? layerId,
+    String? stampKind,
+    String? stampAssetRef,
   }) {
     return SheetTextAnnotation(
       id: id ?? this.id,
@@ -374,12 +837,39 @@ class SheetTextAnnotation {
       color: color ?? this.color,
       fontSize: fontSize ?? this.fontSize,
       createdAt: createdAt ?? this.createdAt,
+      layerId: layerId == null
+          ? this.layerId
+          : _normalizeAnnotationLayerId(layerId),
+      stampKind: stampKind == null
+          ? this.stampKind
+          : _normalizeStampToken(stampKind),
+      stampAssetRef: stampAssetRef == null
+          ? this.stampAssetRef
+          : stampAssetRef.trim(),
+    );
+  }
+
+  SheetTextAnnotation shiftedBy({required double dx, required double dy}) {
+    return copyWith(
+      position: SheetAnnotationPoint(
+        x: (position.x + dx).clamp(0.0, 1.0).toDouble(),
+        y: (position.y + dy).clamp(0.0, 1.0).toDouble(),
+        pressure: position.pressure,
+      ),
     );
   }
 
   bool hitTest(SheetAnnotationPoint point, {double tolerance = 0.025}) {
     if (text.trim().isEmpty) {
       return false;
+    }
+    if (isImageStamp) {
+      const estimatedWidth = 0.16;
+      const estimatedHeight = 0.16;
+      return point.x >= position.x - tolerance &&
+          point.x <= position.x + estimatedWidth + tolerance &&
+          point.y >= position.y - tolerance &&
+          point.y <= position.y + estimatedHeight + tolerance;
     }
     final estimatedWidth = (text.runes.length * fontSize / 720)
         .clamp(0.08, 0.5)
@@ -400,6 +890,10 @@ class SheetTextAnnotation {
       'color': color,
       'fontSize': fontSize,
       'createdAt': createdAt.toIso8601String(),
+      if (layerId != SheetAnnotationDisplayLayer.defaultLayerId)
+        'layerId': layerId,
+      if (stampKind.isNotEmpty) 'stampKind': stampKind,
+      if (stampAssetRef.isNotEmpty) 'stampAssetRef': stampAssetRef,
     };
   }
 
@@ -572,6 +1066,45 @@ class SheetAnnotationLayer {
 
   bool get includeDefaultLayerInExport => defaultLayer.includeInExport;
 
+  int get displayLayerCount => layers.length;
+
+  bool get hasMultipleDisplayLayers => displayLayerCount > 1;
+
+  int get hiddenDisplayLayerCount =>
+      layers.where((layer) => !layer.isVisible).length;
+
+  int get exportDisabledDisplayLayerCount =>
+      layers.where((layer) => !layer.includeInExport).length;
+
+  List<String> get displayLayerLabels =>
+      layers.map((layer) => layer.label).toList(growable: false);
+
+  int annotationCountForDisplayLayer(String layerId) {
+    final normalizedLayerId = displayLayerForAnnotation(layerId).id;
+    return strokes
+            .where((stroke) => stroke.layerId == normalizedLayerId)
+            .length +
+        texts.where((text) => text.layerId == normalizedLayerId).length;
+  }
+
+  SheetAnnotationDisplayLayer displayLayerForAnnotation(String layerId) {
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    for (final layer in layers) {
+      if (layer.id == normalizedLayerId) {
+        return layer;
+      }
+    }
+    return defaultLayer;
+  }
+
+  bool isAnnotationLayerVisible(String layerId) {
+    return displayLayerForAnnotation(layerId).isVisible;
+  }
+
+  bool isAnnotationLayerIncludedInExport(String layerId) {
+    return displayLayerForAnnotation(layerId).includeInExport;
+  }
+
   int get pointCount {
     var total = 0;
     for (final stroke in strokes) {
@@ -612,47 +1145,212 @@ class SheetAnnotationLayer {
   }
 
   List<SheetAnnotationStroke> visibleStrokesForPage(int pageNumber) {
-    return isDefaultLayerVisible
-        ? strokesForPage(pageNumber)
-        : const <SheetAnnotationStroke>[];
+    return strokesForPage(pageNumber)
+        .where((stroke) => isAnnotationLayerVisible(stroke.layerId))
+        .toList(growable: false);
   }
 
   List<SheetTextAnnotation> visibleTextsForPage(int pageNumber) {
-    return isDefaultLayerVisible
-        ? textsForPage(pageNumber)
-        : const <SheetTextAnnotation>[];
+    return textsForPage(pageNumber)
+        .where((text) => isAnnotationLayerVisible(text.layerId))
+        .toList(growable: false);
   }
 
   List<SheetAnnotationStroke> exportableStrokesForPage(int pageNumber) {
-    return includeDefaultLayerInExport
-        ? strokesForPage(pageNumber)
-        : const <SheetAnnotationStroke>[];
+    return strokesForPage(pageNumber)
+        .where((stroke) => isAnnotationLayerIncludedInExport(stroke.layerId))
+        .toList(growable: false);
   }
 
   List<SheetTextAnnotation> exportableTextsForPage(int pageNumber) {
-    return includeDefaultLayerInExport
-        ? textsForPage(pageNumber)
-        : const <SheetTextAnnotation>[];
+    return textsForPage(pageNumber)
+        .where((text) => isAnnotationLayerIncludedInExport(text.layerId))
+        .toList(growable: false);
   }
 
   SheetAnnotationLayer withDefaultLayerState({
     bool? isVisible,
     bool? includeInExport,
   }) {
-    final defaultLayer = this.defaultLayer.copyWith(
+    return withDisplayLayerState(
+      SheetAnnotationDisplayLayer.defaultLayerId,
       isVisible: isVisible,
       includeInExport: includeInExport,
     );
+  }
+
+  SheetAnnotationLayer withDisplayLayerState(
+    String layerId, {
+    bool? isVisible,
+    bool? includeInExport,
+  }) {
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    final currentLayer = displayLayerForAnnotation(normalizedLayerId);
+    final nextLayer = currentLayer.copyWith(
+      id: normalizedLayerId,
+      isVisible: isVisible,
+      includeInExport: includeInExport,
+    );
+    return withDisplayLayer(nextLayer);
+  }
+
+  SheetAnnotationLayer withDisplayLayer(SheetAnnotationDisplayLayer layer) {
+    if (!layer.isValid) {
+      return this;
+    }
     return SheetAnnotationLayer(
       strokes: strokes,
       texts: texts,
       redoStack: redoStack,
       eraseUndoStack: eraseUndoStack,
       layers: _normalizeLayerList(<SheetAnnotationDisplayLayer>[
-        for (final layer in layers)
-          if (layer.id != SheetAnnotationDisplayLayer.defaultLayerId) layer,
-        defaultLayer,
+        for (final candidate in layers)
+          if (candidate.id != layer.id) candidate,
+        layer,
       ]),
+    );
+  }
+
+  SheetAnnotationLayer removeDisplayLayer(String layerId) {
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    if (normalizedLayerId.isEmpty ||
+        normalizedLayerId == SheetAnnotationDisplayLayer.defaultLayerId) {
+      return this;
+    }
+    final nextLayers = layers
+        .where((layer) => layer.id != normalizedLayerId)
+        .toList(growable: false);
+    if (nextLayers.length == layers.length) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        strokes.map((stroke) => _rekeyStrokeLayer(stroke, normalizedLayerId)),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        texts.map((text) => _rekeyTextLayer(text, normalizedLayerId)),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        redoStack.map(
+          (entry) => _rekeyRedoEntryLayer(entry, normalizedLayerId),
+        ),
+      ),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        eraseUndoStack.map(
+          (entry) => _rekeyRedoEntryLayer(entry, normalizedLayerId),
+        ),
+      ),
+      layers: _normalizeLayerList(nextLayers),
+    );
+  }
+
+  SheetAnnotationLayer moveAnnotationToDisplayLayer({
+    required String annotationId,
+    required String layerId,
+  }) {
+    return moveAnnotationsToDisplayLayer(
+      annotationIds: <String>[annotationId],
+      layerId: layerId,
+    );
+  }
+
+  SheetAnnotationLayer moveAnnotationsToDisplayLayer({
+    required Iterable<String> annotationIds,
+    required String layerId,
+  }) {
+    final normalizedAnnotationIds = annotationIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (normalizedAnnotationIds.isEmpty) {
+      return this;
+    }
+    final normalizedLayerId = _normalizeAnnotationLayerId(layerId);
+    final targetLayerExists = layers.any(
+      (layer) => layer.id == normalizedLayerId,
+    );
+    if (!targetLayerExists) {
+      return this;
+    }
+
+    var didUpdate = false;
+    final nextStrokes = strokes
+        .map((stroke) {
+          if (!normalizedAnnotationIds.contains(stroke.id) ||
+              stroke.layerId == normalizedLayerId) {
+            return stroke;
+          }
+          didUpdate = true;
+          return stroke.copyWith(layerId: normalizedLayerId);
+        })
+        .toList(growable: false);
+    final nextTexts = texts
+        .map((text) {
+          if (!normalizedAnnotationIds.contains(text.id) ||
+              text.layerId == normalizedLayerId) {
+            return text;
+          }
+          didUpdate = true;
+          return text.copyWith(layerId: normalizedLayerId);
+        })
+        .toList(growable: false);
+
+    if (!didUpdate) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
+      texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
+    );
+  }
+
+  SheetAnnotationLayer moveDisplayLayerAnnotations({
+    required String sourceLayerId,
+    required String targetLayerId,
+  }) {
+    final normalizedSourceId = displayLayerForAnnotation(sourceLayerId).id;
+    final normalizedTargetId = _normalizeAnnotationLayerId(targetLayerId);
+    if (normalizedSourceId == normalizedTargetId ||
+        !layers.any((layer) => layer.id == normalizedTargetId) ||
+        annotationCountForDisplayLayer(normalizedSourceId) == 0) {
+      return this;
+    }
+
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        strokes.map(
+          (stroke) =>
+              _moveStrokeLayer(stroke, normalizedSourceId, normalizedTargetId),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        texts.map(
+          (text) =>
+              _moveTextLayer(text, normalizedSourceId, normalizedTargetId),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        redoStack.map(
+          (entry) => _moveRedoEntryLayer(
+            entry,
+            normalizedSourceId,
+            normalizedTargetId,
+          ),
+        ),
+      ),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        eraseUndoStack.map(
+          (entry) => _moveRedoEntryLayer(
+            entry,
+            normalizedSourceId,
+            normalizedTargetId,
+          ),
+        ),
+      ),
+      layers: layers,
     );
   }
 
@@ -743,6 +1441,32 @@ class SheetAnnotationLayer {
     );
   }
 
+  SheetAnnotationLayer updateStroke(SheetAnnotationStroke stroke) {
+    if (stroke.points.isEmpty) {
+      return removeStroke(stroke.id);
+    }
+    var didUpdate = false;
+    final next = strokes
+        .map((candidate) {
+          if (candidate.id != stroke.id) {
+            return candidate;
+          }
+          didUpdate = true;
+          return stroke;
+        })
+        .toList(growable: false);
+    if (!didUpdate) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(next),
+      texts: texts,
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
+    );
+  }
+
   SheetAnnotationLayer updateText(SheetTextAnnotation text) {
     if (text.text.trim().isEmpty) {
       return removeText(text.id);
@@ -806,7 +1530,7 @@ class SheetAnnotationLayer {
     required SheetAnnotationPoint point,
     required double tolerance,
   }) {
-    final hitStroke = strokesForPage(pageNumber)
+    final hitStroke = visibleStrokesForPage(pageNumber)
         .where((stroke) => stroke.hitTest(point, tolerance: tolerance));
     if (hitStroke.isEmpty) {
       final hitText = textAt(
@@ -824,7 +1548,7 @@ class SheetAnnotationLayer {
     required SheetAnnotationPoint point,
     double tolerance = 0.025,
   }) {
-    final hits = textsForPage(pageNumber)
+    final hits = visibleTextsForPage(pageNumber)
         .where((text) => text.hitTest(point, tolerance: tolerance));
     if (hits.isEmpty) {
       return null;
@@ -832,21 +1556,43 @@ class SheetAnnotationLayer {
     return hits.last;
   }
 
-  SheetAnnotationLayer undoLastStroke(int pageNumber) {
-    final pageStrokes = strokesForPage(pageNumber);
+  SheetAnnotationStroke? strokeAt({
+    required int pageNumber,
+    required SheetAnnotationPoint point,
+    required double tolerance,
+  }) {
+    final hits = visibleStrokesForPage(pageNumber)
+        .where((stroke) => stroke.hitTest(point, tolerance: tolerance));
+    if (hits.isEmpty) {
+      return null;
+    }
+    return hits.last;
+  }
+
+  SheetAnnotationLayer undoLastStroke(int pageNumber, {String? layerId}) {
+    final pageStrokes = visibleStrokesForPage(pageNumber)
+        .where((stroke) => _annotationMatchesLayer(stroke.layerId, layerId))
+        .toList(growable: false);
     if (pageStrokes.isEmpty) {
       return this;
     }
     return _removeStrokeForUndo(pageStrokes.last);
   }
 
-  SheetAnnotationLayer undoLastAnnotation(int pageNumber) {
-    final eraseRestored = _restoreLastErasedAnnotation(pageNumber);
+  SheetAnnotationLayer undoLastAnnotation(int pageNumber, {String? layerId}) {
+    final eraseRestored = _restoreLastErasedAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (!identical(eraseRestored, this)) {
       return eraseRestored;
     }
-    final pageStrokes = strokesForPage(pageNumber);
-    final pageTexts = textsForPage(pageNumber);
+    final pageStrokes = visibleStrokesForPage(pageNumber)
+        .where((stroke) => _annotationMatchesLayer(stroke.layerId, layerId))
+        .toList(growable: false);
+    final pageTexts = visibleTextsForPage(pageNumber)
+        .where((text) => _annotationMatchesLayer(text.layerId, layerId))
+        .toList(growable: false);
     final lastStroke = pageStrokes.isEmpty ? null : pageStrokes.last;
     final lastText = pageTexts.isEmpty ? null : pageTexts.last;
     if (lastStroke == null && lastText == null) {
@@ -860,10 +1606,16 @@ class SheetAnnotationLayer {
     return _removeTextForUndo(lastText);
   }
 
-  SheetAnnotationLayer redoLastAnnotation(int pageNumber) {
+  SheetAnnotationLayer redoLastAnnotation(int pageNumber, {String? layerId}) {
     for (var index = redoStack.length - 1; index >= 0; index -= 1) {
       final entry = redoStack[index];
       if (entry.pageNumber != pageNumber) {
+        continue;
+      }
+      if (!_redoEntryTargetsVisibleLayer(entry)) {
+        continue;
+      }
+      if (!_redoEntryMatchesLayer(entry, layerId)) {
         continue;
       }
       final remainingRedo = <SheetAnnotationRedoEntry>[
@@ -1012,10 +1764,19 @@ class SheetAnnotationLayer {
     );
   }
 
-  SheetAnnotationLayer _restoreLastErasedAnnotation(int pageNumber) {
+  SheetAnnotationLayer _restoreLastErasedAnnotation(
+    int pageNumber, {
+    String? layerId,
+  }) {
     for (var index = eraseUndoStack.length - 1; index >= 0; index -= 1) {
       final entry = eraseUndoStack[index];
       if (entry.pageNumber != pageNumber) {
+        continue;
+      }
+      if (!_redoEntryTargetsVisibleLayer(entry)) {
+        continue;
+      }
+      if (!_redoEntryMatchesLayer(entry, layerId)) {
         continue;
       }
       final remainingEraseUndo = <SheetAnnotationRedoEntry>[
@@ -1163,6 +1924,139 @@ class SheetAnnotationLayer {
       }
     }
     return true;
+  }
+
+  static SheetAnnotationStroke _rekeyStrokeLayer(
+    SheetAnnotationStroke stroke,
+    String removedLayerId,
+  ) {
+    if (stroke.layerId != removedLayerId) {
+      return stroke;
+    }
+    return SheetAnnotationStroke(
+      id: stroke.id,
+      pageNumber: stroke.pageNumber,
+      tool: stroke.tool,
+      color: stroke.color,
+      width: stroke.width,
+      points: stroke.points,
+      createdAt: stroke.createdAt,
+    );
+  }
+
+  static SheetAnnotationStroke _moveStrokeLayer(
+    SheetAnnotationStroke stroke,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    if (stroke.layerId != sourceLayerId) {
+      return stroke;
+    }
+    return stroke.copyWith(layerId: targetLayerId);
+  }
+
+  static SheetTextAnnotation _rekeyTextLayer(
+    SheetTextAnnotation text,
+    String removedLayerId,
+  ) {
+    if (text.layerId != removedLayerId) {
+      return text;
+    }
+    return text.copyWith(layerId: SheetAnnotationDisplayLayer.defaultLayerId);
+  }
+
+  static SheetTextAnnotation _moveTextLayer(
+    SheetTextAnnotation text,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    if (text.layerId != sourceLayerId) {
+      return text;
+    }
+    return text.copyWith(layerId: targetLayerId);
+  }
+
+  static SheetAnnotationRedoEntry _rekeyRedoEntryLayer(
+    SheetAnnotationRedoEntry entry,
+    String removedLayerId,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      final nextStroke = _rekeyStrokeLayer(stroke, removedLayerId);
+      if (identical(nextStroke, stroke)) {
+        return entry;
+      }
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseStroke(nextStroke)
+          : SheetAnnotationRedoEntry.stroke(nextStroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      final nextText = _rekeyTextLayer(text, removedLayerId);
+      if (identical(nextText, text)) {
+        return entry;
+      }
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseText(nextText)
+          : SheetAnnotationRedoEntry.text(nextText);
+    }
+    return entry;
+  }
+
+  static SheetAnnotationRedoEntry _moveRedoEntryLayer(
+    SheetAnnotationRedoEntry entry,
+    String sourceLayerId,
+    String targetLayerId,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      final nextStroke = _moveStrokeLayer(stroke, sourceLayerId, targetLayerId);
+      if (identical(nextStroke, stroke)) return entry;
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseStroke(nextStroke)
+          : SheetAnnotationRedoEntry.stroke(nextStroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      final nextText = _moveTextLayer(text, sourceLayerId, targetLayerId);
+      if (identical(nextText, text)) return entry;
+      return entry.erasesAnnotation
+          ? SheetAnnotationRedoEntry.eraseText(nextText)
+          : SheetAnnotationRedoEntry.text(nextText);
+    }
+    return entry;
+  }
+
+  bool _redoEntryTargetsVisibleLayer(SheetAnnotationRedoEntry entry) {
+    final strokeLayerId = entry.stroke?.layerId;
+    if (strokeLayerId != null) {
+      return isAnnotationLayerVisible(strokeLayerId);
+    }
+    final textLayerId = entry.text?.layerId;
+    if (textLayerId != null) {
+      return isAnnotationLayerVisible(textLayerId);
+    }
+    return true;
+  }
+
+  bool _redoEntryMatchesLayer(SheetAnnotationRedoEntry entry, String? layerId) {
+    final strokeLayerId = entry.stroke?.layerId;
+    if (strokeLayerId != null) {
+      return _annotationMatchesLayer(strokeLayerId, layerId);
+    }
+    final textLayerId = entry.text?.layerId;
+    if (textLayerId != null) {
+      return _annotationMatchesLayer(textLayerId, layerId);
+    }
+    return layerId == null;
+  }
+
+  bool _annotationMatchesLayer(String annotationLayerId, String? layerId) {
+    if (layerId == null) {
+      return true;
+    }
+    return displayLayerForAnnotation(annotationLayerId).id ==
+        displayLayerForAnnotation(layerId).id;
   }
 }
 
@@ -1322,6 +2216,59 @@ Map<String, Object?>? _asJsonMap(Object? value) {
 
 List<dynamic> _jsonList(Object? value) {
   return value is List ? value : const <dynamic>[];
+}
+
+DateTime _dateTimeFromJson(Object? value) {
+  return DateTime.tryParse(_stringFromJson(value)) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+String _normalizeStampToken(Object? value) {
+  return _stringFromJson(value).trim().toLowerCase();
+}
+
+String _normalizeAnnotationLayerId(Object? value) {
+  final layerId = _stringFromJson(value).trim();
+  return layerId.isEmpty ? SheetAnnotationDisplayLayer.defaultLayerId : layerId;
+}
+
+String _safeImageAssetPathSegment(String value, {required String fallback}) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_-]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  if (normalized.isEmpty || normalized == '.' || normalized == '..') {
+    return fallback;
+  }
+  return normalized;
+}
+
+String _imageAssetExtension(String sourceFileName) {
+  final normalized = sourceFileName
+      .trim()
+      .replaceAll('\\', '/')
+      .split('/')
+      .last;
+  final dot = normalized.lastIndexOf('.');
+  if (dot < 0 || dot == normalized.length - 1) {
+    return '';
+  }
+  return '.${normalized.substring(dot + 1).toLowerCase()}';
+}
+
+List<String> _normalizeStampKeywords(Object? value) {
+  final keywords = <String>[];
+  final seen = <String>{};
+  for (final keyword in _jsonList(value)) {
+    final normalized = _normalizeStampToken(keyword);
+    if (normalized.isEmpty || !seen.add(normalized)) {
+      continue;
+    }
+    keywords.add(normalized);
+  }
+  return keywords;
 }
 
 String _stringFromJson(Object? value) {

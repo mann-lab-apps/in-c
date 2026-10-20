@@ -1,0 +1,422 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_external_folder_catalog.dart';
+import 'package:in_c_sheet/sheet_score.dart';
+
+void main() {
+  test('classifies supported score entries without mutating data', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(
+          displayName: 'Bach Cello Suite.pdf',
+          sizeBytes: 1200,
+          providerLabel: 'Downloads',
+        ),
+        const SheetExternalFolderEntry(displayName: 'notes.txt'),
+        const SheetExternalFolderEntry(displayName: 'chart.chordpro'),
+        const SheetExternalFolderEntry(displayName: 'notes.docx'),
+        const SheetExternalFolderEntry(displayName: 'notes.rtf'),
+        const SheetExternalFolderEntry(displayName: 'unsupported.xlsx'),
+      ],
+    );
+
+    expect(preview.status, SheetExternalFolderCatalogStatus.ready);
+    expect(preview.isReadOnlyPreview, isTrue);
+    expect(preview.scannedCount, 6);
+    expect(preview.readyCount, 5);
+    expect(preview.blockedCount, 1);
+    expect(preview.hasReadyCandidates, isTrue);
+    expect(
+      preview.candidates.first.status,
+      SheetExternalFolderCandidateStatus.readyToCopy,
+    );
+    expect(
+      preview.candidates.first.selectionId,
+      'entry:0:bach cello suite.pdf',
+    );
+    expect(preview.candidates.first.message, contains('복사'));
+    expect(
+      preview.candidates
+          .where((candidate) => candidate.isReadyToCopy)
+          .map((candidate) => candidate.entry.displayName),
+      <String>[
+        'Bach Cello Suite.pdf',
+        'notes.txt',
+        'chart.chordpro',
+        'notes.docx',
+        'notes.rtf',
+      ],
+    );
+    expect(
+      preview.candidates.last.status,
+      SheetExternalFolderCandidateStatus.unsupportedFormat,
+    );
+  });
+
+  test('blocks duplicate file names before copy-on-select import', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(displayName: 'Concert Etude.PDF'),
+      ],
+      existingFileNames: <String>[' concert etude.pdf '],
+    );
+
+    expect(preview.readyCount, 0);
+    expect(preview.blockedCount, 1);
+    expect(
+      preview.candidates.single.status,
+      SheetExternalFolderCandidateStatus.duplicateName,
+    );
+    expect(preview.candidates.single.message, contains('이미'));
+  });
+
+  test(
+    'flags changed files from the same connected folder without copying',
+    () {
+      final importedAt = DateTime.utc(2026, 10, 19, 10);
+      final preview = SheetExternalFolderCatalogPreview.fromEntries(
+        <SheetExternalFolderEntry>[
+          SheetExternalFolderEntry(
+            displayName: 'Concert Etude.pdf',
+            sizeBytes: 2400,
+            modifiedAt: DateTime.utc(2026, 10, 20, 10),
+          ),
+        ],
+        existingFileNames: const <String>['Concert Etude.pdf'],
+        existingImports: <SheetExternalFolderImportedScore>[
+          SheetExternalFolderImportedScore(
+            scoreId: 'score-concert-etude',
+            source: SheetScoreImportSource.create(
+              platform: 'android-saf-copy',
+              displayName: 'Concert Etude.pdf',
+              folderLabel: 'Recital',
+              providerLabel: 'Drive',
+              sizeBytes: 1200,
+              modifiedAt: importedAt,
+            )!,
+          ),
+        ],
+        folderLabel: 'Recital',
+        providerLabel: 'Drive',
+      );
+
+      expect(preview.readyCount, 0);
+      expect(preview.sourceChangedCount, 1);
+      expect(
+        preview.candidates.single.status,
+        SheetExternalFolderCandidateStatus.sourceChanged,
+      );
+      expect(preview.candidates.single.message, contains('자동으로 덮어쓰지'));
+      expect(preview.candidates.single.existingScoreId, 'score-concert-etude');
+      expect(
+        preview.copyPlanForSelection(<String>[
+          preview.candidates.single.selectionId,
+        ]).isReady,
+        isFalse,
+      );
+    },
+  );
+
+  test('recognizes an unchanged source from the same connected folder', () {
+    final modifiedAt = DateTime.utc(2026, 10, 20, 10);
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Concert Etude.pdf',
+          sizeBytes: 1200,
+          modifiedAt: modifiedAt,
+        ),
+      ],
+      existingFileNames: const <String>['Concert Etude.pdf'],
+      existingImports: <SheetExternalFolderImportedScore>[
+        SheetExternalFolderImportedScore(
+          scoreId: 'score-concert-etude',
+          source: SheetScoreImportSource.create(
+            platform: 'android-saf-copy',
+            displayName: 'Concert Etude.pdf',
+            folderLabel: 'Recital',
+            providerLabel: 'Drive',
+            sizeBytes: 1200,
+            modifiedAt: modifiedAt,
+          )!,
+        ),
+      ],
+      folderLabel: 'Recital',
+      providerLabel: 'Drive',
+    );
+
+    expect(preview.sourceChangedCount, 0);
+    expect(
+      preview.candidates.single.status,
+      SheetExternalFolderCandidateStatus.duplicateName,
+    );
+    expect(preview.candidates.single.message, contains('이 폴더에서 이미'));
+    expect(preview.candidates.single.existingScoreId, 'score-concert-etude');
+  });
+
+  test(
+    'keeps later duplicate names in the selected folder out of copy plans',
+    () {
+      final preview = SheetExternalFolderCatalogPreview.fromEntries(
+        const <SheetExternalFolderEntry>[
+          SheetExternalFolderEntry(displayName: 'Concert Etude.pdf'),
+          SheetExternalFolderEntry(displayName: 'concert etude.PDF'),
+        ],
+      );
+
+      expect(preview.readyCount, 1);
+      expect(
+        preview.candidates.last.status,
+        SheetExternalFolderCandidateStatus.duplicateName,
+      );
+      final plan = preview.copyPlanForSelection(
+        preview.candidates.map((candidate) => candidate.selectionId),
+      );
+      expect(plan.isReady, isFalse);
+      expect(plan.copyCandidates, hasLength(1));
+      expect(plan.blockedCandidates, hasLength(1));
+    },
+  );
+
+  test('unreadable entries stay blocked even when the name is a PDF', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(
+          displayName: 'Cloud Only.pdf',
+          canRead: false,
+        ),
+      ],
+    );
+
+    expect(preview.readyCount, 0);
+    expect(
+      preview.candidates.single.status,
+      SheetExternalFolderCandidateStatus.unreadable,
+    );
+    expect(preview.candidates.single.message, contains('읽을 수'));
+  });
+
+  test('empty and permission states do not expose import candidates', () {
+    final empty = SheetExternalFolderCatalogPreview.fromEntries(
+      const <SheetExternalFolderEntry>[],
+    );
+    const denied = SheetExternalFolderCatalogPreview.permissionDenied();
+    const failed = SheetExternalFolderCatalogPreview.scanFailed();
+
+    expect(empty.status, SheetExternalFolderCatalogStatus.empty);
+    expect(empty.hasReadyCandidates, isFalse);
+    expect(denied.status, SheetExternalFolderCatalogStatus.permissionDenied);
+    expect(denied.candidates, isEmpty);
+    expect(denied.message, contains('변경되지'));
+    expect(failed.status, SheetExternalFolderCatalogStatus.scanFailed);
+    expect(failed.candidates, isEmpty);
+  });
+
+  test('caps large folder previews while retaining scanned count', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      List<SheetExternalFolderEntry>.generate(
+        5,
+        (index) => SheetExternalFolderEntry(displayName: 'score-$index.pdf'),
+      ),
+      maxEntries: 3,
+    );
+
+    expect(preview.status, SheetExternalFolderCatalogStatus.capped);
+    expect(preview.scannedCount, 5);
+    expect(preview.candidates, hasLength(3));
+    expect(preview.readyCount, 3);
+    expect(preview.message, contains('처음 3개'));
+  });
+
+  test('classifies a capped mixed folder without selecting blocked files', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      List<SheetExternalFolderEntry>.generate(201, (index) {
+        if (index % 10 == 0) {
+          return SheetExternalFolderEntry(displayName: 'blocked-$index.xlsx');
+        }
+        if (index % 9 == 0) {
+          return SheetExternalFolderEntry(
+            displayName: 'offline-$index.pdf',
+            canRead: false,
+          );
+        }
+        return SheetExternalFolderEntry(displayName: 'score-$index.pdf');
+      }),
+    );
+
+    expect(preview.status, SheetExternalFolderCatalogStatus.capped);
+    expect(preview.scannedCount, 201);
+    expect(preview.candidates, hasLength(200));
+    final readyIds = preview.candidates
+        .where((candidate) => candidate.isReadyToCopy)
+        .map((candidate) => candidate.selectionId);
+    final plan = preview.copyPlanForSelection(readyIds);
+    expect(plan.isReady, isTrue);
+    expect(plan.copyCount, preview.readyCount);
+    expect(plan.copyCount, lessThan(200));
+    expect(plan.blockedCandidates, isEmpty);
+  });
+
+  test('builds a copy-on-select plan only from ready score candidates', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(
+          displayName: 'Ready.pdf',
+          documentId: 'provider-ready',
+          sizeBytes: 1200,
+        ),
+        const SheetExternalFolderEntry(displayName: 'blocked.xlsx'),
+      ],
+    );
+
+    final plan = preview.copyPlanForSelection(<String>[
+      preview.candidates.first.selectionId,
+    ]);
+
+    expect(plan.status, SheetExternalFolderCopyPlanStatus.ready);
+    expect(plan.isReady, isTrue);
+    expect(plan.copyCount, 1);
+    expect(plan.copyCandidates.single.entry.displayName, 'Ready.pdf');
+    expect(plan.copyCandidates.single.selectionId, 'doc:provider-ready');
+    expect(plan.knownCopySizeBytes, 1200);
+    expect(plan.unknownCopySizeCount, 0);
+    expect(plan.blockedCandidates, isEmpty);
+    expect(plan.message, contains('1개 악보 파일'));
+  });
+
+  test('copy plan exposes redacted batch sources for import pipeline', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Ready.pdf',
+          documentId: 'content://tree/secret/document/ready',
+          providerLabel: 'Drive',
+          sizeBytes: 1200,
+          modifiedAt: DateTime.utc(2026, 10, 13, 10),
+        ),
+        const SheetExternalFolderEntry(
+          displayName: 'Size Unknown.pdf',
+          documentId: 'content://tree/secret/document/unknown',
+        ),
+      ],
+    );
+    final plan = preview.copyPlanForSelection(
+      preview.candidates.map((candidate) => candidate.selectionId),
+    );
+
+    expect(plan.isReady, isTrue);
+    expect(plan.knownCopySizeBytes, 1200);
+    expect(plan.unknownCopySizeCount, 1);
+
+    final sources = plan.copySources(folderLabel: 'Recital Folder');
+    expect(sources, hasLength(2));
+    expect(sources.first.hasSensitiveToken, isTrue);
+    expect(sources.first.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Ready.pdf',
+      'folderLabel': 'Recital Folder',
+      'providerLabel': 'Drive',
+      'sizeBytes': 1200,
+      'modifiedAt': '2026-10-13T10:00:00.000Z',
+    });
+    expect(
+      sources.first.toBackupJson().values.join(' '),
+      isNot(contains('secret')),
+    );
+    expect(sources.last.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Size Unknown.pdf',
+      'folderLabel': 'Recital Folder',
+    });
+  });
+
+  test('copy plan blocks duplicate unsupported and unreadable selections', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(displayName: 'Existing.pdf'),
+        const SheetExternalFolderEntry(displayName: 'notes.xlsx'),
+        const SheetExternalFolderEntry(
+          displayName: 'Cloud.pdf',
+          canRead: false,
+        ),
+      ],
+      existingFileNames: <String>['existing.pdf'],
+    );
+
+    final plan = preview.copyPlanForSelection(
+      preview.candidates.map((candidate) => candidate.selectionId),
+    );
+
+    expect(plan.status, SheetExternalFolderCopyPlanStatus.blockedSelection);
+    expect(plan.isReady, isFalse);
+    expect(plan.copyCandidates, isEmpty);
+    expect(plan.blockedCandidates, hasLength(3));
+    expect(plan.copySources(), isEmpty);
+  });
+
+  test('copy plan rejects empty and stale selections', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        const SheetExternalFolderEntry(displayName: 'Ready.pdf'),
+      ],
+    );
+
+    final empty = preview.copyPlanForSelection(const <String>[]);
+    final stale = preview.copyPlanForSelection(<String>['entry:99:stale.pdf']);
+
+    expect(empty.status, SheetExternalFolderCopyPlanStatus.noSelection);
+    expect(empty.copyCandidates, isEmpty);
+    expect(stale.status, SheetExternalFolderCopyPlanStatus.unknownSelection);
+    expect(stale.unknownSelectionCount, 1);
+    expect(stale.copyCandidates, isEmpty);
+  });
+
+  test('copy source metadata keeps display hints but redacts tokens', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      <SheetExternalFolderEntry>[
+        SheetExternalFolderEntry(
+          displayName: 'Recital.pdf',
+          documentId: 'content://tree/secret/document/recital',
+          providerLabel: 'Drive',
+          sizeBytes: 2400,
+          modifiedAt: DateTime.utc(2026, 10, 2, 9),
+        ),
+      ],
+    );
+    final source = SheetExternalFolderCopySource.fromCandidate(
+      preview.candidates.single,
+      folderLabel: 'Recital Folder',
+    );
+
+    expect(source.hasSensitiveToken, isTrue);
+    expect(source.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Recital.pdf',
+      'folderLabel': 'Recital Folder',
+      'providerLabel': 'Drive',
+      'sizeBytes': 2400,
+      'modifiedAt': '2026-10-02T09:00:00.000Z',
+    });
+    expect(source.toBackupJson().values.join(' '), isNot(contains('secret')));
+    expect(source.toBackupJson().keys, isNot(contains('documentToken')));
+    expect(
+      source.toScoreImportSource()?.toJson(),
+      source.toScoreMetadataJson(),
+    );
+  });
+
+  test('copy source metadata omits empty and invalid optional fields', () {
+    const source = SheetExternalFolderCopySource(
+      displayName: '  Etude.pdf  ',
+      platform: '  android-saf  ',
+      folderLabel: ' ',
+      providerLabel: '',
+      sizeBytes: -1,
+    );
+
+    expect(source.hasSensitiveToken, isFalse);
+    expect(source.toScoreMetadataJson(), <String, Object?>{
+      'platform': 'android-saf',
+      'displayName': 'Etude.pdf',
+    });
+  });
+}

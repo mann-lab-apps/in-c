@@ -1,10 +1,261 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+
+import 'sheet_audio_player.dart';
 import 'sheet_metronome.dart';
+import 'sheet_tone.dart';
+import 'sheet_tuner.dart';
 import 'sheet_viewer_input.dart';
 
 enum SheetDeviceCheckStatus { pass, warn, fail, manual, notTested }
+
+class SheetPracticeAudioBridgeChecker {
+  SheetPracticeAudioBridgeChecker({
+    MethodChannel? metronomeChannel,
+    MethodChannel? toneChannel,
+    MethodChannel? audioPlayerChannel,
+    Future<String> Function()? createAudioFixture,
+    Future<void> Function(String path)? deleteAudioFixture,
+  }) : _metronomeChannel =
+           metronomeChannel ?? const MethodChannel('clef/metronome_player'),
+       _toneChannel = toneChannel ?? const MethodChannel('clef/tone_player'),
+       _audioPlayer = SheetAudioPlayer(channel: audioPlayerChannel),
+       _createAudioFixture = createAudioFixture ?? _createSilentAudioFixture,
+       _deleteAudioFixture = deleteAudioFixture ?? _deleteFixtureBestEffort;
+
+  final MethodChannel _metronomeChannel;
+  final MethodChannel _toneChannel;
+  final SheetAudioPlayer _audioPlayer;
+  final Future<String> Function() _createAudioFixture;
+  final Future<void> Function(String path) _deleteAudioFixture;
+
+  Future<SheetDeviceCheckItem> run() async {
+    final ready = <String>[];
+    final issues = <String>[];
+    Set<String>? toneRouteOutputs;
+    try {
+      await _metronomeChannel.invokeMethod<void>('prepare');
+      ready.add('metronome click buffer');
+    } on MissingPluginException {
+      issues.add('metronome bridge 미등록');
+    } on PlatformException catch (error) {
+      issues.add('metronome ${error.code}');
+    } catch (error) {
+      issues.add('metronome ${error.runtimeType}');
+    }
+
+    var toneStarted = false;
+    try {
+      await _toneChannel.invokeMethod<void>('play', <String, Object?>{
+        'frequencies': const <double>[440],
+        'volume': 0.0,
+      });
+      ready.add('drone silent output');
+      toneStarted = true;
+    } on MissingPluginException {
+      issues.add('drone bridge 미등록');
+    } on PlatformException catch (error) {
+      issues.add('drone ${error.code}');
+    } catch (error) {
+      issues.add('drone ${error.runtimeType}');
+    }
+    if (toneStarted) {
+      try {
+        final route = await _toneChannel.invokeMapMethod<String, Object?>(
+          'routeInfo',
+        );
+        toneRouteOutputs = _audioRouteOutputs(route);
+        final routeDetails = _audioRouteDetails(route);
+        if (routeDetails == null) {
+          issues.add('audio route 조회 실패');
+        } else {
+          ready.add(routeDetails);
+        }
+      } on MissingPluginException {
+        issues.add('audio route bridge 미등록');
+      } on PlatformException catch (error) {
+        issues.add('audio route ${error.code}');
+      } catch (error) {
+        issues.add('audio route ${error.runtimeType}');
+      }
+    }
+
+    String? audioFixturePath;
+    var audioPlayerStopped = false;
+    try {
+      audioFixturePath = await _createAudioFixture();
+      final info = await _audioPlayer.inspect(audioFixturePath);
+      if (info == null) {
+        issues.add('linked audio duration 조회 실패');
+      } else {
+        ready.add('linked audio duration');
+      }
+      final playback = await _audioPlayer.play(audioFixturePath);
+      if (playback.isPlaying) {
+        ready.add('linked audio silent playback');
+        final linkedAudioRoute = await _audioPlayer.readRouteInfo();
+        final linkedAudioRouteOutputs = _audioRouteOutputs(linkedAudioRoute);
+        final routeDetails = _audioRouteDetails(
+          linkedAudioRoute,
+          label: 'linked audio route',
+        );
+        if (routeDetails == null) {
+          issues.add('linked audio route 조회 실패');
+        } else {
+          ready.add(routeDetails);
+        }
+        if (toneRouteOutputs != null &&
+            linkedAudioRouteOutputs != null &&
+            !_sameAudioRouteOutputs(
+              toneRouteOutputs,
+              linkedAudioRouteOutputs,
+            )) {
+          issues.add(
+            'audio route 불일치: drone ${toneRouteOutputs.join('/')} / '
+            'linked ${linkedAudioRouteOutputs.join('/')}',
+          );
+        }
+        final position = await _audioPlayer.readPosition();
+        if (position == null) {
+          issues.add('linked audio position 조회 실패');
+        } else {
+          ready.add(
+            'linked audio position ${position.position.inMilliseconds}/'
+            '${position.duration.inMilliseconds}ms',
+          );
+        }
+        await _audioPlayer.stop();
+        audioPlayerStopped = true;
+        final stoppedPosition = await _audioPlayer.readPosition();
+        if (stoppedPosition == null) {
+          ready.add('linked audio stop lifecycle');
+        } else {
+          issues.add('linked audio stop 후 player 유지');
+        }
+      } else {
+        issues.add(
+          playback.status == SheetAudioPlaybackStatus.unsupportedPlatform
+              ? 'linked audio bridge 미등록'
+              : 'linked audio ${playback.message.isEmpty ? '재생 실패' : playback.message}',
+        );
+      }
+    } catch (error) {
+      issues.add('linked audio ${error.runtimeType}');
+    } finally {
+      if (!audioPlayerStopped) {
+        await _audioPlayer.stop();
+      }
+      if (audioFixturePath != null) {
+        await _deleteAudioFixture(audioFixturePath);
+      }
+      await _stopBestEffort(_toneChannel);
+      await _stopBestEffort(_metronomeChannel);
+    }
+
+    final readyDetails = ready.isEmpty ? '' : '${ready.join(', ')} 준비됨. ';
+    final issueDetails = issues.isEmpty ? '' : '확인 필요: ${issues.join(', ')}. ';
+    return SheetDeviceCheckItem(
+      id: 'native-audio-bridges',
+      title: 'Native practice audio bridges',
+      status: issues.isEmpty
+          ? SheetDeviceCheckStatus.pass
+          : SheetDeviceCheckStatus.warn,
+      details:
+          '$readyDetails$issueDetails'
+          '무음 초기화와 재생 위치/정지 lifecycle 결과이며 실제 음량, latency, 박자 균일성, A-B 경계는 직접 들어봐야 합니다.',
+    );
+  }
+
+  static Future<String> _createSilentAudioFixture() async {
+    const sampleRate = 8000;
+    const sampleCount = 2000;
+    const bytesPerSample = 2;
+    const dataLength = sampleCount * bytesPerSample;
+    final bytes = ByteData(44 + dataLength);
+
+    void writeAscii(int offset, String value) {
+      for (var index = 0; index < value.length; index += 1) {
+        bytes.setUint8(offset + index, value.codeUnitAt(index));
+      }
+    }
+
+    writeAscii(0, 'RIFF');
+    bytes.setUint32(4, 36 + dataLength, Endian.little);
+    writeAscii(8, 'WAVE');
+    writeAscii(12, 'fmt ');
+    bytes.setUint32(16, 16, Endian.little);
+    bytes.setUint16(20, 1, Endian.little);
+    bytes.setUint16(22, 1, Endian.little);
+    bytes.setUint32(24, sampleRate, Endian.little);
+    bytes.setUint32(28, sampleRate * bytesPerSample, Endian.little);
+    bytes.setUint16(32, bytesPerSample, Endian.little);
+    bytes.setUint16(34, bytesPerSample * 8, Endian.little);
+    writeAscii(36, 'data');
+    bytes.setUint32(40, dataLength, Endian.little);
+
+    final file = File(
+      '${Directory.systemTemp.path}/clef-audio-check-${DateTime.now().microsecondsSinceEpoch}.wav',
+    );
+    await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
+    return file.path;
+  }
+
+  static Future<void> _deleteFixtureBestEffort(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // A temporary diagnostic fixture must not change the bridge result.
+    }
+  }
+
+  static Future<void> _stopBestEffort(MethodChannel channel) async {
+    try {
+      await channel.invokeMethod<void>('stop');
+    } catch (_) {
+      // Diagnostics cleanup must not hide the probe result.
+    }
+  }
+
+  static String? _audioRouteDetails(
+    Map<String, Object?>? response, {
+    String label = 'audio route',
+  }) {
+    final outputs = _audioRouteOutputs(response);
+    if (outputs == null) return null;
+    final rawVolume = response?['systemVolume'];
+    final volume = switch (rawVolume) {
+      num value when value.isFinite => value.toDouble().clamp(0.0, 1.0),
+      _ => null,
+    };
+    final volumeLabel = volume == null
+        ? ''
+        : ' · system volume ${(volume * 100).round()}%';
+    return '$label ${outputs.join('/')}$volumeLabel';
+  }
+
+  static Set<String>? _audioRouteOutputs(Map<String, Object?>? response) {
+    final rawOutputs = response?['outputs'];
+    if (rawOutputs is! List) return null;
+    final outputs = rawOutputs
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty && value != 'unknown')
+        .toSet();
+    if (outputs.isEmpty) return null;
+    return outputs;
+  }
+
+  static bool _sameAudioRouteOutputs(Set<String> left, Set<String> right) {
+    return left.length == right.length && left.containsAll(right);
+  }
+}
 
 extension SheetDeviceCheckStatusLabel on SheetDeviceCheckStatus {
   String get code {
@@ -90,7 +341,7 @@ class SheetDeviceCheckReport {
 
   String toMarkdown() {
     final buffer = StringBuffer()
-      ..writeln('# Clef & Staff 앱 상태 점검')
+      ..writeln('# Clef & Staff 개발자용 기기 리포트')
       ..writeln()
       ..writeln('App: Clef & Staff $appVersion')
       ..writeln('Platform: ${sanitizeDeviceCheckText(platform)}')
@@ -110,10 +361,11 @@ class SheetDeviceCheckReport {
       ..writeln('## Manual checks still needed')
       ..writeln()
       ..writeln('- 실제 메트로놈 청감과 이어폰/스피커/Bluetooth 출력')
-      ..writeln('- 드론 음량')
+      ..writeln('- 드론 음량, 출력 route, 시작/종료 잡음')
       ..writeln('- Bluetooth/USB 페달 호환성')
       ..writeln('- stylus/S Pen/Apple Pencil 필기감')
-      ..writeln('- 튜너 정확도와 연습실 주변 소음 반응')
+      ..writeln('- 440/441/442Hz reference tone과 실제 악기의 튜너 정확도')
+      ..writeln('- 연습실 주변 소음과 기기별 마이크 반응')
       ..writeln('- 장시간 연주 안정성');
 
     final safeNotes = sanitizeDeviceCheckText(notes.trim());
@@ -260,19 +512,99 @@ SheetDeviceCheckItem deviceCheckItemForKeyInput(
       id: 'page-key-input',
       title: 'Page key input',
       status: SheetDeviceCheckStatus.notTested,
-      details: '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요.',
+      details:
+          '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요. '
+          '감지 후 실제 악보 화면에서도 같은 키로 페이지 단위 이동을 확인하세요.',
     );
   }
   final action = entry.action == SheetViewerInputAction.none
       ? 'unmapped'
       : entry.action.value;
+  final guidance = _deviceCheckKeyGuidance(entry);
   return SheetDeviceCheckItem(
     id: 'page-key-input',
     title: 'Page key input',
     status: entry.action == SheetViewerInputAction.none
         ? SheetDeviceCheckStatus.warn
         : SheetDeviceCheckStatus.pass,
-    details: '${entry.inputId} -> $action',
+    details: '${entry.inputId} -> $action. $guidance',
+  );
+}
+
+String _deviceCheckKeyGuidance(SheetViewerInputDiagnosticEntry entry) {
+  if (entry.action != SheetViewerInputAction.none) {
+    return '키 매핑은 감지됐습니다. 실제 악보 화면에서 PDF 스크롤이 아니라 '
+        '페이지 단위로 넘어가는지도 확인하세요.';
+  }
+  final inputLabel = '${entry.inputId} ${entry.logicalKeyLabel}'.toLowerCase();
+  if (inputLabel.contains('volume') || inputLabel.contains('audio volume')) {
+    return '시스템 볼륨 키는 기본 페이지 넘김으로 쓰지 않습니다. 실제 페달이 '
+        '이 키를 보내면 사용자 설정 후보로 기록하세요.';
+  }
+  return '기본 페이지 넘김 키가 아닙니다. 실제 페달 장비라면 사용자 설정이 '
+      '필요할 수 있습니다.';
+}
+
+SheetDeviceCheckItem deviceCheckItemForTunerSettings(
+  SheetTunerSettings settings,
+) {
+  final isChromatic =
+      settings.tuningMode == SheetTunerMode.chromatic &&
+      settings.tuningPreset == SheetTunerPreset.chromatic &&
+      settings.displayMode == SheetTunerDisplayMode.concert &&
+      settings.detectionProfile == SheetTunerDetectionProfile.chromatic &&
+      !settings.targetLockEnabled;
+  return SheetDeviceCheckItem(
+    id: 'tuner-settings',
+    title: 'Tuner setup',
+    status: isChromatic
+        ? SheetDeviceCheckStatus.pass
+        : SheetDeviceCheckStatus.warn,
+    details:
+        'A4 ${settings.referencePitchA4}Hz, '
+        '${settings.detectionAlgorithm.label}, '
+        '${settings.notationPreference.label}. '
+        '${isChromatic ? 'Chromatic-only 상태입니다.' : '이전 preset/target 설정 흔적을 확인하세요.'} '
+        '실제 정확도는 reference tone과 실제 악기로 비교하세요.',
+  );
+}
+
+SheetDeviceCheckItem deviceCheckItemForToneSettings({
+  required SheetToneSettings settings,
+  required int referencePitchA4,
+}) {
+  final frequencies = settings.frequencies(referencePitchA4: referencePitchA4);
+  final noteLabels = settings.concertMidiNumbers
+      .map(
+        (midi) => SheetTunerPitch.noteFromMidi(
+          midi,
+          referencePitchA4: referencePitchA4,
+        ).label,
+      )
+      .join('/');
+  final frequencyLabel = frequencies
+      .map((frequency) => '${frequency.toStringAsFixed(1)}Hz')
+      .join('/');
+  final voiceCount = settings.concertMidiNumbers.length;
+  final clippingRisk = settings.volumePercent >= 80 && voiceCount >= 3
+      ? SheetDeviceCheckStatus.warn
+      : settings.volumePercent == 0
+      ? SheetDeviceCheckStatus.warn
+      : SheetDeviceCheckStatus.pass;
+  final guidance = switch (clippingRisk) {
+    SheetDeviceCheckStatus.warn when settings.volumePercent == 0 =>
+      '음량이 0%라 들리지 않습니다.',
+    SheetDeviceCheckStatus.warn => '고음량 다성 drone은 clipping이나 시작/종료 잡음을 확인하세요.',
+    _ => '설정상 clipping 위험은 낮습니다.',
+  };
+  return SheetDeviceCheckItem(
+    id: 'drone-setup',
+    title: 'Drone setup',
+    status: clippingRisk,
+    details:
+        '${settings.droneMode.label}, $noteLabels, $frequencyLabel, '
+        'volume ${settings.volumePercent}%. $guidance '
+        '실제 음량은 이어폰/스피커/Bluetooth/연습실에서 확인하세요.',
   );
 }
 

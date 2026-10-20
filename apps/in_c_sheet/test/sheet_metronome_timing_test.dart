@@ -15,12 +15,15 @@ void main() {
             (tester) async {
               final clicks = <bool>[];
               final times = <DateTime>[];
+              var stops = 0;
               tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
                 channel,
                 (call) async {
                   if (call.method == 'playClick') {
                     clicks.add((call.arguments as Map)['accent'] as bool);
                     times.add(tester.binding.clock.now());
+                  } else if (call.method == 'stop') {
+                    stops++;
                   }
                   return null;
                 },
@@ -66,6 +69,7 @@ void main() {
               await tester.tap(find.text('정지'));
               await tester.pump(const Duration(seconds: 2));
               expect(clicks, hasLength(beatsToAdvance + 1));
+              expect(stops, 1);
               await tester.tap(find.text('시작'));
               await tester.pump();
               expect(clicks.last, isTrue);
@@ -73,6 +77,7 @@ void main() {
               await tester.pumpWidget(const SizedBox());
               await tester.pump(const Duration(seconds: 2));
               expect(clicks, hasLength(clicksBeforeClose));
+              expect(stops, 2);
               expect(tester.takeException(), isNull);
             },
           );

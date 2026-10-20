@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_score.dart';
@@ -52,6 +53,10 @@ void main() {
             expect(controller.isImporting, isFalse);
             expect(controller.errorMessage, isNull);
             expect(controller.lastImportOpenedExistingScore, isFalse);
+            expect(
+              store.discardedScoreIds.contains('imported'),
+              phase == 'save' || !fails,
+            );
             await controller.switchLibraryProfile(sourceId);
             expect(
               controller.scores,
@@ -72,6 +77,7 @@ void main() {
         expect(controller.errorMessage, contains('저장'));
         expect(controller.scores.single.toJson(), original);
         expect((await store.loadScores()).single.toJson(), original);
+        expect(store.discardedScoreIds, contains('imported'));
         store.failSave = false;
         expect(await _import(controller, kind), hasLength(1));
         expect(controller.lastImportOpenedExistingScore, isFalse);
@@ -90,9 +96,129 @@ void main() {
         expect(controller.scores.single.id, 'existing');
         expect(controller.errorMessage, isNotEmpty);
         expect(store.saveCalls, 1);
+        expect(store.discardedScoreIds, isEmpty);
       },
     );
   }
+
+  test('shared PDF import persists redacted folder provenance', () async {
+    final imported = await controller.importSharedPdfFiles([
+      SheetSharedImportFile(
+        path: '/tmp/folder-score.pdf',
+        name: 'folder-score.pdf',
+        importSource: SheetScoreImportSource.create(
+          platform: 'android-saf-copy',
+          displayName: 'folder-score.pdf',
+          folderLabel: 'Recital PDFs',
+          providerLabel: 'Downloads',
+          sizeBytes: 2048,
+          modifiedAt: DateTime.utc(2026, 10, 19),
+        )!,
+      ),
+    ]);
+
+    expect(
+      imported.single.importSource?.locationLabel,
+      'Recital PDFs · Downloads',
+    );
+    await controller.load();
+    final restored = controller.scores.firstWhere(
+      (score) => score.id == 'imported',
+    );
+    expect(restored.importSource?.displayName, 'folder-score.pdf');
+    expect(restored.importSource?.sizeBytes, 2048);
+    final encoded = SheetScore.encodeList(controller.scores);
+    expect(encoded, isNot(contains('content://')));
+    expect(encoded, isNot(contains('documentToken')));
+  });
+
+  test('shared PDF partial failure discards earlier imported copies', () async {
+    store.failSharedImportAt = 2;
+
+    final imported = await controller.importSharedPdfFiles(const [
+      SheetSharedImportFile(path: '/tmp/one.pdf', name: 'one.pdf'),
+      SheetSharedImportFile(path: '/tmp/two.pdf', name: 'two.pdf'),
+    ]);
+
+    expect(imported, isEmpty);
+    expect(controller.scores.single.id, 'existing');
+    expect(store.discardedScoreIds, contains('imported'));
+  });
+
+  test(
+    'connected folder imports every supported score format atomically',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-folder-scores-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      const names = <String>[
+        'score.pdf',
+        'lyrics.txt',
+        'chart.chordpro',
+        'notes.docx',
+        'lesson.rtf',
+      ];
+      final files = <SheetSharedImportFile>[];
+      for (final name in names) {
+        final file = File('${directory.path}/$name');
+        await file.writeAsString('fixture');
+        files.add(
+          SheetSharedImportFile(
+            path: file.path,
+            name: name,
+            importSource: SheetScoreImportSource.create(
+              platform: 'android-saf-copy',
+              displayName: name,
+              folderLabel: 'Recital',
+            ),
+          ),
+        );
+      }
+
+      final imported = await controller.importSharedScoreFiles(files);
+
+      expect(store.sharedKinds, <String>[
+        'pdf',
+        'text',
+        'chordpro',
+        'docx',
+        'rtf',
+      ]);
+      expect(imported, hasLength(5));
+      expect(imported.map((score) => score.importSource?.folderLabel).toSet(), {
+        'Recital',
+      });
+      expect(controller.scores, hasLength(6));
+    },
+  );
+
+  test(
+    'connected folder rejects a mixed unsupported batch without saving',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'clef-folder-invalid-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final pdf = File('${directory.path}/score.pdf');
+      final unsupported = File('${directory.path}/score.xlsx');
+      await pdf.writeAsString('fixture');
+      await unsupported.writeAsString('fixture');
+      final saveCallsBeforeImport = store.saveCalls;
+
+      final imported = await controller.importSharedScoreFiles(
+        <SheetSharedImportFile>[
+          SheetSharedImportFile(path: pdf.path, name: 'score.pdf'),
+          SheetSharedImportFile(path: unsupported.path, name: 'score.xlsx'),
+        ],
+      );
+
+      expect(imported, isEmpty);
+      expect(controller.scores.single.id, 'existing');
+      expect(store.discardedScoreIds, contains('imported'));
+      expect(store.saveCalls, saveCallsBeforeImport);
+    },
+  );
 
   for (final addToSetlist in [false, true]) {
     testWidgets(
@@ -313,6 +439,7 @@ void main() {
       }
       expect(tester.takeException(), isNull);
       expect(controller.scores.single.id, 'existing');
+      expect(store.discardedScoreIds, contains('new-import-id'));
       expect(
         controller.setlistById(target.id).scoreIds,
         outcome == 'success' ? ['existing'] : isEmpty,
@@ -440,6 +567,10 @@ class _ImportStore extends SheetLibraryStore {
   Completer<void>? releaseWrite;
   List<SheetScore>? importedBatch;
   bool failRead = false;
+  int sharedImportCalls = 0;
+  int? failSharedImportAt;
+  final discardedScoreIds = <String>[];
+  final sharedKinds = <String>[];
 
   @override
   Future<List<SheetScore>> loadScores() async {
@@ -473,7 +604,56 @@ class _ImportStore extends SheetLibraryStore {
   @override
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
     await importGate?.future;
+    sharedImportCalls += 1;
+    if (sharedImportCalls == failSharedImportAt) {
+      throw const FormatException('invalid shared PDF');
+    }
+    sharedKinds.add('pdf');
     return _imported();
+  }
+
+  @override
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('text');
+    return _score('text-imported');
+  }
+
+  @override
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('chordpro');
+    return _score('chordpro-imported');
+  }
+
+  @override
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('docx');
+    return _score('docx-imported');
+  }
+
+  @override
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    sharedKinds.add('rtf');
+    return _score('rtf-imported');
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
   }
 
   @override

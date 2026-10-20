@@ -1,13 +1,20 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
 import 'sheet_annotation.dart';
+import 'sheet_annotation_stamp_asset_store.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_chordpro.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_backup_diff.dart';
+import 'sheet_library_sync_review.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
@@ -16,6 +23,8 @@ import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_setlist_manifest.dart';
+import 'sheet_setlist_package.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
@@ -76,10 +85,66 @@ class SheetSongbookSplitResult {
   bool get didCreateAny => createdScores.isNotEmpty;
 }
 
+class SheetLibraryBackupHealth {
+  const SheetLibraryBackupHealth({
+    required this.currentScoreCount,
+    required this.currentSetlistCount,
+    required this.currentTextScoreCount,
+    required this.currentPdfScoreCount,
+    required this.missingPrimaryFileCount,
+    required this.linkedFileCount,
+    required this.fileBackedAnnotationCount,
+    required this.userStampPackCount,
+    required this.hasAutomaticMetadataBackup,
+    this.automaticMetadataExportedAt,
+    this.automaticMetadataScoreCount = 0,
+    this.automaticMetadataSetlistCount = 0,
+    this.lastBackupExportRecord,
+  });
+
+  final int currentScoreCount;
+  final int currentSetlistCount;
+  final int currentTextScoreCount;
+  final int currentPdfScoreCount;
+  final int missingPrimaryFileCount;
+  final int linkedFileCount;
+  final int fileBackedAnnotationCount;
+  final int userStampPackCount;
+  final bool hasAutomaticMetadataBackup;
+  final DateTime? automaticMetadataExportedAt;
+  final int automaticMetadataScoreCount;
+  final int automaticMetadataSetlistCount;
+  final SheetLibraryBackupExportRecord? lastBackupExportRecord;
+
+  int get currentExternalFileCount {
+    return currentPdfScoreCount + linkedFileCount + fileBackedAnnotationCount;
+  }
+}
+
+const _setlistPackageKnownDetailKeys = <String>{
+  '파일',
+  '형식',
+  '작곡가',
+  '시작',
+  '예상 시간',
+  '세트 메모',
+  '악보 메모',
+  '태그',
+  '컬렉션',
+  '그룹',
+  '별점',
+  '메트로놈',
+};
+
 class SheetLibraryController extends ChangeNotifier {
-  SheetLibraryController({required this.store});
+  SheetLibraryController({
+    required this.store,
+    SheetAnnotationStampAssetStore? stampAssetStore,
+  }) : stampAssetStore =
+           stampAssetStore ?? const SheetAnnotationStampAssetStore();
 
   final SheetLibraryStore store;
+  final SheetAnnotationStampAssetStore stampAssetStore;
 
   List<SheetScore> _scores = const <SheetScore>[];
   List<SheetSetlist> _setlists = const <SheetSetlist>[];
@@ -101,11 +166,19 @@ class SheetLibraryController extends ChangeNotifier {
       SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   Object? _favoritePresetSaveRequest;
+  List<String> _recentAnnotationStampNames = const <String>[];
+  Object? _recentAnnotationStampsSaveRequest;
+  List<SheetAnnotationStampPack> _userAnnotationStampPacks =
+      const <SheetAnnotationStampPack>[];
+  Object? _userAnnotationStampPacksSaveRequest;
   Object? _viewSettingsSaveRequest;
   Object? _libraryLoadRequest;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
+  final Set<String> _chordProSourceEdits = <String>{};
+  final Set<String> _plainTextSourceEdits = <String>{};
+  final Set<String> _connectedFolderSourceReplacements = <String>{};
   String? _errorMessage;
   bool _lastImportOpenedExistingScore = false;
 
@@ -124,6 +197,14 @@ class SheetLibraryController extends ChangeNotifier {
   SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
     return _favoriteAnnotationPreset;
+  }
+
+  List<String> get recentAnnotationStampNames {
+    return _recentAnnotationStampNames;
+  }
+
+  List<SheetAnnotationStampPack> get userAnnotationStampPacks {
+    return _userAnnotationStampPacks;
   }
 
   String get query => _query;
@@ -324,6 +405,10 @@ class SheetLibraryController extends ChangeNotifier {
     final previousTemplates = _performancePresetTemplates;
     final previousFavorite = _favoriteAnnotationPreset;
     final previousFavoriteRequest = _favoritePresetSaveRequest;
+    final previousRecentStamps = _recentAnnotationStampNames;
+    final previousRecentStampsRequest = _recentAnnotationStampsSaveRequest;
+    final previousUserStampPacks = _userAnnotationStampPacks;
+    final previousUserStampPacksRequest = _userAnnotationStampPacksSaveRequest;
     final previousError = _errorMessage;
     final profiles = await store.loadLibraryProfiles();
     final active = await store.loadActiveLibraryProfile();
@@ -336,6 +421,8 @@ class SheetLibraryController extends ChangeNotifier {
     final viewer = await store.loadGlobalViewerSettings();
     final templates = await store.loadPerformancePresetTemplates();
     final favorite = await store.loadFavoriteAnnotationPreset();
+    final recentStamps = await store.loadRecentAnnotationStampNames();
+    final userStampPacks = await store.loadUserAnnotationStampPacks();
     if (!identical(_libraryLoadRequest, request)) return;
     // Publish one completed load; superseded reads must never clean up newer data.
     final sameLibrary = active.id == previousActive.id;
@@ -374,6 +461,24 @@ class SheetLibraryController extends ChangeNotifier {
       _favoriteAnnotationPreset = favorite;
       _favoritePresetSaveRequest = null;
     }
+    if (!sameLibrary ||
+        (identical(_recentAnnotationStampNames, previousRecentStamps) &&
+            identical(
+              _recentAnnotationStampsSaveRequest,
+              previousRecentStampsRequest,
+            ))) {
+      _recentAnnotationStampNames = recentStamps;
+      _recentAnnotationStampsSaveRequest = null;
+    }
+    if (!sameLibrary ||
+        (identical(_userAnnotationStampPacks, previousUserStampPacks) &&
+            identical(
+              _userAnnotationStampPacksSaveRequest,
+              previousUserStampPacksRequest,
+            ))) {
+      _userAnnotationStampPacks = userStampPacks;
+      _userAnnotationStampPacksSaveRequest = null;
+    }
     if (!sameLibrary || _errorMessage == previousError) _errorMessage = null;
     await _removeMissingSetlistScores();
   }
@@ -389,9 +494,17 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importPdf();
-      if (_activeLibraryProfile.id != libraryId) return null;
+      importedScore = await store.importPdf();
+      if (_activeLibraryProfile.id != libraryId) {
+        if (importedScore != null) {
+          await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+            importedScore,
+          ]);
+        }
+        return null;
+      }
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -400,14 +513,23 @@ class SheetLibraryController extends ChangeNotifier {
       }
       final duplicate = _findLikelyImportedDuplicate(score);
       if (duplicate != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
         _lastImportOpenedExistingScore = true;
         return duplicate;
       }
 
       _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       }
@@ -429,13 +551,18 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    var rawScores = const <SheetScore>[];
     try {
-      final rawScores = await store.importPdfs();
+      rawScores = await store.importPdfs();
       if (_activeLibraryProfile.id != libraryId || rawScores.isEmpty) {
+        if (rawScores.isNotEmpty) {
+          await store.discardUnreferencedImportedScoreFiles(rawScores);
+        }
         return SheetPdfBatchImportResult.empty;
       }
       final importedScores = <SheetScore>[];
       final existingScores = <SheetScore>[];
+      final duplicateCopies = <SheetScore>[];
       for (final rawScore in rawScores) {
         final score = _withActiveCollection(rawScore);
         final duplicate =
@@ -443,6 +570,7 @@ class SheetLibraryController extends ChangeNotifier {
             _findLikelyDuplicateIn(score, importedScores);
         if (duplicate != null) {
           existingScores.add(duplicate);
+          duplicateCopies.add(score);
         } else {
           importedScores.add(score);
         }
@@ -451,8 +579,12 @@ class SheetLibraryController extends ChangeNotifier {
       if (importedScores.isNotEmpty) {
         _scores = <SheetScore>[...importedScores, ..._scores];
         if (!await _saveImportedScores(libraryId)) {
+          await store.discardUnreferencedImportedScoreFiles(rawScores);
           return SheetPdfBatchImportResult.empty;
         }
+      }
+      if (duplicateCopies.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(duplicateCopies);
       }
       _lastImportOpenedExistingScore = existingScores.isNotEmpty;
       return SheetPdfBatchImportResult(
@@ -460,6 +592,9 @@ class SheetLibraryController extends ChangeNotifier {
         existingScores: List<SheetScore>.unmodifiable(existingScores),
       );
     } catch (error) {
+      if (rawScores.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(rawScores);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       }
@@ -481,9 +616,17 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importImagesAsPdf();
-      if (_activeLibraryProfile.id != libraryId) return null;
+      importedScore = await store.importImagesAsPdf();
+      if (_activeLibraryProfile.id != libraryId) {
+        if (importedScore != null) {
+          await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+            importedScore,
+          ]);
+        }
+        return null;
+      }
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -492,9 +635,17 @@ class SheetLibraryController extends ChangeNotifier {
       }
 
       _scores = <SheetScore>[score, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return null;
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
       if (_activeLibraryProfile.id == libraryId) {
         _errorMessage = _imageImportErrorMessage(error);
       }
@@ -505,9 +656,282 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetScore?> importChordProText(String source) async {
+    if (_isImporting) {
+      return null;
+    }
+    final trimmedSource = source.trim();
+    if (trimmedSource.isEmpty) {
+      return null;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      return await _storeChordProSource(source, libraryId: libraryId);
+    } catch (_) {
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'ChordPro 악보를 저장하지 못했습니다. 내용을 확인한 뒤 다시 시도해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> importChordProFile() async {
+    if (_isImporting) {
+      return null;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickChordProFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      if (importedFile.bytes.isEmpty ||
+          importedFile.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('Invalid ChordPro file size.');
+      }
+      final source = utf8.decode(importedFile.bytes);
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty ChordPro file.');
+      }
+      importedScore = await store.importChordProFileBytes(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
+    } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'ChordPro 파일을 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> importPlainTextFile() async {
+    if (_isImporting) return null;
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickPlainTextFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      if (importedFile.bytes.isEmpty ||
+          importedFile.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('Invalid text file size.');
+      }
+      final source = utf8.decode(importedFile.bytes);
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty text file.');
+      }
+      importedScore = await store.importPlainTextFile(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
+    } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = '텍스트 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> importDocxFile() async {
+    if (_isImporting) return null;
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickDocxFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      importedScore = await store.importDocxFileBytes(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
+    } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'DOCX 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> importRtfFile() async {
+    if (_isImporting) return null;
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? importedScore;
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final importedFile = await store.pickRtfFile();
+      if (_activeLibraryProfile.id != libraryId || importedFile == null) {
+        return null;
+      }
+      importedScore = await store.importRtfFileBytes(file: importedFile);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+        return null;
+      }
+      final score = _withActiveCollection(importedScore);
+      _scores = <SheetScore>[score, ..._scores];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[score]);
+        return null;
+      }
+      return score;
+    } catch (_) {
+      if (importedScore != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          importedScore,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = 'RTF 악보를 가져오지 못했습니다. 파일 내용과 저장 공간을 확인해주세요.';
+      }
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SheetScore?> _storeChordProSource(
+    String source, {
+    required String libraryId,
+    String? fallbackTitle,
+  }) async {
+    if (utf8.encode(source).length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
+    final trimmedSource = source.trim();
+    final document = SheetChordProParser.parse(trimmedSource);
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: fallbackTitle ?? 'Untitled score',
+    );
+    final importedScore = await store.importChordProText(
+      source: source,
+      draft: draft,
+    );
+    if (_activeLibraryProfile.id != libraryId) return null;
+    final score = _withActiveCollection(importedScore);
+    _scores = <SheetScore>[score, ..._scores];
+    if (!await _saveImportedScores(libraryId)) return null;
+    return score;
+  }
+
   Future<List<SheetScore>> importSharedPdfFiles(
     List<SheetSharedImportFile> files,
-  ) async {
+  ) {
+    return _importSharedScoreFiles(
+      files,
+      pdfOnly: true,
+      failureMessage: '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.',
+    );
+  }
+
+  Future<List<SheetScore>> importSharedScoreFiles(
+    List<SheetSharedImportFile> files,
+  ) {
+    return _importSharedScoreFiles(
+      files,
+      pdfOnly: false,
+      failureMessage: '선택한 악보 파일을 가져오지 못했습니다. 지원 형식과 파일 내용을 확인한 뒤 다시 시도해주세요.',
+    );
+  }
+
+  Future<List<SheetScore>> _importSharedScoreFiles(
+    List<SheetSharedImportFile> files, {
+    required bool pdfOnly,
+    required String failureMessage,
+  }) async {
     if (_isImporting || files.isEmpty) {
       return const <SheetScore>[];
     }
@@ -518,32 +942,75 @@ class SheetLibraryController extends ChangeNotifier {
     _lastImportOpenedExistingScore = false;
     notifyListeners();
 
+    final imported = <SheetScore>[];
     try {
-      final imported = <SheetScore>[];
       for (final sharedFile in files) {
-        final rawScore = await store.importPdfFile(
-          File(sharedFile.path),
-          fileName: sharedFile.name,
+        final rawScore = await _importSharedScoreFile(
+          sharedFile,
+          pdfOnly: pdfOnly,
         );
-        if (_activeLibraryProfile.id != libraryId) return const <SheetScore>[];
-        final score = _withActiveCollection(rawScore);
+        final score = _withActiveCollection(
+          rawScore.copyWith(importSource: sharedFile.importSource),
+        );
         imported.add(score);
+        if (_activeLibraryProfile.id != libraryId) {
+          await store.discardUnreferencedImportedScoreFiles(imported);
+          return const <SheetScore>[];
+        }
       }
       if (imported.isEmpty) {
         return const <SheetScore>[];
       }
       _scores = <SheetScore>[...imported.reversed, ..._scores];
-      if (!await _saveImportedScores(libraryId)) return const <SheetScore>[];
+      if (!await _saveImportedScores(libraryId)) {
+        await store.discardUnreferencedImportedScoreFiles(imported);
+        return const <SheetScore>[];
+      }
       return List<SheetScore>.unmodifiable(imported);
     } catch (error) {
+      await store.discardUnreferencedImportedScoreFiles(imported);
       if (_activeLibraryProfile.id == libraryId) {
-        _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.';
+        _errorMessage = failureMessage;
       }
       return const <SheetScore>[];
     } finally {
       _isImporting = false;
       notifyListeners();
     }
+  }
+
+  Future<SheetScore> _importSharedScoreFile(
+    SheetSharedImportFile sharedFile, {
+    required bool pdfOnly,
+  }) async {
+    if (SheetFileImportPolicy.isPdfFileName(sharedFile.name)) {
+      return store.importPdfFile(
+        File(sharedFile.path),
+        fileName: sharedFile.name,
+      );
+    }
+    if (pdfOnly ||
+        !SheetFileImportPolicy.isSupportedScoreFileName(sharedFile.name)) {
+      throw FormatException('Unsupported score file: ${sharedFile.name}');
+    }
+
+    final importedFile = SheetImportedFile(
+      name: sharedFile.name,
+      bytes: await File(sharedFile.path).readAsBytes(),
+    );
+    if (SheetFileImportPolicy.isChordProFileName(sharedFile.name)) {
+      return store.importChordProFileBytes(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isPlainTextFileName(sharedFile.name)) {
+      return store.importPlainTextFile(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isDocxFileName(sharedFile.name)) {
+      return store.importDocxFileBytes(file: importedFile);
+    }
+    if (SheetFileImportPolicy.isRtfFileName(sharedFile.name)) {
+      return store.importRtfFileBytes(file: importedFile);
+    }
+    throw FormatException('Unsupported score file: ${sharedFile.name}');
   }
 
   Future<bool> _saveImportedScores(String libraryId) async {
@@ -822,6 +1289,8 @@ class SheetLibraryController extends ChangeNotifier {
     final setlists = _setlists;
     final viewSettings = _libraryViewSettings;
     final favoritePreset = _favoriteAnnotationPreset;
+    final recentStamps = _recentAnnotationStampNames;
+    final userStampPacks = _userAnnotationStampPacks;
     final didClear = await store.clearLibraryProfile(id);
     if (!didClear) {
       return false;
@@ -837,6 +1306,14 @@ class SheetLibraryController extends ChangeNotifier {
       if (identical(_favoriteAnnotationPreset, favoritePreset)) {
         _favoriteAnnotationPreset = null;
         _favoritePresetSaveRequest = null;
+      }
+      if (identical(_recentAnnotationStampNames, recentStamps)) {
+        _recentAnnotationStampNames = const <String>[];
+        _recentAnnotationStampsSaveRequest = null;
+      }
+      if (identical(_userAnnotationStampPacks, userStampPacks)) {
+        _userAnnotationStampPacks = const <SheetAnnotationStampPack>[];
+        _userAnnotationStampPacksSaveRequest = null;
       }
     }
     notifyListeners();
@@ -1064,6 +1541,135 @@ class SheetLibraryController extends ChangeNotifier {
     return switchToLinkedFile(score, linkedFile);
   }
 
+  Future<bool> replaceScoreFromConnectedFolder(
+    SheetScore score,
+    SheetSharedImportFile replacement,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null ||
+        !_isMatchingConnectedFolderReplacement(current, replacement.name) ||
+        replacement.importSource?.platform != 'android-saf-copy' ||
+        !_connectedFolderSourceReplacements.add(score.id)) {
+      return false;
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    SheetScore? imported;
+    try {
+      imported = await _importSharedScoreFile(replacement, pdfOnly: false);
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+        return false;
+      }
+      final latest = scoreByIdOrNull(score.id);
+      if (latest == null || latest.filePath != current.filePath) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+        return false;
+      }
+
+      final replacementType = _connectedFolderScoreType(replacement.name)!;
+      if (_isExtractedDocumentType(replacementType) &&
+          !_hasDocumentReference(imported, replacementType)) {
+        throw StateError('Imported document is missing its source reference.');
+      }
+      final previousSource = SheetLinkedFile(
+        path: latest.filePath,
+        type: _isExtractedDocumentType(replacementType)
+            ? 'text'
+            : replacementType,
+        label: latest.displayTitle,
+        role: SheetLinkedFile.editedCopyRole,
+        createdAt: DateTime.now(),
+      );
+      final nextLinkedFiles = <SheetLinkedFile>[
+        ...imported.linkedFiles,
+        previousSource,
+        ...latest.linkedFiles
+            .where(
+              (file) =>
+                  file.path != previousSource.path &&
+                  file.path != imported!.filePath &&
+                  !imported.linkedFiles.any(
+                    (importedFile) => importedFile.path == file.path,
+                  ),
+            )
+            .map(
+              (file) =>
+                  _isExtractedDocumentType(replacementType) &&
+                      _isDocumentReference(file, replacementType)
+                  ? file.copyWith(role: SheetLinkedFile.editedCopyRole)
+                  : file,
+            ),
+      ];
+      await _replace(
+        latest.copyWith(
+          filePath: imported.filePath,
+          linkedFiles: SheetScore.normalizeLinkedFiles(nextLinkedFiles),
+          importSource: replacement.importSource,
+          pdfLinkSanitization:
+              SheetFileImportPolicy.isPdfFileName(replacement.name)
+              ? SheetPdfLinkSanitization.empty
+              : latest.pdfLinkSanitization,
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return true;
+    } catch (_) {
+      if (imported != null) {
+        await store.discardUnreferencedImportedScoreFiles(<SheetScore>[
+          imported,
+        ]);
+      }
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = '변경된 원본을 적용하지 못했습니다. 기존 악보는 그대로 유지됩니다.';
+        notifyListeners();
+      }
+      return false;
+    } finally {
+      _connectedFolderSourceReplacements.remove(score.id);
+    }
+  }
+
+  bool _isMatchingConnectedFolderReplacement(
+    SheetScore score,
+    String replacementName,
+  ) {
+    final existingType = _connectedFolderScoreType(
+      score.importSource?.displayName,
+    );
+    final fallbackExistingType =
+        existingType ?? _connectedFolderScoreType(score.filePath);
+    final replacementType = _connectedFolderScoreType(replacementName);
+    return replacementType != null && replacementType == fallbackExistingType;
+  }
+
+  bool _isExtractedDocumentType(String type) => type == 'docx' || type == 'rtf';
+
+  bool _hasDocumentReference(SheetScore score, String type) {
+    return score.linkedFiles.any((file) => _isDocumentReference(file, type));
+  }
+
+  bool _isDocumentReference(SheetLinkedFile file, String type) {
+    return file.role == SheetLinkedFile.referenceRole &&
+        (_connectedFolderScoreType(file.path) == type ||
+            file.type.trim().toLowerCase() == type);
+  }
+
+  String? _connectedFolderScoreType(String? fileName) {
+    final value = fileName?.trim() ?? '';
+    if (value.isEmpty) return null;
+    if (SheetFileImportPolicy.isPdfFileName(value)) return 'pdf';
+    if (SheetFileImportPolicy.isChordProFileName(value)) return 'chordpro';
+    if (SheetFileImportPolicy.isPlainTextFileName(value)) return 'text';
+    if (SheetFileImportPolicy.isDocxFileName(value)) return 'docx';
+    if (SheetFileImportPolicy.isRtfFileName(value)) return 'rtf';
+    return null;
+  }
+
   Future<bool> updateLinkedFile(
     SheetScore score,
     SheetLinkedFile linkedFile,
@@ -1116,6 +1722,172 @@ class SheetLibraryController extends ChangeNotifier {
     await _replace(
       score.copyWith(viewerSettings: viewerSettings, updatedAt: DateTime.now()),
     );
+  }
+
+  Future<void> updateChordProDisplaySettings(
+    SheetScore score,
+    SheetChordProDisplaySettings settings,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) {
+      return;
+    }
+    if (current.chordProDisplaySettings.transposeSemitones ==
+            settings.transposeSemitones &&
+        current.chordProDisplaySettings.showCapoShapes ==
+            settings.showCapoShapes &&
+        current.chordProDisplaySettings.capoFretsOverride ==
+            settings.capoFretsOverride &&
+        current.chordProDisplaySettings.columnCount == settings.columnCount &&
+        current.chordProDisplaySettings.fontScalePercent ==
+            settings.fontScalePercent) {
+      return;
+    }
+    await _replace(
+      current.copyWith(
+        chordProDisplaySettings: settings,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> updateTextDisplaySettings(
+    SheetScore score,
+    SheetTextDisplaySettings settings,
+  ) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null ||
+        current.textDisplaySettings.fontScalePercent ==
+            settings.fontScalePercent) {
+      return;
+    }
+    await _replace(
+      current.copyWith(
+        textDisplaySettings: settings,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<bool> updateChordProSource(SheetScore score, String source) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || !_chordProSourceEdits.add(score.id)) {
+      return false;
+    }
+    final libraryId = _activeLibraryProfile.id;
+    String? previousSource;
+    var didReplaceSource = false;
+    try {
+      if (utf8.encode(source).length >
+          SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('ChordPro source is too large.');
+      }
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty ChordPro source.');
+      }
+      SheetChordProParser.parse(source);
+      previousSource = await store.readChordProSource(current);
+      if (source == previousSource) {
+        return true;
+      }
+
+      await store.replaceChordProSource(score: current, source: source);
+      didReplaceSource = true;
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.replaceChordProSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      final latest = scoreByIdOrNull(score.id);
+      if (latest == null || latest.filePath != current.filePath) {
+        await store.replaceChordProSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      await _replace(latest.copyWith(updatedAt: DateTime.now()));
+      return true;
+    } catch (_) {
+      if (didReplaceSource && previousSource != null) {
+        try {
+          await store.replaceChordProSource(
+            score: current,
+            source: previousSource,
+          );
+        } catch (_) {
+          // Preserve the original persistence error when source rollback fails.
+        }
+      }
+      rethrow;
+    } finally {
+      _chordProSourceEdits.remove(score.id);
+    }
+  }
+
+  Future<bool> updatePlainTextSource(SheetScore score, String source) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null ||
+        !current.isEditablePlainTextSource ||
+        !_plainTextSourceEdits.add(score.id)) {
+      return false;
+    }
+    final libraryId = _activeLibraryProfile.id;
+    String? previousSource;
+    var didReplaceSource = false;
+    try {
+      if (utf8.encode(source).length >
+          SheetFileImportPolicy.maxPlainTextBytes) {
+        throw const FormatException('Plain text source is too large.');
+      }
+      if (source.trim().isEmpty) {
+        throw const FormatException('Empty plain text source.');
+      }
+      previousSource = await store.readPlainTextSource(current);
+      if (source == previousSource) {
+        return true;
+      }
+
+      await store.replacePlainTextSource(score: current, source: source);
+      didReplaceSource = true;
+      if (_activeLibraryProfile.id != libraryId) {
+        await store.replacePlainTextSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      final latest = scoreByIdOrNull(score.id);
+      if (latest == null || latest.filePath != current.filePath) {
+        await store.replacePlainTextSource(
+          score: current,
+          source: previousSource,
+        );
+        didReplaceSource = false;
+        return false;
+      }
+      await _replace(latest.copyWith(updatedAt: DateTime.now()));
+      return true;
+    } catch (_) {
+      if (didReplaceSource && previousSource != null) {
+        try {
+          await store.replacePlainTextSource(
+            score: current,
+            source: previousSource,
+          );
+        } catch (_) {
+          // Preserve the original persistence error when source rollback fails.
+        }
+      }
+      rethrow;
+    } finally {
+      _plainTextSourceEdits.remove(score.id);
+    }
   }
 
   Future<SheetPerformancePresetTemplate> savePerformancePresetTemplate({
@@ -1394,6 +2166,516 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> recordRecentAnnotationStampName(String stampName) async {
+    final normalizedName = stampName.trim().toLowerCase();
+    if (normalizedName.isEmpty) {
+      return true;
+    }
+    final pendingNames = List<String>.unmodifiable(
+      <String>[
+        normalizedName,
+        for (final name in _recentAnnotationStampNames)
+          if (name.toLowerCase() != normalizedName) name,
+      ].take(5),
+    );
+    final libraryId = _activeLibraryProfile.id;
+    final request = Object();
+    _recentAnnotationStampsSaveRequest = request;
+    _recentAnnotationStampNames = pendingNames;
+    bool ownsState() =>
+        identical(_recentAnnotationStampsSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_recentAnnotationStampNames, pendingNames);
+    try {
+      await store.saveRecentAnnotationStampNames(
+        pendingNames,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadRecentAnnotationStampNames();
+          if (ownsState()) {
+            _recentAnnotationStampNames = persisted;
+            _recentAnnotationStampsSaveRequest = null;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Keep the picker usable even when recovery cannot read persisted state.
+        }
+      }
+      return false;
+    }
+    if (ownsState()) {
+      _recentAnnotationStampsSaveRequest = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> createTextUserAnnotationStamp({
+    required String label,
+    required String text,
+  }) async {
+    final normalizedLabel = label.trim();
+    final normalizedText = text.trim();
+    if (normalizedLabel.isEmpty || normalizedText.isEmpty) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final stamp = SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: normalizedLabel,
+      category: '사용자',
+      kind: SheetAnnotationUserStamp.textKind,
+      text: normalizedText,
+      keywords: _normalizeTags(normalizedLabel),
+    );
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
+  Future<bool> createIconUserAnnotationStamp({
+    required String label,
+    required String iconName,
+  }) async {
+    final normalizedLabel = label.trim();
+    final normalizedIconName = iconName.trim().toLowerCase();
+    if (normalizedLabel.isEmpty ||
+        !SheetAnnotationStampPack.defaultAllowedIconNames.contains(
+          normalizedIconName,
+        )) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final stamp = SheetAnnotationUserStamp(
+      id: stampId,
+      packId: packId,
+      label: normalizedLabel,
+      category: '사용자',
+      kind: SheetAnnotationUserStamp.iconKind,
+      iconName: normalizedIconName,
+      keywords: <String>{
+        ..._normalizeTags(normalizedLabel),
+        normalizedIconName,
+      }.toList(growable: false),
+    );
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
+  Future<bool> createImageUserAnnotationStamp({
+    required String label,
+    required File sourceFile,
+  }) async {
+    final normalizedLabel = label.trim();
+    if (normalizedLabel.isEmpty) {
+      return false;
+    }
+    const packId = 'user';
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final packs = [..._userAnnotationStampPacks];
+    final packIndex = packs.indexWhere((pack) => pack.id == packId);
+    final existingPack = packIndex == -1 ? null : packs[packIndex];
+    final existingStampIds = <String>{
+      for (final pack in packs)
+        for (final stamp in pack.stamps) stamp.id,
+    };
+    final stampId = _uniqueUserStampId(normalizedLabel, existingStampIds);
+    final result = await stampAssetStore.importImageStampAsset(
+      sourceFile: sourceFile,
+      packId: packId,
+      stampId: stampId,
+      label: normalizedLabel,
+      category: '이미지',
+      licenseLabel: '사용자 제공 이미지',
+      keywords: _normalizeTags(normalizedLabel),
+    );
+    final stamp = result.userStamp;
+    if (!result.didStore || stamp == null) {
+      return false;
+    }
+    final nextPack = SheetAnnotationStampPack(
+      id: packId,
+      name: '사용자 스탬프',
+      version: existingPack?.version ?? 1,
+      createdAt: existingPack?.createdAt ?? now,
+      updatedAt: now,
+      stamps: List<SheetAnnotationUserStamp>.unmodifiable(
+        <SheetAnnotationUserStamp>[...?existingPack?.stamps, stamp],
+      ),
+    );
+    if (packIndex == -1) {
+      packs.add(nextPack);
+    } else {
+      packs[packIndex] = nextPack;
+    }
+    return _replaceUserAnnotationStampPacks(packs, libraryId: libraryId);
+  }
+
+  Future<bool> deleteUserAnnotationStamp({
+    required String packId,
+    required String stampId,
+  }) async {
+    final normalizedPackId = packId.trim().toLowerCase();
+    final normalizedStampId = stampId.trim().toLowerCase();
+    if (normalizedPackId.isEmpty || normalizedStampId.isEmpty) {
+      return false;
+    }
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    var didRemove = false;
+    final removedImageAssetRefs = <String>[];
+    final nextPacks = <SheetAnnotationStampPack>[];
+    for (final pack in _userAnnotationStampPacks) {
+      if (pack.id != normalizedPackId) {
+        nextPacks.add(pack);
+        continue;
+      }
+      final nextStamps = <SheetAnnotationUserStamp>[];
+      for (final stamp in pack.stamps) {
+        if (stamp.id == normalizedStampId) {
+          didRemove = true;
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+              stamp.assetRef.isNotEmpty) {
+            removedImageAssetRefs.add(stamp.assetRef);
+          }
+          continue;
+        }
+        nextStamps.add(stamp);
+      }
+      if (nextStamps.isNotEmpty) {
+        nextPacks.add(
+          SheetAnnotationStampPack(
+            id: pack.id,
+            name: pack.name,
+            version: pack.version,
+            createdAt: pack.createdAt,
+            updatedAt: now,
+            stamps: List<SheetAnnotationUserStamp>.unmodifiable(nextStamps),
+          ),
+        );
+      }
+    }
+    if (!didRemove) {
+      return false;
+    }
+    final didSave = await _replaceUserAnnotationStampPacks(
+      nextPacks,
+      libraryId: libraryId,
+    );
+    if (didSave && _activeLibraryProfile.id == libraryId) {
+      await _deleteUnusedImageStampAssets(removedImageAssetRefs, nextPacks);
+    }
+    return didSave;
+  }
+
+  Future<void> _deleteUnusedImageStampAssets(
+    Iterable<String> assetRefs,
+    List<SheetAnnotationStampPack> remainingPacks,
+  ) async {
+    final candidates = assetRefs
+        .map((assetRef) => assetRef.trim())
+        .where((assetRef) => assetRef.isNotEmpty)
+        .toSet();
+    if (candidates.isEmpty) {
+      return;
+    }
+    final referenced = <String>{
+      for (final pack in remainingPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+              stamp.assetRef.isNotEmpty)
+            stamp.assetRef,
+      for (final score in _scores)
+        for (final text in score.annotationLayer.texts)
+          if (text.isImageStamp) text.stampAssetRef,
+    };
+    for (final assetRef in candidates) {
+      try {
+        await stampAssetStore.deleteAssetIfUnreferenced(
+          assetRef: assetRef,
+          referencedAssetRefs: referenced,
+        );
+      } catch (_) {
+        // Asset cleanup must not block stamp deletion or built-in stamps.
+      }
+    }
+  }
+
+  List<SheetAnnotationStampPack> _newImportedUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> importedPacks,
+  ) {
+    final additions = <SheetAnnotationStampPack>[];
+    for (final importedPack in importedPacks.where(
+      (pack) => pack.validate(allowImageStamps: true).isValid,
+    )) {
+      final existingPack = _userAnnotationStampPacks
+          .where((pack) => pack.id == importedPack.id)
+          .firstOrNull;
+      final existingStampIds = <String>{
+        for (final stamp in existingPack?.stamps ?? const []) stamp.id,
+      };
+      final newStamps = <SheetAnnotationUserStamp>[
+        for (final stamp in importedPack.stamps)
+          if (!existingStampIds.contains(stamp.id)) stamp,
+      ];
+      if (newStamps.isEmpty) {
+        continue;
+      }
+      additions.add(
+        SheetAnnotationStampPack(
+          id: importedPack.id,
+          name: importedPack.name,
+          version: importedPack.version,
+          createdAt: importedPack.createdAt,
+          updatedAt: importedPack.updatedAt,
+          stamps: List<SheetAnnotationUserStamp>.unmodifiable(newStamps),
+        ),
+      );
+    }
+    return List<SheetAnnotationStampPack>.unmodifiable(additions);
+  }
+
+  Future<bool> _mergeImportedUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> importedPacks, {
+    required String libraryId,
+  }) async {
+    final additions = _newImportedUserAnnotationStampPacks(importedPacks);
+    if (additions.isEmpty) {
+      return true;
+    }
+    if (_activeLibraryProfile.id != libraryId) {
+      return false;
+    }
+
+    final nextPacks = [..._userAnnotationStampPacks];
+    for (final importedPack in additions) {
+      final index = nextPacks.indexWhere((pack) => pack.id == importedPack.id);
+      if (index == -1) {
+        nextPacks.add(importedPack);
+        continue;
+      }
+      final existingPack = nextPacks[index];
+      nextPacks[index] = SheetAnnotationStampPack(
+        id: existingPack.id,
+        name: existingPack.name,
+        version: existingPack.version,
+        createdAt: existingPack.createdAt,
+        updatedAt: DateTime.now(),
+        stamps: List<SheetAnnotationUserStamp>.unmodifiable([
+          ...existingPack.stamps,
+          ...importedPack.stamps,
+        ]),
+      );
+    }
+
+    return _replaceUserAnnotationStampPacks(nextPacks, libraryId: libraryId);
+  }
+
+  Future<bool> _storeAndMergeImportedUserAnnotationStampPacks(
+    SheetSetlistPackageDryRun dryRun, {
+    required String libraryId,
+  }) async {
+    final additions = _newImportedUserAnnotationStampPacks(
+      dryRun.userStampPacks,
+    );
+    if (additions.isEmpty) {
+      return true;
+    }
+    final assetsByRef = <String, SheetSetlistPackageStampAssetFile>{
+      for (final asset in dryRun.stampAssetFiles) asset.path: asset,
+    };
+    final createdAssetRefs = <String>{};
+    for (final pack in additions) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind != SheetAnnotationUserStamp.imageKind) {
+          continue;
+        }
+        final asset = assetsByRef[stamp.assetRef];
+        final bytes = asset?.bytes;
+        if (bytes == null) {
+          await _deleteUnusedImageStampAssets(
+            createdAssetRefs,
+            _userAnnotationStampPacks,
+          );
+          return false;
+        }
+        final result = await stampAssetStore.storePackagedImageStampAsset(
+          assetRef: stamp.assetRef,
+          bytes: bytes,
+          checksum: stamp.checksum,
+        );
+        if (!result.didStore || _activeLibraryProfile.id != libraryId) {
+          await _deleteUnusedImageStampAssets(
+            createdAssetRefs,
+            _userAnnotationStampPacks,
+          );
+          return false;
+        }
+        if (result.didCreateAsset) {
+          createdAssetRefs.add(stamp.assetRef);
+        }
+      }
+    }
+
+    final didMerge = await _mergeImportedUserAnnotationStampPacks(
+      additions,
+      libraryId: libraryId,
+    );
+    if (!didMerge) {
+      await _deleteUnusedImageStampAssets(
+        createdAssetRefs,
+        _userAnnotationStampPacks,
+      );
+    }
+    return didMerge;
+  }
+
+  Future<Set<String>?> _storeRequiredPackageAnnotationAssets(
+    SheetSetlistPackageDryRun dryRun, {
+    required String libraryId,
+  }) async {
+    final requiredAssetRefs = <String>{
+      for (final entry in dryRun.entries)
+        if (entry.canRestoreAnnotationSidecar)
+          for (final text in entry.annotationSidecar!.annotationLayer.texts)
+            if (text.isImageStamp) text.stampAssetRef,
+    };
+    if (requiredAssetRefs.isEmpty) {
+      return const <String>{};
+    }
+    final assetsByRef = <String, SheetSetlistPackageStampAssetFile>{
+      for (final asset in dryRun.stampAssetFiles) asset.path: asset,
+    };
+    final stampsByAssetRef = <String, SheetAnnotationUserStamp>{
+      for (final pack in dryRun.userStampPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind)
+            stamp.assetRef: stamp,
+    };
+    final createdAssetRefs = <String>{};
+    for (final assetRef in requiredAssetRefs) {
+      final asset = assetsByRef[assetRef];
+      final stamp = stampsByAssetRef[assetRef];
+      final bytes = asset?.bytes;
+      if (bytes == null) {
+        await _deleteUnusedImageStampAssets(
+          createdAssetRefs,
+          _userAnnotationStampPacks,
+        );
+        return null;
+      }
+      final result = await stampAssetStore.storePackagedImageStampAsset(
+        assetRef: assetRef,
+        bytes: bytes,
+        checksum: stamp?.checksum ?? sha256.convert(bytes).toString(),
+      );
+      if (!result.didStore || _activeLibraryProfile.id != libraryId) {
+        await _deleteUnusedImageStampAssets(
+          createdAssetRefs,
+          _userAnnotationStampPacks,
+        );
+        return null;
+      }
+      if (result.didCreateAsset) {
+        createdAssetRefs.add(assetRef);
+      }
+    }
+    return createdAssetRefs;
+  }
+
+  Future<bool> _replaceUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    required String libraryId,
+  }) async {
+    final pendingPacks = List<SheetAnnotationStampPack>.unmodifiable(
+      packs.where((pack) => pack.validate(allowImageStamps: true).isValid),
+    );
+    final request = Object();
+    _userAnnotationStampPacksSaveRequest = request;
+    _userAnnotationStampPacks = pendingPacks;
+    bool ownsState() =>
+        identical(_userAnnotationStampPacksSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_userAnnotationStampPacks, pendingPacks);
+    try {
+      await store.saveUserAnnotationStampPacks(
+        pendingPacks,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadUserAnnotationStampPacks();
+          if (ownsState()) {
+            _userAnnotationStampPacks = persisted;
+            _userAnnotationStampPacksSaveRequest = null;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Keep built-in stamps usable even if custom stamp recovery fails.
+        }
+      }
+      return false;
+    }
+    if (ownsState()) {
+      _userAnnotationStampPacksSaveRequest = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
   Future<SheetPdfLinkSanitizationResult> createPdfLinkDisabledCopy(
     SheetScore score,
   ) async {
@@ -1417,9 +2699,11 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<SheetAnnotatedPdfExportResult> createAnnotatedPdfCopy(
-    SheetScore score,
-  ) {
-    return store.createAnnotatedPdfCopy(score);
+    SheetScore score, {
+    SheetPdfAnnotationExportMode mode =
+        SheetPdfAnnotationExportMode.renderedStamp,
+  }) {
+    return store.createAnnotatedPdfCopy(score, mode: mode);
   }
 
   Future<SheetPdfPageRotationResult> createPageRotationAppliedCopy(
@@ -1679,6 +2963,7 @@ class SheetLibraryController extends ChangeNotifier {
           width: stroke.width,
           points: stroke.points,
           createdAt: stroke.createdAt,
+          layerId: stroke.layerId,
         ),
     ];
   }
@@ -1744,6 +3029,7 @@ class SheetLibraryController extends ChangeNotifier {
         stroke.points.map((point) => _rebasePointForAppliedCrop(point, crop)),
       ),
       createdAt: stroke.createdAt,
+      layerId: stroke.layerId,
     );
   }
 
@@ -2380,6 +3666,24 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<bool> updateStrokeAnnotation(
+    SheetScore score,
+    SheetAnnotationStroke stroke,
+  ) async {
+    final nextLayer = score.annotationLayer.updateStroke(stroke);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
   Future<bool> eraseAnnotationAt(
     SheetScore score, {
     required int pageNumber,
@@ -2406,9 +3710,13 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<bool> undoLastAnnotationStroke(
     SheetScore score,
-    int pageNumber,
-  ) async {
-    final nextLayer = score.annotationLayer.undoLastStroke(pageNumber);
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.undoLastStroke(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }
@@ -2469,8 +3777,15 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> undoLastAnnotation(SheetScore score, int pageNumber) async {
-    final nextLayer = score.annotationLayer.undoLastAnnotation(pageNumber);
+  Future<bool> undoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.undoLastAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }
@@ -2484,8 +3799,15 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> redoLastAnnotation(SheetScore score, int pageNumber) async {
-    final nextLayer = score.annotationLayer.redoLastAnnotation(pageNumber);
+  Future<bool> redoLastAnnotation(
+    SheetScore score,
+    int pageNumber, {
+    String? layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.redoLastAnnotation(
+      pageNumber,
+      layerId: layerId,
+    );
     if (identical(nextLayer, score.annotationLayer)) {
       return false;
     }
@@ -2501,13 +3823,15 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<void> updateAnnotationLayerState(
     SheetScore score, {
+    String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
     bool? isVisible,
     bool? includeInExport,
   }) async {
     await _replace(
       score.copyWith(
         annotationLayer: _guardAnnotationLayer(
-          score.annotationLayer.withDefaultLayerState(
+          score.annotationLayer.withDisplayLayerState(
+            layerId,
             isVisible: isVisible,
             includeInExport: includeInExport,
           ),
@@ -2517,10 +3841,99 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<bool> updateAnnotationDisplayLayer(
+    SheetScore score,
+    SheetAnnotationDisplayLayer displayLayer,
+  ) async {
+    if (!displayLayer.isValid) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(
+          score.annotationLayer.withDisplayLayer(displayLayer),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> removeAnnotationDisplayLayer(
+    SheetScore score,
+    String layerId,
+  ) async {
+    final nextLayer = score.annotationLayer.removeDisplayLayer(layerId);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> moveAnnotationToDisplayLayer(
+    SheetScore score, {
+    required String annotationId,
+    required String layerId,
+  }) async {
+    return moveAnnotationsToDisplayLayer(
+      score,
+      annotationIds: <String>[annotationId],
+      layerId: layerId,
+    );
+  }
+
+  Future<bool> moveAnnotationsToDisplayLayer(
+    SheetScore score, {
+    required Iterable<String> annotationIds,
+    required String layerId,
+  }) async {
+    final nextLayer = score.annotationLayer.moveAnnotationsToDisplayLayer(
+      annotationIds: annotationIds,
+      layerId: layerId,
+    );
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> moveAnnotationDisplayLayerContents(
+    SheetScore score, {
+    required String sourceLayerId,
+    required String targetLayerId,
+  }) async {
+    final nextLayer = score.annotationLayer.moveDisplayLayerAnnotations(
+      sourceLayerId: sourceLayerId,
+      targetLayerId: targetLayerId,
+    );
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(nextLayer),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return true;
+  }
+
   Future<SheetSetlist> createSetlist(String title) async {
     final now = DateTime.now();
     final setlist = SheetSetlist(
-      id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
+      id: _newSetlistId(now),
       title: _normalizeSetlistTitle(title),
       scoreIds: const <String>[],
       createdAt: now,
@@ -2529,6 +3942,261 @@ class SheetLibraryController extends ChangeNotifier {
     _setlists = <SheetSetlist>[setlist, ..._setlists];
     await _saveSetlistChanges();
     return setlist;
+  }
+
+  Future<SheetSetlist> createSetlistFromDraft(SheetSetlist draft) async {
+    final validScoreIds = _scores.map((score) => score.id).toSet();
+    final scoreIds = draft.scoreIds
+        .where(validScoreIds.contains)
+        .toList(growable: false);
+    if (scoreIds.length != draft.scoreIds.length || scoreIds.isEmpty) {
+      throw StateError('Cannot create setlist from unresolved scores.');
+    }
+    final now = DateTime.now();
+    final id = draft.id.trim().isNotEmpty && setlistByIdOrNull(draft.id) == null
+        ? draft.id
+        : _newSetlistId(now);
+    final title = _uniqueSetlistTitle(_normalizeSetlistTitle(draft.title));
+    final scoreIdSet = scoreIds.toSet();
+    final setlist = SheetSetlist(
+      id: id,
+      title: title,
+      scoreIds: List<String>.unmodifiable(scoreIds),
+      createdAt: now,
+      updatedAt: now,
+      rehearsalMode: draft.rehearsalMode,
+      scoreStartPages: Map<String, int>.unmodifiable(
+        Map<String, int>.fromEntries(
+          draft.scoreStartPages.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreNotes: Map<String, String>.unmodifiable(
+        Map<String, String>.fromEntries(
+          draft.scoreNotes.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreDurations: Map<String, int>.unmodifiable(
+        Map<String, int>.fromEntries(
+          draft.scoreDurations.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      scoreMetronomeSettings: Map.unmodifiable(
+        Map.fromEntries(
+          draft.scoreMetronomeSettings.entries.where(
+            (entry) => scoreIdSet.contains(entry.key),
+          ),
+        ),
+      ),
+      transitionSeconds: draft.transitionSeconds,
+      viewerSettingsOverride: draft.viewerSettingsOverride,
+    );
+    _setlists = <SheetSetlist>[setlist, ..._setlists];
+    await _saveSetlistChanges();
+    return setlist;
+  }
+
+  Future<SheetSetlist?> importSetlistPackage(
+    SheetSetlistPackageArchive package,
+    SheetSetlistPackageDryRun dryRun,
+  ) async {
+    if (!dryRun.canImport) {
+      throw StateError('Cannot import unresolved setlist package.');
+    }
+
+    final libraryId = _activeLibraryProfile.id;
+    final now = DateTime.now();
+    final createdScores = <SheetScore>[];
+    final scoreIds = <String>[];
+    final startPages = <String, int>{};
+    final notes = <String, String>{};
+    final durations = <String, int>{};
+    final metronomeSettings = <String, SheetMetronomeSettings>{};
+    var metadataPersisted = false;
+    final createdAnnotationAssetRefs = <String>{};
+    final preexistingImageAssetRefs = <String>{
+      for (final pack in _userAnnotationStampPacks)
+        for (final stamp in pack.stamps)
+          if (stamp.kind == SheetAnnotationUserStamp.imageKind) stamp.assetRef,
+      for (final score in _scores)
+        for (final text in score.annotationLayer.texts)
+          if (text.isImageStamp) text.stampAssetRef,
+    };
+
+    try {
+      final storedAnnotationAssetRefs =
+          await _storeRequiredPackageAnnotationAssets(
+            dryRun,
+            libraryId: libraryId,
+          );
+      if (storedAnnotationAssetRefs == null) {
+        if (_activeLibraryProfile.id == libraryId) {
+          _errorMessage = '이미지 스탬프 파일을 안전하게 저장하지 못해 세트리스트를 가져오지 않았습니다.';
+          notifyListeners();
+        }
+        return null;
+      }
+      createdAnnotationAssetRefs.addAll(storedAnnotationAssetRefs);
+      for (var index = 0; index < dryRun.entries.length; index += 1) {
+        final entry = dryRun.entries[index];
+        late final SheetScore score;
+        if (entry.status == SheetSetlistPackageEntryStatus.existingScore) {
+          final currentScore = scoreByIdOrNull(entry.existingScore?.id ?? '');
+          if (currentScore == null) {
+            throw StateError('Resolved package score is no longer available.');
+          }
+          score = currentScore;
+        } else if (entry.status ==
+            SheetSetlistPackageEntryStatus.importableFile) {
+          final packageFile = entry.packageFile;
+          final bytes = packageFile?.bytes;
+          if (packageFile == null || bytes == null) {
+            throw StateError('Package file bytes are not available.');
+          }
+          final importedAt = now.add(Duration(microseconds: index));
+          final importedFile = SheetImportedFile(
+            name: packageFile.fileName,
+            bytes: bytes,
+            mimeType: packageFile.mediaType,
+          );
+          final rawScore = switch (packageFile.scoreKind) {
+            SheetSetlistPackageScoreKind.pdf => await store.importPdfBytes(
+              bytes: bytes,
+              fileName: packageFile.fileName,
+              importedAt: importedAt,
+            ),
+            SheetSetlistPackageScoreKind.image =>
+              await store.importImagesAsPdfBytes(
+                images: [importedFile],
+                title: entry.item.title,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.plainText =>
+              await store.importPlainTextFile(
+                file: importedFile,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.chordPro =>
+              await store.importChordProFileBytes(
+                file: importedFile,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.docx =>
+              await store.importDocxFileBytes(
+                file: importedFile,
+                importedAt: importedAt,
+              ),
+            SheetSetlistPackageScoreKind.rtf => await store.importRtfFileBytes(
+              file: importedFile,
+              importedAt: importedAt,
+            ),
+            SheetSetlistPackageScoreKind.unsupported => throw StateError(
+              'Unsupported package score file.',
+            ),
+          };
+          final scoreWithMetadata = _scoreFromSetlistPackageItem(
+            rawScore,
+            entry.item,
+          );
+          score = entry.canRestoreAnnotationSidecar
+              ? scoreWithMetadata.copyWith(
+                  annotationLayer: entry.annotationSidecar!.annotationLayer,
+                )
+              : scoreWithMetadata;
+          createdScores.add(score);
+          if (_activeLibraryProfile.id != libraryId) {
+            return null;
+          }
+        } else {
+          throw StateError('Cannot import unresolved setlist package entry.');
+        }
+
+        scoreIds.add(score.id);
+        final startPage = _parseManifestPageNumber(entry.item.startPageLabel);
+        if (startPage > 0) {
+          startPages[score.id] = startPage;
+        }
+        final note = entry.item.setlistNote.trim();
+        if (note.isNotEmpty) {
+          notes[score.id] = note;
+        }
+        final duration = _parseManifestDurationSeconds(
+          entry.item.details['예상 시간'] ?? '',
+        );
+        if (duration > 0) {
+          durations[score.id] = duration;
+        }
+        final metronome = SheetSetlistManifestMetronomeCodec.tryDecode(
+          entry.item.details['메트로놈'] ?? '',
+        );
+        if (metronome != null) {
+          metronomeSettings[score.id] = metronome;
+        }
+      }
+
+      if (scoreIds.isEmpty || _activeLibraryProfile.id != libraryId) {
+        return null;
+      }
+
+      final setlist = SheetSetlist(
+        id: _newSetlistId(now),
+        title: _uniqueSetlistTitle(
+          _normalizeSetlistTitle(package.manifest.title),
+        ),
+        scoreIds: List<String>.unmodifiable(scoreIds),
+        createdAt: now,
+        updatedAt: now,
+        scoreStartPages: Map<String, int>.unmodifiable(startPages),
+        scoreNotes: Map<String, String>.unmodifiable(notes),
+        scoreDurations: Map<String, int>.unmodifiable(durations),
+        scoreMetronomeSettings:
+            Map<String, SheetMetronomeSettings>.unmodifiable(metronomeSettings),
+        transitionSeconds: _parseManifestDurationSeconds(
+          package.manifest.transitionLabel,
+        ),
+      );
+
+      _scores = <SheetScore>[...createdScores.reversed, ..._scores];
+      _setlists = <SheetSetlist>[setlist, ..._setlists];
+      await _saveScoresAndSetlistsChanges();
+      metadataPersisted = true;
+      if (_activeLibraryProfile.id == libraryId) {
+        final didImportStamps =
+            await _storeAndMergeImportedUserAnnotationStampPacks(
+              dryRun,
+              libraryId: libraryId,
+            );
+        if (!didImportStamps &&
+            dryRun.userStampPreview.newStampCount > 0 &&
+            _activeLibraryProfile.id == libraryId) {
+          _errorMessage =
+              '세트리스트는 가져왔지만 사용자 스탬프는 저장하지 못했습니다. 기존 스탬프와 파일은 그대로 유지했습니다.';
+          notifyListeners();
+        }
+      }
+      return setlist;
+    } finally {
+      if (!metadataPersisted && createdScores.isNotEmpty) {
+        await store.discardUnreferencedImportedScoreFiles(createdScores);
+      }
+      if (!metadataPersisted && createdAnnotationAssetRefs.isNotEmpty) {
+        for (final assetRef in createdAnnotationAssetRefs) {
+          try {
+            await stampAssetStore.deleteAssetIfUnreferenced(
+              assetRef: assetRef,
+              referencedAssetRefs: preexistingImageAssetRefs,
+            );
+          } catch (_) {
+            // Preserve the original package import failure.
+          }
+        }
+      }
+    }
   }
 
   Future<void> renameSetlist(SheetSetlist setlist, String title) async {
@@ -2544,13 +4212,9 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetSetlist> duplicateSetlist(SheetSetlist setlist) async {
     final now = DateTime.now();
-    final baseTitle = '${setlist.title} copy';
-    var title = baseTitle;
-    for (var suffix = 2; setlistByTitleOrNull(title) != null; suffix++) {
-      title = '$baseTitle ($suffix)';
-    }
+    final title = _uniqueSetlistTitle('${setlist.title} copy');
     final duplicate = SheetSetlist(
-      id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
+      id: _newSetlistId(now),
       title: title,
       scoreIds: List<String>.unmodifiable(setlist.scoreIds),
       createdAt: now,
@@ -3116,8 +4780,80 @@ class SheetLibraryController extends ChangeNotifier {
     return store.exportFullBackup();
   }
 
+  Future<SheetLibraryBackupHealth> loadBackupHealth() async {
+    final automaticBackup = await store.loadAutomaticMetadataBackup();
+    final lastBackupExportRecord = await store.loadLastBackupExportRecord();
+    var textScoreCount = 0;
+    var pdfScoreCount = 0;
+    var missingPrimaryFileCount = 0;
+    var linkedFileCount = 0;
+    var fileBackedAnnotationCount = 0;
+    for (final score in _scores) {
+      if (SheetFileImportPolicy.isTextScoreFileName(score.filePath)) {
+        textScoreCount += 1;
+      } else {
+        pdfScoreCount += 1;
+      }
+      if (!await File(score.filePath).exists()) {
+        missingPrimaryFileCount += 1;
+      }
+      linkedFileCount += score.linkedFiles.length;
+      if (score.annotationStorage.isFileBacked) {
+        fileBackedAnnotationCount += 1;
+      }
+    }
+    return SheetLibraryBackupHealth(
+      currentScoreCount: _scores.length,
+      currentSetlistCount: _setlists.length,
+      currentTextScoreCount: textScoreCount,
+      currentPdfScoreCount: pdfScoreCount,
+      missingPrimaryFileCount: missingPrimaryFileCount,
+      linkedFileCount: linkedFileCount,
+      fileBackedAnnotationCount: fileBackedAnnotationCount,
+      userStampPackCount: _userAnnotationStampPacks.length,
+      hasAutomaticMetadataBackup: automaticBackup != null,
+      automaticMetadataExportedAt: automaticBackup?.exportedAt,
+      automaticMetadataScoreCount: automaticBackup?.scores.length ?? 0,
+      automaticMetadataSetlistCount: automaticBackup?.setlists.length ?? 0,
+      lastBackupExportRecord: lastBackupExportRecord,
+    );
+  }
+
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {
     final result = await store.importMetadataBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
+  Future<SheetLibraryBackupImportPreview?>
+  pickMetadataBackupImportPreview() async {
+    final value = await store.pickMetadataBackupJson();
+    if (value == null) {
+      return null;
+    }
+    return previewMetadataBackupJson(value);
+  }
+
+  Future<String?> pickMetadataBackupJson() => store.pickMetadataBackupJson();
+
+  SheetLibrarySyncReviewPreview previewSyncConflictJson({
+    required String baseJson,
+    required String localJson,
+    required String remoteJson,
+  }) {
+    return SheetLibrarySyncReviewPreview.fromJson(
+      baseJson: baseJson,
+      localJson: localJson,
+      remoteJson: remoteJson,
+    );
+  }
+
+  Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
+    String value,
+  ) async {
+    final result = await store.restoreMetadataBackupJson(value);
     if (result.didRestore) {
       await load();
     }
@@ -3133,8 +4869,142 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetLibraryBackupDiffReport?> loadAutomaticBackupDiffReport() async {
+    final automaticBackup = await store.loadAutomaticMetadataBackup();
+    if (automaticBackup == null) {
+      return null;
+    }
+    try {
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      return SheetLibraryBackupDiffReport.fromDiff(
+        SheetLibraryBackupDiff.compare(currentBackup, automaticBackup),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<SheetLibraryBackupImportPreview> previewMetadataBackupJson(
+    String value,
+  ) async {
+    try {
+      final incomingBackup = SheetLibraryBackupCodec.decode(value);
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      final diff = SheetLibraryBackupDiff.compare(
+        currentBackup,
+        incomingBackup,
+      );
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.ready,
+        report: SheetLibraryBackupDiffReport.fromDiff(diff),
+        mergeReview: SheetLibraryBackupMergeReview.fromDiff(diff),
+        scoreCount: incomingBackup.scores.length,
+        setlistCount: incomingBackup.setlists.length,
+        backupJson: value,
+      );
+    } on UnsupportedError catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.unsupportedVersion,
+        failureReason: error.toString(),
+      );
+    } on FormatException catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } catch (error) {
+      return SheetLibraryBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.error,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     final result = await store.importFullBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
+  Future<SheetLibraryFullBackupImportPreview?>
+  pickFullBackupImportPreview() async {
+    final bytes = await store.pickFullBackupZipBytes();
+    if (bytes == null) {
+      return null;
+    }
+    return previewFullBackupZipBytes(bytes);
+  }
+
+  Future<SheetLibraryFullBackupImportPreview> previewFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    try {
+      final fullBackup = store.inspectFullBackupZipBytes(bytes);
+      final incomingBackup = fullBackup.backup;
+      final currentBackup = SheetLibraryBackupCodec.decode(
+        await store.exportMetadataBackupJson(),
+      );
+      final diff = SheetLibraryBackupDiff.compare(
+        currentBackup,
+        incomingBackup,
+      );
+      final sourcePathsByScoreId = <String, String>{
+        for (final score in incomingBackup.scores) score.id: score.filePath,
+      };
+      final missingFileCount = fullBackup.fileMappings
+          .where((mapping) => mapping.missing)
+          .map(
+            (mapping) =>
+                mapping.linkedFilePath ??
+                mapping.annotationStoragePath ??
+                sourcePathsByScoreId[mapping.scoreId] ??
+                mapping.originalFileName,
+          )
+          .toSet()
+          .length;
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.ready,
+        report: SheetLibraryBackupDiffReport.fromDiff(diff),
+        mergeReview: SheetLibraryBackupMergeReview.fromDiff(diff),
+        scoreCount: incomingBackup.scores.length,
+        setlistCount: incomingBackup.setlists.length,
+        fileMappingCount: fullBackup.fileMappings.length,
+        missingFileCount: missingFileCount,
+        backupBytes: List<int>.unmodifiable(bytes),
+      );
+    } on UnsupportedError catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.unsupportedVersion,
+        failureReason: error.toString(),
+      );
+    } on ArchiveException catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } on FormatException catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.invalid,
+        failureReason: error.toString(),
+      );
+    } catch (error) {
+      return SheetLibraryFullBackupImportPreview(
+        status: SheetLibraryBackupPreviewStatus.error,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
+  Future<SheetLibraryBackupRestoreResult> restoreFullBackupZipBytes(
+    List<int> bytes,
+  ) async {
+    final result = await store.restoreFullBackupZipBytes(bytes);
     if (result.didRestore) {
       await load();
     }
@@ -3213,6 +5083,10 @@ class SheetLibraryController extends ChangeNotifier {
       currentDurationSeconds: setlist.scoreDurations[scoreId] ?? 0,
       totalEstimatedSeconds: setlist.totalEstimatedSeconds,
       currentNote: setlist.scoreNotes[scoreId]?.trim() ?? '',
+      previousScoreTitle: index > 0 ? scores[index - 1].displayTitle : null,
+      nextScoreTitle: index < scores.length - 1
+          ? scores[index + 1].displayTitle
+          : null,
     );
   }
 
@@ -3305,6 +5179,39 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _saveScoresAndSetlistsChanges() async {
+    final pendingScores = _scores;
+    final pendingSetlists = _setlists;
+    final libraryId = _activeLibraryProfile.id;
+    try {
+      await store.saveScoresAndSetlists(
+        pendingScores,
+        pendingSetlists,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (identical(_scores, pendingScores) &&
+          identical(_setlists, pendingSetlists) &&
+          _activeLibraryProfile.id == libraryId) {
+        try {
+          final persistedScores = await store.loadScores();
+          final persistedSetlists = await store.loadSetlists();
+          if (identical(_scores, pendingScores) &&
+              identical(_setlists, pendingSetlists) &&
+              _activeLibraryProfile.id == libraryId) {
+            _scores = persistedScores;
+            _setlists = persistedSetlists;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Preserve the original write failure when recovery cannot read.
+        }
+      }
+      rethrow;
+    }
+    notifyListeners();
+  }
+
   Future<void> _updateLibraryViewSettings(
     SheetLibraryViewSettings settings,
   ) async {
@@ -3351,6 +5258,84 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  SheetScore _scoreFromSetlistPackageItem(
+    SheetScore score,
+    SheetSetlistShareItem item,
+  ) {
+    final details = item.details;
+    final title = _normalizeScoreTitle(item.title, score.title);
+    final composer = _normalizeOptionalMetadata(
+      item.composer.isEmpty ? score.composer : item.composer,
+    );
+    final note = _normalizeOptionalMetadata(details['악보 메모'] ?? score.note);
+    final collection = _normalizeOptionalMetadata(
+      details['컬렉션'] ?? score.collection,
+    );
+    final group = _normalizeOptionalMetadata(details['그룹'] ?? score.group);
+    final customFieldsByKey = <String, SheetCustomMetadataField>{
+      for (final field in score.customFields)
+        field.key.trim().toLowerCase(): field,
+    };
+    for (final entry in details.entries) {
+      final key = entry.key.trim();
+      final value = entry.value.trim();
+      if (_setlistPackageKnownDetailKeys.contains(key) || value.isEmpty) {
+        continue;
+      }
+      customFieldsByKey[key.toLowerCase()] = SheetCustomMetadataField(
+        key: key,
+        value: value,
+      );
+    }
+
+    return score.copyWith(
+      title: title,
+      composer: composer,
+      tags: details.containsKey('태그')
+          ? _normalizeTags(details['태그'] ?? '')
+          : score.tags,
+      note: note,
+      collection: collection,
+      group: group,
+      rating: details.containsKey('별점')
+          ? _parseManifestRating(details['별점'] ?? '')
+          : score.rating,
+      customFields: customFieldsByKey.values.toList(growable: false),
+      viewerSettings: _globalViewerSettings,
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  int _parseManifestRating(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return SheetScore.normalizeRating(int.tryParse(match?.group(0) ?? '') ?? 0);
+  }
+
+  int _parseManifestPageNumber(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return int.tryParse(match?.group(0) ?? '') ?? 0;
+  }
+
+  int _parseManifestDurationSeconds(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return 0;
+    }
+    var seconds = 0;
+    for (final match in RegExp(r'(\d+)\s*(시간|분|초)').allMatches(trimmed)) {
+      final amount = int.tryParse(match.group(1) ?? '') ?? 0;
+      switch (match.group(2)) {
+        case '시간':
+          seconds += amount * 3600;
+        case '분':
+          seconds += amount * 60;
+        case '초':
+          seconds += amount;
+      }
+    }
+    return seconds;
+  }
+
   String _imageImportErrorMessage(Object error) {
     if (error is FormatException) {
       return SheetFileImportPolicy.unsupportedImportMessage(error.message);
@@ -3391,6 +5376,23 @@ class SheetLibraryController extends ChangeNotifier {
     return normalized.isEmpty ? '새 세트리스트' : normalized;
   }
 
+  String _uniqueSetlistTitle(String title) {
+    final baseTitle = _normalizeSetlistTitle(title);
+    if (setlistByTitleOrNull(baseTitle) == null) {
+      return baseTitle;
+    }
+    for (var suffix = 2; ; suffix++) {
+      final candidate = '$baseTitle ($suffix)';
+      if (setlistByTitleOrNull(candidate) == null) {
+        return candidate;
+      }
+    }
+  }
+
+  String _newSetlistId(DateTime now) {
+    return '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';
+  }
+
   String _normalizeBookmarkLabel(String label, int pageNumber) {
     final normalized = label.trim();
     return normalized.isEmpty ? '$pageNumber쪽' : normalized;
@@ -3416,6 +5418,23 @@ class SheetLibraryController extends ChangeNotifier {
 
   String _normalizeOptionalMetadata(String value) {
     return value.trim();
+  }
+
+  String _uniqueUserStampId(String label, Set<String> existingIds) {
+    final base = label
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    final fallback = DateTime.now().microsecondsSinceEpoch.toString();
+    final prefix = base.isEmpty ? 'stamp-$fallback' : base;
+    var candidate = prefix;
+    var suffix = 2;
+    while (existingIds.contains(candidate)) {
+      candidate = '$prefix-$suffix';
+      suffix += 1;
+    }
+    return candidate;
   }
 
   int _recentScoreCompare(SheetScore a, SheetScore b) {
@@ -3513,7 +5532,11 @@ List<SheetLibraryFacet> _stringFacets(Iterable<String> values) {
 }
 
 class SheetSharedImportFile {
-  const SheetSharedImportFile({required this.path, required this.name});
+  const SheetSharedImportFile({
+    required this.path,
+    required this.name,
+    this.importSource,
+  });
 
   factory SheetSharedImportFile.fromPlatformMap(Map<Object?, Object?> value) {
     return SheetSharedImportFile(
@@ -3524,8 +5547,17 @@ class SheetSharedImportFile {
 
   final String path;
   final String name;
+  final SheetScoreImportSource? importSource;
 
   bool get isValid => path.isNotEmpty && name.toLowerCase().endsWith('.pdf');
+
+  SheetSharedImportFile copyWith({SheetScoreImportSource? importSource}) {
+    return SheetSharedImportFile(
+      path: path,
+      name: name,
+      importSource: importSource ?? this.importSource,
+    );
+  }
 }
 
 List<SheetSharedImportFile> normalizeSharedImportPayload(Object? value) {
@@ -3551,6 +5583,8 @@ class SheetSetlistPlaybackContext {
     required this.currentDurationSeconds,
     required this.totalEstimatedSeconds,
     this.currentNote = '',
+    this.previousScoreTitle,
+    this.nextScoreTitle,
   });
 
   final String title;
@@ -3559,6 +5593,8 @@ class SheetSetlistPlaybackContext {
   final int currentDurationSeconds;
   final int totalEstimatedSeconds;
   final String currentNote;
+  final String? previousScoreTitle;
+  final String? nextScoreTitle;
 
   String get positionLabel => '${currentIndex + 1}/$totalCount';
 }

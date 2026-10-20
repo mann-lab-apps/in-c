@@ -236,6 +236,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('정지'));
     await tester.pump();
+    expect(player.stopCalls, 1);
     delayed.complete(SheetMetronomeOutputStatus.unavailable);
     await tester.pump();
 
@@ -344,6 +345,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('정지'));
       await tester.pump();
+      expect(player.stopCalls, 1);
       delayed.complete(SheetMetronomeOutputStatus.unavailable);
       await tester.pump();
 
@@ -359,6 +361,7 @@ class _QueuedMetronomeSoundPlayer extends SheetMetronomeSoundPlayer {
   final List<Future<SheetMetronomeOutputStatus>> _results;
   int calls = 0;
   int prepareCalls = 0;
+  int stopCalls = 0;
   Future<void>? nextPrepare;
 
   @override
@@ -367,6 +370,11 @@ class _QueuedMetronomeSoundPlayer extends SheetMetronomeSoundPlayer {
     final future = nextPrepare;
     nextPrepare = null;
     return future ?? Future<void>.value();
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCalls++;
   }
 
   @override

@@ -452,6 +452,159 @@ class SheetCropSettings {
   }
 }
 
+class SheetChordProDisplaySettings {
+  const SheetChordProDisplaySettings({
+    this.transposeSemitones = 0,
+    this.showCapoShapes = false,
+    this.capoFretsOverride,
+    this.columnCount = 1,
+    this.fontScalePercent = 100,
+  });
+
+  factory SheetChordProDisplaySettings.fromJson(Map<String, Object?>? json) {
+    return SheetChordProDisplaySettings(
+      transposeSemitones: _normalizeTransposeSemitones(
+        json?['transposeSemitones'],
+      ),
+      showCapoShapes: _boolFromJson(json?['showCapoShapes'], fallback: false),
+      capoFretsOverride: _normalizeCapoFretsOverride(
+        json?['capoFretsOverride'],
+      ),
+      columnCount: _normalizeColumnCount(json?['columnCount']),
+      fontScalePercent: _normalizeFontScalePercent(json?['fontScalePercent']),
+    );
+  }
+
+  static const defaultSettings = SheetChordProDisplaySettings();
+
+  final int transposeSemitones;
+  final bool showCapoShapes;
+  final int? capoFretsOverride;
+  final int columnCount;
+  final int fontScalePercent;
+
+  bool get isDefault =>
+      transposeSemitones == 0 &&
+      !showCapoShapes &&
+      capoFretsOverride == null &&
+      columnCount == 1 &&
+      fontScalePercent == 100;
+
+  SheetChordProDisplaySettings copyWith({
+    int? transposeSemitones,
+    bool? showCapoShapes,
+    int? capoFretsOverride,
+    int? columnCount,
+    int? fontScalePercent,
+    bool clearCapoFretsOverride = false,
+  }) {
+    return SheetChordProDisplaySettings(
+      transposeSemitones: _clampTransposeSemitones(
+        transposeSemitones ?? this.transposeSemitones,
+      ),
+      showCapoShapes: showCapoShapes ?? this.showCapoShapes,
+      capoFretsOverride: clearCapoFretsOverride
+          ? null
+          : _clampCapoFrets(capoFretsOverride ?? this.capoFretsOverride),
+      columnCount: _clampColumnCount(columnCount ?? this.columnCount),
+      fontScalePercent: _clampFontScalePercent(
+        fontScalePercent ?? this.fontScalePercent,
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'transposeSemitones': transposeSemitones,
+      'showCapoShapes': showCapoShapes,
+      if (capoFretsOverride != null) 'capoFretsOverride': capoFretsOverride,
+      'columnCount': columnCount,
+      'fontScalePercent': fontScalePercent,
+    };
+  }
+
+  static int _normalizeTransposeSemitones(Object? value) {
+    return _clampTransposeSemitones(_intFromJson(value, fallback: 0));
+  }
+
+  static int _clampTransposeSemitones(int value) {
+    return value.clamp(-11, 11).toInt();
+  }
+
+  static int? _normalizeCapoFretsOverride(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    return _clampCapoFrets(_intFromJson(value, fallback: 0));
+  }
+
+  static int? _clampCapoFrets(int? value) {
+    return value?.clamp(0, 12).toInt();
+  }
+
+  static int _normalizeColumnCount(Object? value) {
+    return _clampColumnCount(_intFromJson(value, fallback: 1));
+  }
+
+  static int _clampColumnCount(int value) {
+    return value.clamp(1, 2).toInt();
+  }
+
+  static int _normalizeFontScalePercent(Object? value) {
+    return _clampFontScalePercent(_intFromJson(value, fallback: 100));
+  }
+
+  static int _clampFontScalePercent(int value) {
+    const supported = <int>[85, 100, 115, 130];
+    return supported.reduce(
+      (closest, candidate) =>
+          (candidate - value).abs() < (closest - value).abs()
+          ? candidate
+          : closest,
+    );
+  }
+}
+
+class SheetTextDisplaySettings {
+  const SheetTextDisplaySettings({this.fontScalePercent = 100});
+
+  factory SheetTextDisplaySettings.fromJson(Map<String, Object?>? json) {
+    return SheetTextDisplaySettings(
+      fontScalePercent: _clampFontScalePercent(
+        _intFromJson(json?['fontScalePercent'], fallback: 100),
+      ),
+    );
+  }
+
+  static const defaultSettings = SheetTextDisplaySettings();
+
+  final int fontScalePercent;
+
+  bool get isDefault => fontScalePercent == 100;
+
+  SheetTextDisplaySettings copyWith({int? fontScalePercent}) {
+    return SheetTextDisplaySettings(
+      fontScalePercent: _clampFontScalePercent(
+        fontScalePercent ?? this.fontScalePercent,
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{'fontScalePercent': fontScalePercent};
+  }
+
+  static int _clampFontScalePercent(int value) {
+    const supported = <int>[85, 100, 115, 130];
+    return supported.reduce(
+      (closest, candidate) =>
+          (candidate - value).abs() < (closest - value).abs()
+          ? candidate
+          : closest,
+    );
+  }
+}
+
 class SheetCropPreset {
   const SheetCropPreset({
     required this.id,
@@ -2049,6 +2202,74 @@ class SheetAnnotationStorageReference {
   }
 }
 
+class SheetAudioLoopMarker {
+  const SheetAudioLoopMarker({
+    required this.id,
+    required this.label,
+    required this.startMs,
+    required this.endMs,
+  });
+
+  static SheetAudioLoopMarker? tryCreate({
+    required Object? id,
+    required Object? label,
+    required Object? startMs,
+    required Object? endMs,
+  }) {
+    final normalizedId = id?.toString().trim() ?? '';
+    final normalizedLabel = label?.toString().trim() ?? '';
+    final normalizedStartMs = _millisecondsFromJson(startMs);
+    final normalizedEndMs = _millisecondsFromJson(endMs);
+    if (normalizedId.isEmpty ||
+        normalizedLabel.isEmpty ||
+        normalizedStartMs == null ||
+        normalizedEndMs == null ||
+        normalizedStartMs < 0 ||
+        normalizedEndMs <= normalizedStartMs) {
+      return null;
+    }
+    return SheetAudioLoopMarker(
+      id: normalizedId,
+      label: normalizedLabel,
+      startMs: normalizedStartMs,
+      endMs: normalizedEndMs,
+    );
+  }
+
+  static SheetAudioLoopMarker? fromJson(Object? value) {
+    if (value is! Map) {
+      return null;
+    }
+    return tryCreate(
+      id: value['id'],
+      label: value['label'],
+      startMs: value['startMs'],
+      endMs: value['endMs'],
+    );
+  }
+
+  final String id;
+  final String label;
+  final int startMs;
+  final int endMs;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'label': label,
+      'startMs': startMs,
+      'endMs': endMs,
+    };
+  }
+
+  static int? _millisecondsFromJson(Object? value) {
+    if (value is num) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '');
+  }
+}
+
 class SheetLinkedFile {
   const SheetLinkedFile({
     required this.path,
@@ -2058,6 +2279,7 @@ class SheetLinkedFile {
     required this.createdAt,
     this.audioLoopStartMs,
     this.audioLoopEndMs,
+    this.audioLoopMarkers = const <SheetAudioLoopMarker>[],
   });
 
   factory SheetLinkedFile.fromJson(Map<String, Object?> json) {
@@ -2092,6 +2314,9 @@ class SheetLinkedFile {
               json['audioLoopEndMs'],
             )
           : null,
+      audioLoopMarkers: canStoreAudioLoop
+          ? _normalizeAudioLoopMarkers(json['audioLoopMarkers'])
+          : const <SheetAudioLoopMarker>[],
     );
   }
 
@@ -2101,6 +2326,7 @@ class SheetLinkedFile {
   static const originalRole = 'original';
   static const editedCopyRole = 'editedCopy';
   static const referenceRole = 'reference';
+  static const maxAudioLoopMarkers = 12;
 
   final String path;
   final String type;
@@ -2109,6 +2335,7 @@ class SheetLinkedFile {
   final DateTime createdAt;
   final int? audioLoopStartMs;
   final int? audioLoopEndMs;
+  final List<SheetAudioLoopMarker> audioLoopMarkers;
 
   SheetLinkedFile copyWith({
     String? path,
@@ -2118,6 +2345,7 @@ class SheetLinkedFile {
     DateTime? createdAt,
     int? audioLoopStartMs,
     int? audioLoopEndMs,
+    List<SheetAudioLoopMarker>? audioLoopMarkers,
     bool clearAudioLoop = false,
   }) {
     final nextPath = (path ?? this.path).trim();
@@ -2141,6 +2369,9 @@ class SheetLinkedFile {
             audioLoopStartMs ?? this.audioLoopStartMs,
             audioLoopEndMs ?? this.audioLoopEndMs,
           );
+    final nextAudioLoopMarkers = canStoreAudioLoop
+        ? _normalizeAudioLoopMarkers(audioLoopMarkers ?? this.audioLoopMarkers)
+        : const <SheetAudioLoopMarker>[];
     return SheetLinkedFile(
       path: nextPath,
       type: nextType,
@@ -2149,10 +2380,15 @@ class SheetLinkedFile {
       createdAt: createdAt ?? this.createdAt,
       audioLoopStartMs: nextAudioLoopStartMs,
       audioLoopEndMs: nextAudioLoopEndMs,
+      audioLoopMarkers: nextAudioLoopMarkers,
     );
   }
 
   Map<String, Object?> toJson() {
+    final normalizedAudioLoopMarkers =
+        _canStoreAudioLoop(path: path, type: type, rawType: type)
+        ? _normalizeAudioLoopMarkers(audioLoopMarkers)
+        : const <SheetAudioLoopMarker>[];
     return <String, Object?>{
       'path': path,
       'type': type,
@@ -2163,6 +2399,10 @@ class SheetLinkedFile {
         'audioLoopStartMs': audioLoopStartMs,
       if (audioLoopStartMs != null && audioLoopEndMs != null)
         'audioLoopEndMs': audioLoopEndMs,
+      if (normalizedAudioLoopMarkers.isNotEmpty)
+        'audioLoopMarkers': normalizedAudioLoopMarkers
+            .map((marker) => marker.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -2228,6 +2468,32 @@ class SheetLinkedFile {
       return value.round();
     }
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  static List<SheetAudioLoopMarker> _normalizeAudioLoopMarkers(Object? value) {
+    if (value is! Iterable) {
+      return const <SheetAudioLoopMarker>[];
+    }
+    final markers = <SheetAudioLoopMarker>[];
+    final seenIds = <String>{};
+    for (final item in value) {
+      final marker = item is SheetAudioLoopMarker
+          ? SheetAudioLoopMarker.tryCreate(
+              id: item.id,
+              label: item.label,
+              startMs: item.startMs,
+              endMs: item.endMs,
+            )
+          : SheetAudioLoopMarker.fromJson(item);
+      if (marker == null || !seenIds.add(marker.id)) {
+        continue;
+      }
+      markers.add(marker);
+      if (markers.length >= maxAudioLoopMarkers) {
+        break;
+      }
+    }
+    return List<SheetAudioLoopMarker>.unmodifiable(markers);
   }
 }
 
@@ -2313,6 +2579,94 @@ class SheetCustomMetadataField {
   }
 }
 
+class SheetScoreImportSource {
+  const SheetScoreImportSource._({
+    required this.platform,
+    required this.displayName,
+    this.folderLabel,
+    this.providerLabel,
+    this.sizeBytes,
+    this.modifiedAt,
+  });
+
+  static SheetScoreImportSource? create({
+    required String platform,
+    required String displayName,
+    String? folderLabel,
+    String? providerLabel,
+    int? sizeBytes,
+    DateTime? modifiedAt,
+  }) {
+    final safePlatform = _safeHint(platform, maxLength: 64);
+    final safeDisplayName = _safeHint(displayName, maxLength: 512);
+    if (safePlatform == null || safeDisplayName == null) return null;
+    return SheetScoreImportSource._(
+      platform: safePlatform,
+      displayName: safeDisplayName,
+      folderLabel: _safeHint(folderLabel, maxLength: 256),
+      providerLabel: _safeHint(providerLabel, maxLength: 256),
+      sizeBytes: sizeBytes != null && sizeBytes >= 0 ? sizeBytes : null,
+      modifiedAt: modifiedAt,
+    );
+  }
+
+  static SheetScoreImportSource? tryFromJson(Object? value) {
+    final json = _asJsonMap(value);
+    if (json == null) return null;
+    final platform = _stringFromJson(json['platform']).trim();
+    final displayName = _stringFromJson(json['displayName']).trim();
+    if (platform.isEmpty || displayName.isEmpty) return null;
+    final rawSize = json['sizeBytes'];
+    return SheetScoreImportSource.create(
+      platform: platform,
+      displayName: displayName,
+      folderLabel: _stringFromJson(json['folderLabel']),
+      providerLabel: _stringFromJson(json['providerLabel']),
+      sizeBytes: rawSize is num ? rawSize.toInt() : null,
+      modifiedAt: DateTime.tryParse(_stringFromJson(json['modifiedAt'])),
+    );
+  }
+
+  final String platform;
+  final String displayName;
+  final String? folderLabel;
+  final String? providerLabel;
+  final int? sizeBytes;
+  final DateTime? modifiedAt;
+
+  String get locationLabel {
+    final parts = <String>[
+      ?folderLabel,
+      if (providerLabel != null && providerLabel != folderLabel) providerLabel!,
+    ];
+    return parts.isEmpty ? '외부 폴더' : parts.join(' · ');
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'platform': platform,
+      'displayName': displayName,
+      if (folderLabel != null) 'folderLabel': folderLabel,
+      if (providerLabel != null) 'providerLabel': providerLabel,
+      if (sizeBytes != null) 'sizeBytes': sizeBytes,
+      if (modifiedAt != null) 'modifiedAt': modifiedAt!.toIso8601String(),
+    };
+  }
+
+  static String? _safeHint(String? value, {required int maxLength}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty || _uriSchemePattern.hasMatch(trimmed)) return null;
+    return trimmed.length <= maxLength
+        ? trimmed
+        : trimmed.substring(0, maxLength);
+  }
+
+  static final _uriSchemePattern = RegExp(
+    r'^[a-z][a-z0-9+.-]*:',
+    caseSensitive: false,
+  );
+}
+
 class SheetScore {
   const SheetScore({
     required this.id,
@@ -2327,6 +2681,7 @@ class SheetScore {
     this.linkedFiles = const <SheetLinkedFile>[],
     this.structuredNotes = SheetScoreNotes.empty,
     this.customFields = const <SheetCustomMetadataField>[],
+    this.importSource,
     required this.importedAt,
     required this.updatedAt,
     required this.lastOpenedAt,
@@ -2341,6 +2696,8 @@ class SheetScore {
     this.pdfLinkSanitization = SheetPdfLinkSanitization.empty,
     this.autoScrollSettings = SheetAutoScrollSettings.defaultSettings,
     this.metronomeSettings,
+    this.chordProDisplaySettings = SheetChordProDisplaySettings.defaultSettings,
+    this.textDisplaySettings = SheetTextDisplaySettings.defaultSettings,
   });
 
   factory SheetScore.fromJson(Map<String, Object?> json) {
@@ -2366,6 +2723,7 @@ class SheetScore {
         _asJsonMap(json['structuredNotes']),
       ),
       customFields: _parseCustomFields(json['customFields']),
+      importSource: SheetScoreImportSource.tryFromJson(json['importSource']),
       importedAt: importedAt,
       updatedAt: _dateFromJson(json['updatedAt'], fallback: importedAt),
       lastOpenedAt: _parseOptionalDate(json['lastOpenedAt']),
@@ -2395,6 +2753,12 @@ class SheetScore {
         _asJsonMap(json['autoScrollSettings']),
       ),
       metronomeSettings: _metronomeSettingsFromJson(json['metronomeSettings']),
+      chordProDisplaySettings: SheetChordProDisplaySettings.fromJson(
+        _asJsonMap(json['chordProDisplaySettings']),
+      ),
+      textDisplaySettings: SheetTextDisplaySettings.fromJson(
+        _asJsonMap(json['textDisplaySettings']),
+      ),
     );
   }
 
@@ -2444,6 +2808,7 @@ class SheetScore {
   final List<SheetLinkedFile> linkedFiles;
   final SheetScoreNotes structuredNotes;
   final List<SheetCustomMetadataField> customFields;
+  final SheetScoreImportSource? importSource;
   final DateTime importedAt;
   final DateTime updatedAt;
   final DateTime? lastOpenedAt;
@@ -2458,9 +2823,32 @@ class SheetScore {
   final SheetPdfLinkSanitization pdfLinkSanitization;
   final SheetAutoScrollSettings autoScrollSettings;
   final SheetMetronomeSettings? metronomeSettings;
+  final SheetChordProDisplaySettings chordProDisplaySettings;
+  final SheetTextDisplaySettings textDisplaySettings;
 
   String get displayTitle =>
       title.trim().isEmpty ? sourceFileDisplayName : title.trim();
+
+  bool get isExtractedDocumentText {
+    final hasDocumentSourceType = customFields.any((field) {
+      if (field.key.trim() != '출처 유형') return false;
+      final sourceType = field.value.trim().toUpperCase();
+      return sourceType == 'DOCX' || sourceType == 'RTF';
+    });
+    if (hasDocumentSourceType) return true;
+    return linkedFiles.any((file) {
+      if (file.role != SheetLinkedFile.referenceRole) return false;
+      final type = file.type.trim().toLowerCase();
+      return type == 'docx' ||
+          type == 'rtf' ||
+          SheetFileImportPolicy.isDocxFileName(file.path) ||
+          SheetFileImportPolicy.isRtfFileName(file.path);
+    });
+  }
+
+  bool get isEditablePlainTextSource =>
+      SheetFileImportPolicy.isPlainTextFileName(filePath) &&
+      !isExtractedDocumentText;
 
   String get sourceFileDisplayName {
     final normalizedPath = filePath.trim().replaceAll('\\', '/');
@@ -2499,7 +2887,13 @@ class SheetScore {
           (field) =>
               field.key.toLowerCase().contains(normalized) ||
               field.value.toLowerCase().contains(normalized),
-        );
+        ) ||
+        (importSource?.displayName.toLowerCase().contains(normalized) ??
+            false) ||
+        (importSource?.folderLabel?.toLowerCase().contains(normalized) ??
+            false) ||
+        (importSource?.providerLabel?.toLowerCase().contains(normalized) ??
+            false);
   }
 
   SheetScore copyWith({
@@ -2514,6 +2908,7 @@ class SheetScore {
     List<SheetLinkedFile>? linkedFiles,
     SheetScoreNotes? structuredNotes,
     List<SheetCustomMetadataField>? customFields,
+    SheetScoreImportSource? importSource,
     DateTime? updatedAt,
     DateTime? lastOpenedAt,
     int? lastPage,
@@ -2527,6 +2922,8 @@ class SheetScore {
     SheetPdfLinkSanitization? pdfLinkSanitization,
     SheetAutoScrollSettings? autoScrollSettings,
     SheetMetronomeSettings? metronomeSettings,
+    SheetChordProDisplaySettings? chordProDisplaySettings,
+    SheetTextDisplaySettings? textDisplaySettings,
     bool clearMetronomeSettings = false,
   }) {
     return SheetScore(
@@ -2546,6 +2943,7 @@ class SheetScore {
       customFields: customFields == null
           ? this.customFields
           : normalizeCustomFields(customFields),
+      importSource: importSource ?? this.importSource,
       importedAt: importedAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
@@ -2562,6 +2960,9 @@ class SheetScore {
       metronomeSettings: clearMetronomeSettings
           ? null
           : metronomeSettings ?? this.metronomeSettings,
+      chordProDisplaySettings:
+          chordProDisplaySettings ?? this.chordProDisplaySettings,
+      textDisplaySettings: textDisplaySettings ?? this.textDisplaySettings,
     );
   }
 
@@ -2579,6 +2980,7 @@ class SheetScore {
       'linkedFiles': linkedFiles.map((file) => file.toJson()).toList(),
       'structuredNotes': structuredNotes.toJson(),
       'customFields': customFields.map((field) => field.toJson()).toList(),
+      if (importSource != null) 'importSource': importSource!.toJson(),
       'importedAt': importedAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'lastOpenedAt': lastOpenedAt?.toIso8601String(),
@@ -2594,6 +2996,8 @@ class SheetScore {
       'autoScrollSettings': autoScrollSettings.toJson(),
       if (metronomeSettings != null)
         'metronomeSettings': metronomeSettings!.toJson(),
+      'chordProDisplaySettings': chordProDisplaySettings.toJson(),
+      'textDisplaySettings': textDisplaySettings.toJson(),
     };
   }
 

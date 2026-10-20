@@ -79,7 +79,8 @@ void main() {
         await tester.tap(menu);
         await tester.pumpAndSettle();
         expect(find.text('보기/입력 기본값'), findsOneWidget);
-        expect(find.widgetWithText(ListTile, '앱 상태 점검'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, '개발자용 기기 리포트'), findsOneWidget);
+        expect(find.text('성능·호환성 점검 결과 복사'), findsOneWidget);
         final helpMenuItem = find.widgetWithText(ListTile, '도움말/피드백');
         expect(helpMenuItem, findsOneWidget);
         expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
@@ -94,11 +95,20 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(ListTile, '앱 상태 점검'));
+        await tester.tap(find.widgetWithText(ListTile, '개발자용 기기 리포트'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
+        expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('연습 오디오 엔진 점검'),
+          120,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('연습 오디오 엔진 점검'), findsOneWidget);
+        await tester.ensureVisible(find.text('엔진 확인'));
+        await tester.pumpAndSettle();
+        expect(find.text('엔진 확인'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'device check');
-        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
@@ -108,12 +118,51 @@ void main() {
         expect(find.text('처음 쓰는 흐름'), findsOneWidget);
         expect(find.textContaining('악보 추가: PDF 또는 이미지를 가져온 뒤'), findsOneWidget);
         await tester.scrollUntilVisible(
+          find.text('작업별 도움말'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('작업별 도움말'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.textContaining('세트리스트: 여러 악보 선택 후'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.textContaining('세트리스트: 여러 악보 선택 후'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.textContaining('긴 악보 이동: 쪽 이동에서 슬라이더'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.textContaining('북마크/리허설 표시 지점'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(
+          find.textContaining('오디오 연습: 연결 파일에서 오디오를 추가하고'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('반복 구간 요약'), findsOneWidget);
+        await tester.scrollUntilVisible(
           find.text('지원 링크'),
           180,
           scrollable: find.byType(Scrollable).last,
         );
         expect(find.text('지원 링크'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('심사/지원 URL 복사'),
+          -120,
+          scrollable: find.byType(Scrollable).last,
+        );
         expect(find.text('심사/지원 URL 복사'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('개발자용 협업 시뮬레이션'),
+          -120,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('개발자용 협업 시뮬레이션'), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'),
           180,
@@ -121,15 +170,24 @@ void main() {
         );
         expect(find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ListTile, '도움말/피드백'));
+        await tester.pumpAndSettle();
         await tester.scrollUntilVisible(
-          find.text('앱 상태 점검 열기'),
-          -180,
+          find.text('기기 리포트 만들기'),
+          180,
           scrollable: find.byType(Scrollable).last,
         );
-        await tester.tap(find.text('앱 상태 점검 열기'));
+        await tester.ensureVisible(find.text('기기 리포트 만들기'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
-        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
+        await tester.tap(find.text('기기 리포트 만들기'));
+        await tester.pumpAndSettle();
+        expect(find.text('Clef & Staff 개발자용 기기 리포트'), findsOneWidget);
+        Navigator.of(tester.element(find.text('Clef & Staff 개발자용 기기 리포트')))
+            .pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();

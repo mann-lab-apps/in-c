@@ -21,6 +21,7 @@ class SheetLibraryBackup {
     this.globalViewerSettings = SheetViewerSettings.defaultSettings,
     this.performancePresetTemplates = const <SheetPerformancePresetTemplate>[],
     this.favoriteAnnotationPreset,
+    this.userAnnotationStampPacks = const <SheetAnnotationStampPack>[],
   });
 
   factory SheetLibraryBackup.fromJson(Map<String, Object?> json) {
@@ -71,6 +72,9 @@ class SheetLibraryBackup {
       favoriteAnnotationPreset: _annotationPresetFromJson(
         json['favoriteAnnotationPreset'],
       ),
+      userAnnotationStampPacks: _stampPacksFromJson(
+        json['userAnnotationStampPacks'],
+      ),
     );
   }
 
@@ -86,6 +90,8 @@ class SheetLibraryBackup {
     List<SheetPerformancePresetTemplate> performancePresetTemplates =
         const <SheetPerformancePresetTemplate>[],
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
+    List<SheetAnnotationStampPack> userAnnotationStampPacks =
+        const <SheetAnnotationStampPack>[],
     DateTime? exportedAt,
   }) {
     return SheetLibraryBackup(
@@ -102,6 +108,7 @@ class SheetLibraryBackup {
         performancePresetTemplates,
       ),
       favoriteAnnotationPreset: favoriteAnnotationPreset,
+      userAnnotationStampPacks: _normalizeStampPacks(userAnnotationStampPacks),
     );
   }
 
@@ -118,6 +125,7 @@ class SheetLibraryBackup {
   final SheetViewerSettings globalViewerSettings;
   final List<SheetPerformancePresetTemplate> performancePresetTemplates;
   final SheetAnnotationToolPreset? favoriteAnnotationPreset;
+  final List<SheetAnnotationStampPack> userAnnotationStampPacks;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -136,6 +144,10 @@ class SheetLibraryBackup {
           .toList(growable: false),
       if (favoriteAnnotationPreset != null)
         'favoriteAnnotationPreset': favoriteAnnotationPreset!.toJson(),
+      if (userAnnotationStampPacks.isNotEmpty)
+        'userAnnotationStampPacks': userAnnotationStampPacks
+            .map((pack) => pack.toJson())
+            .toList(growable: false),
       'notes':
           'PDF files are not embedded in this backup. Restored score file '
           'paths may require local files to still exist.',
@@ -179,6 +191,7 @@ class SheetLibraryFullBackupFileMapping {
     required this.missing,
     this.linkedFilePath,
     this.annotationStoragePath,
+    this.stampAssetRef,
   });
 
   factory SheetLibraryFullBackupFileMapping.fromJson(
@@ -186,7 +199,8 @@ class SheetLibraryFullBackupFileMapping {
   ) {
     final scoreId = _stringFromJson(json['scoreId']).trim();
     final entryPath = _stringFromJson(json['entryPath']).trim();
-    if (scoreId.isEmpty || entryPath.isEmpty) {
+    final stampAssetRef = _stringFromJson(json['stampAssetRef']).trim();
+    if ((scoreId.isEmpty && stampAssetRef.isEmpty) || entryPath.isEmpty) {
       throw const FormatException('Invalid backup file mapping.');
     }
     final linkedFilePath = _stringFromJson(json['linkedFilePath']).trim();
@@ -201,6 +215,7 @@ class SheetLibraryFullBackupFileMapping {
       annotationStoragePath: annotationStoragePath.isEmpty
           ? null
           : annotationStoragePath,
+      stampAssetRef: stampAssetRef.isEmpty ? null : stampAssetRef,
     );
   }
 
@@ -210,10 +225,13 @@ class SheetLibraryFullBackupFileMapping {
   final bool missing;
   final String? linkedFilePath;
   final String? annotationStoragePath;
+  final String? stampAssetRef;
 
   bool get isLinkedFile => linkedFilePath?.isNotEmpty == true;
 
   bool get isAnnotationFile => annotationStoragePath?.isNotEmpty == true;
+
+  bool get isStampAsset => stampAssetRef?.isNotEmpty == true;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -224,6 +242,7 @@ class SheetLibraryFullBackupFileMapping {
       if (linkedFilePath?.isNotEmpty == true) 'linkedFilePath': linkedFilePath,
       if (annotationStoragePath?.isNotEmpty == true)
         'annotationStoragePath': annotationStoragePath,
+      if (stampAssetRef?.isNotEmpty == true) 'stampAssetRef': stampAssetRef,
     };
   }
 
@@ -266,6 +285,41 @@ class SheetLibraryBackupExportResult {
   final bool didExport;
   final Uri? outputUri;
   final String? failureReason;
+}
+
+enum SheetLibraryBackupExportKind { metadata, full }
+
+class SheetLibraryBackupExportRecord {
+  const SheetLibraryBackupExportRecord({
+    required this.kind,
+    required this.exportedAt,
+    required this.outputUri,
+  });
+
+  factory SheetLibraryBackupExportRecord.fromJson(Map<String, Object?> json) {
+    final rawKind = json['kind']?.toString();
+    final kind = SheetLibraryBackupExportKind.values.firstWhere(
+      (value) => value.name == rawKind,
+      orElse: () => SheetLibraryBackupExportKind.metadata,
+    );
+    return SheetLibraryBackupExportRecord(
+      kind: kind,
+      exportedAt: _dateFromJson(json['exportedAt']),
+      outputUri: json['outputUri']?.toString() ?? '',
+    );
+  }
+
+  final SheetLibraryBackupExportKind kind;
+  final DateTime exportedAt;
+  final String outputUri;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'kind': kind.name,
+      'exportedAt': exportedAt.toIso8601String(),
+      'outputUri': outputUri,
+    };
+  }
 }
 
 class SheetLibraryBackupRestoreResult {
@@ -345,4 +399,26 @@ DateTime _dateFromJson(Object? value) {
 SheetAnnotationToolPreset? _annotationPresetFromJson(Object? value) {
   final preset = SheetAnnotationToolPreset.fromJson(_asJsonMap(value));
   return preset.isValid ? preset : null;
+}
+
+List<SheetAnnotationStampPack> _stampPacksFromJson(Object? value) {
+  return _normalizeStampPacks(
+    _jsonList(value)
+        .map(_asJsonMap)
+        .whereType<Map<String, Object?>>()
+        .map(SheetAnnotationStampPack.fromJson),
+  );
+}
+
+List<SheetAnnotationStampPack> _normalizeStampPacks(
+  Iterable<SheetAnnotationStampPack> packs,
+) {
+  final seen = <String>{};
+  final normalized = <SheetAnnotationStampPack>[];
+  for (final pack in packs) {
+    if (pack.validate(allowImageStamps: true).isValid && seen.add(pack.id)) {
+      normalized.add(pack);
+    }
+  }
+  return List<SheetAnnotationStampPack>.unmodifiable(normalized);
 }

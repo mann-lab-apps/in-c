@@ -10,7 +10,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
+import 'sheet_annotation_stamp_asset_store.dart';
 import 'sheet_bookmark_import.dart';
+import 'sheet_chordpro.dart';
+import 'sheet_docx.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
@@ -19,6 +22,7 @@ import 'sheet_file_import.dart';
 import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
+import 'sheet_rtf.dart';
 import 'sheet_setlist.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
@@ -40,6 +44,25 @@ Map<String, Object?>? _jsonMapFromString(String? value) {
   }
 }
 
+class _DecodedSheetLibraryFullBackup {
+  const _DecodedSheetLibraryFullBackup({
+    required this.archive,
+    required this.backup,
+  });
+
+  final Archive archive;
+  final SheetLibraryFullBackup backup;
+}
+
+Map<String, Object?>? _jsonMapFromObject(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+  );
+}
+
 class SheetLibraryStore {
   // All instances share the preferences cache and automatic backup keys.
   static Future<void>? _metadataWrites;
@@ -53,7 +76,11 @@ class SheetLibraryStore {
   static const _performancePresetTemplatesKey =
       'clef_performance_preset_templates';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
+  static const _recentAnnotationStampsKey = 'clef_recent_annotation_stamps';
+  static const _userAnnotationStampPacksKey =
+      'clef_user_annotation_stamp_packs';
   static const _automaticMetadataBackupKey = 'clef_automatic_metadata_backup';
+  static const _lastBackupExportRecordKey = 'clef_last_backup_export_record';
   static const _libraryProfilesKey = 'clef_library_profiles';
   static const _activeLibraryProfileKey = 'clef_active_library_profile';
   static const _legacyScoresKey = 'in_c_sheet_scores';
@@ -63,6 +90,7 @@ class SheetLibraryStore {
   static const _legacyLibraryViewSettingsKey =
       'in_c_sheet_library_view_settings';
   static const _pdfFolderName = 'scores';
+  static const _textScoresFolderName = 'text-scores';
   static const _linkedFilesFolderName = 'linked-files';
   static const _backupFolderName = 'backups';
 
@@ -226,7 +254,10 @@ class SheetLibraryStore {
       _scopedKey(_setlistsKey, libraryId): null,
       _scopedKey(_libraryViewSettingsKey, libraryId): null,
       _scopedKey(_favoriteAnnotationPresetKey, libraryId): null,
+      _scopedKey(_recentAnnotationStampsKey, libraryId): null,
+      _scopedKey(_userAnnotationStampPacksKey, libraryId): null,
       _scopedKey(_automaticMetadataBackupKey, libraryId): null,
+      _scopedKey(_lastBackupExportRecordKey, libraryId): null,
     };
   }
 
@@ -247,6 +278,37 @@ class SheetLibraryStore {
       return key;
     }
     return '$key.$libraryId';
+  }
+
+  static List<String> _normalizeRecentAnnotationStampNames(
+    Iterable<String> stampNames,
+  ) {
+    final seen = <String>{};
+    final normalized = <String>[];
+    for (final stampName in stampNames) {
+      final name = stampName.trim().toLowerCase();
+      if (name.isEmpty || !seen.add(name)) {
+        continue;
+      }
+      normalized.add(name);
+      if (normalized.length == 5) {
+        break;
+      }
+    }
+    return List<String>.unmodifiable(normalized);
+  }
+
+  static List<SheetAnnotationStampPack> _normalizeUserAnnotationStampPacks(
+    Iterable<SheetAnnotationStampPack> packs,
+  ) {
+    final seen = <String>{};
+    final normalized = <SheetAnnotationStampPack>[];
+    for (final pack in packs) {
+      if (pack.validate(allowImageStamps: true).isValid && seen.add(pack.id)) {
+        normalized.add(pack);
+      }
+    }
+    return List<SheetAnnotationStampPack>.unmodifiable(normalized);
   }
 
   static String _normalizeLibraryName(String value) {
@@ -355,6 +417,56 @@ class SheetLibraryStore {
     }
   }
 
+  List<String> _readRecentAnnotationStampNames(
+    SharedPreferences preferences,
+    String activeLibraryId,
+  ) {
+    final value = preferences.getString(
+      _scopedKey(_recentAnnotationStampsKey, activeLibraryId),
+    );
+    if (value == null) {
+      return const <String>[];
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List) {
+        return const <String>[];
+      }
+      return _normalizeRecentAnnotationStampNames([
+        for (final item in decoded)
+          if (item is String) item,
+      ]);
+    } catch (_) {
+      return const <String>[];
+    }
+  }
+
+  List<SheetAnnotationStampPack> _readUserAnnotationStampPacks(
+    SharedPreferences preferences,
+    String activeLibraryId,
+  ) {
+    final value = preferences.getString(
+      _scopedKey(_userAnnotationStampPacksKey, activeLibraryId),
+    );
+    if (value == null) {
+      return const <SheetAnnotationStampPack>[];
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List) {
+        return const <SheetAnnotationStampPack>[];
+      }
+      return _normalizeUserAnnotationStampPacks(
+        decoded
+            .map(_jsonMapFromObject)
+            .whereType<Map<String, Object?>>()
+            .map(SheetAnnotationStampPack.fromJson),
+      );
+    } catch (_) {
+      return const <SheetAnnotationStampPack>[];
+    }
+  }
+
   String _encodeAutomaticMetadataBackup(
     SharedPreferences preferences,
     String activeLibraryId,
@@ -389,6 +501,10 @@ class SheetLibraryStore {
         activeLibraryId,
       ),
       favoriteAnnotationPreset: _readFavoriteAnnotationPreset(
+        preferences,
+        activeLibraryId,
+      ),
+      userAnnotationStampPacks: _readUserAnnotationStampPacks(
         preferences,
         activeLibraryId,
       ),
@@ -560,6 +676,48 @@ class SheetLibraryStore {
     }, automaticBackupLibraryId: activeLibraryId);
   }
 
+  Future<List<String>> loadRecentAnnotationStampNames() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    return _readRecentAnnotationStampNames(preferences, activeLibraryId);
+  }
+
+  Future<void> saveRecentAnnotationStampNames(
+    List<String> stampNames, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    final normalized = _normalizeRecentAnnotationStampNames(stampNames);
+    final key = _scopedKey(_recentAnnotationStampsKey, activeLibraryId);
+    await _writeMetadataValues(preferences, {
+      key: normalized.isEmpty ? null : jsonEncode(normalized),
+    }, automaticBackupLibraryId: activeLibraryId);
+  }
+
+  Future<List<SheetAnnotationStampPack>> loadUserAnnotationStampPacks() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    return _readUserAnnotationStampPacks(preferences, activeLibraryId);
+  }
+
+  Future<void> saveUserAnnotationStampPacks(
+    List<SheetAnnotationStampPack> packs, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    final normalized = _normalizeUserAnnotationStampPacks(packs);
+    final key = _scopedKey(_userAnnotationStampPacksKey, activeLibraryId);
+    await _writeMetadataValues(preferences, {
+      key: normalized.isEmpty
+          ? null
+          : const JsonEncoder.withIndent('  ').convert(
+              normalized.map((pack) => pack.toJson()).toList(growable: false),
+            ),
+    }, automaticBackupLibraryId: activeLibraryId);
+  }
+
   Future<String?> loadAutomaticMetadataBackupJson() async {
     final preferences = await SharedPreferences.getInstance();
     final activeLibraryId = await _activeLibraryId(preferences);
@@ -578,6 +736,39 @@ class SheetLibraryStore {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<SheetLibraryBackupExportRecord?> loadLastBackupExportRecord() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    final json = _jsonMapFromString(
+      preferences.getString(
+        _scopedKey(_lastBackupExportRecordKey, activeLibraryId),
+      ),
+    );
+    if (json == null) {
+      return null;
+    }
+    try {
+      return SheetLibraryBackupExportRecord.fromJson(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveLastBackupExportRecord(
+    SheetLibraryBackupExportRecord record, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(
+        _lastBackupExportRecordKey,
+        activeLibraryId,
+      ): const JsonEncoder.withIndent('  ')
+          .convert(record.toJson()),
+    }, automaticBackupLibraryId: null);
   }
 
   Future<SheetLibraryBackupRestoreResult>
@@ -615,19 +806,36 @@ class SheetLibraryStore {
       return const <SheetScore>[];
     }
 
-    final scores = <SheetScore>[];
+    final importedFiles = <SheetImportedFile>[];
     for (final file in files) {
       if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
         throw FormatException('Unsupported PDF file: ${file.name}');
       }
-      scores.add(
-        await importPdfBytes(
-          bytes: await file.readAsBytes(),
-          fileName: file.name,
-        ),
+      importedFiles.add(
+        SheetImportedFile(name: file.name, bytes: await file.readAsBytes()),
       );
     }
-    return List<SheetScore>.unmodifiable(scores);
+    return importPdfFileBytesBatch(files: importedFiles);
+  }
+
+  Future<List<SheetScore>> importPdfFileBytesBatch({
+    required List<SheetImportedFile> files,
+  }) async {
+    final scores = <SheetScore>[];
+    try {
+      for (final file in files) {
+        if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
+          throw FormatException('Unsupported PDF file: ${file.name}');
+        }
+        scores.add(
+          await importPdfBytes(bytes: file.bytes, fileName: file.name),
+        );
+      }
+      return List<SheetScore>.unmodifiable(scores);
+    } catch (_) {
+      await discardUnreferencedImportedScoreFiles(scores);
+      rethrow;
+    }
   }
 
   Future<List<SheetBookmark>> importBookmarkCsv({
@@ -742,23 +950,482 @@ class SheetLibraryStore {
       importedAt: importedAt,
     );
     final linkedImages = <SheetLinkedFile>[];
-    final now = importedAt ?? DateTime.now();
-    for (var index = 0; index < images.length; index += 1) {
-      final image = images[index];
-      linkedImages.add(
-        (await importLinkedFileBytes(
-          bytes: image.bytes,
-          fileName: image.name,
-          importedAt: now.add(Duration(microseconds: index)),
-        )).copyWith(role: SheetLinkedFile.referenceRole),
+    try {
+      final now = importedAt ?? DateTime.now();
+      for (var index = 0; index < images.length; index += 1) {
+        final image = images[index];
+        linkedImages.add(
+          (await importLinkedFileBytes(
+            bytes: image.bytes,
+            fileName: image.name,
+            importedAt: now.add(Duration(microseconds: index)),
+          )).copyWith(role: SheetLinkedFile.referenceRole),
+        );
+      }
+      if (linkedImages.isEmpty) {
+        return score;
+      }
+      return score.copyWith(
+        linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
       );
+    } catch (_) {
+      await discardUnreferencedImportedScoreFiles(<SheetScore>[
+        score.copyWith(linkedFiles: linkedImages),
+      ]);
+      rethrow;
     }
-    if (linkedImages.isEmpty) {
-      return score;
+  }
+
+  Future<SheetScore> importChordProText({
+    required String source,
+    required SheetChordProScoreDraft draft,
+    DateTime? importedAt,
+  }) async {
+    final sourceBytes = utf8.encode(source);
+    if (sourceBytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
     }
-    return score.copyWith(
-      linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
+    final trimmedSource = source.trim();
+    if (trimmedSource.isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: sourceBytes,
+      id: id,
+      originalFileName: '${draft.title}.chordpro',
     );
+    return SheetScore(
+      id: id,
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      viewerSettings: SheetViewerSettings.defaultSettings,
+      pageSettings: SheetPageSettings.empty,
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
+  Future<SheetScore> importChordProFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isChordProFileName(file.name)) {
+      throw FormatException('Unsupported ChordPro file: ${file.name}');
+    }
+    if (file.bytes.isEmpty ||
+        file.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Invalid ChordPro file size.');
+    }
+    final source = utf8.decode(file.bytes);
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro file.');
+    }
+    final document = SheetChordProParser.parse(source);
+    final draft = SheetChordProScoreDraft.fromDocument(
+      document,
+      fallbackTitle: SheetFileImportPolicy.titleFromFileName(file.name),
+    );
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: file.bytes,
+      id: id,
+      originalFileName: file.name,
+    );
+    return SheetScore(
+      id: id,
+      title: draft.title,
+      composer: draft.composer,
+      tags: draft.tags,
+      note: draft.subtitle,
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      viewerSettings: SheetViewerSettings.defaultSettings,
+      pageSettings: SheetPageSettings.empty,
+      customFields: [
+        for (final entry in draft.customFields.entries)
+          SheetCustomMetadataField(key: entry.key, value: entry.value),
+      ],
+    );
+  }
+
+  Future<String> readChordProSource(SheetScore score) async {
+    final file = File(score.filePath);
+    final bytes = await file.readAsBytes();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
+    late final String source;
+    try {
+      source = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('Invalid ChordPro UTF-8 source.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+    return source;
+  }
+
+  Future<void> replaceChordProSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    final bytes = utf8.encode(source);
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('ChordPro source is too large.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty ChordPro source.');
+    }
+
+    await _replaceTextScoreSource(
+      score: score,
+      bytes: bytes,
+      missingFileMessage: 'ChordPro source file is missing.',
+    );
+  }
+
+  Future<String> readPlainTextSource(SheetScore score) async {
+    final file = File(score.filePath);
+    final bytes = await file.readAsBytes();
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Plain text source is too large.');
+    }
+    late final String source;
+    try {
+      source = utf8.decode(bytes);
+    } on FormatException {
+      throw const FormatException('Invalid plain text UTF-8 source.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty plain text source.');
+    }
+    return source;
+  }
+
+  Future<void> replacePlainTextSource({
+    required SheetScore score,
+    required String source,
+  }) async {
+    final bytes = utf8.encode(source);
+    if (bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Plain text source is too large.');
+    }
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty plain text source.');
+    }
+
+    await _replaceTextScoreSource(
+      score: score,
+      bytes: bytes,
+      missingFileMessage: 'Plain text source file is missing.',
+    );
+  }
+
+  Future<void> _replaceTextScoreSource({
+    required SheetScore score,
+    required List<int> bytes,
+    required String missingFileMessage,
+  }) async {
+    final file = File(score.filePath);
+    if (!await file.exists()) {
+      throw FileSystemException(missingFileMessage);
+    }
+    final token =
+        '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';
+    final temporary = File('${file.path}.$token.tmp');
+    final backup = File('${file.path}.$token.bak');
+    var movedOriginal = false;
+    try {
+      await temporary.writeAsBytes(bytes, flush: true);
+      await file.rename(backup.path);
+      movedOriginal = true;
+      await temporary.rename(file.path);
+      await _deleteFileBestEffort(backup.path);
+    } catch (_) {
+      if (movedOriginal && !await file.exists() && await backup.exists()) {
+        try {
+          await backup.rename(file.path);
+        } catch (_) {
+          // Preserve the original replacement error when rollback also fails.
+        }
+      }
+      await _deleteFileBestEffort(temporary.path);
+      rethrow;
+    }
+  }
+
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final profiles = await loadLibraryProfiles();
+      final profileIds = <String>{
+        SheetLibraryProfile.defaultId,
+        for (final profile in profiles) profile.id,
+      };
+      final referencedPaths = <String>{
+        for (final profileId in profileIds)
+          for (final score in _readScores(preferences, profileId)) ...[
+            score.filePath,
+            for (final linkedFile in score.linkedFiles) linkedFile.path,
+          ],
+      };
+      final documents = await getApplicationDocumentsDirectory();
+      final managedDirectories = <Directory>[
+        Directory('${documents.path}/$_pdfFolderName'),
+        Directory('${documents.path}/$_textScoresFolderName'),
+        Directory('${documents.path}/$_linkedFilesFolderName'),
+      ];
+      final candidatePaths = <String>{
+        for (final score in candidates) ...[
+          score.filePath,
+          for (final linkedFile in score.linkedFiles) linkedFile.path,
+        ],
+      }..removeWhere(referencedPaths.contains);
+
+      var removed = 0;
+      for (final path in candidatePaths) {
+        final file = File(path);
+        if (!await file.exists() ||
+            !await _isInsideManagedDirectory(file, managedDirectories)) {
+          continue;
+        }
+        await file.delete();
+        removed += 1;
+      }
+      return removed;
+    } catch (_) {
+      // Cleanup is best effort and must never hide the original import error.
+      return 0;
+    }
+  }
+
+  Future<SheetImportedFile?> pickChordProFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.chordProExtensions.toList(),
+    );
+
+    if (file == null) {
+      return null;
+    }
+    if (!SheetFileImportPolicy.isChordProFileName(file.name)) {
+      throw FormatException('Unsupported ChordPro file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetImportedFile?> pickPlainTextFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.plainTextExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isPlainTextFileName(file.name)) {
+      throw FormatException('Unsupported text file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importPlainTextFile({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isPlainTextFileName(file.name)) {
+      throw FormatException('Unsupported text file: ${file.name}');
+    }
+    if (file.bytes.isEmpty ||
+        file.bytes.length > SheetFileImportPolicy.maxPlainTextBytes) {
+      throw const FormatException('Invalid text file size.');
+    }
+    final source = utf8.decode(file.bytes);
+    if (source.trim().isEmpty) {
+      throw const FormatException('Empty text file.');
+    }
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final storedPath = await _writeTextScore(
+      bytes: file.bytes,
+      id: id,
+      originalFileName: file.name,
+    );
+    return SheetScore(
+      id: id,
+      title: SheetFileImportPolicy.titleFromFileName(file.name),
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: storedPath,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  Future<SheetImportedFile?> pickDocxFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.docxExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isDocxFileName(file.name)) {
+      throw FormatException('Unsupported DOCX file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importDocxFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isDocxFileName(file.name)) {
+      throw FormatException('Unsupported DOCX file: ${file.name}');
+    }
+    final document = SheetDocxTextExtractor.extract(file.bytes);
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final fallbackTitle = SheetFileImportPolicy.titleFromFileName(file.name);
+    final title = document.title.trim().isEmpty
+        ? fallbackTitle
+        : document.title.trim();
+    final textPath = await _writeTextScore(
+      bytes: utf8.encode(document.text),
+      id: id,
+      originalFileName: '$fallbackTitle.txt',
+    );
+    String? originalPath;
+    try {
+      originalPath = await _writeLinkedFile(
+        bytes: file.bytes,
+        originalFileName: file.name,
+        importedAt: now,
+      );
+      return SheetScore(
+        id: id,
+        title: title,
+        composer: document.creator.trim(),
+        tags: const <String>[],
+        note: 'DOCX에서 텍스트를 추출한 읽기 전용 악보',
+        filePath: textPath,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        linkedFiles: <SheetLinkedFile>[
+          SheetLinkedFile(
+            path: originalPath,
+            type: 'docx',
+            label: file.name,
+            role: SheetLinkedFile.referenceRole,
+            createdAt: now,
+          ),
+        ],
+        customFields: <SheetCustomMetadataField>[
+          const SheetCustomMetadataField(key: '출처 유형', value: 'DOCX'),
+          SheetCustomMetadataField(key: '원본 파일', value: file.name),
+        ],
+      );
+    } catch (_) {
+      await _deleteFileBestEffort(textPath);
+      if (originalPath != null) await _deleteFileBestEffort(originalPath);
+      rethrow;
+    }
+  }
+
+  Future<SheetImportedFile?> pickRtfFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: SheetFileImportPolicy.rtfExtensions.toList(),
+    );
+    if (file == null) return null;
+    if (!SheetFileImportPolicy.isRtfFileName(file.name)) {
+      throw FormatException('Unsupported RTF file: ${file.name}');
+    }
+    return SheetImportedFile(name: file.name, bytes: await file.readAsBytes());
+  }
+
+  Future<SheetScore> importRtfFileBytes({
+    required SheetImportedFile file,
+    DateTime? importedAt,
+  }) async {
+    if (!SheetFileImportPolicy.isRtfFileName(file.name)) {
+      throw FormatException('Unsupported RTF file: ${file.name}');
+    }
+    final document = SheetRtfTextExtractor.extract(file.bytes);
+    final now = importedAt ?? DateTime.now();
+    final id = _newId(now);
+    final fallbackTitle = SheetFileImportPolicy.titleFromFileName(file.name);
+    final textPath = await _writeTextScore(
+      bytes: utf8.encode(document.text),
+      id: id,
+      originalFileName: '$fallbackTitle.txt',
+    );
+    String? originalPath;
+    try {
+      originalPath = await _writeLinkedFile(
+        bytes: file.bytes,
+        originalFileName: file.name,
+        importedAt: now,
+      );
+      return SheetScore(
+        id: id,
+        title: fallbackTitle,
+        composer: '',
+        tags: const <String>[],
+        note: 'RTF에서 텍스트를 추출한 읽기 전용 악보',
+        filePath: textPath,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+        linkedFiles: <SheetLinkedFile>[
+          SheetLinkedFile(
+            path: originalPath,
+            type: 'rtf',
+            label: file.name,
+            role: SheetLinkedFile.referenceRole,
+            createdAt: now,
+          ),
+        ],
+        customFields: <SheetCustomMetadataField>[
+          const SheetCustomMetadataField(key: '출처 유형', value: 'RTF'),
+          SheetCustomMetadataField(key: '원본 파일', value: file.name),
+        ],
+      );
+    } catch (_) {
+      await _deleteFileBestEffort(textPath);
+      if (originalPath != null) await _deleteFileBestEffort(originalPath);
+      rethrow;
+    }
   }
 
   Future<SheetLinkedFile?> pickLinkedFile() async {
@@ -921,6 +1588,7 @@ class SheetLibraryStore {
       'aac' => 'audio/aac',
       'flac' => 'audio/flac',
       'ogg' => 'audio/ogg',
+      'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       _ => 'application/pdf',
     };
   }
@@ -936,12 +1604,23 @@ class SheetLibraryStore {
   }
 
   Future<SheetAnnotatedPdfExportResult> createAnnotatedPdfCopy(
-    SheetScore score,
-  ) async {
+    SheetScore score, {
+    SheetPdfAnnotationExportMode mode =
+        SheetPdfAnnotationExportMode.renderedStamp,
+  }) async {
     final outputPath = await _annotatedPdfPath(score);
     return SheetAnnotatedPdfExporter.createAnnotatedCopy(
       score: score,
       outputPath: outputPath,
+      mode: mode,
+      readImageStampAssetBytes: (assetRef) async {
+        final file = await const SheetAnnotationStampAssetStore()
+            .assetFileForRef(assetRef);
+        if (!await file.exists()) {
+          return null;
+        }
+        return file.readAsBytes();
+      },
     );
   }
 
@@ -989,6 +1668,7 @@ class SheetLibraryStore {
       globalViewerSettings: await loadGlobalViewerSettings(),
       performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
+      userAnnotationStampPacks: await loadUserAnnotationStampPacks(),
     );
     return SheetLibraryBackupCodec.encode(backup);
   }
@@ -996,7 +1676,8 @@ class SheetLibraryStore {
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() async {
     try {
       final backupJson = await exportMetadataBackupJson();
-      final fileName = _backupFileName(DateTime.now());
+      final exportedAt = DateTime.now();
+      final fileName = _backupFileName(exportedAt);
       final bytes = Uint8List.fromList(utf8.encode(backupJson));
       Uri? outputUri;
       try {
@@ -1012,6 +1693,17 @@ class SheetLibraryStore {
       }
 
       outputUri ??= Uri.file(await _writeInternalBackup(fileName, backupJson));
+      try {
+        await saveLastBackupExportRecord(
+          SheetLibraryBackupExportRecord(
+            kind: SheetLibraryBackupExportKind.metadata,
+            exportedAt: exportedAt,
+            outputUri: outputUri.toString(),
+          ),
+        );
+      } catch (_) {
+        // The backup itself succeeded; the status hint can be retried later.
+      }
       return SheetLibraryBackupExportResult(
         didExport: true,
         outputUri: outputUri,
@@ -1037,6 +1729,7 @@ class SheetLibraryStore {
       globalViewerSettings: await loadGlobalViewerSettings(),
       performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
+      userAnnotationStampPacks: await loadUserAnnotationStampPacks(),
       exportedAt: exportedAt,
     );
     final archive = Archive();
@@ -1121,6 +1814,46 @@ class SheetLibraryStore {
         }
       }
     }
+    final stampAssetStore = const SheetAnnotationStampAssetStore();
+    final stampAssetRefs = <String>{};
+    for (final pack in backup.userAnnotationStampPacks) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind != SheetAnnotationUserStamp.imageKind ||
+            stamp.assetRef.isEmpty ||
+            !stampAssetRefs.add(stamp.assetRef)) {
+          continue;
+        }
+        final originalFileName = stamp.assetRef
+            .replaceAll('\\', '/')
+            .split('/')
+            .last;
+        final entryPath = 'stamp-assets/${stamp.assetRef}';
+        var exists = false;
+        File? sourceFile;
+        try {
+          if (_isSafeStampAssetZipEntryPath(entryPath)) {
+            sourceFile = await stampAssetStore.assetFileForRef(stamp.assetRef);
+            exists = await sourceFile.exists();
+          }
+        } catch (_) {
+          exists = false;
+        }
+        mappings.add(
+          SheetLibraryFullBackupFileMapping(
+            scoreId: '',
+            entryPath: entryPath,
+            originalFileName: _safeFileName(originalFileName),
+            missing: !exists,
+            stampAssetRef: stamp.assetRef,
+          ),
+        );
+        if (exists && sourceFile != null) {
+          archive.addFile(
+            ArchiveFile.bytes(entryPath, await sourceFile.readAsBytes()),
+          );
+        }
+      }
+    }
 
     final fullBackup = SheetLibraryFullBackup(
       backup: backup,
@@ -1142,7 +1875,8 @@ class SheetLibraryStore {
   Future<SheetLibraryBackupExportResult> exportFullBackup() async {
     try {
       final bytes = await exportFullBackupZipBytes();
-      final fileName = _fullBackupFileName(DateTime.now());
+      final exportedAt = DateTime.now();
+      final fileName = _fullBackupFileName(exportedAt);
       Uri? outputUri;
       try {
         outputUri = await FilePicker.saveFile(
@@ -1157,6 +1891,17 @@ class SheetLibraryStore {
       }
 
       outputUri ??= Uri.file(await _writeInternalBackupBytes(fileName, bytes));
+      try {
+        await saveLastBackupExportRecord(
+          SheetLibraryBackupExportRecord(
+            kind: SheetLibraryBackupExportKind.full,
+            exportedAt: exportedAt,
+            outputUri: outputUri.toString(),
+          ),
+        );
+      } catch (_) {
+        // The backup itself succeeded; the status hint can be retried later.
+      }
       return SheetLibraryBackupExportResult(
         didExport: true,
         outputUri: outputUri,
@@ -1171,18 +1916,14 @@ class SheetLibraryStore {
 
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {
     try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: const <String>['json'],
-      );
-      if (file == null) {
+      final value = await pickMetadataBackupJson();
+      if (value == null) {
         return const SheetLibraryBackupRestoreResult(
           status: SheetLibraryBackupRestoreStatus.canceled,
         );
       }
 
-      final bytes = await file.readAsBytes();
-      return await restoreMetadataBackupJson(utf8.decode(bytes));
+      return await restoreMetadataBackupJson(value);
     } catch (error) {
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.error,
@@ -1191,25 +1932,48 @@ class SheetLibraryStore {
     }
   }
 
+  Future<String?> pickMetadataBackupJson() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['json'],
+    );
+    if (file == null) {
+      return null;
+    }
+    return utf8.decode(await file.readAsBytes());
+  }
+
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: const <String>['zip'],
-      );
-      if (file == null) {
+      final bytes = await pickFullBackupZipBytes();
+      if (bytes == null) {
         return const SheetLibraryBackupRestoreResult(
           status: SheetLibraryBackupRestoreStatus.canceled,
         );
       }
 
-      return await restoreFullBackupZipBytes(await file.readAsBytes());
+      return await restoreFullBackupZipBytes(bytes);
     } catch (error) {
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
     }
+  }
+
+  Future<Uint8List?> pickFullBackupZipBytes() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['zip'],
+    );
+    if (file == null) {
+      return null;
+    }
+    return Uint8List.fromList(await file.readAsBytes());
+  }
+
+  SheetLibraryFullBackup inspectFullBackupZipBytes(List<int> bytes) {
+    return _decodeFullBackupZipBytes(bytes).backup;
   }
 
   Future<SheetLibraryBackupRestoreResult> restoreMetadataBackupJson(
@@ -1245,36 +2009,10 @@ class SheetLibraryStore {
     List<int> bytes,
   ) async {
     try {
-      final archive = ZipDecoder().decodeBytes(bytes);
-      final manifest = archive.findFile(
-        SheetLibraryFullBackup.manifestFileName,
-      );
-      if (manifest == null || !manifest.isFile) {
-        throw const FormatException('Full backup manifest is missing.');
-      }
-
-      final manifestJson = utf8.decode(manifest.content);
-      final decoded = jsonDecode(manifestJson);
-      if (decoded is! Map) {
-        throw const FormatException('Full backup manifest must be an object.');
-      }
-      final manifestMap = decoded.map(
-        (key, value) => MapEntry(key.toString(), value as Object?),
-      );
-      if (manifestMap['scope'] != SheetLibraryFullBackup.scope) {
-        throw const FormatException('Backup is not a full Clef backup.');
-      }
-
-      final backup = SheetLibraryBackup.fromJson(manifestMap);
-      final mappings = SheetLibraryFullBackupFileMapping.decodeList(
-        manifestMap['fileMappings'],
-      );
-      _validateFullBackupFiles(
-        archive,
-        backup,
-        manifestMap['fileMappings'],
-        mappings,
-      );
+      final decoded = _decodeFullBackupZipBytes(bytes);
+      final archive = decoded.archive;
+      final backup = decoded.backup.backup;
+      final mappings = decoded.backup.fileMappings;
       final scoreFileMappingsByScoreId =
           <String, SheetLibraryFullBackupFileMapping>{
             for (final mapping in mappings.where(
@@ -1300,6 +2038,13 @@ class SheetLibraryStore {
               (mapping) => mapping.isAnnotationFile,
             ))
               mapping.scoreId: mapping,
+          };
+      final stampAssetMappingsByRef =
+          <String, SheetLibraryFullBackupFileMapping>{
+            for (final mapping in mappings.where(
+              (mapping) => mapping.isStampAsset,
+            ))
+              mapping.stampAssetRef!: mapping,
           };
       final restoredScores = <SheetScore>[];
       final restoredScorePathsByEntry = <String, String>{};
@@ -1382,6 +2127,25 @@ class SheetLibraryStore {
         restoredScores.add(restoredScore);
       }
 
+      final stampAssetStore = const SheetAnnotationStampAssetStore();
+      for (final mapping in stampAssetMappingsByRef.values) {
+        if (mapping.missing ||
+            !_isSafeStampAssetZipEntryPath(mapping.entryPath)) {
+          continue;
+        }
+        final stampEntry = archive.findFile(mapping.entryPath);
+        if (stampEntry == null || !stampEntry.isFile) {
+          continue;
+        }
+        final didRestoreAsset = await stampAssetStore.restoreImageStampAsset(
+          assetRef: mapping.stampAssetRef!,
+          bytes: stampEntry.content,
+        );
+        if (!didRestoreAsset) {
+          throw const FormatException('Invalid image stamp asset.');
+        }
+      }
+
       await _restoreBackupMetadata(backup, restoredScores: restoredScores);
       final sourcePathsByScoreId = <String, String>{
         for (final score in backup.scores) score.id: score.filePath,
@@ -1396,6 +2160,7 @@ class SheetLibraryStore {
               (mapping) =>
                   mapping.linkedFilePath ??
                   mapping.annotationStoragePath ??
+                  mapping.stampAssetRef ??
                   sourcePathsByScoreId[mapping.scoreId]!,
             )
             .toSet()
@@ -1424,6 +2189,46 @@ class SheetLibraryStore {
     }
   }
 
+  _DecodedSheetLibraryFullBackup _decodeFullBackupZipBytes(List<int> bytes) {
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final manifest = archive.findFile(SheetLibraryFullBackup.manifestFileName);
+    if (manifest == null || !manifest.isFile) {
+      throw const FormatException('Full backup manifest is missing.');
+    }
+
+    final manifestJson = utf8.decode(manifest.content);
+    final decoded = jsonDecode(manifestJson);
+    if (decoded is! Map) {
+      throw const FormatException('Full backup manifest must be an object.');
+    }
+    final manifestMap = decoded.map(
+      (key, value) => MapEntry(key.toString(), value as Object?),
+    );
+    if (manifestMap['scope'] != SheetLibraryFullBackup.scope) {
+      throw const FormatException('Backup is not a full Clef backup.');
+    }
+
+    final backup = SheetLibraryBackup.fromJson(manifestMap);
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(
+      manifestMap['fileMappings'],
+    );
+    _validateFullBackupFiles(
+      archive,
+      backup,
+      manifestMap['fileMappings'],
+      mappings,
+    );
+    return _DecodedSheetLibraryFullBackup(
+      archive: archive,
+      backup: SheetLibraryFullBackup(
+        backup: backup,
+        fileMappings: List<SheetLibraryFullBackupFileMapping>.unmodifiable(
+          mappings,
+        ),
+      ),
+    );
+  }
+
   Future<void> _restoreBackupMetadata(
     SheetLibraryBackup backup, {
     List<SheetScore>? restoredScores,
@@ -1440,6 +2245,7 @@ class SheetLibraryStore {
       globalViewerSettings: backup.globalViewerSettings,
       performancePresetTemplates: backup.performancePresetTemplates,
       favoriteAnnotationPreset: backup.favoriteAnnotationPreset,
+      userAnnotationStampPacks: backup.userAnnotationStampPacks,
     );
     final preset = restored.favoriteAnnotationPreset;
     final values = <String, String?>{
@@ -1469,6 +2275,16 @@ class SheetLibraryStore {
       ): preset != null && preset.isValid
           ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
           : null,
+      _scopedKey(
+        _userAnnotationStampPacksKey,
+        libraryId,
+      ): restored.userAnnotationStampPacks.isEmpty
+          ? null
+          : const JsonEncoder.withIndent('  ').convert(
+              restored.userAnnotationStampPacks
+                  .map((pack) => pack.toJson())
+                  .toList(growable: false),
+            ),
       _scopedKey(_automaticMetadataBackupKey, libraryId):
           SheetLibraryBackupCodec.encode(restored),
     };
@@ -1597,11 +2413,26 @@ class SheetLibraryStore {
         expected.add((score.id, 'annotation', score.annotationStorage.path));
       }
     }
+    for (final pack in backup.userAnnotationStampPacks) {
+      for (final stamp in pack.stamps) {
+        if (stamp.kind == SheetAnnotationUserStamp.imageKind &&
+            stamp.assetRef.isNotEmpty) {
+          expected.add(('', 'stampAsset', stamp.assetRef));
+        }
+      }
+    }
     for (final mapping in mappings) {
-      if (mapping.isLinkedFile && mapping.isAnnotationFile) {
+      final typeCount = [
+        mapping.isLinkedFile,
+        mapping.isAnnotationFile,
+        mapping.isStampAsset,
+      ].where((value) => value).length;
+      if (typeCount > 1) {
         throw const FormatException('Ambiguous backup file mapping.');
       }
-      final key = mapping.isLinkedFile
+      final key = mapping.isStampAsset
+          ? ('', 'stampAsset', mapping.stampAssetRef!)
+          : mapping.isLinkedFile
           ? (mapping.scoreId, 'linked', mapping.linkedFilePath!)
           : mapping.isAnnotationFile
           ? (mapping.scoreId, 'annotation', mapping.annotationStoragePath!)
@@ -1611,7 +2442,9 @@ class SheetLibraryStore {
           'Unexpected or duplicate backup file mapping.',
         );
       }
-      final safePath = mapping.isLinkedFile
+      final safePath = mapping.isStampAsset
+          ? _isSafeStampAssetZipEntryPath(mapping.entryPath)
+          : mapping.isLinkedFile
           ? _isSafeLinkedZipEntryPath(mapping.entryPath)
           : mapping.isAnnotationFile
           ? _isSafeAnnotationZipEntryPath(mapping.entryPath)
@@ -1648,6 +2481,36 @@ class SheetLibraryStore {
     return file.path;
   }
 
+  Future<String> _writeTextScore({
+    required List<int> bytes,
+    required String id,
+    required String originalFileName,
+  }) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final textScoresDir = Directory('${documents.path}/$_textScoresFolderName');
+    if (!textScoresDir.existsSync()) {
+      await textScoresDir.create(recursive: true);
+    }
+
+    final safeName = _safeFileName(
+      SheetFileImportPolicy.isTextScoreFileName(originalFileName)
+          ? originalFileName
+          : '$originalFileName.chordpro',
+    );
+    final file = File('${textScoresDir.path}/$id-$safeName');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  Future<void> _deleteFileBestEffort(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Cleanup must not replace the original import failure.
+    }
+  }
+
   Future<String> _writeLinkedFile({
     required List<int> bytes,
     required String originalFileName,
@@ -1666,6 +2529,23 @@ class SheetLibraryStore {
     final file = File('${linkedFilesDir.path}/$id-$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<bool> _isInsideManagedDirectory(
+    File file,
+    Iterable<Directory> directories,
+  ) async {
+    final resolvedFilePath = await file.resolveSymbolicLinks();
+    for (final directory in directories) {
+      if (!await directory.exists()) continue;
+      final resolvedDirectoryPath = await directory.resolveSymbolicLinks();
+      if (resolvedFilePath.startsWith(
+        '$resolvedDirectoryPath${Platform.pathSeparator}',
+      )) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<String> _writeRestoredFile({
@@ -1852,6 +2732,10 @@ class SheetLibraryStore {
 
   bool _isSafeAnnotationZipEntryPath(String path) {
     return _isSafeZipEntryPath(path, requiredPrefix: 'annotations/');
+  }
+
+  bool _isSafeStampAssetZipEntryPath(String path) {
+    return _isSafeZipEntryPath(path, requiredPrefix: 'stamp-assets/stamps/');
   }
 
   bool _isSafeZipEntryPath(String path, {required String requiredPrefix}) {

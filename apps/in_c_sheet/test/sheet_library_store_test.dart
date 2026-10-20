@@ -8,7 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_annotation_stamp_asset_store.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_chordpro.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
@@ -20,6 +22,7 @@ import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
+import 'package:image/image.dart' as image;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
@@ -97,6 +100,320 @@ void main() {
     if (documentsDir.existsSync()) {
       await documentsDir.delete(recursive: true);
     }
+  });
+
+  test('imports plain text into app-owned score storage', () async {
+    final store = SheetLibraryStore();
+    final score = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'lesson-notes.md',
+        bytes: Uint8List.fromList(utf8.encode('첫 문장\n\n두 번째 문장')),
+      ),
+      importedAt: DateTime.utc(2026, 10, 19),
+    );
+
+    expect(score.title, 'lesson notes');
+    expect(score.filePath, endsWith('.md'));
+    expect(await File(score.filePath).readAsString(), '첫 문장\n\n두 번째 문장');
+  });
+
+  test(
+    'batch PDF byte import discards earlier files after a later failure',
+    () async {
+      final store = _FailingBatchPdfStore();
+
+      await expectLater(
+        store.importPdfFileBytesBatch(
+          files: <SheetImportedFile>[
+            SheetImportedFile(name: 'one.pdf', bytes: Uint8List(1)),
+            SheetImportedFile(name: 'two.pdf', bytes: Uint8List(1)),
+          ],
+        ),
+        throwsFormatException,
+      );
+
+      expect(store.discardedScoreIds, <String>['batch-1']);
+    },
+  );
+
+  test('imports DOCX text and preserves the original as a reference', () async {
+    final store = SheetLibraryStore();
+    final bytes = _docxBytes(
+      title: 'Studio Notes',
+      creator: 'Kim',
+      text: '첫 문장',
+    );
+    final score = await store.importDocxFileBytes(
+      file: SheetImportedFile(name: 'lesson.docx', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20),
+    );
+
+    expect(score.title, 'Studio Notes');
+    expect(score.composer, 'Kim');
+    expect(score.filePath, endsWith('.txt'));
+    expect(await File(score.filePath).readAsString(), '첫 문장');
+    expect(score.linkedFiles, hasLength(1));
+    expect(score.linkedFiles.single.type, 'docx');
+    expect(score.linkedFiles.single.role, SheetLinkedFile.referenceRole);
+    expect(await File(score.linkedFiles.single.path).readAsBytes(), bytes);
+    expect(
+      score.customFields.where((field) => field.key == '출처 유형').single.value,
+      'DOCX',
+    );
+  });
+
+  test('full backup restores DOCX extracted text and original bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final bytes = _docxBytes(text: 'Backup notes');
+    final score = await store.importDocxFileBytes(
+      file: SheetImportedFile(name: 'backup.docx', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20),
+    );
+    await store.saveScores(<SheetScore>[score]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-docx-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final restoredStore = SheetLibraryStore();
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+    final restored = (await restoredStore.loadScores()).single;
+
+    expect(result.didRestore, isTrue);
+    expect(await File(restored.filePath).readAsString(), 'Backup notes');
+    expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
+  });
+
+  test('imports RTF text and preserves the original as a reference', () async {
+    final store = SheetLibraryStore();
+    final bytes = Uint8List.fromList(
+      latin1.encode(r'{\rtf1\ansi First\par \u54620?\u44544?}'),
+    );
+    final score = await store.importRtfFileBytes(
+      file: SheetImportedFile(name: 'rehearsal-notes.rtf', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20, 15),
+    );
+
+    expect(score.title, 'rehearsal notes');
+    expect(score.filePath, endsWith('.txt'));
+    expect(await File(score.filePath).readAsString(), 'First\n한글');
+    expect(score.linkedFiles.single.type, 'rtf');
+    expect(score.linkedFiles.single.role, SheetLinkedFile.referenceRole);
+    expect(await File(score.linkedFiles.single.path).readAsBytes(), bytes);
+    expect(
+      score.customFields.where((field) => field.key == '출처 유형').single.value,
+      'RTF',
+    );
+  });
+
+  test('full backup restores RTF extracted text and original bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final bytes = Uint8List.fromList(
+      latin1.encode(r'{\rtf1\ansi Backup\par notes}'),
+    );
+    final score = await store.importRtfFileBytes(
+      file: SheetImportedFile(name: 'backup.rtf', bytes: bytes),
+      importedAt: DateTime.utc(2026, 10, 20, 15),
+    );
+    await store.saveScores(<SheetScore>[score]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-rtf-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final restoredStore = SheetLibraryStore();
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+    final restored = (await restoredStore.loadScores()).single;
+
+    expect(result.didRestore, isTrue);
+    expect(await File(restored.filePath).readAsString(), 'Backup\nnotes');
+    expect(await File(restored.linkedFiles.single.path).readAsBytes(), bytes);
+  });
+
+  test(
+    'rejects empty oversized malformed and unsupported text files',
+    () async {
+      final store = SheetLibraryStore();
+
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'malformed.txt',
+            bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+          ),
+        ),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(name: 'empty.txt', bytes: Uint8List(0)),
+        ),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'large.txt',
+            bytes: Uint8List(SheetFileImportPolicy.maxPlainTextBytes + 1),
+          ),
+        ),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importPlainTextFile(
+          file: SheetImportedFile(
+            name: 'document.pages',
+            bytes: Uint8List.fromList(utf8.encode('text')),
+          ),
+        ),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'imports ChordPro bytes with original extension and strict UTF-8',
+    () async {
+      final store = SheetLibraryStore();
+      final source = '''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+''';
+      final score = await store.importChordProFileBytes(
+        file: SheetImportedFile(
+          name: 'autumn.onsong',
+          bytes: Uint8List.fromList(utf8.encode(source)),
+        ),
+        importedAt: DateTime.utc(2026, 10, 20),
+      );
+
+      expect(score.title, 'Autumn Song');
+      expect(score.composer, 'Kim');
+      expect(score.filePath, endsWith('.onsong'));
+      expect(await File(score.filePath).readAsString(), source);
+      await expectLater(
+        store.importChordProText(
+          source: 'A' * (SheetFileImportPolicy.maxPlainTextBytes + 1),
+          draft: SheetChordProScoreDraft.fromDocument(
+            SheetChordProParser.parse('{title: Large}\n[C]Line'),
+          ),
+        ),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.importChordProFileBytes(
+          file: SheetImportedFile(
+            name: 'broken.chordpro',
+            bytes: Uint8List.fromList(<int>[0xc3, 0x28]),
+          ),
+        ),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test('full backup round trips plain text and ChordPro score files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.utc(2026, 10, 20);
+    final plainSource = utf8.encode('Practice slowly.');
+    final chordSource = utf8.encode('''
+{title: Autumn Song}
+{artist: Kim}
+[Am]Falling [F]leaves
+''');
+    final plain = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'lesson-notes.md',
+        bytes: Uint8List.fromList(plainSource),
+      ),
+      importedAt: now,
+    );
+    final chord = await store.importChordProFileBytes(
+      file: SheetImportedFile(
+        name: 'autumn.onsong',
+        bytes: Uint8List.fromList(chordSource),
+      ),
+      importedAt: now.add(const Duration(microseconds: 1)),
+    );
+    await store.saveScores(<SheetScore>[plain, chord]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'text-set',
+        title: 'Text Set',
+        scoreIds: <String>[plain.id, chord.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final zip = await store.exportFullBackupZipBytes();
+    final sourceDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-text-restore-');
+    await sourceDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final restoredStore = SheetLibraryStore();
+
+    final result = await restoredStore.restoreFullBackupZipBytes(zip);
+
+    expect(result.didRestore, isTrue);
+    final restored = await restoredStore.loadScores();
+    expect(restored, hasLength(2));
+    final restoredPlain = restored.firstWhere((score) => score.id == plain.id);
+    final restoredChord = restored.firstWhere((score) => score.id == chord.id);
+    expect(restoredPlain.filePath, endsWith('.md'));
+    expect(restoredChord.filePath, endsWith('.onsong'));
+    expect(await File(restoredPlain.filePath).readAsBytes(), plainSource);
+    expect(await File(restoredChord.filePath).readAsBytes(), chordSource);
+    expect((await restoredStore.loadSetlists()).single.scoreIds, <String>[
+      plain.id,
+      chord.id,
+    ]);
+  });
+
+  test('discards only unreferenced app-owned imported score files', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.utc(2026, 10, 20, 12);
+    final retained = await store.importPlainTextFile(
+      file: SheetImportedFile(
+        name: 'retained.md',
+        bytes: Uint8List.fromList(utf8.encode('Keep me.')),
+      ),
+      importedAt: now,
+    );
+    final discarded = await store.importChordProFileBytes(
+      file: SheetImportedFile(
+        name: 'discarded.cho',
+        bytes: Uint8List.fromList(utf8.encode('{title: Remove me}')),
+      ),
+      importedAt: now.add(const Duration(microseconds: 1)),
+    );
+    final externalFile = File('${documentsDir.parent.path}/external-score.txt');
+    await externalFile.writeAsString('Do not remove.');
+    final external = SheetScore.fromJson(<String, Object?>{
+      ...discarded.toJson(),
+      'id': 'external',
+      'filePath': externalFile.path,
+    });
+    await store.saveScores(<SheetScore>[retained]);
+
+    final removed = await store.discardUnreferencedImportedScoreFiles(
+      <SheetScore>[retained, discarded, external],
+    );
+
+    expect(removed, 1);
+    expect(File(retained.filePath).existsSync(), isTrue);
+    expect(File(discarded.filePath).existsSync(), isFalse);
+    expect(externalFile.existsSync(), isTrue);
+    await externalFile.delete();
   });
 
   for (final scoped in [false, true]) {
@@ -1048,6 +1365,166 @@ void main() {
     expect((await store.loadActiveLibraryProfile()).id, newProfile.id);
   });
 
+  test('saves normalized recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+
+    await store.saveRecentAnnotationStampNames(const <String>[
+      ' CUE ',
+      'fine',
+      'cue',
+      '',
+      'rit',
+      'dc',
+      'ok',
+      'mark',
+    ]);
+
+    expect(await store.loadRecentAnnotationStampNames(), <String>[
+      'cue',
+      'fine',
+      'rit',
+      'dc',
+      'ok',
+    ]);
+
+    await store.saveRecentAnnotationStampNames(const <String>[]);
+    expect(await store.loadRecentAnnotationStampNames(), isEmpty);
+  });
+
+  test('ignores malformed recent annotation stamp names', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'clef_recent_annotation_stamps': '{',
+    });
+    final store = SheetLibraryStore();
+
+    expect(await store.loadRecentAnnotationStampNames(), isEmpty);
+  });
+
+  test('saves valid user annotation stamp packs', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final valid = _userStampPack('rehearsal');
+    final invalid = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'invalid',
+      'name': 'Invalid',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{'id': 'cue', 'label': 'Cue', 'kind': 'text'},
+      ],
+    });
+
+    await store.saveUserAnnotationStampPacks([valid, invalid, valid]);
+
+    final packs = await store.loadUserAnnotationStampPacks();
+    expect(packs, hasLength(1));
+    expect(packs.single.id, 'rehearsal');
+    expect(packs.single.stamps.single.text, 'CUE');
+
+    await store.saveUserAnnotationStampPacks(
+      const <SheetAnnotationStampPack>[],
+    );
+    expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+  });
+
+  test('ignores malformed user annotation stamp packs', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'clef_user_annotation_stamp_packs': '{',
+    });
+    final store = SheetLibraryStore();
+
+    expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+  });
+
+  test('metadata backup restores user annotation stamp packs', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    await store.saveUserAnnotationStampPacks([_userStampPack('rehearsal')]);
+    final backupJson = await store.exportMetadataBackupJson();
+
+    await store.saveUserAnnotationStampPacks(
+      const <SheetAnnotationStampPack>[],
+    );
+    expect(await store.loadUserAnnotationStampPacks(), isEmpty);
+
+    final result = await store.restoreMetadataBackupJson(backupJson);
+
+    expect(result.didRestore, isTrue);
+    final restored = await store.loadUserAnnotationStampPacks();
+    expect(restored, hasLength(1));
+    expect(restored.single.id, 'rehearsal');
+  });
+
+  test(
+    'metadata backup restore skips unsafe user annotation stamp packs',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final validPack = _userStampPack('rehearsal');
+      await store.saveUserAnnotationStampPacks([validPack]);
+      final backupJson = await store.exportMetadataBackupJson();
+      final backup = jsonDecode(backupJson) as Map<String, Object?>;
+
+      backup['userAnnotationStampPacks'] = <Map<String, Object?>>[
+        validPack.toJson(),
+        <String, Object?>{
+          ...validPack.toJson(),
+          'name': 'Duplicate rehearsal pack',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'cue',
+              'label': 'Duplicate Cue',
+              'category': 'Rehearsal',
+              'kind': 'text',
+              'text': 'DUPLICATE',
+            },
+          ],
+        },
+        <String, Object?>{
+          'id': 'unsafe-icons',
+          'name': 'Unsafe icons',
+          'createdAt': '2026-10-02T10:00:00.000',
+          'updatedAt': '2026-10-02T10:00:00.000',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'rocket',
+              'label': 'Rocket',
+              'category': 'Icons',
+              'kind': 'icon',
+              'iconName': 'rocket',
+            },
+          ],
+        },
+        <String, Object?>{
+          'id': 'image-pack',
+          'name': 'Image stamps',
+          'createdAt': '2026-10-02T10:00:00.000',
+          'updatedAt': '2026-10-02T10:00:00.000',
+          'stamps': const <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'photo-cue',
+              'label': 'Photo Cue',
+              'category': 'Images',
+              'kind': 'image',
+              'assetRef': 'stamps/photo-cue.png',
+            },
+          ],
+        },
+      ];
+
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final restoreStore = SheetLibraryStore();
+      final result = await restoreStore.restoreMetadataBackupJson(
+        jsonEncode(backup),
+      );
+
+      expect(result.didRestore, isTrue);
+      final restored = await restoreStore.loadUserAnnotationStampPacks();
+      expect(restored, hasLength(1));
+      expect(restored.single.id, 'rehearsal');
+      expect(restored.single.stamps.single.text, 'CUE');
+    },
+  );
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(
@@ -1066,6 +1543,10 @@ void main() {
         store.savePerformancePresetTemplates([]),
     'clef_favorite_annotation_preset': (store) =>
         store.saveFavoriteAnnotationPreset(null),
+    'clef_recent_annotation_stamps': (store) =>
+        store.saveRecentAnnotationStampNames(const <String>['cue']),
+    'clef_user_annotation_stamp_packs': (store) =>
+        store.saveUserAnnotationStampPacks([_userStampPack('rehearsal')]),
   };
   for (final entry in metadataSaves.entries) {
     for (final backupFails in [false, true]) {
@@ -1659,11 +2140,27 @@ void main() {
           createdAt: now,
           audioLoopStartMs: 1500,
           audioLoopEndMs: 8200,
+          audioLoopMarkers: const <SheetAudioLoopMarker>[
+            SheetAudioLoopMarker(
+              id: 'opening',
+              label: 'Opening',
+              startMs: 1500,
+              endMs: 8200,
+            ),
+          ],
         ),
       ],
       customFields: const <SheetCustomMetadataField>[
         SheetCustomMetadataField(key: 'Publisher', value: 'Mann Lab'),
       ],
+      importSource: SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'sonata.pdf',
+        folderLabel: 'Recital PDFs',
+        providerLabel: 'Downloads',
+        sizeBytes: 8192,
+        modifiedAt: now,
+      ),
       viewerSettings: const SheetViewerSettings(
         displayMode: 'auto',
         halfPageTurn: false,
@@ -1863,8 +2360,19 @@ void main() {
     );
     expect(backup.scores.single.linkedFiles.single.audioLoopStartMs, 1500);
     expect(backup.scores.single.linkedFiles.single.audioLoopEndMs, 8200);
+    expect(
+      backup.scores.single.linkedFiles.single.audioLoopMarkers.single.label,
+      'Opening',
+    );
     expect(backup.scores.single.customFields.single.key, 'Publisher');
     expect(backup.scores.single.customFields.single.value, 'Mann Lab');
+    expect(backup.scores.single.importSource?.displayName, 'sonata.pdf');
+    expect(
+      backup.scores.single.importSource?.locationLabel,
+      'Recital PDFs · Downloads',
+    );
+    expect(backupJson, isNot(contains('content://')));
+    expect(backupJson, isNot(contains('documentToken')));
     expect(
       backup.scores.single.viewerSettings.customPedalMapping['Space'],
       'toggleQuickActions',
@@ -1964,6 +2472,10 @@ void main() {
     expect(restoredScore.linkedFiles.single.role, SheetLinkedFile.partRole);
     expect(restoredScore.linkedFiles.single.audioLoopStartMs, 1500);
     expect(restoredScore.linkedFiles.single.audioLoopEndMs, 8200);
+    expect(
+      restoredScore.linkedFiles.single.audioLoopMarkers.single.id,
+      'opening',
+    );
     expect(restoredScore.customFields.single.value, 'Mann Lab');
     expect(
       restoredScore.viewerSettings.customPedalMapping['Space'],
@@ -2093,6 +2605,22 @@ void main() {
 
   test('ignores non-list full backup file mappings', () {
     expect(SheetLibraryFullBackupFileMapping.decodeList('bad'), isEmpty);
+  });
+
+  test('decodes full backup stamp asset mappings', () {
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(<dynamic>[
+      <String, dynamic>{
+        'scoreId': '',
+        'entryPath': 'stamp-assets/stamps/photos/photo-cue.png',
+        'originalFileName': 'photo-cue.png',
+        'missing': false,
+        'stampAssetRef': 'stamps/photos/photo-cue.png',
+      },
+    ]);
+
+    expect(mappings, hasLength(1));
+    expect(mappings.single.isStampAsset, isTrue);
+    expect(mappings.single.stampAssetRef, 'stamps/photos/photo-cue.png');
   });
 
   test('skips invalid full backup file mappings', () {
@@ -2620,6 +3148,84 @@ void main() {
     );
   });
 
+  test('full backup restores image stamp asset bytes', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final source = File('${documentsDir.path}/photo-cue.png');
+    final imageBytes = image.encodePng(image.Image(width: 2, height: 1));
+    await source.writeAsBytes(imageBytes, flush: true);
+    final assetStore = SheetAnnotationStampAssetStore();
+    final importResult = await assetStore.importImageStampAsset(
+      sourceFile: source,
+      packId: 'photos',
+      stampId: 'photo-cue',
+      label: 'Photo cue',
+    );
+    final stamp = importResult.userStamp!;
+    await store.saveUserAnnotationStampPacks([
+      SheetAnnotationStampPack(
+        id: 'photos',
+        name: 'Photos',
+        version: 1,
+        createdAt: DateTime.utc(2026, 10, 8),
+        updatedAt: DateTime.utc(2026, 10, 8),
+        stamps: <SheetAnnotationUserStamp>[stamp],
+      ),
+    ]);
+    expect(
+      (await store.loadUserAnnotationStampPacks())
+          .single
+          .stamps
+          .single
+          .assetRef,
+      stamp.assetRef,
+    );
+    final dryBackup = SheetLibraryBackup.fromState(
+      scores: const <SheetScore>[],
+      setlists: const <SheetSetlist>[],
+      metronomeSettings: SheetMetronomeSettings.defaultSettings,
+      tunerSettings: SheetTunerSettings.defaultSettings,
+      libraryViewSettings: SheetLibraryViewSettings.defaultSettings,
+      userAnnotationStampPacks: await store.loadUserAnnotationStampPacks(),
+    );
+    expect(dryBackup.userAnnotationStampPacks, hasLength(1));
+
+    final zipBytes = await store.exportFullBackupZipBytes();
+    final archive = ZipDecoder().decodeBytes(zipBytes);
+    final manifest = jsonDecode(
+      utf8.decode(
+        archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+      ),
+    ) as Map;
+    final mappings = (manifest['fileMappings'] as List).cast<Map>();
+    final stampMapping = mappings.singleWhere(
+      (mapping) => mapping.containsKey('stampAssetRef'),
+    );
+    expect(stampMapping['stampAssetRef'], stamp.assetRef);
+    expect(
+      archive.findFile(stampMapping['entryPath'] as String)?.content,
+      imageBytes,
+    );
+
+    final oldDirectory = documentsDir;
+    documentsDir = await Directory.systemTemp.createTemp('clef-stamp-restore-');
+    await oldDirectory.delete(recursive: true);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final restoreStore = SheetLibraryStore();
+    final result = await restoreStore.restoreFullBackupZipBytes(zipBytes);
+
+    expect(result.didRestore, isTrue);
+    final restoredPacks = await restoreStore.loadUserAnnotationStampPacks();
+    expect(restoredPacks.single.stamps.single.assetRef, stamp.assetRef);
+    final restoredAssetStore = SheetAnnotationStampAssetStore();
+    expect(await restoredAssetStore.assetExists(stamp.assetRef), isTrue);
+    expect(
+      await (await restoredAssetStore.assetFileForRef(stamp.assetRef))
+          .readAsBytes(),
+      imageBytes,
+    );
+  });
+
   test(
     'creates page rotation applied copy without mutating source PDF',
     () async {
@@ -2928,6 +3534,27 @@ void main() {
   });
 
   test(
+    'image PDF import discards PDF and references after a later failure',
+    () async {
+      final store = _FailingImageReferenceStore();
+
+      await expectLater(
+        store.importImagesAsPdfBytes(
+          images: <SheetImportedFile>[
+            SheetImportedFile(name: 'one.png', bytes: _onePixelPng),
+            SheetImportedFile(name: 'two.png', bytes: _onePixelPng),
+          ],
+        ),
+        throwsStateError,
+      );
+
+      expect(store.discardedScores, hasLength(1));
+      expect(store.discardedScores.single.id, 'image-pdf');
+      expect(store.discardedScores.single.linkedFiles, hasLength(1));
+    },
+  );
+
+  test(
     'full backup restores image-converted PDF and reference source image',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -2974,6 +3601,27 @@ void main() {
       );
     },
   );
+}
+
+Uint8List _docxBytes({
+  String title = '',
+  String creator = '',
+  required String text,
+}) {
+  final archive = Archive()
+    ..addFile(
+      ArchiveFile.string(
+        'word/document.xml',
+        '<w:document xmlns:w="urn:word"><w:body><w:p><w:r><w:t>${htmlEscape.convert(text)}</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    )
+    ..addFile(
+      ArchiveFile.string(
+        'docProps/core.xml',
+        '<cp:coreProperties xmlns:cp="urn:core" xmlns:dc="urn:dc"><dc:title>${htmlEscape.convert(title)}</dc:title><dc:creator>${htmlEscape.convert(creator)}</dc:creator></cp:coreProperties>',
+      ),
+    );
+  return Uint8List.fromList(ZipEncoder().encode(archive));
 }
 
 _FailingPreferencesStore _installFailingPreferences() {
@@ -3030,6 +3678,94 @@ class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
   }
 }
 
+class _FailingBatchPdfStore extends SheetLibraryStore {
+  var importCalls = 0;
+  final discardedScoreIds = <String>[];
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    importCalls += 1;
+    if (importCalls == 2) throw const FormatException('second PDF failed');
+    return SheetScore(
+      id: 'batch-$importCalls',
+      title: fileName,
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/managed/$fileName',
+      importedAt: DateTime.utc(2026, 10, 20),
+      updatedAt: DateTime.utc(2026, 10, 20),
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScoreIds.addAll(candidates.map((score) => score.id));
+    return candidates.length;
+  }
+}
+
+class _FailingImageReferenceStore extends SheetLibraryStore {
+  var linkedFileCalls = 0;
+  final discardedScores = <SheetScore>[];
+
+  @override
+  Future<SheetScore> importPdfBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    return SheetScore(
+      id: 'image-pdf',
+      title: fileName,
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/managed/image.pdf',
+      importedAt: DateTime.utc(2026, 10, 20),
+      updatedAt: DateTime.utc(2026, 10, 20),
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+  }
+
+  @override
+  Future<SheetLinkedFile> importLinkedFileBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    linkedFileCalls += 1;
+    if (linkedFileCalls == 2) throw StateError('second image failed');
+    return SheetLinkedFile(
+      path: '/managed/$fileName',
+      type: 'png',
+      label: fileName,
+      createdAt: importedAt ?? DateTime.utc(2026, 10, 20),
+    );
+  }
+
+  @override
+  Future<int> discardUnreferencedImportedScoreFiles(
+    Iterable<SheetScore> candidates,
+  ) async {
+    discardedScores.addAll(candidates);
+    return candidates.length;
+  }
+}
+
 SheetScore _score(
   DateTime now, {
   String filePath = '/tmp/sonata.pdf',
@@ -3050,6 +3786,24 @@ SheetScore _score(
     bookmarks: const <SheetBookmark>[],
     linkedFiles: linkedFiles,
   );
+}
+
+SheetAnnotationStampPack _userStampPack(String id) {
+  return SheetAnnotationStampPack.fromJson(<String, Object?>{
+    'id': id,
+    'name': 'Rehearsal',
+    'createdAt': '2026-10-02T10:00:00.000',
+    'updatedAt': '2026-10-02T10:00:00.000',
+    'stamps': const <Map<String, Object?>>[
+      <String, Object?>{
+        'id': 'cue',
+        'label': 'Cue',
+        'category': 'Rehearsal',
+        'kind': 'text',
+        'text': 'CUE',
+      },
+    ],
+  });
 }
 
 final Uint8List _onePixelPng = File(

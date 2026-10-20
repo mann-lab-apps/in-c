@@ -41,6 +41,314 @@ void main() {
     expect(SheetAnnotationToolPreset.fromJson(null).isValid, isFalse);
   });
 
+  test('user stamp packs round-trip text and allow-listed icon stamps', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': ' Rehearsal ',
+      'name': ' Rehearsal Marks ',
+      'version': 2,
+      'createdAt': '2026-10-01T09:00:00.000',
+      'updatedAt': '2026-10-01T10:00:00.000',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': ' Cue ',
+          'label': 'Cue',
+          'category': 'Rehearsal',
+          'kind': ' Text ',
+          'text': 'CUE',
+          'keywords': <String>[' Cue ', 'cue', 'entry'],
+        },
+        <String, Object?>{
+          'id': ' Star ',
+          'packId': 'rehearsal',
+          'label': 'Favorite',
+          'category': 'Marker',
+          'kind': 'icon',
+          'iconName': 'star',
+          'licenseLabel': 'Original',
+          'sourceUrl': 'https://example.com/stamps',
+        },
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isTrue);
+    expect(result.warnings, isEmpty);
+    expect(pack.id, 'rehearsal');
+    expect(pack.name, 'Rehearsal Marks');
+    expect(pack.version, 2);
+    expect(pack.stamps.first.packId, 'rehearsal');
+    expect(pack.stamps.first.keywords, <String>['cue', 'entry']);
+    expect(
+      SheetAnnotationStampPack.fromJson(pack.toJson()).toJson(),
+      pack.toJson(),
+    );
+  });
+
+  test('user stamp pack validator blocks unsafe or ambiguous entries', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Custom',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{'id': 'duplicate', 'label': '', 'kind': 'text'},
+        <String, Object?>{
+          'id': 'duplicate',
+          'packId': 'other-pack',
+          'label': 'Other',
+          'kind': 'icon',
+          'iconName': 'unknown',
+        },
+        <String, Object?>{
+          'id': 'photo',
+          'label': 'Photo',
+          'kind': 'image',
+          'assetRef': 'stamps/photo.png',
+        },
+        <String, Object?>{'id': 'laser', 'label': 'Laser', 'kind': 'laser'},
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.duplicate.label is required',
+        'stamp.duplicate.id is duplicated',
+        'stamp.duplicate.packId must match pack.id',
+        'stamp.duplicate.iconName is not allow-listed',
+        'stamp.photo.kind image is reserved for a later slice',
+        'stamp.laser.kind is unsupported',
+      ]),
+    );
+  });
+
+  test('user stamp pack validator rejects oversized packs', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Large Pack',
+      'stamps': [
+        for (
+          var index = 0;
+          index < SheetAnnotationStampPack.maxStampCount + 1;
+          index += 1
+        )
+          <String, Object?>{
+            'id': 'stamp-$index',
+            'label': 'Stamp $index',
+            'kind': 'text',
+            'text': '$index',
+          },
+      ],
+    });
+
+    final result = pack.validate();
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      contains(
+        'pack.stamps must contain '
+        '${SheetAnnotationStampPack.maxStampCount} items or fewer',
+      ),
+    );
+  });
+
+  test('image stamp validation is gated behind explicit allowance', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Custom',
+      'stamps': const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'photo',
+          'label': 'Photo',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/photo.png',
+          'sourceUrl': 'https://example.com/photo',
+          'licenseLabel': 'Original artwork',
+          'checksum': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'assetSizeBytes': 120000,
+          'assetWidthPixels': 512,
+          'assetHeightPixels': 512,
+        },
+      ],
+    });
+
+    final blocked = pack.validate();
+    final allowed = pack.validate(allowImageStamps: true);
+
+    expect(blocked.isValid, isFalse);
+    expect(
+      blocked.errors,
+      contains('stamp.photo.kind image is reserved for a later slice'),
+    );
+    expect(allowed.isValid, isTrue);
+    expect(allowed.warnings, isEmpty);
+    expect(
+      SheetAnnotationStampPack.fromJson(pack.toJson()).toJson(),
+      pack.toJson(),
+    );
+  });
+
+  test('image stamp validation enforces asset policy before import UI', () {
+    final pack = SheetAnnotationStampPack.fromJson(<String, Object?>{
+      'id': 'pack',
+      'name': 'Images',
+      'stamps': <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'remote',
+          'label': 'Remote',
+          'kind': 'image',
+          'assetRef': 'https://example.com/photo.png',
+          'checksum': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'traversal',
+          'label': 'Traversal',
+          'kind': 'image',
+          'assetRef': 'stamps/../photo.png',
+          'checksum': 'not-a-sha',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'gif',
+          'label': 'Gif',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/photo.gif',
+          'checksum': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          'assetSizeBytes': 100,
+          'assetWidthPixels': 64,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'large',
+          'label': 'Large',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/large.webp',
+          'checksum': 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+          'assetSizeBytes': SheetAnnotationStampPack.maxImageAssetBytes + 1,
+          'assetWidthPixels':
+              SheetAnnotationStampPack.maxImageAssetDimensionPixels + 1,
+          'assetHeightPixels': 64,
+        },
+        <String, Object?>{
+          'id': 'missing',
+          'label': 'Missing',
+          'kind': 'image',
+          'assetRef': 'stamps/pack/missing.png',
+        },
+      ],
+    });
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(result.isValid, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.remote.assetRef must be a relative path under stamps/',
+        'stamp.traversal.assetRef must be a relative path under stamps/',
+        'stamp.traversal.checksum must be a SHA-256 hex digest',
+        'stamp.gif.assetRef extension is unsupported',
+        'stamp.large.assetSizeBytes must be '
+            '${SheetAnnotationStampPack.maxImageAssetBytes} bytes or fewer',
+        'stamp.large asset dimensions must be '
+            '${SheetAnnotationStampPack.maxImageAssetDimensionPixels} px '
+            'or smaller',
+        'stamp.missing.checksum is required for image stamps',
+        'stamp.missing.assetSizeBytes is required for image stamps',
+        'stamp.missing asset dimensions are required for image stamps',
+      ]),
+    );
+    expect(
+      result.warnings,
+      contains('stamp.remote.licenseLabel is recommended for image stamps'),
+    );
+  });
+
+  test('image stamp import plan creates safe internal asset metadata', () {
+    final plan = SheetAnnotationImageStampAssetPlan.forImport(
+      packId: ' My Pack ',
+      stampId: 'Photo Cue!',
+      sourceFileName: '../unsafe/Concert Photo.PNG',
+      checksum:
+          'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+      assetSizeBytes: 320000,
+      assetWidthPixels: 1024,
+      assetHeightPixels: 768,
+    );
+    final stamp = plan.toUserStamp(
+      label: 'Concert Photo',
+      category: 'Reference',
+      licenseLabel: 'Original',
+      sourceUrl: 'https://example.com/photo',
+      keywords: const <String>['Photo', 'photo', 'Cue'],
+    );
+    final pack = SheetAnnotationStampPack(
+      id: plan.packId,
+      name: 'Images',
+      version: 1,
+      createdAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      updatedAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      stamps: <SheetAnnotationUserStamp>[stamp],
+    );
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(plan.packId, 'my-pack');
+    expect(plan.stampId, 'photo-cue');
+    expect(plan.assetRef, 'stamps/my-pack/photo-cue.png');
+    expect(plan.assetExtension, 'png');
+    expect(plan.hasSupportedExtension, isTrue);
+    expect(stamp.assetRef, plan.assetRef);
+    expect(stamp.keywords, <String>['photo', 'cue']);
+    expect(result.isValid, isTrue);
+    expect(result.warnings, isEmpty);
+  });
+
+  test('image stamp import plan leaves unsupported files invalid', () {
+    final plan = SheetAnnotationImageStampAssetPlan.forImport(
+      packId: '',
+      stampId: '',
+      sourceFileName: '/tmp/photo.gif',
+      checksum: 'not-a-sha',
+      assetSizeBytes: SheetAnnotationStampPack.maxImageAssetBytes + 1,
+      assetWidthPixels: 64,
+      assetHeightPixels: 64,
+    );
+    final stamp = plan.toUserStamp(label: 'Gif');
+    final pack = SheetAnnotationStampPack(
+      id: plan.packId,
+      name: 'Images',
+      version: 1,
+      createdAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      updatedAt: DateTime.parse('2026-10-08T09:00:00.000'),
+      stamps: <SheetAnnotationUserStamp>[stamp],
+    );
+
+    final result = pack.validate(allowImageStamps: true);
+
+    expect(plan.packId, 'pack');
+    expect(plan.stampId, 'stamp');
+    expect(plan.assetRef, 'stamps/pack/stamp.gif');
+    expect(plan.hasSupportedExtension, isFalse);
+    expect(
+      result.errors,
+      containsAll(<String>[
+        'stamp.stamp.assetRef extension is unsupported',
+        'stamp.stamp.checksum must be a SHA-256 hex digest',
+        'stamp.stamp.assetSizeBytes must be '
+            '${SheetAnnotationStampPack.maxImageAssetBytes} bytes or fewer',
+      ]),
+    );
+  });
+
   test('annotation models normalize decimal JSON numbers', () {
     final preset = SheetAnnotationToolPreset.fromJson(<String, Object?>{
       'toolName': 'pen',
@@ -72,6 +380,33 @@ void main() {
     expect(stroke.color, 0xff112233);
     expect(text.pageNumber, 3);
     expect(text.color, 0xff445566);
+  });
+
+  test('image stamp annotations preserve asset metadata', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final text = SheetTextAnnotation(
+      id: 'image-stamp-1',
+      pageNumber: 2,
+      position: const SheetAnnotationPoint(x: 0.24, y: 0.42),
+      text: 'Cue photo',
+      color: 0xff224466,
+      fontSize: 24,
+      createdAt: now,
+      layerId: 'solo',
+      stampKind: SheetAnnotationUserStamp.imageKind,
+      stampAssetRef: 'stamps/user/cue-photo.png',
+    );
+
+    final decoded = SheetTextAnnotation.fromJson(text.toJson());
+
+    expect(decoded.isImageStamp, isTrue);
+    expect(decoded.stampKind, SheetAnnotationUserStamp.imageKind);
+    expect(decoded.stampAssetRef, 'stamps/user/cue-photo.png');
+    expect(decoded.layerId, 'solo');
+    expect(
+      decoded.hitTest(const SheetAnnotationPoint(x: 0.36, y: 0.52)),
+      isTrue,
+    );
   });
 
   test('undo and redo annotation entries preserve operation order', () {
@@ -244,6 +579,681 @@ void main() {
 
     expect(visibleForExport.visibleStrokesForPage(1), hasLength(1));
     expect(visibleForExport.exportableTextsForPage(1), hasLength(1));
+  });
+
+  test('annotation display layer helpers scaffold future multi-layer UI', () {
+    final rehearsalLayer = const SheetAnnotationDisplayLayer(
+      id: 'rehearsal',
+      label: '리허설 메모',
+      isVisible: false,
+      includeInExport: false,
+    );
+    final performanceLayer = const SheetAnnotationDisplayLayer(
+      id: 'performance',
+      label: '공연 표시',
+    );
+
+    final layer = SheetAnnotationLayer.empty
+        .withDisplayLayer(rehearsalLayer)
+        .withDisplayLayer(performanceLayer);
+
+    expect(layer.hasMultipleDisplayLayers, isTrue);
+    expect(layer.displayLayerCount, 3);
+    expect(layer.hiddenDisplayLayerCount, 1);
+    expect(layer.exportDisabledDisplayLayerCount, 1);
+    expect(layer.displayLayerLabels, <String>[
+      SheetAnnotationDisplayLayer.defaultLayerLabel,
+      '공연 표시',
+      '리허설 메모',
+    ]);
+
+    final replaced = layer.withDisplayLayer(
+      rehearsalLayer.copyWith(label: '리허설 전용', isVisible: true),
+    );
+    expect(replaced.displayLayerCount, 3);
+    expect(replaced.hiddenDisplayLayerCount, 0);
+    expect(replaced.displayLayerLabels, contains('리허설 전용'));
+    expect(replaced.displayLayerLabels, isNot(contains('리허설 메모')));
+
+    final removed = replaced.removeDisplayLayer('rehearsal');
+    expect(removed.displayLayerLabels, isNot(contains('리허설 전용')));
+    expect(
+      removed
+          .removeDisplayLayer(SheetAnnotationDisplayLayer.defaultLayerId)
+          .displayLayerLabels,
+      removed.displayLayerLabels,
+    );
+    expect(
+      identical(
+        removed.withDisplayLayer(
+          const SheetAnnotationDisplayLayer(id: '', label: ''),
+        ),
+        removed,
+      ),
+      isTrue,
+    );
+
+    final hiddenPerformance = layer.withDisplayLayerState(
+      'performance',
+      isVisible: false,
+      includeInExport: false,
+    );
+    expect(
+      hiddenPerformance.displayLayerForAnnotation('performance').isVisible,
+      isFalse,
+    );
+    expect(
+      hiddenPerformance
+          .displayLayerForAnnotation('performance')
+          .includeInExport,
+      isFalse,
+    );
+  });
+
+  test('annotation layer keys filter visible and exportable annotations', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[
+        _stroke(id: 'default-stroke', pageNumber: 1, createdAt: now),
+        _stroke(
+          id: 'hidden-stroke',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 1)),
+          layerId: 'rehearsal',
+        ),
+        _stroke(
+          id: 'unknown-stroke',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 2)),
+          layerId: 'deleted-layer',
+        ),
+      ],
+      texts: <SheetTextAnnotation>[
+        _text(
+          id: 'export-disabled-text',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 3)),
+          layerId: 'private',
+        ),
+      ],
+      layers: <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        const SheetAnnotationDisplayLayer(
+          id: 'rehearsal',
+          label: '리허설',
+          isVisible: false,
+        ),
+        const SheetAnnotationDisplayLayer(
+          id: 'private',
+          label: '개인 메모',
+          includeInExport: false,
+        ),
+      ],
+    );
+
+    final decoded = SheetAnnotationLayer.fromJson(layer.toJson());
+
+    expect(
+      decoded.strokes
+          .singleWhere((stroke) => stroke.id == 'hidden-stroke')
+          .layerId,
+      'rehearsal',
+    );
+    expect(decoded.texts.single.layerId, 'private');
+    expect(
+      decoded.visibleStrokesForPage(1).map((stroke) => stroke.id),
+      <String>['default-stroke', 'unknown-stroke'],
+    );
+    expect(
+      decoded.exportableStrokesForPage(1).map((stroke) => stroke.id),
+      <String>['default-stroke', 'hidden-stroke', 'unknown-stroke'],
+    );
+    expect(decoded.visibleTextsForPage(1), hasLength(1));
+    expect(decoded.exportableTextsForPage(1), isEmpty);
+    expect(
+      decoded.displayLayerForAnnotation('deleted-layer').id,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+    expect(
+      decoded
+          .removeDisplayLayer('rehearsal')
+          .visibleStrokesForPage(1)
+          .map((stroke) => stroke.id),
+      <String>['default-stroke', 'hidden-stroke', 'unknown-stroke'],
+    );
+    expect(
+      decoded
+          .removeDisplayLayer('rehearsal')
+          .strokes
+          .singleWhere((stroke) => stroke.id == 'hidden-stroke')
+          .layerId,
+      SheetAnnotationDisplayLayer.defaultLayerId,
+    );
+  });
+
+  test('hidden annotation layers are not hit-test or eraser targets', () {
+    final now = DateTime.parse('2026-10-13T12:00:00.000');
+    final visibleStroke = _stroke(
+      id: 'visible-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+        SheetAnnotationPoint(x: 0.8, y: 0.2),
+      ],
+    );
+    final hiddenStroke = _stroke(
+      id: 'hidden-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'hidden',
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.4),
+        SheetAnnotationPoint(x: 0.8, y: 0.4),
+      ],
+    );
+    final visibleText = _text(
+      id: 'visible-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+      position: const SheetAnnotationPoint(x: 0.3, y: 0.65),
+    );
+    final hiddenText = _text(
+      id: 'hidden-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+      layerId: 'hidden',
+      position: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(
+          id: 'hidden',
+          label: '숨김',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    expect(
+      layer.strokeAt(
+        pageNumber: 1,
+        point: const SheetAnnotationPoint(x: 0.5, y: 0.4),
+        tolerance: 0.02,
+      ),
+      isNull,
+    );
+    expect(
+      layer.textAt(
+        pageNumber: 1,
+        point: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+      ),
+      isNull,
+    );
+
+    final erasedHiddenStroke = layer.eraseAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.5, y: 0.4),
+      tolerance: 0.02,
+    );
+    final erasedHiddenText = layer.eraseAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.7, y: 0.65),
+      tolerance: 0.03,
+    );
+
+    expect(identical(erasedHiddenStroke, layer), isTrue);
+    expect(identical(erasedHiddenText, layer), isTrue);
+    expect(
+      layer
+          .strokeAt(
+            pageNumber: 1,
+            point: const SheetAnnotationPoint(x: 0.5, y: 0.2),
+            tolerance: 0.02,
+          )
+          ?.id,
+      'visible-stroke',
+    );
+    expect(
+      layer
+          .textAt(
+            pageNumber: 1,
+            point: const SheetAnnotationPoint(x: 0.3, y: 0.65),
+          )
+          ?.id,
+      'visible-text',
+    );
+  });
+
+  test('hidden annotation layers are not undo or redo targets', () {
+    final now = DateTime.parse('2026-10-13T12:05:00.000');
+    final visibleStroke = _stroke(
+      id: 'visible-stroke',
+      pageNumber: 1,
+      createdAt: now,
+    );
+    final hiddenStroke = _stroke(
+      id: 'hidden-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'hidden',
+    );
+    final visibleText = _text(
+      id: 'visible-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final hiddenText = _text(
+      id: 'hidden-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+      layerId: 'hidden',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(
+          id: 'hidden',
+          label: '숨김',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    final undoText = layer.undoLastAnnotation(1);
+    expect(undoText.texts.map((text) => text.id), <String>['hidden-text']);
+    expect(undoText.strokes.map((stroke) => stroke.id), <String>[
+      'visible-stroke',
+      'hidden-stroke',
+    ]);
+
+    final undoStroke = layer.undoLastStroke(1);
+    expect(undoStroke.strokes.map((stroke) => stroke.id), <String>[
+      'hidden-stroke',
+    ]);
+
+    final redoLayer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[visibleStroke, hiddenStroke],
+      texts: <SheetTextAnnotation>[visibleText, hiddenText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(
+          hiddenStroke.copyWith(id: 'redo-hidden'),
+        ),
+        SheetAnnotationRedoEntry.stroke(
+          visibleStroke.copyWith(id: 'redo-visible'),
+        ),
+      ],
+      layers: layer.layers,
+    );
+
+    final redoVisible = redoLayer.redoLastAnnotation(1);
+    expect(redoVisible.strokes.map((stroke) => stroke.id), <String>[
+      'visible-stroke',
+      'redo-visible',
+      'hidden-stroke',
+    ]);
+    expect(redoVisible.redoStack.single.stroke?.id, 'redo-hidden');
+
+    final hiddenOnlyRedo = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(hiddenStroke),
+      ],
+      layers: layer.layers,
+    );
+    expect(
+      identical(hiddenOnlyRedo.redoLastAnnotation(1), hiddenOnlyRedo),
+      isTrue,
+    );
+
+    final restoreVisibleErase = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(hiddenStroke),
+        SheetAnnotationRedoEntry.text(visibleText),
+      ],
+      layers: layer.layers,
+    ).undoLastAnnotation(1);
+    expect(restoreVisibleErase.texts.single.id, 'visible-text');
+    expect(restoreVisibleErase.strokes, isEmpty);
+  });
+
+  test('annotation undo and redo can target the active display layer', () {
+    final now = DateTime.parse('2026-10-13T12:10:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'rehearsal-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final rehearsalText = _text(
+      id: 'rehearsal-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'rehearsal',
+    );
+    final defaultStroke = _stroke(
+      id: 'default-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final defaultText = _text(
+      id: 'default-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 3)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke, defaultStroke],
+      texts: <SheetTextAnnotation>[rehearsalText, defaultText],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final undoRehearsalAnnotation = layer.undoLastAnnotation(
+      1,
+      layerId: 'rehearsal',
+    );
+    expect(undoRehearsalAnnotation.texts.map((text) => text.id), <String>[
+      'default-text',
+    ]);
+    expect(undoRehearsalAnnotation.strokes.map((stroke) => stroke.id), <String>[
+      'rehearsal-stroke',
+      'default-stroke',
+    ]);
+
+    final undoRehearsalStroke = layer.undoLastStroke(1, layerId: 'rehearsal');
+    expect(undoRehearsalStroke.strokes.map((stroke) => stroke.id), <String>[
+      'default-stroke',
+    ]);
+    expect(undoRehearsalStroke.texts.map((text) => text.id), <String>[
+      'rehearsal-text',
+      'default-text',
+    ]);
+
+    final redoLayer = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.text(rehearsalText),
+        SheetAnnotationRedoEntry.text(defaultText),
+      ],
+      layers: layer.layers,
+    );
+    final redoRehearsal = redoLayer.redoLastAnnotation(1, layerId: 'rehearsal');
+    expect(redoRehearsal.texts.single.id, 'rehearsal-text');
+    expect(redoRehearsal.redoStack.single.text?.id, 'default-text');
+
+    final restoreLayer = SheetAnnotationLayer(
+      strokes: const <SheetAnnotationStroke>[],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.text(defaultText),
+      ],
+      layers: layer.layers,
+    );
+    final restoreRehearsal = restoreLayer.undoLastAnnotation(
+      1,
+      layerId: 'rehearsal',
+    );
+    expect(restoreRehearsal.strokes.single.id, 'rehearsal-stroke');
+    expect(restoreRehearsal.texts, isEmpty);
+    expect(restoreRehearsal.eraseUndoStack.single.text?.id, 'default-text');
+  });
+
+  test('annotations can move to an existing display layer', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final stroke = _stroke(id: 'line-1', pageNumber: 1, createdAt: now);
+    final text = _text(
+      id: 'stamp-1',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[stroke],
+      texts: <SheetTextAnnotation>[text],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(stroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(text),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final movedStroke = layer.moveAnnotationToDisplayLayer(
+      annotationId: 'line-1',
+      layerId: 'rehearsal',
+    );
+    final movedText = movedStroke.moveAnnotationToDisplayLayer(
+      annotationId: 'stamp-1',
+      layerId: 'rehearsal',
+    );
+
+    expect(movedStroke.strokes.single.layerId, 'rehearsal');
+    expect(movedStroke.texts.single.layerId, 'default');
+    expect(movedStroke.redoStack, isEmpty);
+    expect(movedStroke.eraseUndoStack, isEmpty);
+    expect(movedText.strokes.single.layerId, 'rehearsal');
+    expect(movedText.texts.single.layerId, 'rehearsal');
+  });
+
+  test('annotation layer move ignores missing annotations and layers', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final layer = SheetAnnotationLayer.empty.addText(
+      _text(id: 'stamp-1', pageNumber: 1, createdAt: now),
+    );
+
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'stamp-1',
+          layerId: 'missing-layer',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'missing-stamp',
+          layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationToDisplayLayer(
+          annotationId: 'stamp-1',
+          layerId: SheetAnnotationDisplayLayer.defaultLayerId,
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+  });
+
+  test('selected annotations move to a display layer atomically', () {
+    final now = DateTime.parse('2026-10-21T15:00:00.000');
+    final selectedStroke = _stroke(
+      id: 'selected-stroke',
+      pageNumber: 1,
+      createdAt: now,
+    );
+    final untouchedStroke = _stroke(
+      id: 'untouched-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final selectedText = _text(
+      id: 'selected-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[selectedStroke, untouchedStroke],
+      texts: <SheetTextAnnotation>[selectedText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(selectedStroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(selectedText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final moved = layer.moveAnnotationsToDisplayLayer(
+      annotationIds: const <String>[
+        ' selected-stroke ',
+        'selected-text',
+        'selected-text',
+        'missing',
+        '',
+      ],
+      layerId: 'rehearsal',
+    );
+
+    expect(moved.strokes.first.layerId, 'rehearsal');
+    expect(moved.strokes.last.layerId, 'default');
+    expect(moved.texts.single.layerId, 'rehearsal');
+    expect(moved.redoStack, isEmpty);
+    expect(moved.eraseUndoStack, isEmpty);
+    expect(
+      identical(
+        layer.moveAnnotationsToDisplayLayer(
+          annotationIds: const <String>['missing'],
+          layerId: 'rehearsal',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+    expect(
+      identical(
+        layer.moveAnnotationsToDisplayLayer(
+          annotationIds: const <String>['selected-stroke'],
+          layerId: 'missing-layer',
+        ),
+        layer,
+      ),
+      isTrue,
+    );
+  });
+
+  test('moves every annotation and history payload between display layers', () {
+    final now = DateTime.parse('2026-10-20T10:00:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'rehearsal-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final defaultStroke = _stroke(
+      id: 'default-stroke',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final rehearsalText = _text(
+      id: 'rehearsal-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 2)),
+      layerId: 'rehearsal',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke, defaultStroke],
+      texts: <SheetTextAnnotation>[rehearsalText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseText(rehearsalText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+        SheetAnnotationDisplayLayer(id: 'private', label: '개인'),
+      ],
+    );
+
+    final moved = layer.moveDisplayLayerAnnotations(
+      sourceLayerId: 'rehearsal',
+      targetLayerId: 'private',
+    );
+
+    expect(layer.annotationCountForDisplayLayer('rehearsal'), 2);
+    expect(moved.annotationCountForDisplayLayer('rehearsal'), 0);
+    expect(moved.annotationCountForDisplayLayer('private'), 2);
+    expect(moved.strokes.first.layerId, 'private');
+    expect(moved.strokes.last.layerId, 'default');
+    expect(moved.texts.single.layerId, 'private');
+    expect(moved.redoStack.single.stroke?.layerId, 'private');
+    expect(moved.eraseUndoStack.single.text?.layerId, 'private');
+    expect(moved.displayLayerLabels, <String>['기본 필기', '리허설', '개인']);
+    expect(
+      identical(
+        moved.moveDisplayLayerAnnotations(
+          sourceLayerId: 'rehearsal',
+          targetLayerId: 'default',
+        ),
+        moved,
+      ),
+      isTrue,
+    );
+  });
+
+  test('removing a display layer rekeys undo payloads to default', () {
+    final now = DateTime.parse('2026-10-08T10:00:00.000');
+    final rehearsalStroke = _stroke(
+      id: 'redo-stroke',
+      pageNumber: 1,
+      createdAt: now,
+      layerId: 'rehearsal',
+    );
+    final rehearsalText = _text(
+      id: 'redo-text',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+      layerId: 'rehearsal',
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[rehearsalStroke],
+      texts: <SheetTextAnnotation>[rehearsalText],
+      redoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.stroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.text(rehearsalText),
+      ],
+      eraseUndoStack: <SheetAnnotationRedoEntry>[
+        SheetAnnotationRedoEntry.eraseStroke(rehearsalStroke),
+        SheetAnnotationRedoEntry.eraseText(rehearsalText),
+      ],
+      layers: const <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer,
+        SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설'),
+      ],
+    );
+
+    final removed = layer.removeDisplayLayer('rehearsal');
+
+    expect(removed.strokes.single.layerId, 'default');
+    expect(removed.texts.single.layerId, 'default');
+    expect(removed.redoStack[0].stroke!.layerId, 'default');
+    expect(removed.redoStack[1].text!.layerId, 'default');
+    expect(removed.eraseUndoStack[0].stroke!.layerId, 'default');
+    expect(removed.eraseUndoStack[1].text!.layerId, 'default');
   });
 
   test('compacts redo stack without dropping annotations', () {
@@ -483,6 +1493,48 @@ void main() {
     expect(layer.removeStroke('first').strokesForPage(1).single.id, 'second');
   });
 
+  test('stroke annotations can be nudged within page bounds', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final stroke = _stroke(
+      id: 'shape-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.rectangle,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.02, y: 0.98),
+        SheetAnnotationPoint(x: 0.9, y: 0.1),
+      ],
+      createdAt: now,
+    );
+    final layer = SheetAnnotationLayer.empty.addStroke(stroke);
+
+    final nudged = stroke.shiftedBy(dx: 0.1, dy: -0.2);
+    final clamped = stroke.shiftedBy(dx: -0.1, dy: 0.2);
+    final updated = layer.updateStroke(nudged);
+    final hit = updated.strokeAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.12, y: 0.78),
+      tolerance: 0.03,
+    );
+    final miss = updated.strokeAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.5, y: 0.5),
+      tolerance: 0.01,
+    );
+    final missing = layer.updateStroke(
+      _stroke(id: 'missing', pageNumber: 1, createdAt: now),
+    );
+
+    expect(nudged.points.first.x, moreOrLessEquals(0.12));
+    expect(nudged.points.first.y, moreOrLessEquals(0.78));
+    expect(clamped.points.first.x, 0);
+    expect(clamped.points.first.y, 1);
+    expect(updated.strokes.single.points.first.x, moreOrLessEquals(0.12));
+    expect(hit?.id, 'shape-1');
+    expect(miss, isNull);
+    expect(updated.redoStack, isEmpty);
+    expect(identical(missing, layer), isTrue);
+  });
+
   test('text annotation encodes and decodes normalized position', () {
     final createdAt = DateTime.parse('2026-08-21T10:00:00.000');
     final text = SheetTextAnnotation(
@@ -666,6 +1718,24 @@ void main() {
 
     expect(updated.texts.single.text, 'Take air');
     expect(removed.texts, isEmpty);
+  });
+
+  test('text annotations can be nudged within page bounds', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final text = _text(
+      id: 'text-1',
+      pageNumber: 1,
+      createdAt: now,
+      position: const SheetAnnotationPoint(x: 0.02, y: 0.98),
+    );
+
+    final nudged = text.shiftedBy(dx: 0.1, dy: -0.2);
+    final clamped = text.shiftedBy(dx: -0.1, dy: 0.2);
+
+    expect(nudged.position.x, moreOrLessEquals(0.12));
+    expect(nudged.position.y, moreOrLessEquals(0.78));
+    expect(clamped.position.x, 0);
+    expect(clamped.position.y, 1);
   });
 
   test('text annotation hit test finds the last matching text on a page', () {
@@ -888,6 +1958,7 @@ SheetAnnotationStroke _stroke({
   required int pageNumber,
   required DateTime createdAt,
   SheetAnnotationTool tool = SheetAnnotationTool.pen,
+  String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
   List<SheetAnnotationPoint> points = const <SheetAnnotationPoint>[
     SheetAnnotationPoint(x: 0.1, y: 0.1),
     SheetAnnotationPoint(x: 0.2, y: 0.2),
@@ -901,6 +1972,7 @@ SheetAnnotationStroke _stroke({
     width: 3,
     points: points,
     createdAt: createdAt,
+    layerId: layerId,
   );
 }
 
@@ -908,14 +1980,17 @@ SheetTextAnnotation _text({
   required String id,
   required int pageNumber,
   required DateTime createdAt,
+  SheetAnnotationPoint position = const SheetAnnotationPoint(x: 0.25, y: 0.5),
+  String layerId = SheetAnnotationDisplayLayer.defaultLayerId,
 }) {
   return SheetTextAnnotation(
     id: id,
     pageNumber: pageNumber,
-    position: const SheetAnnotationPoint(x: 0.25, y: 0.5),
+    position: position,
     text: 'Note',
     color: 0xff111111,
     fontSize: 18,
     createdAt: createdAt,
+    layerId: layerId,
   );
 }

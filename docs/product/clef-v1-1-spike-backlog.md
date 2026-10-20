@@ -68,6 +68,114 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   데이터 삭제 없이 재연결 안내를 표시한다.
 - Blocker 해제 조건: SAF/iOS Files policy 결정, 실기기 권한 유지 QA, data model migration plan.
 
+### 제품 판단
+
+- v1.1 첫 구현은 **direct reference가 아니라 folder catalog + copy-on-select**로 제한한다.
+- 이유:
+  - Clef의 현재 백업/복원, setlist package, PDF export/share는 앱 내부 사본을 전제로 안정화되어 있다.
+  - SAF/Files direct reference는 권한 만료와 provider offline 상태가 실제 공연 중 blocker가 될 수 있다.
+  - MobileSheets식 "폴더에서 빠르게 찾기" 체감은 read-only catalog와 선택 복사만으로도 상당 부분 얻을 수 있다.
+- 따라서 `Persistent direct reference`는 별도 migration과 Device QA 이후에만 연다.
+- Android tree read permission은 기기 안의 `연결된 폴더` 목록에서 재사용/해제할 수 있다. 이 연결은 폴더를
+  다시 고르는 수고만 줄이며 score path, metadata, backup 또는 자동 동기화 대상으로 승격하지 않는다.
+- 다시 연 폴더의 파일명과 저장된 provenance가 맞고 크기 또는 수정 시각이 달라지면 `원본 변경`으로
+  표시한다. 변경 파일은 일반 복사 선택이나 자동 덮어쓰기 대상이 아니며 `기존 악보 열기`로 앱 내부 사본을
+  먼저 확인하게 한다. PDF/plain text/ChordPro/DOCX/RTF는 사용자가 확인 dialog를 승인하고 기존 형식
+  parser를 통과한 경우에만 새 관리 사본을 적용하고, score ID와 metadata/필기/세트리스트 참조를 유지한 채
+  이전 파일을 linked edited copy로 남긴다. DOCX/RTF는 새 추출본과 원본 reference가 모두 있어야 교체한다.
+  이 흐름도 live reference나 sync 완료를 뜻하지 않는다.
+- provider가 persistable permission을 주지 않으면 기존 가져오기를 막지 않고 그 선택에서만 읽은 뒤 내부
+  사본을 만든다.
+- 사용자-facing copy:
+  - "폴더를 둘러보고 가져오기"
+  - "선택한 파일은 Clef 라이브러리에 복사됩니다"
+  - "원본 폴더가 바뀌어도 이미 가져온 악보는 유지됩니다"
+  - direct reference 단계 전까지 "폴더와 자동 동기화"라고 표현하지 않는다.
+
+### 첫 구현 경계
+
+- 허용:
+  - Android 폴더 선택 권한 요청, 가능한 경우 persistent tree read access와 기기 내 연결 목록.
+  - PDF 후보 스캔 preview.
+  - display name, size, modified time, provider label 표시.
+  - 선택 파일만 기존 import pipeline으로 복사.
+  - 복사 결과 이름이 선택 원본과 일치할 때 원본 folder/provider/file hint를 읽기 전용 score provenance로 저장.
+  - 같은 연결 폴더 재확인 시 provenance의 크기/수정 시각과 달라진 원본을 선택 불가 경고로 표시.
+  - 변경된 PDF/plain text/ChordPro/DOCX/RTF를 사용자가 명시적으로 승인하면 같은 형식의 새 앱 내부
+    사본으로 적용하고 이전 파일을 연결 파일로 보존. DOCX/RTF는 추출본과 원본 reference를 함께 교체.
+  - 권한 취소/빈 폴더/읽기 실패 안내.
+- 금지:
+  - 앱 내부 사본 없이 PDF를 여는 direct score.
+  - 폴더 변경 자동 감시/자동 동기화.
+  - 삭제된 원본 파일을 Clef 라이브러리 삭제로 해석.
+  - SAF URI/bookmark를 일반 backup에 그대로 포함.
+  - iOS Files parity를 Android와 동일하다고 가정.
+
+### 위험/대응 매트릭스
+
+| 위험 | 첫 구현 대응 | Direct reference 전 필요 조건 |
+| --- | --- | --- |
+| 권한 상실 | preview만 실패시키고 라이브러리 변경 없음 | score-level stale badge, reconnect flow |
+| 원본 rename/delete | 이미 복사한 악보 유지 | document URI 재해석 정책, 사용자 확인 |
+| provider offline | folder scan 실패 안내 | offline badge와 retry/backoff |
+| 대형 폴더 | scan count/size cap과 cancel | incremental scan, cache invalidation |
+| backup privacy | folder URI redaction | encrypted/export opt-in policy |
+| 중복 파일 | 기존 checksum/name dedupe 재사용 | source URI history와 duplicate review |
+
+### 권장 단계
+
+1. **Read-only catalog preview**
+   - Android `ACTION_OPEN_DOCUMENT_TREE`로 폴더 권한을 얻고 지원 악보 후보 목록만 보여준다.
+   - 이 단계에서는 Clef 라이브러리에 항목을 만들지 않고, provider/display name/last modified/size만 기록한다.
+   - Acceptance: 권한 승인/취소/권한 상실/빈 폴더/큰 폴더가 앱 데이터를 변경하지 않고 안내된다.
+   - 구현 상태: Android `ACTION_OPEN_DOCUMENT_TREE` bridge와 `연결된 폴더에서 악보 고르기` sheet가 있다.
+     직접 하위 파일을 최대 201개까지 일회성으로 읽어, PDF/plain text/ChordPro/DOCX/RTF 후보, 기존 또는
+     폴더 내 중복 이름, 읽기 실패와 미지원 형식을 라이브러리 변경 전에 보여준다. URI는 preview와 즉시 복사 요청에만 쓰며 score/backup에
+     저장하지 않는다. 유지 가능한 tree permission은 기기 안에서만 목록화해 재열기/연결 해제를 제공하고,
+     유지 불가 provider는 일회성 선택으로 fallback한다. Android 재부팅/provider 권한 회수/취소 경로는
+     Device QA가 남았다.
+
+2. **Copy-on-select bridge**
+   - 폴더 안 파일을 바로 참조하지 않고, 선택한 항목만 기존 형식별 import pipeline으로 복사한다.
+   - folder/provider/display name hint만 source metadata로 남긴다. URI/token은 저장하지 않으며 자동 재연결에 사용하지 않는다.
+   - Acceptance: 기존 백업/복원/공유/export 안정성을 유지하면서 MobileSheets식 폴더 탐색 흐름만 먼저 제공한다.
+   - 구현 상태: ready plan의 transient document token만 Android bridge에 넘겨 cache에 복사하고,
+     기존 PDF/text/ChordPro/DOCX/RTF import pipeline으로 앱 내부 score를 만든다. 중복/읽기 실패/미지원/stale selection은
+     바이트 복사 전에 차단하며, 선택 중 하나라도 복사할 수 없으면 임시 사본을 지우고 부분 import를 하지
+     않는다.
+   - 구현 상태: `SheetExternalFolderCopySource`는 display/provider/folder/size/modified hint를 score/backup
+     metadata로 만들되 platform document token은 내보내지 않는다. native 복사 결과 이름이 선택 원본과
+     정확히 일치할 때만 `SheetScoreImportSource`로 저장하고 악보 정보 편집 화면에서 읽기 전용으로 보여준다.
+
+3. **Persistent direct reference**
+   - 별도 score storage type을 추가해 앱 내부 사본 없이 tree URI를 직접 열 수 있게 한다.
+   - permission lost, file rename/delete, provider offline 상태를 score-level warning으로 표시한다.
+   - Acceptance: 권한이 사라져도 metadata와 annotations는 삭제되지 않고, 사용자는 재연결하거나 앱 내부 사본으로 전환할 수 있다.
+
+4. **iOS parity decision**
+   - iOS는 security-scoped resource와 Files provider 동작 차이가 커서 Android direct reference와 같은 UX를 보장하지 않는다.
+   - iOS는 document picker copy-on-select를 기본으로 유지하고, direct folder parity는 실기기 spike 이후 결정한다.
+
+### 데이터 모델 초안
+
+- `externalFolderId`: opaque local id.
+- `platform`: `android-saf` 또는 `ios-files`.
+- `treeUri`/`bookmarkData`: platform-specific permission token. 백업에는 기본적으로 포함하지 않거나 redacted로 둔다.
+- `displayPath`: 사용자-facing 경로 힌트. 실제 파일 접근 근거로 사용하지 않는다.
+- `lastScanAt`, `lastKnownFileCount`, `permissionState`: 홈/설정에서 상태를 보여주는 용도.
+- score source metadata:
+  - `sourceFolderId`
+  - `sourceDocumentUri`
+  - `sourceDisplayName`
+  - `sourceLastModified`
+  - `sourceSizeBytes`
+
+### 배포 원칙
+
+- v1.x에서는 copy-on-select bridge까지만 들어가도 충분한 사용자 가치가 있다.
+- direct reference는 백업/복원과 “파일이 사라진 악보” UX를 바꾸므로 release flag 또는 beta-only 설정으로 시작한다.
+- 스캔/클라우드/sync 기능과 섞지 않는다. 폴더 참조는 “내 기기에 이미 정리한 악보를 빠르게 가져오는 길”로 한정한다.
+
 ## 4. iOS Share Extension
 
 - 현재 v1 상태: iOS document open URL bridge scaffold가 있고, Android ACTION_VIEW/SEND import가
@@ -86,30 +194,55 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 5. PDF 표준 Annotation Embed/Export
 
-- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식이다. standard annotation
-  export mode는 explicit unsupported result로 분리되어 있다.
+- 현재 v1 상태: 필기 포함 PDF 공유는 rendered stamp 사본 생성 방식을 계속 지원한다. export capability
+  report는 flattened copy와 editable standard annotation export를 구분한다. Standard mode는
+  pen/highlighter를 `/Ink`, line/arrow와 crescendo/diminuendo hairpin, staff/grid guide를 `/Line`,
+  rectangle을 `/Square`, text와 text/music-symbol stamp를 `/FreeText`, PNG/JPEG/WebP image stamp를 `/Stamp`
+  객체로 쓰는 1차 writer가 있으며,
+  생성 PDF를 다시 열어 subtype, Clef `/NM` 이름, contents와 generated appearance를 확인하는 local
+  inspection fixture가 있다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 같은 subtype들을
+  모두 포함한 manual QA용 PDF와 PASS/ISSUE/BLOCKED/NOT_TESTED report template을
+  `.dart_tool/clef-pdf-compatibility/` 아래 생성하고 local inspection 통과 후
+  Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer 확인 대상으로 넘긴다. Report review gate는 viewer row
+  누락, evidence 없는 row, NOT_TESTED cell, ISSUE, BLOCKED를 별도로 요약하며 모두 해소되기
+  전에는 external compatibility 완료로 보지 않는다. 채운 report는 같은 도구의 `--review-report`
+  mode로 다시 검사할 수 있다.
 - 왜 v1.1 spike인지: 편집 가능한 Ink/Text annotation object 생성, PDF writer API, coordinate
-  mapping, viewer 호환성 검증이 필요하다.
-- 결정 필요사항: `pdf_document` 확장 가능성, 다른 PDF writer 도입 여부, Ink/Text/FreeText/Stamp
-  annotation mapping, opacity/pressure 처리, flatten vs editable export mode.
-- 구현 후보: standard export adapter interface, rendered fallback 유지, annotation object fixture
-  generator, export compatibility report.
+  mapping의 1차 경로와 Unicode FreeText appearance 전용 fixture는 생겼지만, rich non-text stamp
+  appearance, Unicode font fallback과 외부 viewer 호환성 검증이 필요하다.
+- 결정 필요사항: rich stamp appearance를 표준 PDF annotation으로 유지할지, flatten vs editable export
+  mode UI를 어떻게 둘지, 외부 viewer evidence를 어떤 릴리즈 기준으로 통과시킬지.
+- 구현 후보: Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer manual matrix result 수집,
+  Unicode font fallback policy, external viewer evidence package. 원본/출력 PDF/A-2b finding delta는
+  로컬 report에 포함되지만 현재 validator가 annotation appearance font를 순회하지 않으므로 정식
+  PDF/A 보존 검증과 Unicode appearance/font compatibility는 별도 spike로 유지한다.
 - 테스트/fixture/실기기 조건: Acrobat, Preview, MobileSheets, Piascore, Android PDF viewer, mixed
-  crop/rotation/page order PDF, pressure stroke fixture.
+  crop/rotation/page order PDF, pressure stroke fixture. Local handoff fixture now reorders pages to `3, 1, 2`
+  before applying a 90-degree rotation and offset CropBox to current page 2; external QA must still verify that
+  only page 2 carries the expected annotations.
 - Acceptance criteria: exported PDF가 주요 viewer에서 editable annotation으로 열리고, rendered
   fallback이 계속 선택 가능하며 원본 PDF는 수정하지 않는다.
-- Blocker 해제 조건: writer API 선택, compatibility fixture 통과, export mode UX 결정.
+- Blocker 해제 조건: external viewer compatibility matrix 통과, image/stamp/music-symbol fallback
+  정책 확정.
 
 ## 6. 한글/비라틴 PDF Font Embedding
 
 - 현재 v1 상태: ASCII text annotation은 rendered stamp export에 포함한다. 한글/비ASCII text는 깨진
-  glyph 방지를 위해 skip/fallback 안내를 표시하고, mixed ASCII/한글 fixture test가 있다.
+  glyph 방지를 위해 skip/fallback 안내를 표시하고, mixed ASCII/한글 fixture test가 있다. Editable
+  standard export inspector는 FreeText의 embedded font program 여부를 다시 읽어, Unicode contents는
+  보존됐지만 embedded font 없이 viewer fallback에 의존하는 주석 이름을 별도 보고한다.
 - 왜 v1.1 spike인지: 배포 가능한 폰트 license, subset embedding, CJK glyph coverage, file size
   증가, PDF writer 지원 여부가 필요하다.
 - 결정 필요사항: Noto Sans CJK 등 폰트 후보와 license, app bundle size, subset embedding 가능성,
   fallback font list, style/weight 범위.
-- 구현 후보: font asset registration, text export font resolver, unicode text fixture, missing glyph
-  preflight, export summary copy.
+- 조사 결과: Noto CJK Sans 공식 배포본은 SIL Open Font License 1.1이며 embedding/redistribution을
+  허용한다 (`https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE`). 다만 현재
+  `pdf_document 3.7.0`은 subset 없이 font program 전체를 각 FreeText appearance resource에 넣는다.
+  따라서 production font asset을 바로 연결하지 않고, 4 MiB 단일 font/12 MiB 예상 중복 크기 상한과
+  glyph coverage preflight를 먼저 구현했다. 실제 기본 font 선택 전 resource reuse/subset 경로가 필요하다.
+- 구현 후보: licensed font asset registration, text export font resolver, glyph coverage preflight,
+  whole-font 중복 embedding을 피할 writer resource reuse/subset 지원, unicode text fixture, missing
+  glyph preflight, export summary copy.
 - 테스트/fixture/실기기 조건: Korean/CJK/Latin mixed text, emoji rejection, large text annotation,
   Acrobat/Preview/MobileSheets rendering, file size regression.
 - Acceptance criteria: 한글 텍스트 주석이 export PDF에서 깨지지 않고 보이며, license와 bundle
@@ -151,21 +284,23 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 9. 저지연 Metronome/Audio/iOS Playback Parity
 
-- 현재 v1 상태: visual metronome, Android native metronome tick volume/accent click, Android native
-  tone/drone, Android
-  `MediaPlayer` local audio playback, linked audio metadata/backup이 있다. 튜너는
+- 현재 v1 상태: visual metronome, Android/iOS native metronome tick volume/accent click, Android native
+  tone/drone과 iOS `AVAudioEngine` PCM tone/drone, Android `MediaPlayer`와 iOS `AVAudioPlayer` local
+  audio playback/A-B loop, linked audio metadata/backup이 있다. 두 iOS bridge wiring과 Swift parse는
+  로컬 확인했고 공동 audio-session ownership을 사용하지만 실제 codec, 음량, 시작/종료 잡음,
+  audio route, background/foreground와 loop timing은 Device QA다. 튜너는
   Chromatic-only UI, sharp/flat 표기, LED/input bar, A4 quick/history/보정 제안, adaptive noise
   floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
   Hybrid/YIN/autocorrelation detector 선택, plucked string 회귀 테스트,
   감지 confidence/noise floor/clipping debug label까지 구현했지만 실제 마이크 latency/외부 마이크 안정성은
   QA가 필요하다. 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했으며,
   악보앱에 다시 넣을지 또는 별도 튜너앱으로 분리할지는 v1.1 이후 제품 판단으로 둔다.
-- 왜 v1.1 spike인지: low-latency tick scheduling, audio session, background policy, iOS native
-  bridge, codec support를 결정해야 한다.
+- 왜 v1.1 spike인지: click 재생은 양 플랫폼 native preload로 연결됐지만 Flutter timer 기반 beat scheduling의
+  실제 저지연/drift 기준, audio session, background policy와 codec support를 결정해야 한다.
 - 결정 필요사항: audio package/native bridge, tick/accent asset, latency target, background/lock
   screen policy, iOS audio session category, codec matrix.
-- 구현 후보: native low-latency audio engine, preloaded tick/accent buffers, shared transport state,
-  iOS tone/audio player bridge, latency debug screen, tuner noise calibration dashboard와 MPM/native
+- 구현 후보: audio-clock 기반 metronome scheduling, shared transport state,
+  latency debug screen, tuner noise calibration dashboard와 MPM/native
   detector 비교 spike.
 - 테스트/fixture/실기기 조건: Android tablet, iPhone/iPad, wired/Bluetooth output, MP3/M4A/WAV,
   BPM 40-240, accent drift measurement, tuner concurrent use, 실제 악기/외부 마이크 cents jitter 측정,
@@ -231,17 +366,330 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - Blocker 해제 조건: overlay architecture 결정, audio latency/fallback QA, 실제 연주 중 장시간 사용성
   확인.
 
+## 13. Cloud Sync / Conflict Model
+
+- 현재 v1 상태: 앱은 local-first이다. Library profile별 metadata-only automatic snapshot,
+  metadata JSON backup, PDF 포함 full backup ZIP, setlist package ZIP export/import가 있다.
+  System file picker/provider를 통해 cloud 파일을 가져올 수 있지만, account-backed continuous sync는 없다.
+- 왜 v1.1/Later spike인지: cloud sync는 단순 업로드가 아니라 account, encryption, quota, offline queue,
+  background task, conflict UI, privacy policy와 운영 책임을 함께 요구한다.
+- 결정 필요사항: account 없이 user-selected cloud folder export로 갈지, 자체 account/server를 둘지,
+  PDF binary까지 sync할지 metadata/annotations만 sync할지, conflict를 자동 병합할지 사용자 review로 남길지,
+  삭제 tombstone 보존 기간, device identity, encrypted backup 여부.
+- Sync 대상 후보:
+  - library profiles, score metadata, bookmarks, page transforms, setlists, setlist progress.
+  - annotations/stamps/layers, linked audio metadata, ChordPro source, imported package manifests.
+  - raw PDFs/images/audio binaries는 quota와 저작권/개인정보 리스크 때문에 별도 선택 sync로 둔다.
+- Conflict model 초안:
+  - score identity는 `score.id`와 source fingerprint를 함께 본다. 파일명만으로 merge하지 않는다.
+  - metadata field는 field-level timestamp merge 후보지만 title/composer/tags 같은 핵심 field는
+    conflict review card로 남길 수 있어야 한다.
+  - annotations는 stroke/object id 단위 additive merge를 우선하고, 삭제는 tombstone으로 보존한다.
+  - setlist order는 list operation log 또는 manual review가 필요하다. last-write-wins는 공연 순서를
+    조용히 잃을 수 있으므로 기본값으로 두지 않는다.
+  - 파일 binary 충돌은 자동 덮어쓰기 금지. 두 사본을 모두 보존하고 사용자에게 교체/보관을 묻는다.
+- 구현 후보:
+  1. Backup health/status 화면: 자동 metadata snapshot, 현재 라이브러리 범위, PDF 포함 전체 백업
+     필요성, 최근 수동 metadata/full backup export 기록을 보여주는 첫 화면은 구현됐다. Setlist
+     package export별 상세 이력은 후속이다.
+  2. User-selected cloud folder export: 기존 backup/package를 사용자가 고른 provider 위치로 저장한다.
+  3. Sync dry-run: 두 metadata backup snapshot의 score/setlist/settings 변경과 file/annotation conflict
+     후보를 계산하고 요약/검토 필요 문구로 바꾸는 restore core는 구현됐다. Annotation 후보는 layer 구성,
+     stroke/text/stamp object, 외부 annotation file reference 변경을 분리한다. 자동 snapshot, 외부 JSON,
+     전체 ZIP 복원 preview는 접힌 상세 목록에서 악보/세트리스트 제목, 작곡가/파일명 또는 곡 수,
+     변경 유형과 필드/필기/순서 위험을 항목별로 확인할 수 있다. 같은 제목은 짧은 내부 식별자로
+     구분하고 대형 목록은 첫 20개만 렌더링한다. 변경 검토는 원본 경로를 제외한 Markdown으로 복사해
+     지원/수동 비교에 남길 수 있다. Base/local/remote 3-way core도 한쪽 변경, 동일 변경, disjoint-field
+     merge 후보와 같은 field/delete-versus-edit/settings conflict를 분류하지만 데이터를 적용하지 않는다.
+     JSON object key 순서만 다른 동일 변경은 구조 비교로 같은 변경으로 처리하고, 세트리스트처럼 의미가
+     있는 list 순서는 그대로 보존한다.
+     dry-run 결과는 로컬/원격 변경 방향, 병합 후보, 수동 충돌 field를 경로 없이 요약하는 bounded Markdown
+     보고서로 남길 수 있다. 백업 메뉴의 `3개 백업 비교`는 base/local/remote JSON을 순서대로 읽고
+     export 시각/항목 범위, 중복 선택과 공통 ID 부재 경고, 상태별 접힌 결과 및 보고서 복사를 제공한다.
+     보고서는 데이터를 적용하지 않으며 백업 v1에는 안정적인 cross-device library ID가 없어 동일 라이브러리
+     여부를 자동 확정하지 않는다. 이는 future sync 설계 근거이며 merge writer는 후속이다.
+  4. Account-backed sync: dry-run conflict model과 privacy/security 검토가 끝난 뒤 별도 제품으로 결정한다.
+- 테스트/fixture/실기기 조건: 대형 PDF 포함 backup, 두 기기에서 같은 score metadata/annotation/setlist를
+  엇갈리게 수정한 fixture. 필기 object, 세트리스트 순서, 원본 binary, 사용자 stamp pack의 양쪽 변경은
+  현재 수동 검토 conflict로 고정한다. 후속으로 offline/online 전환, provider quota/권한 취소,
+  iCloud/Drive/Dropbox provider smoke가 필요하다.
+- Acceptance criteria: 첫 단계는 데이터를 자동 삭제/덮어쓰기하지 않고 현재 backup/sync 상태와 conflict 후보를
+  설명할 수 있어야 한다. 실제 continuous sync는 conflict review UX와 privacy/security review 전에는 완료 처리하지 않는다.
+- Blocker 해제 조건: account/provider 전략, privacy policy 갱신 범위, conflict fixture, rollback plan.
+
+## 14. Leader / Follower Tablet Session
+
+- 현재 v1 상태: 한 기기 안의 setlist progress, page turn, pedal input, performance mode는 있다.
+  여러 태블릿 사이의 page/setlist 동기화는 없다.
+- 왜 v1.1/Later spike인지: local network permission, pairing, latency, reconnect, leader authority,
+  score identity mismatch, audience-facing failure mode를 모두 설계해야 한다.
+- 결정 필요사항: 같은 library/package를 양쪽에 미리 갖고 있어야 하는지, leader가 PDF 파일까지 보내는지,
+  page turn만 sync할지 setlist position/tempo/notes까지 sync할지, follower가 local override를 허용하는지,
+  rehearsal mode와 performance mode의 권한 차이.
+- Session model 초안:
+  - `sessionId`, `leaderDeviceId`, `followerDeviceId`, `setlistId`, `scoreId`, `page`, `timestamp`.
+  - pairing은 QR/code 기반으로 시작하고, 같은 LAN/Bluetooth 세부 구현은 spike에서 결정한다.
+  - follower는 수신한 `scoreId`가 없으면 조용히 페이지를 넘기지 않고 “악보 없음/패키지 필요” 상태를 표시한다.
+  - leader page turn event는 idempotent sequence number를 가진다. 늦은 이벤트가 최신 page를 되돌리면 안 된다.
+  - disconnect/reconnect 시 follower는 마지막 leader state를 표시하되 local page turn을 계속 허용할지 mode별로 결정한다.
+- 구현 후보:
+  1. Offline session event model과 reducer unit test. 구현됨: `SheetFollowerSyncState`는 leader page
+     event의 session id, sequence, score availability를 검증해 synced/missing/stale/disconnected 상태로
+     축약한다.
+  2. QR/code invite payload core. 구현됨: `SheetCollaborationInvite`는 session id, leader device,
+     setlist id, created/expiry를 versioned payload로 직렬화하고 valid/malformed/unsupported/expired
+     decode 상태를 분리한다.
+  3. Same-device leader/follower simulator core. 구현됨: `SheetCollaborationLocalSimulator`는 invite에서
+     monotonic leader event를 만들고 follower score set으로 synced/missing/recovered/disconnected 상태를
+     reducer로 검증한다.
+  4. Follower setlist preflight core. 구현됨: `SheetCollaborationPreflightCheck`는 리더 세트리스트 곡과
+     팔로워 보유 악보를 비교해 누락 곡, 빈 세트리스트, 연결 가능 상태를 실제 transport 전에 설명한다.
+  5. QR pairing render plan core. 구현됨: `SheetCollaborationInviteQrPlan`은 invite payload를 QR module
+     matrix로 만들고, 길거나 실패한 payload는 코드 복사 fallback으로 분리한다.
+  6. Reusable QR pairing view. 구현됨: `SheetCollaborationInviteQrView`는 QR module matrix와 코드 복사
+     fallback을 route 연결 전 widget test로 검증한다.
+  7. Follower status review core. 구현됨: `SheetFollowerSyncReview`는 synced/missing/stale/disconnected/
+     wrong-session 상태를 UI headline, review lines, attention flag로 바꾼다.
+  8. Collaboration session preview core. 구현됨: `SheetCollaborationSessionPreview`는 invite QR/copy plan,
+     follower setlist preflight, follower status review를 묶어 startability와 blocking reason을 계산한다.
+  9. Reusable collaboration session preview view. 구현됨: `SheetCollaborationSessionPreviewView`는 follower
+     readiness, follower state, blocking reason, QR/copy fallback, local simulation action 상태를 렌더한다.
+  10. Local simulation report core. 구현됨: leader page move, follower library refresh, disconnect action을
+      reducer에 통과시켜 attention step count와 final state를 route 노출 전 검증한다.
+  11. Reusable local simulation report view. 구현됨: report headline, summary, step-by-step follower
+      status and attention states를 route 연결 전 widget test로 검증한다.
+  12. 완료: 도움말/피드백 안의 명시적인 `개발자용 협업 시뮬레이션` route에서 실제 setlist를 고르고 QR/code
+      invite와 preflight를 확인한다. 화면 첫 안내에서 실제 네트워크 연결이나 page 전송이 없음을 명시한다.
+  13. 완료: same-device simulator UI는 setlist page sequence, disconnect, 다음 event recovery를 report로
+      보여주며 stale setlist의 missing score가 있으면 시작을 막는다.
+  14. Network transport 선택: local network/WebSocket, Nearby/Bluetooth, cloud relay 중 하나를 별도 spike.
+- 테스트/fixture/실기기 조건: Android tablet 2대, iPad/Android 혼합, 같은 setlist/다른 setlist,
+  missing score, rapid page turns, disconnect/reconnect, screen sleep, pedal input while following.
+- Acceptance criteria: follower가 잘못된 악보로 넘어가지 않고, 연결 손실과 mismatch를 명확히 표시하며,
+  leader/follower state reducer가 out-of-order event를 안전하게 처리한다. 현재 unit test는 available score,
+  stale event, missing score, session mismatch, disconnect 상태, QR/code invite round-trip, expiry,
+  unsupported version, malformed payload, local simulator missing/recovery/disconnect, QR matrix generation,
+  copy fallback, reusable QR view rendering, follower status review copy, session preview blocking
+  reasons, reusable preview view action states, local simulation report summaries, developer route empty/missing/success
+  states and report widget rendering을 검증한다.
+- Blocker 해제 조건: transport/API 선택, local network permission UX, two-device QA, session privacy copy.
+
+## 15. Custom Stamp Pack / Stamp Management
+
+- 현재 v1 상태: built-in 음악 stamp, 검색, 카테고리 칩, 빠른 선택, 최근 사용 stamp 저장/복원이
+  있다. 사용자 제공 stamp pack, stamp 숨김/정렬/공유/import는 없다.
+- 왜 v1.1 spike인지: 사용자 stamp는 에셋 저작권, 백업/복원, sync conflict, PDF export,
+  picker 밀도, 앱 번들 크기와 직접 연결된다. 이미지 stamp까지 바로 열면 데이터 모델과 권리 검토가
+  함께 커진다.
+- 결정 필요사항:
+  - built-in stamp와 user stamp를 같은 picker에 섞을지, 별도 섹션으로 둘지
+  - v1.1 첫 범위를 text/icon-only preset으로 제한할지
+  - 완료: image stamp import를 허용하기 전 지원 포맷과 안전한 asset manifest 정책을 validator에 고정한다.
+    image asset은 `stamps/` 아래 상대 경로, PNG/JPEG/WebP, SHA-256 checksum, 2MB 이하,
+    2048px 이하 edge와 2048x2048 이하 pixel budget을 요구한다.
+  - 완료: image stamp 파일을 실제로 복사하기 전 내부 저장 경로 계획 모델을 추가한다. Import plan은
+    외부 파일명 경로를 신뢰하지 않고 pack/stamp id로 `stamps/<pack>/<stamp>.<ext>` assetRef를 만들며,
+    checksum/byte size/dimensions를 stamp metadata로 넘긴다.
+  - 완료: image stamp asset storage helper를 추가했다. 로컬 PNG/JPEG/WebP를 읽어 SHA-256, byte size,
+    decoded dimensions, extension policy를 검증하고 app-owned `annotation-stamps/` 아래에 temp-file
+    replace 방식으로 copy한다. 동일 checksum은 재사용하고 다른 bytes는 같은 deterministic ref를 안전하게
+    교체한다.
+  - backup/export/setlist package/cloud sync에 user stamp asset을 포함할지
+  - user stamp 삭제 시 기존 주석 rendering을 보존할지 fallback label로 바꿀지
+  - 외부 stamp pack 공유를 허용할 경우 license/출처 표시와 악성/대용량 파일 방어
+- 제안 schema 초안:
+  - `SheetAnnotationStampPack(id, name, version, createdAt, updatedAt, stamps)`
+  - `SheetAnnotationUserStamp(id, packId, label, category, kind, iconName?, text?, assetRef?,
+    keywords, licenseLabel?, sourceUrl?, checksum?, assetSizeBytes?, assetWidthPixels?,
+    assetHeightPixels?)`
+  - `kind`: `text`, `icon`, `image` 중 하나. `text`와 allow-listed `icon`은 기존 text annotation
+    rendering path를 재사용하고, `image`는 app-owned storage와 picker 선택까지 열었지만 page/PDF
+    bitmap rendering은 별도 migration에서 결정한다.
+  - 기존 annotation에는 `stampName` 대신 당장 `userStampId`를 추가하지 않는다. 첫 slice는 picker
+    preset으로만 시작하고, 실제 주석 저장 모델 확장은 별도 migration에서 결정한다.
+- 구현 후보:
+  1. 완료: user stamp pack schema와 JSON validator를 추가했다.
+  2. 완료: built-in stamp picker에 `사용자 스탬프` 섹션을 scaffold하되 empty state만 노출한다.
+  3. 완료: user stamp pack을 library metadata store와 metadata backup/restore에 연결하고 invalid,
+     malformed, duplicate pack fallback을 검증했다.
+  4. 완료: text-only custom stamp 생성/삭제/선택을 추가하고, built-in stamp와 동일한
+     `SheetTextAnnotation` rendering path를 재사용한다.
+  5. 완료: allow-listed icon-only custom stamp 생성/삭제/선택을 추가하고, compact symbol fallback으로
+     기존 text annotation rendering path를 재사용한다.
+  6. 완료: setlist package ZIP에 optional `clef-user-stamps.json` metadata를 포함하고, package
+     import preview에서 신규/중복 stamp id 수를 구분한 뒤 성공 후 신규 text/icon stamp id만 active
+     library에 병합한다.
+  7. 완료: image stamp asset manifest policy를 code validator로 고정한다.
+  8. 완료: image stamp asset import plan을 추가해 picker/storage/package가 재사용할 내부 assetRef 규칙을
+     고정한다.
+  9. 완료: image stamp asset storage helper를 추가해 실제 file copy/reuse/replace와 corrupt/oversized/
+     unsupported input rejection을 검증했다.
+  10. 완료: setlist package ZIP codec/export가 참조된 image stamp asset bytes를 `stamps/` 아래 포함하고,
+      asset이 없는 image stamp metadata는 decode/import preview에서 제외한다. 이는 공유 package codec
+      경로만 열어둔 것이며 metadata backup asset round-trip은 별도다.
+  11. 완료: picker에서 PNG/JPEG/WebP image stamp 파일을 선택하고, 이름을 붙여 app-owned
+      `annotation-stamps/` storage에 copy한 뒤 user stamp pack에 저장/복원/선택할 수 있다. 저장 전
+      권리 확인 copy와 2MB/2048px 제한 안내를 제공한다.
+  12. 완료: image stamp를 악보에 찍으면 placed annotation이 `stampKind=image`와 `stampAssetRef`를
+      보존하고, viewer overlay가 app-owned image asset을 decode/cache해 bitmap으로 렌더링한다.
+      asset이 없거나 읽을 수 없으면 label fallback으로 표시한다. Editable standard PDF export는 image
+      stamp를 `/FreeText`로 오인하지 않고 unsupported mapping으로 남긴다.
+  13. 완료: image stamp definition 삭제 후 asset cleanup을 추가했다. 남은 user stamp pack이나 이미
+      악보에 배치된 image stamp annotation이 같은 assetRef를 참조하면 파일을 보존하고, 아무도 참조하지
+      않을 때만 app-owned asset 파일을 삭제한다.
+  14. 완료: full backup ZIP에 image stamp asset byte round-trip을 추가했다. Manifest는
+      `stampAssetRef`와 `stamp-assets/` entry를 기록하고, 복원은 metadata 교체 전에 app-owned
+      annotation stamp storage로 PNG/JPEG/WebP bytes를 되돌린다.
+  15. 완료: flattened annotated PDF export가 app-owned PNG/JPEG/WebP image stamp bytes를 읽어 PDF
+      image XObject로 찍는다. WebP는 PNG appearance로 변환하고, 누락/깨진 asset은 label fallback으로
+      유지한다.
+  16. 완료: editable standard PDF export도 app-owned PNG/JPEG/WebP image stamp bytes를 `/Stamp`
+      annotation appearance로 내보낸다. Local inspection fixture는 `Stamp` subtype과 image stamp flag를
+      확인한다. WebP는 PNG appearance로 변환하고, 누락/깨진 image stamp는 unsupported mapping으로
+      분리해 일반 사본 fallback 안내를 유지한다.
+  17. 완료: editable standard PDF export가 crescendo/diminuendo hairpin을 paired `/Line`
+      annotation으로 내보낸다. Local inspection fixture는 두 Line annotation을 확인한다.
+  18. 완료: editable standard PDF export가 staff/grid guide를 editable `/Line` annotation group으로
+      내보낸다. Local inspection fixture는 staff 5선과 4x4 grid line set을 확인한다.
+  19. 완료: built-in text stamps와 user text/icon stamps를 editable `/FreeText` annotation으로
+      내보낸다. Local inspection fixture는 Korean text stamp와 music-symbol text stamp contents를
+      확인한다.
+  20. 완료: external viewer QA용 editable annotation compatibility fixture generator를 추가했다.
+      Fixture는 `/Ink`, `/Line`, `/Square`, `/FreeText`, `/Stamp` subtype을 모두 포함하고 local
+      inspection을 통과해야 fixture PDF와 viewer matrix report template 경로를 보고한다. Poppler
+      렌더에서 Korean FreeText appearance glyph box가 관찰되어 Unicode font fallback은 별도 정책으로 남긴다.
+- 검증 완료: schema JSON round-trip, duplicate id, pack id mismatch, missing payload, unsupported kind,
+  allow-listed icon, malformed source URL warning, image stamp gate, image asset path/extension/checksum/
+  size/dimension policy, metadata save/load, malformed
+  storage fallback, metadata backup restore, text/icon stamp create/delete/reload, picker
+  create/select/delete, user stamp search/category filtering, setlist package stamp metadata
+  round-trip/import merge, package duplicate stamp preview and local-preservation merge, deleted
+  custom stamp definition preserving already placed text annotations, mixed Korean/English label
+  search and category filtering, image asset import plan safe/unsupported path validation, actual image
+  file copy/reuse/replace, corrupt image fixture and oversized file rejection, setlist package image
+  asset ZIP round-trip and missing-asset filtering, image stamp picker selection and controller-level
+  image stamp create/reload, placed image stamp metadata round-trip/hit-test, editable-PDF unsupported
+  image stamp fixture, image stamp asset cleanup and placed annotation preservation, full-backup asset
+  byte round-trip, flattened PDF PNG/JPEG/WebP image stamp drawing, editable standard PDF image stamp
+  annotation output, editable standard PDF hairpin line-pair output, editable standard PDF staff/grid
+  line-group output, editable standard PDF text/icon stamp FreeText output, mixed compatibility fixture
+  generator output.
+- 남은 테스트/fixture/실기기 조건: external PDF viewer compatibility, large pack performance, S Pen
+  picker use, platform image picker provider behavior.
+- Acceptance criteria: 사용자가 직접 만든 text/icon/image stamp를 picker에서 찾고 재사용할 수 있으며,
+  저장/복원/백업 실패가 built-in stamp 사용을 방해하지 않는다. Image stamp는 현재 metadata/asset
+  storage, package sharing, placed annotation metadata, viewer bitmap rendering, flattened PDF PNG/JPEG
+  bitmap export, editable standard PDF image stamp export를 지원한다.
+- Blocker 해제 조건: external viewer compatibility matrix for PDF image stamps, hairpins,
+  staff/grid guide line groups and text/icon stamp FreeText.
+
+## 16. Annotation Layer Management
+
+- 현재 v1 상태: 기본 필기 layer visibility/export flag가 있고, stroke/text annotation은 optional
+  `layerId`를 저장한다. 과거 metadata와 알 수 없는 layer id는 default layer로 fallback한다.
+- 왜 v1.1 spike인지: active layer 선택, layer 삭제/이름 변경, hidden layer hit-test, undo/redo 범위,
+  PDF export 포함 여부, stylus 작업 중 실수 방지가 모두 UI와 데이터 보존에 영향을 준다.
+- 결정 필요사항:
+  - 완료: hidden layer annotation은 hit-test/eraser/nudge와 toolbar undo/redo 대상에서 제외한다.
+  - 완료: layer 삭제 시 display layer만 제거하고 기존 annotation은 default fallback으로 보이게 둔다.
+  - active layer를 악보별로 저장할지, viewer session local 상태로 둘지
+  - layer별 export, backup/restore, package export 정책
+- 구현 후보:
+  1. 완료: layer stack metadata helper와 summary를 추가했다.
+  2. 완료: stroke/text annotation별 `layerId` 저장과 visible/exportable filtering을 추가했다.
+  3. 완료: viewer 필기 toolbar에서 active layer 선택/추가와 새 annotation 생성 연결을 추가했다.
+  4. 완료: 현재 active layer의 숨김/export 포함 토글을 기본 layer 외에도 적용한다.
+  5. 완료: viewer 필기 도구에서 non-default layer rename/delete UI를 추가하고 default layer를 보호한다.
+  6. 완료: layer 삭제 시 기존 annotation을 삭제하지 않고 default fallback으로 유지하는 회귀를 검증했다.
+  7. 완료: 기존 annotation layer 이동과 hidden layer hit-test/eraser/undo/redo 차단.
+  8. 완료: toolbar undo/redo를 active display layer로 좁힌다. 숨김 layer entry는 보존하지만 숨김 중에는
+     계속 건너뛴다.
+  9. 완료: 확인 후 현재 layer의 모든 stroke/text와 관련 undo/redo payload를 다른 기존 layer로 함께
+     이동한다. 원래 layer는 비운 상태로 보존하며 임의 객체 multi-select는 별도 후속이다.
+- 검증 완료: 기존 annotation default fallback, hidden layer visible filter, hidden layer hit-test/eraser/undo/redo
+  exclusion, active-layer undo/redo targeting, export-disabled layer export filter, removed/unknown layer default
+  fallback, active layer selector UI, non-default layer state persistence, layer rename/delete UI와 삭제 후
+  annotation fallback, 현재 layer 전체 이동과 이력 payload 재키잉.
+- 남은 테스트/fixture/실기기 조건: stylus drawing while switching layers,
+  PDF export with multiple layers on device, large annotation layer performance.
+- Acceptance criteria: 사용자가 레이어를 숨기거나 export 제외해도 기존 필기가 사라지지 않고, 새 필기는
+  선택한 layer에 안전하게 저장되며, 실패 시 built-in annotation flow가 계속 동작한다.
+- Blocker 해제 조건: layer management UX 결정, deletion policy, stylus QA.
+
+## 17. Setlist Package Annotation Sidecar
+
+- 현재 상태: `clef.setlist.package` v1은 악보 파일, 세트리스트 설정, user stamp metadata와 참조된
+  image stamp asset을 전달한다. 고유 원본을 가진 PDF/image 악보는 일반 stroke/text/multi-layer/image stamp
+  필기도 sidecar로 내보내고 새 악보 import에서 복원한다. 삭제된 image stamp definition은 피커에 되살리지
+  않으면서 이미 배치된 필기의 검증된 asset만 전달한다. 같은 원본을 공유하는 PDF/image 악보는 필기가
+  있으면 악보별 package entry로 분리해 기존 v1 sidecar 계약으로 각각 전달하고, 필기가 없으면 원본 entry를
+  계속 dedupe한다. Text/DOCX/RTF 필기는 preview에서 제외 수와 이유를 밝히며 완전한 이동에는 full backup을 안내한다.
+- 첫 계약: optional `annotations/<score-path-sha256>.json` sidecar가 package의 `scores/` entry 하나를
+  가리킨다. Sidecar는 `clef.setlist.package.annotation` scope/version, score entry path, score bytes의
+  SHA-256, committed stroke/text/layer document를 담는다. 로컬 score id와 undo/redo history는 내보내지
+  않는다.
+- 로컬 검증: strict codec은 safe relative score/sidecar path, 16 MiB sidecar, 20,000 object,
+  1,000,000 point 상한, exact score checksum, 중복 object id, 알 수 없는 layer, malformed UTF-8/JSON을
+  검사한다. Parser가 손상된 object를 조용히 버린 경우에도 raw/parsed count 불일치로 거부한다.
+- export 정책:
+  - 보이는 layer만이 아니라 전체 committed layer와 visibility/export flag를 전달한다. Package transfer는
+    렌더된 PDF export가 아니라 다른 Clef library에서 편집을 이어가기 위한 데이터 이동이기 때문이다.
+  - score bytes를 읽은 시점의 checksum을 sidecar에 기록해 다른 파일에 필기가 붙는 것을 막는다.
+  - image stamp annotation이 참조하는 asset은 package `stamps/` entry로 전달한다. Active user stamp metadata가
+    없어도 안전한 경로, 크기, 디코딩, 픽셀 한도를 통과하면 배치된 필기 전용 asset으로 복원하되 피커 정의를
+    새로 만들지 않는다. 해결되지 않은 asset reference가 있으면 annotation sidecar를 완전 전송으로 표시하지 않는다.
+- import/충돌 정책:
+  - package에서 새로 만드는 score에는 checksum과 sidecar 검증이 모두 끝난 뒤 필기를 연결할 수 있다.
+  - 기존 local score와 매칭된 항목에는 필기를 자동 덮어쓰거나 병합하지 않는다. 첫 UI는 `건너뜀`과
+    명확한 경고를 기본으로 하고, object-id/tombstone 충돌 규칙이 생기기 전에는 explicit merge를 열지 않는다.
+  - invalid sidecar를 조용히 무시하지 않는다. Preview에서 해당 악보의 필기 문제를 분리해 보여주고,
+    사용자가 `악보와 세트리스트만 가져오기`를 명시적으로 선택하기 전에는 partial import를 실행하지 않는다.
+  - inline/file-backed 저장 차이는 기존 annotation store API에서 정규화하며 외부 path를 package에 넣지 않는다.
+- transaction/rollback 정책: 새 score 파일, annotation write, metadata와 setlist save를 하나의 import 요청
+  수명으로 다룬다. 실패 시 이번 요청이 만든 unreferenced managed file만 정리하고 기존 score/annotation은
+  보존한다. rollback 자체 실패나 프로세스 강제 종료까지 보장한다고 표현하지 않는다.
+- 다음 구현 단계:
+  1. 완료: sidecar envelope/path/checksum/annotation validation codec과 회귀 테스트.
+  2. 완료: package archive decode/encode에 optional sidecar collection을 연결하고 score bytes checksum,
+     orphan/duplicate sidecar를 검증한다. Sidecar가 없는 기존 v1 package는 그대로 읽는다.
+  3. 완료: export에서 ZIP에 쓴 score bytes checksum과 annotation document를 묶었다. PDF/image 일반 필기와
+     검증된 image stamp 필기를 sidecar로 내보내며, 필기가 있는 shared-source score는 악보별 package entry로
+     분리해 각각의 sidecar를 보존한다. Text 문서와 image stamp asset이 없거나 손상된 문서는 명시적으로
+     제외한다. 삭제된 picker 정의는 필수 조건이 아니다.
+  4. 완료: dry-run은 `새 악보 필기 복원`과 `기존 악보/텍스트 악보라 보호·미적용`을 구분하고 preview에서
+     미적용 경계를 명시한다. Image stamp asset은 실제 SHA-256/크기/디코딩/픽셀 치수를 metadata와
+     대조해 손상 또는 바뀐 파일을 package codec에서 차단한다. Import는 필요한 image asset을 metadata
+     transaction 전에 저장하고, 동일 checksum은 재사용하며 같은 경로의 다른 local 파일은 보존한다.
+  5. 완료: 새 PDF/image score의 stroke/text/multi-layer/image stamp sidecar를 score/setlist metadata transaction에
+     연결하고 기존 score는 덮어쓰지 않는다. ZIP 입력은 압축 크기 256MB, entry 512개, 단일
+     entry 128MB, 전체 해제 크기 256MB 한도를 codec에서 공유하며, 파일 picker는 대용량 ZIP을 bytes
+     로드 전에 차단한다.
+  6. 완료: picker에서 삭제된 image stamp definition이 있어도 placed annotation이 참조하는 안전한
+     PNG/JPEG/WebP asset을 package에 포함하고 복원한다. Import는 asset checksum을 실제 bytes에서 계산하며
+     user stamp pack을 합성하지 않아 삭제된 picker 항목을 되살리지 않는다.
+  7. 완료: 같은 PDF/image source를 공유하는 songbook score에 서로 다른 필기가 있으면 source bytes를
+     악보별 package entry로 분리하고 기존 sidecar v1 path/checksum 계약으로 각 annotation document를
+     복원한다. 필기가 없는 shared source는 한 entry로 dedupe한다.
+- Acceptance criteria: 새 score의 multi-layer annotation round-trip, 기존 score 무변경, image stamp asset
+  해석, corrupt/duplicate/checksum mismatch 차단, save failure cleanup, library switch, retry를 자동 검증하고
+  stylus 렌더링과 큰 annotation 문서는 Device QA로 확인한다.
+
 ## RC 이후 추천 우선순위
 
-1. 실제 CamScanner/object stream 샘플과 Android tablet smoke QA로 v1 RC release blocker를 먼저 닫는다.
+1. Android/iPad 실기기 QA에서 S Pen/stylus, audio, pedal, 장시간 연주 결과를 먼저 닫는다.
 2. HID key capture wizard와 S Pen tuning은 실기기 QA 결과가 바로 설계 입력이 되므로 장비 테스트 직후
    v1.1 spike로 착수한다.
-3. OCR, HEIC, font embedding은 engine/license/sample 결정이 선행되어야 하므로 별도 기술 선택 회의로
+3. Custom stamp pack은 text/icon-only schema와 backup/restore fixture부터 시작하고, 이미지 stamp는
+   라이선스/용량/export 정책이 정해질 때까지 열지 않는다.
+4. OCR, HEIC, font embedding은 engine/license/sample 결정이 선행되어야 하므로 별도 기술 선택 회의로
    묶는다.
-4. Page별 live rotation은 `pdfrx` API 선택과 overlay/link/search coordinate regression을 먼저
+5. Page별 live rotation은 `pdfrx` API 선택과 overlay/link/search coordinate regression을 먼저
    고정한다.
-5. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
+6. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
    adapter 설계를 먼저 고정한다.
-6. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
+7. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
    audio lifecycle 영향이 있으므로 v1.1 spike로 설계한 뒤 구현한다.
-7. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.
+8. Cloud sync/account/server 저장은 backup health/status와 sync dry-run부터 시작하고, continuous sync는
+   conflict/privacy 전략 확정 이후 V2/Later 투자 판단으로 남긴다.
+9. Leader/follower tablet은 offline event model과 simulator로 mismatch/reconnect UX를 먼저 검증한 뒤
+   실제 transport 구현을 결정한다.

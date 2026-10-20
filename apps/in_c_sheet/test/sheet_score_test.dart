@@ -164,6 +164,16 @@ void main() {
           SheetAutoScrollCuePoint(pageNumber: 5, measureNumber: 12, label: 'B'),
         ],
       ),
+      chordProDisplaySettings: const SheetChordProDisplaySettings(
+        transposeSemitones: 3,
+        showCapoShapes: true,
+        capoFretsOverride: 5,
+        columnCount: 2,
+        fontScalePercent: 130,
+      ),
+      textDisplaySettings: const SheetTextDisplaySettings(
+        fontScalePercent: 115,
+      ),
     );
 
     final encoded = SheetScore.encodeList(<SheetScore>[score]);
@@ -277,6 +287,47 @@ void main() {
       decoded.single.autoScrollSettings.cuePoints.single.measureNumber,
       12,
     );
+    expect(decoded.single.chordProDisplaySettings.transposeSemitones, 3);
+    expect(decoded.single.chordProDisplaySettings.showCapoShapes, isTrue);
+    expect(decoded.single.chordProDisplaySettings.capoFretsOverride, 5);
+    expect(decoded.single.chordProDisplaySettings.columnCount, 2);
+    expect(decoded.single.chordProDisplaySettings.fontScalePercent, 130);
+    expect(decoded.single.textDisplaySettings.fontScalePercent, 115);
+  });
+
+  test('normalizes ChordPro display settings safely', () {
+    final decoded = SheetChordProDisplaySettings.fromJson(<String, Object?>{
+      'transposeSemitones': 48,
+      'showCapoShapes': true,
+      'capoFretsOverride': 48,
+      'columnCount': 48,
+      'fontScalePercent': 122,
+    });
+
+    expect(decoded.transposeSemitones, 11);
+    expect(decoded.showCapoShapes, isTrue);
+    expect(decoded.capoFretsOverride, 12);
+    expect(decoded.columnCount, 2);
+    expect(decoded.fontScalePercent, 115);
+    expect(decoded.copyWith(transposeSemitones: -48).transposeSemitones, -11);
+    expect(decoded.copyWith(capoFretsOverride: -4).capoFretsOverride, 0);
+    expect(decoded.copyWith(columnCount: -4).columnCount, 1);
+    expect(decoded.copyWith(fontScalePercent: 999).fontScalePercent, 130);
+    expect(
+      decoded.copyWith(clearCapoFretsOverride: true).capoFretsOverride,
+      isNull,
+    );
+    expect(SheetChordProDisplaySettings.defaultSettings.isDefault, isTrue);
+  });
+
+  test('normalizes plain text display settings safely', () {
+    final decoded = SheetTextDisplaySettings.fromJson(<String, Object?>{
+      'fontScalePercent': 122,
+    });
+
+    expect(decoded.fontScalePercent, 115);
+    expect(decoded.copyWith(fontScalePercent: 999).fontScalePercent, 130);
+    expect(SheetTextDisplaySettings.defaultSettings.isDefault, isTrue);
   });
 
   test('normalizes custom metadata fields safely', () {
@@ -333,6 +384,59 @@ void main() {
           .copyWith(filePath: '/downloads/plain-name.PDF')
           .sourceFileDisplayName,
       'plain-name',
+    );
+  });
+
+  test('keeps extracted document text read-only', () {
+    final now = DateTime.parse('2026-10-20T21:00:00.000');
+    final plainText = SheetScore(
+      id: 'plain-text',
+      title: 'Lesson notes',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/app/docs/scores/plain-text.txt',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    expect(plainText.isExtractedDocumentText, isFalse);
+    expect(plainText.isEditablePlainTextSource, isTrue);
+
+    for (final sourceType in <String>['DOCX', ' rtf ']) {
+      final extracted = plainText.copyWith(
+        customFields: <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '출처 유형', value: sourceType),
+        ],
+      );
+
+      expect(extracted.isExtractedDocumentText, isTrue);
+      expect(extracted.isEditablePlainTextSource, isFalse);
+    }
+
+    final extractedWithReference = plainText.copyWith(
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/app/docs/linked/original.docx',
+          type: 'docx',
+          label: 'original.docx',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: now,
+        ),
+      ],
+    );
+    expect(extractedWithReference.isExtractedDocumentText, isTrue);
+    expect(extractedWithReference.isEditablePlainTextSource, isFalse);
+
+    expect(
+      plainText
+          .copyWith(filePath: '/app/docs/scores/lesson.pdf')
+          .isEditablePlainTextSource,
+      isFalse,
     );
   });
 
@@ -1016,6 +1120,91 @@ void main() {
     expect(imageFile.toJson().containsKey('audioLoopEndMs'), isFalse);
   });
 
+  test('normalizes named audio loop markers and preserves them in JSON', () {
+    final audioFile = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'type': 'm4a',
+      'label': 'Backing track',
+      'createdAt': '2026-10-20T10:00:00.000',
+      'audioLoopMarkers': <Object?>[
+        <String, Object?>{
+          'id': 'intro',
+          'label': ' Intro ',
+          'startMs': 0,
+          'endMs': 8000,
+        },
+        <String, Object?>{
+          'id': 'intro',
+          'label': 'Duplicate',
+          'startMs': 9000,
+          'endMs': 12000,
+        },
+        <String, Object?>{
+          'id': 'invalid',
+          'label': 'Invalid',
+          'startMs': 5000,
+          'endMs': 4000,
+        },
+        <String, Object?>{
+          'id': 'solo',
+          'label': 'Solo',
+          'startMs': '12500',
+          'endMs': 24000.4,
+        },
+      ],
+    });
+
+    expect(audioFile.audioLoopMarkers, hasLength(2));
+    expect(audioFile.audioLoopMarkers.first.label, 'Intro');
+    expect(audioFile.audioLoopMarkers.last.id, 'solo');
+    expect(audioFile.audioLoopMarkers.last.startMs, 12500);
+    expect(audioFile.audioLoopMarkers.last.endMs, 24000);
+    expect(audioFile.toJson()['audioLoopMarkers'], <Map<String, Object?>>[
+      <String, Object?>{
+        'id': 'intro',
+        'label': 'Intro',
+        'startMs': 0,
+        'endMs': 8000,
+      },
+      <String, Object?>{
+        'id': 'solo',
+        'label': 'Solo',
+        'startMs': 12500,
+        'endMs': 24000,
+      },
+    ]);
+  });
+
+  test(
+    'limits named audio loop markers and removes them from non-audio files',
+    () {
+      final markers = List<SheetAudioLoopMarker>.generate(
+        SheetLinkedFile.maxAudioLoopMarkers + 3,
+        (index) => SheetAudioLoopMarker(
+          id: 'marker-$index',
+          label: 'Marker $index',
+          startMs: index * 1000,
+          endMs: (index + 1) * 1000,
+        ),
+      );
+      final audioFile = SheetLinkedFile(
+        path: '/tmp/backing.mp3',
+        type: 'mp3',
+        label: 'Backing',
+        createdAt: DateTime(2026, 10, 20),
+        audioLoopMarkers: markers,
+      ).copyWith();
+      final pdfFile = audioFile.copyWith(path: '/tmp/score.pdf', type: 'pdf');
+
+      expect(
+        audioFile.audioLoopMarkers,
+        hasLength(SheetLinkedFile.maxAudioLoopMarkers),
+      );
+      expect(pdfFile.audioLoopMarkers, isEmpty);
+      expect(pdfFile.toJson().containsKey('audioLoopMarkers'), isFalse);
+    },
+  );
+
   test('normalizes decimal JSON numbers in score metadata', () {
     final bookmark = SheetBookmark.fromJson(<String, Object?>{
       'pageNumber': 2.6,
@@ -1455,5 +1644,91 @@ void main() {
     expect(decoded.left, normalized.left);
     expect(decoded.right, normalized.right);
     expect(decoded.hasCrop, isTrue);
+  });
+
+  test('score import provenance round trips without sensitive tokens', () {
+    final now = DateTime.utc(2026, 10, 19);
+    final score = SheetScore(
+      id: 'folder-score',
+      title: 'Folder score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/folder-score.pdf',
+      importSource: SheetScoreImportSource.create(
+        platform: ' android-saf-copy ',
+        displayName: ' Folder Score.pdf ',
+        folderLabel: ' Recital PDFs ',
+        providerLabel: ' Downloads ',
+        sizeBytes: 4096,
+        modifiedAt: now,
+      )!,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    final encoded = SheetScore.encodeList(<SheetScore>[score]);
+    final restored = SheetScore.decodeList(encoded).single;
+
+    expect(restored.importSource?.platform, 'android-saf-copy');
+    expect(restored.importSource?.displayName, 'Folder Score.pdf');
+    expect(restored.importSource?.locationLabel, 'Recital PDFs · Downloads');
+    expect(restored.importSource?.modifiedAt, now);
+    expect(restored.matches('recital pdfs'), isTrue);
+    expect(encoded, isNot(contains('content://')));
+    expect(encoded, isNot(contains('documentToken')));
+  });
+
+  test('score ignores malformed import provenance', () {
+    final now = DateTime.utc(2026, 10, 19);
+    final json = <String, Object?>{
+      'id': 'score',
+      'title': 'Score',
+      'composer': '',
+      'tags': const <String>[],
+      'note': '',
+      'filePath': '/tmp/score.pdf',
+      'importedAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+      'lastPage': 1,
+      'isFavorite': false,
+      'bookmarks': const <Object?>[],
+      'importSource': <String, Object?>{
+        'platform': 'android-saf-copy',
+        'displayName': ' ',
+        'documentToken': 'content://provider/secret',
+      },
+    };
+
+    final score = SheetScore.fromJson(json);
+
+    expect(score.importSource, isNull);
+    expect(score.toJson().containsKey('importSource'), isFalse);
+  });
+
+  test('score import provenance rejects URI hints and caps labels', () {
+    expect(
+      SheetScoreImportSource.create(
+        platform: 'android-saf-copy',
+        displayName: 'content://provider/secret',
+      ),
+      isNull,
+    );
+
+    final source = SheetScoreImportSource.create(
+      platform: 'android-saf-copy',
+      displayName: 'Score.pdf',
+      folderLabel: 'content://tree/secret',
+      providerLabel: List<String>.filled(300, 'p').join(),
+    );
+
+    expect(source, isNotNull);
+    expect(source?.folderLabel, isNull);
+    expect(source?.providerLabel, hasLength(256));
+    expect(source?.toJson().values.join(' '), isNot(contains('content://')));
   });
 }

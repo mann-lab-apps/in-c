@@ -27,6 +27,16 @@ class SheetMetronomeSoundPlayer {
     }
   }
 
+  Future<void> stop() async {
+    try {
+      await _channel.invokeMethod<void>('stop');
+    } on MissingPluginException {
+      // Platforms without a native player have no persistent output to stop.
+    } on PlatformException {
+      // Stopping is best effort and must not interrupt closing the UI.
+    }
+  }
+
   Future<SheetMetronomeOutputStatus> playClick({
     required SheetMetronomeSettings settings,
     required bool accent,

@@ -34,13 +34,13 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 범주 | 기능 | 레퍼런스 기준 | 단계 | 난이도 | 주요 의존성/메모 |
 | --- | --- | --- | --- | --- | --- |
 | 라이브러리 | PDF 가져오기 | MobileSheets/Piascore 기본 | MVP | 중간 | 구현됨: Android/iOS file picker와 share import, 로컬 사본 정책, 단일/여러 PDF 가져오기, 가져오며 세트리스트 추가 action |
-| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정보 정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 해당 rail의 카드 footer는 `정보 편집`으로 표시해 최근 항목과 구분한다. 일괄 편집에서도 태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 custom field를 여러 악보에 한 번에 지정 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
-| 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB. 검색/필터/`최근 악보`/최근 세트리스트와 전체 목록을 하나의 세로 스크롤로 연결하고 악보 list/grid는 지연 렌더링. 홈 quick access는 `정보 정리 필요`, `고정`, `즐겨찾기`, `최근 악보`, `최근 세트리스트`를 이름과 footer action으로 구분한다 |
+| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정보 정리 필요` 작업 패널, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 해당 패널은 악보 열기 카드가 아니라 `정보 보강` 작업 카드와 `정보 편집` 버튼으로 표시해 최근 항목과 구분한다. 일괄 편집에서도 태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 custom field를 여러 악보에 한 번에 지정 가능. 사용자 필드에는 `조성`/`박자`/`조표`/`장르`/`앨범`/`난이도`/`편성`/`출처`/`출처 유형`/`연도` 추천 칩, 같은 필드에 이전에 입력한 값 제안, 홈 빠른 facet 필터를 제공 |
+| 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB. 검색/필터/`최근 악보`/최근 세트리스트와 전체 목록을 하나의 세로 스크롤로 연결하고 악보 list/grid는 지연 렌더링. 홈 quick access는 `고정`, `즐겨찾기`, `최근 악보`, `최근 세트리스트`를 악보 열기 카드로 두고, `정보 정리 필요`는 별도 작업 패널로 분리한다 |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
-| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/작곡가/컬렉션/그룹/별점 필터. MobileSheets의 Artists 탭은 Clef에서 작곡가 facet으로, Key/Genre/Difficulty 축은 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수한다. 적용 중인 검색/필터 조건은 해제 가능한 요약 칩으로 표시하고, facet 값이 많을 때는 `더 보기` sheet에서 검색으로 좁혀 숨겨진 값까지 선택 가능. 저장 실패 시 현재 요청의 설정만 복구하고 홈 오류 안내/재시도, 지연 저장의 원래 library 범위 유지 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 다른 세트리스트 이어붙이기/중복·누락 skip/새 곡 공연 설정 가져오기, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 순서/시작 쪽/시간/메모를 담은 세트리스트 목록 복사, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지와 곡별 메모 표시 |
-| 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
+| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/작곡가/컬렉션/그룹/별점 필터. MobileSheets의 Artists 탭은 Clef에서 작곡가 facet으로, Key/Genre/Difficulty 축은 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수한다. 적용 중인 검색/필터 조건은 해제 가능한 요약 칩으로 표시하고, facet 값이 많을 때는 `더 보기` sheet에서 검색으로 좁혀 숨겨진 값까지 선택 가능. 12곡 이상 현재 목록은 제목 첫 글자별 `빠른 찾기` sheet로 바로 악보를 고를 수 있다. 저장 실패 시 현재 요청의 설정만 복구하고 홈 오류 안내/재시도, 지연 저장의 원래 library 범위 유지 |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 다른 세트리스트 이어붙이기/중복·누락 skip/새 곡 공연 설정 가져오기, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 제목/곡수/예상 시간/전환/곡별 파일명/시작 쪽/시간/메모/태그/분류/custom field/메트로놈 설정을 담은 공유용 세트리스트 manifest 미리보기/복사, 복사 manifest 붙여넣기 import, 현재 라이브러리 악보 매칭 preview, missing/ambiguous 저장 차단, 순서/시작쪽/메모/예상 시간/전환 보존 새 세트리스트 생성, PDF/image/text/ChordPro/DOCX/RTF package를 위한 `clef.setlist.package` v1 ZIP codec/export/dry-run/import model, 고유 원본 PDF/image의 stroke/text/multi-layer annotation sidecar와 검증된 image stamp asset export/신규 score 복원, shared-source는 필기 존재 시 악보별 entry로 분리, text 및 불완전 image-stamp 필기 제외 preview, 세트리스트 상세의 ZIP package export preview/share, 세트리스트 화면의 ZIP 선택 import preview 후 기존 악보 reuse와 package 파일 import를 섞은 새 세트리스트 저장, missing/duplicate/ambiguous 저장 차단, 저장 실패 시 기존 목록 복구, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지와 곡별 메모 표시 |
+| 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기. 원본 PDF 목차는 계층을 유지한 읽기 전용 목록에서 저장 없이 바로 이동할 수 있고, page picker의 `표시 지점` 칩에서는 북마크/리허설 마크로 이동한다 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기/삭제. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경/삭제는 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리하고 삭제는 목록/활성 ID fallback/프로필 데이터 제거를 묶어서 처리. S42: 최신 읽기 요청만 완성된 상태/오류/로딩 종료를 반영. S43: 내용 읽기 실패 후 이전 활성 ID 복구 시도/복구 실패 안내. S44: 같은 라이브러리 재로드 중 새 편집/저장 복구 요청/오류를 보존하고, 전환 중 새 전역 설정도 유지 |
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
@@ -51,11 +51,11 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 파일 | 외부 앱에서 PDF 열기/import | 국내 공유 흐름 | MVP | 중간 | 16차 구현: Android ACTION_VIEW/SEND PDF 수신, iOS document open URL bridge. iOS Share Extension은 후속 |
 | 파일 | PDF 공유/export/print handoff | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유. v1.1 보강: viewer와 카드 메뉴에서 `PDF 공유/인쇄`, `필기 포함 PDF 공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상까지 찾을 수 있게 한다. 전용 native print 엔진은 아직 없음 |
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
-| 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
-| 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
-| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`로 새 PDF 사본을 현재 파일로 승격하고 이전 PDF를 연결된 edited copy로 보존 |
+| 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | v1.1에서는 가져오기 메뉴와 import policy가 일반 텍스트, DOCX/RTF 및 ChordPro 범위를 구분해 silent fail을 막는다. `.txt/.text/.md/.markdown`은 최대 2 MiB, strict UTF-8, non-empty 검사를 거쳐 파일 선택으로 앱 내부에 복사하고 library score로 저장하며, 선택 가능한 텍스트 viewer와 500개 제한 highlight/이전·다음 이동을 갖춘 `찾기`로 연다. 이름 있는 `원문 편집`은 같은 크기/빈 내용 경계와 원자적 파일 교체를 적용하고 metadata 저장 실패나 라이브러리 전환에는 이전 source를 복구한다. DOCX는 제한된 ZIP/XML parser가 문단·탭·줄바꿈, 표의 행/열 관계, 기본 숫자/문자/로마자/불릿 목록 표식과 core title/creator를 추출해 읽기 전용 viewer로 열고, 원본 DOCX는 reference 연결 파일로 보존해 full backup과 Clef setlist package에 포함한다. 추출된 `.txt` 경로도 `출처 유형`이 DOCX/RTF이면 viewer에 `읽기 전용`을 표시하고 UI와 controller 양쪽에서 원문 편집을 차단하되 텍스트 찾기는 유지한다. 일반 텍스트와 DOCX/RTF 추출 viewer는 악보별 85/100/115/130% 글자 크기를 저장하며 읽기 전용 여부와 검색 정책을 바꾸지 않는다. 표는 행을 줄바꿈, 열을 tab, 한 셀의 여러 문단을 구분자로 평탄화하며 시각적 Word layout을 재현하지 않는다. 입력 16 MiB, 압축 해제 32 MiB, document XML 4 MiB, numbering XML 1 MiB 제한과 손상/빈 문서 차단이 있다. RTF는 최대 2 MiB에서 문단·줄바꿈·탭·Unicode/ANSI escape를 추출해 같은 viewer로 열고 원본 reference, full backup과 setlist package를 보존한다. ChordPro title/subtitle/artist/composer/album/year/key/time/tempo/duration/capo와 chord lyric token parser core, whitespace argument/label directive support, chord-only line, comment/section/chorus rehearsal label, tab block cue, page/column break cue를 보존하는 chord-over-lyric rendering core를 추가했다. 가져오기 안내의 `ChordPro 붙여넣기 미리보기`와 파일 선택은 같은 2 MiB·strict UTF-8·non-empty 경계를 사용하며 `.cho/.chordpro/.chopro/.chord/.crd/.pro/.song/.onsong` 원문 확장자와 bytes를 보존한다. 저장된 ChordPro viewer는 곡별 이조·카포 운지, 이름 있는 `구간`, 500개 제한 코드/가사 찾기, 85/100/115/130% 글자 크기, segment 동반 줄바꿈과 넓은 화면 1단/2단 설정을 제공한다. 글자 크기는 시스템 접근성 배율 위에 적용되고 다른 표시 조정과 함께 악보별로 저장된다. 2단은 명시적인 column break를 우선하고 없으면 가까운 구간 경계에서 나누며 좁은 폰은 1단으로 fallback한다. ChordPro `원문 편집`도 같은 크기/빈 내용 검사와 롤백을 적용하며 원문의 title/composer directive가 사용자가 정리한 library metadata를 자동 덮어쓰지는 않는다. Clef setlist package도 plain text/ChordPro와 imported DOCX/RTF 원본/형식 metadata를 export/import하고 full backup round-trip을 검증한다. DOCX/RTF rich layout 편집과 사용자 정의 번호 스타일은 후속 |
+| 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | v1.1 parser core는 root/suffix/slash bass/key directive transpose, capo metadata 읽기, concert chord 기준 capo shape 계산, transposed/capo-shape rendering과 structured display cells를 지원한다. 저장된 ChordPro viewer에는 반음 올림/내림, 0-12 프렛 카포 위치 조정, 원래대로, 카포 운지 표시 toggle과 넓은 화면 1단/2단 선택이 있고, 이조/카포 override/운지/단 설정은 score metadata에 저장되어 악보를 다시 열어도 유지된다. 표시 조정은 원문을 바꾸지 않으며, 명시적인 `원문 편집`만 source를 저장한다. 다양한 실문서의 2단 균형은 Device QA |
+| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`와 연결 폴더의 명시적 원본 적용으로 새 관리 사본을 현재 파일로 승격하고 이전 파일을 연결된 edited copy로 보존. 연결 파일 목록은 PDF/이미지/오디오/텍스트/ChordPro 라벨과 아이콘으로 구분하며, 이전 plain text/ChordPro 및 DOCX/RTF 추출 텍스트 사본은 현재 악보를 전환하지 않는 읽기 전용 viewer로 확인한다. 보존된 DOCX/RTF 원본 자체의 앱 내 렌더링은 후속 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | CSV/PDF 북마크로 같은 PDF를 참조하는 곡 항목을 생성한다. 곡 밖 페이지는 숨기고 표시 순서/자동 스크롤/점프/리허설 마크를 해당 구간으로 제한한다. 구간이 모두 숨겨져 있으면 새 곡의 첫 페이지 한 장을 표시한다. 같은 원본/표시 구간/제목은 중복 생성하지 않고 생성 직후 `세트리스트 만들기`로 곡 모음을 만든다. 원본 PDF/설정은 보존하며 물리 분할은 후속 |
-| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
+| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | v1.1 첫 구현은 direct score가 아니라 Android SAF `연결된 폴더에서 악보 고르기` + 선택 복사다. 유지 가능한 tree read permission은 기기 안의 연결 목록에서 재사용/해제하고, 유지 불가 provider는 일회성으로 내려간다. direct child 후보를 최대 201개까지 읽어 PDF/plain text/ChordPro/DOCX/RTF와 중복/읽기 실패/미지원 상태를 보여준다. 혼합 선택은 기존 형식별 parser/storage를 거쳐 모두 성공할 때만 목록에 저장하며 실패한 요청의 앱 소유 사본과 native cache를 best-effort로 정리한다. folder/provider/원본 파일명/크기/수정 시각 provenance는 남기되 token/URI와 연결 목록은 score/backup/support report에 저장하지 않는다. 같은 PDF/plain text/ChordPro/DOCX/RTF 원본의 변경을 감지하면 사용자가 확인 후 같은 형식의 새 관리 사본을 적용할 수 있고, score ID/metadata/필기/세트리스트 참조를 유지한 채 이전 파일을 linked edited copy로 보존한다. DOCX/RTF는 새 추출 텍스트와 원본 reference를 함께 검증하고 교체한다. 앱 내부 사본 없는 persistent direct score, 자동 동기화, iOS Files parity는 후속이다 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
@@ -63,7 +63,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 보기 | 세로 스크롤 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx` 기본 세로 연속 layout, 좁은 화면 기본값 |
 | 보기 | 가로 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: 1페이지 mode에서 가로 page layout. 첫 진입 tap zone hint와 `터치 영역 다시 보기` action으로 왼쪽 이전/가운데 메뉴/오른쪽 다음 영역을 안내 |
 | 보기 | 반 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 5차 구현: 곡별 저장, visible viewport 기반 반 페이지 이동, 2페이지 보기와 동시 사용 제한 |
-| 보기 | 긴 PDF 페이지 탐색 | MobileSheets 지원 | V1.x | 낮음 | 구현됨: viewer `페이지 탐색`에서 현재/선택 page, slider, 쪽 번호 직접 이동, 숨김/복제/순서 제외 표시를 제공한다. 이동은 기존 visible-page 보정과 page order cursor를 재사용한다 |
+| 보기 | 긴 PDF 페이지 탐색 | MobileSheets 지원 | V1.x | 낮음 | 구현됨: viewer `페이지 탐색`에서 현재/선택 page, slider, 쪽 번호 직접 이동, 처음/현재/끝/10쪽 전후 빠른 이동, 숨김/복제/순서 제외 표시를 제공한다. 북마크/리허설 마크는 `표시 지점` 개수, 타입 라벨 chip, 목록형 target row로 구분해 선택할 수 있고, 악보 위 빠른 이동 overflow도 점프/리허설/북마크를 타입 우선 라벨로 표시한다. 이동은 기존 visible-page 보정과 page order cursor를 재사용한다 |
 | 보기 | 확대/축소/이동 | 양쪽 기본 | MVP | 중간 | `pdfrx` 기본 동작. 8차에서 annotation overlay를 page rect 기준으로 보강 |
 | 보기 | 마지막 위치 저장 | 기본 기대 | MVP | 낮음 | per-score setting |
 | 보기 | 곡별 보기 설정 | MobileSheets 지원 | MVP | 중간 | 5차 구현: displayMode, halfPageTurn 저장. 좁은 화면 2페이지 fallback |
@@ -79,7 +79,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 instance override metadata, 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate, duplicate별 crop/rotation override, 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | 구현됨: 빈 페이지 metadata와 실제 PDF page tree 적용 사본 생성 |
-| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, rename/delete |
+| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, 페이지 탐색 표시 지점, rename/delete |
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |
 | PDF 링크 | link annotation 표시 | 사용자 차별화 | MVP | 중간 | 구현됨: `pdfrx` link handler 영역 표시 |
 | PDF 링크 | link tap 비활성화 | 사용자 차별화 | MVP | 중간 | 구현됨: URL tap 차단, 내부 destination 유지 |
@@ -92,30 +92,34 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 구현됨: stroke/text/redo와 layer flag를 SharedPreferences inline metadata로 저장하고, file-backed annotation store adapter/external reference를 v1.1 준비 상태로 보유 |
-| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, 검색 가능한 stamp picker, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
+| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, 검색/카테고리 칩/최근 사용/빠른 선택 row로 좁히고 다시 고를 수 있는 stamp picker, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 사용자 stamp pack은 text/icon/image schema, JSON validator, picker section, library-scoped 저장, metadata backup/restore fixture와 unsafe external backup 정규화 회귀까지 준비됐고, text/icon stamp는 생성/선택/삭제 후 기존 text annotation path로 찍을 수 있으며 built-in stamp와 같은 검색/카테고리 필터에 참여한다. 대형 사용자 pack은 sheet overflow를 피하도록 일부 chip과 숨김 개수를 먼저 보여주고 검색/카테고리로 좁힌다. Setlist package ZIP은 text/icon/image user stamp metadata를 optional entry로 포함하고 import preview에서 신규/중복 stamp 수를 구분하며, unsafe package stamp metadata는 정규화해 안전한 pack만 남긴 뒤 성공 후 신규 stamp id만 active library에 병합한다. image stamp pack은 `stamps/` 상대 경로, PNG/JPEG/WebP, SHA-256, 2MB/2048px 제한 validator와 app-owned `annotation-stamps/` copy/store helper를 갖췄고, picker에서 이미지 파일을 선택해 이름을 붙여 저장/선택할 수 있다. 선택한 image stamp는 placed annotation에 `stampKind`/`stampAssetRef`를 보존하고 viewer overlay에서 app-owned asset을 bitmap으로 그리며, asset이 없으면 label fallback으로 표시한다. 삭제된 image stamp definition의 asset은 남은 stamp pack과 placed annotation이 더 이상 참조하지 않을 때만 cleanup한다. Setlist package ZIP codec/export는 참조된 image stamp asset bytes를 `stamps/` 아래 포함하고 asset이 없는 image stamp metadata는 버린다. Full backup ZIP도 `stamp-assets/` mapping으로 image stamp asset bytes를 백업/복원한다. Flattened PDF export는 app-owned PNG/JPEG/WebP image stamp를 PDF image XObject로 찍고, 누락/깨진 asset은 label fallback으로 처리한다. Editable standard PDF export는 PNG/JPEG/WebP image stamp를 PDF-friendly appearance로 변환해 `/Stamp`로 쓰며 누락/깨진 asset은 일반 사본 fallback이 필요한 unsupported mapping으로 분리한다 |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
 | 주석 | crescendo/diminuendo hairpin | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 헤어핀 필기, hit-test/delete, redo, PDF export rendering |
-| 주석 | staff/grid guide | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 오선/격자 guide, hit-test/delete, redo, viewer rendering. 세부 악보 paper template/custom stamp pack은 후속 |
+| 주석 | staff/grid guide | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 오선/격자 guide, hit-test/delete, redo, viewer rendering. Editable standard PDF export는 staff를 5개 `/Line`, grid를 4x4 `/Line` guide set으로 내보낸다. 세부 악보 paper template/custom stamp pack은 후속 |
 | 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | 구현됨: favorite annotation tool preset 저장/복원, library profile별 분리. 저장 완료 후 안내/적용 상태 갱신, 중복 제출 차단, 실패 복구/재시도, 원래 library 범위 유지. 관련 회귀 및 전체 검증 통과 |
-| 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
-| 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
+| 주석 | nudge tool | MobileSheets 지원 | V1.1 | 중간 | 부분 구현: 텍스트/스탬프/필기 stroke/도형 주석을 탭한 뒤 상/하/좌/우로 조금 이동하거나 삭제할 수 있다. 현재 쪽과 현재 layer의 주석을 목록에서 여러 개 선택해 한 저장으로 다른 기존 layer에 옮길 수 있으며 중복·빈·없는 ID는 core에서 안전하게 무시한다. 캔버스 영역 선택/drag nudge는 후속 |
+| 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영한다. Editable PDF compatibility fixture는 가변 폭 `/Ink` appearance도 포함하며, Galaxy Tab S Pen 입력과 Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer의 실제 표시 QA는 별도 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
-| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. S41: 저장 실패 안내/복구/재시도, 연속 변경 중 오래된 안내 차단, 종료/다른 화면/라이브러리 전환 후 결과 억제를 로컬 테스트로 검증. 실제 PDF 조작은 기기 QA, 다중 layer/annotation별 layer keying은 후속 |
-| 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
-| 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 표준 annotation export mode는 capability flag/unsupported result로 분리. 편집 가능한 PDF 표준 객체 생성은 PDF writer API/fixture 필요 |
+| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. S41: 저장 실패 안내/복구/재시도, 연속 변경 중 오래된 안내 차단, 종료/다른 화면/라이브러리 전환 후 결과 억제를 로컬 테스트로 검증. Layer stack metadata를 안전하게 추가/교체/삭제/요약하는 helper와 stroke/text annotation별 `layerId` 저장, visible/exportable layer filtering, PDF 공유 preflight의 per-layer export filtering, 알 수 없는 layer fallback 회귀 테스트가 있다. 필기 toolbar에서 active layer를 선택/추가/이름 변경/삭제하고 새 stroke/text/stamp를 해당 layer에 저장하며, 현재 layer visibility/export를 토글할 수 있다. 기본 layer는 삭제/이름 변경을 막고, non-default layer 삭제 시 해당 stroke/text/image stamp와 redo/erase payload를 기본 layer로 재키잉해 orphan layer id를 남기지 않는다. 기존 stroke/text/stamp를 탭해 다른 기존 layer로 이동할 수 있고, 현재 layer의 모든 stroke/text와 관련 undo/redo payload도 확인 후 다른 layer로 함께 옮길 수 있다. 현재 쪽/현재 layer의 임의 주석은 목록에서 여러 개 선택해 model/controller의 한 원자적 저장으로 이동하며 실제 변경이 없으면 저장하지 않는다. 원래 layer는 비운 채 보존한다. 없는 layer나 같은 layer 이동은 no-op이다. 숨긴 layer의 annotation은 화면 렌더뿐 아니라 tap hit-test/eraser/nudge/toolbar undo/redo 대상에서도 제외된다. toolbar undo/redo는 현재 active layer에만 적용된다. 실제 PDF 조작과 목록 식별성은 기기 QA, 캔버스 영역 선택은 후속 |
+| 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속. Export capability model은 supported flattened copy와 editable standard annotation mode를 구분한다. Annotation별 layerId가 있으면 해당 layer의 export flag를 따른다 |
+| 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 1차 구현: `필기 포함 PDF 공유/인쇄`에서 일반 고정 사본과 편집 가능한 PDF 주석 사본을 선택할 수 있다. 표준 annotation export mode는 pen/highlighter `/Ink`, line/arrow `/Line`, rectangle `/Square`, crescendo/diminuendo hairpin `/Line` pair, staff/grid guide `/Line` groups, text와 text/music-symbol stamp `/FreeText`, PNG/JPEG/WebP image stamp `/Stamp` 객체를 생성하고, 다시 열었을 때 subtype, Clef `/NM` 이름, contents/generated appearance/image stamp flag 여부를 inspection fixture로 검증한다. Inspector는 FreeText의 embedded font 여부도 읽어, Unicode contents 보존과 실제 font embedding 증거를 분리하며, 중복 Clef 이름, 페이지 밖/무효 rectangle, `/A`·`/AA` action, Print 누락, Hidden/NoView 상태가 있는 Clef annotation은 외부 QA fixture로 넘기지 않는다. 원본/출력 PDF/A-2b finding을 multiset으로 비교해 Clef가 새로 만든 error/warning만 report에 분리하고 `--review-report`는 새 finding이 있으면 종료 코드 2로 차단하지만, 현재 validator가 annotation appearance font를 순회하지 않으므로 이 결과는 PDF/A 인증이나 Unicode font 증거가 아니다. 선택적 Unicode font 공급 경로는 font 형식/크기/예상 중복 크기/glyph coverage를 통과한 경우에만 embedded FreeText를 쓰며 실패 시 출력 파일을 만들지 않는다. 누락/깨진 image stamp만 있는 standard export는 파일을 쓰지 않고 일반 사본 선택 안내로 빠진다. `/Rotate`가 있는 source page는 화면 overlay 좌표를 원래 CropBox 좌표로 역변환하고, text/image stamp box는 회전 뒤 화면의 너비/높이를 기준으로 계산한다. 90/180/270도와 실제 line export fixture를 검사한다. `tool/generate_pdf_annotation_compatibility_fixture.dart`는 위 subtype을 모두 포함한 외부 viewer QA용 PDF와 PASS/ISSUE/BLOCKED/NOT_TESTED report template, Unicode 전용 fixture, 90-degree rotation/offset CropBox 전용 fixture, SHA-256가 고정된 portable QA ZIP을 생성하고 로컬 inspection을 통과해야 경로를 출력한다. Report gate는 viewer row 누락, evidence 없는 row, Unicode/glyph 근거 없는 Unicode PASS row, NOT_TESTED cell, ISSUE, BLOCKED, 누락/변경된 fixture가 있으면 external compatibility claim을 막고, 채운 report는 `--review-report`로 재검사할 수 있다. Report parser는 "Preview", "Mobile Sheets", "Android viewer" 같은 흔한 alias를 받아들이고 알 수 없는 viewer 행과 잘못 적은 상태값은 별도 경고로 출력한다. Capability model은 외부 viewer fixture, Unicode font fallback policy, PDF/A 보존 검토를 남은 spike로 노출한다. Image stamp는 flattened PDF copy에서도 PNG/JPEG/WebP bitmap으로 내보낸다. Noto CJK OFL 후보는 확인했으나 현재 writer가 whole font를 FreeText마다 포함하므로 production asset 연결 전 resource reuse/subset 지원과 Acrobat/Preview/MobileSheets/Piascore/Android PDF viewer 실호환성 QA가 남아 있다 |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
-| 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: viewer context 표시, 좁은 viewer/공연 모드 진행 배지, 리허설 모드 곡별 메모/시간 표시, 명시적 이전/다음 곡 이동 |
+
+PDF annotation compatibility handoff now reorders its three-page source to `3, 1, 2` before applying a 90-degree
+rotation and offset CropBox to current page 2. Local inspection requires the Clef fixture annotations only on that
+current page; Acrobat, Preview, MobileSheets, Piascore, and Android viewer placement checks remain manual QA.
+| 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: viewer context 표시, 좁은 viewer/공연 모드 진행 배지, 리허설 모드 곡별 메모/시간 표시, 다음 곡 제목 힌트, 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, 공연 preset template 생성/적용/삭제, 장비 profile metadata, metadata/full backup round-trip |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
-| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 세트리스트별 score metronome override, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 박별 강세 패턴, Tap tempo, 0/1/2마디 count-in, 기본 ON tick toggle, Android native tick volume, 강박/약박 click 구분, `소리`/`시각만` 상태 표시, native 실패 시 fallback/unavailable 안내, viewer mini panel, mini panel 시각 박자 strip. S65: Android static click tracks are prepared before full/mini playback starts to reduce first-beat timing jitter. 저지연 audio/iOS parity와 실제 빠른 BPM 청취는 후속 QA |
+| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 세트리스트별 score metronome override, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 박별 강세 패턴, Tap tempo, 0/1/2마디 count-in, 기본 ON tick toggle, Android static AudioTrack과 iOS AVAudioEngine native tick volume, 강박/약박 click 구분, `소리`/`시각만` 상태 표시, native 실패 시 fallback/unavailable 안내, viewer mini panel, mini panel 시각 박자 strip. 두 플랫폼은 45ms click을 preload하고 정지/종료 시 native output을 정리한다. 실제 빠른 BPM 청취, 출력 route와 drift는 Device QA |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, 확대된 pitch history chart 안의 현재 음/frequency/cents/signal 요약, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock과 별도 LED/input bar는 선택지·해석 부담으로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
-| 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
+| 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone과 iOS AVAudioEngine PCM tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. iOS는 10초 정수 주기 loop와 linked audio 공동 audio-session ownership을 사용한다. 실제 음량, 시작/종료 잡음, loop 경계, latency와 출력 route는 Device QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
-| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
-| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력, linked audio 전용 마지막 A/B 구간 저장/복원, native MediaPlayer loop. PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. waveform marker/timeline, track marker list, iOS parity는 후속 |
+| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, 연결 파일 목록의 오디오 라벨/아이콘과 저장된 A-B 구간 표시, Android MediaPlayer와 iOS AVAudioPlayer 재생/정지 bottom sheet, 무음 duration inspection과 재생 시간 표시, 초 단위 A-B 반복. codec별 duration/latency/route는 실기기 QA 필요 |
+| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android/iOS linked audio sheet의 A/B 초 단위 입력, 파일 길이 기반 range timeline과 길이 밖 B 입력 차단, 재생 중 현재 위치를 A/B로 찍어 다음 재생부터 적용, linked audio 전용 마지막 A/B 구간 저장/복원/지우기와 이름 있는 구간 최대 12개 저장/선택/삭제, 목록/파트 sheet와 재생 sheet의 저장 구간 표시, 저장된 구간/새 입력 구간 구분, 숫자/순서 입력 오류 안내, native player loop. 이름 있는 구간은 metadata/full backup과 함께 보존되고 PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. 실제 waveform/연속 seek-position 표시와 tempo/pitch shift는 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
 | 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 로컬 keyboard substitute matrix는 통과했으며 실제 USB 페달 장비 QA는 blocker |
@@ -123,18 +127,18 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
-| 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
+| 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 정보 JSON과 전체 ZIP 모두 복원 전 파일을 읽어 악보/세트리스트 수, 변경 요약, 누락 파일 경고를 보여준다. 자동 정보/JSON/ZIP preview의 접힌 상세 목록에서 항목별 추가·삭제·수정, 변경 필드, 원본/연결 파일, 필기 구성/내용/저장소, 세트리스트 순서 차이를 확인하며 같은 제목은 식별자로 구분하고 긴 목록은 20개만 먼저 보여준다. 검토 내용은 실제 원본 경로를 제외한 Markdown으로 복사할 수 있다. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
 | 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
-| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | conflict model |
-| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Wi-Fi/Bluetooth session |
-| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
-| 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | merge/conflict rules |
+| 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | backup menu에 `백업 상태`를 추가해 자동 정보 snapshot 존재 여부, 최근 수동 백업 기록, 현재 라이브러리 범위, PDF 포함 전체 백업 필요성을 먼저 설명한다. 두 snapshot restore dry-run은 added/removed/changed score/setlist, file/annotation/setlist order/settings 위험과 항목별 상세를 보여주지만 적용은 전체 교체다. 별도의 base/local/remote 3-way dry-run은 score/setlist/settings의 한쪽 변경, 동일 변경, 서로 다른 필드의 병합 후보와 같은 필드·삭제 대 수정·설정 충돌을 분류하며 아무 데이터도 적용하지 않는다. 백업 메뉴의 `3개 백업 비교`는 세 metadata JSON을 순서대로 읽고 export 시각/범위, 중복 선택, 공통 항목 ID 부재를 확인한 뒤 상태별 접힌 목록과 경로 없는 bounded Markdown을 제공한다. 백업 v1에는 안정적인 cross-device library ID가 없어 동일 라이브러리 여부는 자동 확정하지 않는다고 안내한다. v1.1 spike는 account 없는 cloud-folder export와 account-backed continuous sync를 분리했다. 실제 merge는 per-field clock, annotation object tombstone, setlist order review, binary duplicate preservation과 rollback이 정해질 때까지 후속이다 |
+| 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Leader/follower spike가 page/setlist event reducer, QR/code pairing, mismatch/disconnect UX, transport 선택을 분리했다. Offline follower reducer는 session mismatch, out-of-order event, missing score, disconnect 상태를 잘못된 page move 없이 처리한다. QR/code invite payload core는 session/leader/setlist/expiry와 version gate를 검증한다. Same-device simulator core는 monotonic leader event, missing-score hold, follower recovery, disconnect를 네트워크 없이 검증한다. Preflight core는 리더 세트리스트와 팔로워 보유 악보를 비교해 누락 곡/빈 세트리스트를 연결 전에 차단한다. QR plan/view core는 invite payload를 scannable module matrix와 copy fallback으로 렌더한다. Follower status review core는 synced/missing/stale/disconnected/wrong-session 상태를 UI copy로 바꾸고, session preview core/view는 invite/preflight/review를 묶어 startability와 blocking reason을 표시한다. Local simulation report core/view는 leader page, follower library refresh, disconnect를 replay해 attention count/final state와 단계별 상태를 검증한다. 도움말/피드백의 개발자용 route는 실제 setlist로 same-device 시뮬레이션을 실행하며 실제 전송이 없음을 명시한다. 실제 네트워크 transport와 two-device QA는 후속이다 |
+| 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | Same setlist/page state를 follower에 보내되 missing score와 out-of-order page event를 안전하게 처리하는 reducer core, versioned invite payload core, QR plan/view core, local simulator core/report/view, follower library preflight core, follower status review core, session preview core/view와 개발자용 simulator route가 있다. camera scan, transport/API와 실제 2대 연결은 후속 결정 |
+| 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | Cloud sync spike에서 annotation object-level additive merge와 deletion tombstone을 우선 원칙으로 둔다 |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
-| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·앱 상태 점검·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
+| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·개발자용 기기 리포트·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
-| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 주요 테스트 항목, 피드백 템플릿 복사, 진단 요약 복사, 앱 상태 점검 바로 열기, App Store 심사용 마케팅/지원/개인정보 URL 표시와 복사, 외부 QA 체크리스트/known issues 문서 |
-| 설정/접근성 | 앱 상태 점검 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `앱 상태 점검` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 결과 복사·공유를 제공한다. 사용자 악보/세트리스트/필기를 수정하지 않으며 자동 서버 전송은 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
+| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 작업별 도움말(라이브러리 정리, 정보 보강, 세트리스트, 긴 악보 이동, 오디오 연습, 필기/공유), 주요 테스트 항목, 피드백 템플릿 복사, 진단 요약 복사, 기기 리포트 만들기, App Store 심사용 마케팅/지원/개인정보 URL 표시와 복사, 외부 QA 체크리스트/known issues 문서 |
+| 설정/접근성 | 개발자용 기기 리포트 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `개발자용 기기 리포트` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, Android/iOS 메트로놈 click buffer와 드론 silent-output native 초기화, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 리포트 복사·공유를 제공한다. native probe는 두 channel을 항상 정리하고 실제 소리 품질을 PASS로 간주하지 않는다. 키 입력은 매핑 감지와 실제 악보 화면의 페이지 단위 이동을 구분해 기록하며, 시스템 volume key는 기본 페이지 넘김으로 쓰지 않는다. 일반 연주 기능이 아니라 개발자에게 보낼 지원/성능 보고이며, 사용자 악보/세트리스트/필기를 수정하지 않고 자동 서버 전송도 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |
 
@@ -163,7 +167,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - PDF 가져오기와 로컬 라이브러리.
   단일/여러 PDF, 이미지 PDF, 공유 가져오기 후 목록 저장이 실패하면 저장된 목록 복구를
   시도하고 저장 실패 안내를 표시한다. 실패한 요청은 가져오기 성공으로 안내하지 않으며,
-  새 편집/라이브러리 전환을 덮지 않는다. 읽기도 실패한 경우의 복구 보장과 미참조 사본 정리는 별도다.
+  새 편집/라이브러리 전환을 덮지 않는다. 중복 판정, 파일 묶음의 중간 실패, 저장 실패나
+  라이브러리 전환으로 참조되지 않은 앱 내부 PDF와 이미지 원본 사본은 전체 라이브러리 참조를
+  다시 확인한 뒤 best-effort로 정리한다. 읽기·정리 자체가 실패하거나 프로세스가 강제 종료된
+  경우까지 파일 회수를 보장하지 않는다.
 - 제목, 작곡가, 태그, 메모, 최근 열기, 즐겨찾기, 기본 검색. 제목/작곡가/태그/메모
   편집은 2차 구현했고, 14차에서 정렬/즐겨찾기/태그 필터를 추가했다.
 - 1페이지, 2페이지, 세로 스크롤, 반 페이지 넘김, 확대/축소/이동. 3차 구현에서 좁은 화면은
@@ -184,12 +191,38 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 세트리스트, 세트리스트 연속 넘김. 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, 일괄 선택 bulk add와 추가 후 상세 열기, bulk collection 지정, 다른 세트리스트 이어붙이기, 제거 후 되돌리기, drag reorder/위아래 이동/직접 순서 입력,
   첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간, 마지막 곡 이어보기, viewer context 표시, 명시적 이전/다음 곡
   이동이다.
+- 세트리스트 공유용 manifest는 미리보기 후 복사하고, 세트리스트 화면에서 붙여넣어 현재 라이브러리
+  악보와 매칭한 뒤 완전히 해결된 경우에만 새 세트리스트로 가져올 수 있다. 긴 manifest는 요약 chip과
+  축약 리스트로 보여주며, missing/ambiguous 항목은 partial import를 막는다. 저장 실패는 성공/이동
+  없이 재시도 안내로 처리하고, 같은 제목이나 draft ID 충돌은 안전한 새 이름/id로 저장한다. PDF 파일
+  자체를 묶는 package export UI는 세트리스트 상세의 `패키지 내보내기` preview/share로 연결했다.
+  `clef.setlist.package` v1 ZIP codec/export/dry-run/import model은 `clef-setlist-package.txt`와
+  `scores/` entry를 만들고 해석하며, 세트리스트 화면의 ZIP package preview에서 실제 파일 쓰기 전에 공유 PDF dedupe, missing source,
+  unsupported format, 기존 악보 재사용, package 새 파일 import 후보, missing file, duplicate filename,
+  ambiguous existing score를 구분한다. 완전히 해결된 package는 preview 확인 뒤 package 안
+  PDF/image/text/ChordPro를 라이브러리에 복사하고 기존 악보와 함께 새 score/setlist를 저장한다. 저장이
+  완료되지 않으면 어떤 library profile에서도 참조하지 않는 app-owned 복사본만 정리한다. 악보별 필기를
+  score entry path/checksum에 묶는 optional sidecar strict codec과 ZIP round-trip이 있고, 새 PDF/image score의
+  일반 stroke/text/multi-layer sidecar와 검증된 image stamp asset은 같은 metadata transaction에서 복원한다.
+  기존 local score와 text score sidecar는 preview에서 보호·미적용으로 구분한다. Image stamp asset이
+  누락되거나 손상되면 codec이 거부하고, local asset 경로 충돌은 기존 파일을 덮어쓰지 않고 import를 차단한다.
+  삭제된 image stamp picker 정의는 다시 만들지 않으면서 이미 배치된 필기와 asset만 복원한다.
+  같은 source PDF/image를 공유하는 songbook 악보에 필기가 있으면 package score entry를 악보별로 분리해
+  각 sidecar를 복원하고, 필기가 없는 shared source는 기존처럼 한 entry로 dedupe한다.
+  ZIP codec은 256MB archive/해제 크기, 128MB 단일 entry, 512 entry 한도로 과도한 메모리 사용을
+  preview 전에 차단한다. MobileSheets 전용 binary package 호환과 한도 내 대용량 mixed package 실기기 QA는 후속이다.
+- 플랫폼 공통 `여러 악보 파일 가져오기`는 시스템 파일 선택기에서 PDF/plain text/ChordPro/DOCX/RTF를
+  최대 200개까지 섞어 고르고 형식·경로·중복을 preview한 뒤 기존 importer로 한 번에 저장한다. 확인이 필요한
+  항목이 하나라도 있거나 파일 처리/metadata 저장이 실패하면 이번 batch를 남기지 않는다. Preview에서 선택하면
+  가져오기 직후 기존/새 세트리스트에 한 번에 추가하고, 대상 선택 취소나 세트리스트 저장 실패 시 가져온 악보는
+  라이브러리에 유지한다. iOS Files와 cloud provider의 일회성 선택을 지원하는 흐름이며 폴더 연결, 자동 동기화,
+  앱 내부 사본 없는 direct reference는 아니다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,
   컬렉션 지정/정보 편집/제거를 더보기 메뉴로 묶는다. 넓은 화면은 기존 바로가기를 유지한다.
 - 일괄 정보 편집에서 작곡가를 선택 악보에 함께 적용할 수 있다. 작곡가 입력란을 비우면
   기존 값을 유지하고, 적용한 값은 검색/작곡가 facet/저장 복원에 동일하게 반영한다.
 - 명시적으로 빈 제목은 원본 파일명으로 표시하며, 라이브러리/최근 항목/세트리스트/뷰어와
-  목록 복사에 같은 표시명을 쓴다. 파일명(확장자 포함) 검색과 표시명 기준 제목 정렬을 지원한다.
+  공유용 세트리스트 manifest에 같은 표시명을 쓴다. 파일명(확장자 포함) 검색과 표시명 기준 제목 정렬을 지원한다.
   빈 제목 문자열은 저장/복원 시 보존하며, 파일명으로 메타데이터를 덮어쓰지 않는다.
 - 세트리스트 로드 시 제거된 곡의 참조뿐 아니라 곡별 예상 시간과 메트로놈 설정만 남은 경우도
   정리해 저장한다. 유효한 곡의 설정/이어보기 위치는 유지한다.
@@ -227,6 +260,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   중복 PDF를 세트리스트에 담을 때 대상 선택 전에 열기 안내를 표시하지 않고 추가 결과만 안내한다.
   PDF/일괄 PDF/이미지/공유 가져오기 대기 중 라이브러리를 바꾸면 이전 결과를 새 목록에 넣거나
   화면 진입/오류 안내로 전달하지 않는다. 이미 시작한 저장은 원래 라이브러리에 완료한다.
+  저장되지 않은 단일·중복·일괄·이미지·공유 가져오기 사본은 다른 프로필의 저장된 악보가 같은
+  경로를 참조하지 않을 때만 정리한다. 일괄 PDF는 선택 파일을 먼저 읽고, 뒤 파일 쓰기가 실패하면
+  그 요청이 앞에서 만든 사본도 정리한다. 이미지 변환은 생성 PDF와 앞서 복사한 원본 이미지 참조를
+  같은 실패 경계로 다룬다.
   곡 모음 세트리스트 생성/추가 저장 실패는 만들어진 곡 항목을 유지하고 `다시 시도`로
   재시도한다. 화면 종료/다른 화면 진입/라이브러리 전환 뒤 후속 저장이나 안내를 이어가지 않는다.
   북마크 곡 분할의 저장 실패는 현재 요청이 소유한 목록만 복구하며 임시 곡 카드를 성공으로
@@ -312,13 +349,13 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 ## V1 후보
 
 - HEIC/HEIF 직접 변환. 현재 감지와 안내만 제공하며 native decoder/dependency 결정과 실제 사진 샘플 QA가 필요하다.
-- 기존 폴더 직접 참조. Android SAF persistent URI permission과 iOS Files/security-scoped resource spike가 필요하다.
+- 기존 폴더 직접 참조. Android SAF persistent tree permission을 연결 목록에 재사용하고, 같은 폴더를 다시 열 때 저장된 원본 크기/수정 시각과 달라진 파일을 경고한다. 변경된 PDF/plain text/ChordPro/DOCX/RTF는 사용자가 확인한 경우에만 같은 형식의 새 관리 사본으로 적용하며 기존 파일을 연결 파일로 남긴다. 문서 형식은 새 추출 텍스트와 원본 reference를 함께 교체한다. 악보는 여전히 앱 내부 사본이고 앱 내부 사본 없는 direct score와 iOS Files/security-scoped resource는 별도 후속이다.
 - iOS Share Extension이 필요한 출처 앱 대응. document open URL bridge는 구현했고 Share Extension은 Xcode target/App Group/provisioning이 필요하다.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - Cloud provider 실기기 import QA. system picker/provider 우선 정책과 내려받기 안내는 구현됨.
 - 실제 페이지 회전 live 렌더링. source/instance rotation metadata와 적용 사본은 구현했고, `PdfViewer.file` 경로의 page별 live rotation 안정 API 확인은 후속 spike다.
 - S Pen pressure/palm rejection 실기기 튜닝. pressure metadata/render/export와 stylus 직후 touch rejection window는 구현됨.
-- 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
+- 로컬 오디오 플레이어의 iOS codec/latency/audio-route 실기기 QA.
 
 위 후보 중 engine/API/device/sample/license 결정이 필요한 항목은
 [`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)의 spike 항목으로 추적한다.
@@ -330,7 +367,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 자동 크롭.
 - smart button.
 - crescendo/piano staff, nudge tool, 다중 annotation layer.
-- PDF annotation 객체 embed/export.
+- PDF annotation 객체 embed/export의 외부 viewer 호환성 확대.
 - 고급 자동 스크롤 measure 위치 자동 감지.
 - A-B loop, tempo/pitch shift.
 - USB/Bluetooth MIDI.
@@ -342,10 +379,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 음악 키보드, 녹음기.
 - face gesture page turn.
 - MIDI registration/linking.
-- cloud library sync.
-- 기기 간 페이지 전환.
-- leader/follower tablet 협업.
-- 주석 보존 sync.
+- cloud library sync. Backup health/status 화면, 최근 수동 백업 기록, backup snapshot diff/report/merge-risk/field-label core, 자동 정보 복원 dry-run preview, 외부 metadata JSON/full ZIP file-picker preview는 추가됐고, cloud-folder export와 field-level merge 적용은 후속이다.
+- 기기 간 페이지 전환. Offline event reducer, QR/code invite payload core, QR plan/view core, local simulator core/report/view, follower setlist preflight/review core, session preview core/view와 개발자용 same-device route는 추가됐고, transport spike와 two-device QA가 남았다.
+- leader/follower tablet 협업. QR rendering, mismatch/reconnect UI, two-device QA가 필요하다.
+- 주석 보존 sync. Dry-run은 layer/object/storage-reference 변경을 구분한다. 실제 annotation object merge/tombstone 적용은 후속이다.
 - visible watermark 제거는 별도 법적/윤리적 검토 전까지 비목표로 유지한다.
 
 ## 결정 메모
