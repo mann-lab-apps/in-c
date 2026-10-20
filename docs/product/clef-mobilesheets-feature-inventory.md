@@ -103,8 +103,8 @@ fixture annotations land on either other page. External viewer rendering and edi
 
 | Music Tools | Metronome count-in/accent/subdivision/visual modes | utilities page | count-in, subdivision, accent, visual strip, Android native tick이 있다 | feature map `메트로놈` | Partially Implemented | 빠른 BPM 실제 오디오 균일성은 Device QA |
 | Music Tools | Metronome page turn after measures / multiple visual modes | utilities page | 자동 스크롤과 metronome은 있으나 마디 수 기반 page turn/LED-circle-edge mode 선택은 제한적 | feature map `메트로놈`, `자동 스크롤` | Partially Implemented | 과한 설정 노출은 Clef 컨셉과 충돌 가능 |
-| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 연결 파일 목록의 오디오 라벨/아이콘과 저장된 A-B 구간 표시, 초 단위 A-B 반복, 마지막 A/B 구간 저장/복원이 있다 | feature map `오디오 플레이어` | Partially Implemented | route/iOS parity와 여러 track workflow QA는 남음 |
-| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원하고 linked audio metadata에 마지막 구간을 저장/복원/지우기한다. 저장된 구간은 연결 파일 목록, viewer 파트/버전 sheet, 오디오 재생 sheet의 반복 구간 요약으로 표시되고, 재생 sheet는 저장된 구간과 새 입력 구간을 구분한다. 숫자/순서 입력 오류는 재생 전에 안내하며, PDF/이미지 연결 파일의 잘못된 loop metadata는 정규화에서 제거된다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline, 여러 marker preset, iOS parity는 남음 |
+| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 연결 파일 목록의 오디오 라벨/아이콘과 저장된 A-B 구간 표시, 초 단위 A-B 반복, 마지막 A/B 구간과 이름 있는 구간 최대 12개 저장/복원이 있다 | feature map `오디오 플레이어` | Partially Implemented | route/iOS parity와 여러 track workflow QA는 남음 |
+| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원하고 linked audio metadata에 마지막 구간과 이름 있는 구간 최대 12개를 저장한다. 이름 있는 구간은 선택/삭제할 수 있고 metadata/full backup에 보존된다. 저장된 마지막 구간은 연결 파일 목록, viewer 파트/버전 sheet, 오디오 재생 sheet의 반복 구간 요약으로 표시되고, 숫자/순서 입력 오류와 저장 실패는 상태 변경 전에 안내한다. PDF/이미지 연결 파일의 잘못된 loop metadata는 정규화에서 제거된다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline과 iOS parity는 남음 |
 | Music Tools | Tempo change / pitch shift | utilities page | 없다 | feature map `tempo/pitch shift` | Not Implemented | DSP library/license 필요 |
 | Music Tools | Built-in chromatic tuner | 공식 자료에서는 MobileSheets chromatic tuner가 확인되지 않음 | Clef는 chromatic-only tuner와 pitch history chart가 있고 Device report가 A4/감지 엔진/표기/chromatic-only 상태를 기록한다 | feature map `튜너` | Implemented | Clef 차별점. 실제 정확도는 reference tone/실제 악기 Device QA |
 | Music Tools | Drone / reference tone | MobileSheets 공식 주요 기능으로는 확인하지 못함 | Clef는 tuner A4 기준 공유 drone/tone이 있고 Device report가 mode/note/frequency/volume/clipping-risk를 기록한다 | feature map `기준음/드론` | Implemented | Clef 차별점. 실제 음량과 출력 route는 Device QA |
@@ -165,9 +165,9 @@ fixture annotations land on either other page. External viewer rendering and edi
    악보별로 저장하며, 크기를 바꿔도 검색과 문서 추출본의 읽기 전용 경계는 유지된다.
    comment/section/chorus/tab/page/column cue와 viewer의 표시 전용 transpose/capo shape 전환, structured display-line 기반 viewer를 지원한다. 넓은 화면의 악보별 1단/2단 설정은 명시적인 column cue나 가까운 구간 경계를 사용하고 좁은 폰에서는 1단으로 내려간다. ChordPro 글자 크기는 85/100/115/130% 중 악보별로 저장해 태블릿 스탠드 거리와 시스템 접근성 배율에 함께 대응한다. DOCX/RTF 원본은 연결 파일, full backup 및 Clef setlist package에서 보존한다. 일반 텍스트와 ChordPro 원문은 별도 편집기로 안전하게 수정하되, 원본 문서와의 불일치를 막기 위해 DOCX/RTF 추출본은 검색 가능한 읽기 전용 viewer로만 연다. DOCX는 표 행/열과 기본 목록 표식을 읽기 형태로 보존하지만 이미지·각주·서식 편집과 시각적 layout은 후속이다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
-4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
-   연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker
-   timeline, 여러 track marker preset은 없다.
+4. Advanced audio: A-B loop는 linked audio별 마지막 구간과 이름 있는 구간 최대 12개를
+   저장하고 비오디오 연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift와
+   waveform marker timeline은 없다.
 5. Advanced annotation: stroke/shape nudge는 단일 선택 수준까지 구현되어 있고, custom stamp는 text/icon/image
    schema, picker, 저장/정리, backup/package asset round-trip과 실제 image stamp 배치까지 지원한다. Layer 생성,
    선택, 이름 변경, 삭제, 기존 주석 이동과 active-layer undo/redo도 있다. Editable PDF export는 주요 도구를
@@ -217,7 +217,7 @@ fixture annotations land on either other page. External viewer rendering and edi
 ### v1.1 제품 기능 후보
 
 - 내용 기반 자동 crop 또는 더 강한 semi-auto crop.
-- advanced audio player: waveform marker timeline, 여러 A-B marker preset, tempo/pitch shift.
+- advanced audio player: waveform marker timeline, tempo/pitch shift, iOS playback parity.
 - custom stamp import보다 먼저 stamp set 관리/검색.
 - field schema 확장: album/signature/source type은 Clef식 custom field 추천칩으로 1차 흡수.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.

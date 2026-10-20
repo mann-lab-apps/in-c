@@ -2140,6 +2140,14 @@ void main() {
           createdAt: now,
           audioLoopStartMs: 1500,
           audioLoopEndMs: 8200,
+          audioLoopMarkers: const <SheetAudioLoopMarker>[
+            SheetAudioLoopMarker(
+              id: 'opening',
+              label: 'Opening',
+              startMs: 1500,
+              endMs: 8200,
+            ),
+          ],
         ),
       ],
       customFields: const <SheetCustomMetadataField>[
@@ -2352,6 +2360,10 @@ void main() {
     );
     expect(backup.scores.single.linkedFiles.single.audioLoopStartMs, 1500);
     expect(backup.scores.single.linkedFiles.single.audioLoopEndMs, 8200);
+    expect(
+      backup.scores.single.linkedFiles.single.audioLoopMarkers.single.label,
+      'Opening',
+    );
     expect(backup.scores.single.customFields.single.key, 'Publisher');
     expect(backup.scores.single.customFields.single.value, 'Mann Lab');
     expect(backup.scores.single.importSource?.displayName, 'sonata.pdf');
@@ -2460,6 +2472,10 @@ void main() {
     expect(restoredScore.linkedFiles.single.role, SheetLinkedFile.partRole);
     expect(restoredScore.linkedFiles.single.audioLoopStartMs, 1500);
     expect(restoredScore.linkedFiles.single.audioLoopEndMs, 8200);
+    expect(
+      restoredScore.linkedFiles.single.audioLoopMarkers.single.id,
+      'opening',
+    );
     expect(restoredScore.customFields.single.value, 'Mann Lab');
     expect(
       restoredScore.viewerSettings.customPedalMapping['Space'],

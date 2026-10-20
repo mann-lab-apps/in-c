@@ -25748,6 +25748,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   late final SheetAudioPlayer _player;
   late final TextEditingController _loopStartController;
   late final TextEditingController _loopEndController;
+  late SheetLinkedFile _currentLinkedFile;
   bool _isPlaying = false;
   bool _loopEnabled = false;
   int? _savedLoopStartMs;
@@ -25758,6 +25759,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   void initState() {
     super.initState();
     _player = widget.player ?? SheetAudioPlayer();
+    _currentLinkedFile = widget.linkedFile;
     _loopStartController = TextEditingController(
       text: _formatLoopSeconds(widget.linkedFile.audioLoopStartMs),
     );
@@ -25837,6 +25839,23 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
         _savedLoopEndMs == (endSeconds * 1000).round();
   }
 
+  Future<bool> _persistLinkedFile(SheetLinkedFile linkedFile) async {
+    final onLinkedFileChanged = widget.onLinkedFileChanged;
+    if (onLinkedFileChanged == null) {
+      _currentLinkedFile = linkedFile;
+      return true;
+    }
+    try {
+      final didSave = await onLinkedFileChanged(linkedFile);
+      if (didSave) {
+        _currentLinkedFile = linkedFile;
+      }
+      return didSave;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Widget _buildLoopSummary(ThemeData theme) {
     Widget buildSummary(
       TextEditingValue startValue,
@@ -25894,47 +25913,31 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   }
 
   Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
-    final onLinkedFileChanged = widget.onLinkedFileChanged;
-    if (onLinkedFileChanged == null) {
-      return true;
-    }
-    final updated = widget.linkedFile.copyWith(
+    final updated = _currentLinkedFile.copyWith(
       audioLoopStartMs: loop.start.inMilliseconds,
       audioLoopEndMs: loop.end.inMilliseconds,
     );
-    try {
-      final didSave = await onLinkedFileChanged(updated);
-      if (didSave) {
-        _savedLoopStartMs = loop.start.inMilliseconds;
-        _savedLoopEndMs = loop.end.inMilliseconds;
-      }
-      return didSave;
-    } catch (_) {
-      return false;
+    final didSave = await _persistLinkedFile(updated);
+    if (didSave) {
+      _savedLoopStartMs = loop.start.inMilliseconds;
+      _savedLoopEndMs = loop.end.inMilliseconds;
     }
+    return didSave;
   }
 
   Future<void> _clearLoop() async {
-    final onLinkedFileChanged = widget.onLinkedFileChanged;
-    if (onLinkedFileChanged != null) {
-      final updated = widget.linkedFile.copyWith(clearAudioLoop: true);
-      bool didSave;
-      try {
-        didSave = await onLinkedFileChanged(updated);
-      } catch (_) {
-        didSave = false;
-      }
-      if (!mounted) {
-        return;
-      }
-      if (!didSave) {
-        setState(() {
-          _lastResult = SheetAudioPlaybackResult.failed(
-            'A-B 반복 구간을 지우지 못했습니다. 다시 시도해주세요.',
-          );
-        });
-        return;
-      }
+    final updated = _currentLinkedFile.copyWith(clearAudioLoop: true);
+    final didSave = await _persistLinkedFile(updated);
+    if (!mounted) {
+      return;
+    }
+    if (!didSave) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'A-B 반복 구간을 지우지 못했습니다. 다시 시도해주세요.',
+        );
+      });
+      return;
     }
     setState(() {
       _loopEnabled = false;
@@ -25944,6 +25947,170 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       _loopEndController.clear();
       _lastResult = null;
     });
+  }
+
+  Future<void> _saveLoopMarker() async {
+    final loopInput = _readLoopInput();
+    if (loopInput.errorMessage != null) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(loopInput.errorMessage!);
+      });
+      return;
+    }
+    final loop = loopInput.loop;
+    if (loop == null) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'A-B 반복을 켜고 저장할 구간을 입력해주세요.',
+        );
+      });
+      return;
+    }
+    if (_currentLinkedFile.audioLoopMarkers.length >=
+        SheetLinkedFile.maxAudioLoopMarkers) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          '저장 구간은 최대 ${SheetLinkedFile.maxAudioLoopMarkers}개까지 만들 수 있습니다.',
+        );
+      });
+      return;
+    }
+    var markerLabel = '구간 ${_currentLinkedFile.audioLoopMarkers.length + 1}';
+    final label = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('현재 구간 저장'),
+        content: TextFormField(
+          initialValue: markerLabel,
+          autofocus: true,
+          maxLength: 40,
+          decoration: const InputDecoration(labelText: '구간 이름'),
+          onChanged: (value) => markerLabel = value,
+          onFieldSubmitted: (value) {
+            final normalized = value.trim();
+            if (normalized.isNotEmpty) {
+              Navigator.of(context).pop(normalized);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final normalized = markerLabel.trim();
+              if (normalized.isNotEmpty) {
+                Navigator.of(context).pop(normalized);
+              }
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || label == null) {
+      return;
+    }
+    final marker = SheetAudioLoopMarker(
+      id: 'loop-${DateTime.now().microsecondsSinceEpoch}',
+      label: label,
+      startMs: loop.start.inMilliseconds,
+      endMs: loop.end.inMilliseconds,
+    );
+    final updated = _currentLinkedFile.copyWith(
+      audioLoopStartMs: marker.startMs,
+      audioLoopEndMs: marker.endMs,
+      audioLoopMarkers: <SheetAudioLoopMarker>[
+        ..._currentLinkedFile.audioLoopMarkers,
+        marker,
+      ],
+    );
+    final didSave = await _persistLinkedFile(updated);
+    if (!mounted) {
+      return;
+    }
+    if (!didSave) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          '저장 구간을 추가하지 못했습니다. 다시 시도해주세요.',
+        );
+      });
+      return;
+    }
+    setState(() {
+      _savedLoopStartMs = marker.startMs;
+      _savedLoopEndMs = marker.endMs;
+      _lastResult = null;
+    });
+  }
+
+  void _selectLoopMarker(SheetAudioLoopMarker marker) {
+    setState(() {
+      _loopEnabled = true;
+      _loopStartController.text = _formatLoopSeconds(marker.startMs);
+      _loopEndController.text = _formatLoopSeconds(marker.endMs);
+      _lastResult = null;
+    });
+  }
+
+  Future<void> _deleteLoopMarker(SheetAudioLoopMarker marker) async {
+    final updated = _currentLinkedFile.copyWith(
+      audioLoopMarkers: _currentLinkedFile.audioLoopMarkers
+          .where((candidate) => candidate.id != marker.id)
+          .toList(growable: false),
+    );
+    final didSave = await _persistLinkedFile(updated);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _lastResult = didSave
+          ? null
+          : SheetAudioPlaybackResult.failed('저장 구간을 삭제하지 못했습니다. 다시 시도해주세요.');
+    });
+  }
+
+  Widget _buildSavedLoopMarkers(ThemeData theme) {
+    final markers = _currentLinkedFile.audioLoopMarkers;
+    if (markers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '저장한 구간',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final marker in markers)
+                InputChip(
+                  label: Text(
+                    '${marker.label} · ${_formatLoopSeconds(marker.startMs)}-${_formatLoopSeconds(marker.endMs)}초',
+                  ),
+                  onSelected: _isPlaying
+                      ? null
+                      : (_) => _selectLoopMarker(marker),
+                  onDeleted: _isPlaying
+                      ? null
+                      : () => _deleteLoopMarker(marker),
+                  deleteButtonTooltipMessage: '${marker.label} 삭제',
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _togglePlayback() async {
@@ -25974,7 +26141,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       });
       return;
     }
-    final result = await _player.play(widget.linkedFile.path, loop: loop);
+    final result = await _player.play(_currentLinkedFile.path, loop: loop);
     if (!mounted) {
       return;
     }
@@ -25988,123 +26155,136 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.audiotrack),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.linkedFile.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: _togglePlayback,
-                  icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isPlaying ? '정지' : '재생'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.linkedFile.path,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _loopEnabled,
-              title: const Text('A-B 반복'),
-              subtitle: const Text('구간을 초 단위로 입력해 반복 재생합니다.'),
-              onChanged: _isPlaying
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _loopEnabled = value;
-                        _lastResult = null;
-                      });
-                    },
-            ),
-            if (_loopEnabled) _buildLoopSummary(theme),
-            if (_loopEnabled)
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
+                  const Icon(Icons.audiotrack),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: TextField(
-                      controller: _loopStartController,
-                      enabled: !_isPlaying,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'A 시작(초)',
-                        hintText: '0',
+                    child: Text(
+                      _currentLinkedFile.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _loopEndController,
-                      enabled: !_isPlaying,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'B 끝(초)',
-                        hintText: '12.5',
-                      ),
-                    ),
+                  FilledButton.icon(
+                    onPressed: _togglePlayback,
+                    icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
+                    label: Text(_isPlaying ? '정지' : '재생'),
                   ),
                 ],
               ),
-            if (_loopEnabled)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _isPlaying ? null : _clearLoop,
-                  icon: const Icon(Icons.clear),
-                  label: const Text('구간 지우기'),
+              const SizedBox(height: 12),
+              Text(
+                _currentLinkedFile.path,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            if (_lastResult?.status ==
-                SheetAudioPlaybackStatus.unsupportedPlatform)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  '이 기기에서는 로컬 오디오 재생 채널을 사용할 수 없습니다.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              )
-            else if (_lastResult?.status == SheetAudioPlaybackStatus.failed)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  _lastResult!.message.isEmpty
-                      ? '오디오 재생을 시작하지 못했습니다.'
-                      : _lastResult!.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _loopEnabled,
+                title: const Text('A-B 반복'),
+                subtitle: const Text('구간을 초 단위로 입력해 반복 재생합니다.'),
+                onChanged: _isPlaying
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _loopEnabled = value;
+                          _lastResult = null;
+                        });
+                      },
               ),
-          ],
+              if (_loopEnabled) _buildLoopSummary(theme),
+              if (_loopEnabled)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _loopStartController,
+                        enabled: !_isPlaying,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'A 시작(초)',
+                          hintText: '0',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _loopEndController,
+                        enabled: !_isPlaying,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'B 끝(초)',
+                          hintText: '12.5',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              if (_loopEnabled)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _isPlaying ? null : _saveLoopMarker,
+                        icon: const Icon(Icons.bookmark_add_outlined),
+                        label: const Text('현재 구간 저장'),
+                      ),
+                      TextButton.icon(
+                        onPressed: _isPlaying ? null : _clearLoop,
+                        icon: const Icon(Icons.clear),
+                        label: const Text('구간 지우기'),
+                      ),
+                    ],
+                  ),
+                ),
+              _buildSavedLoopMarkers(theme),
+              if (_lastResult?.status ==
+                  SheetAudioPlaybackStatus.unsupportedPlatform)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    '이 기기에서는 로컬 오디오 재생 채널을 사용할 수 없습니다.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                )
+              else if (_lastResult?.status == SheetAudioPlaybackStatus.failed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    _lastResult!.message.isEmpty
+                        ? '오디오 재생을 시작하지 못했습니다.'
+                        : _lastResult!.message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

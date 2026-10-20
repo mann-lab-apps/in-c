@@ -1120,6 +1120,91 @@ void main() {
     expect(imageFile.toJson().containsKey('audioLoopEndMs'), isFalse);
   });
 
+  test('normalizes named audio loop markers and preserves them in JSON', () {
+    final audioFile = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'type': 'm4a',
+      'label': 'Backing track',
+      'createdAt': '2026-10-20T10:00:00.000',
+      'audioLoopMarkers': <Object?>[
+        <String, Object?>{
+          'id': 'intro',
+          'label': ' Intro ',
+          'startMs': 0,
+          'endMs': 8000,
+        },
+        <String, Object?>{
+          'id': 'intro',
+          'label': 'Duplicate',
+          'startMs': 9000,
+          'endMs': 12000,
+        },
+        <String, Object?>{
+          'id': 'invalid',
+          'label': 'Invalid',
+          'startMs': 5000,
+          'endMs': 4000,
+        },
+        <String, Object?>{
+          'id': 'solo',
+          'label': 'Solo',
+          'startMs': '12500',
+          'endMs': 24000.4,
+        },
+      ],
+    });
+
+    expect(audioFile.audioLoopMarkers, hasLength(2));
+    expect(audioFile.audioLoopMarkers.first.label, 'Intro');
+    expect(audioFile.audioLoopMarkers.last.id, 'solo');
+    expect(audioFile.audioLoopMarkers.last.startMs, 12500);
+    expect(audioFile.audioLoopMarkers.last.endMs, 24000);
+    expect(audioFile.toJson()['audioLoopMarkers'], <Map<String, Object?>>[
+      <String, Object?>{
+        'id': 'intro',
+        'label': 'Intro',
+        'startMs': 0,
+        'endMs': 8000,
+      },
+      <String, Object?>{
+        'id': 'solo',
+        'label': 'Solo',
+        'startMs': 12500,
+        'endMs': 24000,
+      },
+    ]);
+  });
+
+  test(
+    'limits named audio loop markers and removes them from non-audio files',
+    () {
+      final markers = List<SheetAudioLoopMarker>.generate(
+        SheetLinkedFile.maxAudioLoopMarkers + 3,
+        (index) => SheetAudioLoopMarker(
+          id: 'marker-$index',
+          label: 'Marker $index',
+          startMs: index * 1000,
+          endMs: (index + 1) * 1000,
+        ),
+      );
+      final audioFile = SheetLinkedFile(
+        path: '/tmp/backing.mp3',
+        type: 'mp3',
+        label: 'Backing',
+        createdAt: DateTime(2026, 10, 20),
+        audioLoopMarkers: markers,
+      ).copyWith();
+      final pdfFile = audioFile.copyWith(path: '/tmp/score.pdf', type: 'pdf');
+
+      expect(
+        audioFile.audioLoopMarkers,
+        hasLength(SheetLinkedFile.maxAudioLoopMarkers),
+      );
+      expect(pdfFile.audioLoopMarkers, isEmpty);
+      expect(pdfFile.toJson().containsKey('audioLoopMarkers'), isFalse);
+    },
+  );
+
   test('normalizes decimal JSON numbers in score metadata', () {
     final bookmark = SheetBookmark.fromJson(<String, Object?>{
       'pageNumber': 2.6,

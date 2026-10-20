@@ -2202,6 +2202,74 @@ class SheetAnnotationStorageReference {
   }
 }
 
+class SheetAudioLoopMarker {
+  const SheetAudioLoopMarker({
+    required this.id,
+    required this.label,
+    required this.startMs,
+    required this.endMs,
+  });
+
+  static SheetAudioLoopMarker? tryCreate({
+    required Object? id,
+    required Object? label,
+    required Object? startMs,
+    required Object? endMs,
+  }) {
+    final normalizedId = id?.toString().trim() ?? '';
+    final normalizedLabel = label?.toString().trim() ?? '';
+    final normalizedStartMs = _millisecondsFromJson(startMs);
+    final normalizedEndMs = _millisecondsFromJson(endMs);
+    if (normalizedId.isEmpty ||
+        normalizedLabel.isEmpty ||
+        normalizedStartMs == null ||
+        normalizedEndMs == null ||
+        normalizedStartMs < 0 ||
+        normalizedEndMs <= normalizedStartMs) {
+      return null;
+    }
+    return SheetAudioLoopMarker(
+      id: normalizedId,
+      label: normalizedLabel,
+      startMs: normalizedStartMs,
+      endMs: normalizedEndMs,
+    );
+  }
+
+  static SheetAudioLoopMarker? fromJson(Object? value) {
+    if (value is! Map) {
+      return null;
+    }
+    return tryCreate(
+      id: value['id'],
+      label: value['label'],
+      startMs: value['startMs'],
+      endMs: value['endMs'],
+    );
+  }
+
+  final String id;
+  final String label;
+  final int startMs;
+  final int endMs;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'label': label,
+      'startMs': startMs,
+      'endMs': endMs,
+    };
+  }
+
+  static int? _millisecondsFromJson(Object? value) {
+    if (value is num) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '');
+  }
+}
+
 class SheetLinkedFile {
   const SheetLinkedFile({
     required this.path,
@@ -2211,6 +2279,7 @@ class SheetLinkedFile {
     required this.createdAt,
     this.audioLoopStartMs,
     this.audioLoopEndMs,
+    this.audioLoopMarkers = const <SheetAudioLoopMarker>[],
   });
 
   factory SheetLinkedFile.fromJson(Map<String, Object?> json) {
@@ -2245,6 +2314,9 @@ class SheetLinkedFile {
               json['audioLoopEndMs'],
             )
           : null,
+      audioLoopMarkers: canStoreAudioLoop
+          ? _normalizeAudioLoopMarkers(json['audioLoopMarkers'])
+          : const <SheetAudioLoopMarker>[],
     );
   }
 
@@ -2254,6 +2326,7 @@ class SheetLinkedFile {
   static const originalRole = 'original';
   static const editedCopyRole = 'editedCopy';
   static const referenceRole = 'reference';
+  static const maxAudioLoopMarkers = 12;
 
   final String path;
   final String type;
@@ -2262,6 +2335,7 @@ class SheetLinkedFile {
   final DateTime createdAt;
   final int? audioLoopStartMs;
   final int? audioLoopEndMs;
+  final List<SheetAudioLoopMarker> audioLoopMarkers;
 
   SheetLinkedFile copyWith({
     String? path,
@@ -2271,6 +2345,7 @@ class SheetLinkedFile {
     DateTime? createdAt,
     int? audioLoopStartMs,
     int? audioLoopEndMs,
+    List<SheetAudioLoopMarker>? audioLoopMarkers,
     bool clearAudioLoop = false,
   }) {
     final nextPath = (path ?? this.path).trim();
@@ -2294,6 +2369,9 @@ class SheetLinkedFile {
             audioLoopStartMs ?? this.audioLoopStartMs,
             audioLoopEndMs ?? this.audioLoopEndMs,
           );
+    final nextAudioLoopMarkers = canStoreAudioLoop
+        ? _normalizeAudioLoopMarkers(audioLoopMarkers ?? this.audioLoopMarkers)
+        : const <SheetAudioLoopMarker>[];
     return SheetLinkedFile(
       path: nextPath,
       type: nextType,
@@ -2302,10 +2380,15 @@ class SheetLinkedFile {
       createdAt: createdAt ?? this.createdAt,
       audioLoopStartMs: nextAudioLoopStartMs,
       audioLoopEndMs: nextAudioLoopEndMs,
+      audioLoopMarkers: nextAudioLoopMarkers,
     );
   }
 
   Map<String, Object?> toJson() {
+    final normalizedAudioLoopMarkers =
+        _canStoreAudioLoop(path: path, type: type, rawType: type)
+        ? _normalizeAudioLoopMarkers(audioLoopMarkers)
+        : const <SheetAudioLoopMarker>[];
     return <String, Object?>{
       'path': path,
       'type': type,
@@ -2316,6 +2399,10 @@ class SheetLinkedFile {
         'audioLoopStartMs': audioLoopStartMs,
       if (audioLoopStartMs != null && audioLoopEndMs != null)
         'audioLoopEndMs': audioLoopEndMs,
+      if (normalizedAudioLoopMarkers.isNotEmpty)
+        'audioLoopMarkers': normalizedAudioLoopMarkers
+            .map((marker) => marker.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -2381,6 +2468,32 @@ class SheetLinkedFile {
       return value.round();
     }
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  static List<SheetAudioLoopMarker> _normalizeAudioLoopMarkers(Object? value) {
+    if (value is! Iterable) {
+      return const <SheetAudioLoopMarker>[];
+    }
+    final markers = <SheetAudioLoopMarker>[];
+    final seenIds = <String>{};
+    for (final item in value) {
+      final marker = item is SheetAudioLoopMarker
+          ? SheetAudioLoopMarker.tryCreate(
+              id: item.id,
+              label: item.label,
+              startMs: item.startMs,
+              endMs: item.endMs,
+            )
+          : SheetAudioLoopMarker.fromJson(item);
+      if (marker == null || !seenIds.add(marker.id)) {
+        continue;
+      }
+      markers.add(marker);
+      if (markers.length >= maxAudioLoopMarkers) {
+        break;
+      }
+    }
+    return List<SheetAudioLoopMarker>.unmodifiable(markers);
   }
 }
 

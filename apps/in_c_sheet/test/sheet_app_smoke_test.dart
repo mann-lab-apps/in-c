@@ -4989,6 +4989,123 @@ Clef & Staff 세트리스트
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked audio sheet saves and reuses named A-B loop presets', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return true;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '현재 구간 저장'));
+    await tester.pumpAndSettle();
+    expect(find.text('현재 구간 저장'), findsNWidgets(2));
+    await tester.enterText(find.byType(TextField).last, '도입');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers.single.label, '도입');
+    expect(savedFiles.single.audioLoopMarkers.single.startMs, 2000);
+    expect(savedFiles.single.audioLoopMarkers.single.endMs, 9000);
+    expect(find.text('저장한 구간'), findsOneWidget);
+    expect(find.text('도입 · 2-9초'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(0), '12');
+    await tester.enterText(find.byType(TextField).at(1), '18');
+    await tester.tap(find.text('도입 · 2-9초'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet preserves named preset when deletion fails', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopMarkers: const <SheetAudioLoopMarker>[
+            SheetAudioLoopMarker(
+              id: 'intro',
+              label: '도입',
+              startMs: 2000,
+              endMs: 9000,
+            ),
+          ],
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.byTooltip('도입 삭제'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, isEmpty);
+    expect(find.text('도입 · 2-9초'), findsOneWidget);
+    expect(find.text('저장 구간을 삭제하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet does not add named preset when save fails', (
+    tester,
+  ) async {
+    final savedFiles = <SheetLinkedFile>[];
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 10, 20),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return false;
+        },
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '현재 구간 저장'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '도입');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles, hasLength(1));
+    expect(savedFiles.single.audioLoopMarkers, hasLength(1));
+    expect(find.text('저장한 구간'), findsNothing);
+    expect(find.text('저장 구간을 추가하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('linked audio sheet clears saved A-B loop markers', (
     tester,
   ) async {

@@ -3167,3 +3167,12 @@ identifier and states that restore is a full replacement rather than field-level
 reports and reports the hidden count. Unit and widget regressions cover redaction, duplicate labels, item limits, clipboard
 content and visible success feedback. `dart format`, `flutter analyze`, all 1,794 tests and the RC release check passed. It
 does not upload the report, synchronize accounts or make an automatic merge decision.
+
+S316 VERIFIED LOCAL: reduced the linked-audio practice gap without introducing waveform or DSP scope. Each audio link can
+now keep up to 12 named A-B ranges in addition to its backward-compatible last active range. The player sheet saves the
+current valid range under a short user name, exposes saved ranges as selectable/deletable chips and keeps the current range
+when a preset is removed. Invalid, duplicate-id or excess persisted markers are normalized; non-audio links discard marker
+metadata. Add/delete failures leave the visible and persisted preset list unchanged, while metadata backup/restore preserves
+the ranges. Model, widget and backup regressions cover normalization, limits, selection, save/delete failure and round-trip.
+`dart format`, `flutter analyze`, all 1,799 tests and the RC release check passed. Waveform navigation, iOS playback parity
+and actual loop timing remain separate implementation or Device QA work.
