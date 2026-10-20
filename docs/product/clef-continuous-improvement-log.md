@@ -3356,3 +3356,8 @@ UI. A deduplicated mix of stroke, shape, text and stamp ids can move to one exis
 score replacement; blank/unknown ids, missing targets and selections already on the target are no-ops, while a real move
 clears stale redo/erase history consistently with the existing single-object action. This does not claim that free-form
 selection or drag gestures are exposed in the viewer yet.
+
+S340 VERIFIED LOCAL: exposed the S339 boundary through a named `현재 쪽 주석 선택 이동` action in the annotation layer
+menu. The bounded sheet lists only the current page and active layer, supports individual/all selection, reports the live
+count and then reuses the existing target-layer chooser and scoped save feedback. A compact 360x640 widget fixture covers
+selection state without claiming canvas marquee/drag selection or stylus ergonomics, which remain follow-up Device QA.

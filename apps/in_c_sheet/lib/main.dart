@@ -18177,6 +18177,81 @@ setlist=$setlistLabel
     _showSnackBar('주석 $annotationCount개를 ${targetLayer.label} layer로 이동했습니다.');
   }
 
+  Future<void> _moveSelectedPageAnnotations() async {
+    final currentScore = score;
+    final pageNumber = _pdfController.isReady
+        ? _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage
+        : _pageNumber ?? currentScore.lastPage;
+    final sourceLayer = _activeAnnotationDisplayLayer(
+      currentScore.annotationLayer,
+    );
+    final items = <_AnnotationSelectionItem>[
+      for (final stroke in currentScore.annotationLayer.strokes)
+        if (stroke.pageNumber == pageNumber && stroke.layerId == sourceLayer.id)
+          _AnnotationSelectionItem(
+            id: stroke.id,
+            title: '필기/도형',
+            subtitle: '${stroke.tool.name} · ${stroke.points.length}점',
+            icon: Icons.gesture,
+          ),
+      for (final text in currentScore.annotationLayer.texts)
+        if (text.pageNumber == pageNumber && text.layerId == sourceLayer.id)
+          _AnnotationSelectionItem(
+            id: text.id,
+            title: text.isImageStamp
+                ? '이미지 스탬프'
+                : text.stampKind.isNotEmpty
+                ? '스탬프'
+                : '텍스트',
+            subtitle: text.text,
+            icon: text.isImageStamp ? Icons.image_outlined : Icons.text_fields,
+          ),
+    ];
+    if (items.isEmpty) {
+      _showSnackBar('$pageNumber쪽 ${sourceLayer.label} layer에 선택할 주석이 없습니다.');
+      return;
+    }
+    final selectedIds = await showModalBottomSheet<Set<String>>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _AnnotationSelectionSheet(
+        pageNumber: pageNumber,
+        layerLabel: sourceLayer.label,
+        items: items,
+      ),
+    );
+    if (selectedIds == null || selectedIds.isEmpty || !mounted) return;
+    final targetLayerId = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _AnnotationMoveLayerSheet(
+        layers: currentScore.annotationLayer.layers,
+        currentLayerId: sourceLayer.id,
+        annotationCount: selectedIds.length,
+      ),
+    );
+    if (targetLayerId == null || !mounted) return;
+    final targetLayer = currentScore.annotationLayer.displayLayerForAnnotation(
+      targetLayerId,
+    );
+    final request = _annotationLayerSaveRequest = Object();
+    final didMove = await _saveAnnotationChange(
+      () => widget.controller.moveAnnotationsToDisplayLayer(
+        currentScore,
+        annotationIds: selectedIds,
+        layerId: targetLayer.id,
+      ),
+      isCurrent: () => identical(_annotationLayerSaveRequest, request),
+    );
+    if (didMove == null) return;
+    _showSnackBar(
+      didMove
+          ? '선택한 주석 ${selectedIds.length}개를 ${targetLayer.label} layer로 이동했습니다.'
+          : '이동할 주석이나 대상 layer를 찾지 못했습니다.',
+    );
+  }
+
   List<_AnnotationStamp> _recentAnnotationStamps() {
     final seen = <_AnnotationStamp>{};
     final stamps = <_AnnotationStamp>[];
@@ -20754,6 +20829,8 @@ setlist=$setlistLabel
                           onDeleteLayer: _deleteAnnotationDisplayLayer,
                           onMoveLayerContents:
                               _moveActiveAnnotationLayerContents,
+                          onMoveSelectedAnnotations:
+                              _moveSelectedPageAnnotations,
                           onStampSelected: _selectAnnotationStamp,
                           onCreateUserStamp: (label, text) async {
                             final didSave = await widget.controller
@@ -23414,6 +23491,121 @@ String _userStampPrintableText(SheetAnnotationUserStamp stamp) {
   return stamp.text.isEmpty ? stamp.label : stamp.text;
 }
 
+class _AnnotationSelectionItem {
+  const _AnnotationSelectionItem({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
+class _AnnotationSelectionSheet extends StatefulWidget {
+  const _AnnotationSelectionSheet({
+    required this.pageNumber,
+    required this.layerLabel,
+    required this.items,
+  });
+
+  final int pageNumber;
+  final String layerLabel;
+  final List<_AnnotationSelectionItem> items;
+
+  @override
+  State<_AnnotationSelectionSheet> createState() =>
+      _AnnotationSelectionSheetState();
+}
+
+class _AnnotationSelectionSheetState extends State<_AnnotationSelectionSheet> {
+  final Set<String> _selectedIds = <String>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final allSelected = _selectedIds.length == widget.items.length;
+    return SafeArea(
+      child: SizedBox(
+        height: math.min(MediaQuery.sizeOf(context).height * 0.72, 560),
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.library_add_check_outlined),
+              title: const Text('현재 쪽 주석 선택'),
+              subtitle: Text(
+                '${widget.pageNumber}쪽 · ${widget.layerLabel} · '
+                '${_selectedIds.length}/${widget.items.length}개 선택',
+              ),
+              trailing: TextButton(
+                onPressed: () {
+                  setState(() {
+                    if (allSelected) {
+                      _selectedIds.clear();
+                    } else {
+                      _selectedIds
+                        ..clear()
+                        ..addAll(widget.items.map((item) => item.id));
+                    }
+                  });
+                },
+                child: Text(allSelected ? '전체 해제' : '전체 선택'),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  final item = widget.items[index];
+                  final selected = _selectedIds.contains(item.id);
+                  return CheckboxListTile(
+                    key: ValueKey<String>('annotation-select-${item.id}'),
+                    value: selected,
+                    secondary: Icon(item.icon),
+                    title: Text(item.title),
+                    subtitle: Text(
+                      item.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          _selectedIds.add(item.id);
+                        } else {
+                          _selectedIds.remove(item.id);
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _selectedIds.isEmpty
+                      ? null
+                      : () =>
+                            Navigator.of(context)
+                                .pop(Set<String>.unmodifiable(_selectedIds)),
+                  icon: const Icon(Icons.drive_file_move_outline),
+                  label: Text('선택한 ${_selectedIds.length}개 이동'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AnnotationMoveLayerSheet extends StatelessWidget {
   const _AnnotationMoveLayerSheet({
     required this.layers,
@@ -23523,6 +23715,7 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onRenameLayer,
     required this.onDeleteLayer,
     required this.onMoveLayerContents,
+    required this.onMoveSelectedAnnotations,
     required this.onStampSelected,
     required this.onCreateUserStamp,
     required this.onCreateIconUserStamp,
@@ -23556,6 +23749,7 @@ class _AnnotationToolbar extends StatelessWidget {
   final VoidCallback onRenameLayer;
   final VoidCallback onDeleteLayer;
   final VoidCallback onMoveLayerContents;
+  final VoidCallback onMoveSelectedAnnotations;
   final ValueChanged<_AnnotationStampSelection> onStampSelected;
   final _UserStampPackMutation onCreateUserStamp;
   final _UserStampPackMutation onCreateIconUserStamp;
@@ -23622,6 +23816,10 @@ class _AnnotationToolbar extends StatelessWidget {
               onMoveLayerContents();
               return;
             }
+            if (value == '__move_selected_annotations__') {
+              onMoveSelectedAnnotations();
+              return;
+            }
             onLayerSelected(value);
           },
           itemBuilder: (context) => <PopupMenuEntry<String>>[
@@ -23660,6 +23858,16 @@ class _AnnotationToolbar extends StatelessWidget {
                   dense: true,
                   leading: Icon(Icons.edit_outlined),
                   title: Text('현재 layer 이름 변경'),
+                ),
+              ),
+            if (displayLayers.length > 1)
+              const PopupMenuItem<String>(
+                value: '__move_selected_annotations__',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.library_add_check_outlined),
+                  title: Text('현재 쪽 주석 선택 이동'),
+                  subtitle: Text('고른 주석만 다른 layer로 이동'),
                 ),
               ),
             if (displayLayers.length > 1)
@@ -28111,6 +28319,7 @@ Widget buildAnnotationToolbarForTest({
   Future<List<SheetAnnotationStampPack>?> Function(String, String)?
   onDeleteUserStamp,
   VoidCallback? onMoveLayerContents,
+  VoidCallback? onMoveSelectedAnnotations,
 }) {
   final recentStamps = recentStampNames
       .map(_AnnotationStamp.tryFromName)
@@ -28149,6 +28358,7 @@ Widget buildAnnotationToolbarForTest({
           onRenameLayer: () {},
           onDeleteLayer: () {},
           onMoveLayerContents: onMoveLayerContents ?? () {},
+          onMoveSelectedAnnotations: onMoveSelectedAnnotations ?? () {},
           onColorSelected: (_) {},
           onWidthChanged: (_) {},
           onStampSelected: (selection) {
@@ -28178,6 +28388,32 @@ Widget buildAnnotationToolbarForTest({
           onSaveFavorite: () {},
           onApplyFavorite: () {},
         ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildAnnotationSelectionSheetForTest() {
+  return const MaterialApp(
+    home: Scaffold(
+      body: _AnnotationSelectionSheet(
+        pageNumber: 3,
+        layerLabel: '리허설 메모',
+        items: <_AnnotationSelectionItem>[
+          _AnnotationSelectionItem(
+            id: 'stroke-1',
+            title: '필기/도형',
+            subtitle: 'arrow · 2점',
+            icon: Icons.gesture,
+          ),
+          _AnnotationSelectionItem(
+            id: 'text-1',
+            title: '텍스트',
+            subtitle: '호흡 확인',
+            icon: Icons.text_fields,
+          ),
+        ],
       ),
     ),
   );

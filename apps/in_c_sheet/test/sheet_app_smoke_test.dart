@@ -4474,6 +4474,7 @@ Clef & Staff 세트리스트
     tester,
   ) async {
     var didRequestLayerMove = false;
+    var didRequestSelectionMove = false;
     await tester.pumpWidget(
       buildAnnotationToolbarForTest(
         displayLayers: const <SheetAnnotationDisplayLayer>[
@@ -4481,6 +4482,7 @@ Clef & Staff 세트리스트
           SheetAnnotationDisplayLayer(id: 'rehearsal', label: '리허설 메모'),
         ],
         onMoveLayerContents: () => didRequestLayerMove = true,
+        onMoveSelectedAnnotations: () => didRequestSelectionMove = true,
       ),
     );
 
@@ -4503,12 +4505,49 @@ Clef & Staff 세트리스트
 
     expect(find.text('현재 layer 이름 변경'), findsOneWidget);
     expect(find.text('현재 layer 삭제'), findsOneWidget);
+    expect(find.text('현재 쪽 주석 선택 이동'), findsOneWidget);
     expect(find.text('현재 layer 주석 모두 이동'), findsOneWidget);
     expect(find.text('주석은 기본 필기로 유지'), findsOneWidget);
+
+    await tester.tap(find.text('현재 쪽 주석 선택 이동'));
+    await tester.pumpAndSettle();
+    expect(didRequestSelectionMove, isTrue);
+
+    await tester.tap(find.byTooltip('필기 layer 선택'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('현재 layer 주석 모두 이동'));
     await tester.pumpAndSettle();
     expect(didRequestLayerMove, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('annotation selection sheet works on a compact screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildAnnotationSelectionSheetForTest());
+    await tester.pumpAndSettle();
+
+    expect(find.text('현재 쪽 주석 선택'), findsOneWidget);
+    expect(find.text('3쪽 · 리허설 메모 · 0/2개 선택'), findsOneWidget);
+    expect(find.text('선택한 0개 이동'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('annotation-select-stroke-1')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('3쪽 · 리허설 메모 · 1/2개 선택'), findsOneWidget);
+    expect(find.text('선택한 1개 이동'), findsOneWidget);
+
+    await tester.tap(find.text('전체 선택'));
+    await tester.pumpAndSettle();
+    expect(find.text('3쪽 · 리허설 메모 · 2/2개 선택'), findsOneWidget);
+    expect(find.text('전체 해제'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
