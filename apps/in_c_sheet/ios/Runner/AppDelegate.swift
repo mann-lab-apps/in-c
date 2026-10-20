@@ -16,6 +16,7 @@ import UIKit
     ClefSharedImportBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
     ClefAudioPlayerBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
     ClefTonePlayerBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
+    ClefMetronomePlayerBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
     InCDailyNotificationBridge.shared.configure(messenger: engineBridge.applicationRegistrar.messenger())
   }
 

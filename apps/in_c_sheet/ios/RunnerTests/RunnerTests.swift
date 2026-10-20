@@ -70,6 +70,18 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(ClefTonePlayerBridge.normalizeVolume(nil), 0.35)
   }
 
+  func testMetronomeClickBuffersMatchFlutterContract() {
+    let regular = ClefMetronomePlayerBridge.makeClickSamples(accent: false)
+    let accent = ClefMetronomePlayerBridge.makeClickSamples(accent: true)
+    XCTAssertEqual(regular.count, 1_985)
+    XCTAssertEqual(accent.count, regular.count)
+    XCTAssertEqual(regular.first, 0)
+    XCTAssertEqual(accent.first, 0)
+    XCTAssertGreaterThan(accent.map { abs($0) }.max() ?? 0, regular.map { abs($0) }.max() ?? 0)
+    XCTAssertEqual(ClefMetronomePlayerBridge.normalizeVolume(-0.5), 0)
+    XCTAssertEqual(ClefMetronomePlayerBridge.normalizeVolume(1.5), 1)
+  }
+
   func testExample() {
     // If you add code to the Runner application, consider adding tests here.
     // See https://developer.apple.com/documentation/xctest for more information about using XCTest.

@@ -284,7 +284,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 9. 저지연 Metronome/Audio/iOS Playback Parity
 
-- 현재 v1 상태: visual metronome, Android native metronome tick volume/accent click, Android native
+- 현재 v1 상태: visual metronome, Android/iOS native metronome tick volume/accent click, Android native
   tone/drone과 iOS `AVAudioEngine` PCM tone/drone, Android `MediaPlayer`와 iOS `AVAudioPlayer` local
   audio playback/A-B loop, linked audio metadata/backup이 있다. 두 iOS bridge wiring과 Swift parse는
   로컬 확인했고 공동 audio-session ownership을 사용하지만 실제 codec, 음량, 시작/종료 잡음,
@@ -295,11 +295,11 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   감지 confidence/noise floor/clipping debug label까지 구현했지만 실제 마이크 latency/외부 마이크 안정성은
   QA가 필요하다. 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했으며,
   악보앱에 다시 넣을지 또는 별도 튜너앱으로 분리할지는 v1.1 이후 제품 판단으로 둔다.
-- 왜 v1.1 spike인지: low-latency tick scheduling, audio session, background policy, iOS native
-  bridge, codec support를 결정해야 한다.
+- 왜 v1.1 spike인지: click 재생은 양 플랫폼 native preload로 연결됐지만 Flutter timer 기반 beat scheduling의
+  실제 저지연/drift 기준, audio session, background policy와 codec support를 결정해야 한다.
 - 결정 필요사항: audio package/native bridge, tick/accent asset, latency target, background/lock
   screen policy, iOS audio session category, codec matrix.
-- 구현 후보: native low-latency metronome engine, preloaded tick/accent buffers, shared transport state,
+- 구현 후보: audio-clock 기반 metronome scheduling, shared transport state,
   latency debug screen, tuner noise calibration dashboard와 MPM/native
   detector 비교 spike.
 - 테스트/fixture/실기기 조건: Android tablet, iPhone/iPad, wired/Bluetooth output, MP3/M4A/WAV,

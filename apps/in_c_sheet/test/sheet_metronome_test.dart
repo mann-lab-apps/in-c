@@ -369,6 +369,26 @@ void main() {
     expect(calls, isEmpty);
   });
 
+  test('metronome sound player stops persistent native output', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('test/clef_metronome_player_stop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await SheetMetronomeSoundPlayer(channel: channel).stop();
+
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'stop');
+  });
+
   test(
     'metronome sound player reports fallback and unavailable output',
     () async {

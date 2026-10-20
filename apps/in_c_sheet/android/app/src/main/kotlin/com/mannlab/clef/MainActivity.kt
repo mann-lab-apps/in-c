@@ -218,6 +218,7 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                 }
+                "stop" -> result.success(null)
                 else -> result.notImplemented()
             }
         }

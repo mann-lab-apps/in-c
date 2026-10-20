@@ -3197,3 +3197,16 @@ Swift format/typecheck, project plist validation, Xcode project resolution, `flu
 RC release check pass. Xcode project resolution still reports the pre-existing generated-package warning for a missing
 `Resources/PrivacyInfo.xcprivacy`; this slice did not build iOS or execute XCTest. Actual iPhone/iPad volume, ten-second loop
 boundary, start/stop noise, latency, route changes, Bluetooth and concurrent linked-audio behavior remain Device QA.
+
+S319 VERIFIED LOCAL: replaced the missing iOS metronome native channel with preloaded AVAudioEngine clicks while retaining
+the existing Flutter beat/count-in/accent contract. The bridge prepares separate 45 ms regular/accent PCM buffers, applies
+the saved normalized volume, restarts a prepared node per audible beat and shares the owner-aware playback session with the
+tone and linked-audio bridges. A new best-effort `stop` contract releases the iOS engine/session when a running full or mini
+metronome stops or closes; Android accepts the same lifecycle call without discarding its static tracks. A two-second idle
+guard cleans up one-shot sound previews, while inactive metronome surfaces do not stop another active surface. Swift
+format/typecheck, project plist validation, Xcode project resolution, focused lifecycle/timing tests, `flutter analyze`, all
+1,801 Flutter tests and the RC release check pass. Xcode still reports the pre-existing generated-package
+`Resources/PrivacyInfo.xcprivacy` warning; this slice did not build iOS, execute XCTest or run a separate Android native
+compile. Actual Android/iPhone/iPad first-beat latency, 120/180/240 BPM regularity, drift, route changes, Bluetooth and
+concurrent practice-tool behavior remain Device QA; beat scheduling is still driven by Flutter timers rather than an audio
+clock.

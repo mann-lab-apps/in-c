@@ -20999,6 +20999,9 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   void dispose() {
     _playbackRequest++;
     _timer?.cancel();
+    if (_isRunning) {
+      unawaited(_soundPlayer.stop());
+    }
     _stopMiniTunerInput(resetState: false);
     super.dispose();
   }
@@ -21074,6 +21077,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (_isRunning) {
       _playbackRequest++;
       _timer?.cancel();
+      unawaited(_soundPlayer.stop());
       setState(() {
         _isRunning = false;
         _countInPulsesLeft = 0;
@@ -27950,6 +27954,9 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   void dispose() {
     _playbackRequest++;
     _timer?.cancel();
+    if (_isRunning) {
+      unawaited(_soundPlayer.stop());
+    }
     super.dispose();
   }
 
@@ -28003,6 +28010,8 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     });
     if (enabled) {
       unawaited(_soundPlayer.prepare(nextSettings));
+    } else if (_isRunning) {
+      unawaited(_soundPlayer.stop());
     }
     await _persistSettings(nextSettings);
   }
@@ -28012,6 +28021,9 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
+    if (_isRunning && volumePercent <= 0) {
+      unawaited(_soundPlayer.stop());
+    }
     await _persistSettings(nextSettings);
   }
 
@@ -28101,6 +28113,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     if (_isRunning) {
       _playbackRequest++;
       _timer?.cancel();
+      unawaited(_soundPlayer.stop());
       setState(() {
         _isRunning = false;
         _countInPulsesLeft = 0;
