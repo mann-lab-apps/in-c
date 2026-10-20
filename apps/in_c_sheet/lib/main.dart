@@ -59,7 +59,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.2+28';
+const String _clefAppVersion = '1.0.2+29';
 const String _clefMarketingUrl = 'https://in-c.mannlab.app/clef-and-staff/';
 const String _clefSupportUrl =
     'https://in-c.mannlab.app/clef-and-staff/support.html';
