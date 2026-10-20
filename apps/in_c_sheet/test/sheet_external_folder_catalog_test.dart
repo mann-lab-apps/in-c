@@ -227,6 +227,35 @@ void main() {
     expect(preview.message, contains('처음 3개'));
   });
 
+  test('classifies a capped mixed folder without selecting blocked files', () {
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      List<SheetExternalFolderEntry>.generate(201, (index) {
+        if (index % 10 == 0) {
+          return SheetExternalFolderEntry(displayName: 'blocked-$index.xlsx');
+        }
+        if (index % 9 == 0) {
+          return SheetExternalFolderEntry(
+            displayName: 'offline-$index.pdf',
+            canRead: false,
+          );
+        }
+        return SheetExternalFolderEntry(displayName: 'score-$index.pdf');
+      }),
+    );
+
+    expect(preview.status, SheetExternalFolderCatalogStatus.capped);
+    expect(preview.scannedCount, 201);
+    expect(preview.candidates, hasLength(200));
+    final readyIds = preview.candidates
+        .where((candidate) => candidate.isReadyToCopy)
+        .map((candidate) => candidate.selectionId);
+    final plan = preview.copyPlanForSelection(readyIds);
+    expect(plan.isReady, isTrue);
+    expect(plan.copyCount, preview.readyCount);
+    expect(plan.copyCount, lessThan(200));
+    expect(plan.blockedCandidates, isEmpty);
+  });
+
   test('builds a copy-on-select plan only from ready score candidates', () {
     final preview = SheetExternalFolderCatalogPreview.fromEntries(
       <SheetExternalFolderEntry>[

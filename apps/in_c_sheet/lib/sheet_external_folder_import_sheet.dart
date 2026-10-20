@@ -229,6 +229,48 @@ class _ExternalFolderImportSheetState extends State<ExternalFolderImportSheet> {
                   ),
                 ),
               ],
+              if (widget.preview.readyCount > 1) ...[
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '${_selectedIds.length}/${widget.preview.readyCount}개 선택',
+                      key: const ValueKey('external-folder-selection-count'),
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    TextButton.icon(
+                      onPressed: _selectedIds.isEmpty
+                          ? null
+                          : () => setState(_selectedIds.clear),
+                      icon: const Icon(Icons.deselect_outlined),
+                      label: const Text('모두 해제'),
+                    ),
+                    TextButton.icon(
+                      onPressed:
+                          _selectedIds.length == widget.preview.readyCount
+                          ? null
+                          : () => setState(() {
+                              _selectedIds
+                                ..clear()
+                                ..addAll(
+                                  widget.preview.candidates
+                                      .where(
+                                        (candidate) => candidate.isReadyToCopy,
+                                      )
+                                      .map(
+                                        (candidate) => candidate.selectionId,
+                                      ),
+                                );
+                            }),
+                      icon: const Icon(Icons.select_all_outlined),
+                      label: const Text('가져올 파일 선택'),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 8),
               Expanded(
                 child: widget.preview.candidates.isEmpty

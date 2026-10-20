@@ -81,6 +81,58 @@ void main() {
     expect(result?.copyPlan?.copyCount, 1);
   });
 
+  testWidgets('bulk selection controls handle a large mixed folder', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final preview = SheetExternalFolderCatalogPreview.fromEntries(
+      List<SheetExternalFolderEntry>.generate(
+        201,
+        (index) => SheetExternalFolderEntry(
+          displayName: index % 10 == 0
+              ? 'unsupported-$index.xlsx'
+              : 'score-$index.pdf',
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ExternalFolderImportSheet(
+            folderLabel: 'Large folder',
+            preview: preview,
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text('${preview.readyCount}/${preview.readyCount}개 선택'),
+      findsOneWidget,
+    );
+    expect(find.text('모두 해제'), findsOneWidget);
+    expect(find.text('가져올 파일 선택'), findsOneWidget);
+
+    await tester.tap(find.text('모두 해제'));
+    await tester.pump();
+    expect(find.text('0/${preview.readyCount}개 선택'), findsOneWidget);
+    expect(find.text('0개 악보 복사'), findsOneWidget);
+
+    await tester.tap(find.text('가져올 파일 선택'));
+    await tester.pump();
+    expect(
+      find.text('${preview.readyCount}/${preview.readyCount}개 선택'),
+      findsOneWidget,
+    );
+    expect(find.text('${preview.readyCount}개 악보 복사'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('connected folder sheet exposes open add and forget actions', (
     tester,
   ) async {

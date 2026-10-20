@@ -3338,3 +3338,9 @@ picker again, and can still be explicitly forgotten. A successful persistent rep
 the token differs; cancelling or receiving transient access leaves the old connection untouched. Native folder listing now
 isolates provider exceptions per permission so one broken provider cannot hide every healthy connection. Reboot, provider
 removal and permission-revocation behavior still require Android Device QA.
+
+S337 VERIFIED LOCAL: reduced large connected-folder selection work while retaining the 200-row preview cap. The import
+sheet now reports selected versus ready files and can clear or restore every importable candidate without selecting
+unsupported, unreadable, duplicate or changed-source rows. A 201-entry mixed catalog fixture and a compact 360x640 widget
+fixture cover cap accounting, blocked-row exclusion, bulk deselection/reselection and overflow. Provider scan latency and
+actual copy throughput remain Android Device QA evidence rather than widget-test claims.
