@@ -67,8 +67,9 @@ object-filter App integration test가 같은 기본 timeout을 넘겼다. assert
 alpha.34는 PR #785로 `main`에 병합됐고, tag workflow `39573419366`에서
 Linux/macOS/Windows package와 GitHub prerelease publication을 모두 통과했다.
 macOS는 Developer ID signing secret 검증, notarization key 준비, 서명 검증 및
-packaged-app smoke까지 통과했다. site download manifest의 실제 공개 반영은 별도
-site build/content gate로 확인한다.
+packaged-app smoke까지 통과했다. site PR #786과 main Site workflow `39576803911`도
+통과했고, production `https://in-c.mannlab.app/download-manifest.json`이 alpha.34
+다운로드 및 checksum URL을 반환하는 것을 확인했다.
 
 ## MuseScore Gap Matrix
 
