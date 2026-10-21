@@ -902,6 +902,18 @@ const notationPaletteRecentItemsStorageKey =
   'chromatics.notation-palette-recent-items.v1'
 const notationPaletteFavoriteItemsStorageKey =
   'chromatics.notation-palette-favorite-items.v1'
+const scoreToolbarSectionsStorageKey =
+  'chromatics.score-toolbar-sections.v1'
+const exportToolbarSectionsStorageKey =
+  'chromatics.export-toolbar-sections.v1'
+type ScoreToolbarSectionId = 'structure'
+
+const defaultScoreToolbarSectionCollapse: Record<
+  ScoreToolbarSectionId,
+  boolean
+> = {
+  structure: false
+}
 
 function readStoredNotationPaletteSectionCollapse(): Record<
   NotationPaletteSectionId,
@@ -986,6 +998,35 @@ function readStoredNotationPaletteFavoriteItems(): NotationPaletteRecentItemId[]
   return []
 }
 
+function readStoredScoreToolbarSectionCollapse(): Record<
+  ScoreToolbarSectionId,
+  boolean
+> {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(scoreToolbarSectionsStorageKey) ?? '{}'
+    ) as Partial<Record<ScoreToolbarSectionId, unknown>>
+
+    return {
+      structure: stored.structure === true
+    }
+  } catch {
+    return { ...defaultScoreToolbarSectionCollapse }
+  }
+}
+
+function readStoredExportToolbarSectionCollapse() {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(exportToolbarSectionsStorageKey) ?? '{}'
+    ) as { advanced?: unknown }
+
+    return { advanced: stored.advanced === true }
+  } catch {
+    return { advanced: false }
+  }
+}
+
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
   const [selection, setSelection] = useState<EditorSelection>(() =>
@@ -1030,6 +1071,32 @@ export const App = () => {
     useState<PartPageSetupPreferences>({})
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
+  const [collapsedScoreToolbarSections, setCollapsedScoreToolbarSections] =
+    useState<Record<ScoreToolbarSectionId, boolean>>(
+      readStoredScoreToolbarSectionCollapse
+    )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        scoreToolbarSectionsStorageKey,
+        JSON.stringify(collapsedScoreToolbarSections)
+      )
+    } catch {
+      // The score toolbar remains usable when browser storage is unavailable.
+    }
+  }, [collapsedScoreToolbarSections])
+  const [collapsedExportToolbarSections, setCollapsedExportToolbarSections] =
+    useState(readStoredExportToolbarSectionCollapse)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        exportToolbarSectionsStorageKey,
+        JSON.stringify(collapsedExportToolbarSections)
+      )
+    } catch {
+      // The export toolbar remains usable when browser storage is unavailable.
+    }
+  }, [collapsedExportToolbarSections])
   const [paletteCategory, setPaletteCategory] =
     useState<ToolbarCategory>('note')
   const [notationPaletteQuery, setNotationPaletteQuery] = useState('')
@@ -8905,9 +8972,45 @@ export const App = () => {
           </div>
         </section>
 
-        <section className="inspector-properties" aria-label="파트와 보표">
-          <h3>파트/보표</h3>
-          <div className="inspector-properties__grid">
+        <section
+          className="inspector-properties"
+          aria-label="파트와 보표"
+          data-collapsed={collapsedScoreToolbarSections.structure}
+        >
+          <div className="inspector-properties__header">
+            <h3>파트/보표</h3>
+            <button
+              aria-expanded={!collapsedScoreToolbarSections.structure}
+              aria-label={
+                collapsedScoreToolbarSections.structure
+                  ? '파트와 보표 펼치기'
+                  : '파트와 보표 접기'
+              }
+              className="inspector-properties__collapse"
+              onClick={() =>
+                setCollapsedScoreToolbarSections((sections) => ({
+                  ...sections,
+                  structure: !sections.structure
+                }))
+              }
+              title={
+                collapsedScoreToolbarSections.structure
+                  ? '파트와 보표 펼치기'
+                  : '파트와 보표 접기'
+              }
+              type="button"
+            >
+              {collapsedScoreToolbarSections.structure ? (
+                <ChevronRight aria-hidden="true" size={16} />
+              ) : (
+                <ChevronsDown aria-hidden="true" size={16} />
+              )}
+            </button>
+          </div>
+          <div
+            className="inspector-properties__grid"
+            hidden={collapsedScoreToolbarSections.structure}
+          >
             <label>
               <span>보기</span>
               <select
@@ -9090,8 +9193,41 @@ export const App = () => {
         aria-label="내보내기 설정"
         hidden={toolbarsCollapsed || toolbarCategory !== 'export'}
       >
-        <section className="inspector-properties" aria-label="PDF 페이지 설정">
-          <h3>PDF 설정</h3>
+        <section
+          className="inspector-properties"
+          aria-label="PDF 페이지 설정"
+          data-collapsed={collapsedExportToolbarSections.advanced}
+        >
+          <div className="inspector-properties__header">
+            <h3>PDF 설정</h3>
+            <button
+              aria-expanded={!collapsedExportToolbarSections.advanced}
+              aria-label={
+                collapsedExportToolbarSections.advanced
+                  ? 'PDF 조판 설정 펼치기'
+                  : 'PDF 조판 설정 접기'
+              }
+              className="inspector-properties__collapse"
+              onClick={() =>
+                setCollapsedExportToolbarSections((sections) => ({
+                  ...sections,
+                  advanced: !sections.advanced
+                }))
+              }
+              title={
+                collapsedExportToolbarSections.advanced
+                  ? 'PDF 조판 설정 펼치기'
+                  : 'PDF 조판 설정 접기'
+              }
+              type="button"
+            >
+              {collapsedExportToolbarSections.advanced ? (
+                <ChevronRight aria-hidden="true" size={16} />
+              ) : (
+                <ChevronsDown aria-hidden="true" size={16} />
+              )}
+            </button>
+          </div>
           <div className="inspector-properties__grid">
             {scoreViewMode === 'part' && livePartViewPartId ? (
               <button
@@ -9158,6 +9294,10 @@ export const App = () => {
               </select>
             </label>
 
+            <div
+              className="inspector-properties__advanced"
+              hidden={collapsedExportToolbarSections.advanced}
+            >
             <label>
               <span>여백</span>
               <input
@@ -9222,6 +9362,7 @@ export const App = () => {
               />
               <span>여백 가이드</span>
             </label>
+            </div>
           </div>
         </section>
       </section>
@@ -9922,7 +10063,20 @@ export const App = () => {
 
         <div className="docked-workspace" aria-label="도킹 작업 영역" data-palette={dockVisibility.palette} data-properties={dockVisibility.properties}>
           <aside className="docked-palette" aria-label="고정 팔레트" hidden={!dockVisibility.palette}>
-            <h3>팔레트</h3>
+            <div className="docked-sidebar__header">
+              <h3>팔레트</h3>
+              <button
+                aria-label="팔레트 숨기기"
+                className="icon-button"
+                onClick={() =>
+                  setDockVisibility((value) => ({ ...value, palette: false }))
+                }
+                title="팔레트 숨기기"
+                type="button"
+              >
+                <ChevronLeft aria-hidden="true" size={18} />
+              </button>
+            </div>
             <div className="docked-palette__actions">
               {toolbarCategories.map((category) => (
                 <button
@@ -10140,6 +10294,20 @@ export const App = () => {
           </div>
 
           <aside className="docked-properties" aria-label="속성 도크" hidden={!dockVisibility.properties}>
+            <div className="docked-sidebar__header">
+              <h3>속성</h3>
+              <button
+                aria-label="속성 도크 숨기기"
+                className="icon-button"
+                onClick={() =>
+                  setDockVisibility((value) => ({ ...value, properties: false }))
+                }
+                title="속성 도크 숨기기"
+                type="button"
+              >
+                <ChevronRight aria-hidden="true" size={18} />
+              </button>
+            </div>
             {toolbarCategory === 'notation' ? <SpanProperties score={printScore}
               partId={scoreViewMode === 'part' ? livePartViewPartId : undefined}
               independentGeometry={scoreViewMode === 'part' && Boolean(livePartLayout?.spanEngravings?.some(item => item.kind === activeSpanReference?.kind && item.spanId === activeSpanReference.id))}

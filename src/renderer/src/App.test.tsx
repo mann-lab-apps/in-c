@@ -4426,6 +4426,120 @@ describe('App component shell', () => {
     expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
   })
 
+  it('ui.score-toolbar persists the part and staff structure disclosure preference', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const { unmount } = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+
+    const scoreToolbar = screen.getByRole('region', { name: '악보 편집' })
+    const structure = within(scoreToolbar).getByRole('region', {
+      name: '파트와 보표'
+    })
+    expect(structure).toHaveAttribute('data-collapsed', 'false')
+    expect(within(structure).getByLabelText('현재 파트 이름')).toBeVisible()
+
+    fireEvent.click(
+      within(structure).getByRole('button', { name: '파트와 보표 접기' })
+    )
+
+    expect(structure).toHaveAttribute('data-collapsed', 'true')
+    expect(within(structure).getByLabelText('현재 파트 이름')).not.toBeVisible()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.score-toolbar-sections.v1') ?? '{}'
+      )
+    ).toEqual({ structure: true })
+
+    unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    expect(
+      within(screen.getByRole('region', { name: '악보 편집' })).getByRole(
+        'region',
+        { name: '파트와 보표' }
+      )
+    ).toHaveAttribute('data-collapsed', 'true')
+  })
+
+  it('ui.export-toolbar persists the advanced PDF engraving disclosure preference', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const { unmount } = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+
+    const exportToolbar = screen.getByRole('region', { name: '내보내기 설정' })
+    const pageSetup = within(exportToolbar).getByRole('region', {
+      name: 'PDF 페이지 설정'
+    })
+    expect(pageSetup).toHaveAttribute('data-collapsed', 'false')
+    expect(within(pageSetup).getByLabelText('PDF 용지')).toBeVisible()
+    expect(within(pageSetup).getByLabelText('PDF 보표 크기')).toBeVisible()
+
+    fireEvent.click(
+      within(pageSetup).getByRole('button', { name: 'PDF 조판 설정 접기' })
+    )
+
+    expect(pageSetup).toHaveAttribute('data-collapsed', 'true')
+    expect(within(pageSetup).getByLabelText('PDF 보표 크기')).not.toBeVisible()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('chromatics.export-toolbar-sections.v1') ?? '{}'
+      )
+    ).toEqual({ advanced: true })
+
+    unmount()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    expect(
+      within(screen.getByRole('region', { name: '내보내기 설정' })).getByRole(
+        'region',
+        { name: 'PDF 페이지 설정' }
+      )
+    ).toHaveAttribute('data-collapsed', 'true')
+  })
+
+  it('ui.dock-headers reuse the context strip visibility controls', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const context = screen.getByRole('region', {
+      name: '현재 작업 컨텍스트'
+    })
+    const palette = screen.getByRole('complementary', { name: '고정 팔레트' })
+    const properties = screen.getByRole('complementary', { name: '속성 도크' })
+
+    fireEvent.click(
+      within(palette).getByRole('button', { name: '팔레트 숨기기' })
+    )
+    expect(
+      screen.queryByRole('complementary', { name: '고정 팔레트' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(context).getByRole('button', { name: '팔레트 표시' })
+    ).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(
+      within(context).getByRole('button', { name: '팔레트 표시' })
+    )
+    expect(
+      screen.getByRole('complementary', { name: '고정 팔레트' })
+    ).toBeVisible()
+
+    fireEvent.click(
+      within(properties).getByRole('button', { name: '속성 도크 숨기기' })
+    )
+    expect(
+      screen.queryByRole('complementary', { name: '속성 도크' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(context).getByRole('button', { name: '속성 표시' })
+    ).toHaveAttribute('aria-pressed', 'false')
+  })
+
   it('file.new-window opens an independent Electron editing window', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')

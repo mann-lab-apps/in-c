@@ -1000,7 +1000,7 @@ export function NotationPreview({
           return
         }
 
-        const slurSide = resolveSlurSideForAnnotationLanes(resolveSlurSide(start), [
+        const slurSide = resolveSlurSideForAnnotationLanes(resolveSlurSide(start, end), [
           start.measureId
             ? annotationLanesByMeasureId.get(start.measureId)
             : undefined,
@@ -2871,8 +2871,39 @@ function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
   }
 }
 
-function resolveSlurSide(start: CursorPoint): 'above' | 'below' {
-  return (start.stemDirection ?? -1) > 0 ? 'below' : 'above'
+function resolveSlurSide(
+  start: CursorPoint,
+  end: CursorPoint
+): 'above' | 'below' {
+  const preferredSide = (start.stemDirection ?? -1) > 0 ? 'below' : 'above'
+
+  // With matching stem directions, retain the conventional start-stem policy.
+  // On a mixed-stem pair, avoid sending the entire curve through the endpoint
+  // attachment stack when the opposite side is clear.
+  if (
+    start.stemDirection === undefined ||
+    end.stemDirection === undefined ||
+    Math.sign(start.stemDirection) === Math.sign(end.stemDirection)
+  ) {
+    return preferredSide
+  }
+
+  const aboveClearance =
+    (start.articulationAboveClearance ?? 0) +
+    (end.articulationAboveClearance ?? 0)
+  const belowClearance =
+    (start.articulationBelowClearance ?? 0) +
+    (end.articulationBelowClearance ?? 0)
+
+  if (aboveClearance < belowClearance) {
+    return 'above'
+  }
+
+  if (belowClearance < aboveClearance) {
+    return 'below'
+  }
+
+  return preferredSide
 }
 
 function resolveSlurEndpointX(

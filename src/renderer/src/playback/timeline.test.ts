@@ -1296,6 +1296,98 @@ describe('playback timeline', () => {
     expect(findPlaybackEventStartBeat(timeline, 'tie-stop')).toBe(1)
   })
 
+  it('playback.tie-and-triplet-duration merges ties after repeat traversal without crossing alternate voltas', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'repeat-tie-start-measure',
+                  timeSignature: { beats: 1, beatType: 4 },
+                  repeat: { start: true },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'repeat-tie-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'E', octave: 4 },
+                          ties: { start: true }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'first-ending-measure',
+                  timeSignature: { beats: 1, beatType: 4 },
+                  repeat: { end: true },
+                  volta: { number: 1, start: true, end: true },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'first-ending-tie-stop',
+                          position: createTimePosition(0),
+                          pitch: { step: 'E', octave: 4 },
+                          ties: { stop: true }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'second-ending-measure',
+                  timeSignature: { beats: 1, beatType: 4 },
+                  volta: { number: 2, start: true, end: true },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'second-ending-tie-stop',
+                          position: createTimePosition(0),
+                          pitch: { step: 'E', octave: 4 },
+                          ties: { stop: true }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.events).toHaveLength(2)
+    expect(timeline.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventId: 'repeat-tie-start',
+          startBeat: 0,
+          durationBeats: 2,
+          sourceEventStarts: [
+            { eventId: 'repeat-tie-start', startBeat: 0 },
+            { eventId: 'first-ending-tie-stop', startBeat: 1 }
+          ]
+        }),
+        expect.objectContaining({
+          eventId: 'repeat-tie-start',
+          startBeat: 2,
+          durationBeats: 2,
+          sourceEventStarts: [
+            { eventId: 'repeat-tie-start', startBeat: 2 },
+            { eventId: 'second-ending-tie-stop', startBeat: 3 }
+          ]
+        })
+      ])
+    )
+  })
+
   it('playback.tie-and-triplet-duration keeps cross-measure ties addressable per voice on one staff', () => {
     const score = createScore({
       parts: [

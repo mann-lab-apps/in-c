@@ -88,6 +88,11 @@ interface RepeatPlaybackPlan {
   totalBeats: number
 }
 
+interface TieMarkedPlaybackEvent extends PlaybackEvent {
+  tieStart?: boolean
+  tieStop?: boolean
+}
+
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   score = convertOctaveShiftPitches(score, 'performed')
   const events: PlaybackEvent[] = []
@@ -167,9 +172,8 @@ function createStaffPlaybackEvents(
   measures: StaffMeasures,
   scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
 ): PlaybackTimeline {
-  const events: PlaybackEvent[] = []
+  const events: TieMarkedPlaybackEvent[] = []
   let scoreBeat = 0
-  const pendingTieEventByVoiceId = new Map<string, PlaybackEvent>()
 
   for (const measure of measures) {
     for (const voice of measure.voices) {
@@ -181,7 +185,7 @@ function createStaffPlaybackEvents(
           event.type === 'note'
             ? eventFrequencies(measure, voice, event)
             : undefined
-        const playbackEvent = {
+        const playbackEvent: TieMarkedPlaybackEvent = {
           eventId: event.id,
           partId,
           staffId,
@@ -209,37 +213,11 @@ function createStaffPlaybackEvents(
                 scoreBeat +
                 event.position.tick / TICKS_PER_QUARTER
             }
-          ]
+          ],
+          tieStart: event.type === 'note' && Boolean(event.ties?.start),
+          tieStop: event.type === 'note' && Boolean(event.ties?.stop)
         }
-        const pendingTieEvent = pendingTieEventByVoiceId.get(voice.id)
-        const continuesPendingTie =
-          event.type === 'note' &&
-          event.ties?.stop &&
-          pendingTieEvent &&
-          pendingTieEvent.frequency === playbackEvent.frequency &&
-          pendingTieEvent.startBeat + pendingTieEvent.durationBeats ===
-            playbackEvent.startBeat
-
-        if (continuesPendingTie) {
-          pendingTieEvent.durationBeats += playbackEvent.durationBeats
-          pendingTieEvent.velocityEnd = playbackEvent.velocityEnd
-          pendingTieEvent.sourceEventStarts = [
-            ...(pendingTieEvent.sourceEventStarts ?? []),
-            ...(playbackEvent.sourceEventStarts ?? [])
-          ]
-        } else {
-          events.push(playbackEvent)
-        }
-
-        if (event.type === 'note' && event.ties?.start) {
-          pendingTieEventByVoiceId.set(
-            voice.id,
-            continuesPendingTie ? pendingTieEvent : playbackEvent
-          )
-        } else {
-          pendingTieEventByVoiceId.delete(voice.id)
-        }
-
+        events.push(playbackEvent)
       }
     }
 
@@ -254,18 +232,20 @@ function createStaffPlaybackEvents(
   )
 
   return {
-    events: repeatedTimeline.events,
+    events: mergeRepeatedTies(repeatedTimeline.events).map(
+      ({ tieStart: _tieStart, tieStop: _tieStop, ...event }) => event
+    ),
     tempoEvents: [],
     totalBeats: repeatedTimeline.totalBeats
   }
 }
 
-function applyRepeatPlayback(
-  events: PlaybackEvent[],
+function applyRepeatPlayback<T extends PlaybackEvent>(
+  events: T[],
   measures: StaffMeasures,
   totalBeats: number,
   repeatPlaybackPlan = createRepeatPlaybackPlan(measures)
-): { events: PlaybackEvent[]; totalBeats: number } {
+): { events: T[]; totalBeats: number } {
   const measureStartBeats = createStaffMeasureStartBeatMap(measures)
   const nextEvents = repeatPlaybackPlan.entries.flatMap((entry) => {
     const measure = measures[entry.measureIndex]
@@ -281,14 +261,52 @@ function applyRepeatPlayback(
       .filter((event) => event.measureId === measure.id)
       .map((event) => ({
         ...event,
-        startBeat: event.startBeat + beatOffset
-      }))
+        startBeat: event.startBeat + beatOffset,
+        sourceEventStarts: event.sourceEventStarts?.map((source) => ({
+          ...source,
+          startBeat: source.startBeat + beatOffset
+        }))
+      }) as T)
   })
 
   return {
     events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
     totalBeats: repeatPlaybackPlan.totalBeats || totalBeats
   }
+}
+
+function mergeRepeatedTies(events: TieMarkedPlaybackEvent[]): TieMarkedPlaybackEvent[] {
+  const merged: TieMarkedPlaybackEvent[] = []
+  const pendingTieByVoice = new Map<string, TieMarkedPlaybackEvent>()
+
+  for (const event of events) {
+    const voiceKey = `${event.partId}:${event.staffId}:${event.voiceId}`
+    const pendingTie = pendingTieByVoice.get(voiceKey)
+    const continuesPendingTie =
+      Boolean(event.tieStop) &&
+      pendingTie !== undefined &&
+      pendingTie.frequency === event.frequency &&
+      pendingTie.startBeat + pendingTie.durationBeats === event.startBeat
+
+    if (continuesPendingTie) {
+      pendingTie.durationBeats += event.durationBeats
+      pendingTie.velocityEnd = event.velocityEnd
+      pendingTie.sourceEventStarts = [
+        ...(pendingTie.sourceEventStarts ?? []),
+        ...(event.sourceEventStarts ?? [])
+      ]
+    } else {
+      merged.push(event)
+    }
+
+    if (event.tieStart) {
+      pendingTieByVoice.set(voiceKey, continuesPendingTie ? pendingTie! : event)
+    } else {
+      pendingTieByVoice.delete(voiceKey)
+    }
+  }
+
+  return merged
 }
 
 function createScoreRepeatPlaybackPlan(

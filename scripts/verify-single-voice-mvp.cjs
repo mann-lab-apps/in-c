@@ -2433,6 +2433,21 @@ async function verifyPartViewHeadlessExportState(window) {
         button.click()
         await wait()
       }
+      const expandScoreStructure = async () => {
+        const button = document.querySelector(
+          'button[aria-label="파트와 보표 펼치기"]'
+        )
+
+        if (button) {
+          button.click()
+          await wait()
+          return
+        }
+
+        if (!document.querySelector('select[aria-label="악보 보기"]')) {
+          throw new Error('Score structure disclosure control not found.')
+        }
+      }
       const openNewScore = async () => {
         document
           .querySelector('button[aria-label="새 악보 만들기"]')
@@ -2454,6 +2469,7 @@ async function verifyPartViewHeadlessExportState(window) {
 
       await openNewScore()
       await clickToolbar('악보')
+      await expandScoreStructure()
       setSelectValue(
         document.querySelector('select[aria-label="악보 보기"]'),
         'part'
