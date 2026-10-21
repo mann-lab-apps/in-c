@@ -7178,7 +7178,7 @@ describe('App component shell', () => {
       ['old', 'Sing'],
       ['words']
     ])
-  })
+  }, 15_000)
 
   it('lyric object filter copies and deletes the active selected-note lyric verse without replacing the note', async () => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')

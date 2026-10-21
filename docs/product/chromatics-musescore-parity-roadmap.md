@@ -60,6 +60,10 @@ App regression이 Vitest 기본 5초 제한을 넘겼다. 기능 assertion을 �
 published prerelease가 아니며, 이 문서는 alpha.33 결과가 확인되기 전 배포 성공을
 주장하지 않는다.
 
+alpha.33의 Windows retry는 통과했지만 macOS에서 별도의 lyric range
+object-filter App integration test가 같은 기본 timeout을 넘겼다. assertion을
+유지한 15초 local budget과 immutable `v0.1.0-alpha.34` tag로 재검증한다.
+
 ## MuseScore Gap Matrix
 
 | ID | Area | MuseScore Reference Feature | Chromatics Current State | Gap | User Workflow Impact | Implementation Slice | Test Strategy | Status | Next Action |
