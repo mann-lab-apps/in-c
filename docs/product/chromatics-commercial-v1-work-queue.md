@@ -411,9 +411,10 @@ native/MusicXML App workflow가 동일한 기본 5초 제한을 넘겼다. asser
 alpha.34는 PR #785 merge commit `898e790`에 `v0.1.0-alpha.34` tag를 생성해
 release workflow `39573419366`을 실행했다. Linux/macOS/Windows package, macOS
 Developer ID signing/notarization preparation/signature verification, packaged-app
-smoke 및 GitHub prerelease publication이 통과했다. site manifest 공개 반영과
-production fetch 검증은 이 릴리즈 후속 gate로 남아 있다. manual PDF/listening 및
-external-app QA의 Required 상태는 변하지 않는다.
+smoke 및 GitHub prerelease publication이 통과했다. site PR #786과 main Site
+workflow `39576803911`도 통과했고, production manifest가 alpha.34 asset/checksum
+URL을 반환하는 것을 확인했다. manual PDF/listening 및 external-app QA의 Required
+상태는 변하지 않는다.
 
 | ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
