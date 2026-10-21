@@ -3121,6 +3121,49 @@ switching remain reachable.
 | PR #780 Release workflow `39388942768` Windows package | Fail, then focused Pass | Linux and macOS PR packages passed, but Windows timed out at Vitest's default 5 seconds in the long independent-part title native reopen workflow and the parameterized text-marking native-history workflow. Assertions and product behavior are unchanged; both tests now receive the established explicit 15-second budget. `npm test -- src/renderer/src/App.test.tsx -t "independent part title supports edit undo redo reset save and reopen\|text marking filter .* copies only"` passed 5 tests locally. The rerun PR workflow remains the required cross-platform gate before merge/tag. |
 | PR #780 / `v0.1.0-alpha.31` release workflow `39391668502` | Pass | PR #780 merged as `a4904fa`. The tag-targeted release passed Linux, Windows and macOS packaging; macOS completed signing-secret verification, notarization-key preparation, Developer ID signing verification and packaged-app smoke. GitHub prerelease publication created the Linux AppImage, macOS universal DMG/ZIP, Windows setup/portable installers and `SHA256SUMS.txt`: https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.31. |
 
+## 2026-10-21 Score Toolbar Density Follow-up
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `ui.score-toolbar persists the part and staff structure disclosure preference` | Fail, then Pass | The new App regression initially found no part/staff disclosure. `파트/보표` retains the established expanded initial state, exposes an accessible collapse/expand button, and persists only a user-collapsed `{ structure: true }` preference in `chromatics.score-toolbar-sections.v1`. The selected project score and native contents are unchanged. The focused run also confirms that collapsed state restores on App remount. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ui\\.score-toolbar keeps part and staff|ui\\.toolbar-collapse"`; `npm run typecheck` | Pass | The focused score-toolbar and existing global toolbar-collapse regressions passed (2 tests); TypeScript passed after the local workspace state addition. |
+| `npm run build`; `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` | Fail, then Pass | The first production verifier still assumed `악보 보기` was immediately visible and failed its part-view export step. The verifier now follows the visible UI contract by opening `파트와 보표` before selecting the part view. The rebuilt Electron smoke passed all existing 960/1280/1400 compact toolbar, overflow, part-view/export, notation and engraving checks. |
+| `npm run verify:chromatics-musescore-parity-roadmap`; `npm run verify:chromatics-v1-work-queue`; `git diff --check` | Pass | Both schema verifiers passed (23 roadmap rows and 79 work-queue rows). They continue to report remaining automation and manual QA; this slice does not claim Commercial V1 or RC completion. No whitespace errors remain. |
+| `ui.export-toolbar persists the advanced PDF engraving disclosure preference` | Fail, then Pass | The failure-first App test initially found no PDF engraving disclosure. The Export toolbar retains the established expanded initial state but allows `여백`, `보표 크기`, `시스템 간격`, and `여백 가이드` to be hidden through an accessible `PDF 조판 설정` disclosure. Its user-collapsed `chromatics.export-toolbar-sections.v1` preference restores after remount and does not enter score/native data. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ui\\.(score-toolbar keeps part and staff|export-toolbar keeps advanced PDF|toolbar-collapse)"`; `npm run typecheck`; production Electron verifier | Pass | The focused workspace set passed 3 tests and TypeScript passed. The first Electron rerun found that the earlier verifier assumed only the closed score disclosure; it now proceeds correctly whether the local preference left it open or closed. The final build and Electron smoke passed at the existing compact and desktop widths, including part-view/export state and no-overflow checks. |
+| `ui.dock-headers reuse the context strip visibility controls` | Fail, then Pass | The new App regression initially found no direct visibility control in either dock. Both dock headers now expose an icon-only, labelled hide action that reuses the context-strip `dockVisibility` setter. The regression confirms hiding from a header removes the matching complementary region and updates the original context-strip pressed state; restoring from the strip returns the same dock. |
+| Broad regression after disclosure rollout | Fail, then focused Pass | The first full suite found that treating score structure controls as hidden by default broke 34 existing part/layout workflows; a second run still found 12 failures before the expanded-default policy and the restored selection-properties heading were applied. The final broad run reduced to one unrelated part-view fixture assertion (`expected rest, received note`); its isolated rerun passed. The affected part-view, part-structure and properties-focused tests now pass (7 focused cases). A clean full-suite rerun remains required before release work. |
+
+Remaining manual QA: confirm that the default compact score-toolbar hierarchy is comfortable in a real editing session, then audit the Lyrics and Export workspaces before returning to dense engraving collision work.
+
+## 2026-10-21 Mixed-Stem Slur Clearance
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `chooses the clearer automatic slur side when endpoint stem directions differ` | Fail, then Pass | The failure-first dense fixture initially rendered a lower slur because automatic placement only inspected the start note's stem. The low start note's lower staccato stack made that side needlessly crowded while the upper side was clear. Automatic placement now compares the two endpoints' same-side articulation clearance when stems differ; equal clearance preserves the former start-stem decision. Manual span geometry bypasses this automatic choice. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/notation/annotation-lanes.test.ts` | Pass | 2 files / 30 tests passed, including short-arc depth, same-side staccato endpoint clearance, the new mixed-stem side choice, lower annotation-lane avoidance, and overlapping automatic hairpin lanes. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the renderer policy change. |
+| `npm run verify:visual-regression` | Pass | 91 MusicXML/system-layout tests passed. The production build and Electron notation snapshot verifier passed at 960px and 1400px without a baseline update; screenshots were written to the temporary snapshot paths reported by the verifier. |
+| Remaining verification | Pending | PDF/manual visual inspection, dynamics/hairpin/stem interaction, and broader dotted/tuplet combinations remain required. This is not a full engraving or release gate. |
+
+## 2026-10-21 Repeat/Volta Tie Traversal
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `playback.tie-and-triplet-duration merges ties after repeat traversal without crossing alternate voltas` | Fail, then Pass | The first/second-ending fixture initially left three playback events: the source-order tie had already consumed the first ending, then the second ending was emitted as a separate stop. Timeline construction now repeats/filters measures first, offsets each copied `sourceEventStarts` to its active pass, and then merges only contiguous matching ties in the same part/staff/voice. The two passes now produce two sustained tie-start events with their respective ending stop event. |
+| `npm test -- src/renderer/src/playback/timeline.test.ts` | Pass | 1 file / 33 tests passed, including canonical and alternate volta traversal, regular/cross-measure ties, tie continuation address lookup, tuplets, tempo and hairpin playback. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after making tie markers internal to timeline construction and removing them from public playback events after merge. |
+| Remaining verification | Pending | Renderer volta line display is deliberately independent and unchanged. Actual listening through repeated endings, selection-start policy for a source event that occurs on multiple passes, and explicit/manual volta line spans remain open. |
+
+## 2026-10-21 Engraving Follow-up Broad Gates
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `npm test -- --reporter=dot` | Pass | 62 files passed / 1 skipped; 834 tests passed / 1 skipped in 328.31 seconds. The earlier part-view fixture that had passed only in isolation did not recur in this clean broad run. Existing VexFlow headless text-metrics warnings remain non-failing. |
+| `npm run build && env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` | Pass | Production build and Electron verifier passed at 960px, 1280px, and 1400px. It retained compact/desktop containment, toolbar/dock workflows, notation-palette controls, part-view export, ties, beams, tuplets, and range interaction checks. Rollup emitted its existing zod comment-position warnings only. |
+| `npm run verify:passive-attachments-pdf` | Pass | Production Electron screen/PDF smoke generated `passive-attachments.pdf`, compared screen and print DOM markers for lower-staff fermata, breath, tremolo, ornaments and grace notes, and completed native JSON readback through the intercepted App bridge. This validates the general print path but is not a human PDF inspection of the new mixed-stem or volta fixtures. |
+| Remaining manual QA | Pending | Inspect a real dense piano score with dotted notes, tuplets, slurs, dynamics and repeated endings in PDF; listen through repeated endings; decide explicit/manual volta line span editing. No Commercial V1 or RC completion is claimed. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

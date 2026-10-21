@@ -514,6 +514,14 @@ h2 {
   gap: 8px;
 }
 
+.inspector-properties__advanced:not([hidden]) {
+  display: contents;
+}
+
+.inspector-properties__advanced[hidden] {
+  display: none;
+}
+
 .inspector-properties__cluster {
   display: inline-flex;
   flex: 0 1 auto;
@@ -774,6 +782,23 @@ h2 {
   margin: 0;
   color: #3c444a;
   font-size: 0.86rem;
+}
+
+.docked-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.docked-sidebar__header .icon-button {
+  display: inline-grid;
+  flex: 0 0 28px;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  place-items: center;
 }
 
 .docked-palette__actions {

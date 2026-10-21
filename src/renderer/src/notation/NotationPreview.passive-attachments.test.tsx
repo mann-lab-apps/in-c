@@ -748,6 +748,67 @@ describe('NotationPreview passive lower-staff attachments', () => {
     expect(y2).toBeGreaterThanOrEqual(Number(endDot.getAttribute('cy')) + 5)
   })
 
+  it('chooses the clearer automatic slur side when endpoint stem directions differ', async () => {
+    const events = [
+      createNote({
+        id: 'mixed-stem-staccato-start',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 },
+        articulations: ['staccato']
+      }),
+      createNote({
+        id: 'mixed-stem-clear-end',
+        position: createTimePosition(TICKS_PER_QUARTER),
+        pitch: { step: 'C', octave: 6 }
+      })
+    ]
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Melody',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [createVoice({ events })]
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      slurs: [
+        {
+          id: 'mixed-stem-slur',
+          startEventId: events[0].id,
+          endEventId: events[1].id
+        }
+      ]
+    })
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.notation-slur')).toBeInTheDocument()
+    })
+
+    expect(container.querySelector('.notation-slur')).toHaveAttribute(
+      'data-annotation-lane',
+      'upper-slur'
+    )
+  })
+
   it('separates overlapping automatic hairpins into lower lanes', async () => {
     const events = [
       createNote({
