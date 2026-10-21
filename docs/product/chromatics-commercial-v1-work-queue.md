@@ -398,6 +398,12 @@ Each linked parity row records current state, gap, implementation slice and test
 strategy. `In progress` is a valid live queue state; a schema pass is not release
 signoff or evidence that unregistered Required gaps do not exist.
 
+2026-10-21 alpha.32 tag workflow의 Windows package test는 selected rehearsal-mark
+native-history App regression이 기본 5초 timeout을 넘어 실패했다. assertion은
+그대로 유지하고 test-local 15초 timeout을 추가해 alpha.33으로 다시 release gate를
+실행한다. alpha.32 tag는 immutable하게 남지만 prerelease publication은 skipped이며,
+manual PDF/listening/external-app QA의 Required 상태도 변하지 않는다.
+
 | ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CV1-MXL-EXCHANGE | 압축 MusicXML 열기/저장/최근 파일 | MusicXML Compatibility | MS-EXCHANGE-001; W3C compressed MusicXML container | 외부 사보앱의 .mxl 파일을 바로 열 수 없음 | ZIP library와 container parser, bridge 파일 I/O 테스트 | 실제 file dialog/외부 앱 교환은 별도 | Done | container/disk tests, 실제 MuseScore 4.7.5 CLI 왕복, macOS packaged MXL save/reopen/resave 통과. Native dialog와 human visual은 별도. |

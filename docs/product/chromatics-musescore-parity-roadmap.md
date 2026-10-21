@@ -54,6 +54,12 @@ Commercial V1 최소 release blocker 큐는 상당 부분 자동화되었지만,
 format, MXL, MIDI keyboard, templates/styles, object properties, command help가 장기
 작업으로 남아 있다.
 
+2026-10-21 alpha.32 tag workflow에서 Windows의 느린 rehearsal-mark native-history
+App regression이 Vitest 기본 5초 제한을 넘겼다. 기능 assertion을 완화하지 않고
+명시적 15초 timeout을 적용한 alpha.33 후속 release로 교체 검증한다. alpha.32는
+published prerelease가 아니며, 이 문서는 alpha.33 결과가 확인되기 전 배포 성공을
+주장하지 않는다.
+
 ## MuseScore Gap Matrix
 
 | ID | Area | MuseScore Reference Feature | Chromatics Current State | Gap | User Workflow Impact | Implementation Slice | Test Strategy | Status | Next Action |
