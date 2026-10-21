@@ -64,6 +64,12 @@ alpha.33의 Windows retry는 통과했지만 macOS에서 별도의 lyric range
 object-filter App integration test가 같은 기본 timeout을 넘겼다. assertion을
 유지한 15초 local budget과 immutable `v0.1.0-alpha.34` tag로 재검증한다.
 
+alpha.34는 PR #785로 `main`에 병합됐고, tag workflow `39573419366`에서
+Linux/macOS/Windows package와 GitHub prerelease publication을 모두 통과했다.
+macOS는 Developer ID signing secret 검증, notarization key 준비, 서명 검증 및
+packaged-app smoke까지 통과했다. site download manifest의 실제 공개 반영은 별도
+site build/content gate로 확인한다.
+
 ## MuseScore Gap Matrix
 
 | ID | Area | MuseScore Reference Feature | Chromatics Current State | Gap | User Workflow Impact | Implementation Slice | Test Strategy | Status | Next Action |
