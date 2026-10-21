@@ -408,6 +408,13 @@ alpha.33 retry에서는 Windows가 통과했으나 macOS의 lyric range object-f
 native/MusicXML App workflow가 동일한 기본 5초 제한을 넘겼다. assertion은
 유지하고 test-local 15초 timeout을 적용해 alpha.34 tag workflow로 재검증한다.
 
+alpha.34는 PR #785 merge commit `898e790`에 `v0.1.0-alpha.34` tag를 생성해
+release workflow `39573419366`을 실행했다. Linux/macOS/Windows package, macOS
+Developer ID signing/notarization preparation/signature verification, packaged-app
+smoke 및 GitHub prerelease publication이 통과했다. site manifest 공개 반영과
+production fetch 검증은 이 릴리즈 후속 gate로 남아 있다. manual PDF/listening 및
+external-app QA의 Required 상태는 변하지 않는다.
+
 | ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CV1-MXL-EXCHANGE | 압축 MusicXML 열기/저장/최근 파일 | MusicXML Compatibility | MS-EXCHANGE-001; W3C compressed MusicXML container | 외부 사보앱의 .mxl 파일을 바로 열 수 없음 | ZIP library와 container parser, bridge 파일 I/O 테스트 | 실제 file dialog/외부 앱 교환은 별도 | Done | container/disk tests, 실제 MuseScore 4.7.5 CLI 왕복, macOS packaged MXL save/reopen/resave 통과. Native dialog와 human visual은 별도. |
