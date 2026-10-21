@@ -3172,6 +3172,8 @@ Remaining manual QA: confirm that the default compact score-toolbar hierarchy is
 | `v0.1.0-alpha.32` release workflow `39564185319` | Fail | Linux package passed. macOS package passed its signing-secret check, notarization-key preparation, app packaging, Developer ID signature verification, artifact check and packaged-app smoke. Windows timed out in `src/renderer/src/App.test.tsx:8912`, `editing a selected rehearsal mark preserves other objects`, under Vitest's default 5-second limit, so prerelease publication was skipped. |
 | rehearsal-mark native-history timeout regression | Fail, then Pass | The same two-case focused test passed locally in 1.91 seconds. It retains every edit/save/undo/reopen assertion and now declares the established 15-second timeout used for slow cross-platform App workflows. |
 | alpha.33 release retry scope | Pending | `package.json` and lockfile move to `0.1.0-alpha.33`; a fresh PR, tag workflow, assets/checksum and only then site-manifest update remain required. The failed alpha.32 tag is not moved or deleted. |
+| `v0.1.0-alpha.33` release workflow `39568654386` | Fail | Windows and Linux package jobs passed. macOS timed out in `src/renderer/src/App.test.tsx:7089`, the lyric range object-filter native/MusicXML workflow, before signing or notarization ran; prerelease publication was skipped. This is another unmodified slow App integration assertion under Vitest's default 5-second timeout. |
+| alpha.34 release retry scope | Pending | The lyric range workflow now uses the same explicit 15-second test-local budget as the two preceding slow cross-platform App workflows. `0.1.0-alpha.34` is required because alpha.33 is an immutable failed tag. |
 
 ## Evidence Retention Rules
 
