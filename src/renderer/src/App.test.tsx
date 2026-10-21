@@ -8964,7 +8964,7 @@ describe('App component shell', () => {
       expect(screen.getByLabelText('연습표 객체 선택')).toHaveValue('edit-one')
       expect(screen.getByRole('textbox', { name: '연습표' })).toHaveValue('A')
     }
-  })
+  }, 15_000)
 
   it.each([false, true])('editing a selected system text preserves other objects (second=%s)', async (selectSecond) => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')

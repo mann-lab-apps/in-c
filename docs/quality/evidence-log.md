@@ -3164,6 +3164,15 @@ Remaining manual QA: confirm that the default compact score-toolbar hierarchy is
 | `npm run verify:passive-attachments-pdf` | Pass | Production Electron screen/PDF smoke generated `passive-attachments.pdf`, compared screen and print DOM markers for lower-staff fermata, breath, tremolo, ornaments and grace notes, and completed native JSON readback through the intercepted App bridge. This validates the general print path but is not a human PDF inspection of the new mixed-stem or volta fixtures. |
 | Remaining manual QA | Pending | Inspect a real dense piano score with dotted notes, tuplets, slurs, dynamics and repeated endings in PDF; listen through repeated endings; decide explicit/manual volta line span editing. No Commercial V1 or RC completion is claimed. |
 
+## 2026-10-21 Alpha.32 Release Retry
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| PR #783 / merge / tag | Pass | `Prepare Chromatics 0.1.0-alpha.32` merged as `06a29fd`; immutable tag `v0.1.0-alpha.32` targets that merge commit. PR CI and Linux/macOS/Windows package gates passed before merge. |
+| `v0.1.0-alpha.32` release workflow `39564185319` | Fail | Linux package passed. macOS package passed its signing-secret check, notarization-key preparation, app packaging, Developer ID signature verification, artifact check and packaged-app smoke. Windows timed out in `src/renderer/src/App.test.tsx:8912`, `editing a selected rehearsal mark preserves other objects`, under Vitest's default 5-second limit, so prerelease publication was skipped. |
+| rehearsal-mark native-history timeout regression | Fail, then Pass | The same two-case focused test passed locally in 1.91 seconds. It retains every edit/save/undo/reopen assertion and now declares the established 15-second timeout used for slow cross-platform App workflows. |
+| alpha.33 release retry scope | Pending | `package.json` and lockfile move to `0.1.0-alpha.33`; a fresh PR, tag workflow, assets/checksum and only then site-manifest update remain required. The failed alpha.32 tag is not moved or deleted. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.
