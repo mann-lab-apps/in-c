@@ -1,0 +1,576 @@
+{
+  "schemaVersion": "0.4",
+  "date": "2026-10-22",
+  "brandKorean": "띠로리",
+  "englishSpelling": "Ddirori",
+  "selectedPalette": "blue",
+  "recommendedPalette": "blue",
+  "status": "Blue primary and supporting palette selected for brand exploration; light tokens selected, dark derivation preliminary. Not installed in products.",
+  "approvedCharacter": "Minimal white wig, round face, tiny eyes and mouth. Surprised O-mouth is also an app-icon candidate.",
+  "favoredPreviousColor": "#A8D4E5",
+  "proposals": [
+    {
+      "key": "blue",
+      "name": "선명한 파랑",
+      "primary": "#0077C8",
+      "ink": "#203849",
+      "paper": "#F7FBFE",
+      "soft": "#A8D4E5",
+      "accent": "#F3BB9B",
+      "onPrimary": "#FFFFFF",
+      "meaning": "열린 무대와 다음 시도. 사용자가 좋아한 하늘색을 더 선명하게 만든 연속적인 선택.",
+      "weakness": "다른 소프트웨어에도 익숙한 색이라 음형·바흐·타이포의 일관성이 필요하다.",
+      "contrasts": {
+        "onPrimary": 4.7,
+        "body": 11.71
+      }
+    },
+    {
+      "key": "teal",
+      "name": "맑은 청록",
+      "primary": "#007F8B",
+      "ink": "#203C40",
+      "paper": "#F5FBFA",
+      "soft": "#B8E2DF",
+      "accent": "#F3BB9B",
+      "onPrimary": "#FFFFFF",
+      "meaning": "만들기와 듣기가 서로 이어지는 공간이라는 서사를 붙일 수 있다. 파랑보다 차이를 주는 대안.",
+      "weakness": "차분한 생산성 도구의 인상이 강해질 수 있다.",
+      "contrasts": {
+        "onPrimary": 4.76,
+        "body": 11.26
+      }
+    },
+    {
+      "key": "orange",
+      "name": "선명한 귤색",
+      "primary": "#F47B3D",
+      "ink": "#452C27",
+      "paper": "#FFFAF3",
+      "soft": "#FAD8BA",
+      "accent": "#A8D4E5",
+      "onPrimary": "#452C27",
+      "meaning": "시작의 신호와 장난스러운 감탄. 띠로리의 익살을 색으로도 앞세우는 방향.",
+      "weakness": "파랑을 좋아한 현재 취향에서 가장 멀고, 넓은 편집 화면에 과하게 쓰면 피로하다.",
+      "contrasts": {
+        "onPrimary": 4.72,
+        "body": 12.31
+      }
+    }
+  ],
+  "motif": {
+    "durations": [
+      "64",
+      "64",
+      "dotted32"
+    ],
+    "heads": 3,
+    "sharedBeams": 3,
+    "fourthBeam": "uppermost short beam joins first two stems; bottom three beams span all three stems",
+    "augmentationDot": "right of third head",
+    "source": "round-4/motif.svg",
+    "smallSource": "round-4/motif-small.svg",
+    "stems": "all three descend to the lowest beam",
+    "headAttachment": "Full-size heads shifted 5 units left; small heads shifted 0.65 units left. Stem top corners are covered by heads; dots follow final heads."
+  },
+  "previousRound": {
+    "schemaVersion": "0.2",
+    "date": "2026-10-22",
+    "brandKorean": "띠로리",
+    "englishSpelling": "undecided; tirori is an internal directory label",
+    "status": "Palette reopened by user. Three proposals, none selected.",
+    "selectedPalette": null,
+    "recommendedPalette": "peach",
+    "proposals": [
+      {
+        "key": "peach",
+        "name": "살구·크림",
+        "ink": "#4B3541",
+        "paper": "#FFF8EF",
+        "brand": "#F3AA92",
+        "accent": "#F3D783",
+        "surface": "#F5E8DE",
+        "action": "#8B4652",
+        "contrasts": [
+          {
+            "role": "본문",
+            "fg": "#4B3541",
+            "bg": "#FFF8EF",
+            "ratio": 10.571923345460013
+          },
+          {
+            "role": "심벌",
+            "fg": "#4B3541",
+            "bg": "#F3AA92",
+            "ratio": 5.82354803129918
+          },
+          {
+            "role": "보조면 글자",
+            "fg": "#4B3541",
+            "bg": "#F3D783",
+            "ratio": 7.883754250215248
+          },
+          {
+            "role": "버튼",
+            "fg": "#FFFFFF",
+            "bg": "#8B4652",
+            "ratio": 6.783611170518026
+          }
+        ]
+      },
+      {
+        "key": "lilac",
+        "name": "라일락·버터",
+        "ink": "#39334F",
+        "paper": "#FCF9F5",
+        "brand": "#C2B5E6",
+        "accent": "#F4DEA0",
+        "surface": "#EEE8F7",
+        "action": "#6B5797",
+        "contrasts": [
+          {
+            "role": "본문",
+            "fg": "#39334F",
+            "bg": "#FCF9F5",
+            "ratio": 11.365498662897995
+          },
+          {
+            "role": "심벌",
+            "fg": "#39334F",
+            "bg": "#C2B5E6",
+            "ratio": 6.27472240999233
+          },
+          {
+            "role": "보조면 글자",
+            "fg": "#39334F",
+            "bg": "#F4DEA0",
+            "ratio": 8.976767327228478
+          },
+          {
+            "role": "버튼",
+            "fg": "#FFFFFF",
+            "bg": "#6B5797",
+            "ratio": 6.112983542512465
+          }
+        ]
+      },
+      {
+        "key": "sky",
+        "name": "하늘·살구",
+        "ink": "#344A57",
+        "paper": "#F9FCFD",
+        "brand": "#A8D4E5",
+        "accent": "#F3BB9B",
+        "surface": "#E7F0F4",
+        "action": "#456C82",
+        "contrasts": [
+          {
+            "role": "본문",
+            "fg": "#344A57",
+            "bg": "#F9FCFD",
+            "ratio": 9.000946197862268
+          },
+          {
+            "role": "심벌",
+            "fg": "#344A57",
+            "bg": "#A8D4E5",
+            "ratio": 5.838674596475191
+          },
+          {
+            "role": "보조면 글자",
+            "fg": "#344A57",
+            "bg": "#F3BB9B",
+            "ratio": 5.47572462764521
+          },
+          {
+            "role": "버튼",
+            "fg": "#FFFFFF",
+            "bg": "#456C82",
+            "ratio": 5.644542532405877
+          }
+        ]
+      }
+    ],
+    "motif": {
+      "heads": 3,
+      "order": "high-low-high",
+      "beams": 4,
+      "stems": "downward; each intersects all four beams",
+      "smallSizes": [
+        24,
+        32
+      ],
+      "source": "round-2/motif-64.svg",
+      "smallSource": "round-2/motif-64-small.svg"
+    },
+    "rules": [
+      "Dark ink on pastel icon tiles; no white symbol on pale brand color.",
+      "Separate darker action color for white button labels.",
+      "Bach face is a secondary emoji; no birds.",
+      "Notation canvas stays white/black.",
+      "AI palette boards are mood references, not accurate beam geometry.",
+      "Dark mode and product-specific icon differentiation remain unapproved."
+    ],
+    "previousRound": {
+      "schemaVersion": "0.1",
+      "date": "2026-10-22",
+      "brandKorean": "띠로리",
+      "englishSpelling": "undecided; directory name is an internal label",
+      "status": "Palette B selected by user; visual concepts only, not installed in products",
+      "selectedPalette": "b",
+      "light": {
+        "ink": "#202644",
+        "paper": "#F6F7FD",
+        "brand": "#3448D8",
+        "accent": "#F2D44B",
+        "surface": "#E6E9F6",
+        "action": "#3448D8",
+        "onAction": "#FFFFFF",
+        "onAccent": "#202644"
+      },
+      "darkProposal": {
+        "background": "#1D2133",
+        "ink": "#F0F2FF",
+        "action": "#B8C2FF",
+        "onAction": "#1D2133"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      },
+      "contrasts": [
+        {
+          "role": "본문",
+          "fg": "#202644",
+          "bg": "#F6F7FD",
+          "ratio": 13.811128437908001
+        },
+        {
+          "role": "버튼",
+          "fg": "#FFFFFF",
+          "bg": "#3448D8",
+          "ratio": 6.852595247861097
+        },
+        {
+          "role": "브랜드 면의 심벌",
+          "fg": "#FFFFFF",
+          "bg": "#3448D8",
+          "ratio": 6.852595247861097
+        },
+        {
+          "role": "보조 면의 본문",
+          "fg": "#202644",
+          "bg": "#F2D44B",
+          "ratio": 10.0514206358533
+        },
+        {
+          "role": "다크 본문",
+          "fg": "#F0F2FF",
+          "bg": "#1D2133",
+          "ratio": 14.306372673535256
+        },
+        {
+          "role": "다크 행동",
+          "fg": "#1D2133",
+          "bg": "#B8C2FF",
+          "ratio": 9.258420559547707
+        }
+      ],
+      "rules": {
+        "primaryIcon": "white octave motif on ultramarine",
+        "character": "Bach is secondary; no birds",
+        "masterMotif": "three octave pairs, high-low-high, descending stems and two lower connecting beams",
+        "paletteBalance": "paper/ink dominate tools; blue carries brand/actions; yellow is a restrained accent",
+        "loading": "motif pulse or restrained musician nod; new animation implementation pending"
+      },
+      "variants": [
+        {
+          "key": "a",
+          "name": "주홍·먹색",
+          "ink": "#25232A",
+          "paper": "#FFF7ED",
+          "brand": "#D84B35",
+          "accent": "#F4B64C",
+          "surface": "#F0E6DA",
+          "action": "#B93A29",
+          "darkPaper": "#222126",
+          "darkInk": "#FFF4E8",
+          "darkAction": "#FFB6A4",
+          "contrasts": [
+            {
+              "role": "본문",
+              "fg": "#25232A",
+              "bg": "#FFF7ED",
+              "ratio": 14.624072157130064
+            },
+            {
+              "role": "버튼",
+              "fg": "#FFFFFF",
+              "bg": "#B93A29",
+              "ratio": 5.675523736873774
+            },
+            {
+              "role": "브랜드 면의 심벌",
+              "fg": "#25232A",
+              "bg": "#D84B35",
+              "ratio": 3.680289513599956
+            },
+            {
+              "role": "보조 면의 본문",
+              "fg": "#25232A",
+              "bg": "#F4B64C",
+              "ratio": 8.607823259486992
+            },
+            {
+              "role": "다크 본문",
+              "fg": "#FFF4E8",
+              "bg": "#222126",
+              "ratio": 14.736825636230687
+            },
+            {
+              "role": "다크 행동",
+              "fg": "#222126",
+              "bg": "#FFB6A4",
+              "ratio": 9.500419109857363
+            }
+          ]
+        },
+        {
+          "key": "b",
+          "name": "군청·노랑",
+          "ink": "#202644",
+          "paper": "#F6F7FD",
+          "brand": "#3448D8",
+          "accent": "#F2D44B",
+          "surface": "#E6E9F6",
+          "action": "#3448D8",
+          "darkPaper": "#1D2133",
+          "darkInk": "#F0F2FF",
+          "darkAction": "#B8C2FF",
+          "contrasts": [
+            {
+              "role": "본문",
+              "fg": "#202644",
+              "bg": "#F6F7FD",
+              "ratio": 13.811128437908001
+            },
+            {
+              "role": "버튼",
+              "fg": "#FFFFFF",
+              "bg": "#3448D8",
+              "ratio": 6.852595247861097
+            },
+            {
+              "role": "브랜드 면의 심벌",
+              "fg": "#FFFFFF",
+              "bg": "#3448D8",
+              "ratio": 6.852595247861097
+            },
+            {
+              "role": "보조 면의 본문",
+              "fg": "#202644",
+              "bg": "#F2D44B",
+              "ratio": 10.0514206358533
+            },
+            {
+              "role": "다크 본문",
+              "fg": "#F0F2FF",
+              "bg": "#1D2133",
+              "ratio": 14.306372673535256
+            },
+            {
+              "role": "다크 행동",
+              "fg": "#1D2133",
+              "bg": "#B8C2FF",
+              "ratio": 9.258420559547707
+            }
+          ]
+        },
+        {
+          "key": "c",
+          "name": "자주·라임",
+          "ink": "#302734",
+          "paper": "#FAF6F0",
+          "brand": "#694278",
+          "accent": "#D7E56B",
+          "surface": "#ECE3EF",
+          "action": "#694278",
+          "darkPaper": "#28212C",
+          "darkInk": "#F6EDF8",
+          "darkAction": "#DAC0E5",
+          "contrasts": [
+            {
+              "role": "본문",
+              "fg": "#302734",
+              "bg": "#FAF6F0",
+              "ratio": 13.309969085305706
+            },
+            {
+              "role": "버튼",
+              "fg": "#FFFFFF",
+              "bg": "#694278",
+              "ratio": 7.9210891043989395
+            },
+            {
+              "role": "브랜드 면의 심벌",
+              "fg": "#FFFFFF",
+              "bg": "#694278",
+              "ratio": 7.9210891043989395
+            },
+            {
+              "role": "보조 면의 본문",
+              "fg": "#302734",
+              "bg": "#D7E56B",
+              "ratio": 10.446782995984552
+            },
+            {
+              "role": "다크 본문",
+              "fg": "#F6EDF8",
+              "bg": "#28212C",
+              "ratio": 13.679945903829847
+            },
+            {
+              "role": "다크 행동",
+              "fg": "#28212C",
+              "bg": "#DAC0E5",
+              "ratio": 9.413014672264497
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "Exact HEX values are the target specification; image_gen raster pixels vary.",
+        "Only listed color pairs were calculated; no complete accessibility certification.",
+        "Product tiles in the board are exploratory; distinct production app symbols are not finalized."
+      ]
+    }
+  },
+  "selectionBasis": "Peach face and white wig contrast with blue; retains favored #A8D4E5 as soft supporting color.",
+  "light": {
+    "primary": "#0077C8",
+    "primaryHover": "#0067AF",
+    "primaryPressed": "#00558F",
+    "onPrimary": "#FFFFFF",
+    "sky": "#A8D4E5",
+    "peach": "#F3BB9B",
+    "tint": "#E8F4FC",
+    "background": "#F7FBFE",
+    "surface": "#FFFFFF",
+    "ink": "#203849",
+    "muted": "#536B7A",
+    "border": "#CCDCE6",
+    "controlBorder": "#718898",
+    "success": "#19734D",
+    "warning": "#8A5700",
+    "error": "#C13F50"
+  },
+  "darkProposal": {
+    "background": "#12232E",
+    "surface": "#1B3343",
+    "ink": "#EAF4FB",
+    "muted": "#A6BCCC",
+    "primary": "#72B8EE",
+    "onPrimary": "#102637",
+    "border": "#426174",
+    "sky": "#A8D4E5",
+    "peach": "#F3BB9B"
+  },
+  "contrasts": [
+    {
+      "role": "button",
+      "fg": "#FFFFFF",
+      "bg": "#0077C8",
+      "ratio": 4.7,
+      "minimum": 4.5
+    },
+    {
+      "role": "body",
+      "fg": "#203849",
+      "bg": "#F7FBFE",
+      "ratio": 11.71,
+      "minimum": 4.5
+    },
+    {
+      "role": "muted",
+      "fg": "#536B7A",
+      "bg": "#FFFFFF",
+      "ratio": 5.6,
+      "minimum": 4.5
+    },
+    {
+      "role": "skyText",
+      "fg": "#203849",
+      "bg": "#A8D4E5",
+      "ratio": 7.67,
+      "minimum": 4.5
+    },
+    {
+      "role": "peachText",
+      "fg": "#203849",
+      "bg": "#F3BB9B",
+      "ratio": 7.19,
+      "minimum": 4.5
+    },
+    {
+      "role": "controlOutline",
+      "fg": "#718898",
+      "bg": "#FFFFFF",
+      "ratio": 3.7,
+      "minimum": 3
+    },
+    {
+      "role": "success",
+      "fg": "#19734D",
+      "bg": "#FFFFFF",
+      "ratio": 5.83,
+      "minimum": 4.5
+    },
+    {
+      "role": "warning",
+      "fg": "#8A5700",
+      "bg": "#FFFFFF",
+      "ratio": 6.1,
+      "minimum": 4.5
+    },
+    {
+      "role": "error",
+      "fg": "#C13F50",
+      "bg": "#FFFFFF",
+      "ratio": 5.13,
+      "minimum": 4.5
+    },
+    {
+      "role": "darkBody",
+      "fg": "#EAF4FB",
+      "bg": "#12232E",
+      "ratio": 14.42,
+      "minimum": 4.5
+    },
+    {
+      "role": "darkMuted",
+      "fg": "#A6BCCC",
+      "bg": "#1B3343",
+      "ratio": 6.67,
+      "minimum": 4.5
+    },
+    {
+      "role": "darkButton",
+      "fg": "#102637",
+      "bg": "#72B8EE",
+      "ratio": 7.24,
+      "minimum": 4.5
+    }
+  ],
+  "scorePaper": {
+    "background": "#FFFFFF",
+    "notation": "#202020"
+  },
+  "rules": {
+    "balance": "White and pale backgrounds dominate tools; primary carries identity/actions; sky for supportive areas; peach used sparingly beside Bach.",
+    "pastelText": "Use ink on sky and peach; do not use white text on these pastel colors.",
+    "status": "Success/warning/error always have text or icons, not color alone. Peach is not a warning token.",
+    "borders": "Pale border is for decorative separation; controlBorder for an outline needed to identify a control.",
+    "focus": "Double outline: light gap plus primary outer ring; use light primary in dark mode.",
+    "dark": "App-icon primary remains #0077C8; lighter dark action is a UI adaptation, not a new brand primary."
+  }
+}
