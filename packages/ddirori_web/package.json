@@ -11,7 +11,10 @@
     "dev": "vite --host 127.0.0.1 --port 8058",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:studio": "vite --config studio.config.ts --host 127.0.0.1 --port 8062 --strictPort",
+    "build:studio": "tsc --noEmit && vite build --config studio.config.ts",
+    "verify:studio": "node catalog/studio/verify-browser.mjs"
   },
   "peerDependencies": {
     "react": "^19.2.3",
@@ -23,6 +26,8 @@
     "vite": "^7.2.7",
     "vitest": "^4.1.9",
     "jsdom": "^29.1.1",
-    "@testing-library/react": "^16.3.2"
+    "@testing-library/react": "^16.3.2",
+    "lucide-react": "^1.21.0",
+    "vexflow": "^5.0.0"
   }
 }

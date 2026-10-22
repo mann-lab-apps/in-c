@@ -24,6 +24,7 @@
     "src",
     "catalog",
     "vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "studio.config.ts"
   ]
 }
