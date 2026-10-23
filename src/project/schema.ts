@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { formatTieValidationIssues, isSpanSegmentAddressValid, spanSegmentKey, validateMeasureRhythm, validateTieRelationIssues, validateVoiceTuplets, type Score, type SpanEngraving } from '../score-core'
+import { findVoltaEndIndex, formatTieValidationIssues, isSpanSegmentAddressValid, spanSegmentKey, validateMeasureRhythm, validateTieRelationIssues, validateVoiceTuplets, type Score, type SpanEngraving } from '../score-core'
 
 export const NATIVE_FORMAT = 'chromatics-project'
 export const NATIVE_VERSION = 4
@@ -47,7 +47,7 @@ const measure = z.strictObject({
   clef,
   transposition: z.strictObject({ diatonic: integer.min(-28).max(28).optional(), chromatic: integer.min(-48).max(48), octaveChange: integer.min(-4).max(4).optional() }).optional(),
   repeat: z.strictObject({ start: z.boolean().optional(), end: z.boolean().optional(), times: positive.max(100).optional() }).optional(),
-  volta: z.strictObject({ number: z.union([z.literal(1), z.literal(2)]), start: z.boolean().optional(), end: z.boolean().optional() }).optional(),
+  volta: z.strictObject({ number: z.union([z.literal(1), z.literal(2)]), start: z.boolean().optional(), end: z.boolean().optional(), endStyle: z.enum(['open', 'closed']).optional(), displayEndMeasureId: id.optional() }).optional(),
   voices: z.array(voice).min(1).max(4)
 })
 const tempo = z.strictObject({ bpm: z.number().finite().positive().max(1000), beatUnit: durationValue.optional(), dots: integer.min(0).max(3).optional(), text: text.optional(), transparent: z.boolean().optional() })
@@ -179,6 +179,13 @@ function validateReferences(project: NativeProject): void {
     partMeasures.set(part.id, owned)
     for (const staff of part.staves) {
       add(staffIds, staff.id)
+      staff.measures.forEach((measure, index) => {
+        if (!measure.volta?.displayEndMeasureId) return
+        const end = findVoltaEndIndex(staff.measures, index)
+        if (end === undefined || !staff.measures.slice(index, end + 1).some(item => item.id === measure.volta!.displayEndMeasureId)) {
+          throw new Error(`Invalid project volta display endpoint: ${measure.id}`)
+        }
+      })
       for (const measure of staff.measures) {
         add(measureIds, measure.id); owned.add(measure.id)
         const voiceIds = new Set<string>()

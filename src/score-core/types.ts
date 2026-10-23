@@ -207,6 +207,8 @@ export interface VoltaMark {
   number: 1 | 2
   start?: boolean
   end?: boolean
+  endStyle?: 'open' | 'closed'
+  displayEndMeasureId?: MeasureId
 }
 
 export interface HarmonyMark {

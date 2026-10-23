@@ -1,5 +1,6 @@
 import { resolveNotePitch } from './pitch'
-import { sortVoiceEvents } from './timing'
+import { measureDurationTicks, sortVoiceEvents, voiceEventDurationTicks } from './timing'
+import { createRepeatMeasureTraversal, scoreRepeatSource } from './repeats'
 import type {
   Measure,
   Note,
@@ -15,7 +16,10 @@ import type {
 export interface TiePair {
   fromEventId: string
   toEventId: string
+  isDiscontinuous?: true
 }
+
+interface TieConnection { from: EventLocation; to: EventLocation; isDiscontinuous: boolean }
 
 interface EventLocation {
   address: VoiceAddress
@@ -46,32 +50,10 @@ export interface TieValidationIssue {
 }
 
 export function collectTiePairs(score: Score): TiePair[] {
-  const events = flattenVoiceEvents(score)
-  const pairs: TiePair[] = []
-
-  events.forEach((location, index) => {
-    if (location.event.type !== 'note' || !location.event.ties?.start) {
-      return
-    }
-
-    const next = events[index + 1]
-
-    if (
-      !next ||
-      next.event.type !== 'note' ||
-      !next.event.ties?.stop ||
-      !isAdjacentEqualPitch(location, next)
-    ) {
-      return
-    }
-
-    pairs.push({
-      fromEventId: location.event.id,
-      toEventId: next.event.id
-    })
-  })
-
-  return pairs
+  return activeTieConnections(score, flattenVoiceEvents(score)).map(pair => ({
+    fromEventId: pair.from.event.id, toEventId: pair.to.event.id,
+    ...(pair.isDiscontinuous ? { isDiscontinuous: true as const } : {})
+  }))
 }
 
 export function validateTieRelations(score: Score): string[] {
@@ -85,42 +67,66 @@ export function validateTieRelations(score: Score): string[] {
 export function validateTieRelationIssues(score: Score): TieValidationIssue[] {
   const events = flattenVoiceEvents(score)
   const issues: TieValidationIssue[] = []
+  const connections = activeTieConnections(score, events)
+  const starts = new Set(connections.map(pair => eventLocationKey(pair.from)))
+  const stops = new Set(connections.map(pair => eventLocationKey(pair.to)))
 
-  events.forEach((location, index) => {
+  events.forEach(location => {
     const event = location.event
 
     if (event.type !== 'note') {
       return
     }
 
-    if (event.ties?.start) {
-      const next = events[index + 1]
-
-      if (
-        !next ||
-        next.event.type !== 'note' ||
-        !next.event.ties?.stop ||
-        !isAdjacentEqualPitch(location, next)
-      ) {
-        issues.push(createTieValidationIssue(location, 'start'))
-      }
-    }
-
-    if (event.ties?.stop) {
-      const previous = events[index - 1]
-
-      if (
-        !previous ||
-        previous.event.type !== 'note' ||
-        !previous.event.ties?.start ||
-        !isAdjacentEqualPitch(previous, location)
-      ) {
-        issues.push(createTieValidationIssue(location, 'stop'))
-      }
-    }
+    if (event.ties?.start && !starts.has(eventLocationKey(location))) issues.push(createTieValidationIssue(location, 'start'))
+    if (event.ties?.stop && !stops.has(eventLocationKey(location))) issues.push(createTieValidationIssue(location, 'stop'))
   })
 
   return issues
+}
+
+function activeTieConnections(score: Score, events: EventLocation[]): TieConnection[] {
+  return tieCandidates(score, events).filter(pair => pair.from.event.type === 'note' && pair.from.event.ties?.start &&
+    pair.to.event.type === 'note' && pair.to.event.ties?.stop)
+}
+
+function tieCandidates(score: Score, events: EventLocation[]): TieConnection[] {
+  const canonical = scoreRepeatSource(score)
+  const staves = new Map<Staff, Map<string, Map<number, EventLocation[]>>>()
+  for (const location of events) {
+    if (!staves.has(location.staff)) staves.set(location.staff, new Map())
+    const voices = staves.get(location.staff)!
+    if (!voices.has(location.voice.id)) voices.set(location.voice.id, new Map())
+    const measures = voices.get(location.voice.id)!
+    if (!measures.has(location.measureIndex)) measures.set(location.measureIndex, [])
+    measures.get(location.measureIndex)!.push(location)
+  }
+  const connections = new Map<string, TieConnection>()
+  for (const [staff, voices] of staves) {
+    const visits = createRepeatMeasureTraversal(canonical?.measures ?? staff.measures)
+    for (const measures of voices.values()) {
+      let previous: { location: EventLocation; visit: number } | undefined
+      visits.forEach((entry, visit) => {
+        const locations = measures.get(entry.measureIndex) ?? []
+        if (!locations.length) previous = undefined
+        for (const to of locations) {
+          if (previous) {
+            const from = previous.location
+            const fromEnd = from.event.position.tick + voiceEventDurationTicks(from.event, from.measure)
+            const contiguous = previous.visit === visit ? fromEnd === to.event.position.tick
+              : fromEnd === measureDurationTicks(from.measure) && to.event.position.tick === 0
+            if (contiguous && isAdjacentEqualPitch(from, to)) {
+              connections.set(JSON.stringify([eventLocationKey(from), eventLocationKey(to)]), {
+                from, to, isDiscontinuous: previous.visit !== visit && to.measureIndex !== from.measureIndex + 1
+              })
+            }
+          }
+          previous = { location: to, visit }
+        }
+      })
+    }
+  }
+  return [...connections.values()]
 }
 
 export function formatTieValidationIssues(
@@ -248,86 +254,44 @@ export function buildTieCommand(
   enabled: boolean
 ): ScoreCommand | undefined {
   const events = flattenVoiceEvents(score)
-  const endpoints = enabled
-    ? resolveTieCreationEndpoints(events, eventId)
-    : resolveTieRemovalEndpoints(events, eventId)
-
-  if (!endpoints) {
-    return undefined
-  }
-
-  const { from, to } = endpoints
-
-  if (
-    from.event.type !== 'note' ||
-    to.event.type !== 'note' ||
-    (enabled
-      ? !isAdjacentEqualPitch(from, to)
-      : !from.event.ties?.start || !to.event.ties?.stop)
-  ) {
-    return undefined
-  }
-
-  const fromNote = from.event
-  const toNote = to.event
-  const nextFrom = withTieFlag(fromNote, 'start', enabled)
-  const nextTo = withTieFlag(toNote, 'stop', enabled)
-
-  if (sameVoiceAddress(from.address, to.address)) {
-    return {
-      type: 'voice-events.replace',
-      target: from.address,
-      events: sortVoiceEvents(
-        from.voice.events.map((event) => {
-          if (event.id === fromNote.id) {
-            return nextFrom
-          }
-
-          return event.id === toNote.id ? nextTo : event
-        })
-      ),
-      editedEventId: fromNote.id
+  const active = activeTieConnections(score, events)
+  let changed: { from: EventLocation; to: EventLocation }[]
+  if (enabled) {
+    const candidates = tieCandidates(score, events)
+    // A repeat return must not steal the ordinary forward tie at the body start.
+    const pair = candidates.find(pair => pair.to.event.id === eventId && (
+      pair.from.measureIndex < pair.to.measureIndex ||
+      pair.from.measureIndex === pair.to.measureIndex && pair.from.event.position.tick < pair.to.event.position.tick
+    )) ?? candidates.find(pair => pair.from.event.id === eventId) ??
+      candidates.find(pair => pair.to.event.id === eventId)
+    changed = pair ? [pair] : []
+  } else {
+    const outgoing = active.filter(pair => pair.from.event.id === eventId)
+    changed = outgoing.length ? outgoing : active.filter(pair => pair.to.event.id === eventId)
+    if (!changed.length) {
+      const invalid = resolveTieRemovalEndpoints(events, eventId)
+      changed = invalid ? [invalid] : []
     }
   }
-
-  return {
-    type: 'score.batch',
-    commands: [
-      replaceNoteCommand(from, nextFrom),
-      replaceNoteCommand(to, nextTo)
-    ]
-  }
-}
-
-function resolveTieCreationEndpoints(
-  events: EventLocation[],
-  eventId: string
-): { from: EventLocation; to: EventLocation } | undefined {
-  const selectedIndex = events.findIndex(
-    (location) => location.event.id === eventId
-  )
-  const selected = events[selectedIndex]
-
-  if (!selected) {
-    return undefined
-  }
-
-  const previous = events[selectedIndex - 1]
-  const next = events[selectedIndex + 1]
-
-  if (previous && isAdjacentEqualPitch(previous, selected)) {
-    return {
-      from: previous,
-      to: selected
+  if (!changed.length) return undefined
+  const remaining = active.filter(pair => !changed.includes(pair))
+  const edits = new Map<string, { location: EventLocation; note: Note }>()
+  for (const pair of changed) {
+    for (const [location, flag] of [[pair.from, 'start'], [pair.to, 'stop']] as const) {
+      if (location.event.type !== 'note') continue
+      const key = eventLocationKey(location)
+      const retained = remaining.some(other => eventLocationKey(flag === 'start' ? other.from : other.to) === key)
+      if (!enabled && retained) continue
+      edits.set(key, { location, note: withTieFlag(edits.get(key)?.note ?? location.event, flag, enabled) })
     }
   }
-
-  return next && isAdjacentEqualPitch(selected, next)
-    ? {
-        from: selected,
-        to: next
-      }
-    : undefined
+  const voices = new Map([...edits.values()].map(edit => [voiceAddressKey(edit.location.address), edit.location]))
+  const commands: ScoreCommand[] = [...voices.values()].map(location => ({
+    type: 'voice-events.replace', target: location.address,
+    events: location.voice.events.map(event => edits.get(`${voiceAddressKey(location.address)}\u0000${event.id}`)?.note ?? event),
+    editedEventId: location.event.id
+  }))
+  return commands.length === 1 ? commands[0] : { type: 'score.batch', commands }
 }
 
 function resolveTieRemovalEndpoints(
@@ -402,20 +366,6 @@ function sameTieSequence(
     left.staffId === right.staffId &&
     left.voiceId === right.voiceId
   )
-}
-
-function replaceNoteCommand(
-  location: EventLocation,
-  note: Note
-): ScoreCommand {
-  return {
-    type: 'voice-events.replace',
-    target: location.address,
-    events: location.voice.events.map((event) =>
-      event.id === note.id ? note : event
-    ),
-    editedEventId: note.id
-  }
 }
 
 function withTieFlag(
