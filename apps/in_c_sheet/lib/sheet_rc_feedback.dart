@@ -6,7 +6,7 @@ class SheetRcFeedbackTemplate {
     required String debugSummary,
   }) {
     return '''
-Clef & Staff 피드백
+띠로리 스코어 피드백 (이전 Clef & Staff)
 
 앱 버전/build: $appVersion
 기기/OS:

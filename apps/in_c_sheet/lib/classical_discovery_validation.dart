@@ -1,4 +1,5 @@
 import 'classical_discovery_models.dart';
+import 'classical_link_policy.dart';
 
 enum CatalogValidationSeverity { warning, error }
 
@@ -169,6 +170,24 @@ class ClassicalCatalogValidator {
       }
     }
     for (final moment in work.listeningMoments) {
+      if (moment.timingEvidenceUrl case final evidenceUrl?) {
+        _validateUrl(
+          issues,
+          'work',
+          work.id,
+          evidenceUrl,
+          '${moment.id} timing evidence',
+        );
+        final uri = Uri.tryParse(evidenceUrl);
+        if (uri == null ||
+            uri.scheme != 'https' ||
+            uri.host.isEmpty ||
+            !work.recordings.any(
+              (recording) => recording.id == moment.recommendedRecordingId,
+            )) {
+          _error(issues, 'work', work.id, '구간 근거에는 HTTPS 출처와 연결된 연주가 필요합니다.');
+        }
+      }
       if (moment.startSeconds < 0 ||
           moment.endSeconds <= moment.startSeconds ||
           moment.endSeconds > work.durationSeconds) {
@@ -203,7 +222,14 @@ class ClassicalCatalogValidator {
       }
     }
     for (final link in [...work.externalLinks, ...work.scoreLinks]) {
-      _validateUrl(issues, 'work', work.id, link.url, '${link.id} URL');
+      _validateUrl(
+        issues,
+        'work',
+        work.id,
+        link.url,
+        '${link.id} URL',
+        allowSpotify: link.platformId == 'spotify',
+      );
       final previewUrl = link.previewUrl;
       if (previewUrl != null) {
         _validateUrl(
@@ -220,7 +246,14 @@ class ClassicalCatalogValidator {
       }
       final deepLink = link.deepLink;
       if (deepLink != null) {
-        _validateUrl(issues, 'work', work.id, deepLink, '${link.id} deep link');
+        _validateUrl(
+          issues,
+          'work',
+          work.id,
+          deepLink,
+          '${link.id} deep link',
+          allowSpotify: link.platformId == 'spotify',
+        );
       }
     }
     for (final recording in work.recordings) {
@@ -253,10 +286,7 @@ class ClassicalCatalogValidator {
     _require(issues, 'concert', concert.id, concert.title, '공연명이 없습니다.');
     _require(issues, 'concert', concert.id, concert.venue, '공연장이 없습니다.');
     _require(issues, 'concert', concert.id, concert.region, '지역이 없습니다.');
-    final ticketUri = Uri.tryParse(concert.ticketUrl);
-    if (ticketUri == null || !ticketUri.hasScheme) {
-      _error(issues, 'concert', concert.id, '예매처 URL이 올바르지 않습니다.');
-    }
+    _validateUrl(issues, 'concert', concert.id, concert.ticketUrl, '예매처 URL');
     for (final destination in concert.ticketDestinations) {
       _validateUrl(
         issues,
@@ -367,10 +397,17 @@ class ClassicalCatalogValidator {
     String entityType,
     String entityId,
     String value,
-    String label,
-  ) {
+    String label, {
+    bool allowSpotify = false,
+  }) {
     final uri = Uri.tryParse(value);
-    if (uri == null || !uri.hasScheme) {
+    final web =
+        uri != null &&
+        const {'http', 'https'}.contains(uri.scheme) &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty;
+    if (!web &&
+        !(allowSpotify && classicalProviderDirectMatches('spotify', value))) {
       _error(issues, entityType, entityId, '$label이 올바르지 않습니다.');
     }
   }

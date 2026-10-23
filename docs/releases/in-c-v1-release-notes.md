@@ -1,5 +1,22 @@
 # in C V1 Release Notes Draft
 
+## Unreleased: Expanded V1 Audit 2026-09-13
+
+- Sparse recommendation catalogs now show an honest starting-point/unavailable state instead of calling unrelated or unreviewed content a close match.
+- Corrected unmatched-intake and era-technique claims, Brahms listening copy, and duplicate platform search labels.
+- Preserved concert unsave, Daily completion and newer concert-route edits during snapshot merge; equal-clock work/preferences now converge and observations retain their separate limits.
+- Added keyboard-only listening-guide and iOS tap-target/label checks. Latest full suite: 439 PASS; this is not public V1 or real-user approval.
+
+- Stabilized daily recommendations, response-aware recovery and recent-pick deduplication.
+- Preserved genuine listening-day evidence through log trimming; legacy link clicks no longer count as completion.
+- Removed invented taste traits for unknown songs and stopped truncating the founder's full input list.
+- Separated simulation rules, preview distance opinions and real user observations.
+- Added native callback navigation and serialized reminder scheduling; updated scheduled copy after reactions.
+- Hardened failed local writes, invalid catalog links and unsupported preview playback.
+- Added an accessible privacy notice and clear demonstration-concert labels with booking disabled.
+- This is not a released V1. Real recommendation satisfaction, recording-specific playback and physical notification QA remain unverified.
+- Detailed scope and evidence: [work queue](../product/in-c-expanded-v1-work-queue.md).
+
 ## Positioning
 
 in C는 클래식 음원을 직접 제공하는 스트리밍 앱이 아니라, 오늘 들을 작품을 고르고 외부 플랫폼에서 전체 듣기로 이어지는 작품 중심 클래식 디스커버리 앱이다.

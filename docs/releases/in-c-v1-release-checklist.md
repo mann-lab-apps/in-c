@@ -1,5 +1,37 @@
 # in C V1 Release Checklist
 
+## Expanded V1 Status: 2026-09-13
+
+Latest continuation: E04 taste connection review/correction/unlink, full466 tests/analyze,
+native recovery/connection QA and final iOS no-codesign build PASS after the recovery-warning fix.
+Native edit/unlink/reload inspected; actual authorized notification/audio/user-value
+evidence still absent. Historical checkpoints below do not override current evidence.
+
+Public V1 implementation complete: NO. Recommendation quality confirmed: NOT_VERIFIED.
+Physical-device notification QA: NOT_VERIFIED. Public release approval: NO.
+[Current work queue](../product/in-c-expanded-v1-work-queue.md) and
+[execution evidence](../quality/in-c-expanded-v1-evidence-2026-09-13.md) supersede historical PASS counts.
+
+- [ ] First 30 recording-specific listening points, real provider playback and recommendation bridges reviewed.
+- [ ] Founder explicitly wants to try three days; actual five-user observations satisfy the original thresholds.
+- [ ] iOS permission/denial/timezone/pending request/delivery/tap checked; no-codesign build alone is insufficient.
+- [ ] Identity confirmed: current iOS bundle is `com.mannlab.inc.clef`, Android is `com.mannlab.inc`. Do not silently migrate identifiers.
+- [ ] Local data-control/backup disclosure and store privacy notice reviewed for this build.
+- [ ] Latest complete test/analyze/build logs and visual evidence recorded; remaining implementation IDs closed.
+- [ ] Real concert inventory distinguished from demonstration fixtures; no demonstration booking CTA.
+- [ ] No commit/push/merge/deploy without separate authorization.
+
+Resumed checks: Daily catalog withdrawals and deterministic bounded snapshot merging are implemented.
+Compound composer/title intake was repaired after an independent first-week failure.
+Actual iOS simulator authorization is currently not-determined: native refusal passes,
+authorized scheduling/delivery/tap remain unverified. Read the per-test log, not only the
+integration runner's successful exit status. First30 official sources do not approve recordings.
+
+Latest user-requested pause: full459 PASS, analyze PASS, iOS no-codesign build PASS.
+Native isolated backup recovery and main flow passed before the final input-number refinement.
+Recording windows, authorized notification delivery/tap, physical accessibility and actual
+founder/five-user results remain unverified. See the dated evidence checkpoint for exact logs.
+
 목표: in C를 좋아하는 음악에서 시작하는 클래식 감상 성장 앱으로 공개 V1 배포 가능한
 상태까지 검증한다. 공연 전 10분 프리뷰와 공연 후 회고는 핵심 보조 루프로 유지한다.
 
@@ -15,11 +47,14 @@
 - 같은 날짜의 Daily Pick은 여러 번 열어도 유지되고, 다음 날짜에는 새 pick으로 넘어간다.
 - Daily Pick은 아주 가까움 / 한 걸음 확장 / 의외의 우회로 / 다시 들어볼 때 중 하나의 거리감을 보여준다.
 - 첫 3일은 가까운 추천 중심이며, 4-7일 안 surprise 추천은 최대 1회만 허용된다.
+- Catalog Ops 첫 7일 추천 미리보기에서 날짜별 작품, 거리감, 들을 지점, 다음 길을 확인할 수 있다.
+- Catalog Ops Daily Pick 규칙 검사에서 첫 7일 모의 실행과 실제 사용자 평가를 분리한다. 자동 PASS만으로 founder 승인이나 Public V1 READY를 표시하지 않는다.
 - `아직 모르겠음` reaction 직후에는 surprise 추천을 하지 않는다.
 - Daily step은 저장했지만 아직 전체 듣기 전인 작품, `아직 모르겠음` 회복용 쉬운 작품, 취향 기반 추천, founder pick 순서로 결정된다.
 - 오늘 reaction, 전체 듣기, listening moment 완료 중 하나가 있으면 Daily step은 완료 상태로 보인다.
 - Daily step reason은 사용자가 넣은 음악/OST/분위기 또는 reaction evidence를 직접 반영한다.
 - 선율-first 사용자에게는 선율, 일/독서/산책 맥락, 시대별 기법 힌트가 추천 이유와 Next Three reason에 반영된다.
+- Founder taste profile은 좋아하는 대중음악/클래식 입력, 피해야 할 오페라/바그너/말러, 바흐 푸가 예외, 배우고 싶은 시대별 기법을 명시적으로 가진다.
 - 오페라/성악 중심 또는 바그너/말러식 확장은 사용자가 명시적으로 좋아한 경우가 아니면 첫 추천에서 뒤로 밀린다.
 - 온보딩 보상은 입력을 감상 시작점, 오늘 들을 지점, 다음 방향으로 즉시 바꿔 보여준다.
 - 10초 귀 트임은 정답/점수/랭킹 없이 내가 먼저 들은 단서만 남긴다.
@@ -88,6 +123,7 @@
 - ReminderPreference는 local-first로 저장된다.
 - iOS local notification은 MethodChannel bridge로 permission request, schedule, cancel, notification open event를 처리한다.
 - remote push/APNs 서버 운영은 Public V1 이후 production verification GAP으로 둔다.
+- local notification copy는 기본/저장 후/좋음 후/아직 모르겠음 후/놓친 날 상태에 맞춰 초대형 문장으로 바뀐다.
 - 로그인/Supabase sync는 conflict-safe codec과 merge 정책을 통과한다.
 - Admin command reducer로 external link, score link, concert program raw text, promotion create/update/pause를 처리할 수 있다.
 - 실제 preview playback은 provider preview URL이 있는 경우에만 시도한다.
