@@ -121,6 +121,8 @@ import {
   createSingleVoiceMvpScore
 } from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
+import './ddirori-product.css'
+import { AppearanceSettings } from './AppearanceSettings'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -7229,6 +7231,7 @@ export const App = () => {
         pdfExporting ? ' app-shell--pdf-export' : ''
       }`}
     >
+      <AppearanceSettings />
       {pdfExporting ? (
         <style>
           {`@page { size: ${printLayoutPlan.pageCssSize}; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
