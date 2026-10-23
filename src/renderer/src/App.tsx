@@ -5,7 +5,8 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent
 } from 'react'
 import { createRoot } from 'react-dom/client'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
@@ -21,6 +22,7 @@ import { createNativeProject, decodeNativeProject, encodeNativeProject, validate
 import {
   ArrowDown,
   ArrowUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsDown,
@@ -40,6 +42,7 @@ import {
   Link2,
   Minus,
   Pause,
+  PencilLine,
   PanelLeft,
   PanelRight,
   Play,
@@ -48,9 +51,11 @@ import {
   RotateCw,
   Search,
   SkipBack,
+  SlidersHorizontal,
   Square,
   Star,
-  Unlink2
+  Unlink2,
+  X
 } from 'lucide-react'
 
 import {
@@ -60,6 +65,7 @@ import {
   createFullMeasureRest,
   createMeasure,
   createPart,
+  createRepeatMeasureTraversal,
   createRest,
   createStaff,
   createTimePosition,
@@ -68,7 +74,9 @@ import {
   MAX_AUGMENTATION_DOTS,
   measureDurationTicks,
   resolveNotePitch,
+  RepeatExpansionError,
   scoreRepeatSource,
+  projectRepeatMarksToStaff,
   sortVoiceEvents,
   timeSignatureDurationTicks,
   voiceEventDurationTicks,
@@ -156,7 +164,8 @@ import {
   buildInsertMeasureBefore,
   buildRemoveMeasure,
   buildRemoveMeasures,
-  resolveActiveMeasureId
+  resolveActiveMeasureId,
+  resolveVoltaRange
 } from './editor/measure-management'
 import {
   markBeforeUnloadWhenUnsaved,
@@ -223,6 +232,8 @@ import {
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
+import { ClefPalettePreview } from './notation/ClefPalettePreview'
+import { DurationSymbol } from './notation/DurationSymbol'
 import {
   normalizePrintPageSetup,
   resolvePrintLayoutPlan
@@ -261,15 +272,6 @@ const articulationShortcuts: Record<Articulation, string> = {
   marcato: 'Alt/⌥+^',
   staccato: 'Alt/⌥+.',
   tenuto: 'Alt/⌥+_'
-}
-const durationToolbarLabels: Record<DurationValue, string> = {
-  '64th': '64',
-  '32nd': '32',
-  '16th': '16',
-  eighth: '8',
-  quarter: '4',
-  half: '2',
-  whole: '온'
 }
 const tripletPreset = {
   actualNotes: 3,
@@ -513,16 +515,31 @@ type MeasureMarkingClipboard =
     }
 
 const toolbarCategories = [
-  { id: 'file', label: '파일' },
-  { id: 'measure', label: '악보' },
-  { id: 'note', label: '음표' },
-  { id: 'notation', label: '표기 객체' },
-  { id: 'lyrics', label: '가사' },
-  { id: 'export', label: '내보내기' },
-  { id: 'playback', label: '재생' }
+  { id: 'measure', label: '악보 및 마디 설정 열기' },
+  { id: 'note', label: '음표 입력 도구 열기' },
+  { id: 'notation', label: '표기 도구 열기' },
+  { id: 'lyrics', label: '가사 입력' }
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
+const textPropertyOptions = [
+  { value: 'staffTexts', label: '보표 글자', placeholder: 'dolce' },
+  { value: 'systemTexts', label: '시스템 텍스트', placeholder: 'Chorus' },
+  { value: 'expressionTexts', label: '표현 텍스트', placeholder: 'espressivo' }
+] as const
+type TextPropertiesKind = (typeof textPropertyOptions)[number]['value']
+type ToolbarWorkspaceFocusTarget = 'measureKeySignature' | 'tempo' | 'harmony' | 'rehearsal' | 'dynamics' | TextPropertiesKind
+type PropertiesContextKind = 'selection' | 'measure' | 'harmony' | 'rehearsal' | 'text' | 'lyrics' | 'dynamics'
+const applicationMenuItems = [
+  { id: 'file', label: '파일' },
+  { id: 'edit', label: '편집' },
+  { id: 'view', label: '보기' },
+  { id: 'add', label: '추가' },
+  { id: 'format', label: '형식' },
+  { id: 'tools', label: '도구' },
+  { id: 'help', label: '도움말' }
+] as const
+type ApplicationMenuId = (typeof applicationMenuItems)[number]['id']
 type SelectionObjectTypeFilter =
   | 'none'
   | 'dynamics'
@@ -808,12 +825,12 @@ const notationPalettePanelIds = [
 type NotationPalettePanelId = (typeof notationPalettePanelIds)[number]
 const defaultNotationPaletteSectionCollapse = {
   lines: false,
-  noteSymbols: false,
+  noteSymbols: true,
   rehearsal: false,
   text: false,
   dynamics: false,
   measureSettings: false,
-  repeats: false
+  repeats: true
 } as const satisfies Record<NotationPaletteSectionId, boolean>
 const lyricVerseOptions = [1, 2, 3, 4] as const
 const selectionFilterOptions = [
@@ -896,6 +913,17 @@ const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+const compactDockStorageKey = 'chromatics.compact-dock.v1'
+const compactDockQuery = '(min-width: 761px) and (max-width: 1200px)'
+const wideDockQuery = '(min-width: 1201px)'
+const sharedDockStorageKey = 'chromatics.shared-dock.v1'
+type DockId = 'palette' | 'properties'
+const dockWidthsStorageKey = 'chromatics.dock-widths.v1'
+const defaultDockWidths = { palette: 168, properties: 236 } as const
+const dockWidthLimits = {
+  palette: { min: 132, max: 320 },
+  properties: { min: 180, max: 360 }
+} as const
 const notationPaletteWorkspaceStorageKey =
   'chromatics.notation-palette-workspace.v1'
 const notationPaletteOneAtATimeStorageKey =
@@ -906,17 +934,53 @@ const notationPaletteRecentItemsStorageKey =
   'chromatics.notation-palette-recent-items.v1'
 const notationPaletteFavoriteItemsStorageKey =
   'chromatics.notation-palette-favorite-items.v1'
+const dockedPaletteSectionsStorageKey =
+  'chromatics.docked-palette-sections.v1'
 const scoreToolbarSectionsStorageKey =
   'chromatics.score-toolbar-sections.v1'
+const eventPropertiesSectionsStorageKey =
+  'chromatics.event-properties-sections.v1'
 const exportToolbarSectionsStorageKey =
   'chromatics.export-toolbar-sections.v1'
-type ScoreToolbarSectionId = 'structure'
+const selectionPropertiesMetadataStorageKey =
+  'chromatics.selection-properties-metadata.v1'
+const toolbarSeparatorHeightStorageKey =
+  'chromatics.toolbar-separator-height.v1'
+const toolbarSeparatorHeights = [20, 30, 40] as const
+type ToolbarSeparatorHeight = (typeof toolbarSeparatorHeights)[number]
+const dockedPaletteSectionIds = [
+  'measureNotation',
+  'dynamics',
+  'articulations',
+  'ornaments'
+] as const
+type DockedPaletteSectionId = (typeof dockedPaletteSectionIds)[number]
+
+const defaultDockedPaletteSectionCollapse: Record<
+  DockedPaletteSectionId,
+  boolean
+> = {
+  measureNotation: false,
+  dynamics: false,
+  articulations: true,
+  ornaments: true
+}
+type ScoreToolbarSectionId = 'tempo' | 'structure'
+type EventPropertiesSectionId = 'properties'
 
 const defaultScoreToolbarSectionCollapse: Record<
   ScoreToolbarSectionId,
   boolean
 > = {
-  structure: false
+  tempo: true,
+  structure: true
+}
+
+const defaultEventPropertiesSectionCollapse: Record<
+  EventPropertiesSectionId,
+  boolean
+> = {
+  properties: false
 }
 
 function readStoredNotationPaletteSectionCollapse(): Record<
@@ -932,12 +996,37 @@ function readStoredNotationPaletteSectionCollapse(): Record<
     for (const sectionId of Object.keys(
       defaultNotationPaletteSectionCollapse
     ) as NotationPaletteSectionId[]) {
-      result[sectionId] = stored[sectionId] === true
+      result[sectionId] =
+        typeof stored[sectionId] === 'boolean'
+          ? stored[sectionId]
+          : defaultNotationPaletteSectionCollapse[sectionId]
     }
 
     return result
   } catch {
     return { ...defaultNotationPaletteSectionCollapse }
+  }
+}
+
+function readStoredSelectionPropertiesMetadataOpen() {
+  try {
+    return window.localStorage.getItem(selectionPropertiesMetadataStorageKey) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function readStoredToolbarSeparatorHeight(): ToolbarSeparatorHeight {
+  try {
+    const value = Number(
+      window.localStorage.getItem(toolbarSeparatorHeightStorageKey)
+    )
+
+    return toolbarSeparatorHeights.includes(value as ToolbarSeparatorHeight)
+      ? (value as ToolbarSeparatorHeight)
+      : 30
+  } catch {
+    return 30
   }
 }
 
@@ -1002,6 +1091,28 @@ function readStoredNotationPaletteFavoriteItems(): NotationPaletteRecentItemId[]
   return []
 }
 
+function readStoredDockedPaletteSectionCollapse(): Record<
+  DockedPaletteSectionId,
+  boolean
+> {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(dockedPaletteSectionsStorageKey) ?? '{}'
+    ) as Partial<Record<DockedPaletteSectionId, unknown>>
+
+    return Object.fromEntries(
+      dockedPaletteSectionIds.map((sectionId) => [
+        sectionId,
+        typeof stored[sectionId] === 'boolean'
+          ? stored[sectionId]
+          : defaultDockedPaletteSectionCollapse[sectionId]
+      ])
+    ) as Record<DockedPaletteSectionId, boolean>
+  } catch {
+    return { ...defaultDockedPaletteSectionCollapse }
+  }
+}
+
 function readStoredScoreToolbarSectionCollapse(): Record<
   ScoreToolbarSectionId,
   boolean
@@ -1012,10 +1123,37 @@ function readStoredScoreToolbarSectionCollapse(): Record<
     ) as Partial<Record<ScoreToolbarSectionId, unknown>>
 
     return {
-      structure: stored.structure === true
+      tempo:
+        typeof stored.tempo === 'boolean'
+          ? stored.tempo
+          : defaultScoreToolbarSectionCollapse.tempo,
+      structure:
+        typeof stored.structure === 'boolean'
+          ? stored.structure
+          : defaultScoreToolbarSectionCollapse.structure
     }
   } catch {
     return { ...defaultScoreToolbarSectionCollapse }
+  }
+}
+
+function readStoredEventPropertiesSectionCollapse(): Record<
+  EventPropertiesSectionId,
+  boolean
+> {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(eventPropertiesSectionsStorageKey) ?? '{}'
+    ) as Partial<Record<EventPropertiesSectionId, unknown>>
+
+    return {
+      properties:
+        typeof stored.properties === 'boolean'
+          ? stored.properties
+          : defaultEventPropertiesSectionCollapse.properties
+    }
+  } catch {
+    return { ...defaultEventPropertiesSectionCollapse }
   }
 }
 
@@ -1075,6 +1213,151 @@ export const App = () => {
     useState<PartPageSetupPreferences>({})
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
+  const [fileQuickActionsOpen, setFileQuickActionsOpen] = useState(false)
+  const [exportQuickActionsOpen, setExportQuickActionsOpen] = useState(false)
+  const [partMixerOpen, setPartMixerOpen] = useState(false)
+  const [applicationMenu, setApplicationMenu] =
+    useState<ApplicationMenuId>()
+  const [applicationMenuOffset, setApplicationMenuOffset] = useState(14)
+  const [applicationMenuFocusFirstItem, setApplicationMenuFocusFirstItem] =
+    useState(false)
+  const applicationMenuRef = useRef<HTMLDivElement>(null)
+  const applicationMenuPopupRef = useRef<HTMLDivElement>(null)
+  const selectionFilterRef = useRef<HTMLSelectElement>(null)
+  const measureKeySignatureRef = useRef<HTMLSelectElement>(null)
+  const [measurePropertiesOpen, setMeasurePropertiesOpen] = useState(false)
+  const [propertiesContext, setPropertiesContext] = useState<{
+    kind: PropertiesContextKind
+    selection: EditorSelection
+  }>()
+  const [harmonyPropertiesOpen, setHarmonyPropertiesOpen] = useState(false)
+  const harmonyInputRef = useRef<HTMLInputElement>(null)
+  const dynamicInputRef = useRef<HTMLSelectElement>(null)
+  const [rehearsalPropertiesOpen, setRehearsalPropertiesOpen] = useState(false)
+  const rehearsalInputRef = useRef<HTMLInputElement>(null)
+  const [textPropertiesKind, setTextPropertiesKind] = useState<TextPropertiesKind>('staffTexts')
+  const [textPropertiesOpen, setTextPropertiesOpen] = useState(false)
+  const textPropertiesInputRef = useRef<HTMLInputElement>(null)
+  const scoreTempoRef = useRef<HTMLInputElement>(null)
+  const notationPaletteRef = useRef<HTMLElement>(null)
+  const propertiesDockRef = useRef<HTMLElement>(null)
+  const openNotationPalette = useCallback(() => {
+    setDockVisibility((value) => ({ ...value, palette: true }))
+    setCompactDock('palette')
+    setApplicationMenu(undefined)
+    window.requestAnimationFrame(() => notationPaletteRef.current?.focus())
+  }, [])
+  const applicationMenuTriggerRefs = useRef<
+    Partial<Record<ApplicationMenuId, HTMLButtonElement>>
+  >({})
+  const openSelectionFilterWorkspace = () => {
+    setExportQuickActionsOpen(false)
+    setFileQuickActionsOpen(true)
+    setApplicationMenu(undefined)
+    window.requestAnimationFrame(() => selectionFilterRef.current?.focus())
+  }
+  const workspaceFocusFrame = useRef<number | undefined>(undefined)
+  useEffect(() => () => {
+    if (workspaceFocusFrame.current !== undefined) window.cancelAnimationFrame(workspaceFocusFrame.current)
+  }, [])
+  const openToolbarWorkspace = useCallback((
+    category: ToolbarCategory,
+    focusTarget?: ToolbarWorkspaceFocusTarget,
+    contextSelection: EditorSelection = selection
+  ) => {
+    const textTarget = textPropertyOptions.find(option => option.value === focusTarget)
+    const contextKind: PropertiesContextKind | undefined = textTarget ? 'text'
+      : focusTarget === 'harmony' ? 'harmony'
+      : focusTarget === 'rehearsal' ? 'rehearsal'
+      : focusTarget === 'dynamics' ? 'dynamics'
+      : category === 'measure' && focusTarget !== 'tempo' ? 'measure'
+      : category === 'lyrics' ? 'lyrics'
+      : focusTarget === 'tempo' ? undefined : 'selection'
+    if (contextKind) setPropertiesContext({ kind: contextKind, selection: contextSelection })
+    // Explicit property entry replaces the span selection, unlike workspace switching.
+    if ((focusTarget && focusTarget !== 'tempo') || category === 'lyrics') setSpanSelection(undefined)
+    setFileQuickActionsOpen(false)
+    setExportQuickActionsOpen(false)
+    if (!focusTarget || focusTarget === 'tempo') {
+      if (category !== 'lyrics') setToolbarsCollapsed(false)
+      setToolbarCategory(category)
+    }
+    setApplicationMenu(undefined)
+    if (category === 'measure' && focusTarget !== 'tempo') {
+      setMeasurePropertiesOpen(true)
+      setDockVisibility(value => ({ ...value, properties: true }))
+      setCompactDock('properties')
+    }
+    if (category === 'lyrics') {
+      if (focusTarget === 'harmony') setHarmonyPropertiesOpen(true)
+      setDockVisibility(value => ({ ...value, properties: true }))
+      setCompactDock('properties')
+    }
+    if (focusTarget === 'rehearsal') {
+      setRehearsalPropertiesOpen(true)
+      setDockVisibility(value => ({ ...value, properties: true }))
+      setCompactDock('properties')
+    }
+    if (focusTarget === 'dynamics') {
+      setDockVisibility(value => ({ ...value, properties: true }))
+      setCompactDock('properties')
+    }
+    if (textTarget) {
+      setTextPropertiesKind(textTarget.value)
+      setTextPropertiesOpen(true)
+      setDockVisibility(value => ({ ...value, properties: true }))
+      setCompactDock('properties')
+    }
+    if (workspaceFocusFrame.current !== undefined) window.cancelAnimationFrame(workspaceFocusFrame.current)
+    if (focusTarget) {
+      if (focusTarget === 'tempo') {
+        setCollapsedScoreToolbarSections((sections) => ({
+          ...sections,
+          tempo: false
+        }))
+      }
+      workspaceFocusFrame.current = window.requestAnimationFrame(() => {
+        ;(focusTarget === 'measureKeySignature'
+          ? measureKeySignatureRef.current
+          : focusTarget === 'harmony'
+          ? harmonyInputRef.current
+          : focusTarget === 'rehearsal'
+          ? rehearsalInputRef.current
+          : focusTarget === 'dynamics'
+          ? dynamicInputRef.current
+          : textTarget
+          ? textPropertiesInputRef.current
+          : scoreTempoRef.current
+        )?.focus()
+      })
+    } else {
+      workspaceFocusFrame.current = window.requestAnimationFrame(() => {
+        if (category === 'measure') measureKeySignatureRef.current?.focus()
+        else if (category === 'lyrics') {
+          ;(document.querySelector<HTMLInputElement>('input[aria-label="선택 음표 가사"]')
+            ?? propertiesDockRef.current)?.focus()
+        }
+        else document.querySelector<HTMLElement>(
+          category === 'note' ? '.note-entry-toolbar [aria-label="음표 입력"]'
+            : 'input[aria-label="기호 검색"]'
+        )?.focus()
+      })
+    }
+  }, [selection])
+  useEffect(() => {
+    if (!applicationMenu) {
+      return
+    }
+
+    const dismissOnOutsidePointer = (event: PointerEvent) => {
+      if (!applicationMenuRef.current?.contains(event.target as Node)) {
+        setApplicationMenu(undefined)
+      }
+    }
+
+    window.addEventListener('pointerdown', dismissOnOutsidePointer)
+    return () => window.removeEventListener('pointerdown', dismissOnOutsidePointer)
+  }, [applicationMenu])
   const [collapsedScoreToolbarSections, setCollapsedScoreToolbarSections] =
     useState<Record<ScoreToolbarSectionId, boolean>>(
       readStoredScoreToolbarSectionCollapse
@@ -1089,6 +1372,20 @@ export const App = () => {
       // The score toolbar remains usable when browser storage is unavailable.
     }
   }, [collapsedScoreToolbarSections])
+  const [collapsedEventPropertiesSections, setCollapsedEventPropertiesSections] =
+    useState<Record<EventPropertiesSectionId, boolean>>(
+      readStoredEventPropertiesSectionCollapse
+    )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        eventPropertiesSectionsStorageKey,
+        JSON.stringify(collapsedEventPropertiesSections)
+      )
+    } catch {
+      // The note toolbar remains usable when browser storage is unavailable.
+    }
+  }, [collapsedEventPropertiesSections])
   const [collapsedExportToolbarSections, setCollapsedExportToolbarSections] =
     useState(readStoredExportToolbarSectionCollapse)
   useEffect(() => {
@@ -1101,8 +1398,44 @@ export const App = () => {
       // The export toolbar remains usable when browser storage is unavailable.
     }
   }, [collapsedExportToolbarSections])
-  const [paletteCategory, setPaletteCategory] =
-    useState<ToolbarCategory>('note')
+  const [selectionPropertiesMetadataOpen, setSelectionPropertiesMetadataOpen] =
+    useState(readStoredSelectionPropertiesMetadataOpen)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        selectionPropertiesMetadataStorageKey,
+        String(selectionPropertiesMetadataOpen)
+      )
+    } catch {
+      // Read-only selection metadata remains available when storage is unavailable.
+    }
+  }, [selectionPropertiesMetadataOpen])
+  const [toolbarSeparatorHeight, setToolbarSeparatorHeight] =
+    useState<ToolbarSeparatorHeight>(readStoredToolbarSeparatorHeight)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        toolbarSeparatorHeightStorageKey,
+        String(toolbarSeparatorHeight)
+      )
+    } catch {
+      // Toolbar separators retain their default height when storage is unavailable.
+    }
+  }, [toolbarSeparatorHeight])
+  const [collapsedDockedPaletteSections, setCollapsedDockedPaletteSections] =
+    useState<Record<DockedPaletteSectionId, boolean>>(
+      readStoredDockedPaletteSectionCollapse
+    )
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        dockedPaletteSectionsStorageKey,
+        JSON.stringify(collapsedDockedPaletteSections)
+      )
+    } catch {
+      // The dock stays usable when workspace storage is unavailable.
+    }
+  }, [collapsedDockedPaletteSections])
   const [notationPaletteQuery, setNotationPaletteQuery] = useState('')
   const [
     collapsedNotationPaletteSections,
@@ -1202,6 +1535,120 @@ export const App = () => {
       return { palette: true, properties: true }
     }
   })
+  const [compactDocks, setCompactDocks] = useState(() => window.matchMedia?.(compactDockQuery).matches ?? false)
+  const [wideDocks, setWideDocks] = useState(() => window.matchMedia?.(wideDockQuery).matches ?? false)
+  const [sharedDock, setSharedDock] = useState(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(sharedDockStorageKey) ?? '{}')
+      const legacy = JSON.parse(window.localStorage.getItem(dockWidthsStorageKey) ?? '{}')
+      const width = Number.isFinite(saved?.width) ? saved.width : Math.max(
+        Number.isFinite(legacy?.palette) ? legacy.palette : 168,
+        Number.isFinite(legacy?.properties) ? legacy.properties : 236
+      )
+      return { split: saved?.split === true, width: Math.min(360, Math.max(180, width)) }
+    } catch {
+      return { split: false, width: 236 }
+    }
+  })
+  const sharedDocks = compactDocks || (wideDocks && !sharedDock.split)
+  const [compactDock, setCompactDock] = useState<DockId>(() => {
+    try {
+      return window.localStorage.getItem(compactDockStorageKey) === 'properties' ? 'properties' : 'palette'
+    } catch {
+      return 'palette'
+    }
+  })
+  const dockTabRefs = useRef<Partial<Record<DockId, HTMLButtonElement>>>({})
+  const visibleDockTabs = (['palette', 'properties'] as const).filter(dock => dockVisibility[dock])
+  const activeCompactDock = dockVisibility[compactDock] ? compactDock : visibleDockTabs[0]
+  useEffect(() => {
+    const media = window.matchMedia?.(compactDockQuery)
+    const wide = window.matchMedia?.(wideDockQuery)
+    if (!media || !wide) return
+    const update = () => {
+      if (media.matches || (wide.matches && !sharedDock.split)) {
+        if (propertiesDockRef.current?.contains(document.activeElement)) setCompactDock('properties')
+        else if (notationPaletteRef.current?.contains(document.activeElement)) setCompactDock('palette')
+      } else {
+        const focusedTab = (['palette', 'properties'] as const).find(dock => dockTabRefs.current[dock] === document.activeElement)
+        if (focusedTab) window.requestAnimationFrame(() => {
+          (focusedTab === 'palette' ? notationPaletteRef : propertiesDockRef).current?.focus({ preventScroll: true })
+        })
+      }
+      setCompactDocks(media.matches)
+      setWideDocks(wide.matches)
+    }
+    media.addEventListener('change', update)
+    wide.addEventListener('change', update)
+    return () => {
+      media.removeEventListener('change', update)
+      wide.removeEventListener('change', update)
+    }
+  }, [sharedDock.split])
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(sharedDockStorageKey, JSON.stringify(sharedDock))
+    } catch {
+      // Layout remains usable without local workspace storage.
+    }
+  }, [sharedDock])
+  const setSharedDockWidth = (width: number) => {
+    setSharedDock(value => ({ ...value, width: Math.min(360, Math.max(180, Math.round(width))) }))
+  }
+  const sharedResizeCleanup = useRef<(() => void) | undefined>(undefined)
+  useEffect(() => () => sharedResizeCleanup.current?.(), [])
+  const startSharedDockResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!wideDocks || event.button !== 0) return
+    event.preventDefault()
+    sharedResizeCleanup.current?.()
+    const startX = event.clientX
+    const startWidth = sharedDock.width
+    const pointerId = event.pointerId
+    const move = (next: PointerEvent) => {
+      if (next.pointerId === pointerId) setSharedDockWidth(startWidth + next.clientX - startX)
+    }
+    const finish = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      sharedResizeCleanup.current = undefined
+    }
+    sharedResizeCleanup.current = finish
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+  }
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(compactDockStorageKey, compactDock)
+    } catch {
+      // The active dock remains usable without persistent storage.
+    }
+  }, [compactDock])
+  const toggleDock = useCallback((dock: DockId) => {
+    if (!dockVisibility[dock]) setCompactDock(dock)
+    setDockVisibility(value => ({ ...value, [dock]: !value[dock] }))
+  }, [dockVisibility])
+  const closeCompactDock = () => {
+    if (!activeCompactDock) return
+    const next = visibleDockTabs.find(dock => dock !== activeCompactDock)
+    toggleDock(activeCompactDock)
+    window.requestAnimationFrame(() => {
+      if (next) dockTabRefs.current[next]?.focus()
+      else document.querySelector<HTMLButtonElement>('button[aria-label="팔레트 표시"]')?.focus()
+    })
+  }
+  const [dockWidths, setDockWidths] = useState(() => {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(dockWidthsStorageKey) ?? '{}')
+      return {
+        palette: Math.min(dockWidthLimits.palette.max, Math.max(dockWidthLimits.palette.min, value?.palette ?? defaultDockWidths.palette)),
+        properties: Math.min(dockWidthLimits.properties.max, Math.max(dockWidthLimits.properties.min, value?.properties ?? defaultDockWidths.properties))
+      }
+    } catch {
+      return { ...defaultDockWidths }
+    }
+  })
   useEffect(() => {
     try {
       window.localStorage.setItem(dockVisibilityStorageKey, JSON.stringify(dockVisibility))
@@ -1209,6 +1656,85 @@ export const App = () => {
       // Workspace controls remain usable when browser storage is unavailable.
     }
   }, [dockVisibility])
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(dockWidthsStorageKey, JSON.stringify(dockWidths))
+    } catch {
+      // Workspace controls remain usable when browser storage is unavailable.
+    }
+  }, [dockWidths])
+  const changeDockWidth = (dock: keyof typeof dockWidths, direction: -1 | 1) => {
+    setDockWidths((value) => ({
+      ...value,
+      [dock]: Math.min(
+        dockWidthLimits[dock].max,
+        Math.max(dockWidthLimits[dock].min, value[dock] + direction * 16)
+      )
+    }))
+  }
+  const startDockResize = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    dock: keyof typeof dockWidths
+  ) => {
+    if (window.matchMedia('(max-width: 1200px)').matches) return
+    const startX = event.clientX
+    const startWidth = dockWidths[dock]
+    const direction = dock === 'palette' ? 1 : -1
+    const update = (pointerEvent: PointerEvent) => {
+      const width = startWidth + (pointerEvent.clientX - startX) * direction
+      setDockWidths((value) => ({
+        ...value,
+        [dock]: Math.min(
+          dockWidthLimits[dock].max,
+          Math.max(dockWidthLimits[dock].min, Math.round(width))
+        )
+      }))
+    }
+    const finish = () => {
+      window.removeEventListener('pointermove', update)
+      window.removeEventListener('pointerup', finish)
+    }
+    window.addEventListener('pointermove', update)
+    window.addEventListener('pointerup', finish, { once: true })
+  }
+  const resetWorkspace = useCallback(() => {
+    setDockVisibility({ palette: true, properties: true })
+    setCompactDock('palette')
+    setDockWidths({ ...defaultDockWidths })
+    setSharedDock({ split: false, width: 236 })
+    setMeasurePropertiesOpen(false)
+    setPropertiesContext(undefined)
+    setHarmonyPropertiesOpen(false)
+    setRehearsalPropertiesOpen(false)
+    setTextPropertiesOpen(false)
+    setTextPropertiesKind('staffTexts')
+    setToolbarsCollapsed(false)
+    setToolbarCategory('note')
+    setFileQuickActionsOpen(false)
+    setExportQuickActionsOpen(false)
+    setPartMixerOpen(false)
+    setShowPageMarginGuides(false)
+    setNotationPaletteQuery('')
+    setCollapsedNotationPaletteSections({
+      ...defaultNotationPaletteSectionCollapse
+    })
+    setNotationPaletteOneAtATime(false)
+    setNotationPalettePanelOrder([...notationPalettePanelIds])
+    setNotationPaletteRecentItems([])
+    setNotationPaletteFavoriteItems([])
+    setCollapsedDockedPaletteSections({
+      ...defaultDockedPaletteSectionCollapse
+    })
+    setCollapsedScoreToolbarSections({
+      ...defaultScoreToolbarSectionCollapse
+    })
+    setCollapsedEventPropertiesSections({
+      ...defaultEventPropertiesSectionCollapse
+    })
+    setSelectionPropertiesMetadataOpen(false)
+    setToolbarSeparatorHeight(30)
+    setApplicationMenu(undefined)
+  }, [])
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -1249,8 +1775,6 @@ export const App = () => {
     recoveryPendingRef.current = pending
     setRecoveryPending(pending)
   }, [])
-  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision })
-  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision }
   const restoreDirtyRecoveryAfterClear = useCallback(async () => {
     if (recoveryPendingRef.current) return
     const latest = currentNativeContext.current
@@ -1348,6 +1872,10 @@ export const App = () => {
 
     playback.play()
   }, [eventLocation, playback.play, playback.playFromEvent])
+  const activePropertiesKind = activeSpanReference ? 'span'
+    : propertiesContext?.selection === selection ? propertiesContext.kind
+    : toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note' ? 'lyrics'
+    : selection.type === 'measure' ? 'measure' : 'selection'
   const measureLocation = useMemo(
     () =>
       selection.type === 'measure'
@@ -1359,6 +1887,13 @@ export const App = () => {
     () => resolveActiveMeasureId(score, selection, noteInputState),
     [noteInputState, score, selection]
   )
+  const measureClefLocation = measureLocation ??
+    (selection.type === 'event' && eventLocation
+      ? locateMeasure(score, eventLocation.measure.id, eventLocation.address)
+      : undefined)
+  const activeVoltaRange = useMemo(() => activeMeasureId
+    ? resolveVoltaRange(score, activeMeasureId) : undefined, [score, activeMeasureId])
+  const activeVoltaEnd = activeVoltaRange?.end
   const selectionMeasureIds = useMemo(
     () => resolveSelectionMeasureIds(score, selection),
     [score, selection]
@@ -1447,6 +1982,8 @@ export const App = () => {
 
     return activeStructureTarget?.partId ?? score.parts[0]?.id
   }, [activeStructureTarget?.partId, score.parts, selectedScoreViewPartId])
+  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, livePartViewPartId, noteInputState, autosaveRevision })
+  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, livePartViewPartId, noteInputState, autosaveRevision }
   const livePartViewPart = score.parts.find(
     (part) => part.id === livePartViewPartId
   )
@@ -1498,9 +2035,6 @@ export const App = () => {
     measureLocation?.measure,
     activeMeasurePickupUnitDraft
   )
-  const activeToolbarCategoryLabel =
-    toolbarCategories.find((category) => category.id === toolbarCategory)
-      ?.label ?? '음표'
   const normalizedNotationPaletteQuery = normalizePaletteQuery(notationPaletteQuery)
   const notationPaletteMatches = {
     lines: matchesNotationPaletteGroup(normalizedNotationPaletteQuery, notationPaletteGroups.lines),
@@ -1768,6 +2302,9 @@ export const App = () => {
         ...(command.pageSetupChange ? { pageSetupChange: { value: partPageSetupPreferences[command.partId] } } : {}) }
     }
     const result = applyScoreCommand(score, command)
+    for (const part of result.score.parts) for (const staff of part.staves) {
+      createRepeatMeasureTraversal(staff.measures)
+    }
     const previousLayouts = nativeEnvelope.current?.partLayouts ?? []
     if (command.partLayoutState) {
       nativeEnvelope.current = { ...(nativeEnvelope.current ?? createNativeProject(score)), partLayouts: command.partLayoutState }
@@ -1782,7 +2319,14 @@ export const App = () => {
         return false
       }
 
-      const inverse = applyEditorCommand(command)
+      let inverse: EditorCommand
+      try {
+        inverse = applyEditorCommand(command)
+      } catch (error) {
+        if (!(error instanceof RepeatExpansionError)) throw error
+        setFileStatus({ tone: 'error', message: '중첩 반복이 너무 큽니다. 반복 횟수나 중첩을 줄여 주세요.' })
+        return false
+      }
       setAutosaveRevision((revision) => revision + 1)
       setUndoStack((entries) => [
         ...entries,
@@ -1810,6 +2354,7 @@ export const App = () => {
     setPendingSlurAnchorEventId(undefined)
     setToolbarCategory('notation')
     setDockVisibility(current => ({ ...current, properties: true }))
+    setCompactDock('properties')
     setSpanSelection({ reference, baseSelection: selection, generation: documentGeneration.current, viewKey: spanViewKey })
   }, [score, selection, spanViewKey])
 
@@ -2800,9 +3345,9 @@ export const App = () => {
     (transparent: boolean) => {
       executeCommand({
         type: 'score-tempo.update',
-        tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
-          transparent
-        })
+        tempo: score.tempo
+          ? { ...score.tempo, transparent }
+          : createUpdatedTempoMarking(undefined, scoreTempo, { transparent })
       })
     },
     [executeCommand, score.tempo, scoreTempo]
@@ -2883,7 +3428,7 @@ export const App = () => {
       setCommandPaletteQuery('')
     }
     const openToolbarCategory = (category: ToolbarCategory) => () => {
-      setToolbarCategory(category)
+      openToolbarWorkspace(category)
       closeCommandPalette()
     }
     const openShortcutHelp = () => {
@@ -2893,9 +3438,9 @@ export const App = () => {
 
     return [
       ...toolbarCategories.map((category) => ({
-        category: '작업 모드',
+        category: '작업 도구',
         id: `toolbar-${category.id}`,
-        label: `${category.label} 탭 열기`,
+        label: category.label,
         run: openToolbarCategory(category.id)
       })),
       {
@@ -2907,15 +3452,15 @@ export const App = () => {
           closeCommandPalette()
         }
       },
-      ...toolbarCategories.map((category) => ({
+      {
         category: '팔레트',
-        id: `palette-${category.id}`,
-        label: `${category.label} 팔레트 열기`,
+        id: 'palette-notation',
+        label: '표기 객체 팔레트 열기',
         run: () => {
-          setPaletteCategory(category.id)
+          openNotationPalette()
           closeCommandPalette()
         }
-      })),
+      },
       ...durations.map((duration) => ({
         category: '음표 입력',
         id: `duration-${duration}`,
@@ -2957,7 +3502,7 @@ export const App = () => {
         id: 'toggle-palette',
         label: dockVisibility.palette ? '좌측 팔레트 숨기기' : '좌측 팔레트 보이기',
         run: () => {
-          setDockVisibility((value) => ({ ...value, palette: !value.palette }))
+          toggleDock('palette')
           closeCommandPalette()
         }
       },
@@ -2966,7 +3511,7 @@ export const App = () => {
         id: 'toggle-properties',
         label: dockVisibility.properties ? '우측 속성 도크 숨기기' : '우측 속성 도크 보이기',
         run: () => {
-          setDockVisibility((value) => ({ ...value, properties: !value.properties }))
+          toggleDock('properties')
           closeCommandPalette()
         }
       },
@@ -3006,7 +3551,10 @@ export const App = () => {
     changeDuration,
     dockVisibility.palette,
     dockVisibility.properties,
+    toggleDock,
     openNewScoreWizard,
+    openToolbarWorkspace,
+    openNotationPalette,
     playback,
     playFromSelection,
     redo,
@@ -3058,13 +3606,14 @@ export const App = () => {
       return
     }
 
+    openToolbarWorkspace('note')
     setMode('note')
     setNoteInputState(inputState)
     setFileStatus({
       tone: 'neutral',
       message: '음표 입력'
     })
-  }, [durationValue, noteInputState, score, selection])
+  }, [durationValue, noteInputState, openToolbarWorkspace, score, selection])
 
   const changeDots = useCallback(
     (direction: -1 | 1) => {
@@ -4520,16 +5069,16 @@ export const App = () => {
   )
 
   const updateActiveMeasure = useCallback(
-    (update: (measure: Measure) => Measure) => {
-      if (!measureLocation) {
+    (update: (measure: Measure) => Measure, location = measureLocation) => {
+      if (!location) {
         return false
       }
 
       const part = score.parts.find(
-        (candidate) => candidate.id === measureLocation.address.partId
+        (candidate) => candidate.id === location.address.partId
       )
       const staff = part?.staves.find(
-        (candidate) => candidate.id === measureLocation.address.staffId
+        (candidate) => candidate.id === location.address.staffId
       )
 
       if (!staff) {
@@ -4539,11 +5088,11 @@ export const App = () => {
       return executeCommand({
         type: 'staff-measures.replace',
         target: {
-          partId: measureLocation.address.partId,
-          staffId: measureLocation.address.staffId
+          partId: location.address.partId,
+          staffId: location.address.staffId
         },
         measures: staff.measures.map((measure) =>
-          measure.id === measureLocation.measure.id ? update(measure) : measure
+          measure.id === location.measure.id ? update(measure) : measure
         )
       })
     },
@@ -4635,7 +5184,7 @@ export const App = () => {
         updateActiveMeasure((measure) => ({
           ...measure,
           clef: preset.value
-        }))
+        }), measureClefLocation)
       ) {
         setFileStatus({
           tone: 'neutral',
@@ -4643,7 +5192,7 @@ export const App = () => {
         })
       }
     },
-    [updateActiveMeasure]
+    [measureClefLocation, updateActiveMeasure]
   )
 
   const updateActiveRepeat = useCallback(
@@ -4695,6 +5244,25 @@ export const App = () => {
     },
     [measureLocation?.measure.repeat, updateActiveRepeat]
   )
+
+  const changeVoltaEndStyle = useCallback((style: string) => {
+    if (!activeVoltaEnd?.volta?.end || (style !== 'open' && style !== 'closed') ||
+      (activeVoltaEnd.volta.endStyle ?? 'closed') === style) return
+    updateMeasureById(activeVoltaEnd.id, measure => ({ ...measure,
+      volta: { ...measure.volta!, endStyle: style }
+    }), '볼타 끝 모양을 갱신했습니다.')
+  }, [activeVoltaEnd, updateMeasureById])
+
+  const changeVoltaDisplayEnd = useCallback((measureId: string) => {
+    if (!activeVoltaRange || (measureId && !activeVoltaRange.measures.some(measure => measure.id === measureId)) ||
+      (activeVoltaRange.start.volta?.displayEndMeasureId ?? '') === measureId) return
+    updateMeasureById(activeVoltaRange.start.id, measure => {
+      const volta = { ...measure.volta! }
+      if (measureId) volta.displayEndMeasureId = measureId
+      else delete volta.displayEndMeasureId
+      return { ...measure, volta }
+    }, '볼타 선의 표시 범위를 갱신했습니다.')
+  }, [activeVoltaRange, updateMeasureById])
 
   const replaceSelectedNote = useCallback(
     (
@@ -5150,6 +5718,7 @@ export const App = () => {
             harmony.measureId === targetMeasureId && harmony.tick === targetTick
         )
         : currentHarmonies.find((harmony) => harmony.id === activeHarmonyTargetId)
+      if ((existingHarmony?.text ?? '') === text) return
       const parsedHarmony = text.length > 0 ? parseHarmonyText(text) : undefined
 
       if (text.length > 0 && !parsedHarmony) {
@@ -5941,7 +6510,11 @@ export const App = () => {
     setMeasureContextMenu(undefined)
     setActiveLyricVerse(activeVerse)
     setToolbarCategory('lyrics')
-    setSelection(createEventSelection(score, eventId))
+    setDockVisibility(value => ({ ...value, properties: true }))
+    setCompactDock('properties')
+    const nextSelection = createEventSelection(score, eventId)
+    setPropertiesContext({ kind: 'lyrics', selection: nextSelection })
+    setSelection(nextSelection)
   }, [score])
 
   const selectEventRange = useCallback(
@@ -5972,6 +6545,7 @@ export const App = () => {
     setNoteInputState(undefined)
     setPendingSlurAnchorEventId(undefined)
     setMeasureContextMenu(undefined)
+    setMeasurePropertiesOpen(true)
     setSelection(createMeasureSelection(score, measureId))
   }, [score])
 
@@ -5984,21 +6558,26 @@ export const App = () => {
     setNoteInputState(undefined)
     setPendingSlurAnchorEventId(undefined)
     setMeasureContextMenu(undefined)
-    setSelection(createMeasureSelection(score, measureId))
+    const nextSelection = createMeasureSelection(score, measureId)
+    setSelection(nextSelection)
     if (type === 'harmonies') {
       setHarmonyTarget({ measureId, id })
-      setToolbarCategory('lyrics')
+      openToolbarWorkspace('lyrics', 'harmony', nextSelection)
     } else if (type === 'dynamics') {
       setDynamicTarget({ measureId, id })
-      setToolbarCategory('notation')
+      openToolbarWorkspace('notation', 'dynamics', nextSelection)
     } else {
       if (type === 'staffTexts') setStaffTextTarget({ measureId, id })
       else if (type === 'systemTexts') setSystemTextTarget({ measureId, id })
-      else if (type === 'rehearsalMarks') setRehearsalTarget({ measureId, id })
+      else if (type === 'rehearsalMarks') {
+        setRehearsalTarget({ measureId, id })
+        openToolbarWorkspace('notation', 'rehearsal', nextSelection)
+        return
+      }
       else setExpressionTextTarget({ measureId, id })
-      setToolbarCategory('notation')
+      openToolbarWorkspace('notation', type, nextSelection)
     }
-  }, [score])
+  }, [score, openToolbarWorkspace])
 
   const openScore = useCallback(
     (
@@ -6121,10 +6700,10 @@ export const App = () => {
     const sameDocument = () => generation === documentGeneration.current
     const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision
     try {
-      if (noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
-      const tieRepair = repairInvalidTiesForSave(score)
+      if (context.noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
+      const tieRepair = repairInvalidTiesForSave(context.score)
       const saveScore = tieRepair.score
-      const project = createNativeSnapshot(saveScore, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
+      const project = createNativeSnapshot(saveScore, nativeEnvelope.current, context.partPageSetupPreferences, context.scoreViewMode, context.livePartViewPartId)
       const contents = encodeNativeProject(project)
       const result = await window.inC.project.save({
         ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
@@ -6150,7 +6729,7 @@ export const App = () => {
     } catch (error) {
       if (sameDocument()) setFileStatus({ tone: 'error', message: getErrorMessage(error) })
     } finally { saveInFlight.current = false; setSavingNative(false) }
-  }, [score, partPageSetupPreferences, scoreViewMode, livePartViewPartId, noteInputState?.tupletInput, restoreDirtyRecoveryAfterClear])
+  }, [restoreDirtyRecoveryAfterClear])
 
   const importMusicXml = useCallback(async () => {
     if (
@@ -6504,7 +7083,8 @@ export const App = () => {
   }, [score, scoreViewMode, livePartViewPartId, livePartLayout, noteInputState?.tupletInput])
 
   const savePdf = useCallback(async () => {
-    if (!parsePdfTargetPages(pdfTargetPages)) {
+    const targetPages = parsePdfTargetPages(pdfTargetPages)
+    if (!targetPages) {
       setFileStatus({
         tone: 'error',
         message: 'PDF 장수는 1 이상이어야 합니다.'
@@ -6515,6 +7095,20 @@ export const App = () => {
     try {
       setPdfExporting(true)
       await waitForNextPaint()
+      const printPreview = document.querySelector<HTMLElement>(
+        '.app-shell--pdf-export .notation-preview'
+      )
+      const overflowMeasure = Number(printPreview?.dataset.printOverflowMeasure)
+      if (Number.isInteger(overflowMeasure) && overflowMeasure > 0) {
+        if (printPreview?.dataset.printOverflowAxis === 'width') {
+          throw new Error(`${overflowMeasure}마디부터 시작하는 악보단의 기호가 페이지 너비를 넘습니다. 글자 길이, 기호 배치 또는 용지 설정을 조정하세요.`)
+        }
+        throw new Error(`${overflowMeasure}마디부터 시작하는 악보단이 한 페이지 높이를 넘습니다. 보표 크기나 용지 설정을 조정하거나 파트보로 내보내세요.`)
+      }
+      const renderedPages = Number(printPreview?.dataset.printEstimatedPages)
+      const overflowMessage = Number.isInteger(renderedPages) && renderedPages > targetPages
+        ? ` 목표 ${targetPages}장을 초과합니다. 현재 조판 예상: ${renderedPages}장.`
+        : ''
 
       const result = await window.inC.pdf.save({
         suggestedName: `${toFileName(
@@ -6530,7 +7124,7 @@ export const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName}로 PDF를 만들었습니다.`
+        message: `${result.fileName}로 PDF를 만들었습니다.${overflowMessage}`
       })
     } catch (error) {
       setFileStatus({
@@ -6582,6 +7176,13 @@ export const App = () => {
         return
       }
 
+      if (applicationMenu && event.key === 'Escape') {
+        event.preventDefault()
+        applicationMenuTriggerRefs.current[applicationMenu]?.focus()
+        setApplicationMenu(undefined)
+        return
+      }
+
       if (usesCommandKey && !event.altKey && event.shiftKey && event.code === 'KeyS' && nativeEnvelope.current) {
         event.preventDefault()
         void saveNativeProject(true)
@@ -6627,7 +7228,7 @@ export const App = () => {
       }
 
       if (
-        toolbarCategory === 'lyrics' &&
+        activePropertiesKind === 'lyrics' &&
         !event.altKey &&
         !event.shiftKey &&
         !usesCommandKey &&
@@ -6638,13 +7239,13 @@ export const App = () => {
         return
       }
 
-      if (toolbarCategory === 'lyrics' && event.key === 'Enter') {
+      if (activePropertiesKind === 'lyrics' && event.key === 'Enter') {
         event.preventDefault()
         moveToNextLyricNote()
         return
       }
 
-      if (toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note') {
+      if (activePropertiesKind === 'lyrics' && eventLocation?.event.type === 'note') {
         document
           .querySelector<HTMLInputElement>('.notation-lyric-editor input')
           ?.focus()
@@ -6907,7 +7508,9 @@ export const App = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    activePropertiesKind,
     activeSpanReference,
+    applicationMenu,
     deleteSpan,
     addChordInterval,
     addChordPitchStep,
@@ -7110,8 +7713,8 @@ export const App = () => {
   const activeClefId =
     clefPresets.find(
       (preset) =>
-        preset.value.sign === measureLocation?.measure.clef.sign &&
-        preset.value.line === measureLocation?.measure.clef.line
+        preset.value.sign === measureClefLocation?.measure.clef.sign &&
+        preset.value.line === measureClefLocation?.measure.clef.line
     )?.id ?? 'treble'
   const activeStaffClefId = resolveClefPresetId(
     activeStructureStaff?.measures[0]?.clef
@@ -7201,16 +7804,20 @@ export const App = () => {
     selection,
     selectionEventTypeFilter
   ])
+  const activeHarmonyTargetId = harmonyTarget && harmonyTarget.measureId === activeMeasureId ? harmonyTarget.id : undefined
+  const selectedHarmony = activeHarmonyTargetId
+    ? score.harmonies?.find(harmony => harmony.measureId === activeMeasureId && harmony.id === activeHarmonyTargetId)
+    : undefined
+  const harmonyTick = selectedHarmony?.tick ?? activeTick
   const activeMeasureHarmonies = activeMeasureId
     ? score.harmonies?.filter(
         (harmony) =>
-          harmony.measureId === activeMeasureId && harmony.tick === activeTick
+          harmony.measureId === activeMeasureId && harmony.tick === harmonyTick
       ) ?? []
     : []
-  const activeHarmonyTargetId = harmonyTarget && harmonyTarget.measureId === activeMeasureId ? harmonyTarget.id : undefined
   const activeHarmony = activeHarmonyTargetId === undefined
     ? activeMeasureHarmonies[0]
-    : activeMeasureHarmonies.find(harmony => harmony.id === activeHarmonyTargetId)
+    : selectedHarmony
   const activeTempoEvent = activeMeasureId
     ? score.tempoEvents?.find(
         (tempoEvent) =>
@@ -7229,11 +7836,174 @@ export const App = () => {
       )
     : undefined
 
+  const textPropertyOption = textPropertyOptions.find(option => option.value === textPropertiesKind)!
+  const textProperties = textPropertiesKind === 'staffTexts'
+    ? {
+        selected: activeMeasureStaffText,
+        options: activeMeasureStaffTexts.map(text => ({ id: text.id, label: text.text })),
+        setTarget: setStaffTextTarget,
+        update: updateActiveStaffText,
+        scope: `현재 보표 ${activeMeasureNumber ?? ''}마디`
+      }
+    : textPropertiesKind === 'systemTexts'
+    ? {
+        selected: activeSystemText,
+        options: activeMeasureSystemText.map(text => ({ id: text.id, label: `${text.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: ${text.text}` })),
+        setTarget: setSystemTextTarget,
+        update: updateActiveSystemText,
+        scope: `${activeSystemText?.measureId === activeGlobalMeasureAlias && activeGlobalMeasureAlias ? '전체 악보' : '현재 보표'} ${activeMeasureNumber ?? ''}마디`
+      }
+    : {
+        selected: activeExpressionText,
+        options: activeMeasureExpressionTexts.map(text => ({ id: text.id, label: `${text.tick}틱: ${text.text}` })),
+        setTarget: setExpressionTextTarget,
+        update: updateActiveExpressionText,
+        scope: `현재 보표 ${activeMeasureNumber ?? ''}마디 tick ${activeExpressionText?.tick ?? activeTick}`
+      }
+
+  const focusAdjacentApplicationMenu = (
+    currentId: ApplicationMenuId,
+    direction: -1 | 1
+  ) => {
+    const currentIndex = applicationMenuItems.findIndex(
+      (item) => item.id === currentId
+    )
+    const nextIndex =
+      (currentIndex + direction + applicationMenuItems.length) %
+      applicationMenuItems.length
+    const nextId = applicationMenuItems[nextIndex].id
+
+    if (applicationMenu) {
+      openApplicationMenu(nextId)
+    }
+    applicationMenuTriggerRefs.current[nextId]?.focus()
+  }
+
+  const openApplicationMenu = (
+    id: ApplicationMenuId,
+    focusFirstItem = false
+  ) => {
+    if (applicationMenu === id) {
+      if (focusFirstItem) {
+        setApplicationMenuFocusFirstItem(true)
+      } else {
+        setApplicationMenu(undefined)
+      }
+      return
+    }
+
+    const menuBox = applicationMenuRef.current?.getBoundingClientRect()
+    const triggerBox = applicationMenuTriggerRefs.current[id]?.getBoundingClientRect()
+    if (menuBox && triggerBox) {
+      setApplicationMenuOffset(Math.max(0, triggerBox.left - menuBox.left))
+    }
+    setApplicationMenuFocusFirstItem(focusFirstItem)
+    setApplicationMenu(id)
+  }
+
+  const handleApplicationMenuTriggerKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    id: ApplicationMenuId
+  ) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault()
+      focusAdjacentApplicationMenu(id, event.key === 'ArrowLeft' ? -1 : 1)
+      return
+    }
+
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault()
+      const targetId =
+        event.key === 'Home'
+          ? applicationMenuItems[0].id
+          : applicationMenuItems[applicationMenuItems.length - 1].id
+      if (applicationMenu) {
+        openApplicationMenu(targetId)
+      }
+      applicationMenuTriggerRefs.current[targetId]?.focus()
+      return
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      openApplicationMenu(id, true)
+    }
+  }
+
+  const handleApplicationMenuPopupKeyDown = (
+    event: ReactKeyboardEvent<HTMLDivElement>
+  ) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      if (!applicationMenu) {
+        return
+      }
+
+      const currentIndex = applicationMenuItems.findIndex(
+        (item) => item.id === applicationMenu
+      )
+      const direction = event.key === 'ArrowLeft' ? -1 : 1
+      const nextId =
+        applicationMenuItems[
+          (currentIndex + direction + applicationMenuItems.length) %
+            applicationMenuItems.length
+        ].id
+
+      event.preventDefault()
+      event.stopPropagation()
+      openApplicationMenu(nextId, true)
+      return
+    }
+
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(event.key)) {
+      return
+    }
+
+    const actions = [
+      ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        'button:not(:disabled)'
+      )
+    ]
+    if (actions.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    const currentIndex = actions.findIndex(
+      (action) => action === document.activeElement
+    )
+    const targetIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? actions.length - 1
+          : event.key === 'PageDown'
+            ? Math.min(actions.length - 1, Math.max(0, currentIndex) + 5)
+            : event.key === 'PageUp'
+              ? Math.max(0, Math.max(0, currentIndex) - 5)
+              : (currentIndex + (event.key === 'ArrowUp' ? -1 : 1) + actions.length) %
+                actions.length
+    const target = actions[targetIndex]
+    target?.focus()
+    target?.scrollIntoView?.({ block: 'nearest' })
+  }
+
+  useEffect(() => {
+    if (!applicationMenu || !applicationMenuFocusFirstItem) {
+      return
+    }
+
+    applicationMenuPopupRef.current
+      ?.querySelector<HTMLButtonElement>('button:not(:disabled)')
+      ?.focus()
+    setApplicationMenuFocusFirstItem(false)
+  }, [applicationMenu, applicationMenuFocusFirstItem])
+
   return (
     <main
       className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}${
         pdfExporting ? ' app-shell--pdf-export' : ''
-      }`}
+      }${!startScreenVisible && !pdfExporting ? ' app-shell--editor' : ''}`}
     >
       <AppearanceSettings />
       {pdfExporting ? (
@@ -7359,31 +8129,88 @@ export const App = () => {
       <div
         className="editor-toolbar-stack"
         data-collapsed={toolbarsCollapsed}
+        style={
+          {
+            '--toolbar-section-separator-height': `${toolbarSeparatorHeight}px`
+          } as CSSProperties
+        }
       >
-      <nav className="toolbar-tabs" aria-label="편집 도구 카테고리">
-        {toolbarCategories.map((category) => (
-          <button
-            aria-pressed={toolbarCategory === category.id}
-            className={toolbarCategory === category.id ? 'is-active' : undefined}
-            key={category.id}
-            onClick={() => setToolbarCategory(category.id)}
-            type="button"
-          >
-            {category.label}
-          </button>
-        ))}
-      </nav>
+      <div className="application-menu" ref={applicationMenuRef}>
+        <nav aria-label="주 메뉴" role="menubar">
+          {applicationMenuItems.map((item) => (
+            <button
+              aria-controls={`application-menu-popup-${item.id}`}
+              aria-expanded={applicationMenu === item.id}
+              aria-haspopup="menu"
+              className={applicationMenu === item.id ? 'is-active' : undefined}
+              key={item.id}
+              onClick={() => openApplicationMenu(item.id)}
+              onKeyDown={(event) =>
+                handleApplicationMenuTriggerKeyDown(event, item.id)
+              }
+              ref={(element) => {
+                applicationMenuTriggerRefs.current[item.id] = element ?? undefined
+              }}
+              role="menuitem"
+              type="button"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
-      <section
-        className="editor-context-strip"
-        aria-label="현재 작업 컨텍스트"
-      >
+      <nav className="toolbar-tabs" aria-label="빠른 도구"
+        onFocusCapture={() => setApplicationMenu(undefined)}
+        onPointerDown={() => setApplicationMenu(undefined)}
+        onKeyDown={event => { if (!event.ctrlKey && !event.metaKey) event.stopPropagation() }}>
+        <div
+          aria-label="빠른 작업"
+          className="toolbar-tabs__quick-actions"
+          role="group"
+        >
+          <button
+          aria-controls="file-quick-actions"
+          aria-expanded={fileQuickActionsOpen}
+          aria-label="파일"
+          className="toolbar-tabs__quick-action"
+          onClick={() => {
+            setExportQuickActionsOpen(false)
+            setFileQuickActionsOpen(true)
+          }}
+          title="파일 빠른 작업"
+          type="button"
+        >
+          <FileMusic aria-hidden="true" size={17} />
+          </button>
+          <button
+          aria-controls="export-quick-actions"
+          aria-expanded={exportQuickActionsOpen}
+          aria-label="내보내기"
+          className="toolbar-tabs__quick-action"
+          onClick={() => {
+            setFileQuickActionsOpen(false)
+            setExportQuickActionsOpen(true)
+          }}
+          title="내보내기 작업"
+          type="button"
+        >
+          <FileDown aria-hidden="true" size={17} />
+          </button>
+        </div>
+        <div
+          className="workspace-tools"
+          role="group"
+          aria-label="작업 영역 도구"
+          onKeyDown={(event) => {
+            if (!event.ctrlKey && !event.metaKey) event.stopPropagation()
+          }}
+        >
         <button
           aria-label="팔레트 표시"
           aria-pressed={dockVisibility.palette}
           title="팔레트 표시"
           type="button"
-          onClick={() => setDockVisibility((value) => ({ ...value, palette: !value.palette }))}
+          onClick={() => toggleDock('palette')}
         >
           <PanelLeft aria-hidden="true" size={18} />
         </button>
@@ -7392,7 +8219,7 @@ export const App = () => {
           aria-pressed={dockVisibility.properties}
           title="속성 표시"
           type="button"
-          onClick={() => setDockVisibility((value) => ({ ...value, properties: !value.properties }))}
+          onClick={() => toggleDock('properties')}
         >
           <PanelRight aria-hidden="true" size={18} />
         </button>
@@ -7431,52 +8258,356 @@ export const App = () => {
             <ChevronsUp aria-hidden="true" size={18} />
           )}
         </button>
-        <div>
-          <span>작업</span>
-          <strong>{activeToolbarCategoryLabel}</strong>
         </div>
-        <div>
-          <span>입력</span>
-          <strong>{inputModeLabel}</strong>
-        </div>
-        <div>
-          <span>대상</span>
-          <strong>{activeScopeLabel}</strong>
-        </div>
-        <div>
-          <span>음가</span>
-          <strong>{durationLabels[activeDurationValue]}</strong>
-        </div>
-        <div>
-          <span>재생</span>
-          <strong>{playbackStatusLabels[playback.status]}</strong>
-        </div>
-        <div>
-          <span>필터</span>
-          <strong>
-            {
-              selectionFilterOptions.find(
-                ([value]) => value === selectionEventTypeFilter
-              )?.[1]
-            }
-            {selectionObjectTypeFilter !== 'none'
-              ? ` · ${describeSelectionObjectFilter(selectionObjectTypeFilter)}`
-              : ''}
-            {selection.type === 'range'
-              ? ` ${filteredSelectedEventIds.length}/${selectedEventIds.length}`
-              : ''}
-          </strong>
-        </div>
-      </section>
+      </nav>
 
-      <section
-        className="selection-toolbar"
-        aria-label="음표 편집"
-        hidden={toolbarsCollapsed || toolbarCategory !== 'note'}
-      >
-        <section className="inspector-properties" aria-label="성부">
-          <h3>성부</h3>
-          <label className="inspector-properties__row">
+        <div className="transport-controls transport-controls--persistent" role="toolbar" aria-label="재생 컨트롤"
+          onFocusCapture={() => setApplicationMenu(undefined)}
+          onPointerDown={() => setApplicationMenu(undefined)}
+          onKeyDown={event => { if (!event.ctrlKey && !event.metaKey) event.stopPropagation() }}>
+          <button aria-label="처음으로" className="icon-button" type="button" title="처음으로"
+            disabled={playback.status === 'stopped' && playback.positionBeat === 0} onClick={playback.jumpToStart}>
+            <SkipBack aria-hidden="true" size={17} />
+          </button>
+          <button aria-label="재생" className="icon-button" type="button"
+            title={selection.type === 'event' ? '선택 위치부터 재생' : '재생'}
+            disabled={playback.status === 'playing'} onClick={playFromSelection}>
+            <Play aria-hidden="true" size={18} />
+          </button>
+          <button aria-label="일시정지" className="icon-button" type="button" title="일시정지"
+            disabled={playback.status !== 'playing'} onClick={playback.pause}>
+            <Pause aria-hidden="true" size={18} />
+          </button>
+          <button aria-label="정지" className="icon-button" type="button" title="정지"
+            disabled={playback.status === 'stopped'} onClick={playback.stop}>
+            <Square aria-hidden="true" size={17} />
+          </button>
+          <button aria-label={partMixerOpen ? '믹서 숨기기' : '믹서 표시'}
+            title={partMixerOpen ? '믹서 숨기기' : '믹서 표시'} className="icon-button transport-mixer-toggle"
+            aria-controls="part-mixer-panel" aria-expanded={partMixerOpen}
+            onClick={() => setPartMixerOpen(value => !value)} type="button">
+            <SlidersHorizontal aria-hidden="true" size={18} />
+          </button>
+        </div>
+
+        {applicationMenu === 'file' ? (
+          <div aria-label="파일 메뉴" className="application-menu__popup" data-menu-anchor="file" id="application-menu-popup-file" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <span aria-hidden="true" className="application-menu__group-label">악보</span>
+            <button onClick={() => { openNewScoreWizard(); setApplicationMenu(undefined) }} role="menuitem" type="button">새 악보 만들기</button>
+            <button disabled={!window.inC?.window?.new} onClick={() => { void window.inC.window?.new(); setApplicationMenu(undefined) }} role="menuitem" type="button">새 창 열기</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">저장</span>
+            <button disabled={!window.inC?.project} onClick={() => { void openNativeProject(); setApplicationMenu(undefined) }} role="menuitem" type="button">프로젝트 열기</button>
+            <button disabled={savingNative || savingMusicXml || !window.inC?.project} onClick={() => { void saveNativeProject(); setApplicationMenu(undefined) }} role="menuitem" type="button">프로젝트 저장</button>
+            <button disabled={savingNative || savingMusicXml || !window.inC?.project} onClick={() => { void saveNativeProject(true); setApplicationMenu(undefined) }} role="menuitem" type="button">다른 이름으로 저장</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">교환</span>
+            <button onClick={() => { importMusicXml(); setApplicationMenu(undefined) }} role="menuitem" type="button">MusicXML 가져오기</button>
+            <button disabled={savingMusicXml || savingNative} onClick={() => { void saveMusicXml(); setApplicationMenu(undefined) }} role="menuitem" type="button">MusicXML로 저장</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">내보내기</span>
+            <button onClick={() => { setFileQuickActionsOpen(false); setExportQuickActionsOpen(true); setApplicationMenu(undefined) }} role="menuitem" type="button">내보내기 작업 열기</button>
+          </div>
+        ) : null}
+
+        {applicationMenu === 'edit' ? (
+          <div aria-label="편집 메뉴" className="application-menu__popup" data-menu-anchor="edit" id="application-menu-popup-edit" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <span aria-hidden="true" className="application-menu__group-label">실행 기록</span>
+            <button disabled={undoStack.length === 0} onClick={() => { undo(); setApplicationMenu(undefined) }} role="menuitem" type="button">실행 취소</button>
+            <button disabled={redoStack.length === 0} onClick={() => { redo(); setApplicationMenu(undefined) }} role="menuitem" type="button">다시 실행</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">선택 편집</span>
+            <button disabled={!canCopySelection} onClick={() => { copySelection(); setApplicationMenu(undefined) }} role="menuitem" type="button">복사</button>
+            <button disabled={!canPasteSelection} onClick={() => { pasteSelection(); setApplicationMenu(undefined) }} role="menuitem" type="button">붙여넣기</button>
+            <button disabled={!canClearSelection} onClick={() => { clearSelection(); setApplicationMenu(undefined) }} role="menuitem" type="button">{clearSelectionLabel}</button>
+          </div>
+        ) : null}
+
+        {applicationMenu === 'view' ? (
+          <div aria-label="보기 메뉴" className="application-menu__popup" data-menu-anchor="view" id="application-menu-popup-view" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <span aria-hidden="true" className="application-menu__group-label">작업 영역</span>
+            <button aria-checked={dockVisibility.palette} onClick={() => toggleDock('palette')} role="menuitemcheckbox" type="button">팔레트</button>
+            <button aria-checked={dockVisibility.properties} onClick={() => toggleDock('properties')} role="menuitemcheckbox" type="button">속성</button>
+            <button aria-checked={!toolbarsCollapsed} onClick={() => setToolbarsCollapsed((value) => !value)} role="menuitemcheckbox" type="button">작업 도구</button>
+            <button aria-checked={showPageMarginGuides} onClick={() => setShowPageMarginGuides((value) => !value)} role="menuitemcheckbox" type="button">페이지 여백 가이드</button>
+            <button aria-checked={!sharedDock.split} disabled={!wideDocks} title="넓은 화면의 도크 배치" onClick={() => setSharedDock(value => ({ ...value, split: !value.split }))} role="menuitemcheckbox" type="button">팔레트와 속성 함께 배치</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">도구 구분선</span>
+            <button aria-checked={toolbarSeparatorHeight === 20} aria-label="도구 구분선 짧게" onClick={() => setToolbarSeparatorHeight(20)} role="menuitemradio" type="button">짧게</button>
+            <button aria-checked={toolbarSeparatorHeight === 30} aria-label="도구 구분선 기본" onClick={() => setToolbarSeparatorHeight(30)} role="menuitemradio" type="button">기본</button>
+            <button aria-checked={toolbarSeparatorHeight === 40} aria-label="도구 구분선 길게" onClick={() => setToolbarSeparatorHeight(40)} role="menuitemradio" type="button">길게</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">도크 크기</span>
+            {sharedDocks ? <>
+              <button disabled={!wideDocks} onClick={() => setSharedDockWidth(sharedDock.width - 16)} role="menuitem" type="button">도크 폭 줄이기</button>
+              <button disabled={!wideDocks} onClick={() => setSharedDockWidth(sharedDock.width + 16)} role="menuitem" type="button">도크 폭 늘리기</button>
+              <button disabled={!wideDocks} onClick={() => setSharedDockWidth(236)} role="menuitem" type="button">도크 폭 초기화</button>
+            </> : <>
+            <button onClick={() => changeDockWidth('palette', -1)} role="menuitem" type="button">팔레트 폭 줄이기</button>
+            <button onClick={() => changeDockWidth('palette', 1)} role="menuitem" type="button">팔레트 폭 늘리기</button>
+            <button onClick={() => changeDockWidth('properties', -1)} role="menuitem" type="button">속성 폭 줄이기</button>
+            <button onClick={() => changeDockWidth('properties', 1)} role="menuitem" type="button">속성 폭 늘리기</button>
+            </>}
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">작업공간</span>
+            <button onClick={resetWorkspace} role="menuitem" type="button">작업공간 기본값으로 재설정</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">선택</span>
+            <button onClick={openSelectionFilterWorkspace} role="menuitem" type="button">선택 필터 열기</button>
+            <span className="application-menu__separator" role="separator" />
+            <span aria-hidden="true" className="application-menu__group-label">보기 모드</span>
+            <button aria-checked={scoreViewMode === 'score'} onClick={() => { setScoreViewMode('score'); setApplicationMenu(undefined) }} role="menuitemradio" type="button">총보 보기</button>
+            <button aria-checked={scoreViewMode === 'part'} disabled={score.parts.length === 0} onClick={() => { setScoreViewMode('part'); setSelectedScoreViewPartId(score.parts[0]?.id); setApplicationMenu(undefined) }} role="menuitemradio" type="button">파트보 보기</button>
+          </div>
+        ) : null}
+
+        {applicationMenu === 'add' ? (
+          <div aria-label="추가 메뉴" className="application-menu__popup" data-menu-anchor="add" id="application-menu-popup-add" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <button onClick={openNotationPalette} role="menuitem" type="button">표기 객체 팔레트 열기</button>
+            <button onClick={() => openToolbarWorkspace('notation')} role="menuitem" type="button">표기 도구 열기</button>
+            <button onClick={() => openToolbarWorkspace('measure', 'measureKeySignature')} role="menuitem" type="button">마디 설정 열기</button>
+            <button onClick={() => openToolbarWorkspace('lyrics')} role="menuitem" type="button">가사 입력</button>
+            <button onClick={() => openToolbarWorkspace('lyrics', 'harmony')} role="menuitem" type="button">코드 심벌 입력</button>
+            <button onClick={() => openToolbarWorkspace('notation', 'rehearsal')} role="menuitem" type="button">연습표 입력</button>
+            <button onClick={() => openToolbarWorkspace('notation', 'dynamics')} role="menuitem" type="button">셈여림 입력</button>
+            {textPropertyOptions.map(option => (
+              <button key={option.value} onClick={() => openToolbarWorkspace('notation', option.value)} role="menuitem" type="button">{option.label} 입력</button>
+            ))}
+          </div>
+        ) : null}
+
+        {applicationMenu === 'format' ? (
+          <div aria-label="형식 메뉴" className="application-menu__popup" data-menu-anchor="format" id="application-menu-popup-format" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <button onClick={() => openToolbarWorkspace('measure')} role="menuitem" type="button">악보 및 마디 설정 열기</button>
+            <button disabled={!canToggleSystemBreak} onClick={() => { toggleSystemBreak(); setApplicationMenu(undefined) }} role="menuitem" type="button">{systemBreakLabel}</button>
+            <button disabled={!canTogglePageBreak} onClick={() => { togglePageBreak(); setApplicationMenu(undefined) }} role="menuitem" type="button">{pageBreakLabel}</button>
+          </div>
+        ) : null}
+
+        {applicationMenu === 'tools' ? (
+          <div aria-label="도구 메뉴" className="application-menu__popup" data-menu-anchor="tools" id="application-menu-popup-tools" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <button onClick={() => openToolbarWorkspace('note')} role="menuitem" type="button">음표 입력 도구 열기</button>
+            <button onClick={() => { setPartMixerOpen(true); setApplicationMenu(undefined); window.requestAnimationFrame(() => document.querySelector<HTMLInputElement>('#part-mixer-panel input')?.focus()) }} role="menuitem" type="button">믹서 열기</button>
+            <button onClick={() => { setCommandPaletteOpen(true); setApplicationMenu(undefined) }} role="menuitem" type="button">명령 검색</button>
+          </div>
+        ) : null}
+
+        {applicationMenu === 'help' ? (
+          <div aria-label="도움말 메뉴" className="application-menu__popup" data-menu-anchor="help" id="application-menu-popup-help" onKeyDown={handleApplicationMenuPopupKeyDown} ref={applicationMenuPopupRef} role="menu" style={{ left: applicationMenuOffset }}>
+            <button onClick={() => { setShortcutHelpOpen(true); setApplicationMenu(undefined) }} role="menuitem" type="button">단축키 도움말</button>
+          </div>
+        ) : null}
+      </div>
+
+      <section aria-label="음표 편집" hidden={toolbarsCollapsed}>
+        <div
+          className="note-entry-toolbar"
+          role="toolbar"
+          aria-label="음표 입력 도구"
+          onKeyDown={(event) => {
+            if (!event.ctrlKey && !event.metaKey &&
+              [' ', 'Enter', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+              event.stopPropagation()
+            }
+          }}
+        >
+          <button
+            aria-label="음표 입력"
+            aria-pressed={Boolean(noteInputState)}
+            className="icon-button"
+            onClick={toggleNoteInputMode}
+            title={noteInputState ? '음표 입력 종료' : '음표 입력'}
+            type="button"
+          >
+            <PencilLine aria-hidden="true" size={18} />
+          </button>
+          <div
+            className="duration-strip"
+            aria-label="음가"
+          >
+            <Clock3 aria-hidden="true" size={17} />
+            {durations.map((duration) => {
+              const shortcut = durationShortcuts[duration]
+              const label = durationLabels[duration]
+
+              return (
+                <DdiroriButton
+                  kind="quiet"
+                  aria-label={label}
+                  selected={activeDurationValue === duration}
+                  className={
+                    activeDurationValue === duration ? 'is-active' : undefined
+                  }
+                  key={duration}
+                  onClick={() => changeDuration(duration)}
+                  title={commandTooltip(label, shortcut)}
+                  type="button"
+                >
+                  <DurationSymbol value={duration} />
+                </DdiroriButton>
+              )
+            })}
+
+            <div className="dot-control" aria-label="점음표">
+              <span className="dot-control__label" title="점음표">점</span>
+              <button
+                aria-label="점 줄이기"
+                disabled={isTupletInput || !canRemoveDot}
+                onClick={() => changeDots(-1)}
+                title="점 줄이기"
+                type="button"
+              >
+                <CircleMinus aria-hidden="true" size={17} />
+              </button>
+              <output aria-label="점 개수">
+                {activeDots}
+              </output>
+              <button
+                aria-label="점 추가"
+                disabled={isTupletInput || !canAddDot}
+                onClick={() => changeDots(1)}
+                title="점 추가"
+                type="button"
+              >
+                <CirclePlus aria-hidden="true" size={17} />
+              </button>
+            </div>
+
+            {(() => {
+              const tieLabel = tieSelected ? '타이 해제' : '타이 추가'
+
+              return (
+                <button
+                  aria-label={tieLabel}
+                  aria-pressed={tieSelected}
+                  className={`tie-button${tieSelected ? ' is-active' : ''}`}
+                  disabled={!tieCommand}
+                  onClick={toggleTie}
+                  title={commandTooltip(tieLabel, 'T')}
+                  type="button"
+                >
+                  {tieSelected ? (
+                    <Unlink2 aria-hidden="true" size={17} />
+                  ) : (
+                    <Link2 aria-hidden="true" size={17} />
+                  )}
+                </button>
+              )
+            })()}
+
+            {(() => {
+              const tupletLabel = isTupletInput
+                ? '셋잇단음표 입력 취소'
+                : '셋잇단음표 적용 또는 입력 준비'
+              const tupletShortcut = isTupletInput
+                ? `${tripletPreset.shortcut} / Esc`
+                : tripletPreset.shortcut
+
+              return (
+                <button
+                  aria-label={tupletLabel}
+                  aria-pressed={isTupletInput}
+                  className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
+                  onClick={toggleTuplet}
+                  title={`${commandTooltip(tupletLabel, tupletShortcut)}${
+                    isTupletInput ? ` · 진행 ${tupletProgress}` : ''
+                  }`}
+                  type="button"
+                >
+                  <span aria-hidden="true">3</span>
+                  <span className="tuplet-duration-label">8</span>
+                </button>
+              )
+            })()}
+          </div>
+            <div
+              className="accidental-control"
+              aria-label="임시표"
+            >
+              {([
+                [-1, '♭', '플랫'],
+                [0, '♮', '제자리표'],
+                [1, '♯', '샤프']
+              ] as const).map(([alter, symbol, label]) => {
+                const shortcut = accidentalShortcuts[alter]
+
+                return (
+                  <button
+                    aria-label={label}
+                    aria-pressed={noteInputState?.accidental === alter}
+                    className={
+                      noteInputState?.accidental === alter
+                        ? 'is-active'
+                        : undefined
+                    }
+                    disabled={!accidentalEnabled}
+                    key={alter}
+                    onClick={() => changeAccidental(alter)}
+                    title={commandTooltip(label, shortcut)}
+                    type="button"
+                  >
+                    {symbol}
+                  </button>
+                )
+              })}
+            </div>
+          <div role="group" aria-label="음높이" className="note-entry-toolbar__pitch">
+            <button
+              aria-label="음높이 한 칸 내리기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('diatonic', -1)}
+              title={commandTooltip('음높이 한 칸 내리기', '↓')}
+              type="button"
+            >
+              <ArrowDown aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="음높이 한 칸 올리기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('diatonic', 1)}
+              title={commandTooltip('음높이 한 칸 올리기', '↑')}
+              type="button"
+            >
+              <ArrowUp aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="한 옥타브 내리기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('octave', -1)}
+              title={commandTooltip('한 옥타브 내리기', 'Cmd/Ctrl+↓')}
+              type="button"
+            >
+              <ChevronsDown aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="한 옥타브 올리기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('octave', 1)}
+              title={commandTooltip('한 옥타브 올리기', 'Cmd/Ctrl+↑')}
+              type="button"
+            >
+              <ChevronsUp aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="이명동음으로 바꾸기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={respellEnharmonically}
+              title={commandTooltip('이명동음으로 바꾸기', 'J')}
+              type="button"
+            >
+              <RotateCw aria-hidden="true" size={18} />
+            </button>
+          </div>
+          <label className="note-entry-toolbar__staff">
             <span>입력 보표</span>
             <select
               aria-label="입력 보표"
@@ -7491,9 +8622,7 @@ export const App = () => {
               ))}
             </select>
           </label>
-          <div className="inspector-properties__row">
-            <span>입력 성부</span>
-            <div className="inspector-properties__buttons">
+          <div role="group" aria-label="입력 성부" className="note-entry-toolbar__voices">
               {voiceNumbers.map((voiceNumber) => (
                 <DdiroriButton
                   kind="quiet"
@@ -7510,286 +8639,12 @@ export const App = () => {
                   {voiceNumber}
                 </DdiroriButton>
               ))}
-            </div>
           </div>
-        </section>
-
-          <section className="inspector-properties" aria-label="선택 속성">
-            <h3>속성</h3>
-            {eventLocation ? (
-              <div className="inspector-properties__grid">
-                <div className="inspector-properties__row">
-                  <span>점</span>
-                  <div className="inspector-properties__buttons">
-                    <button
-                      disabled={!canRemoveDot}
-                      onClick={() => changeDots(-1)}
-                      type="button"
-                    >
-                      -
-                    </button>
-                    <output aria-label="선택 이벤트 점 개수">
-                      {eventLocation.event.duration.dots}
-                    </output>
-                    <button
-                      disabled={!canAddDot}
-                      onClick={() => changeDots(1)}
-                      type="button"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="inspector-properties__row">
-                  <span>임시표</span>
-                  <div className="inspector-properties__buttons">
-                    {([
-                      [-1, '♭', '플랫'],
-                      [0, '♮', '제자리표'],
-                      [1, '♯', '샤프']
-                    ] as const).map(([alter, symbol, label]) => {
-                      const shortcut = accidentalShortcuts[alter]
-
-                      return (
-                        <button
-                          aria-label={label}
-                          aria-pressed={selectedPitchAlter === alter}
-                          className={
-                            selectedPitchAlter === alter ? 'is-active' : undefined
-                          }
-                          disabled={!canEditPitch}
-                          key={alter}
-                          onClick={() => changeAccidental(alter)}
-                          title={commandTooltip(label, shortcut)}
-                          type="button"
-                        >
-                          {symbol}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  className="inspector-properties__command"
-                  disabled={eventLocation.event.type !== 'note'}
-                  onClick={convertSelectionToRest}
-                  type="button"
-                >
-                  쉼표로 변환
-                </button>
-
-                <label>
-                  <span>음표 앞 음자리표</span>
-                  <select
-                    aria-label="선택 이벤트 앞 음자리표"
-                    onChange={(event) =>
-                      changeSelectedEventClefBefore(event.target.value)
-                    }
-                    value={
-                      eventLocation.event.clefBefore
-                        ? resolveClefPresetId(eventLocation.event.clefBefore)
-                        : ''
-                    }
-                  >
-                    <option value="">없음</option>
-                    {clefPresets.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="inspector-properties__row">
-                  <span>정지 기호</span>
-                  <div className="inspector-properties__buttons">
-                    <button
-                      aria-label={koreanMusicTerms.fermata}
-                      aria-pressed={selectedEventHasFermata}
-                      className={selectedEventHasFermata ? 'is-active' : undefined}
-                      onClick={toggleFermata}
-                      type="button"
-                    >
-                      𝄐
-                    </button>
-                    {breathMarkTermOptions.map(({ label, symbol, value }) => (
-                      <button
-                        aria-label={label}
-                        aria-pressed={selectedEventBreathMark === value}
-                        className={
-                          selectedEventBreathMark === value ? 'is-active' : undefined
-                        }
-                        key={value}
-                        onClick={() => toggleBreathMark(value)}
-                        type="button"
-                      >
-                        {symbol}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="inspector-properties__row">
-                  <span>{koreanMusicTerms.expressiveSymbols}</span>
-                  <div className="inspector-properties__buttons">
-                    {articulationTermOptions.map(({ label, symbol, value }) => (
-                      <button
-                        aria-label={label}
-                        aria-pressed={selectedNoteArticulations.has(value)}
-                        className={
-                          selectedNoteArticulations.has(value)
-                            ? 'is-active'
-                            : undefined
-                        }
-                        disabled={eventLocation.event.type !== 'note'}
-                        key={value}
-                        onClick={() => toggleArticulation(value)}
-                        title={commandTooltip(label, articulationShortcuts[value])}
-                        type="button"
-                      >
-                        {symbol}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedNote ? (
-                  <>
-                    <div className="inspector-properties__row">
-                      <span>타이</span>
-                      <div className="inspector-properties__buttons">
-                        <output aria-label="선택 음표 타이 상태">
-                          {describeNoteTie(selectedNote)}
-                        </output>
-                        <button
-                          aria-label={tieSelected ? '타이 해제' : '타이 추가'}
-                          disabled={!tieCommand}
-                          onClick={toggleTie}
-                          title={
-                            tieCommand
-                              ? tieSelected
-                                ? '선택한 타이 해제'
-                                : '인접한 같은 음높이에 타이 추가'
-                              : '인접한 같은 음높이의 음표가 필요합니다'
-                          }
-                          type="button"
-                        >
-                          {tieSelected ? '해제' : '추가'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="inspector-properties__row">
-                      <span>화음</span>
-                      <div className="inspector-properties__buttons">
-                        <button
-                          aria-label="3도 위 화음 추가"
-                          onClick={() => addChordTone(2)}
-                          title={commandTooltip('3도 위 화음 추가', 'Alt/⌥+3')}
-                          type="button"
-                        >
-                          3도 위 추가
-                        </button>
-                        <button
-                          aria-label="5도 위 화음 추가"
-                          onClick={() => addChordTone(4)}
-                          title={commandTooltip('5도 위 화음 추가', 'Alt/⌥+5')}
-                          type="button"
-                        >
-                          5도 위 추가
-                        </button>
-                      </div>
-                    </div>
-
-                    {selectedChordPitches.length > 1 ? (
-                      <div className="inspector-properties__row">
-                        <span>구성음</span>
-                        <div className="inspector-properties__buttons">
-                          {selectedChordPitches.slice(1).map((pitch) => {
-                            const label = pitchToLabel(pitch)
-
-                            return (
-                              <button
-                                aria-label={`${label} 구성음 제거`}
-                                key={label}
-                                onClick={() => removeChordTone(label)}
-                                type="button"
-                              >
-                                {label} 제거
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="inspector-properties__row">
-                      <span>트레몰로</span>
-                      <div className="inspector-properties__buttons">
-                        {([0, 1, 2, 3] as const).map((marks) => (
-                          <button
-                            aria-pressed={
-                              (selectedNote.tremolo?.marks ?? 0) === marks
-                            }
-                            className={
-                              (selectedNote.tremolo?.marks ?? 0) === marks
-                                ? 'is-active'
-                                : undefined
-                            }
-                            key={marks}
-                            onClick={() => toggleTremoloMarks(marks)}
-                            type="button"
-                          >
-                            {marks === 0 ? '없음' : `${marks}줄`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="inspector-properties__row">
-                      <span>장식음</span>
-                      <div className="inspector-properties__buttons">
-                        {ornamentOptions.map(([value, label]) => (
-                          <button
-                            aria-pressed={selectedNote.ornaments?.includes(value)}
-                            className={
-                              selectedNote.ornaments?.includes(value)
-                                ? 'is-active'
-                                : undefined
-                            }
-                            key={value}
-                            onClick={() => toggleOrnament(value)}
-                            type="button"
-                          >
-                            {label}
-                          </button>
-                        ))}
-                        <button
-                          aria-label="꾸밈음"
-                          onClick={convertSelectedNoteToGraceNote}
-                          type="button"
-                        >
-                          꾸밈음
-                        </button>
-                      </div>
-                    </div>
-
-                  </>
-                ) : null}
-              </div>
-            ) : (
-              <p className="inspector-properties__empty">
-                음표나 쉼표를 선택하면 편집 가능한 속성이 표시됩니다.
-              </p>
-            )}
-          </section>
-
+        </div>
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar selection-toolbar--notation"
         aria-label="표기 객체"
         hidden={toolbarsCollapsed || toolbarCategory !== 'notation'}
       >
@@ -7853,109 +8708,6 @@ export const App = () => {
                 </button>
               </div>
             </section>
-        {visibleNotationPaletteFavoriteItems.length > 0 ? (
-          <section
-            aria-label="즐겨찾는 표기"
-            className="inspector-properties inspector-properties--compact notation-palette-favorites"
-            data-favorite-count={visibleNotationPaletteFavoriteItems.length}
-          >
-            <div className="inspector-properties__header">
-              <h3>즐겨찾기</h3>
-            </div>
-            <div className="inspector-properties__buttons">
-              {visibleNotationPaletteFavoriteItems.map((itemId) => {
-                const item = notationPaletteRecentItemDefinitions[itemId]
-                const requiresNote =
-                  itemId !== 'fermata' && !itemId.startsWith('breath:')
-                const actionLabel = itemId === 'grace' ? '변환' : '적용'
-
-                return (
-                  <span className="notation-palette-saved-item" key={itemId}>
-                    <button
-                      aria-label={`즐겨찾기: ${item.label} ${actionLabel}`}
-                      disabled={requiresNote ? !selectedNote : !eventLocation}
-                      onClick={() => applyNotationPaletteRecentItem(itemId)}
-                      title={`${item.label} ${actionLabel}`}
-                      type="button"
-                    >
-                      {item.symbol}
-                    </button>
-                    <button
-                      aria-label={`${item.label} 즐겨찾기에서 제거`}
-                      className="icon-button"
-                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
-                      title={`${item.label} 즐겨찾기에서 제거`}
-                      type="button"
-                    >
-                      <Star aria-hidden="true" fill="currentColor" size={14} />
-                    </button>
-                  </span>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
-        {visibleNotationPaletteRecentItems.length > 0 ? (
-          <section
-            aria-label="최근 사용 표기"
-            className="inspector-properties inspector-properties--compact notation-palette-recent"
-            data-recent-count={visibleNotationPaletteRecentItems.length}
-          >
-            <div className="inspector-properties__header">
-              <h3>최근 사용</h3>
-              <button
-                aria-label="최근 사용 표기 지우기"
-                disabled={notationPaletteSearchActive}
-                onClick={() => setNotationPaletteRecentItems([])}
-                type="button"
-              >
-                지우기
-              </button>
-            </div>
-            <div className="inspector-properties__buttons">
-              {visibleNotationPaletteRecentItems.map((itemId) => {
-                const item = notationPaletteRecentItemDefinitions[itemId]
-                const requiresNote =
-                  itemId !== 'fermata' && !itemId.startsWith('breath:')
-                const actionLabel = itemId === 'grace' ? '변환' : '적용'
-
-                const isFavorite = notationPaletteFavoriteItems.includes(itemId)
-
-                return (
-                  <span className="notation-palette-saved-item" key={itemId}>
-                    <button
-                      aria-label={`최근 사용: ${item.label} ${actionLabel}`}
-                      disabled={requiresNote ? !selectedNote : !eventLocation}
-                      onClick={() => applyNotationPaletteRecentItem(itemId)}
-                      title={`${item.label} ${actionLabel}`}
-                      type="button"
-                    >
-                      {item.symbol}
-                    </button>
-                    <button
-                      aria-label={`${item.label} 즐겨찾기에 ${
-                        isFavorite ? '제거' : '추가'
-                      }`}
-                      aria-pressed={isFavorite}
-                      className="icon-button"
-                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
-                      title={`${item.label} 즐겨찾기에 ${
-                        isFavorite ? '제거' : '추가'
-                      }`}
-                      type="button"
-                    >
-                      <Star
-                        aria-hidden="true"
-                        fill={isFavorite ? 'currentColor' : 'none'}
-                        size={14}
-                      />
-                    </button>
-                  </span>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
         {notationPaletteMatches.lines ? (
             <section
               className="inspector-properties inspector-properties--compact range-notation-palette"
@@ -8290,256 +9042,44 @@ export const App = () => {
               {notationPaletteMatches.rehearsal ? (
               <div className="inspector-properties__cluster">
                 <span className="inspector-properties__cluster-title">연습표</span>
-              <label>
-                <span>연습표 선택</span>
-                <select aria-label="연습표 객체 선택" disabled={!canEditMeasureNotation}
-                  value={activeMeasureRehearsalMark?.id ?? ''}
-                  onChange={event => setRehearsalTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 연습표</option>
-                  {activeMeasureRehearsalMarks.map((mark, index) => (
-                    <option key={mark.id} value={mark.id}>{index + 1}. {mark.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: {mark.text}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>{koreanMusicTerms.rehearsalMark}</span>
-                <input
-                  aria-label={koreanMusicTerms.rehearsalMark}
-                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
-                  disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${activeMeasureRehearsalMark?.id ?? 'new'}-${
-                    activeMeasureRehearsalMark?.text ?? ''
-                  }`}
-                  maxLength={12}
-                  onBlur={(event) =>
-                    updateActiveRehearsalMark(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeMeasureRehearsalMark?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="A"
-                  type="text"
-                />
-              </label>
+                <button type="button" onClick={() => openToolbarWorkspace('notation', 'rehearsal')}>
+                  연습표 속성 열기
+                </button>
               </div>
               ) : null}
 
               {notationPaletteMatches.text ? (
               <div className="inspector-properties__cluster inspector-properties__cluster--text">
                 <span className="inspector-properties__cluster-title">텍스트</span>
-              <label>
-                <span>보표 글자 선택</span>
-                <select aria-label="보표 글자 객체 선택" disabled={!canEditMeasureNotation}
-                  value={activeMeasureStaffText?.id ?? ''}
-                  onChange={event => setStaffTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 보표 글자</option>
-                  {activeMeasureStaffTexts.map((text, index) => (
-                    <option key={text.id} value={text.id}>{index + 1}. {text.text}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>{koreanMusicTerms.staffText}</span>
-                <input
-                  aria-label={koreanMusicTerms.staffText}
-                  defaultValue={activeMeasureStaffText?.text ?? ''}
-                  disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${activeMeasureStaffText?.id ?? 'new'}-${
-                    activeMeasureStaffText?.text ?? ''
-                  }-staff-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveStaffText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeMeasureStaffText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="dolce"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>시스템 텍스트 선택</span>
-                <select aria-label="시스템 텍스트 객체 선택" disabled={!canEditMeasureNotation}
-                  value={activeSystemText?.id ?? ''}
-                  onChange={event => setSystemTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 시스템 텍스트</option>
-                  {activeMeasureSystemText.map((text, index) => (
-                    <option key={text.id} value={text.id}>{index + 1}. {text.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: {text.text}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>시스템 텍스트</span>
-                <input
-                  aria-label="시스템 텍스트"
-                  defaultValue={activeSystemText?.text ?? ''}
-                  disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${
-                    activeSystemText?.id ?? 'new'
-                  }-${
-                    activeSystemText?.text ?? ''
-                  }-system-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveSystemText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeSystemText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="Chorus"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>표현 텍스트 선택</span>
-                <select aria-label="표현 텍스트 객체 선택" disabled={!canEditMeasureNotation}
-                  value={activeExpressionText?.id ?? ''}
-                  onChange={event => setExpressionTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 표현 텍스트</option>
-                  {activeMeasureExpressionTexts.map((text, index) => (
-                    <option key={text.id} value={text.id}>{index + 1}. {text.tick}틱: {text.text}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>표현 텍스트</span>
-                <input
-                  aria-label="표현 텍스트"
-                  defaultValue={activeExpressionText?.text ?? ''}
-                  disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${activeExpressionText?.id ?? activeTick}-${
-                    activeExpressionText?.text ?? ''
-                  }-expression-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveExpressionText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeExpressionText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="espressivo"
-                  type="text"
-                />
-              </label>
+                {textPropertyOptions.map(option => (
+                  <button key={option.value} type="button" onClick={() => openToolbarWorkspace('notation', option.value)}>
+                    {option.label} 속성 열기
+                  </button>
+                ))}
               </div>
               ) : null}
 
               {notationPaletteMatches.dynamics ? (
               <div className="inspector-properties__cluster">
                 <span className="inspector-properties__cluster-title">셈여림</span>
-              <label>
-                <span>셈여림 선택</span>
-                <select aria-label="셈여림 객체 선택" disabled={!canEditMeasureNotation}
-                  value={activeMeasureDynamic?.id ?? ''}
-                  onChange={event => setDynamicTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 셈여림</option>
-                  {activeMeasureDynamics.map((dynamic, index) => (
-                    <option key={dynamic.id} value={dynamic.id}>{index + 1}. {dynamic.value}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>{koreanMusicTerms.dynamics}</span>
-                <select
-                  aria-label={koreanMusicTerms.dynamics}
-                  disabled={!canEditMeasureNotation}
-                  onChange={(event) => updateActiveDynamic(event.target.value)}
-                  value={activeMeasureDynamic?.value ?? ''}
-                >
-                  <option value="">없음</option>
-                  {dynamicValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <button type="button" onClick={() => openToolbarWorkspace('notation', 'dynamics')}>
+                  셈여림 속성 열기
+                </button>
               </div>
               ) : null}
 
               {notationPaletteMatches.measureSettings ? (
               <div className="inspector-properties__cluster inspector-properties__cluster--measure-settings">
                 <span className="inspector-properties__cluster-title">마디 설정</span>
+                <button type="button" aria-label="마디 속성 열기"
+                  onClick={() => openToolbarWorkspace('measure', 'measureKeySignature')}>
+                  음자리표, 조표 및 박자표
+                </button>
               <label>
                 <span>적용 범위</span>
                 <output aria-label="마디 설정 적용 범위">선택 마디 기준</output>
               </label>
-              <label>
-                <span>선택 마디부터 조표</span>
-                <select
-                  aria-label="선택 마디부터 조표"
-                  disabled={!measureLocation}
-                  onChange={(event) => changeKeySignature(event.target.value)}
-                  value={activeKeySignatureId}
-                >
-                  {keySignaturePresets.map((keySignature) => (
-                    <option key={keySignature.id} value={keySignature.id}>
-                      {keySignature.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>선택 마디 박자표</span>
-                <select
-                  aria-label="선택 마디 박자표"
-                  disabled={!measureLocation}
-                  onChange={(event) => changeTimeSignature(event.target.value)}
-                  value={activeTimeSignatureId}
-                >
-                  {timeSignaturePresets.map((timeSignature) => (
-                    <option key={timeSignature.id} value={timeSignature.id}>
-                      {timeSignature.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>선택 마디 음자리표</span>
-                <select
-                  aria-label="선택 마디 음자리표"
-                  disabled={!measureLocation}
-                  onChange={(event) => changeClef(event.target.value)}
-                  value={activeClefId}
-                >
-                  {clefPresets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+
               <label>
                 <span>못갖춘마디 단위</span>
                 <select
@@ -8722,136 +9262,108 @@ export const App = () => {
             </p>
           </section>
         ) : null}
-      </section>
-
-      <section
-        className="selection-toolbar"
-        aria-label="가사 편집"
-        hidden={toolbarsCollapsed || toolbarCategory !== 'lyrics'}
-      >
-        <section className="inspector-properties" aria-label="가사 속성">
-          <h3>가사</h3>
-          {selectedNote ? (
-            <div className="inspector-properties__grid">
-              <label>
-                <span>가사 절</span>
-                <select
-                  aria-label="가사 절"
-                  onChange={(event) =>
-                    setActiveLyricVerse(Number.parseInt(event.target.value, 10))
-                  }
-                  value={activeLyricVerse}
-                >
-                  {lyricVerseOptions.map((verse) => (
-                    <option key={verse} value={verse}>
-                      {verse}절
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>가사 음절</span>
-                <select
-                  aria-label="가사 음절"
-                  onChange={(event) =>
-                    updateLyric(selectedLyric?.text ?? '', {
-                      syllabic: event.target.value as NonNullable<
-                        typeof selectedLyric
-                      >['syllabic'],
-                      extend: selectedLyric?.extend
-                    })
-                  }
-                  value={selectedLyric?.syllabic ?? 'single'}
-                >
-                  <option value="single">single</option>
-                  <option value="begin">begin</option>
-                  <option value="middle">middle</option>
-                  <option value="end">end</option>
-                </select>
-              </label>
-
-              <label className="inspector-properties__checkbox">
-                <input
-                  checked={Boolean(selectedLyric?.extend)}
-                  onChange={(event) =>
-                    updateLyric(selectedLyric?.text ?? '', {
-                      syllabic: selectedLyric?.syllabic ?? 'single',
-                      extend: event.target.checked
-                    })
-                  }
-                  type="checkbox"
-                />
-                <span>멜리스마</span>
-              </label>
+        {visibleNotationPaletteFavoriteItems.length > 0 ? (
+          <section
+            aria-label="즐겨찾는 표기"
+            className="inspector-properties inspector-properties--compact notation-palette-favorites"
+            data-favorite-count={visibleNotationPaletteFavoriteItems.length}
+          >
+            <div className="inspector-properties__header">
+              <h3>즐겨찾기</h3>
             </div>
-          ) : (
-              <p className="inspector-properties__empty">
-                음표를 선택하면 가사 입력 항목이 표시됩니다.
-              </p>
-            )}
-        </section>
+            <div className="inspector-properties__buttons">
+              {visibleNotationPaletteFavoriteItems.map((itemId) => {
+                const item = notationPaletteRecentItemDefinitions[itemId]
+                const requiresNote =
+                  itemId !== 'fermata' && !itemId.startsWith('breath:')
+                const actionLabel = itemId === 'grace' ? '변환' : '적용'
 
-        <section className="inspector-properties" aria-label="코드 심벌 속성">
-          <h3>코드</h3>
-          {activeMeasureId ? (
-            <div className="inspector-properties__grid">
-              <label>
-                <span>적용 위치</span>
-                <output aria-label="코드 심벌 적용 위치">
-                  {eventLocation
-                    ? `선택 이벤트 tick ${activeTick}`
-                    : selection.type === 'measure'
-                    ? '선택 마디 시작 tick 0'
-                    : noteInputState
-                    ? `입력 커서 tick ${activeTick}`
-                    : `현재 위치 tick ${activeTick}`}
-                </output>
-              </label>
-
-              <label>
-                <span>코드 심벌 선택</span>
-                <select aria-label="코드 심벌 객체 선택"
-                  value={activeHarmony?.id ?? ''}
-                  onChange={event => setHarmonyTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
-                  <option value="">새 코드 심벌</option>
-                  {activeMeasureHarmonies.map((harmony, index) => (
-                    <option key={harmony.id} value={harmony.id}>{index + 1}. {harmony.text}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>코드 심벌</span>
-                <input
-                  aria-label="코드 심벌"
-                  defaultValue={activeHarmony?.text ?? ''}
-                  key={`${activeMeasureId}-${activeTick}-${activeHarmony?.id ?? 'new'}-${
-                    activeHarmony?.text ?? ''
-                  }-harmony`}
-                  maxLength={24}
-                  onBlur={(event) =>
-                    updateHarmonyText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value = activeHarmony?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="Cmaj7/G"
-                  type="text"
-                />
-              </label>
+                return (
+                  <span className="notation-palette-saved-item" key={itemId}>
+                    <button
+                      aria-label={`즐겨찾기: ${item.label} ${actionLabel}`}
+                      disabled={requiresNote ? !selectedNote : !eventLocation}
+                      onClick={() => applyNotationPaletteRecentItem(itemId)}
+                      title={`${item.label} ${actionLabel}`}
+                      type="button"
+                    >
+                      {item.symbol}
+                    </button>
+                    <button
+                      aria-label={`${item.label} 즐겨찾기에서 제거`}
+                      className="icon-button"
+                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
+                      title={`${item.label} 즐겨찾기에서 제거`}
+                      type="button"
+                    >
+                      <Star aria-hidden="true" fill="currentColor" size={14} />
+                    </button>
+                  </span>
+                )
+              })}
             </div>
-          ) : (
-            <p className="inspector-properties__empty">
-              음표나 마디를 선택하면 코드 심벌 입력 항목이 표시됩니다.
-            </p>
-          )}
-        </section>
+          </section>
+        ) : null}
+        {visibleNotationPaletteRecentItems.length > 0 ? (
+          <section
+            aria-label="최근 사용 표기"
+            className="inspector-properties inspector-properties--compact notation-palette-recent"
+            data-recent-count={visibleNotationPaletteRecentItems.length}
+          >
+            <div className="inspector-properties__header">
+              <h3>최근 사용</h3>
+              <button
+                aria-label="최근 사용 표기 지우기"
+                disabled={notationPaletteSearchActive}
+                onClick={() => setNotationPaletteRecentItems([])}
+                type="button"
+              >
+                지우기
+              </button>
+            </div>
+            <div className="inspector-properties__buttons">
+              {visibleNotationPaletteRecentItems.map((itemId) => {
+                const item = notationPaletteRecentItemDefinitions[itemId]
+                const requiresNote =
+                  itemId !== 'fermata' && !itemId.startsWith('breath:')
+                const actionLabel = itemId === 'grace' ? '변환' : '적용'
+                const isFavorite = notationPaletteFavoriteItems.includes(itemId)
+
+                return (
+                  <span className="notation-palette-saved-item" key={itemId}>
+                    <button
+                      aria-label={`최근 사용: ${item.label} ${actionLabel}`}
+                      disabled={requiresNote ? !selectedNote : !eventLocation}
+                      onClick={() => applyNotationPaletteRecentItem(itemId)}
+                      title={`${item.label} ${actionLabel}`}
+                      type="button"
+                    >
+                      {item.symbol}
+                    </button>
+                    <button
+                      aria-label={`${item.label} 즐겨찾기에 ${
+                        isFavorite ? '제거' : '추가'
+                      }`}
+                      aria-pressed={isFavorite}
+                      className="icon-button"
+                      onClick={() => toggleNotationPaletteFavoriteItem(itemId)}
+                      title={`${item.label} 즐겨찾기에 ${
+                        isFavorite ? '제거' : '추가'
+                      }`}
+                      type="button"
+                    >
+                      <Star
+                        aria-hidden="true"
+                        fill={isFavorite ? 'currentColor' : 'none'}
+                        size={14}
+                      />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
       </section>
 
       <section
@@ -8859,13 +9371,56 @@ export const App = () => {
         aria-label="악보 편집"
         hidden={toolbarsCollapsed || toolbarCategory !== 'measure'}
       >
-        <section className="inspector-properties" aria-label="빠르기">
-          <h3>빠르기</h3>
-          <div className="inspector-properties__grid">
+        <section
+          className="inspector-properties"
+          aria-label="빠르기"
+          data-collapsed={collapsedScoreToolbarSections.tempo}
+        >
+          <div className="inspector-properties__header">
+            <h3>빠르기</h3>
+            <output
+              aria-label="현재 빠르기 요약"
+              className="inspector-properties__summary"
+            >
+              {scoreTempo} BPM
+            </output>
+            <button
+              aria-expanded={!collapsedScoreToolbarSections.tempo}
+              aria-label={
+                collapsedScoreToolbarSections.tempo
+                  ? '빠르기 펼치기'
+                  : '빠르기 접기'
+              }
+              className="inspector-properties__collapse"
+              onClick={() =>
+                setCollapsedScoreToolbarSections((sections) => ({
+                  ...sections,
+                  tempo: !sections.tempo
+                }))
+              }
+              title={
+                collapsedScoreToolbarSections.tempo
+                  ? '빠르기 펼치기'
+                  : '빠르기 접기'
+              }
+              type="button"
+            >
+              {collapsedScoreToolbarSections.tempo ? (
+                <ChevronRight aria-hidden="true" size={16} />
+              ) : (
+                <ChevronsDown aria-hidden="true" size={16} />
+              )}
+            </button>
+          </div>
+          <div
+            className="inspector-properties__grid"
+            hidden={collapsedScoreToolbarSections.tempo}
+          >
             <label>
               <span>{koreanMusicTerms.tempo}</span>
               <input
                 aria-label={koreanMusicTerms.tempo}
+                ref={scoreTempoRef}
                 max="240"
                 min="40"
                 onChange={(event) =>
@@ -8989,6 +9544,19 @@ export const App = () => {
         >
           <div className="inspector-properties__header">
             <h3>파트/보표</h3>
+            <output
+              aria-label="현재 파트와 보표 요약"
+              className="inspector-properties__summary"
+              title={
+                activeStructurePart
+                  ? `${activeStructurePart.name} · ${activeStructurePart.staves.length}보표`
+                  : '파트 없음'
+              }
+            >
+              {activeStructurePart
+                ? `${activeStructurePart.name} · ${activeStructurePart.staves.length}보표`
+                : '파트 없음'}
+            </output>
             <button
               aria-expanded={!collapsedScoreToolbarSections.structure}
               aria-label={
@@ -9201,7 +9769,7 @@ export const App = () => {
       <section
         className="selection-toolbar"
         aria-label="내보내기 설정"
-        hidden={toolbarsCollapsed || toolbarCategory !== 'export'}
+        hidden={toolbarsCollapsed || !exportQuickActionsOpen}
       >
         <section
           className="inspector-properties"
@@ -9379,12 +9947,14 @@ export const App = () => {
       </div>
 
       <section className="workspace" aria-label="악보 편집기">
-        <header className="toolbar" hidden={toolbarCategory === 'playback'}>
+        <header className="toolbar" hidden={!fileQuickActionsOpen && !exportQuickActionsOpen && toolbarCategory !== 'measure'}>
           <div className="toolbar__group">
             <div
               className="file-actions"
+              id="file-quick-actions"
               aria-label="파일 작업"
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
+              role="region"
             >
               <button
                 aria-label="새 악보 만들기"
@@ -9452,8 +10022,10 @@ export const App = () => {
 
             <div
               className="export-actions"
+              id="export-quick-actions"
               aria-label="내보내기 작업"
-              hidden={toolbarCategory !== 'export'}
+              hidden={!exportQuickActionsOpen}
+              role="region"
             >
               <span className="pdf-save-button-wrapper" title={pdfTargetPagesTooltip}>
                 <button
@@ -9490,35 +10062,41 @@ export const App = () => {
                 <FileMusic aria-hidden="true" size={17} />
                 <span>MusicXML</span>
               </button>
-              <label className="pdf-page-target-control">
-                <span>PDF 장수</span>
-                <input
-                  aria-label="PDF 목표 장수"
-                  aria-describedby={
-                    pdfTargetPagesInvalid ? 'pdf-target-pages-error' : undefined
-                  }
-                  inputMode="numeric"
-                  min={1}
-                  onChange={(event) => setPdfTargetPages(event.target.value)}
-                  pattern="[0-9]*"
-                  step={1}
-                  title="PDF 장수는 1 이상이어야 합니다."
-                  type="number"
-                  value={pdfTargetPages}
-                />
-                {pdfTargetPagesInvalid ? (
-                  <span className="sr-only" id="pdf-target-pages-error">
-                    PDF 장수는 1 이상이어야 합니다.
-                  </span>
-                ) : null}
-              </label>
+              <div
+                aria-label="PDF 출력 설정"
+                className="export-actions__pdf-settings"
+                role="group"
+              >
+                <label className="pdf-page-target-control">
+                  <span>PDF 장수</span>
+                  <input
+                    aria-label="PDF 목표 장수"
+                    aria-describedby={
+                      pdfTargetPagesInvalid ? 'pdf-target-pages-error' : undefined
+                    }
+                    inputMode="numeric"
+                    min={1}
+                    onChange={(event) => setPdfTargetPages(event.target.value)}
+                    pattern="[0-9]*"
+                    step={1}
+                    title="PDF 장수는 1 이상이어야 합니다."
+                    type="number"
+                    value={pdfTargetPages}
+                  />
+                  {pdfTargetPagesInvalid ? (
+                    <span className="sr-only" id="pdf-target-pages-error">
+                      PDF 장수는 1 이상이어야 합니다.
+                    </span>
+                  ) : null}
+                </label>
+              </div>
             </div>
 
             <button
               aria-label="실행 취소"
               className="icon-button"
               disabled={undoStack.length === 0}
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
               onClick={undo}
               title="실행 취소"
               type="button"
@@ -9530,7 +10108,7 @@ export const App = () => {
               aria-label="다시 실행"
               className="icon-button"
               disabled={redoStack.length === 0}
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
               onClick={redo}
               title="다시 실행"
               type="button"
@@ -9542,7 +10120,7 @@ export const App = () => {
               aria-label="선택 범위 복사"
               className="icon-button"
               disabled={!canCopySelection}
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
               onClick={copySelection}
               title="선택 범위 복사"
               type="button"
@@ -9554,7 +10132,7 @@ export const App = () => {
               aria-label="선택 범위에 붙여넣기"
               className="icon-button"
               disabled={!canPasteSelection}
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
               onClick={pasteSelection}
               title="선택 범위에 붙여넣기"
               type="button"
@@ -9566,7 +10144,7 @@ export const App = () => {
               aria-label={clearSelectionLabel}
               className="icon-button"
               disabled={!canClearSelection}
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
               onClick={clearSelection}
               title={clearSelectionLabel}
               type="button"
@@ -9576,11 +10154,12 @@ export const App = () => {
 
             <label
               className="selection-filter-control"
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
             >
               <span>선택 필터</span>
               <select
                 aria-label="선택 필터"
+                ref={selectionFilterRef}
                 onChange={(event) =>
                   setSelectionEventTypeFilter(
                     event.currentTarget.value as SelectionEventTypeFilter
@@ -9598,7 +10177,7 @@ export const App = () => {
 
             <label
               className="selection-filter-control"
-              hidden={toolbarCategory !== 'file'}
+              hidden={!fileQuickActionsOpen}
             >
               <span>표기 필터</span>
               <select
@@ -9620,7 +10199,7 @@ export const App = () => {
 
             <label
               className="selection-filter-control"
-              hidden={toolbarCategory !== 'file' || selectionObjectTypeFilter !== 'lyrics'}
+              hidden={!fileQuickActionsOpen || selectionObjectTypeFilter !== 'lyrics'}
             >
               <span>가사 절</span>
               <select
@@ -9688,394 +10267,82 @@ export const App = () => {
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
-            <div
-              className="accidental-control"
-              aria-label="임시표"
-              hidden={toolbarCategory !== 'note'}
-            >
-              {([
-                [-1, '♭', '플랫'],
-                [0, '♮', '제자리표'],
-                [1, '♯', '샤프']
-              ] as const).map(([alter, symbol, label]) => {
-                const shortcut = accidentalShortcuts[alter]
 
-                return (
-                  <button
-                    aria-label={label}
-                    aria-pressed={noteInputState?.accidental === alter}
-                    className={
-                      noteInputState?.accidental === alter
-                        ? 'is-active'
-                        : undefined
-                    }
-                    disabled={!accidentalEnabled}
-                    key={alter}
-                    onClick={() => changeAccidental(alter)}
-                    title={commandTooltip(label, shortcut)}
-                    type="button"
-                  >
-                    {symbol}
-                  </button>
-                )
-              })}
-            </div>
-
-            <label
-              className="key-signature-control"
-              hidden={toolbarCategory !== 'measure'}
-            >
-              <span>선택 마디부터 조표</span>
-              <select
-                aria-label="선택 마디부터 조표"
-                disabled={!activeMeasureId}
-                onChange={(event) => changeKeySignature(event.target.value)}
-                value={activeKeySignatureId}
-              >
-                {keySignaturePresets.map((keySignature) => (
-                  <option key={keySignature.id} value={keySignature.id}>
-                    {keySignature.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label
-              className="time-signature-control"
-              hidden={toolbarCategory !== 'measure'}
-            >
-              <span>선택 마디 박자표</span>
-              <select
-                aria-label="선택 마디 박자표"
-                disabled={!activeMeasureId}
-                onChange={(event) => changeTimeSignature(event.target.value)}
-                value={activeTimeSignatureId}
-              >
-                {timeSignaturePresets.map((timeSignature) => (
-                  <option key={timeSignature.id} value={timeSignature.id}>
-                    {timeSignature.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              aria-label="음높이 한 칸 내리기"
-              className="icon-button"
-              disabled={!canEditPitch}
-              hidden={toolbarCategory !== 'note'}
-              onClick={() => movePitch('diatonic', -1)}
-              title={commandTooltip('음높이 한 칸 내리기', '↓')}
-              type="button"
-            >
-              <ArrowDown aria-hidden="true" size={18} />
-            </button>
-
-            <button
-              aria-label="음높이 한 칸 올리기"
-              className="icon-button"
-              disabled={!canEditPitch}
-              hidden={toolbarCategory !== 'note'}
-              onClick={() => movePitch('diatonic', 1)}
-              title={commandTooltip('음높이 한 칸 올리기', '↑')}
-              type="button"
-            >
-              <ArrowUp aria-hidden="true" size={18} />
-            </button>
-
-            <button
-              aria-label="한 옥타브 내리기"
-              className="icon-button"
-              disabled={!canEditPitch}
-              hidden={toolbarCategory !== 'note'}
-              onClick={() => movePitch('octave', -1)}
-              title={commandTooltip('한 옥타브 내리기', 'Cmd/Ctrl+↓')}
-              type="button"
-            >
-              <ChevronsDown aria-hidden="true" size={18} />
-            </button>
-
-            <button
-              aria-label="한 옥타브 올리기"
-              className="icon-button"
-              disabled={!canEditPitch}
-              hidden={toolbarCategory !== 'note'}
-              onClick={() => movePitch('octave', 1)}
-              title={commandTooltip('한 옥타브 올리기', 'Cmd/Ctrl+↑')}
-              type="button"
-            >
-              <ChevronsUp aria-hidden="true" size={18} />
-            </button>
-
-            <button
-              aria-label="이명동음으로 바꾸기"
-              className="icon-button"
-              disabled={!canEditPitch}
-              hidden={toolbarCategory !== 'note'}
-              onClick={respellEnharmonically}
-              title={commandTooltip('이명동음으로 바꾸기', 'J')}
-              type="button"
-            >
-              <RotateCw aria-hidden="true" size={18} />
-            </button>
 
           </div>
 
-          <div
-            className="duration-strip"
-            aria-label="음가"
-            hidden={toolbarCategory !== 'note'}
-          >
-            <Clock3 aria-hidden="true" size={17} />
-            {durations.map((duration) => {
-              const shortcut = durationShortcuts[duration]
-              const label = durationLabels[duration]
-
-              return (
-                <DdiroriButton
-                  kind="quiet"
-                  aria-label={label}
-                  selected={activeDurationValue === duration}
-                  className={
-                    activeDurationValue === duration ? 'is-active' : undefined
-                  }
-                  key={duration}
-                  onClick={() => changeDuration(duration)}
-                  title={commandTooltip(label, shortcut)}
-                  type="button"
-                >
-                  {durationToolbarLabels[duration]}
-                </DdiroriButton>
-              )
-            })}
-
-            <div className="dot-control" aria-label="점음표">
-              <span className="dot-control__label" title="점음표">점</span>
-              <button
-                aria-label="점 줄이기"
-                disabled={isTupletInput || !canRemoveDot}
-                onClick={() => changeDots(-1)}
-                title="점 줄이기"
-                type="button"
-              >
-                <CircleMinus aria-hidden="true" size={17} />
-              </button>
-              <output aria-label="점 개수">
-                {activeDots}
-              </output>
-              <button
-                aria-label="점 추가"
-                disabled={isTupletInput || !canAddDot}
-                onClick={() => changeDots(1)}
-                title="점 추가"
-                type="button"
-              >
-                <CirclePlus aria-hidden="true" size={17} />
-              </button>
-            </div>
-
-            {(() => {
-              const tieLabel = tieSelected ? '타이 해제' : '타이 추가'
-
-              return (
-                <button
-                  aria-label={tieLabel}
-                  aria-pressed={tieSelected}
-                  className={`tie-button${tieSelected ? ' is-active' : ''}`}
-                  disabled={!tieCommand}
-                  onClick={toggleTie}
-                  title={commandTooltip(tieLabel, 'T')}
-                  type="button"
-                >
-                  {tieSelected ? (
-                    <Unlink2 aria-hidden="true" size={17} />
-                  ) : (
-                    <Link2 aria-hidden="true" size={17} />
-                  )}
-                </button>
-              )
-            })()}
-
-            {(() => {
-              const tupletLabel = isTupletInput
-                ? '셋잇단음표 입력 취소'
-                : '셋잇단음표 적용 또는 입력 준비'
-              const tupletShortcut = isTupletInput
-                ? `${tripletPreset.shortcut} / Esc`
-                : tripletPreset.shortcut
-
-              return (
-                <button
-                  aria-label={tupletLabel}
-                  aria-pressed={isTupletInput}
-                  className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
-                  onClick={toggleTuplet}
-                  title={`${commandTooltip(tupletLabel, tupletShortcut)}${
-                    isTupletInput ? ` · 진행 ${tupletProgress}` : ''
-                  }`}
-                  type="button"
-                >
-                  <span aria-hidden="true">3</span>
-                  <span className="tuplet-duration-label">8</span>
-                </button>
-              )
-            })()}
-          </div>
 
         </header>
 
-        <div className="playback-strip" hidden={toolbarCategory !== 'playback'}>
-          <div className="transport-controls" aria-label="재생 컨트롤">
-            <button
-              aria-label="처음으로"
-              className="icon-button"
-              disabled={
-                playback.status === 'stopped' && playback.positionBeat === 0
-              }
-              onClick={playback.jumpToStart}
-              title="처음으로"
-              type="button"
-            >
-              <SkipBack aria-hidden="true" size={17} />
-            </button>
-            <button
-              aria-label="재생"
-              className="icon-button"
-              disabled={playback.status === 'playing'}
-              onClick={playFromSelection}
-              title="재생"
-              type="button"
-            >
-              <Play aria-hidden="true" size={18} />
-            </button>
-            <button
-              aria-label="일시정지"
-              className="icon-button"
-              disabled={playback.status !== 'playing'}
-              onClick={playback.pause}
-              title="일시정지"
-              type="button"
-            >
-              <Pause aria-hidden="true" size={18} />
-            </button>
-            <button
-              aria-label="정지"
-              className="icon-button"
-              disabled={playback.status === 'stopped'}
-              onClick={playback.stop}
-              title="정지"
-              type="button"
-            >
-              <Square aria-hidden="true" size={17} />
-            </button>
-          </div>
-          <section className="part-mixer" aria-label="파트 믹서">
-            {score.parts.map((part) => {
-              const settings = resolvePartMixerSettings(partMixer[part.id])
-              const volumePercent = Math.round(settings.volume * 100)
-              const isActivePlaybackPart =
-                playback.activeEvent?.partId === part.id
-
-              return (
-                <div
-                  className={`part-mixer__row${
-                    isActivePlaybackPart ? ' is-active' : ''
-                  }`}
-                  data-playback-active={
-                    isActivePlaybackPart ? 'true' : 'false'
-                  }
-                  key={part.id}
-                >
-                  <span className="part-mixer__name">{part.name}</span>
-                  <span
-                    aria-label={`${part.name} 재생 상태`}
-                    className="part-mixer__activity"
-                  >
-                    {isActivePlaybackPart ? '재생 중' : '대기'}
-                  </span>
-                  <label className="part-mixer__toggle">
-                    <input
-                      aria-label={`${part.name} 음소거`}
-                      checked={settings.muted}
-                      onChange={() => togglePartMute(part.id)}
-                      type="checkbox"
-                    />
-                    <span>뮤트</span>
-                  </label>
-                  <label className="part-mixer__toggle">
-                    <input
-                      aria-label={`${part.name} 솔로`}
-                      checked={settings.solo}
-                      onChange={() => togglePartSolo(part.id)}
-                      type="checkbox"
-                    />
-                    <span>솔로</span>
-                  </label>
-                  <label className="part-mixer__volume">
-                    <span>볼륨</span>
-                    <input
-                      aria-label={`${part.name} 볼륨`}
-                      max={150}
-                      min={0}
-                      onChange={(event) =>
-                        changePartVolume(part.id, event.target.value)
-                      }
-                      step={5}
-                      type="range"
-                      value={volumePercent}
-                    />
-                    <output>{volumePercent}%</output>
-                  </label>
-                </div>
-              )
-            })}
-          </section>
-        </div>
-
-        <div className="editor-status" aria-live="polite">
-          {recoveryPending ? <span>복구본 확인 필요 · 자동저장 대기</span> : null}
-          {noteInputState ? (
-            <span>
-              {noteInputState.tupletInput ? '셋잇단음표 입력' : '입력 중'}
-            </span>
-          ) : null}
-          <span>{durationLabels[durationValue]}</span>
-          <span>
-            {scoreViewMode === 'part' && livePartViewPart
-              ? `파트보: ${livePartViewPart.name}`
-              : '총보'}
-          </span>
-          {noteInputState?.tupletInput ? (
-            <span className="tuplet-progress">
-              {tripletPreset.label} {tupletProgress}
-            </span>
-          ) : null}
-          {noteInputState ? (
-            <span>
-              M
-              {locateMeasure(score, noteInputState.target.measureId)
-                ?.measureNumber ?? '—'}{' '}
-              · {noteInputState.tick}틱
-            </span>
-          ) : null}
-          <span>{undoStack.length}회 수정</span>
-          <span>{playbackStatusLabels[playback.status]}</span>
-          <span>
-            {playback.positionBeat.toFixed(1)} / {playback.totalBeats.toFixed(1)}박
-          </span>
-          {fileStatus ? (
-            <span className={fileStatus.tone === 'error' ? 'is-error' : undefined}>
-              {fileStatus.message}
-            </span>
-          ) : null}
-        </div>
-
         <MusicXmlReportPanel report={musicXmlReport} />
 
-        <div className="docked-workspace" aria-label="도킹 작업 영역" data-palette={dockVisibility.palette} data-properties={dockVisibility.properties}>
-          <aside className="docked-palette" aria-label="고정 팔레트" hidden={!dockVisibility.palette}>
-            <div className="docked-sidebar__header">
+        <div className="docked-workspace" aria-label="도킹 작업 영역" data-compact={compactDocks} data-shared={sharedDocks} data-palette={dockVisibility.palette} data-properties={dockVisibility.properties} style={{ '--shared-dock-width': `${sharedDock.width}px`, '--palette-width': `${dockWidths.palette}px`, '--properties-width': `${dockWidths.properties}px` } as React.CSSProperties}>
+          {sharedDocks && wideDocks && activeCompactDock && (
+            <div className="dock-resize-handle dock-resize-handle--shared" role="separator"
+              aria-label="도크 폭 조절" aria-orientation="vertical"
+              aria-valuemin={180} aria-valuemax={360} aria-valuenow={sharedDock.width}
+              tabIndex={0} onPointerDown={startSharedDockResize}
+              onKeyDown={event => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setSharedDockWidth(sharedDock.width + (event.key === 'ArrowRight' ? 16 : -16))
+                }
+              }} />
+          )}
+          {sharedDocks && activeCompactDock && (
+            <div className="compact-dock-bar" onKeyDown={event => {
+              if (!event.ctrlKey && !event.metaKey) event.stopPropagation()
+            }}>
+              <div role="tablist" aria-label="작업 영역 도크" onKeyDown={(event) => {
+                if (event.ctrlKey || event.metaKey) return
+                event.stopPropagation()
+                const current = visibleDockTabs.indexOf(activeCompactDock)
+                const index = event.key === 'Home' ? 0 : event.key === 'End' ? visibleDockTabs.length - 1
+                  : event.key === 'ArrowRight' ? (current + 1) % visibleDockTabs.length
+                  : event.key === 'ArrowLeft' ? (current + visibleDockTabs.length - 1) % visibleDockTabs.length : undefined
+                if (index === undefined) return
+                event.preventDefault()
+                const dock = visibleDockTabs[index]
+                setCompactDock(dock)
+                dockTabRefs.current[dock]?.focus()
+              }}>
+                {visibleDockTabs.map(dock => (
+                  <button key={dock} id={`dock-tab-${dock}`} role="tab" type="button"
+                    aria-controls={`dock-panel-${dock}`} aria-selected={activeCompactDock === dock}
+                    tabIndex={activeCompactDock === dock ? 0 : -1}
+                    ref={element => { dockTabRefs.current[dock] = element ?? undefined }}
+                    onClick={() => setCompactDock(dock)}>
+                    {dock === 'palette' ? '팔레트' : '속성'}
+                  </button>
+                ))}
+              </div>
+              <button className="icon-button" type="button" onClick={closeCompactDock}
+                aria-label={activeCompactDock === 'palette' ? '팔레트 숨기기' : '속성 도크 숨기기'}
+                title={activeCompactDock === 'palette' ? '팔레트 숨기기' : '속성 도크 숨기기'}>
+                <X aria-hidden="true" size={16} />
+              </button>
+            </div>
+          )}
+          <aside
+            className="docked-palette"
+            id="dock-panel-palette"
+            role={sharedDocks ? 'tabpanel' : undefined}
+            aria-labelledby={sharedDocks ? 'dock-tab-palette' : undefined}
+            aria-label="고정 팔레트"
+            hidden={!dockVisibility.palette || (sharedDocks && activeCompactDock !== 'palette')}
+            ref={notationPaletteRef}
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.target === event.currentTarget && !event.ctrlKey && !event.metaKey) event.stopPropagation()
+            }}
+          >
+            <div aria-label="팔레트 폭 조절" aria-orientation="vertical" aria-valuemax={dockWidthLimits.palette.max} aria-valuemin={dockWidthLimits.palette.min} aria-valuenow={dockWidths.palette} className="dock-resize-handle dock-resize-handle--palette" onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); changeDockWidth('palette', event.key === 'ArrowRight' ? 1 : -1) } }} onPointerDown={(event) => startDockResize(event, 'palette')} role="separator" tabIndex={0} />
+            <div className="docked-sidebar__header" hidden={sharedDocks}>
               <h3>팔레트</h3>
+              <div className="docked-sidebar__header-actions" role="group" aria-label="팔레트 폭">
+                <button aria-label="팔레트 폭 줄이기" className="icon-button dock-width-step" onClick={() => changeDockWidth('palette', -1)} title="팔레트 폭 줄이기" type="button"><Minus aria-hidden="true" size={16} /></button>
+                <button aria-label="팔레트 폭 늘리기" className="icon-button dock-width-step" onClick={() => changeDockWidth('palette', 1)} title="팔레트 폭 늘리기" type="button"><Plus aria-hidden="true" size={16} /></button>
               <button
                 aria-label="팔레트 숨기기"
                 className="icon-button"
@@ -10087,50 +10354,246 @@ export const App = () => {
               >
                 <ChevronLeft aria-hidden="true" size={18} />
               </button>
+              </div>
             </div>
-            <div className="docked-palette__actions">
-              {toolbarCategories.map((category) => (
-                <button
-                  aria-label={`${category.label} 팔레트 열기`}
-                  aria-pressed={paletteCategory === category.id}
-                  className={
-                    paletteCategory === category.id ? 'is-active' : undefined
-                  }
-                  key={category.id}
-                  onClick={() => setPaletteCategory(category.id)}
-                  type="button"
+                <section
+                  aria-label="마디 표기 팔레트"
+                  className="docked-palette__section"
                 >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-            {paletteCategory === 'notation' ? (
-              <section
-                aria-label="셈여림 팔레트"
-                className="docked-palette__section"
-              >
-                <h4>셈여림</h4>
-                <div className="docked-palette__symbol-grid">
-                  {dynamicValues.map((value) => (
+                  <div className="docked-palette__section-heading">
+                    <h4>마디 표기</h4>
                     <button
-                      aria-label={`${value} 셈여림 적용`}
-                      aria-pressed={activeMeasureDynamic?.value === value}
-                      className={
-                        activeMeasureDynamic?.value === value
-                          ? 'is-active'
-                          : undefined
+                      aria-expanded={
+                        !collapsedDockedPaletteSections.measureNotation
                       }
-                      disabled={!canEditMeasureNotation}
-                      key={value}
-                      onClick={() => updateActiveDynamic(value)}
+                      aria-label={`마디 표기 팔레트 ${
+                        collapsedDockedPaletteSections.measureNotation
+                          ? '펼치기'
+                          : '접기'
+                      }`}
+                      className="docked-palette__section-toggle"
+                      onClick={() =>
+                        setCollapsedDockedPaletteSections((sections) => ({
+                          ...sections,
+                          measureNotation: !sections.measureNotation
+                        }))
+                      }
                       type="button"
                     >
-                      {value}
+                      {collapsedDockedPaletteSections.measureNotation ? (
+                        <ChevronsDown aria-hidden="true" size={14} />
+                      ) : (
+                        <ChevronsUp aria-hidden="true" size={14} />
+                      )}
                     </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                  </div>
+                  {!collapsedDockedPaletteSections.measureNotation ? (
+                    <>
+                    <div
+                      className="docked-palette__clef-grid"
+                      role="group"
+                      aria-label="마디 시작 음자리표 팔레트"
+                      onKeyDown={(event) => {
+                        if (!event.ctrlKey && !event.metaKey) event.stopPropagation()
+                      }}
+                    >
+                      {clefPresets.map((preset) => (
+                        <button
+                          aria-label={`선택 마디 시작에 ${preset.label} 적용`}
+                          aria-pressed={Boolean(measureClefLocation && activeClefId === preset.id)}
+                          disabled={!measureClefLocation}
+                          key={preset.id}
+                          onClick={() => changeClef(preset.id)}
+                          title={`선택 마디 시작에 ${preset.label} 적용`}
+                          type="button"
+                        >
+                          <ClefPalettePreview clef={preset.value} />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="docked-palette__symbol-grid docked-palette__symbol-grid--settings">
+                      <button
+                        aria-label="음자리표, 조표 및 박자표 설정 열기"
+                        onClick={() =>
+                          openToolbarWorkspace('measure', 'measureKeySignature')
+                        }
+                        type="button"
+                      >
+                        음자리표, 조표 및 박자표
+                      </button>
+                      <button
+                        aria-label="빠르기 설정 열기"
+                        onClick={() => openToolbarWorkspace('measure', 'tempo')}
+                        type="button"
+                      >
+                        빠르기
+                      </button>
+                      <button
+                        aria-label="연습표 입력 열기"
+                        onClick={() => openToolbarWorkspace('notation', 'rehearsal')}
+                        type="button"
+                      >
+                        연습표
+                      </button>
+                      {textPropertyOptions.map(option => (
+                        <button key={option.value} aria-label={`${option.label} 입력 열기`}
+                          onClick={() => openToolbarWorkspace('notation', option.value)} type="button">
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    </>
+                  ) : null}
+                </section>
+                <section
+                  aria-label="셈여림 팔레트"
+                  className="docked-palette__section"
+                >
+                  <div className="docked-palette__section-heading">
+                    <h4>셈여림</h4>
+                    <button
+                      aria-expanded={!collapsedDockedPaletteSections.dynamics}
+                      aria-label={`셈여림 팔레트 ${
+                        collapsedDockedPaletteSections.dynamics ? '펼치기' : '접기'
+                      }`}
+                      className="docked-palette__section-toggle"
+                      onClick={() =>
+                        setCollapsedDockedPaletteSections((sections) => ({
+                          ...sections,
+                          dynamics: !sections.dynamics
+                        }))
+                      }
+                      type="button"
+                    >
+                      {collapsedDockedPaletteSections.dynamics ? (
+                        <ChevronsDown aria-hidden="true" size={14} />
+                      ) : (
+                        <ChevronsUp aria-hidden="true" size={14} />
+                      )}
+                    </button>
+                  </div>
+                  {!collapsedDockedPaletteSections.dynamics ? (
+                    <div className="docked-palette__symbol-grid">
+                      {dynamicValues.map((value) => (
+                        <button
+                          aria-label={`${value} 셈여림 적용`}
+                          aria-pressed={activeMeasureDynamic?.value === value}
+                          className={
+                            activeMeasureDynamic?.value === value
+                              ? 'is-active'
+                              : undefined
+                          }
+                          disabled={!canEditMeasureNotation}
+                          key={value}
+                          onClick={() => updateActiveDynamic(value)}
+                          type="button"
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
+                <section
+                  aria-label="아티큘레이션 팔레트"
+                  className="docked-palette__section"
+                >
+                  <div className="docked-palette__section-heading">
+                    <h4>아티큘레이션</h4>
+                    <button
+                      aria-expanded={!collapsedDockedPaletteSections.articulations}
+                      aria-label={`아티큘레이션 팔레트 ${
+                        collapsedDockedPaletteSections.articulations
+                          ? '펼치기'
+                          : '접기'
+                      }`}
+                      className="docked-palette__section-toggle"
+                      onClick={() =>
+                        setCollapsedDockedPaletteSections((sections) => ({
+                          ...sections,
+                          articulations: !sections.articulations
+                        }))
+                      }
+                      type="button"
+                    >
+                      {collapsedDockedPaletteSections.articulations ? (
+                        <ChevronsDown aria-hidden="true" size={14} />
+                      ) : (
+                        <ChevronsUp aria-hidden="true" size={14} />
+                      )}
+                    </button>
+                  </div>
+                  {!collapsedDockedPaletteSections.articulations ? (
+                    <div className="docked-palette__symbol-grid">
+                      {articulationTermOptions.map(({ label, symbol, value }) => (
+                        <button
+                          aria-label={`${label} 적용`}
+                          aria-pressed={selectedNoteArticulations.has(value)}
+                          className={
+                            selectedNoteArticulations.has(value)
+                              ? 'is-active'
+                              : undefined
+                          }
+                          disabled={!selectedNote}
+                          key={value}
+                          onClick={() => toggleArticulation(value)}
+                          type="button"
+                        >
+                          {symbol}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
+                <section
+                  aria-label="장식음 팔레트"
+                  className="docked-palette__section"
+                >
+                  <div className="docked-palette__section-heading">
+                    <h4>장식음</h4>
+                    <button
+                      aria-expanded={!collapsedDockedPaletteSections.ornaments}
+                      aria-label={`장식음 팔레트 ${
+                        collapsedDockedPaletteSections.ornaments ? '펼치기' : '접기'
+                      }`}
+                      className="docked-palette__section-toggle"
+                      onClick={() =>
+                        setCollapsedDockedPaletteSections((sections) => ({
+                          ...sections,
+                          ornaments: !sections.ornaments
+                        }))
+                      }
+                      type="button"
+                    >
+                      {collapsedDockedPaletteSections.ornaments ? (
+                        <ChevronsDown aria-hidden="true" size={14} />
+                      ) : (
+                        <ChevronsUp aria-hidden="true" size={14} />
+                      )}
+                    </button>
+                  </div>
+                  {!collapsedDockedPaletteSections.ornaments ? (
+                    <div className="docked-palette__symbol-grid">
+                      {ornamentOptions.map(([value, label]) => (
+                        <button
+                          aria-label={`${ornamentPaletteLabels[value]} 적용`}
+                          aria-pressed={selectedNote?.ornaments?.includes(value)}
+                          className={
+                            selectedNote?.ornaments?.includes(value)
+                              ? 'is-active'
+                              : undefined
+                          }
+                          disabled={!selectedNote}
+                          key={value}
+                          onClick={() => toggleOrnament(value)}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
           </aside>
 
           <div className="score-canvas" aria-label="악보 캔버스">
@@ -10260,7 +10723,7 @@ export const App = () => {
             onSelectSpan={pdfExporting ? undefined : selectSpan}
             onRenderedSpanSegments={pdfExporting ? undefined : receiveRenderedSpanSegments}
             inlineLyricEditor={
-              !pdfExporting && toolbarCategory === 'lyrics' && selectedNote
+              !pdfExporting && activePropertiesKind === 'lyrics' && selectedNote
                 ? {
                     eventId: selectedNote.id,
                     number: activeLyricVerse,
@@ -10304,9 +10767,26 @@ export const App = () => {
         </div>
           </div>
 
-          <aside className="docked-properties" aria-label="속성 도크" hidden={!dockVisibility.properties}>
-            <div className="docked-sidebar__header">
+          <aside
+            className="docked-properties"
+            id="dock-panel-properties"
+            role={sharedDocks ? 'tabpanel' : undefined}
+            aria-labelledby={sharedDocks ? 'dock-tab-properties' : undefined}
+            aria-label="속성 도크"
+            data-properties-context={activePropertiesKind}
+            hidden={!dockVisibility.properties || (sharedDocks && activeCompactDock !== 'properties')}
+            ref={propertiesDockRef}
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (!event.ctrlKey && !event.metaKey) event.stopPropagation()
+            }}
+          >
+            <div aria-label="속성 도크 폭 조절" aria-orientation="vertical" aria-valuemax={dockWidthLimits.properties.max} aria-valuemin={dockWidthLimits.properties.min} aria-valuenow={dockWidths.properties} className="dock-resize-handle dock-resize-handle--properties" onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); changeDockWidth('properties', event.key === 'ArrowRight' ? -1 : 1) } }} onPointerDown={(event) => startDockResize(event, 'properties')} role="separator" tabIndex={0} />
+            <div className="docked-sidebar__header" hidden={sharedDocks}>
               <h3>속성</h3>
+              <div className="docked-sidebar__header-actions" role="group" aria-label="속성 도크 폭">
+                <button aria-label="속성 폭 줄이기" className="icon-button dock-width-step" onClick={() => changeDockWidth('properties', -1)} title="속성 폭 줄이기" type="button"><Minus aria-hidden="true" size={16} /></button>
+                <button aria-label="속성 폭 늘리기" className="icon-button dock-width-step" onClick={() => changeDockWidth('properties', 1)} title="속성 폭 늘리기" type="button"><Plus aria-hidden="true" size={16} /></button>
               <button
                 aria-label="속성 도크 숨기기"
                 className="icon-button"
@@ -10318,84 +10798,849 @@ export const App = () => {
               >
                 <ChevronRight aria-hidden="true" size={18} />
               </button>
+              </div>
             </div>
-            {toolbarCategory === 'notation' ? <SpanProperties score={printScore}
+            <section className="inspector-properties lyric-properties" hidden={activePropertiesKind !== 'lyrics' || !selectedNote} aria-label="가사 속성">
+              <h3>가사</h3>
+              {selectedNote ? (
+                <div className="inspector-properties__grid">
+                  <label>
+                    <span>가사 절</span>
+                    <select
+                      aria-label="가사 절"
+                      onChange={(event) =>
+                        setActiveLyricVerse(Number.parseInt(event.target.value, 10))
+                      }
+                      value={activeLyricVerse}
+                    >
+                      {lyricVerseOptions.map((verse) => (
+                        <option key={verse} value={verse}>
+                          {verse}절
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>가사 음절</span>
+                    <select
+                      aria-label="가사 음절"
+                      onChange={(event) =>
+                        updateLyric(selectedLyric?.text ?? '', {
+                          syllabic: event.target.value as NonNullable<
+                            typeof selectedLyric
+                          >['syllabic'],
+                          extend: selectedLyric?.extend
+                        })
+                      }
+                      value={selectedLyric?.syllabic ?? 'single'}
+                    >
+                      <option value="single">단일</option>
+                      <option value="begin">시작</option>
+                      <option value="middle">중간</option>
+                      <option value="end">끝</option>
+                    </select>
+                  </label>
+
+                  <label className="inspector-properties__checkbox">
+                    <input
+                      checked={Boolean(selectedLyric?.extend)}
+                      onChange={(event) =>
+                        updateLyric(selectedLyric?.text ?? '', {
+                          syllabic: selectedLyric?.syllabic ?? 'single',
+                          extend: event.target.checked
+                        })
+                      }
+                      type="checkbox"
+                    />
+                    <span>멜리스마</span>
+                  </label>
+                </div>
+              ) : null}
+            </section>
+            <section className="inspector-properties text-properties" aria-label="텍스트 속성"
+              data-text-kind={textPropertiesKind} hidden={!activeMeasureId || activePropertiesKind !== 'text'}>
+              <div className="inspector-properties__header">
+                <h3>{textPropertyOption.label}</h3>
+                <button type="button" className="inspector-properties__collapse"
+                  aria-label={`${textPropertyOption.label} 속성 ${textPropertiesOpen ? '접기' : '펼치기'}`}
+                  title={`${textPropertyOption.label} 속성 ${textPropertiesOpen ? '접기' : '펼치기'}`}
+                  aria-expanded={textPropertiesOpen}
+                  onClick={() => setTextPropertiesOpen(value => !value)}>
+                  {textPropertiesOpen ? <ChevronsDown aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" size={16} />}
+                </button>
+              </div>
+              <div className="inspector-properties__grid" hidden={!textPropertiesOpen}>
+                <label>
+                  <span>적용 위치</span>
+                  <output aria-label="텍스트 적용 위치">{textProperties.scope}</output>
+                </label>
+                <label>
+                  <span>{textPropertyOption.label} 선택</span>
+                  <select aria-label={`${textPropertyOption.label} 객체 선택`}
+                    disabled={!canEditMeasureNotation} value={textProperties.selected?.id ?? ''}
+                    onChange={event => {
+                      if (activeMeasureId) textProperties.setTarget({ measureId: activeMeasureId, id: event.currentTarget.value })
+                    }}>
+                    <option value="">새 {textPropertyOption.label}</option>
+                    {textProperties.options.map((option, index) => (
+                      <option key={option.id} value={option.id}>{index + 1}. {option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{textPropertyOption.label}</span>
+                  <input aria-label={textPropertyOption.label} ref={textPropertiesInputRef}
+                    defaultValue={textProperties.selected?.text ?? ''}
+                    disabled={!canEditMeasureNotation}
+                    key={`${textPropertiesKind}-${activeMeasureId}-${activeTick}-${textProperties.selected?.id ?? 'new'}-${textProperties.selected?.text ?? ''}`}
+                    maxLength={80} placeholder={textPropertyOption.placeholder} type="text"
+                    onBlur={event => {
+                      if (canEditMeasureNotation) textProperties.update(event.currentTarget.value)
+                    }}
+                    onKeyDown={event => {
+                      if (event.nativeEvent.isComposing) return
+                      if (event.key === 'Escape') {
+                        event.currentTarget.value = textProperties.selected?.text ?? ''
+                        event.currentTarget.blur()
+                      } else if (event.key === 'Enter') event.currentTarget.blur()
+                    }}
+                  />
+                </label>
+              </div>
+            </section>
+            <section className="inspector-properties rehearsal-properties" aria-label="연습표 속성" hidden={!activeMeasureId || activePropertiesKind !== 'rehearsal'}>
+              <div className="inspector-properties__header">
+                <h3>연습표</h3>
+                <button type="button" className="inspector-properties__collapse"
+                  aria-label={rehearsalPropertiesOpen ? '연습표 속성 접기' : '연습표 속성 펼치기'}
+                  title={rehearsalPropertiesOpen ? '연습표 속성 접기' : '연습표 속성 펼치기'}
+                  aria-expanded={rehearsalPropertiesOpen}
+                  onClick={() => setRehearsalPropertiesOpen(value => !value)}>
+                  {rehearsalPropertiesOpen ? <ChevronsDown aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" size={16} />}
+                </button>
+              </div>
+              <div className="inspector-properties__grid" hidden={!rehearsalPropertiesOpen}>
+                <label>
+                <span>연습표 선택</span>
+                <select aria-label="연습표 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeMeasureRehearsalMark?.id ?? ''}
+                  onChange={event => {
+                    if (activeMeasureId) setRehearsalTarget({ measureId: activeMeasureId, id: event.currentTarget.value })
+                  }}>
+                  <option value="">새 연습표</option>
+                  {activeMeasureRehearsalMarks.map((mark, index) => (
+                    <option key={mark.id} value={mark.id}>{index + 1}. {mark.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: {mark.text}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>{koreanMusicTerms.rehearsalMark}</span>
+                <input
+                  aria-label={koreanMusicTerms.rehearsalMark}
+                  ref={rehearsalInputRef}
+                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
+                  disabled={!canEditMeasureNotation}
+                  key={`${activeMeasureId}-${activeMeasureRehearsalMark?.id ?? 'new'}-${
+                    activeMeasureRehearsalMark?.text ?? ''
+                  }`}
+                  maxLength={12}
+                  onBlur={(event) =>
+                    updateActiveRehearsalMark(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureRehearsalMark?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="A"
+                  type="text"
+                />
+              </label>
+              </div>
+            </section>
+            <section className="inspector-properties dynamic-properties" aria-label="셈여림 속성" hidden={!activeMeasureId || activePropertiesKind !== 'dynamics'}>
+              <h3>셈여림</h3>
+              <div className="inspector-properties__grid">
+                <label>
+                  <span>적용 범위</span>
+                  <output aria-label="셈여림 적용 범위">현재 보표 {activeMeasureNumber}마디</output>
+                </label>
+                <label>
+                  <span>셈여림 선택</span>
+                  <select aria-label="셈여림 객체 선택" disabled={!canEditMeasureNotation}
+                    value={activeMeasureDynamic?.id ?? ''}
+                    onChange={event => {
+                      if (activeMeasureId) setDynamicTarget({ measureId: activeMeasureId, id: event.currentTarget.value })
+                    }}>
+                    <option value="">새 셈여림</option>
+                    {activeMeasureDynamics.map((dynamic, index) => (
+                      <option key={dynamic.id} value={dynamic.id}>{index + 1}. {dynamic.value}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{koreanMusicTerms.dynamics}</span>
+                  <select aria-label={koreanMusicTerms.dynamics} ref={dynamicInputRef}
+                    disabled={!canEditMeasureNotation}
+                    onChange={event => updateActiveDynamic(event.target.value)}
+                    value={activeMeasureDynamic?.value ?? ''}>
+                    <option value="">없음</option>
+                    {dynamicValues.map(value => <option key={value} value={value}>{value}</option>)}
+                  </select>
+                </label>
+              </div>
+            </section>
+            <section className="inspector-properties harmony-properties" aria-label="코드 심벌 속성" hidden={!activeMeasureId || activePropertiesKind !== 'harmony'}>
+          <div className="inspector-properties__header">
+            <h3>코드</h3>
+            <button type="button" className="inspector-properties__collapse"
+              aria-label={harmonyPropertiesOpen ? '코드 속성 접기' : '코드 속성 펼치기'}
+              title={harmonyPropertiesOpen ? '코드 속성 접기' : '코드 속성 펼치기'}
+              aria-expanded={harmonyPropertiesOpen}
+              onClick={() => setHarmonyPropertiesOpen(value => !value)}>
+              {harmonyPropertiesOpen ? <ChevronsDown aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" size={16} />}
+            </button>
+          </div>
+          <div hidden={!harmonyPropertiesOpen}>
+          {activeMeasureId ? (
+            <div className="inspector-properties__grid">
+              <label>
+                <span>적용 위치</span>
+                <output aria-label="코드 심벌 적용 위치">
+                  {activeHarmony
+                    ? `선택 코드 tick ${activeHarmony.tick}`
+                    : eventLocation
+                    ? `선택 이벤트 tick ${activeTick}`
+                    : selection.type === 'measure'
+                    ? '선택 마디 시작 tick 0'
+                    : noteInputState
+                    ? `입력 커서 tick ${activeTick}`
+                    : `현재 위치 tick ${activeTick}`}
+                </output>
+              </label>
+
+              <label>
+                <span>코드 심벌 선택</span>
+                <select aria-label="코드 심벌 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeHarmony?.id ?? ''}
+                  onChange={event => setHarmonyTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 코드 심벌</option>
+                  {activeMeasureHarmonies.map((harmony, index) => (
+                    <option key={harmony.id} value={harmony.id}>{index + 1}. {harmony.text}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>코드 심벌</span>
+                <input
+                  aria-label="코드 심벌"
+                  ref={harmonyInputRef}
+                  disabled={!canEditMeasureNotation}
+                  defaultValue={activeHarmony?.text ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${activeHarmony?.id ?? 'new'}-${
+                    activeHarmony?.text ?? ''
+                  }-harmony`}
+                  maxLength={24}
+                  onBlur={(event) =>
+                    updateHarmonyText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value = activeHarmony?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Cmaj7/G"
+                  type="text"
+                />
+              </label>
+            </div>
+          ) : (
+            <p className="inspector-properties__empty">
+              음표나 마디를 선택하면 코드 심벌 입력 항목이 표시됩니다.
+            </p>
+          )}
+        </div>
+            </section>
+            <section aria-label="선택 마디 속성" className="selection-properties"
+              hidden={!activeMeasureId || activePropertiesKind !== 'measure'}>
+              <div className="inspector-properties__header">
+                <h3>마디 {activeMeasureNumber}</h3>
+                <button type="button" className="inspector-properties__collapse"
+                  aria-expanded={measurePropertiesOpen}
+                  aria-label={measurePropertiesOpen ? '마디 속성 접기' : '마디 속성 펼치기'}
+                  title={measurePropertiesOpen ? '마디 속성 접기' : '마디 속성 펼치기'}
+                  onClick={() => setMeasurePropertiesOpen(value => !value)}>
+                  {measurePropertiesOpen ? <ChevronsDown aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" size={16} />}
+                </button>
+              </div>
+              <div className="measure-signature-properties__fields" hidden={!measurePropertiesOpen}>
+            <label
+              className="selection-properties__edit"
+            >
+              <span>마디 시작 음자리표</span>
+              <select
+                aria-label="마디 시작 음자리표"
+                disabled={!measureClefLocation}
+                onChange={(event) => changeClef(event.target.value)}
+                value={activeClefId}
+              >
+                {clefPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label
+              className="selection-properties__edit"
+            >
+              <span>선택 마디부터 조표</span>
+              <select
+                aria-label="선택 마디부터 조표"
+                disabled={!activeMeasureId}
+                ref={measureKeySignatureRef}
+                onChange={(event) => changeKeySignature(event.target.value)}
+                value={activeKeySignatureId}
+              >
+                {keySignaturePresets.map((keySignature) => (
+                  <option key={keySignature.id} value={keySignature.id}>
+                    {keySignature.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label
+              className="selection-properties__edit"
+            >
+              <span>선택 마디 박자표</span>
+              <select
+                aria-label="선택 마디 박자표"
+                disabled={!activeMeasureId}
+                onChange={(event) => changeTimeSignature(event.target.value)}
+                value={activeTimeSignatureId}
+              >
+                {timeSignaturePresets.map((timeSignature) => (
+                  <option key={timeSignature.id} value={timeSignature.id}>
+                    {timeSignature.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="selection-properties__edit">
+              <span>볼타 선 끝 마디</span>
+              <select aria-label="볼타 선 끝 마디" disabled={!activeVoltaRange}
+                value={activeVoltaRange?.start.volta?.displayEndMeasureId ?? ''}
+                onChange={event => changeVoltaDisplayEnd(event.target.value)}>
+                <option value="">{activeVoltaRange ? '자동' : '해당 볼타 없음'}</option>
+                {activeVoltaRange?.measures.map(measure => <option key={measure.id} value={measure.id}>마디 {measure.number}</option>)}
+              </select>
+            </label>
+            <label className="selection-properties__edit">
+              <span>볼타 끝 모양</span>
+              <select aria-label="볼타 끝 모양" aria-describedby={activeVoltaEnd ? 'volta-end-target' : undefined}
+                disabled={!activeVoltaEnd} value={activeVoltaEnd ? activeVoltaEnd.volta?.endStyle ?? 'closed' : ''}
+                onChange={event => changeVoltaEndStyle(event.target.value)}>
+                <option value="" disabled>해당 볼타 없음</option>
+                <option value="closed">닫힌 끝</option>
+                <option value="open">열린 끝</option>
+              </select>
+            </label>
+            {activeVoltaEnd ? <output id="volta-end-target" aria-label="볼타 끝 대상">
+              {activeVoltaEnd.volta!.number}번 · 마디 {activeVoltaEnd.number}
+            </output> : null}
+              </div>
+            </section>
+            {selection.type === 'event' && eventLocation && (activePropertiesKind === 'selection' || (activePropertiesKind === 'lyrics' && !selectedNote)) && !noteInputState ? (
+              <section
+                className="inspector-properties event-properties"
+                aria-label="선택 속성"
+                data-collapsed={collapsedEventPropertiesSections.properties}
+              >
+                <div className="inspector-properties__header">
+                  <h3>{selectedNote ? '음표' : '쉼표'}</h3>
+                  <button
+                    aria-expanded={!collapsedEventPropertiesSections.properties}
+                    aria-label={
+                      collapsedEventPropertiesSections.properties
+                        ? '선택 속성 펼치기'
+                        : '선택 속성 접기'
+                    }
+                    className="inspector-properties__collapse"
+                    onClick={() =>
+                      setCollapsedEventPropertiesSections((sections) => ({
+                        ...sections,
+                        properties: !sections.properties
+                      }))
+                    }
+                    title={
+                      collapsedEventPropertiesSections.properties
+                        ? '선택 속성 펼치기'
+                        : '선택 속성 접기'
+                    }
+                    type="button"
+                  >
+                    {collapsedEventPropertiesSections.properties ? (
+                      <ChevronRight aria-hidden="true" size={16} />
+                    ) : (
+                      <ChevronsDown aria-hidden="true" size={16} />
+                    )}
+                  </button>
+                </div>
+                <div hidden={collapsedEventPropertiesSections.properties}>
+                  {eventLocation ? (
+                    <div className="inspector-properties__grid">
+                      <label>
+                        <span>선택 음가</span>
+                        <select
+                          aria-label="선택 이벤트 음가"
+                          value={eventLocation.event.duration.value}
+                          onChange={(event) => changeDuration(event.target.value as DurationValue)}
+                        >
+                          {durations.map((duration) => (
+                            <option key={duration} value={duration}>{durationLabels[duration]}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="inspector-properties__row">
+                        <span>점</span>
+                        <div className="inspector-properties__buttons">
+                          <button
+                            disabled={!canRemoveDot}
+                            onClick={() => changeDots(-1)}
+                            type="button"
+                          >
+                            -
+                          </button>
+                          <output aria-label="선택 이벤트 점 개수">
+                            {eventLocation.event.duration.dots}
+                          </output>
+                          <button
+                            disabled={!canAddDot}
+                            onClick={() => changeDots(1)}
+                            type="button"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="inspector-properties__row">
+                        <span>임시표</span>
+                        <div className="inspector-properties__buttons">
+                          {([
+                            [-1, '♭', '플랫'],
+                            [0, '♮', '제자리표'],
+                            [1, '♯', '샤프']
+                          ] as const).map(([alter, symbol, label]) => {
+                            const shortcut = accidentalShortcuts[alter]
+
+                            return (
+                              <button
+                                aria-label={label}
+                                aria-pressed={selectedPitchAlter === alter}
+                                className={
+                                  selectedPitchAlter === alter ? 'is-active' : undefined
+                                }
+                                disabled={!canEditPitch}
+                                key={alter}
+                                onClick={() => changeAccidental(alter)}
+                                title={commandTooltip(label, shortcut)}
+                                type="button"
+                              >
+                                {symbol}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <button
+                        className="inspector-properties__command"
+                        disabled={eventLocation.event.type !== 'note'}
+                        onClick={convertSelectionToRest}
+                        type="button"
+                      >
+                        쉼표로 변환
+                      </button>
+
+                      <label>
+                        <span>음표 앞 음자리표</span>
+                        <select
+                          aria-label="선택 이벤트 앞 음자리표"
+                          onChange={(event) =>
+                            changeSelectedEventClefBefore(event.target.value)
+                          }
+                          value={
+                            eventLocation.event.clefBefore
+                              ? resolveClefPresetId(eventLocation.event.clefBefore)
+                              : ''
+                          }
+                        >
+                          <option value="">없음</option>
+                          {clefPresets.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                              {preset.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div className="inspector-properties__row">
+                        <span>정지 기호</span>
+                        <div className="inspector-properties__buttons">
+                          <button
+                            aria-label={koreanMusicTerms.fermata}
+                            aria-pressed={selectedEventHasFermata}
+                            className={selectedEventHasFermata ? 'is-active' : undefined}
+                            onClick={toggleFermata}
+                            type="button"
+                          >
+                            𝄐
+                          </button>
+                          {breathMarkTermOptions.map(({ label, symbol, value }) => (
+                            <button
+                              aria-label={label}
+                              aria-pressed={selectedEventBreathMark === value}
+                              className={
+                                selectedEventBreathMark === value ? 'is-active' : undefined
+                              }
+                              key={value}
+                              onClick={() => toggleBreathMark(value)}
+                              type="button"
+                            >
+                              {symbol}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="inspector-properties__row">
+                        <span>{koreanMusicTerms.expressiveSymbols}</span>
+                        <div className="inspector-properties__buttons">
+                          {articulationTermOptions.map(({ label, symbol, value }) => (
+                            <button
+                              aria-label={label}
+                              aria-pressed={selectedNoteArticulations.has(value)}
+                              className={
+                                selectedNoteArticulations.has(value)
+                                  ? 'is-active'
+                                  : undefined
+                              }
+                              disabled={eventLocation.event.type !== 'note'}
+                              key={value}
+                              onClick={() => toggleArticulation(value)}
+                              title={commandTooltip(label, articulationShortcuts[value])}
+                              type="button"
+                            >
+                              {symbol}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {selectedNote ? (
+                        <>
+                          <div className="inspector-properties__row">
+                            <span>타이</span>
+                            <div className="inspector-properties__buttons">
+                              <output aria-label="선택 음표 타이 상태">
+                                {describeNoteTie(selectedNote)}
+                              </output>
+                              <button
+                                aria-label={tieSelected ? '타이 해제' : '타이 추가'}
+                                disabled={!tieCommand}
+                                onClick={toggleTie}
+                                title={
+                                  tieCommand
+                                    ? tieSelected
+                                      ? '선택한 타이 해제'
+                                      : '인접한 같은 음높이에 타이 추가'
+                                    : '인접한 같은 음높이의 음표가 필요합니다'
+                                }
+                                type="button"
+                              >
+                                {tieSelected ? '해제' : '추가'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="inspector-properties__row">
+                            <span>화음</span>
+                            <div className="inspector-properties__buttons">
+                              <button
+                                aria-label="3도 위 화음 추가"
+                                onClick={() => addChordTone(2)}
+                                title={commandTooltip('3도 위 화음 추가', 'Alt/⌥+3')}
+                                type="button"
+                              >
+                                3도 위 추가
+                              </button>
+                              <button
+                                aria-label="5도 위 화음 추가"
+                                onClick={() => addChordTone(4)}
+                                title={commandTooltip('5도 위 화음 추가', 'Alt/⌥+5')}
+                                type="button"
+                              >
+                                5도 위 추가
+                              </button>
+                            </div>
+                          </div>
+
+                          {selectedChordPitches.length > 1 ? (
+                            <div className="inspector-properties__row">
+                              <span>구성음</span>
+                              <div className="inspector-properties__buttons">
+                                {selectedChordPitches.slice(1).map((pitch) => {
+                                  const label = pitchToLabel(pitch)
+
+                                  return (
+                                    <button
+                                      aria-label={`${label} 구성음 제거`}
+                                      key={label}
+                                      onClick={() => removeChordTone(label)}
+                                      type="button"
+                                    >
+                                      {label} 제거
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <div className="inspector-properties__row">
+                            <span>트레몰로</span>
+                            <div className="inspector-properties__buttons">
+                              {([0, 1, 2, 3] as const).map((marks) => (
+                                <button
+                                  aria-pressed={
+                                    (selectedNote.tremolo?.marks ?? 0) === marks
+                                  }
+                                  className={
+                                    (selectedNote.tremolo?.marks ?? 0) === marks
+                                      ? 'is-active'
+                                      : undefined
+                                  }
+                                  key={marks}
+                                  onClick={() => toggleTremoloMarks(marks)}
+                                  type="button"
+                                >
+                                  {marks === 0 ? '없음' : `${marks}줄`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="inspector-properties__row">
+                            <span>장식음</span>
+                            <div className="inspector-properties__buttons">
+                              {ornamentOptions.map(([value, label]) => (
+                                <button
+                                  aria-pressed={selectedNote.ornaments?.includes(value)}
+                                  className={
+                                    selectedNote.ornaments?.includes(value)
+                                      ? 'is-active'
+                                      : undefined
+                                  }
+                                  key={value}
+                                  onClick={() => toggleOrnament(value)}
+                                  type="button"
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                              <button
+                                aria-label="꾸밈음"
+                                onClick={convertSelectedNoteToGraceNote}
+                                type="button"
+                              >
+                                꾸밈음
+                              </button>
+                            </div>
+                          </div>
+
+                        </>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="inspector-properties__empty">
+                      음표나 쉼표를 선택하면 편집 가능한 속성이 표시됩니다.
+                    </p>
+                  )}
+                </div>
+              </section>
+            ) : null}
+            {activeSpanReference || (activePropertiesKind === 'selection' && toolbarCategory === 'notation') ? <SpanProperties score={printScore}
               partId={scoreViewMode === 'part' ? livePartViewPartId : undefined}
               independentGeometry={scoreViewMode === 'part' && Boolean(livePartLayout?.spanEngravings?.some(item => item.kind === activeSpanReference?.kind && item.spanId === activeSpanReference.id))}
               onInheritEngraving={scoreViewMode === 'part' ? inheritSpanEngraving : undefined}
               selected={activeSpanReference} onSelect={selectSpan} onEngravingChange={updateSpanEngraving}
               renderedSegments={renderedSpanState?.score === displayScore ? renderedSpanState.segments : undefined}
               onEndpointChange={updateSpanEndpoint} onDelete={deleteSpan} /> : null}
-            {toolbarCategory === 'notation' && spanClipboard && !activeSpanReference
+            {toolbarCategory === 'notation' && spanClipboard && activePropertiesKind === 'selection'
               ? <SpanPasteTargets score={printScore} selection={selection} clipboard={spanClipboard} onPaste={pasteSpanAt} /> : null}
             <section
               aria-label="선택 요약"
-              hidden={Boolean(activeSpanReference)}
+              hidden={!['selection', 'measure'].includes(activePropertiesKind)}
               className="selection-properties"
               data-selection-kind={selectedProperties.kind}
             >
-              <h3>속성</h3>
-              <dl>
-                {selectedProperties.rows.map(([label, value]) => (
-                  <div className="selection-properties__row" key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <label className="selection-properties__edit">
-                <span>셈여림</span>
-                <select
-                  aria-label="선택 요약 셈여림"
-                  disabled={!canEditMeasureNotation}
-                  onChange={(event) => updateActiveDynamic(event.target.value)}
-                  value={activeMeasureDynamic?.value ?? ''}
+              <h3>선택</h3>
+              <details
+                className="selection-properties__metadata"
+                open={selectionPropertiesMetadataOpen}
+              >
+                <summary
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setSelectionPropertiesMetadataOpen((value) => !value)
+                  }}
                 >
-                  <option value="">없음</option>
-                  {dynamicValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
+                  선택 정보
+                </summary>
+                <dl>
+                  {selectedProperties.rows.map(([label, value]) => (
+                    <div className="selection-properties__row" key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
                   ))}
-                </select>
-              </label>
-              {[
-                { label: '코드', value: activeHarmony?.text, update: updateHarmonyText },
-                { label: '연습표', value: activeMeasureRehearsalMark?.text, update: updateActiveRehearsalMark },
-                { label: '보표 글자', value: activeMeasureStaffText?.text, update: updateActiveStaffText },
-                { label: '시스템 텍스트', value: activeSystemText?.text, update: updateActiveSystemText },
-                { label: '표현 텍스트', value: activeExpressionText?.text, update: updateActiveExpressionText }
-              ].map((property) => (
-                <label className="selection-properties__edit" key={property.label}>
-                  <span>{property.label}</span>
-                  <input
-                    aria-label={`선택 요약 ${property.label}`}
-                    key={`${activeMeasureId}-${activeTick}-${property.value ?? ''}`}
-                    defaultValue={property.value ?? ''}
-                    disabled={!canEditMeasureNotation}
-                    maxLength={120}
-                    onBlur={(event) => {
-                      if (canEditMeasureNotation && event.currentTarget.value.trim() !== (property.value ?? '')) {
-                        property.update(event.currentTarget.value)
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.nativeEvent.isComposing) return
-                      if (event.key === 'Escape') {
-                        event.currentTarget.value = property.value ?? ''
-                        event.currentTarget.blur()
-                      } else if (event.key === 'Enter') {
-                        event.currentTarget.blur()
-                      }
-                    }}
-                    type="text"
-                  />
-                </label>
-              ))}
+                </dl>
+              </details>
             </section>
           </aside>
         </div>
+        <section
+          aria-label="파트 믹서"
+          className="part-mixer mixer-dock"
+          hidden={!partMixerOpen}
+          id="part-mixer-panel"
+        >
+          {score.parts.map((part) => {
+            const settings = resolvePartMixerSettings(partMixer[part.id])
+            const volumePercent = Math.round(settings.volume * 100)
+            const isActivePlaybackPart =
+              playback.activeEvent?.partId === part.id
+
+            return (
+              <div
+                className={`part-mixer__row${
+                  isActivePlaybackPart ? ' is-active' : ''
+                }`}
+                data-playback-active={
+                  isActivePlaybackPart ? 'true' : 'false'
+                }
+                key={part.id}
+              >
+                <span className="part-mixer__name">{part.name}</span>
+                <span
+                  aria-label={`${part.name} 재생 상태`}
+                  className="part-mixer__activity"
+                >
+                  {isActivePlaybackPart ? '재생 중' : '대기'}
+                </span>
+                <label className="part-mixer__toggle">
+                  <input
+                    aria-label={`${part.name} 음소거`}
+                    checked={settings.muted}
+                    onChange={() => togglePartMute(part.id)}
+                    type="checkbox"
+                  />
+                  <span>뮤트</span>
+                </label>
+                <label className="part-mixer__toggle">
+                  <input
+                    aria-label={`${part.name} 솔로`}
+                    checked={settings.solo}
+                    onChange={() => togglePartSolo(part.id)}
+                    type="checkbox"
+                  />
+                  <span>솔로</span>
+                </label>
+                <label className="part-mixer__volume">
+                  <span>볼륨</span>
+                  <input
+                    aria-label={`${part.name} 볼륨`}
+                    max={150}
+                    min={0}
+                    onChange={(event) =>
+                      changePartVolume(part.id, event.target.value)
+                    }
+                    step={5}
+                    type="range"
+                    value={volumePercent}
+                  />
+                  <output>{volumePercent}%</output>
+                </label>
+              </div>
+            )
+          })}
+        </section>
       </section>
+      <footer
+        className="editor-status"
+        aria-label="편집 상태"
+        aria-live="polite"
+        aria-atomic="false"
+        onKeyDown={(event) => {
+          if (!event.ctrlKey && !event.metaKey) event.stopPropagation()
+        }}
+        tabIndex={0}
+      >
+        {recoveryPending ? <span>복구본 확인 필요 · 자동저장 대기</span> : null}
+        {noteInputState ? (
+          <span>{noteInputState.tupletInput ? '셋잇단음표 입력' : '입력 중'}</span>
+        ) : null}
+        <span>{durationLabels[activeDurationValue]}</span>
+        <div className="editor-status__context" role="group" aria-label="현재 작업 컨텍스트">
+          <span>{inputModeLabel}</span>
+          <span>{activeScopeLabel}</span>
+          {selectionEventTypeFilter !== 'notes-and-rests' || selectionObjectTypeFilter !== 'none' || selection.type === 'range' ? (
+            <span>
+              필터 {selectionFilterOptions.find(([value]) => value === selectionEventTypeFilter)?.[1]}
+              {selectionObjectTypeFilter !== 'none'
+                ? ` · ${describeSelectionObjectFilter(selectionObjectTypeFilter)}`
+                : ''}
+              {selection.type === 'range'
+                ? ` ${filteredSelectedEventIds.length}/${selectedEventIds.length}`
+                : ''}
+            </span>
+          ) : null}
+        </div>
+        <span>
+          {scoreViewMode === 'part' && livePartViewPart
+            ? `파트보: ${livePartViewPart.name}`
+            : '총보'}
+        </span>
+        {noteInputState?.tupletInput ? (
+          <span className="tuplet-progress">{tripletPreset.label} {tupletProgress}</span>
+        ) : null}
+        {noteInputState ? (
+          <span>
+            M{locateMeasure(score, noteInputState.target.measureId)?.measureNumber ?? '—'}
+            {' '}· {noteInputState.tick}틱
+          </span>
+        ) : null}
+        <span>{undoStack.length}회 수정</span>
+        <span>{playbackStatusLabels[playback.status]}</span>
+        <span>{playback.positionBeat.toFixed(1)} / {playback.totalBeats.toFixed(1)}박</span>
+        {fileStatus ? (
+          <span className={`editor-status__message${fileStatus.tone === 'error' ? ' is-error' : ''}`}>
+            {fileStatus.message}
+          </span>
+        ) : null}
+      </footer>
         </>
       )}
 
@@ -11540,12 +12785,7 @@ function buildScorePartsReplaceCommand(
   const repeatSource = scoreRepeatSource(score)
   const repeatPartId = repeatSource ? score.parts.find(part => part.staves.includes(repeatSource))?.id : undefined
   if (repeatSource && !parts.some(part => part.id === repeatPartId && part.staves.some(staff => staff.id === repeatSource.id))) {
-    parts = parts.map(part => ({ ...part, staves: part.staves.map(staff => ({ ...staff,
-      measures: staff.measures.map((measure, index) => ({ ...measure,
-        repeat: repeatSource.measures[index]?.repeat,
-        volta: repeatSource.measures[index]?.volta
-      }))
-    })) }))
+    parts = parts.map(part => ({ ...part, staves: part.staves.map(staff => projectRepeatMarksToStaff(repeatSource, staff)) }))
   }
   const commands: ScoreCommand[] = [
     {
@@ -11761,7 +13001,6 @@ function createNativeSnapshot(score: Score, previous: NativeProject | undefined,
 
 function createPartExportScore(score: Score, partId: string): Score {
   const projected = createLivePartViewScore(score, partId)
-  const repeatSource = scoreRepeatSource(score)
   const primaryMeasures = projected.parts[0]?.staves[0]?.measures ?? []
   // Global directions use generic measure IDs in the full score. Bind them to
   // the extracted part before round-trip validation, without changing the source.
@@ -11774,17 +13013,6 @@ function createPartExportScore(score: Score, partId: string): Score {
     }))
   return {
     ...projected,
-    parts: repeatSource ? projected.parts.map(part => ({
-      ...part,
-      staves: part.staves.map(staff => ({
-        ...staff,
-        measures: staff.measures.map((measure, index) => ({
-          ...measure,
-          repeat: repeatSource.measures[index]!.repeat,
-          volta: repeatSource.measures[index]!.volta
-        }))
-      }))
-    })) : projected.parts,
     tempoEvents: anchor(projected.tempoEvents),
     rehearsalMarks: anchor(projected.rehearsalMarks),
     systemTexts: anchor(projected.systemTexts)
@@ -11802,6 +13030,7 @@ function createLivePartViewScore(score: Score, partId: string): Score {
   const measureNumbers = collectPartMeasureNumbers([part])
   const eventIds = collectPartEventIds([part])
   const isPrimaryPart = score.parts[0]?.id === part.id
+  const repeatSource = scoreRepeatSource(score)
   const matchesGlobalMeasure = (measureId: string) =>
     matchesPartViewMeasureReference(measureId, measureIds, measureNumbers, true)
   const matchesStaffMeasure = (measureId: string) =>
@@ -11814,7 +13043,7 @@ function createLivePartViewScore(score: Score, partId: string): Score {
 
   return {
     ...score,
-    parts: [part],
+    parts: [repeatSource ? { ...part, staves: part.staves.map(staff => projectRepeatMarksToStaff(repeatSource, staff)) } : part],
     tempoEvents: score.tempoEvents?.filter((tempoEvent) =>
       matchesGlobalMeasure(tempoEvent.measureId)
     ),
@@ -15413,6 +16642,12 @@ function findNextRepeatEndMeasureIndex(
   return undefined
 }
 
+function normalizeVoltaForSaveSignature(volta: Measure['volta']): Measure['volta'] | null {
+  // Display extent is warned as native-only; MusicXML stop implies closed.
+  return volta ? { ...volta, displayEndMeasureId: undefined,
+    endStyle: volta.endStyle === 'closed' ? undefined : volta.endStyle } : null
+}
+
 function createSaveSignature(score: Score): string {
   const eventReferences = createEventReferenceMap(score)
   const measureReferences = createMeasureReferenceMap(score)
@@ -15426,14 +16661,15 @@ function createSaveSignature(score: Score): string {
       name: part.name,
       abbreviation: part.abbreviation ?? '',
       staves: part.staves.map((staff) => ({
-        measures: staff.measures.map((measure) => ({
+        measures: staff.measures.map((measure, measureIndex) => ({
           number: measure.number,
           timing: measure.timing,
           timeSignature: measure.timeSignature,
           keySignature: measure.keySignature,
           clef: measure.clef,
-          repeat: measure.repeat ?? null,
-          volta: measure.volta ?? null,
+          // MusicXML part barlines apply to every staff; keep conflicting local marks detectable.
+          repeat: measure.repeat ?? part.staves[0]?.measures[measureIndex]?.repeat ?? null,
+          volta: normalizeVoltaForSaveSignature(measure.volta ?? part.staves[0]?.measures[measureIndex]?.volta),
           voices: measure.voices.map((voice) =>
             createVoiceSaveSignature(measure, voice)
           )

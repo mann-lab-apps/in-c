@@ -10,7 +10,8 @@ export const HAIRPIN_Y_OFFSET = 126
 
 const SYSTEM_TEXT_LINE_GAP = 16
 const LOWER_ANNOTATION_GAP = 22
-const HAIRPIN_LANE_GAP = 20
+// Open end (10), half stroke (0.9), expression ink (13), and a 4px gap.
+const HAIRPIN_LANE_GAP = 28
 const LYRIC_BASELINE_OFFSET = 116
 const LYRIC_LINE_GAP = 16
 const LYRIC_FONT_SIZE = 13
@@ -22,6 +23,8 @@ const UPPER_TOP_PADDING = 12
 const REHEARSAL_TO_TEXT_GAP = 44
 
 export interface MeasureAnnotationLaneInput {
+  lowerOffset?: number
+  hairpinStackOffset?: number
   expressionTextCount?: number
   dynamicCount?: number
   harmonyCount?: number
@@ -38,6 +41,7 @@ export interface MeasureAnnotationLaneInput {
 }
 
 export interface MeasureAnnotationLanes {
+  lowerOffset: number
   contentBottom: number
   dynamicMarkYOffset?: number
   dynamicMarkYOffsets: number[]
@@ -74,6 +78,8 @@ export function countMeasureLyricLines(measure: Measure): number {
 }
 
 export function resolveMeasureAnnotationLanes({
+  lowerOffset = 0,
+  hairpinStackOffset = 0,
   expressionTextCount = 0,
   dynamicCount = 0,
   harmonyCount = 0,
@@ -130,7 +136,7 @@ export function resolveMeasureAnnotationLanes({
     : undefined
 
   if (hasHairpin) {
-    lowerCursor = (hairpinYOffset ?? lowerCursor) + HAIRPIN_LANE_GAP
+    lowerCursor = (hairpinYOffset ?? lowerCursor) + hairpinStackOffset + HAIRPIN_LANE_GAP
   }
 
   const expressionStart = Math.max(EXPRESSION_TEXT_Y_OFFSET, lowerCursor)
@@ -150,23 +156,24 @@ export function resolveMeasureAnnotationLanes({
   upperOffsets.push(...tempoYOffsets.map((offset) => offset - 18))
   const lowerOffsets = [
     ...dynamicMarkYOffsets,
-    hairpinYOffset === undefined ? undefined : hairpinYOffset + 6,
+    hairpinYOffset === undefined ? undefined : hairpinYOffset + hairpinStackOffset + 10,
     ...expressionTextYOffsets.map((offset) => offset + LOWER_BOTTOM_PADDING)
   ].filter((offset): offset is number => offset !== undefined)
 
   return {
+    lowerOffset,
     contentBottom: Math.max(80, lyricBottom, dynamicMarkYOffset === undefined ? 0 : dynamicMarkYOffset + 6,
-      ...dynamicMarkYOffsets.map(offset => offset + 6), hairpinYOffset === undefined ? 0 : hairpinYOffset + 10, ...expressionTextYOffsets.map(offset => offset + 4)),
-    dynamicMarkYOffset,
-    dynamicMarkYOffsets,
-    expressionTextYOffsets,
-    hairpinYOffset,
+      ...dynamicMarkYOffsets.map(offset => offset + 6), hairpinYOffset === undefined ? 0 : hairpinYOffset + hairpinStackOffset + 10, ...expressionTextYOffsets.map(offset => offset + 4)) + lowerOffset,
+    dynamicMarkYOffset: dynamicMarkYOffset === undefined ? undefined : dynamicMarkYOffset + lowerOffset,
+    dynamicMarkYOffsets: dynamicMarkYOffsets.map(offset => offset + lowerOffset),
+    expressionTextYOffsets: expressionTextYOffsets.map(offset => offset + lowerOffset),
+    hairpinYOffset: hairpinYOffset === undefined ? undefined : hairpinYOffset + lowerOffset,
     harmonyMarkYOffsets,
     rehearsalMarkYOffset,
     rehearsalMarkYOffsets,
     requiredAbove:
       upperOffsets.length > 0 ? Math.abs(Math.min(...upperOffsets)) : 0,
-    requiredBelow: Math.max(SYSTEM_HEIGHT_BASELINE, ...lowerOffsets),
+    requiredBelow: Math.max(SYSTEM_HEIGHT_BASELINE, ...lowerOffsets) + lowerOffset,
     staffTextYOffset,
     staffTextYOffsets,
     systemTextYOffsets,

@@ -6,6 +6,7 @@ import {
   type Pitch,
   type ScoreLayout
 } from '../../../score-core'
+import { resolveMeasureClefAtTick } from './vexflow-adapter'
 
 export interface MeasurePlacement {
   isSystemStart: boolean
@@ -30,6 +31,7 @@ export interface SystemLayout {
 }
 
 export interface SystemLayoutOptions {
+  parallelMeasures?: readonly (readonly Measure[])[]
   compactSpacing?: boolean
   leadingGutter?: number
   layout?: ScoreLayout
@@ -37,6 +39,9 @@ export interface SystemLayoutOptions {
   pageHeight?: number
   systemHeight?: number
   systemTop?: number
+  topInkPadding?: number
+  systemInkBounds?: ReadonlyMap<number, { top: number; bottom: number }>
+  systemMetrics?: ReadonlyMap<number, LayoutMetrics>
 }
 
 const HORIZONTAL_PADDING = 8
@@ -49,6 +54,9 @@ const CLEF_PADDING = 4
 const KEY_SIGNATURE_ACCIDENTAL_PADDING = 4
 const TIME_SIGNATURE_PADDING = 8
 const MAX_LEADING_NOTATION_PADDING = 52
+// VexFlow adds a 5px repeat barline plus 15px padding after leading modifiers.
+const REPEAT_START_WIDTH = 20
+const REPEAT_END_WIDTH = 10
 const EVENT_CROWDING_WIDTH = 10
 const DENSE_RHYTHM_WIDTH = 8
 const TUPLET_GROUP_WIDTH = 24
@@ -85,11 +93,13 @@ interface SystemBreakPlan {
 
 interface LayoutSpacing {
   minSparseMeasureWidth: number
+  parallelByMeasureId: ReadonlyMap<string, { measure: Measure; previousMeasure: Measure | undefined }[]>
 }
 
 interface LayoutMetrics {
   systemHeight: number
   systemTop: number
+  topInkPadding?: number
 }
 
 export function createSystemLayout(
@@ -112,14 +122,19 @@ export function createSystemLayout(
   )
   const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2 - leadingGutter)
   const previousMeasures = previousMeasureMap(measures)
-  const spacing = {
+  const spacing: LayoutSpacing = {
     minSparseMeasureWidth: options.compactSpacing
       ? COMPACT_SPARSE_MEASURE_WIDTH
-      : MIN_SPARSE_MEASURE_WIDTH
+      : MIN_SPARSE_MEASURE_WIDTH,
+    parallelByMeasureId: new Map(measures.map((measure, index) => [measure.id,
+      (options.parallelMeasures ?? []).flatMap(staffMeasures => staffMeasures[index]
+        ? [{ measure: staffMeasures[index]!, previousMeasure: staffMeasures[index - 1] }]
+        : [])]))
   }
-  const metrics = {
+  const defaultMetrics = {
     systemHeight: options.systemHeight ?? SYSTEM_HEIGHT,
-    systemTop: options.systemTop ?? SYSTEM_TOP
+    systemTop: options.systemTop ?? SYSTEM_TOP,
+    topInkPadding: options.topInkPadding ?? 12
   }
   const widthCapacity = Math.max(
     1,
@@ -141,25 +156,38 @@ export function createSystemLayout(
   const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
   const pageBreaks = new Set(options.layout?.pageBreakBeforeMeasureIds ?? [])
-  let verticalCursor = metrics.systemTop
+  let verticalCursor = options.systemMetrics?.get(0)?.systemTop ?? defaultMetrics.systemTop
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
+    const metrics = options.systemMetrics?.get(systemIndex) ?? defaultMetrics
     const systemMeasures = systemMeasuresList[systemIndex]
     const verticalSpace = systemVerticalSpace(
       systemMeasures,
       options.lyricScale ?? 1,
       metrics
     )
+    const ink = options.systemInkBounds?.get(systemIndex)
+    // Page starts already reserve annotation/header space; only add unmet ink clearance.
+    const pageStartInset = Math.max(metrics.systemTop + verticalSpace.above,
+      (ink ? -ink.top : 0) + (metrics.topInkPadding ?? 12))
+    if (ink) {
+      verticalSpace.above = Math.max(verticalSpace.above, -ink.top)
+      verticalSpace.below = Math.max(verticalSpace.below, ink.bottom + 12 - metrics.systemHeight)
+    }
+    let pageStart: number | undefined = systemIndex === 0 ? 0 : undefined
     if (options.pageHeight && systemIndex > 0 && pageBreaks.has(systemMeasures[0]!.id)) {
       const previousY = placements.at(-1)!.y
       const nextPageTop = (Math.floor(previousY / options.pageHeight) + 1) * options.pageHeight
       verticalCursor = Math.max(verticalCursor, nextPageTop + metrics.systemTop)
+      if (verticalCursor === nextPageTop + metrics.systemTop) pageStart = nextPageTop
     }
-    const y = alignSystemToPage(
+    const y = pageStart !== undefined ? pageStart + pageStartInset : alignSystemToPage(
       verticalCursor + verticalSpace.above,
       verticalSpace.below,
       options.pageHeight,
-      metrics
+      metrics,
+      verticalSpace.above,
+      pageStartInset
     )
     const widths = distributeSystemWidths(
       systemMeasures,
@@ -200,21 +228,24 @@ function alignSystemToPage(
   y: number,
   below: number,
   pageHeight: number | undefined,
-  metrics: Pick<LayoutMetrics, 'systemHeight' | 'systemTop'>
+  metrics: Pick<LayoutMetrics, 'systemHeight' | 'systemTop'>,
+  above = 0,
+  pageStartInset = metrics.systemTop + above
 ): number {
   if (!pageHeight) {
     return y
   }
 
-  const pageTop = Math.floor(y / pageHeight) * pageHeight
+  const pageTop = Math.floor((y - above) / pageHeight) * pageHeight
   const pageBottom = pageTop + pageHeight
   const systemBottom = y + metrics.systemHeight + below
 
-  if (systemBottom <= pageBottom) {
+  // Moving an oversized system from a page's top only creates an empty page.
+  if (systemBottom <= pageBottom || y - above <= pageTop + metrics.systemTop) {
     return y
   }
 
-  return pageBottom + metrics.systemTop
+  return pageBottom + pageStartInset
 }
 
 function createSystemMeasureGroups(
@@ -428,7 +459,7 @@ function systemPitchExtremes(measures: Measure[]): SystemPitchExtremes {
           continue
         }
 
-        const line = pitchStaffLine(event.pitch, measure.clef)
+        const line = pitchStaffLine(event.pitch, resolveMeasureClefAtTick(measure, event.position.tick))
         highestLine = Math.max(highestLine, line)
         lowestLine = Math.min(lowestLine, line)
       }
@@ -493,7 +524,8 @@ function distributeSystemWidths(
 
   const baseWidthTotal = baseWidths.reduce((sum, width) => sum + width, 0)
   const remainingWidth = Math.max(0, availableWidth - baseWidthTotal)
-  const weights = measures.map(measureSpacingWeight)
+  const weights = measures.map(measure => Math.max(measureSpacingWeight(measure),
+    ...(spacing.parallelByMeasureId.get(measure.id) ?? []).map(item => measureSpacingWeight(item.measure))))
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
 
   return weights.map(
@@ -526,6 +558,19 @@ function measureMinimumWidth(
   isSystemStart: boolean,
   spacing: LayoutSpacing
 ): number {
+  return Math.max(
+    staffMeasureMinimumWidth(measure, previousMeasure, isSystemStart, spacing),
+    ...(spacing.parallelByMeasureId.get(measure.id) ?? []).map(item =>
+      staffMeasureMinimumWidth(item.measure, item.previousMeasure, isSystemStart, spacing))
+  )
+}
+
+function staffMeasureMinimumWidth(
+  measure: Measure,
+  previousMeasure: Measure | undefined,
+  isSystemStart: boolean,
+  spacing: LayoutSpacing
+): number {
   const rhythmWeight = measureSpacingWeight(measure)
   const voiceCount = Math.max(1, measure.voices.length)
   const maxEventCount = Math.max(
@@ -541,10 +586,14 @@ function measureMinimumWidth(
     measure,
     resolveLeadingNotationVisibility(measure, previousMeasure, isSystemStart)
   )
+  const repeatWidth =
+    (measure.repeat?.start ? REPEAT_START_WIDTH : 0) +
+    (measure.repeat?.end ? REPEAT_END_WIDTH : 0)
 
   return (
     baseWidth +
     leadingModifierWidth +
+    repeatWidth +
     eventCrowdingWidth +
     voiceWidth +
     denseRhythmWidth +
@@ -640,10 +689,11 @@ function previousMeasureMap(measures: Measure[]): Map<string, Measure> {
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {
+  const previousClef = resolveMeasureClefAtTick(previous)
   return (
-    previous.clef.sign === current.clef.sign &&
-    previous.clef.line === current.clef.line &&
-    previous.clef.octaveChange === current.clef.octaveChange
+    previousClef.sign === current.clef.sign &&
+    previousClef.line === current.clef.line &&
+    (previousClef.octaveChange ?? 0) === (current.clef.octaveChange ?? 0)
   )
 }
 

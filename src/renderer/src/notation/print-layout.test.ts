@@ -1,9 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { createMeasure, createScore } from '../../../score-core'
+import { TICKS_PER_QUARTER, createDuration, createMeasure, createNote, createScore, createTimePosition, createVoice } from '../../../score-core'
 import { resolvePrintLayoutPlan } from './print-layout'
 
 describe('print layout planning', () => {
+  it.each(['auto', 2] as const)('includes lower-staff density when choosing a page plan (%s)', target => {
+    const score = createScore({ parts: [0, 1].map(part => ({ id: `part-${part}`, name: `Part ${part}`,
+      staves: [{ id: `staff-${part}`, measures: Array.from({ length: 12 }, (_, index) => createMeasure({
+        id: `measure-${part}-${index}`, number: index + 1,
+        voices: [createVoice({ events: Array.from({ length: part ? 16 : 1 }, (_, event) => createNote({
+          id: `note-${part}-${index}-${event}`, pitch: { step: 'C', octave: 4 },
+          position: createTimePosition(event * TICKS_PER_QUARTER / 4),
+          duration: createDuration(part ? '16th' : 'whole')
+        })) })]
+      })) }]
+    })) })
+    const before = structuredClone(score)
+    const denseFirst = { ...score, parts: [...score.parts].reverse() }
+    expect(resolvePrintLayoutPlan(score, target)).toEqual(resolvePrintLayoutPlan(denseFirst, target))
+    expect(score).toEqual(before)
+  })
+
   it('keeps automatic PDF layout on the balanced candidate', () => {
     const score = createScore({
       parts: [

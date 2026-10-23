@@ -2,8 +2,21 @@ import type {
   Clef,
   Duration,
   KeySignature,
+  Measure,
   Pitch
 } from '../../../score-core'
+
+export function resolveMeasureClefAtTick(measure: Measure, tick = Infinity): Clef {
+  let clef = measure.clef
+  let latestTick = -Infinity
+  for (const voice of measure.voices) for (const event of voice.events) {
+    if (event.clefBefore && event.position.tick <= tick && event.position.tick >= latestTick) {
+      clef = event.clefBefore
+      latestTick = event.position.tick
+    }
+  }
+  return clef
+}
 
 const durationValues: Record<Duration['value'], string> = {
   whole: 'w',

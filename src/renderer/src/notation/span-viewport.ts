@@ -1,11 +1,11 @@
 interface Bounds { x: number; y: number; width: number; height: number }
 
-export function resolveSpanViewport(width: number, height: number, manualBounds: Bounds[]): Bounds {
+export function resolveSpanViewport(width: number, height: number, spanBounds: Bounds[]): Bounds {
   let left = 0
   let top = 0
   let right = width
   let bottom = height
-  for (const bounds of manualBounds) {
+  for (const bounds of spanBounds) {
     left = Math.min(left, bounds.x - 8)
     top = Math.min(top, bounds.y - 8)
     right = Math.max(right, bounds.x + bounds.width + 8)

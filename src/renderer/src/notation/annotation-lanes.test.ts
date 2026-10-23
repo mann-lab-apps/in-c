@@ -17,6 +17,44 @@ import {
 } from './annotation-lanes'
 
 describe('annotation lanes', () => {
+  it('reserves stacked hairpins below their first lane without moving lyrics or dynamics', () => {
+    const input = { hasHairpin: true, dynamicCount: 1, expressionTextCount: 1, lyricLineCount: 2, lowerOffset: 37 }
+    const base = resolveMeasureAnnotationLanes(input)
+    const stacked = resolveMeasureAnnotationLanes({ ...input, hairpinStackOffset: 52 })
+    expect(stacked.hairpinYOffset).toBe(base.hairpinYOffset)
+    expect(stacked.dynamicMarkYOffsets).toEqual(base.dynamicMarkYOffsets)
+    expect(stacked.lowerOffset).toBe(base.lowerOffset)
+    expect(stacked.expressionTextYOffsets).toEqual(base.expressionTextYOffsets.map(y => y + 52))
+    expect(stacked.contentBottom).toBe(base.contentBottom + 52)
+    expect(stacked.requiredBelow).toBe(base.requiredBelow + 52)
+    const withoutText = resolveMeasureAnnotationLanes({ hasHairpin: true, hairpinStackOffset: 52 })
+    expect(withoutText.contentBottom).toBeGreaterThanOrEqual(withoutText.hairpinYOffset! + 52 + 10)
+  })
+
+  it('reserves expression ink clearance below the open end of an automatic hairpin', () => {
+    for (const lowerOffset of [0, 37]) {
+      const lanes = resolveMeasureAnnotationLanes({ hasHairpin: true, expressionTextCount: 2, lyricLineCount: 2, lowerOffset })
+      const hairpinBottom = lanes.hairpinYOffset! + 10 + 0.9
+      const expressionTop = lanes.expressionTextYOffsets[0]! - 13
+      expect(expressionTop - hairpinBottom).toBeGreaterThanOrEqual(4)
+      expect(lanes.expressionTextYOffsets[1]! - lanes.expressionTextYOffsets[0]!).toBe(22)
+    }
+  })
+
+  it('moves a lower annotation row without changing upper lanes or internal gaps', () => {
+    const input = { lyricLineCount: 2, dynamicCount: 2, expressionTextCount: 2, hasHairpin: true, hasStaffText: true }
+    const base = resolveMeasureAnnotationLanes(input)
+    const shifted = resolveMeasureAnnotationLanes({ ...input, lowerOffset: 37 })
+    expect(shifted.lowerOffset).toBe(37)
+    expect(shifted.dynamicMarkYOffsets).toEqual(base.dynamicMarkYOffsets.map(y => y + 37))
+    expect(shifted.expressionTextYOffsets).toEqual(base.expressionTextYOffsets.map(y => y + 37))
+    expect(shifted.hairpinYOffset).toBe(base.hairpinYOffset! + 37)
+    expect(shifted.contentBottom).toBe(base.contentBottom + 37)
+    expect(shifted.requiredBelow).toBe(base.requiredBelow + 37)
+    expect(shifted.requiredAbove).toBe(base.requiredAbove)
+    expect(shifted.staffTextYOffsets).toEqual(base.staffTextYOffsets)
+  })
+
   it('reserves separate boxes for every rehearsal mark in the same measure', () => {
     const lanes = resolveMeasureAnnotationLanes({ rehearsalMarkCount: 3, systemTextCount: 1, tempoCount: 1 })
     expect(lanes.rehearsalMarkYOffsets).toHaveLength(3)

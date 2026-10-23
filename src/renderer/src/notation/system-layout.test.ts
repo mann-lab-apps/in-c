@@ -25,6 +25,143 @@ const releaseQaFixture = readFileSync(
 )
 
 describe('system layout', () => {
+  it.each([false, true])('uses reserved top space once without losing inter-system clearance (explicit break=%s)', explicit => {
+    const measures = [0, 1].map(index => createMeasure({ id: `framed-mark-${index}` }))
+    const layout = createSystemLayout(measures, 960, {
+      pageHeight: 600, systemHeight: 150, systemTop: 96,
+      systemInkBounds: new Map([[0, { top: -62.75, bottom: 80 }], [1, { top: -62.75, bottom: 80 }]]),
+      layout: { systemBreakBeforeMeasureIds: [measures[1]!.id],
+        ...(explicit ? { pageBreakBeforeMeasureIds: [measures[1]!.id] } : {}) }
+    })
+    expect(layout.placements[0]!.y).toBe(96)
+    expect(layout.placements[1]!.y).toBe(explicit ? 696 : 308.75)
+    expect(layout.placements[1]!.y - 62.75 - (layout.placements[0]!.y + 80)).toBeGreaterThanOrEqual(12)
+  })
+
+  it('fits measured top ink on an automatic new page without adding the reserved margin twice', () => {
+    const measures = [0, 1].map(index => createMeasure({ id: `page-mark-${index}` }))
+    const layout = createSystemLayout(measures, 960, {
+      pageHeight: 400, systemHeight: 154, systemTop: 96,
+      systemInkBounds: new Map([[1, { top: -180, bottom: 80 }]]),
+      layout: { systemBreakBeforeMeasureIds: [measures[1]!.id] }
+    })
+    expect(layout.placements.map(placement => placement.y)).toEqual([96, 592])
+    expect(layout.placements[1]!.y - 180).toBe(412)
+  })
+
+  it('keeps header clearance when measured top ink exceeds its reserved lane', () => {
+    const measures = [createMeasure({ id: 'tall-header-mark' })]
+    const before = structuredClone(measures)
+    const layout = createSystemLayout(measures, 960, {
+      systemTop: 122, topInkPadding: 60,
+      systemInkBounds: new Map([[0, { top: -150, bottom: 80 }]])
+    })
+    expect(layout.placements[0]!.y).toBe(210)
+    expect(layout.placements[0]!.y - 150).toBe(60)
+    expect(measures).toEqual(before)
+  })
+
+  it('does not prepend an empty page when the first system exceeds a page', () => {
+    const measures = [createMeasure({ id: 'oversized' })]
+    const original = structuredClone(measures)
+    const layout = createSystemLayout(measures, 960, {
+      pageHeight: 600, systemHeight: 700, systemTop: 72,
+      systemInkBounds: new Map([[0, { top: -90, bottom: 760 }]])
+    })
+    expect(layout.placements[0]!.y).toBe(102)
+    expect(layout.height).toBe(874)
+    expect(measures).toEqual(original)
+  })
+
+  it.each([false, true])('moves an oversized later system only once (explicit break=%s)', explicit => {
+    const measures = [createMeasure({ id: 'short' }), createMeasure({ id: 'tall' })]
+    const layout = createSystemLayout(measures, 960, {
+      pageHeight: 600,
+      systemMetrics: new Map([[0, { systemHeight: 150, systemTop: 72 }],
+        [1, { systemHeight: 700, systemTop: 72 }]]),
+      layout: { systemBreakBeforeMeasureIds: ['tall'],
+        ...(explicit ? { pageBreakBeforeMeasureIds: ['tall'] } : {}) }
+    })
+    expect(layout.placements.map(placement => placement.y)).toEqual([72, 672])
+    expect(layout.height).toBe(1372)
+  })
+
+  it('paginates each system with its own height and preserves explicit page breaks', () => {
+    const measures = [0, 1, 2].map(index => createMeasure({ id: `local-system-${index}` }))
+    const systemMetrics = new Map([0, 1, 2].map(index => [index,
+      { systemHeight: index === 1 ? 300 : 150, systemTop: 72 }]))
+    const layout = { systemBreakBeforeMeasureIds: measures.slice(1).map(measure => measure.id) }
+    const screen = createSystemLayout(measures, 960, { layout, systemMetrics })
+    expect(screen.placements.map(placement => placement.y)).toEqual([72, 222, 522])
+    expect(screen.height).toBe(672)
+    const print = createSystemLayout(measures, 960, { layout, systemMetrics, pageHeight: 600 })
+    expect(print.placements.map(placement => placement.y)).toEqual([72, 222, 672])
+    expect(print.height).toBe(822)
+    const explicit = createSystemLayout(measures, 960, { systemMetrics, pageHeight: 600,
+      layout: { ...layout, pageBreakBeforeMeasureIds: [measures[1]!.id] } })
+    expect(explicit.placements.map(placement => placement.y)).toEqual([72, 672, 972])
+  })
+
+  it.each([false, true])('packs for the densest parallel staff without depending on part order (compact=%s)', compactSpacing => {
+    const sparse = createMeasures(4)
+    const dense = sparse.map((measure, index) => ({ ...measure, id: `dense-${index}`,
+      voices: [createVoice({ events: Array.from({ length: 16 }, (_, event) => createNote({
+        id: `dense-${index}-${event}`, pitch: { step: 'C', octave: 3 },
+        position: createTimePosition(event * TICKS_PER_QUARTER / 4), duration: createDuration('16th')
+      })) })]
+    }))
+    const before = structuredClone({ sparse, dense })
+    const geometry = (layout: ReturnType<typeof createSystemLayout>) =>
+      layout.placements.map(({ width, x, systemIndex }) => ({ width, x, systemIndex }))
+    const varied = dense.map((measure, index) => index ? { ...sparse[index]!, id: measure.id } : measure)
+    for (const staff of [dense, varied]) for (const width of [700, 2400]) {
+      const reference = createSystemLayout(staff, width, { compactSpacing })
+      expect(geometry(createSystemLayout(sparse, width, { compactSpacing, parallelMeasures: [staff] })))
+        .toEqual(geometry(reference))
+      expect(geometry(createSystemLayout(staff, width, { compactSpacing, parallelMeasures: [sparse] })))
+        .toEqual(geometry(reference))
+    }
+    expect({ sparse, dense }).toEqual(before)
+  })
+
+  it.each(['start', 'end', 'both'] as const)('reserves repeat %s barline space before packing sparse systems', edge => {
+    const measures = createMeasures(6).map(measure => ({
+      ...measure,
+      voices: [createVoice({ events: [createNote({
+        id: `${measure.id}-whole`,
+        pitch: { step: 'C', octave: 4 },
+        duration: createDuration('whole')
+      })] })]
+    }))
+    expect(createSystemLayout(measures, 666).systemCount).toBe(1)
+    measures[0]!.repeat = { start: edge !== 'end' }
+    measures[5]!.repeat = { end: edge !== 'start' }
+    const before = structuredClone(measures)
+    const layout = createSystemLayout(measures, 666)
+    expect(layout.systemCount).toBe(2)
+    expect(layout.placements[0]!.width).toBeGreaterThanOrEqual(edge === 'end' ? 128 : 148)
+    expect(measures).toEqual(before)
+  })
+
+  it.each([undefined, 600])('reserves measured curve envelopes across systems with pageHeight=%s', pageHeight => {
+    const measures = createMeasures(2)
+    const before = structuredClone(measures)
+    const layout = createSystemLayout(measures, 600, {
+      layout: { systemBreakBeforeMeasureIds: [measures[1]!.id] },
+      pageHeight,
+      systemInkBounds: new Map([[0, { top: 40, bottom: 310 }], [1, { top: -140, bottom: 80 }]])
+    })
+    const [first, second] = layout.placements
+    expect(second!.y - 140 - (first!.y + 310)).toBeGreaterThanOrEqual(12)
+    expect(layout.height).toBeGreaterThanOrEqual(second!.y + 80)
+    if (pageHeight) {
+      for (const [placement, top, bottom] of [[first!, 40, 310], [second!, -140, 80]] as const) {
+        expect(Math.floor((placement.y + top) / pageHeight)).toBe(Math.floor((placement.y + bottom) / pageHeight))
+      }
+    }
+    expect(measures).toEqual(before)
+  })
+
   it('wraps measures instead of shrinking below the minimum width', () => {
     const layout = createSystemLayout(createMeasures(9), 900)
 
@@ -324,6 +461,16 @@ describe('system layout', () => {
     })
   })
 
+  it.each([true, false])('compares the next measure with its previous inline clef (reset=%s)', reset => {
+    const previous = createMeasure({ voices: [createVoice({ events: [createNote({
+      id: 'inline-clef-before-boundary', pitch: { step: 'C', octave: 4 },
+      duration: createDuration('whole'), clefBefore: { sign: 'F', line: 4 }
+    })] })] })
+    const current = createMeasure({ clef: reset ? { sign: 'G', line: 2 } : { sign: 'F', line: 4 } })
+    expect(resolveLeadingNotationVisibility(current, previous, false).showsClef).toBe(reset)
+    expect(resolveLeadingNotationVisibility(current, previous, true).showsClef).toBe(true)
+  })
+
   it('scales leading notation padding with the visible key signature', () => {
     const cMajor = createMeasure({
       keySignature: { fifths: 0, mode: 'major' }
@@ -541,6 +688,14 @@ describe('system layout', () => {
     expect(createSystemLayout(createMeasures(9), 900).height).toBeGreaterThan(
       226
     )
+  })
+
+  it('reserves the same ledger space for an inline clef as for the equivalent measure clef', () => {
+    const note = createNote({ id: 'inline-high-note', pitch: { step: 'C', octave: 7 }, duration: createDuration('whole') })
+    const bass = { sign: 'F' as const, line: 4 }
+    const inline = createMeasure({ voices: [createVoice({ events: [{ ...note, clefBefore: bass }] })] })
+    const wholeMeasure = createMeasure({ clef: bass, voices: [createVoice({ events: [note] })] })
+    expect(createSystemLayout([inline], 700).placements[0]!.y).toBe(createSystemLayout([wholeMeasure], 700).placements[0]!.y)
   })
 
   it('adds vertical space for notes far above and below the staff', () => {

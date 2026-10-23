@@ -3,8 +3,10 @@ import {
   Accidental,
   BarlineType,
   Beam,
+  Clef as VexClef,
   Dot,
   Formatter,
+  Ornament,
   Renderer,
   Stave,
   StaveNote,
@@ -16,7 +18,10 @@ import {
 import {
   collectTiePairs,
   durationToTicks,
+  findVoltaEndIndex,
   measureDurationTicks,
+  projectRepeatMarksToStaff,
+  scoreRepeatSource,
   resolveNotePitch,
   TICKS_PER_QUARTER,
   type RhythmFeelMarking,
@@ -47,6 +52,7 @@ import {
   type MeasurePlacement
 } from './system-layout'
 import {
+  resolveMeasureClefAtTick,
   toVexFlowAccidental,
   toVexFlowClef,
   toVexFlowDuration,
@@ -73,8 +79,8 @@ import {
   SYSTEM_TEXT_Y_OFFSET,
   type MeasureAnnotationLanes
 } from './annotation-lanes'
-import { resolveScoreVerticalLayout } from './score-vertical-layout'
-import type { PrintLayoutPlan } from './print-layout'
+import { resolveScoreVerticalLayout, resolveScoreSystemVerticalLayouts, type SystemStaffInkBounds } from './score-vertical-layout'
+import { estimatePrintedPageCount, type PrintLayoutPlan } from './print-layout'
 import {
   resolveRangeSelectionBands,
   type RangeSelectionPoint
@@ -151,10 +157,25 @@ const LYRIC_EDITOR_WIDTH = 148
 const LYRIC_EDITOR_HEIGHT = 34
 const LYRIC_EDITOR_BASELINE_OFFSET = 22
 const MAX_AUTO_VOLTA_VISIBLE_MEASURES = 3
+const STACCATO_RADIUS = 1.9
+
+interface InkBounds {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
 
 interface CursorPoint {
+  voiceLane?: string
+  staccatoYs?: number[]
+  durationDotInkBounds?: InkBounds[]
+  isRest?: boolean
   articulationAboveClearance?: number
   articulationBelowClearance?: number
+  tupletAboveClearance?: number
+  tupletBelowClearance?: number
+  tupletInkBounds?: InkBounds[]
   measureId?: string
   x: number
   y: number
@@ -162,7 +183,16 @@ interface CursorPoint {
   noteHeadBottomY?: number
   noteHeadBeginX?: number
   noteHeadEndX?: number
+  noteHeadInkBounds?: InkBounds
   stemDirection?: number
+  stemX?: number
+  stemTopY?: number
+  stemBottomY?: number
+}
+
+interface RenderedTuplet {
+  eventIds: string[]
+  tuplet: VexTuplet
 }
 
 interface SystemBounds {
@@ -178,7 +208,7 @@ type HairpinRenderSegment = ReturnType<typeof resolveHairpinSegments>[number]
 
 interface HairpinAutoLane {
   globalStaffIndex: number
-  lane: number
+  yOffset: number
   segment: Pick<HairpinRenderSegment, 'systemIndex' | 'x1' | 'x2'>
 }
 
@@ -186,6 +216,7 @@ interface RenderedSpanSegment {
   element: SVGGraphicsElement
   address: SpanSegmentAddress
   staffY: number
+  systemIndex: number
 }
 
 interface MeasureAnnotationMaps {
@@ -214,6 +245,14 @@ interface RenderedStaffTarget {
   staff: Staff
   staffId: string
   staffIndex: number
+}
+
+interface PreparedStaffMeasure {
+  measure: Measure
+  stave: Stave
+  voices: Voice[]
+  staffIndex: number
+  draw: (shared: boolean) => void
 }
 
 interface RenderedStaffInteraction {
@@ -251,7 +290,9 @@ interface RenderedStaffState {
 
 interface ActiveVoltaRender {
   endIndex: number
-  isLongSpan: boolean
+  displayEndIndex: number
+  showEnd: boolean
+  endStyle?: 'open' | 'closed'
   number: 1 | 2
 }
 
@@ -294,18 +335,20 @@ export function NotationPreview({
     return () => resizeObserver.disconnect()
   }, [])
 
-  useEffect(() => {
+  function renderPass(systemInkBounds = new Map<number, { top: number; bottom: number }>(), pass = 0,
+    staffInkBounds: SystemStaffInkBounds = new Map(),
+    lowerAnnotationOffsets = new Map<string, number>(),
+    hairpinStackOffsets = new Map<string, number>()): (() => void) | undefined {
     const container = containerRef.current
-
-    if (!container) {
-      return
-    }
-
+    if (!container) return
     container.replaceChildren()
 
-    const renderedStaffTargets = createRenderedStaffTargets(score)
+    const repeatSource = scoreRepeatSource(score)
+    const renderedStaffTargets = createRenderedStaffTargets(score).map(target => repeatSource
+      ? { ...target, staff: projectRepeatMarksToStaff(repeatSource, target.staff) }
+      : target)
     const renderedPart = score.parts[0]
-    const renderedStaff = renderedPart?.staves[0]
+    const renderedStaff = renderedStaffTargets[0]?.staff
     const measures = renderedStaff?.measures ?? []
     const effectiveRenderWidth = printLayoutPlan?.renderWidth ?? renderWidth
     const printScale = printLayoutPlan?.scale ?? 1
@@ -313,18 +356,35 @@ export function NotationPreview({
     const annotationMaps = createMeasureAnnotationMaps(score)
     const vertical = resolveScoreVerticalLayout(score, lyricScale,
       printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT,
-      printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP)
+      printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP, undefined, lowerAnnotationOffsets, hairpinStackOffsets)
     const annotationLanesByMeasureId = vertical.lanesByMeasureId
     const visibleStaffCount = Math.max(1, renderedStaffTargets.length)
-    const layout = createSystemLayout(measures, effectiveRenderWidth, {
+    const layoutOptions = {
+      parallelMeasures: renderedStaffTargets.slice(1).map(target => target.staff.measures),
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
       leadingGutter: SYSTEM_LABEL_GUTTER,
       layout: score.layout,
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
       systemHeight: vertical.systemHeight,
-      systemTop: vertical.systemTop
-    })
+      systemTop: vertical.systemTop,
+      topInkPadding: vertical.topInkPadding,
+      systemInkBounds
+    }
+    const initialLayout = createSystemLayout(measures, effectiveRenderWidth, layoutOptions)
+    const systemVerticals = resolveScoreSystemVerticalLayouts(score, initialLayout.placements, lyricScale,
+      printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT,
+      printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP, staffInkBounds, lowerAnnotationOffsets, hairpinStackOffsets)
+    const layout = createSystemLayout(measures, effectiveRenderWidth, { ...layoutOptions, systemMetrics: systemVerticals })
+    const measuredSystemInkBounds = new Map<number, { top: number; bottom: number }>()
+    const measuredStaffInkBounds: SystemStaffInkBounds = new Map()
+    const staffInkFor = (system: number) => {
+      if (!measuredStaffInkBounds.has(system)) measuredStaffInkBounds.set(system, new Map())
+      return measuredStaffInkBounds.get(system)!
+    }
+    const renderedSegments: SpanReference[] = []
+    const renderedVoltas: { element: SVGGElement; systemIndex: number }[] = []
+    const preparedMeasures = new Map<MeasurePlacement, PreparedStaffMeasure[]>()
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(effectiveRenderWidth, layout.height)
     const context = renderer.getContext()
@@ -503,7 +563,7 @@ export function NotationPreview({
           svg,
           placement,
           renderedStaffTargets,
-          vertical.staffOffsets
+          systemVerticals.get(placement.systemIndex)!.staffOffsets
         )
       }
 
@@ -562,29 +622,36 @@ export function NotationPreview({
       )
 
       const voltaEndIndex = measure.volta?.start
-        ? findLaterVoltaEndIndex(measures, placementIndex, measure.volta.number)
+        ? findVoltaEndIndex(measures, placementIndex)
         : undefined
 
       if (measure.volta?.start && voltaEndIndex !== undefined) {
         const visibleMeasureCount = voltaEndIndex - placementIndex + 1
+        const explicitEndIndex = measure.volta.displayEndMeasureId
+          ? measures.findIndex(item => item.id === measure.volta!.displayEndMeasureId) : -1
+        const hasExplicitEnd = explicitEndIndex >= placementIndex && explicitEndIndex <= voltaEndIndex
+        const shortened = visibleMeasureCount > MAX_AUTO_VOLTA_VISIBLE_MEASURES && !hasExplicitEnd
 
         activeVolta = {
           endIndex: voltaEndIndex,
-          isLongSpan: visibleMeasureCount > MAX_AUTO_VOLTA_VISIBLE_MEASURES,
+          displayEndIndex: hasExplicitEnd ? explicitEndIndex : shortened ? placementIndex : voltaEndIndex,
+          showEnd: !shortened,
+          endStyle: measures[voltaEndIndex]!.volta?.endStyle,
           number: measure.volta.number
         }
       }
 
-      const suppressLongAutoVoltaContinuation = Boolean(
-        activeVolta?.isLongSpan && !measure.volta?.start
+      const suppressVoltaContinuation = Boolean(
+        activeVolta && placementIndex > activeVolta.displayEndIndex
       )
       const displayVolta =
-        !suppressLongAutoVoltaContinuation &&
-        (measure.volta || (activeVolta && !activeVolta.isLongSpan))
+        !suppressVoltaContinuation &&
+        (measure.volta || activeVolta)
           ? {
               number: (measure.volta ?? activeVolta)?.number ?? 1,
               start: measure.volta?.start,
-              end: measure.volta?.end && !activeVolta?.isLongSpan
+              end: activeVolta ? activeVolta.showEnd && placementIndex === activeVolta.displayEndIndex : measure.volta?.end,
+              endStyle: activeVolta ? activeVolta.endStyle : measure.volta?.endStyle
             }
           : undefined
 
@@ -600,13 +667,13 @@ export function NotationPreview({
             )
           : placement.x + placement.width
 
-        drawVoltaMark(
+        renderedVoltas.push({ systemIndex: placement.systemIndex, element: drawVoltaMark(
           svg,
           notationStartX,
           notationEndX,
           staffTopY,
           displayVolta
-        )
+        ) })
       }
 
       if (measure.volta?.end || activeVolta?.endIndex === placementIndex) {
@@ -674,7 +741,7 @@ export function NotationPreview({
             measure.voices.length > 1
           )
         )
-        const tuplets = (voice.tuplets ?? []).map((group) => {
+        const tuplets: RenderedTuplet[] = (voice.tuplets ?? []).map((group) => {
           const groupEvents = group.eventIds.map((eventId) =>
             events.find((event) => event.id === eventId)
           )
@@ -688,16 +755,19 @@ export function NotationPreview({
             return note
           })
 
-          return new VexTuplet(groupNotes, {
-            numNotes: group.actualNotes,
-            notesOccupied: group.normalNotes,
-            bracketed: groupEvents.some(
-              (event) =>
-                event?.type === 'rest' ||
-                (event && !isNotationBeamable(event))
-            ),
-            ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
-          })
+          return {
+            eventIds: group.eventIds,
+            tuplet: new VexTuplet(groupNotes, {
+              numNotes: group.actualNotes,
+              notesOccupied: group.normalNotes,
+              bracketed: groupEvents.some(
+                (event) =>
+                  event?.type === 'rest' ||
+                  (event && !isNotationBeamable(event))
+              ),
+              ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
+            })
+          }
         })
         const vexVoice = new Voice({
           numBeats: measure.timeSignature.beats,
@@ -717,192 +787,200 @@ export function NotationPreview({
         }
       })
 
-      new Formatter()
-        .joinVoices(voices.map(({ vexVoice }) => vexVoice))
-        .formatToStave(
-          voices.map(({ vexVoice }) => vexVoice),
-          stave
-        )
-
-      voices.forEach(({ events, notes, scoreTuplets }) => {
-        const notesByVoiceEventId = new Map(
-          notes.map((note, index) => [events[index].id, note])
-        )
-        const eventXs = new Map(
-          notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
-        )
-        const onsetShifts = resolveMixedTupletOnsetShifts(
-          events,
-          scoreTuplets,
-          eventXs
-        )
-
-        onsetShifts.forEach((shift, eventId) => {
-          const note = notesByVoiceEventId.get(eventId)
-
-          if (note) {
-            note.setXShift(note.getXShift() + shift)
-          }
-        })
-      })
-
-      let firstEventX: number | undefined
-
-      voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
-        vexVoice.draw(context, stave)
-        beams.forEach((beam) => beam.setContext(context).draw())
-        tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
-
-        notes.forEach((note, noteIndex) => {
-          const event = events[noteIndex]
-          const eventId = note.getAttribute('data-event-id') as string
-          const svgElement = note.getSVGElement()
-          const eventAddress =
-            renderedPart && renderedStaff
-              ? {
-                  partId: renderedPart.id,
-                  staffId: renderedStaff.id,
-                  measureId: measure.id,
-                  voiceId
-                }
-              : undefined
-
-          if (!svgElement) {
-            return
-          }
-
-          svgElement.classList.add('notation-event')
-          svgElement.classList.toggle('is-preview', isPreviewEventId(eventId))
-          svgElement.classList.toggle(
-            'is-selected',
-            resolveNotationEventTone(
-              eventId,
-              selectedEventIdSet,
-              selectedEventId,
-              isPlaybackEventTarget(eventId, measure.id, voiceId, {
-                partId: renderedPart?.id,
-                staffId: renderedStaff?.id,
-                eventId: playbackEventId,
-                address: playbackEventAddress
-              }),
-              eventAddress,
-              selectedEventAddress
-            ) === 'selected'
+      const draw = (shared: boolean) => {
+        if (!shared) voices.forEach(({ events, notes, scoreTuplets }) => {
+          const notesByVoiceEventId = new Map(
+            notes.map((note, index) => [events[index].id, note])
           )
-          svgElement.classList.toggle(
-            'is-playback',
-            resolveNotationEventTone(
-              eventId,
-              selectedEventIdSet,
-              selectedEventId,
-              isPlaybackEventTarget(eventId, measure.id, voiceId, {
-                partId: renderedPart?.id,
-                staffId: renderedStaff?.id,
-                eventId: playbackEventId,
-                address: playbackEventAddress
-              }),
-              eventAddress,
-              selectedEventAddress
-            ) === 'playback'
+          const eventXs = new Map(
+            notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
           )
-          svgElement.setAttribute('data-event-id', eventId)
-          if (eventAddress) {
-            svgElement.setAttribute('data-part-id', eventAddress.partId)
-            svgElement.setAttribute('data-staff-id', eventAddress.staffId)
-            svgElement.setAttribute('data-measure-id', eventAddress.measureId)
-            svgElement.setAttribute('data-voice-id', eventAddress.voiceId)
-          }
-          svgElement.setAttribute(
-            'data-voice-lane',
-            String(note.getAttribute('data-voice-lane') ?? 'neutral')
+          const onsetShifts = resolveMixedTupletOnsetShifts(
+            events,
+            scoreTuplets,
+            eventXs
           )
-          const stemDirection = note.getAttribute('data-voice-stem-direction')
-          if (stemDirection) {
-            svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
-          }
 
-          if (!isPreviewEventId(eventId)) {
-            svgElement.setAttribute('role', 'button')
-            svgElement.setAttribute('tabindex', '0')
-            svgElement.addEventListener('click', (event) => {
-              event.stopPropagation()
-              onSelectEvent(eventId, event.shiftKey, eventAddress)
-            })
-            svgElement.addEventListener('mousedown', (event) => {
-              if (event.button !== 0) {
-                return
-              }
+          onsetShifts.forEach((shift, eventId) => {
+            const note = notesByVoiceEventId.get(eventId)
 
-              event.preventDefault()
-              event.stopPropagation()
-              dragAnchor = { address: eventAddress, eventId }
-              onSelectEvent(eventId, event.shiftKey, eventAddress)
-            })
-            svgElement.addEventListener('mouseenter', (event) => {
-              if (!dragAnchor || event.buttons !== 1) {
-                return
-              }
-
-              if (
-                !dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)
-              ) {
-                return
-              }
-
-              event.preventDefault()
-              onSelectEventRange(dragAnchor.eventId, eventId, eventAddress)
-            })
-          }
-
-          const centeredRestShift =
-            event?.type === 'rest' && event.fullMeasure
-              ? centerFullMeasureRest(svgElement, {
-                  x: defaultNoteStartX,
-                  width: stave.getNoteEndX() - defaultNoteStartX
-                })
-              : 0
-          const eventX = getVisibleNoteX(note) + centeredRestShift
-
-          if (
-            isPlaybackEventTarget(eventId, measure.id, voiceId, {
-              partId: renderedPart?.id,
-              staffId: renderedStaff?.id,
-              eventId: playbackEventId,
-              address: playbackEventAddress
-            })
-          ) {
-            playbackPoint = {
-              x: eventX,
-              y: placement.y
+            if (note) {
+              note.setXShift(note.getXShift() + shift)
             }
-          }
-
-          staffRenderState.pointsByEventId.set(eventId, {
-            measureId: measure.id,
-            x: eventX,
-            y: placement.y,
-            ...resolveSlurAnchorMetrics(note),
-            ...resolveSlurAttachmentClearance(event, note, placement.y)
           })
-          firstEventX = Math.min(firstEventX ?? eventX, eventX)
-
-          if (event?.clefBefore) {
-            drawInlineClef(svg, event.clefBefore, eventX - 24, placement.y, event.id)
-          }
-          drawEventAttachments(svg, event, note, eventX, placement.y, { lyricScale, onSelectLyric, inlineLyricEditor })
         })
-      })
 
-      drawMeasureAnnotations(
-        svg,
-        placement,
-        measure,
-        placement.y,
-        annotationMaps,
-        annotationLanesByMeasureId,
-        firstEventX,
-        onSelectObject
-      )
+        let firstEventX: number | undefined
+
+        voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
+          vexVoice.draw(context, stave)
+          beams.forEach((beam) => beam.setContext(context).draw())
+          tuplets.forEach(({ tuplet }) => tuplet.setContext(context).draw())
+          const tupletClearanceByEventId = resolveTupletAttachmentClearances(
+            tuplets,
+            new Map(notes.map((note, index) => [events[index].id, note]))
+          )
+
+          notes.forEach((note, noteIndex) => {
+            const event = events[noteIndex]
+            const eventId = note.getAttribute('data-event-id') as string
+            const svgElement = note.getSVGElement()
+            const eventAddress =
+              renderedPart && renderedStaff
+                ? {
+                    partId: renderedPart.id,
+                    staffId: renderedStaff.id,
+                    measureId: measure.id,
+                    voiceId
+                  }
+                : undefined
+
+            if (!svgElement) {
+              return
+            }
+
+            svgElement.classList.add('notation-event')
+            svgElement.classList.toggle('is-preview', isPreviewEventId(eventId))
+            svgElement.classList.toggle(
+              'is-selected',
+              resolveNotationEventTone(
+                eventId,
+                selectedEventIdSet,
+                selectedEventId,
+                isPlaybackEventTarget(eventId, measure.id, voiceId, {
+                  partId: renderedPart?.id,
+                  staffId: renderedStaff?.id,
+                  eventId: playbackEventId,
+                  address: playbackEventAddress
+                }),
+                eventAddress,
+                selectedEventAddress
+              ) === 'selected'
+            )
+            svgElement.classList.toggle(
+              'is-playback',
+              resolveNotationEventTone(
+                eventId,
+                selectedEventIdSet,
+                selectedEventId,
+                isPlaybackEventTarget(eventId, measure.id, voiceId, {
+                  partId: renderedPart?.id,
+                  staffId: renderedStaff?.id,
+                  eventId: playbackEventId,
+                  address: playbackEventAddress
+                }),
+                eventAddress,
+                selectedEventAddress
+              ) === 'playback'
+            )
+            svgElement.setAttribute('data-event-id', eventId)
+            if (eventAddress) {
+              svgElement.setAttribute('data-part-id', eventAddress.partId)
+              svgElement.setAttribute('data-staff-id', eventAddress.staffId)
+              svgElement.setAttribute('data-measure-id', eventAddress.measureId)
+              svgElement.setAttribute('data-voice-id', eventAddress.voiceId)
+            }
+            svgElement.setAttribute(
+              'data-voice-lane',
+              String(note.getAttribute('data-voice-lane') ?? 'neutral')
+            )
+            const stemDirection = note.getAttribute('data-voice-stem-direction')
+            if (stemDirection) {
+              svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
+            }
+
+            if (!isPreviewEventId(eventId)) {
+              svgElement.setAttribute('role', 'button')
+              svgElement.setAttribute('tabindex', '0')
+              svgElement.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                event.stopPropagation()
+                if (!event.repeat) onSelectEvent(eventId, event.shiftKey, eventAddress)
+              })
+              svgElement.addEventListener('click', (event) => {
+                event.stopPropagation()
+                onSelectEvent(eventId, event.shiftKey, eventAddress)
+              })
+              svgElement.addEventListener('mousedown', (event) => {
+                if (event.button !== 0) {
+                  return
+                }
+
+                event.preventDefault()
+                event.stopPropagation()
+                dragAnchor = { address: eventAddress, eventId }
+                onSelectEvent(eventId, event.shiftKey, eventAddress)
+              })
+              svgElement.addEventListener('mouseenter', (event) => {
+                if (!dragAnchor || event.buttons !== 1) {
+                  return
+                }
+
+                if (
+                  !dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)
+                ) {
+                  return
+                }
+
+                event.preventDefault()
+                onSelectEventRange(dragAnchor.eventId, eventId, eventAddress)
+              })
+            }
+
+            const centeredRestShift =
+              event?.type === 'rest' && event.fullMeasure
+                ? centerFullMeasureRest(svgElement, {
+                    x: defaultNoteStartX,
+                    width: stave.getNoteEndX() - defaultNoteStartX
+                  })
+                : 0
+            const eventX = getVisibleNoteX(note) + centeredRestShift
+
+            if (
+              isPlaybackEventTarget(eventId, measure.id, voiceId, {
+                partId: renderedPart?.id,
+                staffId: renderedStaff?.id,
+                eventId: playbackEventId,
+                address: playbackEventAddress
+              })
+            ) {
+              playbackPoint = {
+                x: eventX,
+                y: placement.y
+              }
+            }
+
+            staffRenderState.pointsByEventId.set(eventId, {
+              measureId: measure.id,
+              x: eventX,
+              y: placement.y,
+              ...resolveSlurAnchorMetrics(note),
+              ...tupletClearanceByEventId.get(eventId),
+              ...resolveSlurAttachmentClearance(event, note, placement.y)
+            })
+            firstEventX = Math.min(firstEventX ?? eventX, eventX)
+
+            if (event?.clefBefore) {
+              drawInlineClef(svg, event.clefBefore, eventX - 24, stave, event.id)
+            }
+            drawEventAttachments(svg, event, note, eventX, placement.y, { lyricScale, onSelectLyric, inlineLyricEditor }, annotationLanesByMeasureId.get(measure.id)?.lowerOffset)
+          })
+        })
+
+        drawMeasureAnnotations(
+          svg,
+          placement,
+          measure,
+          placement.y,
+          annotationMaps,
+          annotationLanesByMeasureId,
+          firstEventX,
+          onSelectObject
+        )
+      }
+      preparedMeasures.set(placement, [{ measure, stave, staffIndex: primaryStaffIndex,
+        voices: voices.map(({ vexVoice }) => vexVoice), draw }])
     })
 
     for (const placement of layout.placements) {
@@ -919,12 +997,12 @@ export function NotationPreview({
           continue
         }
 
-        drawPassiveStaffMeasure(
+        const prepared = preparePassiveStaffMeasure(
           context,
           svg,
           placement,
           target,
-          vertical.staffOffsets[target.globalStaffIndex]!,
+          systemVerticals.get(placement.systemIndex)!.staffOffsets[target.globalStaffIndex]!,
           measure,
           target.staff.measures[measureIndex - 1],
           annotationMaps,
@@ -952,12 +1030,62 @@ export function NotationPreview({
           },
           staffRenderState
         )
+        preparedMeasures.get(placement)!.push(prepared)
+      }
+    }
+
+    // Share tick positions across aligned staves before drawing notes or attachments.
+    for (const [placement, prepared] of preparedMeasures) {
+      const compatible = new Map<string, PreparedStaffMeasure[]>()
+      for (const item of prepared) {
+        const key = `${measureDurationTicks(item.measure)}:${item.voices[0]?.getTotalTicks().value()}`
+        compatible.set(key, [...(compatible.get(key) ?? []), item])
+      }
+      for (const group of compatible.values()) {
+        formatStaffMeasures(group, context)
+        for (const item of group) {
+          const target = svg?.querySelector(`.notation-measure[data-measure-id="${CSS.escape(item.measure.id)}"]`)
+          target?.setAttribute('data-note-start-x', String(item.stave.getNoteStartX()))
+          if (placement.isSystemStart) updateStaffSystemBounds(staffRenderState.boundsByStaffSystemKey,
+            placement, item.staffIndex, item.stave.getY(), item.stave.getNoteStartX(), item.measure.id)
+          item.draw(group.length > 1)
+        }
       }
     }
 
     drawRangeSelectionBands(svg, selectedEventIdSet, staffRenderState)
 
-    collectTiePairs(score).forEach((pair) => {
+    const tiePairs = collectTiePairs(score)
+    const tieInk: { systemIndex: number; bounds: InkBounds }[] = []
+    const drawMeasuredTie = (first: StaveNote | null, last: StaveNote | null, eventId: string) => {
+      const tie = drawTie(context, first, last)
+      const systemIndex = staffRenderState.systemsByEventId.get(eventId)!
+      const staffIndex = staffRenderState.staffIndexByEventId.get(eventId)!
+      const systemY = layout.placements.find(placement => placement.systemIndex === systemIndex)!.y
+      const staffY = staffRenderState.boundsByStaffSystemKey.get(createStaffSystemKey(systemIndex, staffIndex))!.y
+      const group = tie.getSVGElement()
+      group?.setAttribute('data-tie-system', String(systemIndex))
+      // VexFlow owns the curve; measure its filled paths rather than duplicating its geometry.
+      for (const path of group?.querySelectorAll('path') ?? []) {
+        const box = path.getBBox()
+        if (box.width <= 0 || box.height <= 0 || ![box.x, box.y, box.width, box.height].every(Number.isFinite)) continue
+        const bounds = { left: box.x, right: box.x + box.width, top: box.y, bottom: box.y + box.height }
+        tieInk.push({ systemIndex, bounds })
+        const previous = measuredSystemInkBounds.get(systemIndex)
+        measuredSystemInkBounds.set(systemIndex, {
+          top: Math.min(previous?.top ?? Infinity, bounds.top - systemY),
+          bottom: Math.max(previous?.bottom ?? -Infinity, bounds.bottom - systemY)
+        })
+        const staffInk = staffInkFor(systemIndex), previousStaff = staffInk.get(staffIndex)
+        staffInk.set(staffIndex, {
+          top: Math.min(previousStaff?.top ?? Infinity, bounds.top - staffY),
+          bottom: Math.max(previousStaff?.bottom ?? -Infinity, bounds.bottom - staffY)
+        })
+      }
+    }
+    const hangingStarts = new Set<string>()
+    const hangingStops = new Set<string>()
+    tiePairs.forEach((pair) => {
       const firstNote = staffRenderState.notesByEventId.get(pair.fromEventId)
       const lastNote = staffRenderState.notesByEventId.get(pair.toEventId)
 
@@ -965,20 +1093,37 @@ export function NotationPreview({
         return
       }
 
-      if (
+      if (pair.isDiscontinuous) {
+        if (!tiePairs.some(other => !other.isDiscontinuous && other.fromEventId === pair.fromEventId) && !hangingStarts.has(pair.fromEventId)) {
+          drawMeasuredTie(firstNote, null, pair.fromEventId)
+          hangingStarts.add(pair.fromEventId)
+        }
+        if (!hangingStops.has(pair.toEventId)) {
+          drawMeasuredTie(null, lastNote, pair.toEventId)
+          hangingStops.add(pair.toEventId)
+        }
+      } else if (
         staffRenderState.systemsByEventId.get(pair.fromEventId) ===
         staffRenderState.systemsByEventId.get(pair.toEventId)
       ) {
-        drawTie(context, firstNote, lastNote)
+        drawMeasuredTie(firstNote, lastNote, pair.fromEventId)
       } else {
-        drawTie(context, firstNote, null)
-        drawTie(context, null, lastNote)
+        drawMeasuredTie(firstNote, null, pair.fromEventId)
+        drawMeasuredTie(null, lastNote, pair.toEventId)
       }
     })
 
+    const measuredLowerOffsets = new Map(lowerAnnotationOffsets)
+    const measuredHairpinStacks = new Map(hairpinStackOffsets)
+    const slurInk: { systemIndex: number; bounds: InkBounds }[] = []
+    const hairpinInk: { systemIndex: number; bounds: InkBounds }[] = []
+    const textInk: { systemIndex: number; bounds: InkBounds }[] = []
+    let renderedViewportTop = 0
+    let renderedViewportLeft = 0
+    let renderedViewportWidth = effectiveRenderWidth
     if (svg) {
-      const manualBounds: DOMRect[] = []
-      const renderedSegments: SpanReference[] = []
+      const spanBounds: DOMRect[] = []
+      const lowerSlurInk: { systemIndex: number; staffIndex: number; bounds: InkBounds }[] = []
       const automaticHairpinLanes: HairpinAutoLane[] = []
       ;(score.slurs ?? []).forEach((slur, slurIndex) => {
         const start = staffRenderState.pointsByEventId.get(slur.startEventId)
@@ -1000,13 +1145,23 @@ export function NotationPreview({
           return
         }
 
-        const slurSide = resolveSlurSideForAnnotationLanes(resolveSlurSide(start, end), [
+        const slurSide = resolvePolyphonicSlurSide(start, end) ?? resolveSlurSideForAnnotationLanes(resolveSlurSide(start, end), [
           start.measureId
             ? annotationLanesByMeasureId.get(start.measureId)
             : undefined,
           end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
         ])
 
+        const interiorPoints = new Map<number, CursorPoint[]>()
+        for (const [eventId, point] of staffRenderState.pointsByEventId) {
+          if (eventId === slur.startEventId || eventId === slur.endEventId ||
+            staffRenderState.staffIndexByEventId.get(eventId) !== staffRenderState.staffIndexByEventId.get(slur.startEventId)) continue
+          const system = staffRenderState.systemsByEventId.get(eventId)
+          if (system === undefined || system < startSystem || system > endSystem) continue
+          const points = interiorPoints.get(system) ?? []
+          points.push(point)
+          interiorPoints.set(system, points)
+        }
         const segments = drawSlurSegments(
           svg,
           start,
@@ -1017,15 +1172,77 @@ export function NotationPreview({
           slurIndex,
           slurSide,
           renderedStaffTargets.find(target => target.globalStaffIndex === staffRenderState.staffIndexByEventId.get(slur.startEventId))!,
-          slur.engraving
+          slur.engraving,
+          interiorPoints
         )
         for (const segment of segments) {
           segment.element.setAttribute('data-span-staff-y', String(segment.staffY))
-          if (slur.engraving) manualBounds.push(segment.element.getBBox())
+          const staffIndex = staffRenderState.staffIndexByEventId.get(slur.startEventId)!
+          const staffInk = staffInkFor(segment.systemIndex)
+          const previousStaffInk = staffInk.get(staffIndex)
+          const staffTop = Number(segment.element.getAttribute('data-slur-ink-top')) - segment.staffY
+          const staffBottom = Number(segment.element.getAttribute('data-slur-ink-bottom')) - segment.staffY
+          staffInk.set(staffIndex, {
+            top: Math.min(previousStaffInk?.top ?? staffTop, staffTop),
+            bottom: Math.max(previousStaffInk?.bottom ?? staffBottom, staffBottom)
+          })
+          slurInk.push({ systemIndex: segment.systemIndex, bounds: {
+            left: Number(segment.element.getAttribute('data-slur-ink-left')),
+            right: Number(segment.element.getAttribute('data-slur-ink-right')),
+            top: Number(segment.element.getAttribute('data-slur-ink-top')),
+            bottom: Number(segment.element.getAttribute('data-slur-ink-bottom'))
+          } })
+          if (!resolveSpanSegmentEngraving(slur.engraving, segment.address)) {
+            if (segment.element.getAttribute('data-annotation-lane') === 'lower-slur') {
+              lowerSlurInk.push({ systemIndex: segment.systemIndex, staffIndex, bounds: slurInk.at(-1)!.bounds })
+            }
+            const origin = layout.placements.find(placement => placement.systemIndex === segment.systemIndex)!.y
+            const top = Number(segment.element.getAttribute('data-slur-ink-top')) - origin
+            const bottom = Number(segment.element.getAttribute('data-slur-ink-bottom')) - origin
+            const previous = measuredSystemInkBounds.get(segment.systemIndex)
+            measuredSystemInkBounds.set(segment.systemIndex, {
+              top: Math.min(previous?.top ?? top, top), bottom: Math.max(previous?.bottom ?? bottom, bottom)
+            })
+          }
+          spanBounds.push(segment.element.getBBox())
           bindSpanSelection(segment.element, { kind: 'slur', id: slur.id, segment: segment.address }, selectedSpan, onSelectSpan)
           renderedSegments.push({ kind: 'slur', id: slur.id, segment: segment.address })
         }
       })
+
+      reserveLowerAnnotationClearance(svg, lowerSlurInk, renderedStaffTargets, layout.placements,
+        staffRenderState.pointsByEventId, lowerAnnotationOffsets, measuredLowerOffsets)
+
+      // Neighboring note ink needs room beside measured slur and tie contours.
+      const spanStaves = new Map([...measuredStaffInkBounds].map(([system, staves]) => [system, new Set(staves.keys())]))
+      for (const [eventId, point] of staffRenderState.pointsByEventId) {
+        const index = staffRenderState.staffIndexByEventId.get(eventId)!
+        const system = staffRenderState.systemsByEventId.get(eventId)!
+        const reserveAbove = spanStaves.get(system)?.has(index - 1), reserveBelow = spanStaves.get(system)?.has(index + 1)
+        if (!reserveAbove && !reserveBelow) continue
+        const origin = staffRenderState.boundsByStaffSystemKey.get(createStaffSystemKey(system, index))!.y
+        const bounds = [point.noteHeadInkBounds, ...point.durationDotInkBounds ?? [], ...point.tupletInkBounds ?? []]
+          .filter((ink): ink is InkBounds => ink !== undefined)
+        const top = Math.min(...bounds.map(ink => ink.top),
+          ...(point.isRest ? [] : [point.stemTopY ?? Infinity, ...(point.staccatoYs ?? []).map(y => y - STACCATO_RADIUS)])) - origin
+        const bottom = Math.max(...bounds.map(ink => ink.bottom),
+          ...(point.isRest ? [] : [point.stemBottomY ?? -Infinity, ...(point.staccatoYs ?? []).map(y => y + STACCATO_RADIUS)])) - origin
+        const staffInk = staffInkFor(system)
+        const previous = staffInk.get(index)
+        staffInk.set(index, {
+          top: Math.min(previous?.top ?? Infinity, reserveAbove ? top : Infinity),
+          bottom: Math.max(previous?.bottom ?? -Infinity, reserveBelow ? bottom : -Infinity)
+        })
+      }
+
+      for (const [systemIndex, ink] of clearVoltaSlurCollisions(renderedVoltas, slurInk)) {
+        const origin = layout.placements.find(placement => placement.systemIndex === systemIndex)!.y
+        const previous = measuredSystemInkBounds.get(systemIndex)
+        measuredSystemInkBounds.set(systemIndex, {
+          top: Math.min(previous?.top ?? Infinity, ink.top - origin),
+          bottom: Math.max(previous?.bottom ?? -Infinity, ink.bottom - origin)
+        })
+      }
 
       for (const hairpin of score.hairpins ?? []) {
         const start = staffRenderState.pointsByEventId.get(hairpin.startEventId)
@@ -1065,12 +1282,20 @@ export function NotationPreview({
           endSystem,
           staffBounds
         )
-        const baseYOffset = resolveHairpinStemClearance(resolveHairpinSpanYOffset([
+        const endpointHairpinLanes = [
           start.measureId
             ? annotationLanesByMeasureId.get(start.measureId)
             : undefined,
           end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
-        ]) ?? HAIRPIN_Y_OFFSET, Array.from(staffRenderState.notesByEventId).flatMap(([eventId, note]) => {
+        ]
+        const staffMeasures = renderedStaffTarget.staff.measures
+        const firstMeasure = staffMeasures.findIndex(measure => measure.id === start.measureId)
+        const lastMeasure = staffMeasures.findIndex(measure => measure.id === end.measureId)
+        const traversedMeasures = firstMeasure < 0 || lastMeasure < 0 ? []
+          : staffMeasures.slice(Math.min(firstMeasure, lastMeasure), Math.max(firstMeasure, lastMeasure) + 1)
+        const hairpinLanes = traversedMeasures.length
+          ? traversedMeasures.map(measure => annotationLanesByMeasureId.get(measure.id)) : endpointHairpinLanes
+        const stemOffsets = Array.from(staffRenderState.notesByEventId).flatMap(([eventId, note]) => {
           const point = staffRenderState.pointsByEventId.get(eventId)
           const system = staffRenderState.systemsByEventId.get(eventId)
           if (!point || system === undefined || system < startSystem || system > endSystem ||
@@ -1078,15 +1303,40 @@ export function NotationPreview({
             (system === startSystem && point.x < start.x) ||
             (system === endSystem && point.x > end.x) || !note.hasStem()) return []
           const stem = resolveStemGeometry(note, point.y)
-          return [Math.max(stem.topY, stem.baseY) - point.y]
-        }))
-        const automaticLaneOffset = hairpin.engraving
-          ? 0
-          : reserveHairpinAutoLane(
+          return [{ system, offset: Math.max(stem.topY, stem.baseY) - point.y }]
+        })
+        const baseYOffset = resolveHairpinStemClearance(resolveHairpinSpanYOffset(hairpinLanes) ?? HAIRPIN_Y_OFFSET, stemOffsets.map(stem => stem.offset))
+        const manualYOffset = resolveHairpinStemClearance(Math.max(HAIRPIN_Y_OFFSET,
+          ...endpointHairpinLanes.flatMap(lane => lane?.hairpinYOffset === undefined ? [] : [lane.hairpinYOffset - lane.lowerOffset])), stemOffsets.map(stem => stem.offset))
+        const automaticOffsets = new Map<number, number>()
+        if (!hairpin.engraving) {
+          // A continuation only reserves the annotation and stem budget of its own system.
+          for (const segment of hairpinSegments) {
+            const localLanes = traversedMeasures.filter(measure =>
+              layout.placements[staffMeasures.indexOf(measure)]?.systemIndex === segment.systemIndex
+            ).map(measure => annotationLanesByMeasureId.get(measure.id))
+            const localBase = resolveHairpinStemClearance(
+              resolveHairpinSpanYOffset(localLanes.length ? localLanes : hairpinLanes) ?? HAIRPIN_Y_OFFSET,
+              stemOffsets.filter(stem => stem.system === segment.systemIndex).map(stem => stem.offset)
+            )
+            automaticOffsets.set(segment.systemIndex, localBase + reserveHairpinAutoLane(
               automaticHairpinLanes,
               staffIndex,
-              hairpinSegments
-            )
+              [segment],
+              localBase
+            ))
+          }
+
+          for (const [index, placement] of layout.placements.entries()) {
+            const measure = renderedStaffTarget.staff.measures[index]
+            const offset = automaticOffsets.get(placement.systemIndex)
+            if (measure && offset !== undefined) {
+              const localBaseline = annotationLanesByMeasureId.get(measure.id)?.hairpinYOffset
+              if (localBaseline !== undefined) measuredHairpinStacks.set(measure.id,
+                Math.max(measuredHairpinStacks.get(measure.id) ?? 0, offset - localBaseline))
+            }
+          }
+        }
 
         const segments = drawHairpinSegments(
           svg,
@@ -1096,21 +1346,103 @@ export function NotationPreview({
           startSystem,
           endSystem,
           staffBounds,
-          baseYOffset + automaticLaneOffset,
+          baseYOffset,
           renderedStaffTarget,
-          hairpin.engraving
+          hairpin.engraving,
+          manualYOffset,
+          automaticOffsets
         )
         for (const segment of segments) {
           segment.element.setAttribute('data-span-staff-y', String(segment.staffY))
-          if (hairpin.engraving) manualBounds.push(segment.element.getBBox())
+          // Include painted strokes, not the wider transparent selection target.
+          for (const line of segment.element.querySelectorAll('line')) {
+            const halfStroke = (Number.parseFloat(getComputedStyle(line).strokeWidth) || 1.8) / 2
+            const x1 = Number(line.getAttribute('x1')), x2 = Number(line.getAttribute('x2'))
+            const y1 = Number(line.getAttribute('y1')), y2 = Number(line.getAttribute('y2'))
+            hairpinInk.push({ systemIndex: segment.systemIndex, bounds: {
+              left: Math.min(x1, x2) - halfStroke, right: Math.max(x1, x2) + halfStroke,
+              top: Math.min(y1, y2) - halfStroke, bottom: Math.max(y1, y2) + halfStroke
+            } })
+          }
+          if (hairpin.engraving) spanBounds.push(segment.element.getBBox())
           bindSpanSelection(segment.element, { kind: 'hairpin', id: hairpin.id, segment: segment.address }, selectedSpan, onSelectSpan)
           renderedSegments.push({ kind: 'hairpin', id: hairpin.id, segment: segment.address })
         }
       }
 
-      onRenderedSpanSegments?.(score, renderedSegments)
-      if (manualBounds.length) {
-        const viewport = resolveSpanViewport(effectiveRenderWidth, layout.height, manualBounds)
+      const textContext = document.createElement('canvas').getContext('2d')
+      if (textContext) {
+        const locations = new Map(renderedStaffTargets.flatMap(target => layout.placements.flatMap((placement, index) => {
+          const measure = target.staff.measures[index]
+          return measure ? [[measure.id, { placement, staffIndex: target.globalStaffIndex }] as const] : []
+        })))
+        const leadingLocations = new Map<SVGTextElement, { placement: MeasurePlacement; staffIndex: number }>()
+        for (const [placement, staves] of preparedMeasures) for (const { stave, staffIndex } of staves) {
+          for (const modifier of stave.getModifiers()) {
+            const group = modifier.getSVGElement()
+            if (!group?.matches('.vf-clef, .vf-keysignature, .vf-timesignature')) continue
+            for (const text of group.querySelectorAll('text')) leadingLocations.set(text, { placement, staffIndex })
+          }
+        }
+        for (const text of [...svg.querySelectorAll<SVGTextElement>('.notation-lyric, .notation-dynamic-mark, .notation-expression-text, .notation-staff-text, .notation-system-text, .notation-rehearsal-mark text, .notation-harmony-mark, .notation-inline-clef, .notation-tempo-marking, .notation-rhythm-feel-marking text'), ...leadingLocations.keys()]) {
+          if (printLayout && text.classList.contains('notation-tempo-marking--transparent')) continue
+          const globalTempo = text.classList.contains('notation-tempo-marking') && !text.classList.contains('notation-tempo-marking--positioned')
+          const globalHeader = globalTempo || Boolean(text.closest('.notation-rhythm-feel-marking'))
+          const rehearsal = text.closest<SVGGElement>('.notation-rehearsal-mark')
+          const measureId = text.dataset.measureId ?? rehearsal?.dataset.measureId ?? staffRenderState.pointsByEventId.get(text.dataset.eventId ?? '')?.measureId
+          const location = leadingLocations.get(text) ?? (measureId ? locations.get(measureId) :
+            globalHeader && layout.placements[0] ? { placement: layout.placements[0], staffIndex: renderedStaffTargets[0]?.globalStaffIndex ?? 0 } : undefined)
+          if (!location) continue
+          const bounds = resolveTextInkBounds(text, textContext)
+          // The rehearsal frame is painted content, including the outer half of its stroke.
+          const frame = rehearsal?.querySelector('rect')
+          if (frame) {
+            const style = getComputedStyle(frame)
+            const strokeWidth = Number.parseFloat(style.strokeWidth)
+            const halfStroke = style.stroke === 'none' ? 0 : (Number.isFinite(strokeWidth) ? strokeWidth : 1.5) / 2
+            const x = Number(frame.getAttribute('x')), y = Number(frame.getAttribute('y'))
+            bounds.left = Math.min(bounds.left, x - halfStroke)
+            bounds.right = Math.max(bounds.right, x + Number(frame.getAttribute('width')) + halfStroke)
+            bounds.top = Math.min(bounds.top, y - halfStroke)
+            bounds.bottom = Math.max(bounds.bottom, y + Number(frame.getAttribute('height')) + halfStroke)
+          }
+          if (![bounds.top, bounds.bottom, bounds.left, bounds.right].every(Number.isFinite)) continue
+          const { placement, staffIndex } = location
+          textInk.push({ systemIndex: placement.systemIndex, bounds })
+          // Header marks are fixed; moving staves cannot move their ink.
+          if (globalHeader) continue
+          const previous = measuredSystemInkBounds.get(placement.systemIndex)
+          measuredSystemInkBounds.set(placement.systemIndex, {
+            top: Math.min(previous?.top ?? Infinity, bounds.top - placement.y),
+            bottom: Math.max(previous?.bottom ?? -Infinity, bounds.bottom - placement.y)
+          })
+          // Leading symbols constrain page extents, not the full-width annotation lanes.
+          if (leadingLocations.has(text)) continue
+          const origin = staffRenderState.boundsByStaffSystemKey.get(createStaffSystemKey(placement.systemIndex, staffIndex))!.y
+          const staffInk = staffInkFor(placement.systemIndex), previousStaff = staffInk.get(staffIndex)
+          staffInk.set(staffIndex, {
+            top: Math.min(previousStaff?.top ?? Infinity, bounds.top - origin),
+            bottom: Math.max(previousStaff?.bottom ?? -Infinity, bounds.bottom - origin)
+          })
+        }
+      }
+      const firstPlacement = layout.placements[0]
+      if (firstPlacement) for (const bracket of svg.querySelectorAll<SVGPathElement>('.notation-rhythm-feel-marking__triplet-bracket')) {
+        const style = getComputedStyle(bracket), strokeWidth = Number.parseFloat(style.strokeWidth)
+        if (style.stroke === 'none' || strokeWidth === 0) continue
+        const box = bracket.getBBox()
+        const halfStroke = (Number.isFinite(strokeWidth) ? strokeWidth : 1.25) / 2
+        textInk.push({ systemIndex: firstPlacement.systemIndex, bounds: {
+          left: box.x - halfStroke, right: box.x + box.width + halfStroke,
+          top: box.y - halfStroke, bottom: box.y + box.height + halfStroke
+        } })
+      }
+
+      if (spanBounds.length) {
+        const viewport = resolveSpanViewport(effectiveRenderWidth, layout.height, spanBounds)
+        renderedViewportTop = viewport.y
+        renderedViewportLeft = viewport.x
+        renderedViewportWidth = viewport.width
         renderer.resize(viewport.width, viewport.height)
         svg.setAttribute('viewBox', `${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`)
       }
@@ -1173,7 +1505,7 @@ export function NotationPreview({
       overlayGroup.append(playhead)
     }
 
-    return () => {
+    const cleanup = () => {
       window.removeEventListener('mouseup', clearDragAnchor)
       container.removeEventListener(
         'contextmenu',
@@ -1186,7 +1518,66 @@ export function NotationPreview({
         true
       )
     }
-  }, [
+    // Re-layout before paint so hit targets, staff coordinates and PDF page breaks agree.
+    const measuredVerticals = resolveScoreSystemVerticalLayouts(score, layout.placements, lyricScale,
+      printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT,
+      printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP, measuredStaffInkBounds, measuredLowerOffsets, measuredHairpinStacks)
+    const measuredLayout = createSystemLayout(measures, effectiveRenderWidth, { ...layoutOptions,
+      systemMetrics: measuredVerticals, systemInkBounds: measuredSystemInkBounds })
+    if (pass < 2 && ([...measuredLowerOffsets].some(([id, offset]) => Math.abs(offset - (lowerAnnotationOffsets.get(id) ?? 0)) > 0.01) ||
+      [...measuredHairpinStacks].some(([id, offset]) => Math.abs(offset - (hairpinStackOffsets.get(id) ?? 0)) > 0.01) ||
+      [...measuredVerticals].some(([system, measured]) => measured.staffOffsets.some((offset, index) =>
+        Math.abs(offset - systemVerticals.get(system)!.staffOffsets[index]!) > 0.01)) ||
+      Math.abs(measuredLayout.height - layout.height) > 0.01 ||
+      measuredLayout.placements.some((placement, index) => Math.abs(placement.y - layout.placements[index]!.y) > 0.01))) {
+      cleanup()
+      return renderPass(measuredSystemInkBounds, pass + 1, measuredStaffInkBounds, measuredLowerOffsets, measuredHairpinStacks)
+    }
+    container.dataset.layoutHeight = String(layout.height)
+    container.dataset.layoutPasses = String(pass + 1)
+    if (printLayoutPlan) {
+      const pages = estimatePrintedPageCount(layout.height, printLayoutPlan.pageHeight)
+      container.dataset.printEstimatedPages = String(pages)
+      container.dataset.printOverflowedTarget = String(printLayoutPlan.targetPages !== undefined && pages > printLayoutPlan.targetPages)
+      let overflowAxis: 'height' | 'width' = 'height'
+      const overflow = layout.placements.find(placement => {
+        if (!placement.isSystemStart) return false
+        const staves = preparedMeasures.get(placement) ?? []
+        if (!staves.length) return false
+        const top = Math.min(...staves.map(({ stave }) => stave.getYForLine(0))) - renderedViewportTop
+        const bottom = Math.max(...staves.map(({ stave }) => stave.getYForLine(4))) - renderedViewportTop
+        const pageIndex = Math.floor((top + 0.01) / printLayoutPlan.pageHeight)
+        const pageTop = pageIndex * printLayoutPlan.pageHeight
+        const systemInk = [...slurInk, ...hairpinInk, ...textInk, ...tieInk].filter(ink => ink.systemIndex === placement.systemIndex)
+        if (systemInk.some(ink => ink.bounds.left < renderedViewportLeft - 0.01 ||
+          ink.bounds.right > renderedViewportLeft + renderedViewportWidth + 0.01)) {
+          overflowAxis = 'width'
+          return true
+        }
+        return pageIndex !== Math.floor((bottom - 0.01) / printLayoutPlan.pageHeight) ||
+          systemInk.some(ink => (
+            ink.bounds.top - renderedViewportTop < pageTop - 0.01 ||
+            ink.bounds.bottom - renderedViewportTop > pageTop + printLayoutPlan.pageHeight + 0.01
+          ))
+      })
+      if (overflow) {
+        container.dataset.printOverflowMeasure = String(overflow.measure.number)
+        container.dataset.printOverflowAxis = overflowAxis
+      } else {
+        delete container.dataset.printOverflowMeasure
+        delete container.dataset.printOverflowAxis
+      }
+    } else {
+      delete container.dataset.printEstimatedPages
+      delete container.dataset.printOverflowedTarget
+      delete container.dataset.printOverflowMeasure
+      delete container.dataset.printOverflowAxis
+    }
+    onRenderedSpanSegments?.(score, renderedSegments)
+    return cleanup
+  }
+
+  useEffect(() => renderPass(), [
     onRenderedSpanSegments,
     onSelectSpan,
     selectedSpan,
@@ -1209,6 +1600,57 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function resolveTextInkBounds(text: SVGTextElement, context: CanvasRenderingContext2D): InkBounds {
+  const style = getComputedStyle(text)
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+  const ink = context.measureText(text.textContent ?? '')
+  const anchor = style.textAnchor === 'middle' ? ink.width / 2 : style.textAnchor === 'end' ? ink.width : 0
+  const x = Number(text.getAttribute('x')) - anchor, y = Number(text.getAttribute('y'))
+  return { left: x - ink.actualBoundingBoxLeft, right: x + ink.actualBoundingBoxRight,
+    top: y - ink.actualBoundingBoxAscent, bottom: y + ink.actualBoundingBoxDescent }
+}
+
+function reserveLowerAnnotationClearance(
+  svg: SVGSVGElement,
+  slurs: { systemIndex: number; staffIndex: number; bounds: InkBounds }[],
+  targets: RenderedStaffTarget[],
+  placements: MeasurePlacement[],
+  points: Map<string, CursorPoint>,
+  currentOffsets: ReadonlyMap<string, number>,
+  measuredOffsets: Map<string, number>
+): void {
+  if (!slurs.length) return
+  const context = document.createElement('canvas').getContext('2d')
+  if (!context) return
+  const groups = new Map<string, { measureIds: string[]; boxes: InkBounds[] }>()
+  const groupByMeasure = new Map<string, string>()
+  for (const target of targets) for (const [index, placement] of placements.entries()) {
+    const measure = target.staff.measures[index]
+    if (!measure) continue
+    const key = createStaffSystemKey(placement.systemIndex, target.globalStaffIndex)
+    if (!groups.has(key)) groups.set(key, { measureIds: [], boxes: [] })
+    groups.get(key)!.measureIds.push(measure.id)
+    groupByMeasure.set(measure.id, key)
+  }
+  for (const text of svg.querySelectorAll<SVGTextElement>('.notation-lyric, .notation-dynamic-mark, .notation-expression-text')) {
+    const measureId = text.dataset.measureId ?? points.get(text.dataset.eventId ?? '')?.measureId
+    const key = measureId ? groupByMeasure.get(measureId) : undefined
+    if (!key) continue
+    groups.get(key)!.boxes.push(resolveTextInkBounds(text, context))
+  }
+  for (const slur of slurs) {
+    const group = groups.get(createStaffSystemKey(slur.systemIndex, slur.staffIndex))
+    if (!group?.boxes.length) continue
+    const overlaps = group.boxes.some(box => box.right >= slur.bounds.left && box.left <= slur.bounds.right &&
+      box.bottom > slur.bounds.top - 6 && box.top < slur.bounds.bottom + 6)
+    if (!overlaps) continue
+    // Move the complete lower row together, keeping lyrics, dynamics and text in order.
+    const delta = slur.bounds.bottom + 6 - Math.min(...group.boxes.map(box => box.top))
+    for (const id of group.measureIds) measuredOffsets.set(id,
+      Math.max(measuredOffsets.get(id) ?? 0, (currentOffsets.get(id) ?? 0) + delta))
+  }
 }
 
 function resolveSvgPointer(
@@ -1557,7 +1999,8 @@ function drawEventAttachments(
   note: StaveNote,
   x: number,
   y: number,
-  interaction: Pick<RenderedStaffInteraction, 'lyricScale' | 'onSelectLyric' | 'inlineLyricEditor'>
+  interaction: Pick<RenderedStaffInteraction, 'lyricScale' | 'onSelectLyric' | 'inlineLyricEditor'>,
+  lowerOffset = 0
 ): void {
   if (!svg || !event) return
   if (event.fermata) drawFermata(svg, event.id, x, y)
@@ -1567,12 +2010,12 @@ function drawEventAttachments(
     if (event.tremolo) drawTremoloMark(svg, event.id, y, note, event.tremolo.marks)
     if (event.ornaments?.length) drawOrnaments(svg, event.id, x, y, event.ornaments, event.fermata ? 58 : 34)
     if (event.graceNotes?.length) drawGraceNotes(svg, event.id, x, y, event.graceNotes)
-    if (event.lyrics?.length) drawLyrics(svg, event.id, x, y, event.lyrics, interaction.lyricScale, interaction.onSelectLyric)
+    if (event.lyrics?.length) drawLyrics(svg, event.id, x, y + lowerOffset, event.lyrics, interaction.lyricScale, interaction.onSelectLyric)
   }
-  if (event.id === interaction.inlineLyricEditor?.eventId) drawInlineLyricEditor(svg, x, y, interaction.inlineLyricEditor)
+  if (event.id === interaction.inlineLyricEditor?.eventId) drawInlineLyricEditor(svg, x, y + lowerOffset, interaction.inlineLyricEditor)
 }
 
-function drawPassiveStaffMeasure(
+function preparePassiveStaffMeasure(
   context: ReturnType<Renderer['getContext']>,
   svg: SVGSVGElement | null,
   placement: MeasurePlacement,
@@ -1584,7 +2027,7 @@ function drawPassiveStaffMeasure(
   annotationLanesByMeasureId: Map<string, MeasureAnnotationLanes>,
   interaction: RenderedStaffInteraction,
   renderState: RenderedStaffState
-): void {
+): PreparedStaffMeasure {
   const y = placement.y + staffOffset
   const stave = new Stave(placement.x, y, placement.width)
   if (svg) {
@@ -1720,7 +2163,7 @@ function drawPassiveStaffMeasure(
         measure.voices.length > 1
       )
     )
-    const tuplets = (voice.tuplets ?? []).map((group) => {
+    const tuplets: RenderedTuplet[] = (voice.tuplets ?? []).map((group) => {
       const groupEvents = group.eventIds.map((eventId) =>
         events.find((event) => event.id === eventId)
       )
@@ -1734,16 +2177,19 @@ function drawPassiveStaffMeasure(
         return note
       })
 
-      return new VexTuplet(groupNotes, {
-        numNotes: group.actualNotes,
-        notesOccupied: group.normalNotes,
-        bracketed: groupEvents.some(
-          (event) =>
-            event?.type === 'rest' ||
-            (event && !isNotationBeamable(event))
-        ),
-        ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
-      })
+      return {
+        eventIds: group.eventIds,
+        tuplet: new VexTuplet(groupNotes, {
+          numNotes: group.actualNotes,
+          notesOccupied: group.normalNotes,
+          bracketed: groupEvents.some(
+            (event) =>
+              event?.type === 'rest' ||
+              (event && !isNotationBeamable(event))
+          ),
+          ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
+        })
+      }
     })
     const vexVoice = new Voice({
       numBeats: measure.timeSignature.beats,
@@ -1763,181 +2209,209 @@ function drawPassiveStaffMeasure(
     }
   })
 
-  new Formatter()
-    .joinVoices(voices.map(({ vexVoice }) => vexVoice))
-    .formatToStave(
-      voices.map(({ vexVoice }) => vexVoice),
-      stave
-    )
+  const draw = (shared: boolean) => {
+    if (!shared) voices.forEach(({ events, notes, scoreTuplets }) => {
+      const notesByVoiceEventId = new Map(
+        notes.map((note, index) => [events[index].id, note])
+      )
+      const eventXs = new Map(
+        notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
+      )
+      const onsetShifts = resolveMixedTupletOnsetShifts(
+        events,
+        scoreTuplets,
+        eventXs
+      )
 
-  voices.forEach(({ events, notes, scoreTuplets }) => {
-    const notesByVoiceEventId = new Map(
-      notes.map((note, index) => [events[index].id, note])
-    )
-    const eventXs = new Map(
-      notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
-    )
-    const onsetShifts = resolveMixedTupletOnsetShifts(
-      events,
-      scoreTuplets,
-      eventXs
-    )
+      onsetShifts.forEach((shift, eventId) => {
+        const note = notesByVoiceEventId.get(eventId)
 
-    onsetShifts.forEach((shift, eventId) => {
-      const note = notesByVoiceEventId.get(eventId)
-
-      if (note) {
-        note.setXShift(note.getXShift() + shift)
-      }
+        if (note) {
+          note.setXShift(note.getXShift() + shift)
+        }
+      })
     })
-  })
 
-  let firstEventX: number | undefined
+    let firstEventX: number | undefined
 
-  voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
-    vexVoice.draw(context, stave)
-    beams.forEach((beam) => beam.setContext(context).draw())
-    tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
-
-    notes.forEach((note, noteIndex) => {
-      const event = events[noteIndex]
-      const svgElement = note.getSVGElement()
-      const eventAddress = {
-        partId: target.partId,
-        staffId: target.staffId,
-        measureId: measure.id,
-        voiceId
-      }
-
-      if (!svgElement) {
-        return
-      }
-
-      svgElement.classList.add('notation-event', 'notation-event--passive-staff')
-      svgElement.classList.toggle('is-preview', isPreviewEventId(event.id))
-      svgElement.classList.toggle(
-        'is-selected',
-        resolveNotationEventTone(
-          event.id,
-          interaction.selectedEventIdSet,
-          interaction.selectedEventId,
-          isPlaybackEventTarget(event.id, measure.id, voiceId, {
-            partId: target.partId,
-            staffId: target.staffId,
-            eventId: interaction.playbackEventId,
-            address: interaction.playbackEventAddress
-          }),
-          eventAddress,
-          interaction.selectedEventAddress
-        ) === 'selected'
+    voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
+      vexVoice.draw(context, stave)
+      beams.forEach((beam) => beam.setContext(context).draw())
+      tuplets.forEach(({ tuplet }) => tuplet.setContext(context).draw())
+      const tupletClearanceByEventId = resolveTupletAttachmentClearances(
+        tuplets,
+        new Map(notes.map((note, index) => [events[index].id, note]))
       )
-      svgElement.classList.toggle(
-        'is-playback',
-        resolveNotationEventTone(
-          event.id,
-          interaction.selectedEventIdSet,
-          interaction.selectedEventId,
-          isPlaybackEventTarget(event.id, measure.id, voiceId, {
-            partId: target.partId,
-            staffId: target.staffId,
-            eventId: interaction.playbackEventId,
-            address: interaction.playbackEventAddress
-          }),
-          eventAddress,
-          interaction.selectedEventAddress
-        ) === 'playback'
-      )
-      svgElement.setAttribute('data-event-id', event.id)
-      svgElement.setAttribute('data-part-id', target.partId)
-      svgElement.setAttribute('data-staff-id', target.staffId)
-      svgElement.setAttribute('data-measure-id', measure.id)
-      svgElement.setAttribute('data-voice-id', voiceId)
-      svgElement.setAttribute(
-        'data-voice-lane',
-        String(note.getAttribute('data-voice-lane') ?? 'neutral')
-      )
-      const stemDirection = note.getAttribute('data-voice-stem-direction')
-      if (stemDirection) {
-        svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
-      }
-      renderState.notesByEventId.set(event.id, note)
-      renderState.systemsByEventId.set(event.id, placement.systemIndex)
-      renderState.staffIndexByEventId.set(event.id, target.globalStaffIndex)
 
-      const centeredRestShift =
-        event.type === 'rest' && event.fullMeasure
-          ? centerFullMeasureRest(svgElement, {
-              x: defaultNoteStartX,
-              width: stave.getNoteEndX() - defaultNoteStartX
-            })
-          : 0
-      const eventX = getVisibleNoteX(note) + centeredRestShift
+      notes.forEach((note, noteIndex) => {
+        const event = events[noteIndex]
+        const svgElement = note.getSVGElement()
+        const eventAddress = {
+          partId: target.partId,
+          staffId: target.staffId,
+          measureId: measure.id,
+          voiceId
+        }
 
-      renderState.pointsByEventId.set(event.id, {
-        measureId: measure.id,
-        x: eventX,
-        y,
-        ...resolveSlurAnchorMetrics(note),
-        ...resolveSlurAttachmentClearance(event, note, y)
-      })
-      firstEventX = Math.min(firstEventX ?? eventX, eventX)
-
-      if (event.clefBefore) {
-        drawInlineClef(svg, event.clefBefore, eventX - 24, y, event.id)
-      }
-      if (isPreviewEventId(event.id)) {
-        return
-      }
-
-      drawEventAttachments(svg, event, note, eventX, y, interaction)
-
-      svgElement.setAttribute('role', 'button')
-      svgElement.setAttribute('tabindex', '0')
-      svgElement.addEventListener('click', (mouseEvent) => {
-        mouseEvent.stopPropagation()
-        interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
-      })
-      svgElement.addEventListener('mousedown', (mouseEvent) => {
-        if (mouseEvent.button !== 0) {
+        if (!svgElement) {
           return
         }
 
-        mouseEvent.preventDefault()
-        mouseEvent.stopPropagation()
-        interaction.setDragAnchor({ address: eventAddress, eventId: event.id })
-        interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
-      })
-      svgElement.addEventListener('mouseenter', (mouseEvent) => {
-        const dragAnchor = interaction.getDragAnchor()
-
-        if (!dragAnchor || mouseEvent.buttons !== 1) {
-          return
-        }
-
-        if (!dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)) {
-          return
-        }
-
-        mouseEvent.preventDefault()
-        interaction.onSelectEventRange(
-          dragAnchor.eventId,
-          event.id,
-          eventAddress
+        svgElement.classList.add('notation-event', 'notation-event--passive-staff')
+        svgElement.classList.toggle('is-preview', isPreviewEventId(event.id))
+        svgElement.classList.toggle(
+          'is-selected',
+          resolveNotationEventTone(
+            event.id,
+            interaction.selectedEventIdSet,
+            interaction.selectedEventId,
+            isPlaybackEventTarget(event.id, measure.id, voiceId, {
+              partId: target.partId,
+              staffId: target.staffId,
+              eventId: interaction.playbackEventId,
+              address: interaction.playbackEventAddress
+            }),
+            eventAddress,
+            interaction.selectedEventAddress
+          ) === 'selected'
         )
+        svgElement.classList.toggle(
+          'is-playback',
+          resolveNotationEventTone(
+            event.id,
+            interaction.selectedEventIdSet,
+            interaction.selectedEventId,
+            isPlaybackEventTarget(event.id, measure.id, voiceId, {
+              partId: target.partId,
+              staffId: target.staffId,
+              eventId: interaction.playbackEventId,
+              address: interaction.playbackEventAddress
+            }),
+            eventAddress,
+            interaction.selectedEventAddress
+          ) === 'playback'
+        )
+        svgElement.setAttribute('data-event-id', event.id)
+        svgElement.setAttribute('data-part-id', target.partId)
+        svgElement.setAttribute('data-staff-id', target.staffId)
+        svgElement.setAttribute('data-measure-id', measure.id)
+        svgElement.setAttribute('data-voice-id', voiceId)
+        svgElement.setAttribute(
+          'data-voice-lane',
+          String(note.getAttribute('data-voice-lane') ?? 'neutral')
+        )
+        const stemDirection = note.getAttribute('data-voice-stem-direction')
+        if (stemDirection) {
+          svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
+        }
+        renderState.notesByEventId.set(event.id, note)
+        renderState.systemsByEventId.set(event.id, placement.systemIndex)
+        renderState.staffIndexByEventId.set(event.id, target.globalStaffIndex)
+
+        const centeredRestShift =
+          event.type === 'rest' && event.fullMeasure
+            ? centerFullMeasureRest(svgElement, {
+                x: defaultNoteStartX,
+                width: stave.getNoteEndX() - defaultNoteStartX
+              })
+            : 0
+        const eventX = getVisibleNoteX(note) + centeredRestShift
+
+        renderState.pointsByEventId.set(event.id, {
+          measureId: measure.id,
+          x: eventX,
+          y,
+          ...resolveSlurAnchorMetrics(note),
+          ...tupletClearanceByEventId.get(event.id),
+          ...resolveSlurAttachmentClearance(event, note, y)
+        })
+        firstEventX = Math.min(firstEventX ?? eventX, eventX)
+
+        if (event.clefBefore) {
+          drawInlineClef(svg, event.clefBefore, eventX - 24, stave, event.id)
+        }
+        if (isPreviewEventId(event.id)) {
+          return
+        }
+
+        drawEventAttachments(svg, event, note, eventX, y, interaction, annotationLanesByMeasureId.get(measure.id)?.lowerOffset)
+
+        svgElement.setAttribute('role', 'button')
+        svgElement.setAttribute('tabindex', '0')
+        svgElement.addEventListener('keydown', keyEvent => {
+          if (keyEvent.key !== 'Enter' && keyEvent.key !== ' ') return
+          keyEvent.preventDefault()
+          keyEvent.stopPropagation()
+          if (!keyEvent.repeat) interaction.onSelectEvent(event.id, keyEvent.shiftKey, eventAddress)
+        })
+        svgElement.addEventListener('click', (mouseEvent) => {
+          mouseEvent.stopPropagation()
+          interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
+        })
+        svgElement.addEventListener('mousedown', (mouseEvent) => {
+          if (mouseEvent.button !== 0) {
+            return
+          }
+
+          mouseEvent.preventDefault()
+          mouseEvent.stopPropagation()
+          interaction.setDragAnchor({ address: eventAddress, eventId: event.id })
+          interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
+        })
+        svgElement.addEventListener('mouseenter', (mouseEvent) => {
+          const dragAnchor = interaction.getDragAnchor()
+
+          if (!dragAnchor || mouseEvent.buttons !== 1) {
+            return
+          }
+
+          if (!dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)) {
+            return
+          }
+
+          mouseEvent.preventDefault()
+          interaction.onSelectEventRange(
+            dragAnchor.eventId,
+            event.id,
+            eventAddress
+          )
+        })
       })
     })
-  })
 
-  drawMeasureAnnotations(
-    svg,
-    placement,
-    measure,
-    y,
-    annotationMaps,
-    annotationLanesByMeasureId,
-    firstEventX,
-    interaction.onSelectObject
-  )
+    drawMeasureAnnotations(
+      svg,
+      placement,
+      measure,
+      y,
+      annotationMaps,
+      annotationLanesByMeasureId,
+      firstEventX,
+      interaction.onSelectObject
+    )
+  }
+  return { measure, stave, staffIndex: target.globalStaffIndex,
+    voices: voices.map(({ vexVoice }) => vexVoice), draw }
+}
+
+function formatStaffMeasures(group: PreparedStaffMeasure[], context: ReturnType<Renderer['getContext']>): void {
+  if (group.length === 1) {
+    const { voices, stave } = group[0]!
+    new Formatter().joinVoices(voices).formatToStave(voices, stave)
+    return
+  }
+  const startX = Math.max(...group.map(item => item.stave.getNoteStartX()))
+  const endX = Math.min(...group.map(item => item.stave.getNoteEndX()))
+  const formatter = new Formatter()
+  for (const { stave, voices } of group) {
+    stave.setNoteStartX(startX)
+    for (const voice of voices) {
+      voice.setStave(stave)
+      voice.getTickables().forEach(note => note.setStave(stave))
+    }
+    formatter.joinVoices(voices)
+  }
+  formatter.format(group.flatMap(item => item.voices), endX - startX - Stave.defaultPadding, { context })
 }
 
 function resolveMeasureStaffTarget(
@@ -2005,16 +2479,16 @@ function drawRhythmFeelMarking(
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const x = hasTempo ? 126 : 32
+  const y = 36
 
   group.classList.add('notation-rhythm-feel-marking')
-  group.setAttribute('transform', `translate(${x} 36)`)
   if (rhythmFeel.text) {
-    appendRhythmFeelText(group, formatRhythmFeelMarkingText(rhythmFeel), 0, 0)
+    appendRhythmFeelText(group, formatRhythmFeelMarkingText(rhythmFeel), x, y)
   } else {
-    appendRhythmFeelText(group, rhythmFeel.unit === '16th' ? '♬' : '♫', 0, 0)
-    appendRhythmFeelText(group, '=', 31, 0)
-    appendRhythmFeelTripletNotes(group, 50, 0, rhythmFeel.unit)
-    appendRhythmFeelTriplet(group, 50, -26, 43)
+    appendRhythmFeelText(group, rhythmFeel.unit === '16th' ? '♬' : '♫', x, y)
+    appendRhythmFeelText(group, '=', x + 31, y)
+    appendRhythmFeelTripletNotes(group, x + 50, y, rhythmFeel.unit)
+    appendRhythmFeelTriplet(group, x + 50, y - 26, 43)
   }
   svg.append(group)
 }
@@ -2109,7 +2583,7 @@ function drawVoltaMark(
   endX: number,
   staffTopY: number,
   volta: NonNullable<Measure['volta']>
-): void {
+): SVGGElement {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const bracketY = staffTopY - 22
   const leftX = startX
@@ -2136,7 +2610,7 @@ function drawVoltaMark(
     group.append(leftHook)
   }
 
-  if (volta.end) {
+  if (volta.end && volta.endStyle !== 'open') {
     const rightHook = document.createElementNS('http://www.w3.org/2000/svg', 'line')
 
     rightHook.setAttribute('x1', String(rightX))
@@ -2155,6 +2629,50 @@ function drawVoltaMark(
 
   group.append(horizontal)
   svg.append(group)
+  return group
+}
+
+function clearVoltaSlurCollisions(
+  voltas: { element: SVGGElement; systemIndex: number }[],
+  slurs: { systemIndex: number; bounds: InkBounds }[]
+): Map<number, { top: number; bottom: number }> {
+  const shifts = new Map<number, number>()
+  for (const { element, systemIndex } of voltas) {
+    const lines = [...element.querySelectorAll('line')]
+    const left = Math.min(...lines.map(line => Number(line.getAttribute('x1'))))
+    const right = Math.max(...lines.map(line => Number(line.getAttribute('x2'))))
+    const bottom = Math.max(...lines.flatMap(line => [Number(line.getAttribute('y1')), Number(line.getAttribute('y2'))])) + 0.5
+    for (const slur of slurs) {
+      if (slur.systemIndex !== systemIndex || slur.bounds.right < left || slur.bounds.left > right) continue
+      shifts.set(systemIndex, Math.max(shifts.get(systemIndex) ?? 0, bottom + 6 - slur.bounds.top))
+    }
+  }
+  const envelopes = new Map<number, { top: number; bottom: number }>()
+  const context = document.createElement('canvas').getContext('2d')
+  // Keep all ending brackets on one horizontal lane within each system.
+  for (const { element, systemIndex } of voltas) {
+    const shift = shifts.get(systemIndex) ?? 0
+    if (shift <= 0) continue
+    const edges: number[] = []
+    for (const line of element.querySelectorAll('line')) for (const attribute of ['y1', 'y2']) {
+      const y = Number(line.getAttribute(attribute)) - shift
+      line.setAttribute(attribute, String(y))
+      edges.push(y - 0.5, y + 0.5)
+    }
+    for (const label of element.querySelectorAll('text')) {
+      const y = Number(label.getAttribute('y')) - shift
+      label.setAttribute('y', String(y))
+      const style = getComputedStyle(label)
+      if (context) context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+      const ink = context?.measureText(label.textContent ?? '')
+      edges.push(y - (ink?.actualBoundingBoxAscent ?? 12), y + (ink?.actualBoundingBoxDescent ?? 3))
+    }
+    const previous = envelopes.get(systemIndex)
+    envelopes.set(systemIndex, {
+      top: Math.min(previous?.top ?? Infinity, ...edges), bottom: Math.max(previous?.bottom ?? -Infinity, ...edges)
+    })
+  }
+  return envelopes
 }
 
 function drawRepeatTimes(
@@ -2261,37 +2779,21 @@ function drawInlineClef(
   svg: SVGSVGElement | null,
   clef: Clef,
   x: number,
-  staffY: number,
+  stave: Stave,
   eventId: string
 ): void {
   if (!svg) {
     return
   }
 
-  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-
+  const marker = new VexClef(toVexFlowClef(clef), 'small')
+  marker.setStave(stave)
+  marker.setX(x)
+  marker.draw()
+  const text = marker.getSVGElement()?.querySelector('text')
+  if (!text) return
   text.classList.add('notation-inline-clef')
   text.setAttribute('data-event-id', eventId)
-  text.setAttribute('x', String(x))
-  text.setAttribute('y', String(staffY + 32))
-  text.textContent = clefToGlyph(clef)
-  svg.append(text)
-}
-
-function clefToGlyph(clef: Clef): string {
-  switch (clef.sign) {
-    case 'F':
-      return '𝄢'
-    case 'C':
-      return '𝄡'
-    case 'percussion':
-      return '𝄥'
-    case 'tab':
-      return 'TAB'
-    case 'G':
-    default:
-      return '𝄞'
-  }
 }
 
 function drawSystemPartLabels(
@@ -2538,7 +3040,9 @@ function drawHairpinSegments(
   boundsBySystemIndex: Map<number, SystemBounds>,
   yOffset: number,
   scope: Pick<SpanSegmentAddress, 'partId' | 'staffId'>,
-  engraving?: SpanEngraving
+  engraving?: SpanEngraving,
+  manualYOffset = yOffset,
+  automaticOffsets?: ReadonlyMap<number, number>
 ): RenderedSpanSegment[] {
   const elements: RenderedSpanSegment[] = []
   for (const segment of resolveHairpinSegments(
@@ -2553,7 +3057,7 @@ function drawHairpinSegments(
       startMeasureId: segment.isFirst ? start.measureId! : bounds.startMeasureId,
       endMeasureId: segment.isLast ? end.measureId! : bounds.endMeasureId }
     const geometry = resolveSpanSegmentEngraving(engraving, address)
-    elements.push({ address, staffY: bounds.y, element: drawHairpinSegment(
+    elements.push({ address, staffY: bounds.y, systemIndex: segment.systemIndex, element: drawHairpinSegment(
       svg,
       segment.x1 + (geometry?.offsetX ?? 0) * 10,
       segment.x2 + (geometry?.offsetX ?? 0) * 10,
@@ -2561,7 +3065,7 @@ function drawHairpinSegments(
       type,
       segment.isFirst,
       segment.isLast,
-      (geometry?.placement === 'above' ? -34 : yOffset) + (geometry?.offsetY ?? 0) * 10,
+      (geometry?.placement === 'above' ? -34 : geometry ? manualYOffset : automaticOffsets?.get(segment.systemIndex) ?? yOffset) + (geometry?.offsetY ?? 0) * 10,
       geometry?.height
     ) })
   }
@@ -2571,27 +3075,19 @@ function drawHairpinSegments(
 function reserveHairpinAutoLane(
   occupied: HairpinAutoLane[],
   globalStaffIndex: number,
-  segments: HairpinRenderSegment[]
+  segments: HairpinRenderSegment[],
+  baseYOffset: number
 ): number {
-  let lane = 0
-
-  while (
-    segments.some((segment) =>
-      occupied.some(
-        (item) =>
-          item.globalStaffIndex === globalStaffIndex &&
-          item.lane === lane &&
-          hairpinSegmentsOverlap(item.segment, segment)
-      )
-    )
-  ) {
-    lane += 1
-  }
+  // Compare actual baselines, since lyric/stem budgets can differ between spans.
+  // Two 10px openings, 1.8px of stroke, and at least 4px between ink edges.
+  const yOffset = Math.max(baseYOffset, ...occupied.filter(item =>
+    item.globalStaffIndex === globalStaffIndex && segments.some(segment => hairpinSegmentsOverlap(item.segment, segment))
+  ).map(item => item.yOffset + 26))
 
   for (const segment of segments) {
     occupied.push({
       globalStaffIndex,
-      lane,
+      yOffset,
       segment: {
         systemIndex: segment.systemIndex,
         x1: segment.x1,
@@ -2600,7 +3096,7 @@ function reserveHairpinAutoLane(
     })
   }
 
-  return lane * 16
+  return yOffset - baseYOffset
 }
 
 function hairpinSegmentsOverlap(
@@ -2732,7 +3228,8 @@ function drawSlurSegments(
   slurIndex: number,
   automaticSide: 'above' | 'below',
   scope: Pick<SpanSegmentAddress, 'partId' | 'staffId'>,
-  engraving?: SpanEngraving
+  engraving?: SpanEngraving,
+  interiorPoints: Map<number, CursorPoint[]> = new Map()
 ): RenderedSpanSegment[] {
   const elements: RenderedSpanSegment[] = []
   const firstSystem = Math.min(startSystem, endSystem)
@@ -2761,17 +3258,22 @@ function drawSlurSegments(
     const startY = resolveSlurEndpointY(start, side, !geometry)
     const endY = resolveSlurEndpointY(end, side, !geometry)
     const continuationY = resolveSlurContinuationY(bounds, side)
-    const y1 = isFirst ? startY : isLast ? endY : continuationY
-    const y2 = isLast ? endY : isFirst ? startY : continuationY
+    // Angle automatic hanging ends outward; manual segment geometry stays authoritative.
+    const hangingY = (anchorY: number) => geometry ? anchorY
+      : side === 'above' ? Math.min(continuationY, anchorY - 8)
+      : Math.max(continuationY, anchorY + 8)
+    const y1 = isFirst ? startY : isLast ? hangingY(endY) : continuationY
+    const y2 = isLast ? endY : isFirst ? hangingY(startY) : continuationY
 
     if (x2 <= x1 + 8) {
       continue
     }
 
-    elements.push({ address, staffY: bounds.y, element: drawSlurSegment(svg,
+    elements.push({ address, staffY: bounds.y, systemIndex, element: drawSlurSegment(svg,
       x1 + (geometry?.offsetX ?? 0) * 10, x2 + (geometry?.offsetX ?? 0) * 10,
       y1 + (geometry?.offsetY ?? 0) * 10, y2 + (geometry?.offsetY ?? 0) * 10,
-      side, slurIndex, isFirst, isLast, geometry?.height) })
+      side, slurIndex, isFirst, isLast, geometry?.height,
+      geometry ? [] : interiorPoints.get(systemIndex)) })
   }
   return elements
 }
@@ -2786,7 +3288,8 @@ function drawSlurSegment(
   slurIndex: number,
   isFirst: boolean,
   isLast: boolean,
-  height?: number
+  height?: number,
+  interiorPoints: CursorPoint[] = []
 ): SVGPathElement {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   const offset = (slurIndex % 3) * 6
@@ -2796,24 +3299,71 @@ function drawSlurSegment(
       ? Math.min(28, Math.max(14, span * 0.12)) + offset
       : height * 10
   const controlX = (x1 + x2) / 2
-  const controlY =
-    side === 'above'
-      ? Math.min(y1, y2) - curveDepth
-      : Math.max(y1, y2) + curveDepth
   const startX = isFirst ? x1 : x1 - 8
   const endX = isLast ? x2 : x2 + 8
+  const obstacles: Array<[number | undefined, number | undefined]> = []
+  // Rest glyphs have ink bounds too, but their synthetic stems must stay excluded.
+  for (const point of interiorPoints) {
+    const head = point.noteHeadInkBounds
+    const headY = side === 'above' ? head?.top : head?.bottom
+    obstacles.push(
+      [point.isRest ? undefined : point.stemX, side === 'above' ? point.stemTopY : point.stemBottomY],
+      [head?.left, headY],
+      [head?.right, headY]
+    )
+    for (const y of point.isRest ? [] : point.staccatoYs ?? []) {
+      const edgeY = y + (side === 'above' ? -STACCATO_RADIUS : STACCATO_RADIUS)
+      obstacles.push([point.x + 4 - STACCATO_RADIUS, edgeY], [point.x + 4 + STACCATO_RADIUS, edgeY])
+    }
+    for (const bounds of [...point.tupletInkBounds ?? [], ...point.durationDotInkBounds ?? []]) {
+      const edgeY = side === 'above' ? bounds.top : bounds.bottom
+      obstacles.push([bounds.left, edgeY], [bounds.right, edgeY])
+    }
+  }
+  const visibleObstacles = obstacles.filter((edge): edge is [number, number] =>
+    edge[0] !== undefined && edge[1] !== undefined && edge[0] > startX && edge[0] < endX)
+  // Both middle-system ends are free: move them past nearby ink before bending the arc.
+  // Manual segments have no automatic obstacles, and attached endpoints stay unchanged.
+  if (!isFirst && !isLast) for (const [x, edgeY] of visibleObstacles) {
+    const limit = edgeY + (side === 'above' ? -6 : 6)
+    if (x - startX < span / 4) y1 = side === 'above' ? Math.min(y1, limit) : Math.max(y1, limit)
+    if (endX - x < span / 4) y2 = side === 'above' ? Math.min(y2, limit) : Math.max(y2, limit)
+  }
+  let controlY = side === 'above' ? Math.min(y1, y2) - curveDepth : Math.max(y1, y2) + curveDepth
+  for (const [x, edgeY] of visibleObstacles) {
+    const a = startX - 2 * controlX + endX
+    const b = 2 * (controlX - startX)
+    const t = 2 * (x - startX) / (b + Math.sqrt(b * b + 4 * a * (x - startX)))
+    const weight = 2 * t * (1 - t)
+    if (weight < 0.000001) continue
+    const limit = edgeY + (side === 'above' ? -6 : 6)
+    const required = (limit - (1 - t) ** 2 * y1 - t * t * y2) / weight
+    controlY = side === 'above' ? Math.min(controlY, required) : Math.max(controlY, required)
+  }
+  // Mirrored quadratic controls preserve the centerline and taper to shared tips.
+  const thickness = Math.min(3.2, Math.max(2.2, span * 0.022))
+  const centerline = `M ${startX} ${y1} Q ${controlX} ${controlY} ${endX} ${y2}`
+  const extrema = [y1, y2]
+  const denominator = y1 - 2 * controlY + y2
+  const peak = denominator === 0 ? -1 : (y1 - controlY) / denominator
+  if (peak > 0 && peak < 1) extrema.push((1-peak)**2*y1 + 2*peak*(1-peak)*controlY + peak*peak*y2)
 
   path.classList.add('notation-slur')
+  path.setAttribute('data-slur-ink-left', String(Math.min(startX, endX)))
+  path.setAttribute('data-slur-ink-right', String(Math.max(startX, endX)))
+  path.setAttribute('data-slur-ink-top', String(Math.min(...extrema) - thickness / 2))
+  path.setAttribute('data-slur-ink-bottom', String(Math.max(...extrema) + thickness / 2))
   path.setAttribute('data-slur-y1', String(y1))
   path.setAttribute('data-slur-y2', String(y2))
   path.setAttribute('data-slur-control-y', String(controlY))
+  path.setAttribute('data-span-hit-path', centerline)
   path.setAttribute(
     'data-annotation-lane',
     side === 'above' ? 'upper-slur' : 'lower-slur'
   )
   path.setAttribute(
     'd',
-    `M ${startX} ${y1} Q ${controlX} ${controlY} ${endX} ${y2}`
+    `M ${startX} ${y1} Q ${controlX} ${controlY - thickness} ${endX} ${y2} Q ${controlX} ${controlY + thickness} ${startX} ${y1} Z`
   )
   svg.append(path)
   return path
@@ -2840,7 +3390,7 @@ function bindSpanSelection(
   group.setAttribute('aria-label', `${reference.kind === 'slur' ? '슬러' : '헤어핀'} ${reference.id} 선택`)
   group.setAttribute('aria-pressed', String(isSelected))
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  hit.setAttribute('d', element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
+  hit.setAttribute('d', element.getAttribute('data-span-hit-path') ?? element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
     `M ${line.getAttribute('x1')} ${line.getAttribute('y1')} L ${line.getAttribute('x2')} ${line.getAttribute('y2')}`).join(' '))
   hit.classList.add('notation-span-hit')
   element.parentNode?.insertBefore(group, element)
@@ -2858,16 +3408,47 @@ function bindSpanSelection(
 function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
   try {
     const bounds = note.getNoteHeadBounds()
+    const stem = note.hasStem() ? note.getStemExtents() : undefined
+    const heads = note.noteHeads.map(head => head.getBoundingBox())
 
     return {
+      voiceLane: note.getAttribute('data-voice-lane') as string | undefined,
+      isRest: note.isRest(),
+      durationDotInkBounds: Dot.getDots(note).map(dot => {
+        const ink = dot.getTextMetrics()
+        const x = dot.getX() + dot.getXShift()
+        const y = dot.getY() + dot.getYShift()
+        return { left: x - ink.actualBoundingBoxLeft, right: x + ink.actualBoundingBoxRight,
+          top: y - ink.actualBoundingBoxAscent, bottom: y + ink.actualBoundingBoxDescent }
+      }),
       noteHeadTopY: bounds.yTop,
       noteHeadBottomY: bounds.yBottom,
       noteHeadBeginX: note.getNoteHeadBeginX(),
       noteHeadEndX: note.getNoteHeadEndX(),
-      stemDirection: note.getStemDirection()
+      noteHeadInkBounds: heads.length ? {
+        left: Math.min(...heads.map(head => head.getX())),
+        right: Math.max(...heads.map(head => head.getX() + head.getW())),
+        top: Math.min(...heads.map(head => head.getY())),
+        bottom: Math.max(...heads.map(head => head.getY() + head.getH()))
+      } : undefined,
+      stemDirection: note.getStemDirection(),
+      stemX: stem ? note.getStemX() : undefined,
+      stemTopY: stem ? Math.min(stem.topY, stem.baseY) : undefined,
+      stemBottomY: stem ? Math.max(stem.topY, stem.baseY) : undefined
     }
   } catch {
     return {}
+  }
+}
+
+function resolvePolyphonicSlurSide(start: CursorPoint, end: CursorPoint): 'above' | 'below' | undefined {
+  if (start.voiceLane !== end.voiceLane) return undefined
+  switch (start.voiceLane) {
+    case 'upper':
+    case 'upper-secondary': return 'above'
+    case 'lower':
+    case 'lower-secondary': return 'below'
+    default: return undefined
   }
 }
 
@@ -2890,10 +3471,14 @@ function resolveSlurSide(
 
   const aboveClearance =
     (start.articulationAboveClearance ?? 0) +
-    (end.articulationAboveClearance ?? 0)
+    (end.articulationAboveClearance ?? 0) +
+    (start.tupletAboveClearance ?? 0) +
+    (end.tupletAboveClearance ?? 0)
   const belowClearance =
     (start.articulationBelowClearance ?? 0) +
-    (end.articulationBelowClearance ?? 0)
+    (end.articulationBelowClearance ?? 0) +
+    (start.tupletBelowClearance ?? 0) +
+    (end.tupletBelowClearance ?? 0)
 
   if (aboveClearance < belowClearance) {
     return 'above'
@@ -2936,16 +3521,32 @@ function resolveSlurEndpointY(
   clearAttachments: boolean
 ): number {
   if (side === 'above') {
-    return (point.noteHeadTopY ?? point.y) - Math.max(
+    const noteY = point.noteHeadTopY ?? point.y
+    const attachmentY = noteY - Math.max(
       10,
-      clearAttachments ? (point.articulationAboveClearance ?? 0) : 0
+      clearAttachments
+        ? Math.max(
+            point.articulationAboveClearance ?? 0,
+            point.tupletAboveClearance ?? 0
+          )
+        : 0
     )
+    return clearAttachments && (point.stemDirection ?? 0) > 0
+      ? Math.min(attachmentY, (point.stemTopY ?? noteY) - 10) : attachmentY
   }
 
-  return (point.noteHeadBottomY ?? point.y + 40) + Math.max(
+  const noteY = point.noteHeadBottomY ?? point.y + 40
+  const attachmentY = noteY + Math.max(
     10,
-    clearAttachments ? (point.articulationBelowClearance ?? 0) : 0
+    clearAttachments
+      ? Math.max(
+          point.articulationBelowClearance ?? 0,
+          point.tupletBelowClearance ?? 0
+        )
+      : 0
   )
+  return clearAttachments && (point.stemDirection ?? 0) < 0
+    ? Math.max(attachmentY, (point.stemBottomY ?? noteY) + 10) : attachmentY
 }
 
 function resolveSlurContinuationY(
@@ -2975,7 +3576,7 @@ function drawArticulations(
       dot.setAttribute('data-notehead-y', String(placement.noteheadY))
       dot.setAttribute('cx', String(x + 4))
       dot.setAttribute('cy', String(placement.y))
-      dot.setAttribute('r', '1.9')
+      dot.setAttribute('r', String(STACCATO_RADIUS))
       svg.append(dot)
     } else {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
@@ -3025,16 +3626,18 @@ function resolveSlurAttachmentClearance(
   event: VoiceEvent | undefined,
   note: StaveNote,
   staffY: number
-): Pick<CursorPoint, 'articulationAboveClearance' | 'articulationBelowClearance'> {
+): Pick<CursorPoint, 'articulationAboveClearance' | 'articulationBelowClearance' | 'staccatoYs'> {
   if (event?.type !== 'note' || !event.articulations?.length) {
     return {}
   }
 
   let articulationAboveClearance: number | undefined
   let articulationBelowClearance: number | undefined
+  const staccatoYs: number[] = []
 
-  event.articulations.forEach((_, index) => {
+  event.articulations.forEach((articulation, index) => {
     const placement = resolveArticulationPlacement(note, staffY, index)
+    if (articulation === 'staccato') staccatoYs.push(placement.y)
     const clearance = Math.abs(placement.y - placement.noteheadY) + 5
 
     if (placement.y < placement.noteheadY) {
@@ -3050,7 +3653,96 @@ function resolveSlurAttachmentClearance(
     }
   })
 
-  return { articulationAboveClearance, articulationBelowClearance }
+  return { articulationAboveClearance, articulationBelowClearance, staccatoYs }
+}
+
+function resolveTupletInkBounds(tuplet: VexTuplet): InkBounds[] {
+  const group = tuplet.getSVGElement()
+  if (!group) return []
+  const bounds: InkBounds[] = []
+  const context = document.createElement('canvas').getContext('2d')
+  if (context) {
+    for (const text of group.querySelectorAll('text')) {
+      const style = getComputedStyle(text)
+      context.font = `${style.fontSize} ${style.fontFamily}`
+      const ink = context.measureText(text.textContent ?? '')
+      const x = Number(text.getAttribute('x'))
+      const y = Number(text.getAttribute('y'))
+      bounds.push({
+        left: x - ink.actualBoundingBoxLeft,
+        right: x + ink.actualBoundingBoxRight,
+        top: y - ink.actualBoundingBoxAscent,
+        bottom: y + ink.actualBoundingBoxDescent
+      })
+    }
+  }
+  // VexFlow also emits an invisible pointer rectangle, which is not engraving ink.
+  for (const rect of group.querySelectorAll('rect')) {
+    if (rect.getAttribute('opacity') === '0') continue
+    const x = Number(rect.getAttribute('x'))
+    const y = Number(rect.getAttribute('y'))
+    const endX = x + Number(rect.getAttribute('width'))
+    const endY = y + Number(rect.getAttribute('height'))
+    bounds.push({ left: Math.min(x, endX), right: Math.max(x, endX),
+      top: Math.min(y, endY), bottom: Math.max(y, endY) })
+  }
+  return bounds
+}
+
+function resolveTupletAttachmentClearances(
+  tuplets: RenderedTuplet[],
+  notesByEventId: Map<string, StaveNote>
+): Map<
+  string,
+  Pick<CursorPoint, 'tupletAboveClearance' | 'tupletBelowClearance' | 'tupletInkBounds'>
+> {
+  const clearances = new Map<
+    string,
+    Pick<CursorPoint, 'tupletAboveClearance' | 'tupletBelowClearance' | 'tupletInkBounds'>
+  >()
+
+  tuplets.forEach(({ eventIds, tuplet }) => {
+    const tupletY = tuplet.getYPosition()
+    const inkBounds = resolveTupletInkBounds(tuplet)
+
+    eventIds.forEach((eventId) => {
+      const note = notesByEventId.get(eventId)
+
+      if (!note) {
+        return
+      }
+
+      try {
+        const bounds = note.getNoteHeadBounds()
+        const previous = clearances.get(eventId) ?? {}
+        const existing = { ...previous, tupletInkBounds: [...previous.tupletInkBounds ?? [], ...inkBounds] }
+        clearances.set(eventId, existing)
+
+        if (tupletY < bounds.yTop) {
+          clearances.set(eventId, {
+            ...existing,
+            // Clear both the bracket line and the number rendered above it.
+            tupletAboveClearance: Math.max(
+              existing.tupletAboveClearance ?? 0,
+              bounds.yTop - tupletY + 8
+            )
+          })
+        } else if (tupletY > bounds.yBottom) {
+          clearances.set(eventId, {
+            ...existing,
+            tupletBelowClearance: Math.max(
+              existing.tupletBelowClearance ?? 0,
+              tupletY - bounds.yBottom + 8
+            )
+          })
+        }
+      } catch {
+        // Some VexFlow notes do not expose head bounds until a later draw pass.
+      }
+    })
+  })
+
+  return clearances
 }
 
 function resolveNoteheadYs(note: StaveNote, staffY: number): number[] {
@@ -3158,26 +3850,21 @@ function drawOrnaments(
   ornaments: string[],
   yOffset = 34
 ): void {
+  // MusicXML mordent has a vertical stroke; VexFlow names that variant inverted.
+  const glyphs = ornaments.map((ornament) => new Ornament(
+    ornament === 'trill' ? 'tr' : ornament === 'mordent' ? 'mordentInverted' : 'turn'
+  ))
+  if (!glyphs[0]) return
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-ornament')
   text.setAttribute('data-event-id', eventId)
   text.setAttribute('x', String(x + 4))
-  text.setAttribute('y', String(staffY - yOffset))
-  text.textContent = ornaments.map(ornamentLabel).join(' ')
+  const descent = Math.max(...glyphs.map((glyph) => glyph.getTextMetrics().actualBoundingBoxDescent))
+  text.setAttribute('y', String(staffY - yOffset - descent))
+  text.style.font = glyphs[0].getFont()
+  text.textContent = glyphs.map((glyph) => glyph.getText()).join(' ')
   svg.append(text)
-}
-
-function ornamentLabel(ornament: string): string {
-  if (ornament === 'trill') {
-    return 'tr'
-  }
-
-  if (ornament === 'mordent') {
-    return '𝆝'
-  }
-
-  return '𝆗'
 }
 
 function drawGraceNotes(
@@ -3481,20 +4168,6 @@ function sortLyricsForDisplay(
   )
 }
 
-function findLaterVoltaEndIndex(
-  measures: Measure[],
-  startIndex: number,
-  number: 1 | 2
-): number | undefined {
-  for (let index = startIndex + 1; index < measures.length; index += 1) {
-    if (measures[index].volta?.number === number && measures[index].volta?.end) {
-      return index
-    }
-  }
-
-  return undefined
-}
-
 function stopLyricEditorEvent(event: Event): void {
   event.stopPropagation()
   event.stopImmediatePropagation()
@@ -3504,15 +4177,16 @@ function drawTie(
   context: ReturnType<Renderer['getContext']>,
   firstNote: StaveNote | null,
   lastNote: StaveNote | null
-): void {
-  new StaveTie({
+): StaveTie {
+  const tie = new StaveTie({
     firstNote,
     lastNote,
     firstIndexes: [0],
     lastIndexes: [0]
   })
     .setContext(context)
-    .draw()
+  tie.draw()
+  return tie
 }
 
 function isPreviewEventId(eventId: string): boolean {
@@ -3565,7 +4239,9 @@ function createStaveNote(
   eventAddress?: VoiceAddress,
   selectedEventAddress?: VoiceAddress
 ): StaveNote {
-  const clef = toVexFlowClef(measure.clef)
+  // A clef change belongs to the staff timeline, including notes in its other voices.
+  const effectiveClef = resolveMeasureClefAtTick(measure, event.position.tick)
+  const clef = toVexFlowClef(effectiveClef)
   const isRest = event.type === 'rest'
   const pitch =
     event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
@@ -3573,7 +4249,7 @@ function createStaveNote(
     event.type === 'note' && event.pitches?.length
       ? event.pitches.map(toVexFlowKey)
       : isRest
-        ? [toVexFlowRestKey(measure.clef, event.duration.value)]
+        ? [toVexFlowRestKey(effectiveClef, event.duration.value)]
         : [toVexFlowKey(pitch!)]
   const voicePresentation = resolveSameStaffVoicePresentation(
     voice.id,

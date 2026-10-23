@@ -2,6 +2,8 @@ const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const VexFlow = require('vexflow')
+const expectedOrnaments = [VexFlow.Glyphs.ornamentTrill, VexFlow.Glyphs.ornamentMordent, VexFlow.Glyphs.ornamentTurn].join(' ')
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'chromatics-passive-attachments-'))
 app.setPath('userData', path.join(directory, 'user-data'))
@@ -39,18 +41,49 @@ app.whenReady().then(async () => {
     })()`)
     await settle()
   }
-  const markerSummary = () => evaluate(`(() => {
+  const markerSummary = () => evaluate(`(async () => {
+    await document.fonts.ready
+    const upperLines = [...document.querySelector('.notation-preview .vf-stave').querySelectorAll('path')]
+      .map(line => line.getBBox()).filter(box => box.width > 100 && box.height <= 1)
+    if (!upperLines.length) throw new Error('Missing upper staff lines')
+    const upperStaffBottom = Math.max(...upperLines.map(box => box.y + box.height))
     const markers = [...document.querySelectorAll('.notation-fermata,.notation-breath-mark,.notation-tremolo-mark,.notation-ornament,.notation-grace-notes')]
     return markers.map(item => {
       const box = item.getBBox()
+      const style = getComputedStyle(item)
+      let bounds = { x: box.x, y: box.y, width: box.width, height: box.height }
+      // SMuFL text's SVG box covers the font em, not just the visible ornament.
+      if (item.classList.contains('notation-ornament')) {
+        const canvas = document.createElement('canvas')
+        canvas.width = 512
+        canvas.height = 256
+        const context = canvas.getContext('2d')
+        context.font = style.font
+        context.textAlign = 'center'
+        context.fillText(item.textContent, 256, 128)
+        const pixels = context.getImageData(0, 0, 512, 256).data
+        let left = 512, right = -1, top = 256, bottom = -1
+        for (let y = 0; y < 256; y += 1) {
+          for (let x = 0; x < 512; x += 1) {
+            if (!pixels[(y * 512 + x) * 4 + 3]) continue
+            left = Math.min(left, x); right = Math.max(right, x)
+            top = Math.min(top, y); bottom = Math.max(bottom, y)
+          }
+        }
+        bounds = right < left ? { x: 0, y: 0, width: 0, height: 0 } : {
+          x: Number(item.getAttribute('x')) + left - 256,
+          y: Number(item.getAttribute('y')) + top - 128,
+          width: right - left + 1, height: bottom - top + 1
+        }
+      }
       return {
         className: item.getAttribute('class'),
         eventId: item.getAttribute('data-event-id'),
         text: item.textContent,
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height
+        fontFamily: style.fontFamily,
+        fontReady: document.fonts.check(style.font, item.textContent || ' '),
+        upperStaffBottom,
+        ...bounds
       }
     })
   })()`)
@@ -71,6 +104,13 @@ app.whenReady().then(async () => {
       if (match.width <= 0 || match.height <= 0) {
         throw new Error(`${label} ${className} has empty geometry: ${JSON.stringify(match)}`)
       }
+      if (className === 'notation-ornament' &&
+          (match.text !== expectedOrnaments || !match.fontFamily.includes('Bravura') || !match.fontReady)) {
+        throw new Error(`${label} ornament glyph/font mismatch: ${JSON.stringify(match)}`)
+      }
+      if (className === 'notation-ornament' && match.y < match.upperStaffBottom + 6) {
+        throw new Error(`${label} ornament touches the preceding staff: ${JSON.stringify(match)}`)
+      }
     }
     const collisions = []
     for (let leftIndex = 0; leftIndex < markers.length; leftIndex += 1) {
@@ -84,7 +124,7 @@ app.whenReady().then(async () => {
         }
       }
     }
-    if (collisions.length) throw new Error(`${label} passive markers overlap: ${JSON.stringify(collisions)}`)
+    if (collisions.length) throw new Error(`${label} passive markers overlap: ${JSON.stringify({ collisions, markers })}`)
   }
 
   try {
@@ -107,9 +147,9 @@ app.whenReady().then(async () => {
     await wait('document.querySelector(".editor-status")?.textContent.includes("passive.chromatics을 열었습니다.")', 'Native open missing')
 
     const screenMarkers = await markerSummary()
-    assertMarkers(screenMarkers, 'screen')
     const screenshot = path.join(directory, 'passive-attachments-screen.png')
     fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+    assertMarkers(screenMarkers, `screen (${screenshot})`)
 
     await click('내보내기')
     await click('PDF 변환')

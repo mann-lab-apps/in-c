@@ -41,6 +41,15 @@ async function readSnapshot(window, width) {
       const round = (value) => Math.round(Number(value) * 10) / 10
       const svg = document.querySelector('.notation-preview svg')
       const svgBox = svg?.getBoundingClientRect()
+      for (const slur of document.querySelectorAll('.notation-slur')) {
+        const style = getComputedStyle(slur)
+        const centerline = slur.getAttribute('data-span-hit-path')
+        const hit = slur.parentElement.querySelector('.notation-span-hit')
+        if (!slur.getAttribute('d')?.trim().endsWith(' Z') || style.fill === 'none' || style.stroke !== 'none' ||
+            !centerline || centerline.endsWith('Z') || hit?.getAttribute('d') !== centerline) {
+          throw new Error('Slur must have a filled tapered contour and a separate centerline hit path')
+        }
+      }
       const readBox = (element) => {
         const box = element.getBoundingClientRect()
         return {
@@ -61,6 +70,30 @@ async function readSnapshot(window, width) {
           index
         }))
 
+      const textContext = document.createElement('canvas').getContext('2d')
+      const inkBottom = element => {
+        const matrix = element.getScreenCTM()
+        const box = element.getBBox()
+        let bottom = box.y + box.height
+        if (element.tagName === 'text') {
+          const style = getComputedStyle(element)
+          textContext.font = style.fontStyle + ' ' + style.fontWeight + ' ' + style.fontSize + ' ' + style.fontFamily
+          bottom = Number(element.getAttribute('y')) + textContext.measureText(element.textContent).actualBoundingBoxDescent
+        }
+        return Math.max(new DOMPoint(box.x, bottom).matrixTransform(matrix).y,
+          new DOMPoint(box.x + box.width, bottom).matrixTransform(matrix).y)
+      }
+      const shapes = '.notation-event text, .notation-event path, .notation-event rect, .notation-event circle, .notation-event line, .notation-slur, .notation-hairpin line'
+      for (const element of svg.querySelectorAll(shapes)) {
+        const bottom = inkBottom(element)
+        if (bottom > svgBox.bottom + 0.5) {
+          return { error: 'Notation ink clipped by SVG height: ' + JSON.stringify({
+            id: element.closest('[data-event-id]')?.getAttribute('data-event-id'), class: element.getAttribute('class'),
+            bottom, svgBottom: svgBox.bottom
+          }) }
+        }
+      }
+
       return {
         dynamicMarks: readElements('.notation-dynamic-mark'),
         eventCount: document.querySelectorAll('.notation-event').length,
@@ -78,6 +111,7 @@ async function readSnapshot(window, width) {
     })()
   `)
 
+  if (metrics.error) throw new Error(metrics.error)
   return {
     ...metrics,
     screenshot: {
