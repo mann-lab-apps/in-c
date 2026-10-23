@@ -1,0 +1,15 @@
+.bundle/
+vendor/
+output/
+approvals/
+secrets/
+.env*
+*.p8
+*.p12
+*.pem
+*.mobileprovision
+*.jks
+*.keystore
+apps/*/media/
+fastlane/report.xml
+fastlane/README.md
