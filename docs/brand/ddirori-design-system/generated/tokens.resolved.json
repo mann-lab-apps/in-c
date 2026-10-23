@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0",
+  "themes": {
+    "light": {
+      "background": "#F7FBFE",
+      "surface": "#FFFFFF",
+      "surfaceMuted": "#E8F4FC",
+      "text": "#203849",
+      "muted": "#536B7A",
+      "action": "#0077C8",
+      "actionHover": "#0067AF",
+      "actionPressed": "#00558F",
+      "onAction": "#FFFFFF",
+      "sky": "#A8D4E5",
+      "peach": "#F3BB9B",
+      "onPastel": "#203849",
+      "border": "#CCDCE6",
+      "controlBorder": "#718898",
+      "focus": "#0077C8",
+      "success": "#19734D",
+      "warning": "#8A5700",
+      "error": "#C13F50",
+      "disabled": "#E2E9EF",
+      "onDisabled": "#536B7A",
+      "overlay": "#12232E",
+      "onOverlay": "#FFFFFF"
+    },
+    "dark": {
+      "background": "#12232E",
+      "surface": "#1B3343",
+      "surfaceMuted": "#233F51",
+      "text": "#EAF4FB",
+      "muted": "#A6BCCC",
+      "action": "#72B8EE",
+      "actionHover": "#95CCF5",
+      "actionPressed": "#B2DBFA",
+      "onAction": "#102637",
+      "sky": "#A8D4E5",
+      "peach": "#F3BB9B",
+      "onPastel": "#203849",
+      "border": "#426174",
+      "controlBorder": "#7691A3",
+      "focus": "#72B8EE",
+      "success": "#7DD8AD",
+      "warning": "#F1CD88",
+      "error": "#FFADB6",
+      "disabled": "#2A4353",
+      "onDisabled": "#A6BCCC",
+      "overlay": "#12232E",
+      "onOverlay": "#FFFFFF"
+    }
+  },
+  "score": {
+    "paper": "#FFFFFF",
+    "notation": "#202020",
+    "annotationInk": "#111111",
+    "annotationRed": "#D33232",
+    "annotationBlue": "#1D5FD1",
+    "annotationYellow": "#FFCC25",
+    "voiceOne": "#1D5FD1",
+    "voiceTwo": "#9358B7",
+    "playhead": "#19734D"
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32
+  },
+  "radius": {
+    "control": 10,
+    "card": 16,
+    "panel": 20,
+    "pill": 999
+  },
+  "density": {
+    "comfortable": {
+      "control": 48,
+      "gap": 12,
+      "font": 16
+    },
+    "compact": {
+      "control": 32,
+      "gap": 8,
+      "font": 14
+    }
+  },
+  "typography": {
+    "body": 16,
+    "label": 14,
+    "title": 24,
+    "display": 36,
+    "lineHeight": 1.5,
+    "webFamily": "\"Ddirori Pretendard\", system-ui, sans-serif",
+    "flutterFamily": "platform default; optional licensed TTF/OTF supplied by consumer"
+  },
+  "motion": {
+    "feedbackMs": 120,
+    "panelMs": 180,
+    "loaderCycleMs": 1200
+  }
+}

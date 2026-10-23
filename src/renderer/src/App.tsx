@@ -121,6 +121,10 @@ import {
   createSingleVoiceMvpScore
 } from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
+import './ddirori-product.css'
+import { AppearanceSettings } from './AppearanceSettings'
+import { ModalBackdrop } from './ModalBackdrop'
+import { Button as DdiroriButton } from '../../../packages/ddirori_web/src/controls'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -1263,6 +1267,7 @@ export const App = () => {
   const [readingRecovery, setReadingRecovery] = useState(false)
   const [discardingRecovery, setDiscardingRecovery] = useState(false)
   const recoveryReadRequest = useRef(0)
+  const recoveryFocusTarget = useRef<HTMLElement | null>(null)
   const recoveryDiscardInFlight = useRef(false)
   const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
     RecentMusicXmlFile[]
@@ -2371,6 +2376,7 @@ export const App = () => {
   )
 
   const readAutosaveRecovery = useCallback(async () => {
+    recoveryFocusTarget.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const request = ++recoveryReadRequest.current
     const generation = documentGeneration.current
     const isCurrent = () => request === recoveryReadRequest.current && generation === documentGeneration.current
@@ -7229,6 +7235,7 @@ export const App = () => {
         pdfExporting ? ' app-shell--pdf-export' : ''
       }`}
     >
+      <AppearanceSettings />
       {pdfExporting ? (
         <style>
           {`@page { size: ${printLayoutPlan.pageCssSize}; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
@@ -7488,9 +7495,10 @@ export const App = () => {
             <span>입력 성부</span>
             <div className="inspector-properties__buttons">
               {voiceNumbers.map((voiceNumber) => (
-                <button
+                <DdiroriButton
+                  kind="quiet"
                   aria-label={`${voiceNumber}성부`}
-                  aria-pressed={activeVoiceNumber === voiceNumber}
+                  selected={activeVoiceNumber === voiceNumber}
                   className={
                     activeVoiceNumber === voiceNumber ? 'is-active' : undefined
                   }
@@ -7500,7 +7508,7 @@ export const App = () => {
                   type="button"
                 >
                   {voiceNumber}
-                </button>
+                </DdiroriButton>
               ))}
             </div>
           </div>
@@ -7988,26 +7996,28 @@ export const App = () => {
               <div className="inspector-properties__row">
                 <span>헤어핀</span>
                 <div className="inspector-properties__buttons">
-                  <button
+                  <DdiroriButton
+                    kind="quiet"
                     aria-label="크레셴도 헤어핀"
-                    aria-pressed={selectedRangeHairpin?.type === 'crescendo'}
+                    selected={selectedRangeHairpin?.type === 'crescendo'}
                     disabled={!canApplyRangeHairpin}
                     title="크레셴도 헤어핀"
                     onClick={() => toggleHairpin('crescendo')}
                     type="button"
                   >
                     <ChevronLeft aria-hidden="true" size={18} />
-                  </button>
-                  <button
+                  </DdiroriButton>
+                  <DdiroriButton
+                    kind="quiet"
                     aria-label="디미누엔도 헤어핀"
-                    aria-pressed={selectedRangeHairpin?.type === 'diminuendo'}
+                    selected={selectedRangeHairpin?.type === 'diminuendo'}
                     disabled={!canApplyRangeHairpin}
                     title="디미누엔도 헤어핀"
                     onClick={() => toggleHairpin('diminuendo')}
                     type="button"
                   >
                     <ChevronRight aria-hidden="true" size={18} />
-                  </button>
+                  </DdiroriButton>
                 </div>
               </div>
               <button
@@ -9822,9 +9832,10 @@ export const App = () => {
               const label = durationLabels[duration]
 
               return (
-                <button
+                <DdiroriButton
+                  kind="quiet"
                   aria-label={label}
-                  aria-pressed={activeDurationValue === duration}
+                  selected={activeDurationValue === duration}
                   className={
                     activeDurationValue === duration ? 'is-active' : undefined
                   }
@@ -9834,7 +9845,7 @@ export const App = () => {
                   type="button"
                 >
                   {durationToolbarLabels[duration]}
-                </button>
+                </DdiroriButton>
               )
             })}
 
@@ -10461,9 +10472,10 @@ export const App = () => {
       ) : null}
 
       {newScoreDraft ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => setNewScoreDraft(undefined)}>
           <form
             aria-label="새 악보 만들기"
+            aria-modal="true"
             className="new-score-dialog"
             onSubmit={(event) => {
               event.preventDefault()
@@ -10710,13 +10722,14 @@ export const App = () => {
               </button>
             </footer>
           </form>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {shortcutHelpOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => setShortcutHelpOpen(false)}>
           <section
             aria-label="단축키 도움말"
+            aria-modal="true"
             className="shortcut-help-dialog"
             role="dialog"
           >
@@ -10750,13 +10763,14 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {commandPaletteOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => { setCommandPaletteOpen(false); setCommandPaletteQuery('') }}>
           <section
             aria-label="명령 검색"
+            aria-modal="true"
             className="command-palette-dialog"
             role="dialog"
           >
@@ -10844,15 +10858,16 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {nativeBackupsOpen ? <NativeBackupsDialog onClose={closeNativeBackups} onRestore={restoreNativeBackup} /> : null}
 
       {recoverySnapshot && !startScreenVisible && !nativeBackupsOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop restoreFocusTo={recoveryFocusTarget.current} onDismiss={() => { if (!recoveryDiscardInFlight.current) postponeAutosave() }}>
           <section
             aria-label="자동저장 복구"
+            aria-modal="true"
             className="recovery-dialog"
             role="dialog"
           >
@@ -10880,7 +10895,7 @@ export const App = () => {
               <button onClick={discardAutosave} disabled={discardingRecovery} type="button">
                 삭제
               </button>
-              <button onClick={postponeAutosave} disabled={discardingRecovery} type="button">
+              <button autoFocus onClick={postponeAutosave} disabled={discardingRecovery} type="button">
                 나중에
               </button>
               <button
@@ -10893,7 +10908,7 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
     </main>
   )

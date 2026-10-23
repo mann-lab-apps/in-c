@@ -9,6 +9,32 @@ import { SpanProperties } from './SpanProperties'
 
 afterEach(cleanup)
 
+it('shared inspector commands delegate reset, deletion and deselection without mutating score data', () => {
+  const { props } = setup()
+  const before = structuredClone(props.score)
+  render(<SpanProperties {...props} selected={{ kind: 'slur', id: 'span' }} />)
+  fireEvent.click(screen.getByText('배치 · 형상'))
+  const reset = screen.getByRole('button', { name: '표기 자동 배치 복원' })
+  expect(reset).toHaveClass('dd-button', 'dd-icon-button', 'icon-button')
+  fireEvent.click(reset)
+  expect(props.onEngravingChange).toHaveBeenCalledExactlyOnceWith(undefined)
+  fireEvent.click(screen.getByRole('button', { name: '선택 표기 삭제' }))
+  expect(props.onDelete).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: '표기 선택 해제' }))
+  expect(props.onSelect).toHaveBeenCalledExactlyOnceWith(undefined)
+  expect(props.score).toEqual(before)
+})
+
+it('does not expose stale object commands for no selection or an absent span', () => {
+  const { props } = setup()
+  const { rerender } = render(<SpanProperties {...props} selected={undefined} />)
+  expect(screen.queryByRole('button', { name: '선택 표기 삭제' })).not.toBeInTheDocument()
+  rerender(<SpanProperties {...props} selected={{ kind: 'slur', id: 'missing' }} />)
+  expect(screen.queryByRole('button', { name: '선택 표기 삭제' })).not.toBeInTheDocument()
+  expect(screen.getByLabelText('표기 객체 선택')).toHaveValue('')
+  expect(props.onDelete).not.toHaveBeenCalled()
+})
+
 function setup() {
   const score = parseMusicXml(fixture)
   const part = score.parts[0]!, staff = part.staves[0]!

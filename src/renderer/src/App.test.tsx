@@ -848,6 +848,32 @@ describe('App component shell', () => {
     installPreloadStub()
   })
 
+  it('ddirori.controls preserves mandatory duration and voice selections through product commands', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.keyDown(window, { code: 'KeyN', key: 'n' })
+    const eighth = screen.getByRole('button', { name: '8분음표' })
+    expect(eighth).toHaveClass('dd-button')
+    fireEvent.click(eighth)
+    fireEvent.click(eighth)
+    expect(eighth).toHaveAttribute('aria-pressed', 'true')
+
+    const voice = screen.getByRole('button', { name: '2성부' })
+    expect(voice).toHaveClass('dd-button')
+    fireEvent.click(voice)
+    fireEvent.click(voice)
+    expect(voice).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id', 'measure-1-voice-2-full-measure-rest'
+    )
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-pitches', expect.stringContaining('measure-1-voice-2-full-measure-rest:C')
+    )
+  })
+
   it('start-recovery.show-start-screen renders the start screen with Korean entry actions', async () => {
     const { App } = await import('./App')
     render(<App />)
