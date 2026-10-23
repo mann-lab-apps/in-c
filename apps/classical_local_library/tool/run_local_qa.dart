@@ -66,6 +66,21 @@ Future<void> _killDescendants(int pid) async {
   }
 }
 
+bool isQaSourceFile(String path) {
+  final normalized = path.replaceAll('\\', '/');
+  if (normalized.split('/').last == '.DS_Store') return false;
+  // Flutter creates these ignored files during the first test/build.
+  for (final generated in [
+    'ios/Runner/GeneratedPluginRegistrant.h',
+    'ios/Runner/GeneratedPluginRegistrant.m',
+  ]) {
+    if (normalized == generated || normalized.endsWith('/$generated')) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Future<String> sourceFingerprint() async {
   final files = <File>[];
   for (final path in [
@@ -84,7 +99,7 @@ Future<String> sourceFingerprint() async {
       recursive: true,
       followLinks: false,
     )) {
-      if (entity is File && !entity.path.endsWith('.DS_Store')) {
+      if (entity is File && isQaSourceFile(entity.path)) {
         files.add(entity);
       }
     }

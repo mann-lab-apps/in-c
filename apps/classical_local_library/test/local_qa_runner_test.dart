@@ -12,6 +12,28 @@ void main() {
   );
   tearDown(() async => directory.delete(recursive: true));
 
+  test('fingerprint excludes only known generated iOS registrants', () {
+    for (final path in [
+      'ios/Runner/GeneratedPluginRegistrant.h',
+      '/checkout/ios/Runner/GeneratedPluginRegistrant.m',
+      r'C:\checkout\ios\Runner\GeneratedPluginRegistrant.h',
+      'assets/.DS_Store',
+    ]) {
+      expect(isQaSourceFile(path), isFalse, reason: path);
+    }
+    for (final path in [
+      'ios/Runner/AppDelegate.swift',
+      'ios/Runner/Info.plist',
+      'ios/Runner/PrivacyInfo.xcprivacy',
+      'ios/Runner/GeneratedPluginRegistrant.swift',
+      'lib/GeneratedPluginRegistrant.m',
+      '../../packages/ddirori_ui/lib/src/generated/ddirori_tokens.dart',
+      'assets/audio_test/movement_1.flac',
+    ]) {
+      expect(isQaSourceFile(path), isTrue, reason: path);
+    }
+  });
+
   test('timeout closes a child process holding the output pipe', () async {
     final result = await runQaCheck(
       const QaCheck('child', '/bin/sh', [
