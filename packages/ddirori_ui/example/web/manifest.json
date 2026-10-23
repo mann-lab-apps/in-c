@@ -1,0 +1,19 @@
+{
+  "name": "띠로리 UI 카탈로그",
+  "short_name": "띠로리 UI",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F7FBFE",
+  "theme_color": "#0077C8",
+  "description": "공통 컴포넌트와 음악 도구 패턴의 독립 예제",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/ddirori.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
