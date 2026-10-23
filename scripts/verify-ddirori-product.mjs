@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { readFile, mkdir, mkdtemp, writeFile, stat } from 'node:fs/promises'
+import { readFile, mkdir, mkdtemp, writeFile, stat, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -67,6 +67,26 @@ try {
   await size(1440)
   await page.evaluate(() => { document.documentElement.style.fontSize = '16px' })
   await appearance('light', 'compact')
+  const menuDriven = await page.getByRole('menubar').count() > 0
+  for (const [label, panel] of [['팔레트 표시', '.docked-palette'], ['속성 표시', '.docked-properties']]) {
+    const toggle = page.getByRole('button', { name: label, exact: true })
+    if (await toggle.getAttribute('aria-pressed') === 'false') await toggle.click()
+    await toggle.click()
+    check(`${label} hides its dock`, !await page.locator(panel).isVisible())
+    if (menuDriven) await toggle.press('Enter')
+    else await toggle.click()
+    check(`${label} restores its dock with ${menuDriven ? 'keyboard' : 'pointer (legacy UI)'}`, await page.locator(panel).isVisible())
+  }
+  if (menuDriven) {
+    const sharedResize = page.getByRole('separator', { name: '도크 폭 조절', exact: true })
+    const resize = await sharedResize.count() ? sharedResize : page.getByRole('separator', { name: '팔레트 폭 조절', exact: true })
+    const widthBefore = Number(await resize.getAttribute('aria-valuenow'))
+    await resize.focus()
+    await resize.press('ArrowRight')
+    check('dock resize uses product keyboard command', Number(await resize.getAttribute('aria-valuenow')) > widthBefore)
+    await resize.press('ArrowLeft')
+    check('dock resize restores original width', Number(await resize.getAttribute('aria-valuenow')) === widthBefore)
+  }
   const menu = async (group, command, fallback) => {
     const trigger = page.getByRole('menubar').getByRole('menuitem', { name: group, exact: true })
     if (await trigger.count()) {
@@ -79,6 +99,10 @@ try {
   }
   const selected = page.locator('.notation-preview [data-event-id]').first()
   await selected.click()
+  const propertiesTab = page.getByRole('tab', { name: '속성', exact: true })
+  if (await propertiesTab.count()) await propertiesTab.click()
+  check('actual selection inspector is visible', await page.locator('.docked-properties').isVisible())
+  await capture('selection-inspector')
   const inputToggle = page.getByRole('button', { name: '음표 입력', exact: true })
   if (await inputToggle.count()) await inputToggle.click()
   else await page.keyboard.press('n')
@@ -166,9 +190,32 @@ try {
   await page.emulateMedia({ media: 'print' })
   check('appearance controls excluded from print', !await page.locator('.appearance-bar').isVisible())
   await page.emulateMedia({ media: 'screen' })
+  // Exercise the real backup store's list failure, not a success-shaped bridge mock.
+  const profile = await app.evaluate(({ app }) => app.getPath('userData'))
+  check('backup fault injection is limited to isolated profile', profile.includes('chromatics-ddirori-preview-'))
+  const backupsPath = join(profile, 'native-project-backups')
+  await writeFile(backupsPath, 'not a directory', { flag: 'wx' })
+  await page.getByRole('button', { name: '파일', exact: true }).click()
+  await page.getByRole('button', { name: '프로젝트 백업', exact: true }).click()
+  const backups = page.getByRole('dialog', { name: '프로젝트 백업', exact: true })
+  await backups.getByRole('alert').waitFor()
+  check('backup list failure remains an error', await backups.getByRole('alert').innerText() !== '')
+  await size(390)
+  await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
+  await capture('backup-error-narrow')
+  check('backup dialog fits narrow enlarged view', await backups.evaluate(el => {
+    const rect = el.getBoundingClientRect()
+    return el.scrollWidth <= el.clientWidth + 1 && rect.left >= 11 && rect.right <= innerWidth - 11
+  }))
+  await rename(backupsPath, join(profile, 'backup-list-fault.txt'))
+  await backups.getByRole('button', { name: '백업 목록 다시 불러오기' }).click()
+  await backups.getByText('백업 없음', { exact: true }).waitFor()
+  check('backup retry recovers without restoring a score', await backups.getByRole('alert').count() === 0)
+  await backups.getByRole('button', { name: '닫기', exact: true }).click()
+  check('backup close restores focus', await page.getByRole('button', { name: '프로젝트 백업', exact: true }).evaluate(el => el === document.activeElement))
   check('renderer has no uncaught errors', errors.length === 0)
   const sourceHashes = {}
-  for (const file of ['src/renderer/src/App.tsx', 'src/renderer/src/styles.css', 'src/renderer/src/ddirori-product.css', 'src/renderer/src/AppearanceSettings.tsx']) sourceHashes[file] = createHash('sha256').update(await readFile(file)).digest('hex')
-  await writeFile(join(output, 'report.json'), JSON.stringify({ timestamp: new Date().toISOString(), scope: 'Actual Electron renderer and native preload; isolated profile; no release packaging', checks, errors, captures, sourceHashes }, null, 2))
+  for (const file of ['src/renderer/src/App.tsx', 'src/renderer/src/styles.css', 'src/renderer/src/ddirori-product.css', 'src/renderer/src/AppearanceSettings.tsx', 'src/renderer/src/NativeBackupsDialog.tsx']) sourceHashes[file] = createHash('sha256').update(await readFile(file)).digest('hex')
+  await writeFile(join(output, 'report.json'), JSON.stringify({ timestamp: new Date().toISOString(), scope: 'Actual Electron renderer and native preload; isolated profile; no release packaging', productVariant: menuDriven ? 'menu-driven product' : 'legacy category UI; dock restoration checked with pointer, not Enter; keyboard resize absent', checks, errors, captures, sourceHashes }, null, 2))
   console.log(`${checks.length} checks passed; ${captures.length} screenshots: ${output}`)
 } finally { await app.close() }

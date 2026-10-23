@@ -43,6 +43,8 @@
   .ddirori :is(.application-menu__popup, .quick-actions-panel, .new-score-dialog, .command-palette-dialog, .shortcut-help-dialog, .recovery-dialog) {
     background: var(--dd-surface); color: var(--dd-text); border-color: var(--dd-control-border); border-radius: 8px;
   }
+  .ddirori :is(.new-score-dialog, .command-palette-dialog, .shortcut-help-dialog, .recovery-dialog) { grid-template-columns: minmax(0, 1fr); overflow-wrap: anywhere; }
+  .ddirori .modal-backdrop [role='alert'] { color: var(--dd-error); min-width: 0; overflow-wrap: anywhere; }
   .ddirori :is(.appearance-settings, .editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, input, select, textarea) {
     color: var(--dd-text); background-color: var(--dd-surface); border-color: var(--dd-control-border);
     font-family: var(--dd-font); font-size: var(--dd-control-font); letter-spacing: 0;
@@ -82,6 +84,12 @@
   .ddirori :is(.docked-sidebar__header, .inspector-properties__header, .inspector-properties__buttons) { flex-wrap: wrap; }
   .ddirori .part-mixer__row { border-color: var(--dd-border); background: var(--dd-surface); color: var(--dd-text); }
   .ddirori .part-mixer__row.is-active { background: var(--dd-surface-muted); border-color: var(--dd-success); }
+  .ddirori .native-backups-header { flex-wrap: wrap; }
+  .ddirori .native-backups-header h2 { margin: 0; overflow-wrap: anywhere; }
+  .ddirori .native-backups-actions { display: flex; gap: 8px; margin-inline-start: auto; }
+  .ddirori .native-backups-actions button { display: grid; place-items: center; min-width: var(--dd-control); }
+  .ddirori .native-backups-list li { grid-template-columns: minmax(0, 1fr) auto; border-color: var(--dd-border); }
+  .ddirori .native-backups-list button { width: var(--dd-control); min-width: var(--dd-control); }
   .ddirori .start-screen h1 { font-size: 2rem; line-height: 1.3; }
   .ddirori .start-action { box-shadow: none; }
   .ddirori .score-page { color-scheme: light; }

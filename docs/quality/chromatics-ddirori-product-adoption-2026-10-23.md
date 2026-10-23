@@ -70,3 +70,45 @@ env -u ELECTRON_RUN_AS_NODE electron scripts/preview-ddirori.cjs
 Use the local Electron executable (`node_modules/.bin/electron`) if it is not on
 PATH. This opens the actual desktop renderer with a fresh isolated profile, not
 a browser mock. User projects and the normal application profile are not used.
+
+## Backup list recovery follow-up
+
+- A failed list request now has a named refresh icon; list loading and restore
+  pending disable duplicate actions. Failed restoration keeps the list for retry.
+- Six focused tests cover list retry, loading vs empty, restore retry, corrupt
+  entries, closed-dialog late responses and keyboard focus restoration.
+- Long native error paths previously overflowed the modal and pushed actions out
+  of view. A bounded grid track and wrapping keep them readable at 390px / 200%.
+  Error text uses the dark/light error token instead of inheriting ordinary text.
+- Native store failure was reproduced by creating a file at the backup-directory
+  location in the disposable profile. Renaming that test file allowed the real
+  refresh command to recover. No bridge success stub or user file was used.
+- Latest product Electron: 130 checks / 11 captures, run-MzxzXi, exit 0.
+  Actual keyboard dock restoration/resizing and selection inspector included.
+- Independent Electron: 128 checks / 11 captures, run-pZ6gT1, exit 0.
+  The old category UI uses pointer dock restoration and has no keyboard resize;
+  its report explicitly identifies that narrower coverage.
+- Independent final suite: 846 passed, 1 skipped, exit 0 (319.29 seconds).
+  Appearance + backup + App backup integration focused run: 14 passed.
+- Combined typecheck/development build passed. Final PDF from run-MzxzXi was
+  rendered with Poppler and inspected; score geometry and music were present,
+  with no tool controls. Both final reports' source hashes matched inspected files.
+
+## Combined suite caveat
+
+The live worktree contains separate concurrent product/test changes. Its first
+full run had 1,106 passes / 7 failures / 8 skips. Five failures were App's default
+5-second timeout; two were passive attachment boundary assertions. The latter
+suite passed all 136 tests alone; the five App cases also passed a focused rerun.
+The next full run had 1,121 passes / 3 failures / 8 skips: two App timeouts and
+a subsequent duplicate-DOM failure. Neither run is recorded as PASS.
+
+A separate integration snapshot at
+`/private/tmp/chromatics-ddirori-integration-20261023-zFv8mA` copies the live source
+without changing it; all 160 source files were hash-compared after copying.
+It is separate from the design-only verification worktree. A full run there uses
+an explicit 15-second per-test limit, without modifying tests or assertions.
+Its result is pending and does not erase the default-timeout failures. Counts
+between live runs are not assumed identical while other work is in progress.
+
+The initial design commit is d1f5a22. Deployment remains outside this task.
