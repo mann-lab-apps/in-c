@@ -1,11 +1,13 @@
 import type { Score, Staff } from '../../../score-core'
+import type { MeasurePlacement } from './system-layout'
 import { projectGlobalAnnotationsForRendering } from './global-annotation-projection'
 import {
   countMeasureLyricLines, resolveAnnotationSystemTop, resolveMeasureAnnotationLanes,
   type MeasureAnnotationLaneInput
 } from './annotation-lanes'
 
-export function createScoreAnnotationLanes(score: Score, lyricScale: number) {
+export function createScoreAnnotationLanes(score: Score, lyricScale: number, lowerOffsets: ReadonlyMap<string, number> = new Map(),
+  hairpinStackOffsets: ReadonlyMap<string, number> = new Map()) {
   score = projectGlobalAnnotationsForRendering(score)
   const inputs = new Map<string, MeasureAnnotationLaneInput>()
   const inputFor = (id: string) => {
@@ -33,17 +35,27 @@ export function createScoreAnnotationLanes(score: Score, lyricScale: number) {
     }
   }
   return new Map(score.parts.flatMap(part => part.staves.flatMap(staff => staff.measures.map(measure => [measure.id,
-    resolveMeasureAnnotationLanes({ ...inputs.get(measure.id), lyricScale, lyricLineCount: countMeasureLyricLines(measure) })
+    resolveMeasureAnnotationLanes({ ...inputs.get(measure.id), lowerOffset: lowerOffsets.get(measure.id), hairpinStackOffset: hairpinStackOffsets.get(measure.id), lyricScale, lyricLineCount: countMeasureLyricLines(measure) })
   ] as const))))
 }
 
-export function resolveScoreVerticalLayout(score: Score, lyricScale: number, baseHeight: number, baseTop: number) {
-  const lanesByMeasureId = createScoreAnnotationLanes(score, lyricScale)
+export function resolveScoreVerticalLayout(score: Score, lyricScale: number, baseHeight: number, baseTop: number,
+  staffInkBounds: ReadonlyMap<number, { top: number; bottom: number }> = new Map(),
+  lowerOffsets: ReadonlyMap<string, number> = new Map(),
+  hairpinStackOffsets: ReadonlyMap<string, number> = new Map(),
+  measureIndices?: ReadonlySet<number>) {
+  const lanesByMeasureId = createScoreAnnotationLanes(score, lyricScale, lowerOffsets, hairpinStackOffsets)
   const staves = score.parts.flatMap(part => part.staves)
-  const staffLanes = staves.map(staff => staff.measures.map(measure => lanesByMeasureId.get(measure.id)!))
+  const localMeasures = staves.map(staff => staff.measures.filter((_, index) => !measureIndices || measureIndices.has(index)))
+  const staffLanes = localMeasures.map(measures => measures.map(measure => lanesByMeasureId.get(measure.id)!))
   const extents = staffLanes.map((lanes, index) => ({
-    above: Math.max(20, ...lanes.map(lane => lane.requiredAbove), ...staves[index]!.measures.flatMap(measure =>
-      measure.voices.flatMap(voice => voice.events.map(event => event.fermata ? 60 : event.breathMark ? 40 : 0)))),
+    above: Math.max(20, ...lanes.map(lane => lane.requiredAbove), ...localMeasures[index]!.flatMap(measure =>
+      measure.voices.flatMap(voice => voice.events.map(event => Math.max(
+        event.fermata ? 60 : 0,
+        event.breathMark ? 40 : 0,
+        // Ornament ink rises above its baseline, and sits higher above a fermata.
+        event.type === 'note' && event.ornaments?.length ? (event.fermata ? 80 : 56) : 0
+      ))))),
     below: Math.max(80, ...lanes.map(lane => lane.contentBottom))
   }))
   const staffByEvent = new Map<string, number>()
@@ -56,7 +68,7 @@ export function resolveScoreVerticalLayout(score: Score, lyricScale: number, bas
     for (const geometry of [span.engraving, ...(span.engraving.segments ?? []).map(segment => segment.geometry)]) {
       const offset = (geometry?.offsetY ?? 0) * 10
       if (kind === 'hairpins') {
-        const baseline = geometry?.placement === 'above' ? -34 : Math.max(126, ...staffLanes[index]!.map(lane => lane.hairpinYOffset ?? 0))
+        const baseline = geometry?.placement === 'above' ? -34 : Math.max(126, ...staves[index]!.measures.map(measure => lanesByMeasureId.get(measure.id)!.hairpinYOffset ?? 0))
         const halfHeight = geometry?.height === undefined ? 10 : geometry.height * 5
         extent.above = Math.max(extent.above, -(baseline + offset - halfHeight))
         extent.below = Math.max(extent.below, baseline + offset + halfHeight)
@@ -67,6 +79,13 @@ export function resolveScoreVerticalLayout(score: Score, lyricScale: number, bas
       }
     }
   }
+  // Inner staff gaps use measured contours; outer system ink has its own layout pass.
+  for (const [index, ink] of staffInkBounds) {
+    const extent = extents[index]
+    if (!extent) continue
+    if (index > 0) extent.above = Math.max(extent.above, -ink.top)
+    if (index < staves.length - 1) extent.below = Math.max(extent.below, ink.bottom)
+  }
   const staffOffsets = [0]
   for (let index = 1; index < staves.length; index++) {
     const previousBottom = extents[index - 1]!.below
@@ -76,7 +95,28 @@ export function resolveScoreVerticalLayout(score: Score, lyricScale: number, bas
   const lastBelow = Math.max(154, ...(staffLanes.at(-1) ?? []).map(lane => lane.requiredBelow))
   return {
     lanesByMeasureId, staffOffsets,
+    // Keep the page/header margin separate from extra space reserved for annotation lanes.
+    topInkPadding: Math.max(baseTop, score.tempo || score.rhythmFeel ? 60 : 12),
     systemHeight: staffOffsets.at(-1)! + Math.max(baseHeight + Math.max(0, lastBelow - 154), (extents.at(-1)?.below ?? 80) + (extents[0]?.above ?? 20) + 12),
     systemTop: Math.max(resolveAnnotationSystemTop(baseTop, staffLanes[0] ?? [], Boolean(score.tempo || score.rhythmFeel)), (extents[0]?.above ?? 20) + (score.tempo || score.rhythmFeel ? 60 : 12))
   }
+}
+
+export type SystemStaffInkBounds = Map<number, Map<number, { top: number; bottom: number }>>
+
+export function resolveScoreSystemVerticalLayouts(score: Score, placements: readonly MeasurePlacement[],
+  lyricScale: number, baseHeight: number, baseTop: number,
+  staffInkBounds: SystemStaffInkBounds = new Map(), lowerOffsets: ReadonlyMap<string, number> = new Map(),
+  hairpinStackOffsets: ReadonlyMap<string, number> = new Map()) {
+  const measureIndices = new Map((score.parts[0]?.staves[0]?.measures ?? []).map((measure, index) => [measure.id, index]))
+  const systems = new Map<number, Set<number>>()
+  for (const placement of placements) {
+    const index = measureIndices.get(placement.measure.id)
+    if (index === undefined) continue
+    if (!systems.has(placement.systemIndex)) systems.set(placement.systemIndex, new Set())
+    systems.get(placement.systemIndex)!.add(index)
+  }
+  return new Map([...systems].map(([system, indices]) => [system,
+    resolveScoreVerticalLayout(score, lyricScale, baseHeight, baseTop,
+      staffInkBounds.get(system), lowerOffsets, hairpinStackOffsets, indices)]))
 }

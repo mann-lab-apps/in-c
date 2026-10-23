@@ -3,6 +3,7 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { museScoreExportArgs } from './musescore-export-args.mjs'
 
 const rootDir = resolve(new URL('..', import.meta.url).pathname)
 const defaultMuseScoreBin = '/Applications/MuseScore 4.app/Contents/MacOS/mscore'
@@ -13,6 +14,12 @@ const outputRoot =
   (await mkdtemp(join(tmpdir(), 'chromatics-musescore-cli-')))
 
 const fixtures = [
+  {
+    id: 'chromatics-repeat-volta-slur-contract',
+    path: 'src/musicxml/fixtures/repeat-volta-slur-contract.musicxml',
+    outputName: 'chromatics-repeat-volta-slur-contract.pdf',
+    minBytes: 1024
+  },
   {
     id: 'musescore-4-7-5-cli-grand-staff-export',
     path: 'src/musicxml/fixtures/external-apps/musescore-4-7-5-cli-grand-staff-export.musicxml',
@@ -94,7 +101,7 @@ function runMuseScoreExport(fixture, outputPath) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const result = spawnSync(
       museScoreBin,
-      ['-F', '--musicxml-use-default-font', '-o', outputPath, inputPath],
+      museScoreExportArgs(inputPath, outputPath),
       {
         encoding: 'utf8',
         timeout: 90_000

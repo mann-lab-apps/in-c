@@ -3178,6 +3178,1553 @@ Remaining manual QA: confirm that the default compact score-toolbar hierarchy is
 | `v0.1.0-alpha.34` release workflow `39573419366` | Pass | Linux/macOS/Windows packages and packaged-app smoke passed. macOS also passed signing-secret verification, notarization-key preparation, Developer ID signature verification and artifact validation. GitHub prerelease published with macOS DMG/ZIP, Windows installer/portable EXE, Linux AppImage and `SHA256SUMS.txt`: https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.34. |
 | alpha.34 site manifest / production fetch | Pass | Site PR #786 merged as `366e7c7`; main Site workflow `39576803911` built and deployed GitHub Pages successfully. `https://in-c.mannlab.app/download-manifest.json` returns `v0.1.0-alpha.34`, the published release URL, `SHA256SUMS.txt`, and current macOS/Windows/Linux asset links. |
 
+## 2026-10-21 MuseScore Desktop Menu Foundation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `ui.application-menu separates global actions from score workspaces` | Fail, then Pass | The failure-first App regression initially found no `menubar` named `주 메뉴`. The implemented `파일 / 편집 / 보기 / 추가 / 형식 / 도구 / 도움말` menu routes to existing lifecycle, selection, dock, palette, layout and help handlers rather than creating a parallel score command model. |
+| `ui.application-menu follows desktop arrow-key navigation` | Fail, then Pass | A second regression initially proved that ArrowRight left focus on `파일`. The menubar now supports left/right and Home/End trigger navigation, opens with Down/Enter/Space, and closes with Escape or outside pointer interaction. |
+| `ui.application-menu moves focus between enabled menu actions` | Fail, then Pass | The failure-first regression showed that Down opened `파일 메뉴` while focus remained on the document. Opened menus now focus their first enabled action; Up/Down wrap across enabled actions, Home/End jump to the ends, and Escape restores the opening trigger. |
+| `작업 도구` hierarchy | Fail, then Pass | The regression initially still observed a global-looking `파일 / 악보 / 음표 / 표기 객체 / 가사 / 내보내기 / 재생` row. It now has a visible `작업 도구` label and role-oriented button text (`문서 / 악보 / 입력 / 표기 / 가사 / 출력 / 재생`); stable accessible labels retain existing command and test paths during the migration. |
+| Focused App tests and `npm run typecheck` | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.application-menu (separates global actions|follows desktop arrow-key navigation)"` passed 2 tests; the pre-existing full workspace workflow regression also passed. `npm run typecheck` passed. |
+| `npm run build`; production Electron verifier | Pass | Production build passed with existing non-failing Rollup zod comment warnings. `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` exited 0 after its 960/1280/1400 checks. The extended verifier asserts the new menu labels, trigger-aligned popup placement, containment, no menu overflow, and outside-pointer dismissal. |
+| Remaining UX work | Pending | The old File/Score/Note/Notation/Lyrics/Export/Playback category strip still acts as a compatibility workspace selector. It must be migrated into compact role-specific toolbars and sidebar entry points before claiming visual parity with MuseScore. Human compact-desktop review is also still required. |
+
+## 2026-10-21 File Workspace Migration
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| File category removal | Fail, then Pass | A failure-first workspace regression initially still found `문서` among pressed editing categories. The score toolbar now retains only `악보 / 입력 / 표기 / 가사 / 출력 / 재생`; a visible icon-only `파일` control opens the existing `파일 작업` surface without creating a second document model. The global File menu remains the primary lifecycle path. |
+| Existing lifecycle and command-palette behavior | Pass | The compact file action reuses the existing new/open/save/import/export handlers and their disabled/busy conditions. The command palette no longer offers a stale `파일 탭 열기` work-mode entry; it begins at `악보 탭 열기`. Focused application-menu/workspace tests passed. |
+| Broad App regression | Pass | `npm test -- src/renderer/src/App.test.tsx` passed 250 tests after an initial 45-failure run exposed non-idempotent quick-action toggling. The action now opens idempotently and closes when another editing category is selected, matching the prior tab's stable workflow behavior. |
+| Remaining UX work | Pending | Output has since moved to its own quick action. Playback still requires compact transport/mixer migration; production Electron layout QA passed, while human compact-desktop review remains required. |
+
+## 2026-10-21 Output Workspace Migration
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Export category removal | Fail, then Pass | The failure-first workspace regression initially still observed `출력` among pressed editing categories. PDF, MIDI, MusicXML and PDF page settings now open from an icon-only `내보내기` quick action instead; it reuses existing export handlers and the selected score/part policy. |
+| App regression | Pass | Focused workspace and command-palette coverage passed, followed by `npm test -- src/renderer/src/App.test.tsx` with 250 passing tests. The command palette no longer lists a stale export work-mode tab. |
+| Production Electron workspace smoke | Fail, then Pass | The first verifier run found assumptions that File/Export actions were persistent categories. The verifier now opens quick actions as users do, checks their expanded states, PDF/MIDI availability, 960/1280/1400 containment, and selected part export settings. `npm run build` and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed. |
+| Remaining UX work | Superseded | Playback was subsequently moved to its own quick action; its compact transport/mixer follow-up is tracked in the next evidence section. |
+
+## 2026-10-21 Playback Workspace Migration
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Playback category removal | Fail, then Pass | The failure-first App expectation initially still found `재생` among pressed editing categories. The compact row now keeps only `악보 / 입력 / 표기 / 가사`; the icon-only `재생 도구` opens the existing transport and part-mixer surface without changing score data or duplicating playback commands. |
+| Playback regression coverage | Pass | Focused selection-start, cursor-sync and mixer coverage passed (7 tests). `npm test -- src/renderer/src/App.test.tsx` then passed all 250 tests, including the existing selection-start, mute/solo/volume persistence and multi-part playback checks. |
+| Production Electron workspace smoke | Pass | `npm run typecheck`, `npm run build`, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed. The verifier now opens File, Export and Playback quick actions at 960px/1280px/1400px, checks containment and confirms `재생 컨트롤` plus mixer persistence through the visible playback surface. |
+| Compact mixer disclosure | Fail, then Pass | A failure-first App regression proved that opening playback immediately rendered the full `파트 믹서`. The surface now shows transport first and exposes the existing mixer through an accessible `믹서 표시/숨기기` button. Focused playback tests (7), the full 250-test App file, typecheck, production build and Electron verification passed; the Electron mixer smoke explicitly opens the disclosure before checking volume persistence and active-part state. |
+| Remaining UX work | Pending | Decide whether transport needs a persistent workspace position, then review multi-part mixer row density in a real compact-desktop session. |
+
+## 2026-10-21 Context Strip Hierarchy
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Primary/secondary status contract | Fail, then Pass | A failure-first App regression found no semantic distinction between the six context status chips. `작업 / 입력 / 대상 / 음가` now use the primary status class while `재생 / 필터` use a secondary class; command buttons remain separate direct children of the strip. |
+| Compact layout smoke | Pass | The focused App regression, `npm run typecheck`, production build and the 960px/1280px/1400px Electron verifier passed without horizontal overflow. At 1080px and below secondary status chips use the compact spacing policy; score/native contents remain unchanged. |
+| Remaining UX work | Pending | This is an information hierarchy baseline, not human usability validation. Review real compact editing sessions and decide whether any secondary status should collapse into an overflow affordance. |
+
+## 2026-10-21 Quick Action Grouping
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Accessible quick-action boundary | Fail, then Pass | A failure-first App regression found no named quick-action group. File, Export and Playback controls now sit in the labelled `빠른 작업` group, separated visually from the editing categories without changing their labels, expanded states or handlers. |
+| Compact production layout | Pass | The focused App regression, typecheck, production build and 960px/1280px/1400px Electron verifier passed with no horizontal overflow. Manual compact-desktop review remains required. |
+
+## 2026-10-21 File Menu Export Entry
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| File-to-export workflow | Fail, then Pass | The failure-first menu regression initially found no `내보내기 작업 열기` action. The File menu now opens the existing Export quick surface, closing conflicting quick surfaces while preserving the original export handlers and busy policy. |
+| Focused and broad verification | Pass | The global menu workflow App test, `npm run typecheck`, production build, 960px/1280px/1400px Electron verifier, and full Vitest suite passed (62 files / 837 tests; 1 skipped). |
+
+## 2026-10-21 View Menu Work-Toolbar Toggle
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Shared toolbar visibility state | Fail, then Pass | A failure-first App regression found no `보기 > 작업 도구` menu checkbox. The new checkbox reads and toggles the existing `toolbarsCollapsed` state used by the sticky context-strip control; it does not create a score mutation or a second workspace model. |
+| Keyboard and menu behavior | Pass | The focused App regression verifies the initial checked state, hides the dense note toolbar through the menu, observes the context-strip expand action, then reopens View after Escape and verifies the unchecked state. Display checkboxes keep their menu open for sequential adjustments, matching the existing View-menu policy. |
+
+## 2026-10-21 View Menu Selection Filter Entry
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Existing filter-surface focus | Fail, then Pass | A failure-first App regression found no `보기 > 선택 필터 열기` command. The new entry opens the existing File quick surface, closes the menu and focuses the original `선택 필터` select. No filter state, score data, or duplicate command path was introduced. |
+| Production desktop coverage | Pass | `npm run typecheck`, `npm run build`, and the production Electron verifier passed. The 960px/1280px/1400px verifier now asserts View-menu popup containment plus availability, visibility, and focus of the selection-filter entry surface. |
+
+## 2026-10-21 Quick Action Control Relationships
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Named icon control targets | Fail, then Pass | A failure-first App regression found that the `빠른 작업` icon controls had no `aria-controls` relation. File, Export, and Playback now point to their existing `파일 작업`, `내보내기 작업`, and `재생 작업` regions respectively; no quick-surface state or handler changed. |
+| Focused verification | Pass | The quick-action regression, both View-menu regressions, and `npm run typecheck` passed. The full suite previously passed at 62 files / 839 tests (1 skipped); rerun remains advisable after a later grouped UI slice. |
+
+## 2026-10-21 Contextual Toolbar Open Contract
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Collapsed-editor menu entry | Fail, then Pass | A failure-first App regression proved that `추가 > 마디 설정 열기` changed the selected category while the contextual toolbar stayed hidden. `openToolbarWorkspace` now reuses existing category state after closing quick surfaces and clearing the collapse flag. |
+| Shared entry behavior | Pass | The same opener is used by Add notation/measure/lyrics, Format measure settings, Tools note input, and direct editing-category tabs. Focused App coverage, `npm run typecheck`, production build, and the 960px/1280px/1400px Electron verifier passed; manual compact review remains. |
+
+## 2026-10-21 Application Menu Scroll Policy
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Keyboard-visible menu target | Fail, then Pass | A failure-first keyboard regression proved that ArrowDown changed focus without requesting visibility in a scrollable menu. Menu focus now calls `scrollIntoView({ block: 'nearest' })` when available. |
+| Popup overflow containment | Pass | Application popups now cap their height to the viewport, use internal vertical scrolling, and contain overscroll. Focused keyboard navigation regressions, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and full Vitest suite passed (62 files / 840 tests; 1 skipped). |
+
+## 2026-10-21 Compact Notation Toolbar Height
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| 960px visual density | Fail, then Pass | Production notation-palette capture showed the `표기 객체` toolbar reserving noticeably more vertical space than its visible control rows. The notation-only compact cap is now 136px at 1080px and below, while the existing vertical scroll keeps the remaining palette controls reachable. |
+| Production capture | Pass | `npm run build` and the 960px/1280px/1400px Electron verifier passed. The refreshed 960px capture shows the score page beginning higher with no document or toolbar horizontal overflow. Human long editing-session review remains required. |
+
+## 2026-10-21 Popup-to-Popup Keyboard Navigation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Open-menu left/right flow | Fail, then Pass | A failure-first App regression found that ArrowRight from the focused File action left the File popup open. Opened menu popups now move to the adjacent menu and focus its first enabled action, reusing the existing popup-focus effect. |
+| Focused, production, and broad verification | Pass | File-to-Edit popup switching, trigger arrow navigation, enabled action traversal, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and full Vitest suite passed (62 files / 841 tests; 1 skipped). |
+
+## 2026-10-21 Properties Dock Information Hierarchy
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Editable-first inspector order | Pass | The selection-properties inspector now presents existing dynamic/text controls before read-only selection metadata. Target, address, pitch, tie and duration rows remain available in a native `선택 정보` disclosure without changing selection data or edit handlers. |
+| Focused, production, and broad verification | Pass | Existing selected-event/properties-panel App coverage, `npm run typecheck`, production build, the refreshed 960px Electron properties capture, and the full Vitest suite passed (62 files / 841 tests; 1 skipped). The capture shows dynamic/text fields at the top of the dock with `선택 정보` closed. |
+
+## 2026-10-21 Context Strip Secondary Status Hierarchy
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Compact status grouping | Fail, then Pass | A failure-first App regression found no accessible `보조 상태` group. Playback and filter status now share that group without changing their existing state or labels. |
+| Focused, production, and broad verification | Pass | The focused App test, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 841 tests; 1 skipped). The verifier reports no context-strip or document horizontal overflow. |
+
+## 2026-10-21 Docked Palette Articulation Breadth
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Selected-note symbol breadth from the dock | Fail, then Pass | The failure-first App regression found no `아티큘레이션 팔레트` or `장식음 팔레트` in the left notation family. The dock now presents existing staccato/accent/tenuto/marcato and trill/mordent/turn commands; applying symbols updates the selected note while leaving the top `음표` workspace active. |
+| Korean accessible ornament names | Fail, then Pass | The first ornament regression exposed raw `tr/mord./turn` accessible labels. Visible notation remains conventional while the dock uses `트릴/모르덴트/턴 적용` for screen-reader and command discovery. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation"`, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 842 tests; 1 skipped). |
+
+## 2026-10-21 Docked Note Duration Palette
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Functional note palette | Fail, then Pass | A failure-first App regression found that the selected left `음표` tab exposed no palette region. It now exposes existing duration commands and applies an eighth-note duration while preserving the active top-level note workspace. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-(note|notation)"`, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 843 tests; 1 skipped). |
+
+## 2026-10-21 Docked Lyrics Entry Point
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Existing lyric workspace entry | Fail, then Pass | A failure-first App regression found that the selected `가사` dock tab was empty. It now opens the existing `가사 편집` surface rather than duplicating lyric/chord state. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-(lyrics|note|notation)"`, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 845 tests; 1 skipped). |
+
+## 2026-10-21 Docked Score Entry Point
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Existing score workspace entry | Fail, then Pass | A failure-first App regression found that the selected `악보` dock tab was empty. It now opens the existing `악보 편집` surface for score and measure settings rather than duplicating score setup state. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-(score|lyrics|note|notation)"` passed 4 tests, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 845 tests; 1 skipped). |
+
+## 2026-10-21 Docked Palette Family Density
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Independent family collapse | Fail, then Pass | A failure-first App regression found no collapse control in the docked notation palette. Each dynamics, articulation, and ornament family now has an accessible expand/collapse control; collapsing articulation keeps the ornament family available. |
+| Workspace persistence | Pass | The focused regression unmounts and remounts the app after collapsing articulation, then confirms the stored local workspace preference reopens that family collapsed. This state remains outside native score contents. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation"` passed 2 tests, `npm run typecheck`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 846 tests; 1 skipped). |
+
+## 2026-10-22 MuseScore Workspace Reference Audit
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Local reference workflow | Pass | Opened a blank local MuseScore Studio 4 score without modifying or saving user content. Its macOS system menubar carries global commands; in-window hierarchy separates `홈 / 악보 / 게시`, an icon-led input row, left `팔레트 / 레이아웃 / 속성` docks, and right-aligned transport/status. |
+| Follow-up implication | Recorded | Chromatics must keep global commands distinct from contextual work surfaces. The next compact-topbar slice will audit its custom menu row, quick-action boundary, and editor-mode tabs against this direct reference rather than treating every toolbar category as global navigation. |
+
+## 2026-10-22 Contextual Toolbar Boundary
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Redundant category label | Fail, then Pass | A failure-first App regression identified the visible `편집 도구` label beside already-named contextual tabs. The label is removed while the navigation landmark remains `편집 도구 카테고리` for assistive technology. |
+| Quick-action boundary | Pass | The File/Export/Playback icon group remains independently labelled and gets a 22px desktop (18px compact) separator, replacing the full group-height border. Existing quick-action controls and contextual tabs retain their command paths. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note"`, production build, the 960px/1280px/1400px Electron verifier, and the full Vitest suite passed (62 files / 846 tests; 1 skipped). |
+
+## 2026-10-22 Workspace Reset Command
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| View-menu reset entry | Fail, then Pass | A failure-first App regression found no `보기 > 작업공간 기본값으로 재설정` action. The command restores local dock and palette workspace state without replacing score data. |
+| Score isolation | Pass | The regression hides the palette, invokes the reset command, confirms palette visibility returns, and verifies the notation preview event count remains unchanged. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.application-menu resets local workspace"`, `npm run typecheck`, production build, the Electron verifier at 960px/1280px/1400px, and the full Vitest suite passed (62 files / 847 tests; 1 skipped). |
+
+## 2026-10-22 Contextual Workspace Keyboard Navigation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Arrow and boundary navigation | Fail, then Pass | A failure-first App regression showed the contextual workspace buttons retained focus after ArrowRight. The category row now opens and focuses the next/previous tab with arrow keys and supports Home/End boundaries. |
+| Existing workflow reuse | Pass | Keyboard navigation delegates to the same `openToolbarWorkspace` path as pointer activation, preserving quick-surface dismissal and the active contextual editor surface. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.toolbar-categories support"`, `npm run typecheck`, production build, and the 960px/1280px/1400px Electron verifier passed. The headless Electron host cannot reliably route synthetic native `End` events into the focused renderer tab, so keyboard semantics remain fixed by the focused App regression while Electron covers the production layout and existing workspace paths. The default parallel Vitest run stalled during worker shutdown; the serial retry, `npx vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism`, passed with 62 files / 848 tests and 1 skipped. |
+
+## 2026-10-22 Dock Width Workspace Controls
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Width state and reset | Fail, then Pass | A failure-first App regression found that dock visibility had no corresponding persisted width control. Palette and properties widths now share bounded local workspace state across the View menu, dock headers, keyboard separators, and workspace reset. |
+| Keyboard and pointer affordance | Pass | Each desktop dock exposes a labelled vertical separator with current/min/max values, ArrowLeft/ArrowRight adjustment, and a pointer drag handle. Compact layout retains its existing stacked-dock policy rather than exposing a misleading divider. |
+| Focused and production verification | Fail, then Pass | The first Electron run exposed a 960px compact divider overflow, then the notation palette fixture caught both oversized header actions and an out-of-bounds drag handle. After hiding compact dividers, compacting header actions, keeping the handle inside its dock, and resetting dock-width preference in the fixture, `npm test -- src/renderer/src/App.test.tsx -t "ui.dock-widths"`, `npm run build`, `git diff --check`, and the full 960px/1280px/1400px Electron verifier passed. |
+
+## 2026-10-22 Long Menu Page Navigation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Page navigation | Fail, then Pass | The first focused assertion assumed PageUp always returned to the first item. The implemented policy intentionally moves five enabled entries per PageUp/PageDown; the regression now verifies the matching round trip, while Arrow/Home/End and nearest-scroll behavior remain unchanged. |
+| Focused verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.application-menu moves focus"`, `npm run typecheck`, and `git diff --check` passed. |
+
+## 2026-10-22 Notation Palette Primary-First Order
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Primary family order | Fail, then Pass | A failure-first App regression found that applying a symbol inserted `최근 사용` before the `음표 기호` family in DOM order. The saved shortcut sections now render after all primary notation families, so the visual sequence, keyboard tab order, and screen-reader reading order agree. |
+| Existing saved-item and production behavior | Pass | Recent reapplication and pinned-favorite regressions still pass; both sections retain their existing local workspace persistence and selected-note command handlers. `npm test -- src/renderer/src/App.test.tsx -t "palette\\.workspace (places saved notation shortcuts|restores and reapplies recent notation items|restores a user-pinned notation favorite)"`, `npm run typecheck`, `npm run build`, `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs`, and `git diff --check` passed. The Electron verifier asserts primary-family-before-saved order and containment at 960px/1100px/1400px. |
+
+## 2026-10-22 Compact Dock Resize Boundary
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Compact divider visibility | Fail, then Pass | The new 1100px production smoke found visible `dock-resize-handle` elements even though the pointer handler rejected drag below the compact boundary. The compact CSS now hides those desktop-only separators through 1200px, matching the handler guard. |
+| Production width coverage | Pass | `npm run build` and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed. The notation-palette workspace verifier now checks 960px, 1100px, and 1400px for compact-handle visibility, saved-shortcut ordering, and horizontal containment. |
+
+## 2026-10-22 Compact Context Secondary Status
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Summary and detail contract | Fail, then Pass | A failure-first App regression found no compact summary surface for the secondary playback/filter status. At 1080px and below a closed `보조 상태` disclosure now keeps a one-line current-value summary, exposes a chevron affordance, and reveals the unchanged detailed group when opened. Desktop keeps its direct group. |
+| Focused, production, and broad verification | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.context-strip provides a compact"`, `npm run typecheck`, `npm run build`, `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs`, and `npx vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism` passed. The refreshed 960px production capture has no horizontal overflow; the serial suite completed with 62 files / 851 tests and 1 skipped. |
+
+## 2026-10-22 Notation Palette Compact Defaults
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Dense-family default hierarchy | Fail, then Pass | A failure-first App regression found that the default notation workspace rendered every selected-note and repeat control at once. New workspaces keep `라인/범위` immediately available but start `음표 기호` and `반복/볼타` collapsed. The selected-measure editing family remains open so clef/key/time/text/dynamic workflows do not gain an extra disclosure. |
+| Preference and search contract | Pass | The stored-collapse reader now uses the compact default only for missing keys, retaining any explicit local user choice. Search continues to expose matching controls even for a collapsed family. Source symbol, recent-item, and pinned-favorite tests explicitly open the family before applying, matching the user-visible workflow. |
+| Focused, App, and production verification | Pass | Focused palette tests, `npm test -- src/renderer/src/App.test.tsx` (265 tests), `npm run typecheck`, `npm run build`, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed. The Electron verifier checks default dense-family collapse before opening the selected-note family, then checks favorite/recent application, search, drag/workspace behavior and horizontal containment at 960px/1100px/1400px. The serial full suite, `npx vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism`, also passed with 62 files / 852 tests and 1 skipped. Manual compact-session QA remains. |
+
+## 2026-10-22 View Menu Grouping
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Visual command hierarchy | Fail, then Pass | A failure-first App regression found no visual grouping inside the long View menu. It now labels existing menu sections as `작업 영역`, `도크 크기`, `작업공간`, and `보기 모드`; no command handler, score state, or workspace state was duplicated. |
+| Keyboard contract | Pass | Group labels are aria-hidden and not focusable, so Arrow navigation continues from `팔레트` to `속성` without introducing a dead keyboard stop. Existing action labels remain the screen-reader-facing menu commands. |
+| Focused and production verification | Pass | The focused View-menu regression, `npm run typecheck`, `npm run build`, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed. The production verifier now requires all four labels in addition to viewport containment, reset, and selection-filter focus at 960px/1280px/1400px. The full serial Vitest suite remains valid from the immediately preceding compact-palette slice but was not rerun after this markup-only grouping patch. |
+
+## 2026-10-22 File Menu Grouping
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Lifecycle hierarchy | Fail, then Pass | A failure-first App regression found no visual grouping in File. Existing commands are now organized under `악보`, `저장`, `교환`, and `내보내기`, clarifying the boundary between native lifecycle and MusicXML/output tasks without changing their IPC or busy-state policy. |
+| Keyboard and production verification | Pass | The regression confirms the labels are not focusable and ArrowDown still moves from `새 악보 만들기` to `새 창 열기`. Focused App coverage, `npm run typecheck`, `npm run build`, and the 960px/1280px/1400px Electron verifier passed; the verifier now requires both File and View group sequences. Full serial Vitest remains unrerun after the File grouping markup patch. |
+
+## 2026-10-22 Score Toolbar Structure Default
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Compact default | Fail, then Pass | A failure-first App regression found that opening `악보` exposed the full part/staff structure editor beside the always-needed tempo controls. New workspaces retain visible tempo controls while `파트/보표` starts collapsed; its header keeps a truncated current-part and staff-count summary. |
+| Workflow preservation | Pass | The same regression expands the disclosure, verifies the local preference restores on remount, and confirms existing part/staff mutation coverage opens the real disclosure before exercising add/remove/order/transposition/save workflows. No score or native-project data is changed by the preference. |
+| Focused and production verification | Pass | The structure regression plus 12 dependent part/staff workflows passed (13 App tests). `npm run typecheck`, `npm run build`, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed at the production 960px/1280px/1400px gate. The full serial Vitest suite has not yet been rerun after this slice; manual compact-session density QA remains. |
+
+## 2026-10-22 Note Toolbar Selected Properties Default
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Compact input hierarchy | Fail, then Pass | A failure-first inline-clef regression found the selected-event property panel was fully expanded beside voice and duration input. New workspaces keep staff/voice and duration controls visible but start `선택 속성` collapsed. |
+| Command and persistence contract | Pass | The regression opens the real disclosure before changing an inline clef; a companion remount test verifies the expanded preference persists in `chromatics.note-toolbar-sections.v1`. Existing tie, articulation, grace, fermata, breath, tremolo, ornament, accidental and chord command workflows explicitly open the same user-visible disclosure before acting. |
+| Focused, App, production, and broad verification | Pass | The focused disclosure/inline-clef tests and the 13 dependent note-command tests passed. The final serial full suite includes the disclosure persistence regression and passed with 62 files / 855 tests and 1 skipped. `npm run typecheck`, production build, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` also passed. |
+
+## 2026-10-22 Lyrics Syllabic Labels
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Korean editing labels | Fail, then Pass | A failure-first App regression found raw `single / begin / middle / end` labels in the Korean lyric workspace. The selector now displays `단일 / 시작 / 중간 / 끝` while preserving the same stored and MusicXML values. |
+| Existing lyric and chord workflow | Pass | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note\|palette.lyrics-chords"` passed 2 tests, including lyric update and measure-anchored chord behavior. `npm run typecheck` passed. Production layout and manual compact-desktop QA remain to be rerun after subsequent quick-surface work. |
+
+## 2026-10-22 Export Quick-Surface Grouping
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| PDF output hierarchy | Fail, then Pass | A failure-first App regression found that the PDF page target was not grouped separately from PDF/MIDI/MusicXML export actions. The surface now exposes `PDF 출력 설정` as an accessible group around the unchanged page-target control, with a desktop divider and compact wrap policy. |
+| Existing export contract | Pass | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note\|palette.lyrics-chords"` passed 2 tests, `npm run typecheck` and both roadmap/work-queue schema verifiers passed. Production build plus `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed at 960px/1280px/1400px without horizontal overflow; full-suite confirmation remains the next gate. |
+
+## 2026-10-22 Edit Menu Grouping
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Command hierarchy without keyboard regression | Fail, then Pass | A failure-first App regression found that Edit had a bare separator but no `실행 기록` or `선택 편집` hierarchy. The menu now uses the same aria-hidden, non-focusable group-label pattern as File and View. |
+| Focus and command reuse | Pass | `npm test -- src/renderer/src/App.test.tsx -t "ui.application-menu (groups edit\|groups view\|moves focus)"` passed 3 tests, confirming labels do not become menuitems while existing keyboard navigation remains intact. `npm run typecheck`, production build, and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` passed; the verifier now asserts Edit group order at 960px/1280px/1400px. The prior serial suite predates this markup-only group-label slice. |
+
+## 2026-10-22 Properties Metadata Workspace Preference
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Persisted read-only detail | Fail, then Pass | A failure-first App regression found that opening `선택 정보` did not survive a remount. The controlled disclosure now writes only its open state to `chromatics.selection-properties-metadata.v1`; score and native contents are unchanged. |
+| Workspace reset | Pass | The same regression reopens the app, confirms the saved detail is open, then runs `보기 > 작업공간 기본값으로 재설정` and confirms the detail closes and its stored value returns to `false`. `npm test -- src/renderer/src/App.test.tsx -t "ui.properties-summary persists"`, `npm run typecheck`, the subsequent production build, and the 960px/1100px/1400px Electron smoke passed. |
+
+## 2026-10-22 Tuplet-Aware Automatic Slurs
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Shared bracket lane | Fail, then Pass | A renderer fixture first showed an automatic upper slur ending inside a bracketed quarter-note triplet lane (`130` versus bracket `110`). Automatic endpoint clearance now reads the rendered VexFlow tuplet y-position and moves the curve outside the bracket/number lane. |
+| Existing attachment and manual-geometry policy | Pass | `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` passed all 19 tests, including endpoint staccato and mixed-stem side selection. The automatic-clearance flag remains disabled for manual span geometry, preserving user-defined anchors. `npm run typecheck`, `npm run verify:visual-regression` (91 related tests plus 960px/1400px notation snapshots), production build, and the existing 960px/1100px/1400px Electron smoke completed without verifier errors. The serial full suite passed with 62 files / 858 tests and 1 skipped. Production visual/PDF review of this collision remains pending. |
+
+## 2026-10-22 Application Menu Accessible Relationships
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Popup ownership and view state | Fail, then Pass | A failure-first App regression found that the `보기` trigger did not identify its popup and `파트보 보기` omitted `aria-checked`. Every trigger now points to its stable popup id, and both score-view menuitemradio controls expose their selected state. |
+| Existing menu workflow | Pass | `npm test -- src/renderer/src/App.test.tsx -t "links its triggers|groups view|follows desktop arrow-key navigation"` passed 3 tests; the full App file passed 271 tests; and `npm run typecheck` passed. The 960px/1100px/1400px production Electron verifier now asserts every trigger-to-popup mapping plus score/part radio states and passed. |
+
+## 2026-10-22 Toolbar Divider Workspace Preference
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Adjustable divider length | Fail, then Pass | A failure-first App regression found no inline `--toolbar-section-separator-height` value or `도구 구분선 길게` menu action. `보기 > 도구 구분선` now exposes short (20px), default (30px), and long (40px) radio choices for the existing centered toolbar dividers. |
+| Persistence, grouping, and reset | Pass | The focused App regressions verify selecting long stores `chromatics.toolbar-separator-height.v1` as `40`, then `작업공간 기본값으로 재설정` restores the rendered 30px divider and storage value `30`; they also reproduce and fix the previously ungrouped `선택 필터 열기` command. `npm test -- src/renderer/src/App.test.tsx` passed all 272 tests. `npm run typecheck`, production build, roadmap/work-queue verifiers, and `git diff --check` passed. The 960px/1100px/1400px production Electron verifier selects the long value, asserts the rendered 40px style, and confirms reset restores 30px. Full-suite rerun remains a later periodic gate; compact-desktop human QA remains. |
+
+## 2026-10-22 MuseScore Palette Default Alignment
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Default palette role | Fail, then Pass | A local MuseScore 4 blank-score workspace check showed the persistent left dock opens as a notation library, while Chromatics opened its duration palette. A failure-first App assertion now requires `표기 객체 팔레트 열기` to be the active default; the workspace reset follows the same default. |
+| Existing note-entry path | Pass | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note|palette.docked-note"` passed 2 tests, proving the explicit duration palette still changes the selected note without changing the active editor mode. `npm run typecheck`, production build, and the 960px/1100px/1400px Electron verifier passed. Manual compact-session QA and the periodic full-suite gate remain pending. |
+
+## 2026-10-22 Palette Measure-Notation Entry
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Existing editor surface entry | Fail, then Pass | A failure-first workspace assertion found no `음자리표, 조표 및 박자표 설정 열기` action in the default notation palette. The new entry reuses `openToolbarWorkspace('measure')`; it does not apply a score mutation itself. |
+| Target and note-entry preservation | Pass | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo lyrics.edit-selected-note|palette.docked-notation opens"` passed 2 tests. The regression verifies the palette entry activates `악보` and exposes visible selected-measure key/time controls; the same palette section now exposes a `빠르기 설정 열기` entry through that existing surface. The duration palette remains usable. `npm run typecheck` and `git diff --check` passed. Production compact QA remains pending. |
+
+## 2026-10-22 Docked Palette Compact Families
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Default density | Fail, then Pass | New workspace and workspace reset now keep the selected-note `아티큘레이션` and `장식음` families collapsed while leaving the measure-notation and dynamics entry points available. The stored-preference reader preserves explicit values rather than overwriting prior user choices. |
+| Application and production behavior | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation (applies|collapses)"` passed 2 tests: users expand the real family before applying a symbol, and collapse state persists across remount. Production build and the 960px/1100px/1400px Electron verifier passed after it was extended to assert the default collapsed state, expand/collapse lifecycle, local storage, and no overflow. The periodic serial full-suite gate, `npx vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism`, passed on 2026-10-22: 62 files passed / 1 skipped, 861 tests passed / 1 skipped. Human compact-desktop workflow review remains pending. |
+
+## 2026-10-22 Docked Palette Measure-Notation Density
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Independent compact control | Fail, then Pass | A failure-first App regression found that the default `마디 표기` palette had no collapse control, unlike the neighboring symbol families. It now opens by default so clef/key/time and tempo discovery remain immediate, while its `접기/펼치기` action stores an independent local workspace preference. No score/native project data or command handler changes. |
+| Renderer and compact bounds | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation (keeps measure notation|applies|collapses|opens)"` passed 4 tests. `npm run typecheck` passed. Production build and the 960px/1100px/1400px Electron verifier passed after it asserted default expansion, collapse, stored preference, and hidden entry controls without horizontal overflow. Human compact-desktop workflow review remains pending. |
+
+## 2026-10-22 Palette Workspace Focus
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Direct target focus | Fail, then Pass | A failure-first palette regression showed that opening measure notation only changed the workspace and left focus on `body`. The existing toolbar surface now receives focus without new notation state: clef/key/time opens the selected-measure key-signature control, and tempo opens the global tempo slider. |
+| App and packaged renderer | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation (keeps measure notation|opens and focuses|applies|collapses)"` passed 4 tests, and `npm run typecheck` passed. Production build plus the 960px/1100px/1400px Electron verifier passed after it asserted both focus destinations as well as the existing palette density/overflow contract. Manual keyboard workflow review remains pending. |
+
+## 2026-10-22 Compact Palette Tile Density
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Measured failure | Fail, then Pass | A production Electron regression measured nine 960px docked-dynamics tiles at `89.734375px` each because the compact grid used equal `1fr` tracks. The verifier now requires compact tile width of at most 72px while retaining the existing no-overflow guard. |
+| Content-sized cluster | Pass | The 761px-1200px palette grid now uses content-sized tracks, left alignment, and fixed compact tile minimums. `npm run build` and the 960px/1100px/1400px Electron verifier passed, including measure/tempo focus and no horizontal escape. The 960px screenshot shows the dynamics symbols as a compact left-aligned cluster. The periodic serial full-suite gate passed: 62 files passed / 1 skipped, 862 tests passed / 1 skipped. Human usability review remains pending. |
+
+## 2026-10-22 Compact Score Tempo Disclosure
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Default toolbar density | Fail, then Pass | A failure-first App regression found the score toolbar always rendered the full tempo editor. The existing score-toolbar workspace preference now includes `tempo`: it defaults collapsed with a `75 BPM` summary, is independently persisted, and does not touch score/native content. |
+| Direct notation workflow | Pass | The same regression verifies expanding tempo restores the original slider and that the notation-palette tempo entry opens the section and focuses that slider. Focused App tests (3), `npm run typecheck`, production build, and the 960px/1100px/1400px Electron verifier passed. A pre-existing global-tempo fixture was updated to explicitly expand the new disclosure before editing the position tempo; the full `src/renderer/src/App.test.tsx` run then passed all 275 tests. The verifier capture shows the detailed tempo controls only after the explicit palette entry; manual compact-desktop review remains pending. |
+
+## 2026-10-22 Measure Clef Entry Completion
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Palette entry contract | Fail, then Pass | The clef/key/time entry opened a toolbar without a clef control. After exposing it, the regression also caught note-selection rejection because `updateActiveMeasure` only accepted measure selection. The existing replacement command now accepts an explicit resolved measure target for clef edits; other callers retain their existing selection policy. |
+| Scope and history | Pass | `npm test -- src/renderer/src/App.test.tsx -t "palette.docked-notation\|clef.change-"` passed 8 tests. The new test selects a note, opens the palette entry, changes only its measure-start clef, preserves the note/address, and verifies undo/redo through the Edit menu. Existing inline-clef coverage remains separate. |
+| Production UI | Pass | `npm run build` (including TypeScript) and the full production Electron verifier passed. At 960/1100/1400px, the measure clef is visible/enabled, key-signature focus is retained, and expanded measure-palette buttons remain horizontally contained. Global Vitest is still running at this checkpoint; manual MuseScore comparison and notation scope usability review remain pending. |
+
+## 2026-10-22 Palette Settings Readability and Workspace Persistence
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Expanded settings tile | Fail, then Pass | The 1400px capture showed the combined clef/key/time label wrapping over five lines in a two-column symbol grid. A production height guard reproduced a 78px tile. Settings entries now use a full-width, text-sized row in the side dock and wrap horizontally in compact layout. The maximum tile heights are 34px at 960/1100 and 44.921875px at 1400; no horizontal escape. |
+| Initial tempo geometry | Pass | Initial captures, separate from the explicit tempo-entry captures, measure 48px collapsed and 116px expanded score-toolbar height at 960/1100. At 1400 both states fit within 48px. The first assertion incorrectly required growth at every width; it was corrected to require growth on compact screens and no regression on desktop. Slider visibility, restored collapsed height and no horizontal overflow pass. |
+| Workspace and native contracts | Pass | Focused App bundle (`ui.score-toolbar\|palette.docked-notation\|clef.change-`) passes 12 tests, including tempo remount/reset and palette auto-expansion from an explicitly collapsed state. Piano lower staff and quartet last-part clef edits save/open through native IPC mocks; all parts match the original data except the targeted clef. Initial native-reopen test failure was an incorrect status string, corrected to the existing native message. This is App IPC-mock coverage, not real disk-dialog QA. |
+| Production verification | Pass | Build/typecheck and `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs --notation-palette-only` pass. The optional focused flag reuses the full verifier's palette routine. Chromium reports support for the existing auto-fit/minmax/max-content declaration; observed compact dynamic widths remain 48-52.703125px. `npm run verify:visual-regression` passes 91 MusicXML/layout tests and both notation snapshots. |
+| Broad suite checkpoint | Pass | After the additional native round-trip cases and final settings-tile styling, `npm test -- --reporter=dot --no-file-parallelism` passed 62 files / 1 skipped, 866 tests / 1 skipped. The subsequent test-only tuplet fixture correction is covered separately below. |
+| Local MuseScore comparison | Partial | Launched `/Applications/MuseScore 4.app`, inspected actual File/View menus via accessibility and captured the existing untitled empty piano score window at `/tmp/chromatics-musescore-workspace-20261022.png`. It shows a thin transport row, a separate note-input row, left clef/key/time symbol grids and a bottom status bar. Chromatics still has more top-level category/context rows and text-only settings entry points. New-score wizard opening was observed, but click/key interaction could not be reliably completed; no reference score edits, save, export or compatibility round-trip are claimed. |
+
+## 2026-10-22 Valid Rhythmic Slur-Tuplet Fixture
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Fixture validity | Fail, then Pass | Adding `validateMeasureRhythm` to the shared tuplet-bracket regression exposed three overlaps and a trailing gap: quarter-note triplets had been placed at eighth-note-triplet positions. The corrected events start at 0, 2/3 and 4/3 quarter beats, followed by a half rest at beat 2. The fixture now fills 4/4 exactly. |
+| Clearance on valid rhythm | Pass | All 19 `NotationPreview.passive-attachments.test.tsx` tests pass, including the existing bracket-clearance assertions on the corrected fixture. This patch only corrects test data and adds its rhythm guard; it does not change rendering policy. The 866-test global checkpoint predates this test-only correction. Interior tuplets, mixed accidentals and actual PDF/manual engraving review remain open. |
+
+## 2026-10-22 Bottom Editor Status Bar
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Placement and feedback | Fail, then Pass | `ui.status-bar` first failed because no named footer existed. The existing read-only editor status now follows the score workspace in a sticky footer; save errors, retry success, playback state and recovery state reuse their original data. Focused status/save/playback tests pass (3). |
+| Production geometry | Pass | Build/typecheck, `--status-bar-only`, and the full production Electron verifier pass. At 960/1400px, initial and end-of-document footer height is 32px; a long Korean save error wraps to 60.5px without horizontal escape. The final notation event remains above the footer, keyboard focus is available for the bounded scroll surface, and emulated print hides it. Screenshots are `chromatics-status-bar-{960,1400}.png` in the system temporary directory. The 960px screenshot was visually inspected. |
+| Broad gate | Pass | `npm test -- --reporter=dot --no-file-parallelism`: 62 files passed / 1 skipped, 867 tests passed / 1 skipped. This includes the corrected rhythmic slur-tuplet fixture. Top-level category duplication and compact top-palette height remain follow-up IA issues; native MuseScore input/PDF workflow review is still partial. |
+
+## 2026-10-22 Command Palette Hidden-Dock Recovery
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Reproduction and fix | Fail, then Pass | Four category cases reproduced that a `팔레트 열기` search command changed category but left the dock hidden. The same command now sets the existing visibility preference and focuses its category button on the next frame. Score selection and history remain unchanged. A subsequent test assertion was corrected to inspect the notation mock's actual selected-event metadata instead of nonexistent `aria-pressed`. |
+| Gates | Pass | Focused command-palette/dock-visibility/status tests: 7 passed. Build includes typecheck and passes. Production `--notation-palette-only` passes at 960/1100/1400px, including hidden-dock search execution, restored visibility/focus, settings and symbol containment. The 867-test global checkpoint predates this small follow-up. |
+
+## 2026-10-22 Command Palette Collapsed-Toolbar Recovery
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Reproduction and fix | Fail, then Pass | All four `탭 열기` commands failed to reveal their toolbar after global collapse. They now reuse `openToolbarWorkspace`, sharing the existing expansion and quick-surface closure policy with menu/toolbar entry. Selection/history are unchanged. |
+| Focused and production gates | Pass | Combined command-palette/dock/status/tempo/notation App bundle passes 20 tests; build/typecheck passes. `--notation-palette-only` confirms actual collapsed-toolbar recovery and File-surface closure at 960/1100/1400px. Its first run failed on a harness-only selector: the File region is a `div`, not a `section`. Corrected to the existing role/name selector and rerun passed. Global suite passed 62 files / 1 skipped, 875 tests / 1 skipped. This checkpoint precedes the subsequent status keyboard guard. |
+
+## 2026-10-22 Status-Bar Keyboard Isolation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Regression guard | Fail, then Pass | Focused status scrolling test reproduced that ArrowUp was canceled by the global score shortcut handler. Plain status-bar key events no longer bubble to score editing; browser defaults are preserved. ArrowUp/Down, Home/End, PageUp/Down and Tab leave the selected event/history unchanged, while Ctrl+K still opens command search. |
+| Verification | Pass | Status/command App bundle: 11 passed. Build/typecheck and `--status-bar-only` pass at 960/1400px, including uncanceled navigation keys, unchanged status/history after a real notation-note selection, error wrapping, footer bounds and print hiding. Global 875-test checkpoint predates this last guard; a full latest-tree rerun remains a periodic gate. |
+| Remaining visual QA | Partial | Reinspected the 960px initial production capture. The compact top palette still consumes substantial vertical space and repeats category navigation already available above. No overflow is not proof of good workspace density. Consolidating that navigation and reducing palette height remain next IA work; actual MuseScore input/PDF interaction QA is still incomplete. |
+
+## 2026-10-22 Notation-Only Palette Dock
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Structural regression | Fail, then Pass | `palette.notation-only` first found the duplicate `악보 팔레트 열기` button. Removed the dock's workspace category navigation and duplicate duration/lyrics/score surfaces; notation families remain. Duration editing, lyrics/chords and score setup are covered through their existing real toolbar routes, not hidden compatibility controls. |
+| Entry/focus contract | Pass | Add and command search share one notation-dock opener. It restores visibility/focus without opening the large notation toolbar or modifying selection/history. Direct focus on the dock allows normal Tab/navigation instead of score shortcuts. The prior four category-open commands/tests were intentionally replaced by one notation opener and existing workspace commands. |
+| Local gates | Pass | Focused palette/workspace/menu bundle: 44 tests; subsequent focus/status bundle: 4 tests. Build includes typecheck and passes. Full Vitest passed 62 files / 1 skipped, 874 tests / 1 skipped, and full production Electron passed. The earlier four category-opener tests were replaced by one real notation opener, plus the new structural regression: changed test counts reflect removed duplicate UI, not hidden compatibility controls. This checkpoint precedes compact sidebar CSS. |
+
+## 2026-10-22 Compact Sidebar Placement
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Measured failure | Fail, then Pass | Initial production assertion at 960px measured palette top 214px, height 241px, score top 455px; `compactSidebar` failed. At 761-1200px, palette and properties now share a fixed 236px left column, with score spanning their rows on the right. No score/layout model change; 1400px keeps its independently sized left/right docks. Desktop width preferences are preserved, and ineffective compact width +/- controls are hidden with resize grips. |
+| Initial screen | Pass | Build/typecheck and focused production palette verifier pass at 960/1100/1400px. At 960px score top is now 214px, eliminating the former 241px top-palette displacement. Visually inspected both 960px and 1400px initial captures. Core clef/key/time/tempo and symbol controls stay contained and usable. |
+| Broader geometry | Pass | Full production Electron verifier passes. At 960/1100/1400px all four palette/properties visibility combinations have no dock/score overlap or document horizontal overflow; both hidden restores the full canvas width. Compact width steps are absent. Footer keyboard/default scroll, save-error wrapping and print isolation also pass. `npm run verify:visual-regression` passes 91 MusicXML/layout tests and both 960/1400 notation snapshots without baseline changes. Latest `npm test -- --reporter=dot --no-file-parallelism` passed 62 files / 1 skipped, 874 tests / 1 skipped (189.25s). Separate typecheck also passes. |
+| Remaining scope | Partial | This is a stacked compact dock, not MuseScore's tabbed palette/layout/properties implementation. Upper contextual rows, real clef/key/time glyph tiles and smaller-screen manual workflows remain follow-up work. |
+
+## 2026-10-22 Engine-Rendered Clef Palette Tiles
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Missing symbols / command contract | Fail, then Pass | Three App regressions initially failed on missing bass/alto/tenor tiles. Added four VexFlow-generated clefs using existing presets and `changeClef`; selected measure-start only, not inline clef. Selection, undo/redo, pressed state and ambiguous note-range disabled policy pass. Native save/reopen cases now exercise the tile on piano lower staff and quartet last part. |
+| Keyboard isolation | Fail, then Pass | Plain Tab was initially canceled by the global score shortcut. The tile group stops unmodified key propagation without preventing native button/Tab defaults; Cmd/Ctrl shortcuts remain available. Production CDP Enter activation and undo pass at 960/1100/1400px. The first CDP attempt omitted Enter text and did not activate the button; adding the native carriage-return payload fixed the harness, not product code. |
+| Glyph and layout | Fail, then Pass | Real production checks found VexFlow's inline 80x100 SVG dimensions overflowing the 44x55 preview. Removed inline size so CSS scales the viewBox. Current VexFlow emits font text rather than paths; corrected the test harness to inspect actual glyphs and canvas ink metrics, not full-em SVG text boxes. All four fonts/glyphs render and fit the viewBox/button at 960/1100/1400px. Inspected the initial 960px screenshot. Score top remains 214px despite the extra palette row. Family collapse also removes these tiles. |
+| Local gates | Pass | Focused App/native/clef preview bundle: 10 tests. Build and separate typecheck pass. Production notation-palette verifier passes at all three widths, including existing workspace persistence and overflow assertions. Full production Electron also passes. Visual regression passes 91 MusicXML/layout tests and 960/1400 notation snapshots without baseline updates. Inspected the full verifier's 1400px narrow-dock capture: clefs wrap into two columns instead of overflowing. Full Vitest (`--reporter=dot --no-file-parallelism`) passed 63 files / 1 skipped, 882 tests / 1 skipped in 185.47s. Existing VexFlow-adapter jsdom empty-text-metric warnings remain; the new real glyphs are separately checked in production. |
+| Remaining scope | Partial | Clef tiles support click and native keyboard activation, not drag/drop. Key/time signature glyph tiles, tabbed inspector and GUI-created MuseScore/PDF interoperability remain separate follow-ups. No score schema, version, signing policy or release changes. |
+
+## 2026-10-22 Quick Row and Bottom Context Integration
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Structural regression | Fail, then Pass | `ui.workspace-tools` initially failed because no workspace control group existed in the quick row. Moved the existing five dock/help/search/collapse buttons into that row, removed the separate context strip, and put input/scope/active-filter feedback in the bottom status bar. Existing handlers/preferences remain. Current task is represented by the selected tab; duration and playback no longer have duplicate top chips. Default all-events filter is omitted unless a range count is relevant. |
+| Keyboard / test migration | Fail, then Pass | Added Tab/Enter/Space/ArrowDown regression on a focused workspace button; global score shortcuts initially canceled Tab. Group now stops plain-key propagation without suppressing browser defaults; modifier shortcuts remain global. Replaced historical duplicate-chip assertions with selected-tab and status-bar assertions; kept the broad lyrics/tempo/command workflow coverage. Focused bundle passes 25 tests and build/typecheck pass. |
+| Initial geometry | Pass | Production notation-palette verification passes at 960/1100/1400px: all five controls remain inside a single 42px quick row, score top changes from 214px to 171px, and no document/toolbar horizontal overflow occurs. Inspected the 960px initial capture. Existing dock visibility, clef keyboard/undo, workspace persistence and palette collapse tests still pass. |
+| Duration semantics | Pass | Footer duration now shares `activeDurationValue` with the note toolbar: selected event or input cursor first, otherwise input default. A dedicated note/rest selection test confirms half/quarter values and no history mutation. The first test used the wrong `demo` fixture; corrected to the existing `release-test` IDs. Production keyboard checks previously expected the unchanged quarter-note input default even for a selected whole/half note; updated those explicit expectations for the active-duration policy while retaining event-count/history/selection assertions. |
+| Broader gates | Partial | Full production Electron passes after updating the active-duration expectations. Footer remains 32px normally and 60.5px with the long error at 960/1400px; no last-note overlap, horizontal overflow or print leakage. Visual regression passes 91 MusicXML/layout tests and 960/1400 notation snapshots without baseline changes; separate typecheck passes. The first global run passed 882 tests before the final keyboard guard. An intermediate run with an incorrect new test fixture was explicitly terminated (exit 143), not counted as PASS. The next full run failed one native passive-attachment save case (882 passed / 1 failed / 1 skipped); investigation and fix are recorded below. |
+| Remaining scope | Partial | Category-based contextual navigation and separate score settings rows still exist. This is not full MuseScore workspace parity; persistent transport, tabbed inspector, key/time glyph breadth and manual GUI/PDF QA remain. No commit, version bump or release. |
+
+## 2026-10-22 Current Native Snapshot in Keyboard Save
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Broad failure | Reproduced contract violation | Whole-suite passive lower-staff attachment save unexpectedly serialized a one-part initial score after a two-part project had opened; isolated original test passed. Rather than changing its assertions or adding a sleep, added an adversarial test retaining the earlier registered keyboard listener across native open. It deterministically saved the old empty score and wrong view. This reproduces the stale-callback hazard; the exact scheduling of the original intermittent failure is not established. |
+| Fix | Pass focused | `saveNativeProject` already captured `currentNativeContext` for completion checks but serialized closed-over score/settings. It now uses that same current context for score, part settings, resolved part view and tuplet-input guard. Extended the existing context rather than adding another save model or command path. Older callbacks now serialize the current score and view; document-generation and in-flight response protections remain. |
+| Local gates | Pass | Adversarial test first failed, then native save/reopen/recovery/backup and workspace/status focused bundle passed 18 tests. Final `npm test -- --reporter=dot --no-file-parallelism` passes 63 files / 1 skipped, 884 tests / 1 skipped in 171.44s. Rebuild/typecheck and full production Electron pass after the native fix. Visual regression passed immediately before this save-only follow-up; the UI rendering code is unchanged since that check. Roadmap/work-queue schema checks and diff check pass. |
+
+## 2026-10-22 Selected Event Properties Dock
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first structure | Fail, then Pass | Existing inline-clef regression and new disclosure/duration tests initially found selected properties in the top toolbar, not the dock. Moved the actual section; no hidden duplicate or separate command model. An intermediate range test caught `eventLocation` resolving a range's first note; visibility now explicitly requires single-event selection and excludes active spans/input mode. |
+| Editing / preference / keyboard | Pass | Focused App bundle `ui.event-properties\|clef.change-before-selected-event\|note-input.edit-selected-event-in-inspector\|articulation\|grace` passes 18 tests. Covers rest duration undo/redo, selection retention, inline-clef native/XML save, independent disclosure persistence/reset, and plain Tab/Space/ArrowDown not reaching score shortcuts. Existing inspector-scoped assertions were moved to the actual dock. The new duration label was disambiguated from the input toolbar label after a duplicate-label failure. |
+| Implementation | Pass | Reuses all existing note commands and adds the existing `changeDuration` handler to the selected-event selector. New `chromatics.event-properties-sections.v1` preference defaults expanded; the former top-toolbar preference is not migrated. Existing measure fields are headed `마디 표기`. No score schema/version/serialization change in this slice. |
+| Production geometry | Pass | Build/typecheck and `--properties-only` Electron verification pass. At 960/1400px selected-event panel is 475.5px high inside the 236px dock; all visible buttons/inputs/selects stay within its width and the final property can scroll above the sticky status bar. At the minimum desktop dock width of 180px the panel wraps to 664px without control overflow. Existing chord/text edits and dock hiding/canvas expansion still pass. Inspected all three captures. Compact still stacks properties below the palette and uses document scroll, not a completed tabbed inspector. |
+| Broader gates | Pass | Full production Electron passes. Visual regression passes 91 MusicXML/layout tests and both notation snapshots without baseline updates. First global run had 884 passed / 1 failed / 1 skipped: the selection-summary test still expected the old duplicate `속성` heading. Updated that heading assertion to `마디 표기` while retaining all context/content checks. Final `npm test -- --reporter=dot` passes 63 files / 1 skipped and 885 tests / 1 skipped in 164.60s. Roadmap/work-queue schema and diff checks pass. No manual MuseScore/PDF claim. |
+| Remaining scope | Partial | Independent dock scrolling/tabbed switching, richer selected-object prioritization, contextual category removal, always-available compact transport and actual MuseScore GUI/PDF workflow comparison remain. No commit, push, release or version change. |
+
+## 2026-10-22 Selection-Driven Span Properties
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Cross-workspace regression | Fail, then Pass | Two new App cases select a slur/hairpin, then switch to score, note and lyrics workspaces. Both initially lost the span selector/endpoints because rendering depended exclusively on the notation category. Now an active span keeps the existing SpanProperties mounted; event/measure controls remain hidden until deselection. |
+| Native control keyboard regression | Fail, then Pass | After the rendering fix, the tests still failed because Enter/Space on the dock's deselect button were intercepted by global score shortcuts. Moved the plain-key propagation guard from the event panel to the whole properties dock, preserving browser defaults and modifier undo/redo. Existing geometry edit/history/native round-trip paths are unchanged. |
+| Focused gates | Pass | `ui.span-properties\|ui.event-properties\|span geometry\|span properties\|independent part .* geometry\|ui.properties-panel` passes 9 App tests. Build initially caught an unsupported `exact` option in the new getByRole test; removed it because role names already match exactly. Rebuild and separate typecheck pass. |
+| Production workflow | Pass | Properties Electron verifier checks both span kinds through three workspaces at 960px and 1400px, including 180px minimum/236px default dock widths. All visible span controls remain contained. Actual Chromium Enter for slur and Space for hairpin activate deselection and restore the note panel. Explicitly resets only the tested width/disclosure preferences before fixture reload so previous verifier runs cannot silently substitute minimum width for the default-width case. |
+| Broad gates | Pass | Latest `npm test -- --reporter=dot` passes 63 files / 1 skipped and 887 tests / 1 skipped in 165.69s. Full production Electron passes all steps, including span workspace/keyboard checks at default and minimum widths. Inspected the compact selected-slur capture. Typecheck, roadmap/work-queue schema checks and diff check pass. Visual regression PASS belongs to the preceding event-dock slice; this follow-up changes conditional mounting and keyboard routing, not notation rendering. |
+| Residual scope | Partial | Category switching on initial span selection remains existing behavior. Compact properties still follow the palette in document flow; tabbed/independent-scrolling inspector and manual GUI/PDF QA remain. No commit, release, version or native schema change. This is not V1/RC completion. |
+
+## 2026-10-22 Independent Desktop Workspace Scrolling
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first runtime | Fail, then Pass | New `--workspace-scroll-only` production check found document overflow, zero internal scroll in all surfaces and score bottom 1316.5px below the 656px status boundary at 960px. Added a viewport-height editor frame with independently scrolling canvas/palette/properties; compact docks share the left column height. A second assertion caught disappearing dock headers; sticky headers now remain visible. |
+| Isolation / keyboard | Pass | 960/1400px windows (688px renderer height) have score bottom equal to status top at 656px, no document overflow, and last note/property reachable. Real Chromium PageDown scrolls properties while canvas offsets remain 613/680px and selected event remains `m1-d4`. Dock header visibility and width containment pass. Existing status verifier now scrolls the actual canvas rather than the document; normal 32px/long-error 60.5px footer and print hiding pass. |
+| Scope / focused tests | Pass | CSS applies only to desktop screen `.app-shell--editor`; start screen, PDF export and <=760px document fallback retain their layouts. App tests assert frame removal during PDF save and restoration afterward. PDF/status/properties/start focused bundle passes 12 tests; build includes typecheck. No score model, local preference or command change. |
+| PDF evidence | Partial: glyph defect found | Actual passive-attachment App bridge/renderer/Electron printToPDF/native readback smoke passes. Poppler reports a complete one-page A4 PDF and PNG rendering confirms no viewport clipping or editor chrome. However mordent and turn render as missing-glyph boxes beside `tr`, despite nonzero SVG geometry and the automated marker test passing. Artifact: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-passive-attachments-WakGz7/passive-attachments.pdf`; rendered PNG in the same directory. This is NOT a clean PDF visual QA pass; glyph rendering needs a follow-up regression/fix. |
+| Broader gates | Pass | Full production Electron passes before the final added PageDown assertion; the focused scroll verifier passes that assertion afterward. Global Vitest passes 63 files / 1 skipped, 887 tests / 1 skipped in 163.79s. Visual regression passes 91 MusicXML/layout tests and 960/1400px snapshots without baseline changes. Build/typecheck and roadmap/work-queue/diff gates pass. Compact tabbed docking and full MuseScore GUI/PDF parity remain open. |
+
+## 2026-10-22 Ornament Glyphs And Staff Clearance
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Glyph regression | Fail, then Pass | Screen/print lower-staff assertions exposed ordinary Unicode ornament text in a Georgia style. `drawOrnaments` now obtains glyphs/font from the existing VexFlow Ornament API and offsets by actual descent. Trill/mordent/turn use Bravura; mordent uses the vertically stroked `mordentInverted` VexFlow variant to preserve MusicXML semantics. No score/schema mutation. |
+| Geometry regression | Fail, then Pass | Real PDF rendering after the glyph correction showed ornament ink at y154.08 against upper-staff bottom160.5. Two new shared vertical-layout tests failed (clearances -24/-8 instead of >=12). Reserve ornament ink above the baseline (56px, or 80px with fermata) in the screen/print layout. Final production ink starts at174.08, leaving 13.58px above the lower-staff ornament. |
+| Production assertion quality | Pass | PDF verifier waits for fonts, checks exact glyph/font and rasterized ornament ink bounds rather than oversized font-em SVG bounds, then checks the actual preceding stave plus existing pairwise marker collisions. Stave query is scoped to `.notation-preview` to exclude palette previews. Intermediate test-only wrong selector and CommonJS VexFlow import failures were corrected; no assertion was removed to obtain a pass. |
+| Focused / visual | Pass | Passive attachments + vertical layout: 2 files, 27 tests. Build and separate typecheck pass. Visual regression passes 91 MusicXML/layout tests and 960/1400 snapshots without baseline updates. |
+| Actual PDF / native | Pass, fixture-limited | Intercepted App open/save/PDF bridges, real Electron printToPDF and native JSON readback pass. Poppler: complete A4 one-page PDF, 98,172 bytes; Bravura embedded. Inspected rendered PNG: no mordent/turn replacement boxes or upper-staff overlap, no editor chrome/cropping. Artifact: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-passive-attachments-tgcaAF/passive-attachments.pdf`, PNG in same directory. This supersedes the specific glyph defect from the preceding frame slice, not general engraving approval. |
+| Broad gates | Pass | Latest global Vitest including the two staff-clearance cases: 63 files passed / 1 skipped, 889 tests passed / 1 skipped in 164.94s. Full production Electron passes, including independent-scroll PageDown and release-fixture containment. Typecheck, roadmap (23 rows), work queue (79 rows / 16 required umbrellas) and diff check pass. No snapshot baseline updates. |
+| Remaining scope | Partial | Compact tabbed inspector, contextual category simplification, persistent transport, dense real-score/manual PDF review and external-app PDF exchange remain. Version 0.1.0-alpha.34 unchanged; no commit/push/release. |
+
+MusicXML mordent semantics: [W3C MusicXML mordent](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/mordent/) specifies a vertical line, unlike the naming of the corresponding SMuFL glyph. Local VexFlow5 maps `mordentInverted` to `ornamentMordent`.
+
+## 2026-10-22 Actual MuseScore Workspace Observation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Scope / environment | Observed | Installed `/Applications/MuseScore 4.app`, bundle version 4.7.5. Existing new-score wizard was used to create an unsaved General / Grand Staff score. No existing user score was opened, edited or saved. Native Accessibility queries and real pointer events operated the GUI; application-window captures were inspected. |
+| Menu / toolbar | Observed | Native menu bar lists File, Edit, View, Add, Format, Tools, Plugins and Help (localized labels). Home / Score / Publish are application-level pages, not notation category tabs. A persistent note-input row groups durations, accidentals, tie/slur, articulation and voices; transport remains at the top. This does not support Chromatics' remaining score/note/notation/lyrics category row as a faithful copy. |
+| Dock / selection | Observed | Palette / Layout / Properties share tabs in one left dock. Clicking Properties with no selection shows score display/style/page controls; selecting the first full-measure rest changes it to general/rest properties. Returning to Palette and expanding Clefs reveals a compact glyph grid. Selected rest identity is shown in the status bar. Mixer toggles a bottom dock while transport stays visible. |
+| Captures / width caveat | Observed, not a 960px pass | `/tmp/chromatics-musescore-reference-1400-palette.png`, `-1400-properties-empty.png`, `-1400-properties-selection.png`, `-1400-mixer.png`. Requested 960x720 window was clamped to 1050x720 by MuseScore, including native corner drag; `/tmp/chromatics-musescore-reference-compact-native-resize.png` is that actual width. Some toolbar/footer content was clipped after resizing in this session, so these captures are not evidence that MuseScore's compact containment passes. Chromatics' own 960px containment requirement remains. |
+| Implementation consequence | Next | Prioritize a shared-height tabbed palette/properties surface for compact Chromatics, preserve existing dock visibility/preferences and selection handlers, and verify tab keyboard/focus, re-entry from menus and scroll isolation. Follow with persistent compact transport and reduction of category navigation. No wholesale style/asset copying or new score model is required. |
+| Exclusions | Not run | No MuseScore-origin file was saved/reopened/exported, no MusicXML/PDF interchange or listening check was performed. This is direct workspace observation only, not completion of the external-fixture or manual engraving gates. |
+
+## 2026-10-22 Compact Tabbed Docks
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | New App regression initially found no `작업 영역 도크` tablist. Compact 761-1200px now presents palette/properties tabs with one visible panel using the full available height. Existing mounted dock controls/selection handlers are reused; no score or native schema changes. An intermediate missing icon import was fixed before the passing build. |
+| State / entry | Pass | `chromatics.compact-dock.v1` stores the active local tab independently from dock visibility. Closing selects the remaining visible panel, reopening activates that panel, command search restores/focuses the palette, and explicit span selection activates properties. Workspace reset returns to palette. Narrow/mobile document layout and wide side-by-side docking are preserved. |
+| Keyboard / breakpoint regression | Fail, then Pass | ArrowLeft/Right, Home/End use roving tab focus without score mutation. A further regression exposed focus loss when a focused tab disappeared on widening; focus now moves to that dock. A focused property survives narrowing. Media listener cleanup is tested. Focused App bundle passes 8 tests, including existing event/span and visibility behavior. |
+| Production geometry / keyboard | Pass | New `--compact-docks-only` check: 960px initial palette and properties after real Chromium ArrowRight each fill the height below the tab bar through canvas bottom, with no document overflow. Reload preserves properties; real Enter closes it and focuses palette without changing selection. Reopening and widening to 1400px restores both docks and focus. Print hides tab chrome. Capture: `chromatics-v1-compact-dock-tabs.png` in system temp; inspected. |
+| Scroll / existing workflows | Pass | Existing scroll verifier now visits each compact tab rather than measuring a hidden panel. At 960px properties scroll 294.5px while canvas stays 613px; PageDown retains selected event and document scroll0. 1400px scroll isolation also passes. Full production Electron passed before the final breakpoint-focus-only correction; the focused compact verifier covers that correction afterward. Existing palette visibility cases and property editing remain tested, not removed. |
+| Broad gates | Pass | Latest global run, including the breakpoint-focus correction: 63 files passed / 1 skipped, 891 tests passed / 1 skipped in 169.83s. Build and separate typecheck pass. Visual regression (91 tests plus 960/1400 snapshots, no baseline changes) passed before the focus-only correction. Roadmap (23 rows), work queue (79 rows / 16 required umbrellas) and diff checks pass. |
+| Remaining scope | Partial | Wide desktop still uses side-by-side docks; score/note/notation/lyrics categories and nonpersistent transport remain differences from the observed MuseScore workspace. No actual external-score exchange/manual dense-score approval, commit, push, release or version change. |
+
+## 2026-10-22 Persistent Transport And Bottom Mixer
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first / scope | Fail, then Pass | New `playback.persistent-transport` App regression initially found no transport toolbar. Moved existing jump/play-from-selection/pause/stop handlers to one persistent toolbar beside the global menu, removed the misleading playback quick category and its state. Existing disabled policies are unchanged. |
+| Independent mixer | Pass | Existing mixer rows now follow the score workspace in both DOM and visual order, above the status bar. The same `partMixerOpen` state is toggled by the top icon or opened/focused from Tools. File/export/edit mode changes no longer close it; workspace reset still closes it. Existing mute/solo/volume localStorage and playback handlers are reused. Removed obsolete playback-strip/disclosure CSS. No score/native schema or version change. |
+| App / broad gates | Pass | Focused playback/menu/workspace/toolbar bundle: 30 tests. Latest global Vitest: 63 files passed / 1 skipped, 892 tests passed / 1 skipped in 161.91s. Separate typecheck and production build pass. Full Electron verifier passes, including existing menu, dock, export, notation and playback mixer activity/volume persistence paths. |
+| Production geometry / keyboard | Pass | Added `--transport-only` and integrated it into full Electron. At 960/1400px, the single toolbar stays contained beside the menu across score/note/notation/lyrics/File/Export surfaces. Real Chromium Space on the mixer toggle opens only the mixer, without playback, edits or selection changes. Mixer is directly below the score and before the status bar; single-track height53px and note-edit canvas427px. Print hides both surfaces. Inspected captures `chromatics-v1-persistent-transport-960.png` and `-1400.png` in system temp. |
+| Multi-part follow-up | Pass | After the full Electron run, extended the focused verifier to create a fresh string quartet through the existing wizard. Four tracks: at960px, mixer172px of688px viewport (25%) and canvas308px; at1400px, mixer97px and canvas383px. Last volume is focusable/visible and no horizontal overflow. Focused rerun passes both widths. Full Electron was not rerun after this verifier-only addition. |
+| Visual regression | Pass | 91 MusicXML/layout tests and 960/1400px notation snapshots pass without baseline changes. This protects rendering while editor chrome changes; it does not certify listening or every large ensemble. |
+| Documentation gates | Pass | Roadmap schema check: 23 rows; work queue: 79 rows / 16 required umbrellas, automationQueueDrained false. `git diff --check` passes after documentation updates. These schema checks do not close the remaining manual acceptance gates. |
+| Remaining scope | Partial | Category-based score/note/notation/lyrics navigation and >1200px side-by-side docks still differ from the observed MuseScore workspace. Persistent note-input toolbar, human listening/device checks, dense real-score engraving and external GUI/PDF exchange remain. No commit, push, release or version bump. Not V1/RC completion. |
+
+## 2026-10-22 Persistent Note Input Toolbar
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first / scope | Fail, then Pass | New App test initially could not find `음표 입력 도구`. Moved existing duration/dot/tie/tuplet, accidental/pitch and staff/voice controls out of the note-only category into one persistent toolbar. Added an actual input-mode toggle using the existing handler. Removed the separate voice row and hide the empty legacy quick header outside File/Export/measure contexts. No duplicate hidden controls or new score model. |
+| Editing / history / disclosure | Pass | App regression changes a selected note's duration, undoes/redoes through existing shortcuts, enters input mode, changes upcoming duration without modifying the score and exits. Core buttons remain visible across five other surfaces; explicit toolbar collapse still hides/restores them. Prior App-wide run passed 299 tests before the later lyric-entry correction. |
+| Lyric keyboard regression | Fail, then Pass | A second App regression exposed letter keys still being captured by the lyric editor after using the new toggle. Entering note input now opens the existing note workspace. Clicking a duration and typing D actually inserts a note; inline lyrics close. Both new focused tests pass after this correction. |
+| Production keyboard / geometry | Pass | Added `--note-toolbar-only`, also included in the full Electron run. At960/1400px, toolbar height79/45px and initial canvas500/534px. Every button/select/output is contained across score/notation/lyrics/File/Export, without selection/content mutation from surface changes. Real Chromium Enter starts input without inserting/playing, D inserts a note from a focused duration button, Escape exits, Tab moves to the next button without moving score selection. Inspected `chromatics-v1-persistent-note-toolbar-960.png` and `-1400.png` in system temp. |
+| Build / runtime / visual | Pass | Production build (including typecheck), full Electron verifier, and visual regression (91 tests plus unchanged 960/1400 notation baselines) pass after the lyric-entry correction. These ran before the subsequent test-only CSS selector reader correction. |
+| CSS contract regression | Fail, then Pass | The first global run passed893 tests but failed the existing responsive CSS check: its suffix regex mistook `.note-entry-toolbar .duration-strip` for the base `.duration-strip` rule. Replaced regex extraction with jsdom CSSOM parsing and complete selector matching; all original wrapping/overflow assertions remain, plus a suffix-disambiguation regression. Corrected the stylesheet test loader to use a filesystem path (Vite's CSS asset URL/raw transformation was not suitable in this jsdom test). Both CSS cases and the four input/transport/collapse App cases pass. |
+| Latest broad / documentation gates | Pass | Full rerun after the CSS test correction: 63 files passed / 1 skipped, 895 tests passed / 1 skipped in170.27s. Separate typecheck, roadmap23-row and work-queue79-row/16-umbrella verifiers pass; automation remains undrained. Final documentation diff check passes. No remaining test process is claimed to be running. |
+| Remaining scope | Partial | Duration buttons still use numeric text; score/note/notation/lyrics category navigation remains a migration surface, not MuseScore parity. Wide shared dock, human listening, dense real-score/manual PDF and external-app exchange gates remain. Version 0.1.0-alpha.34 unchanged; no commit/push/release. |
+
+## 2026-10-22 Duration Toolbar Symbols
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Failure-first / semantics | Fail, then Pass | New App regression initially found no musical symbol in the seven duration buttons. `DurationSymbol` reuses VexFlow's SMuFL whole/half/quarter/eighth/16th/32nd/64th-up glyphs and configured music font stack. No handwritten note paths, additional font assets, score model or input command changes. Accessible names, shortcut titles and pressed state remain on the parent buttons; decorative SVG is hidden from assistive technology and unfocusable. |
+| Real clipping regression | Fail, then Pass | Production raster scan found the64th glyph ink at top-2/bottom37 in a40-unit viewBox. Adjusted common font size28->26 and note baseline33->34; final64th ink is top1/bottom38 and all seven glyphs fit. Whole-note baseline21 centers the stemless symbol. All SVG surfaces stay22x26 CSS pixels. |
+| Production coverage | Pass | Extended `--note-toolbar-only` with font readiness, exact duration codepoints, nonzero raster ink and ink-vs-viewBox containment. Passes at960/1400px alongside real Chromium Enter/D/Escape/Tab input checks. Inspected both current `chromatics-v1-persistent-note-toolbar-*.png` captures: flags and hollow noteheads render, no replacement boxes or clipping. |
+| Focused / build | Pass | Four App cases (duration symbols, persistent input/history, lyric-to-note entry, shortcut tooltips) pass before the final added exact-codepoint assertion; the latest global run covers that assertion. Production build passes. Broader gates are recorded after completion below. |
+| Broad gates | Pass | Latest global Vitest: 63 files passed / 1 skipped, 896 tests passed / 1 skipped in177.61s. Full production Electron passes with glyph raster assertions integrated, as do separate typecheck and roadmap23-row/work-queue79-row verifiers. Documentation diff check passes. No commit or baseline update. |
+| Visual regression | Pass | Latest91 MusicXML/layout tests and960/1400 notation snapshots pass without baseline changes. Glyph appearance is additionally covered by the inspected toolbar captures and raster assertions above; score snapshots alone would not prove toolbar glyph correctness. |
+| Remaining scope | Partial | Category navigation and wide desktop's two docks still differ from the observed MuseScore layout. Dense real-score/PDF exchange and manual listening remain open. Version0.1.0-alpha.34 unchanged; no commit/push/release. |
+
+## 2026-10-22 User-Requested Handoff
+
+- Stopped new implementation at the user's request after the verified duration-symbol slice. Category navigation remains in production; category removal is the next task, not a completed change.
+- An exploratory category-removal test failed against the current UI. Its subsequent product patch did not apply. Restored only that exploratory test to the previously passing category keyboard regression; preserved all completed and inherited worktree changes.
+- Final focused App rerun: 4 passed / 297 skipped (category keyboard navigation, duration symbols and persistent note-input coverage). The latest full-suite result remains 896 passed / 1 skipped from the completed symbol slice; no new full-suite run is claimed for handoff.
+- Handoff gates: separate typecheck, roadmap23-row verifier, work-queue79-row/16-umbrella verifier and whitespace check pass. Automation remains undrained; these schema verifiers do not certify full product parity.
+- Next work must replace category entry points with real menu/focus paths and migrate tests accordingly, without hidden compatibility controls. Version remains0.1.0-alpha.34; no commit, push or release.
+
+## 2026-10-22 Menu-Driven Surfaces After Recovery
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Starting point | Verified | Permanent worktree on `feature/chromatics-topbar-ia-alpha32-20261020`, version `0.1.0-alpha.34`. Preserved inherited dirty changes. Recovery provenance is `/Users/jaemankim/.codex/recovery/chromatics-20261022/RECOVERY.md`; original lost-file comparison remains unavailable. |
+| Failure-first | Fail, then Pass | New `ui.menu-driven-surfaces` initially found category navigation still present. Removed all four category buttons and reused Format/Tools/Add plus `openToolbarWorkspace`. Existing App/Electron workflows now use actual menu clicks; no hidden compatibility controls. |
+| Focus/history | Fail, then Pass | Menu focus exposed an unchanged chord blur creating history. Guard unchanged harmony text and cancel pending workspace-focus frames on unmount or replacement. Menu/chord focused tests: 3 passed; command-palette/menu bundle: 7 passed before the two explicit chord cases were added. |
+| Production geometry | Pass | `--menu-surfaces-only` verifies 960/1400px category absence, same-row menubar/quick actions/transport, non-overlap, field focus, menu dismissal and zero score edits. Inspected both `chromatics-menu-driven-*.png` captures. Initial test harness function return could not be cloned by Electron; fixed harness return without product changes. |
+| Local gates | Pass | Typecheck and production build; roadmap 23 rows and queue 79 rows/16 umbrellas; diff check. Version, original worktree and Clef metadata unchanged. |
+| Broad gates | Pass | Full production Electron passes after migrating two remaining key/time navigation selectors; log `/tmp/chromatics-menu-electron-20261022.log`. First App run: 295 passed / 6 failed, including old category assertions and unchanged-chord focus/history. After migration/fixes, focused bundle 9 passed, then full menu-checkpoint Vitest: 63 files / 898 tests passed, 1 skipped. Report `/tmp/chromatics-menu-full-20261022.json`; this run started before shared-dock edits and is not a post-shared-slice claim. |
+| Notation snapshots | Pass | `npm run verify:visual-regression` passes at 960/1400px without baseline edits; log `/tmp/chromatics-menu-visual-20261022.log`. |
+| Remaining | Partial | Wide shared dock, detail placement, dense-score/manual PDF and external MuseScore exchange remain. No commit, push, release or site manifest change. |
+
+## 2026-10-22 Wide Shared Palette And Properties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `ui.shared-desktop-dock` initially found no dock tablist at a wide media query. Shared layout is now the wide default; the real View checkbox restores split placement. Existing compact tab keyboard behavior is reused. |
+| Preferences | Pass | Focused App shared/compact bundle: 3 passed; expanded menu/workspace bundle after split-layout remount coverage: 19 passed. Shared width migrates from the larger legacy width, then persists independently. Tab switching, hide/reopen, shared/split remount, keyboard width steps and workspace reset are covered. Legacy palette/property widths remain unchanged. |
+| Production | Pass | `--shared-dock-only`: fresh 1400px shared default, pointer resize 236 to 296px, tab/width reopen, 960px fixed 236px/no grip, 1400px restored 296px/grip, adjacent score canvas, single visible panel, no horizontal overflow, zero edits and return to legacy split widths. Both screenshots inspected. Log `/tmp/chromatics-shared-dock-electron-20261022.log`. |
+| Verification policy | Explicit | Existing two-panel Electron workflows now select the real split-layout menu option; dedicated shared-layout QA verifies the actual default and resize/persistence. These are distinct layout contracts, not hidden compatibility controls. |
+| Gates / limits | Pass / Partial | Typecheck/build and full Electron pass (`/tmp/chromatics-shared-dock-full-electron-20261022.log`). Post-shared-slice full Vitest: 63 files / 899 tests passed, 1 skipped, 465.13s; report `/tmp/chromatics-shared-full-20261022.json`. Resize min/max/cancel checks and visual regression also pass without baseline edits. This predates measure-property consolidation. Manual usability, default shared-layout breadth and PDF/MuseScore exchange remain. No release/version change. |
+
+## 2026-10-22 Measure Signature Properties Consolidation
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.measure-signature-card` initially found no selected-measure properties section. Moved the existing clef/key/time selects from quick/notation toolbars to one properties section; palette and menu entries reuse `openToolbarWorkspace` to reveal and focus it. No duplicate or hidden compatibility controls. |
+| Scope / history | Pass | Focused properties/tempo/clef/palette/menu bundle: 9 passed. Selecting a note and changing measure clef changes the measure, not inline clef; undo/redo and selected event are preserved. Opening the panel alone creates no history. |
+| Native and neighboring paths | Pass | Palette/native-clef/span/pickup bundle: 16 passed. Piano/quartet native save/reopen now exercises the actual properties clef select. Existing span and pickup paths remain covered. Log `/tmp/chromatics-measure-properties-native-20261022.log`. |
+| Production | Pass | Build and `--menu-surfaces-only` pass. At 960/1400px each signature select exists exactly once inside the properties panel, menu focus and zero edits remain; captures `chromatics-measure-properties-*.png`. The 960px capture was inspected. |
+| Remaining | Partial | Full production workflow and latest broad suite pending at this checkpoint. Pickup/repeats, text/span detail consolidation, unrelated score-toolbar expansion, manual engraving/PDF/MuseScore exchange remain. No version/release change. |
+
+## 2026-10-22 Properties-Only Measure Entry
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Two `properties.measure-entry` cases reproduced palette/Add entries reopening collapsed work tools. Explicit measure-field targets now preserve toolbar category/collapse state while opening properties. Format full-score entry and tempo entry retain their existing workspace behavior. |
+| Focused / build | Pass | Entry/properties/palette/menu bundle: 13 passed. Production build including TypeScript passes. Selection, zero history edits, canonical field focus and unchanged collapsed state are asserted. |
+| Production | Pass | `--menu-surfaces-only` checks 960/1400px collapsed state, unchanged canvas top, all three fields contained and no horizontal overflow. Inspected `chromatics-measure-entry-960.png`. `--notation-palette-only` passes after selecting the actual palette tab before measuring it; the first full run failed because the previous assumption measured a hidden panel, not a product layout failure. |
+| Full production / exchange | Pass | Full production Electron rerun passes (`/tmp/chromatics-properties-final-electron-20261022.log`). Passive-attachment/vertical-layout tests: 27 passed. `verify:musicxml-fixtures`: 1 passed / 61 skipped; this fixture gate is not a new MuseScore GUI exchange or a claim that all 62 tests ran. |
+| Pending | Partial | Latest broad coverage is tracked separately. Pickup/repeats, text/span detail placement and manual engraving/PDF/MuseScore exchange remain. No signing, release, version or source-checkout changes. |
+| Broad failure investigation | Fail, then focused Pass | The consolidation-era full run ended with 896 passed / 4 failed / 1 skipped: ornament range/measure, tremolo range and selected-note grace clipboard workflows exceeded 5000ms. Report `/tmp/chromatics-properties-full-20261022.json`. The 21-test object-filter bundle passes independently with unchanged assertions/timeouts. The final frozen-code full rerun uses `/tmp/chromatics-ui-final-full-20261022.json`; concurrent edits/builds are excluded from that run. |
+| Latest scoped gates | Pass | Menu/properties follow-up bundle: 16 passed. Typecheck, both documentation verifiers and diff check pass. Latest visual regression passes without baseline edits (`/tmp/chromatics-properties-visual-20261022.log`). |
+| Frozen rerun / timeout reproduction | Incomplete, then reproduced | `/tmp/chromatics-ui-final-full-20261022.log` was explicitly interrupted (exit 130) after failures in part-structure workflows; it is not a pass. A standalone six-case structure run then reproduced three 5000ms timeouts. Existing 15-second workflow budgets are now applied to seven affected test declarations (ten parameterized cases); all score/history/native/XML assertions remain, with no global timeout change, retry or skipped test. Follow-up gates are recorded below when complete. |
+| Workflow budget follow-up | Fail, then rerunning | The structure/clipboard bundle then passed 24 cases but hit three other 5000ms timeouts in lyric/articulation clipboard workflows. The same existing 15-second budget is now consistent across all 21 object-filter copy/delete cases and six part-structure cases (one clipboard case already had that budget). Assertions and production behavior are unchanged. Fresh whole-suite output: `/tmp/chromatics-ui-verified-full-20261022.json`; no concurrent source edits/builds during this run. |
+| Final frozen-code broad gate | Pass | `npm test -- --reporter=dot --reporter=json --outputFile.json=/tmp/chromatics-ui-verified-full-20261022.json --no-file-parallelism`: 63 files passed / 1 skipped, 902 tests passed / 1 skipped, 468.57s. Includes the properties-only entry, Format workspace recovery, native structure and clipboard assertions. No product/test edits or concurrent builds during this run. No failed assertion was removed and no baseline changed. |
+
+## 2026-10-22 Canonical Harmony Properties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.harmony-editor` initially could not enter a canonical properties editor. The existing object chooser/input moved from the lyric toolbar to properties; the duplicate `선택 요약 코드` field was removed. Direct Add-menu and score-object selection reuse `openToolbarWorkspace` and `updateHarmonyText`. |
+| Focus / data | Pass | First focused bundle: 5 passed. Expanded bundle initially had 27 pass / 2 fail on obsolete toolbar-visibility expectations; migrated those to the actual properties surface without removing data assertions. Rerun: 29 passed. Covers range-disabled controls, invalid syntax with no history, Escape cancellation, selected-event tick, undo/redo, same-tick object neighbors, native reopen and XML data preservation. Log `/tmp/chromatics-harmony-broad-green-20261022.log`. |
+| Production / density | Partial | Initial menu-surface check passed at 960/1400px. Capture exposed a toolbar separator and inline labels in the new dock section. A dedicated layout assertion reproduced `dockLayout: false`, then CSS changed to a stacked dock layout without the separator. Full Electron also found an obsolete summary-field selector; it now opens and edits the visible canonical field. Current rerun: `/tmp/chromatics-harmony-final-electron-20261022.log`. One overlapping Electron attempt lost focus before reaching the density assertion; the sequential rerun reproduced the intended failure. |
+| Build / remaining | Partial | Production build including TypeScript passes. Prior 902-test global gate predates this slice; latest global rerun, remaining text/lyric/span detail consolidation, manual engraving and MuseScore/PDF exchange are not claimed complete. No version, commit, push or release changes. |
+| Final production density | Pass | Full Electron passes after the canonical-field and stacked-layout changes (`/tmp/chromatics-harmony-final-electron-20261022.log`). The density assertion checks grid labels and no toolbar separator; the 1400px capture was inspected. This runner uses legacy split layout at wide width and shared layout at 960px; wide shared harmony geometry is a separate follow-up, not implied by that screenshot. A new focused keyboard assertion also passes: `R` while editing the chord does not mutate the selected note. |
+| Broad / shared follow-up | Pass | Frozen-code full Vitest: 63 files passed / 1 skipped, 903 tests passed / 1 skipped, 497.01s; report `/tmp/chromatics-harmony-full-20261022.json`. Then the menu-surface verifier was extended to switch wide layout through the real View checkbox before harmony entry. At both 960/1400px, shared layout, one canonical field, focus, containment, unchanged toolbar height and zero edits pass; log `/tmp/chromatics-harmony-shared-electron-20261022.log`. The regenerated 1400px shared capture was inspected. |
+| Final local gates | Pass / Partial | Typecheck, both documentation verifiers and diff check pass. Latest visual regression passes at 960/1400px without baseline changes (`/tmp/chromatics-harmony-visual-20261022.log`). All verification processes completed. Harmony target-location wording, other text/lyric/span detail placement and manual engraving/MuseScore exchange remain open; the overarching goal stays active. |
+
+## 2026-10-22 Harmony Object Target Resolution
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.harmony-target` reproduced a nonzero-tick G7 object click yielding an empty field. Display lookup previously filtered by cursor tick before resolving the explicit ID, unlike the update handler. Log `/tmp/chromatics-harmony-target-red-20261022.log`. |
+| Implementation / data | Pass | Resolve the explicit object within the active measure first, show its same-tick neighbors and actual target tick. Selecting "new" retains cursor-based insertion. The regression saves native contents and checks the original cursor chord is untouched, the selected object keeps its ID/tick, and a new chord is added at the cursor. No score model or update handler change. |
+| Focused / build | Pass | Harmony/chord bundle: 16 passed / 293 skipped; `/tmp/chromatics-harmony-target-focused-20261022.log`. Typecheck and production build pass. |
+| Production | Pass | `--menu-surfaces-only` at 960/1400px creates G7 at tick13440, moves to another note, clicks the rendered chord and edits the same ID to Dm7. Field focus, target tick, shared dock, collapsed toolbar and no horizontal overflow pass. `/tmp/chromatics-harmony-target-electron-20261022.log`. Initial harness run did not deliver focusout and created no chord; aligned event dispatch with the existing verifier, then reran successfully. |
+| History / reopen follow-up | Pass | Expanded target regression also checks undo/redo, native reopen, field focus and preserved nonzero tick. Standalone rerun: 1 passed; `/tmp/chromatics-harmony-target-history-20261022.log`. Initial extension used an unavailable quick-toolbar undo button; corrected the test to use existing keyboard history commands and the actual File menu for reopening, without weakening data assertions. |
+| Documentation gates | Pass | Roadmap verifier: 23 rows; queue verifier: 79 rows / 16 required umbrellas; diff check. Both queues remain undrained. Next rehearsal consolidation must preserve its chooser, global/local scope and canonical 12-character limit rather than the duplicate summary's 120-character limit. |
+| Limits | Explicit | Full 903-test and visual-regression results belong to the preceding canonical-editor checkpoint, not this follow-up. Remaining text/lyric/span consolidation, manual engraving and external MuseScore/PDF exchange are open. Version unchanged; no commit, push or release. |
+
+## 2026-10-22 Canonical Rehearsal Properties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.rehearsal-editor` initially found no properties region after selecting a rendered rehearsal mark with work tools collapsed and properties hidden. Log `/tmp/chromatics-rehearsal-red-20261022.log`. |
+| Implementation | Verified | Move the existing chooser/12-character input from notation tools to a collapsible properties section; remove the duplicated 120-character summary input. Reuse `openToolbarWorkspace`, `rehearsalTarget` and `updateActiveRehearsalMark`. Object selection, Add-menu entry and dock/notation palette buttons open/focus the same editor without expanding work tools. Workspace reset closes the section. No new score model or mutation handler. |
+| Focused | Pass | `rehearsal|ui.properties-edit|notation|default workspace`: 37 passed / 273 skipped, 63.38s. Existing tests navigate through the real menu/palette or object click. Covers global/local scope, neighbor preservation, clipboard paths, range disabling, cancel and history. `/tmp/chromatics-rehearsal-focused-20261022.log`. |
+| Build | Fail, then Pass | TypeScript identified the moved chooser's optional active measure. Guard its existing state setter when no measure is selected; production build then passes. No assertion removed. |
+| Production entry | Pass | `--menu-surfaces-only` verifies 960/1400px object/palette/menu focus, fold/reopen, single canonical field, 12-character limit, stacked dock labels, no separator artifact, containment, unchanged canvas top and collapsed work tools. `/tmp/chromatics-rehearsal-electron-20261022.log`. Inspected `chromatics-rehearsal-properties-1400.png`. |
+| Pending / limits | Partial | Full production runner and expanded native-reopen test are running at this checkpoint. The latest prior global gate (903 tests) predates harmony target resolution and rehearsal placement. Staff/system/expression duplication, lyric/span detail policy and manual engraving/PDF/MuseScore exchange remain. No version, commit, push or release changes. |
+| Native / full production follow-up | Pass | Expanded history/native-reopen bundle: 6 passed; `/tmp/chromatics-rehearsal-native-20261022.log`. Saved edited rehearsal objects reopen with the correct selected ID, value and focused canonical field. Full production Electron passes (`/tmp/chromatics-rehearsal-full-electron-20261022.log`); both 960/1400px rehearsal captures inspected. Separate typecheck and documentation verifiers also pass. |
+| Latest broad run | Running | Started frozen-code full Vitest after Electron completed: `/tmp/chromatics-rehearsal-full-20261022.json` and `.log`. No concurrent source/test edits or builds during this run. A running process is not a pass. |
+| Final broad result | Pass | Same run completed with 63 files passed / 1 skipped, 905 tests passed / 1 skipped, 547.35s. JSON success=true, failed=0. Includes latest harmony target resolution and rehearsal migration/native reopen. All verification processes completed; no assertion removal, baseline rewrite, commit or release. Visual regression and external MuseScore/PDF exchange were not rerun for this slice. |
+
+## 2026-10-22 Parent Brand Naming Direction
+
+- User confirmed the parent-brand rename: 도요 to 띠로리. Recorded the new naming direction in the active worktree's roadmap and work queue; Chromatics itself is not renamed.
+- Before adding this note, searches of the active worktree found no 도요/doyo display references. Read-only inspection found remaining brand-design artifacts and Clef metadata in the original checkout, which is explicitly protected from edits. Requested confirmation before modifying those files; no original-checkout change has been made.
+- The separate classical-library app already uses 띠로리 플레이. Those existing changes were not made or reverted by this task. Do not infer English spelling, bundle IDs, domains or signing changes from the Korean parent-brand rename.
+- Scope confirmed: the user chose `원본은 유지하고 Chromatics 작업에만 반영`. Keep original-checkout brand documents and Clef metadata unchanged; only Chromatics naming guidance is updated. No runtime parent-brand copy existed in this worktree to replace.
+
+## 2026-10-22 Canonical Text Properties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Three `properties.text-editor` cases initially found no canonical region after selecting a text object with tools collapsed. `/tmp/chromatics-text-properties-red-20261022.log`; implementation then passed all three. |
+| Implementation | Verified | Staff/system/expression text share a selected-kind properties section. Existing target setters and update handlers, choosers and 80-character fields remain; duplicate notation-toolbar and summary inputs are removed. Add-menu/palette/object entries reuse `openToolbarWorkspace`, focus the current kind and preserve collapsed work tools. Scope feedback distinguishes global/staff system text and the selected expression tick. No new score model. |
+| Focused workflows | Pass | `text\|save.async\|dock-visibility\|notation-applicability\|default workspace\|native.*lower`: 36 passed / 277 skipped. `/tmp/chromatics-text-properties-focused-20261022.log`. Existing tests now use real canonical menu entry; async save/autosave recovery, range disabling and clipboard contracts retain their assertions. |
+| Canonical / scope | Pass | Four `properties.text-editor` cases cover selected-neighbor ID, undo/redo, cancellation, native save/reopen, global/local system scope, IME and unchanged score parts. `/tmp/chromatics-text-properties-scope-20261022.log`. |
+| Typecheck / build | Pass | `npm run typecheck`, `npm run build`; build log `/tmp/chromatics-text-properties-build-20261022.log`. |
+| Production entry | Harness fail, then Pass | Initial synthetic edit omitted focusout and produced no mark. Aligned dispatch with the existing verifier, retaining the real Add/palette/object paths. `--menu-surfaces-only` then passes at 960/1400px: focus, folding, one canonical 80-character field, scope, containment, collapsed tools and unchanged canvas top. `/tmp/chromatics-text-properties-electron-20261022.log`. Both `chromatics-text-properties-{960,1400}.png` captures inspected. |
+| Pending / limits | Partial | Full production runner is in progress; full post-text Vitest not yet run. Prior 905 tests predate text consolidation. Visual regression, manual engraving and external MuseScore/PDF exchange are not rerun. Original checkout, brand artifacts and Clef metadata remain untouched pending brand-scope clarification. No version, commit, push or release changes. |
+| Full production follow-up | Pass | Complete Electron workflow passes with canonical text editing in shared/split properties and lower-staff metadata paths. `/tmp/chromatics-text-properties-full-electron-20261022.log`. Typecheck, both document verifiers and whitespace gate pass; one introduced blank line's trailing whitespace was removed. |
+| Broad gate | Running | Full Vitest started after Electron completed, with source/tests frozen: `/tmp/chromatics-text-properties-full-20261022.json` and `.log`. Running is not a pass. |
+| Final broad result | Pass | That frozen-code run completed: 63 files passed / 1 skipped, 909 tests passed / 1 skipped, 525.17s. JSON success=true, failed=0. Required test processes have completed. Both documentation verifiers pass (23 roadmap rows, 79 queue rows / 16 required umbrellas; undrained), as does whitespace checking. Visual-regression baseline and external MuseScore/PDF QA were not rerun. Goal remains active; next audit is explicit property entry from span selection, preserving generic workspace-switch selection. |
+
+## 2026-10-22 Explicit Property Entry From Spans
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `ui.span-property-entry` reproduced hidden measure fields after explicit menu entry from slur/hairpin selection. Initial test setup sent save while search held focus; switched to the actual File menu before confirming the visibility failure. `/tmp/chromatics-span-entry-red-20261022.log`. |
+| Implementation | Verified | `openToolbarWorkspace` clears span selection only for explicit property targets, not generic workspace switching or tempo. Existing underlying selection, property state, commands and score model remain unchanged. |
+| Focused | Pass | 11 cases including both span kinds, six entry commands, native score equality, collapsed work tools, canonical text/rehearsal and generic span-selection persistence. `/tmp/chromatics-span-entry-focused-20261022.log`. Typecheck and build pass. |
+| Production | Pass | `--menu-surfaces-only` at 960/1400px selects real rendered slur/hairpin targets, then exercises six menu entries; verifies visible/enabled focused fields, deselection, unchanged edit count/canvas top, collapsed tools and no horizontal overflow. `/tmp/chromatics-span-entry-electron-20261022.log`. |
+| Limits | Explicit | Full 909-test result belongs to the preceding canonical-text slice. No new global suite or visual-regression baseline run for this follow-up. Lyric placement and external engraving QA remain. No commit, push, version or release changes. |
+
+## 2026-10-22 Canonical Lyric Details
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.lyric-details` found verse metadata outside the properties dock. `/tmp/chromatics-lyric-details-red-20261022.log`. |
+| Implementation | Verified | Move verse/syllabic/melisma controls into properties, retaining the existing handlers and the single in-score text editor. Remove the old lyric toolbar, redundant chord-entry button and empty instructional surface. Menu entry no longer expands collapsed work tools; direct lyric selection reveals properties and the selected verse. No score/native schema change. |
+| Focused | Fail, then Pass | Initial migration bundle passed 25 cases and failed two assertions: an unscoped label also matched the hidden File filter, and a legacy empty-state instruction no longer existed. Scope the assertion to actual lyric properties and verify absence of editable lyric controls for a measure selection instead. Final 27 cases pass, including multi-verse native save/reopen, MusicXML, clipboard, keyboard and span-selection contracts. `/tmp/chromatics-lyric-details-focused-20261022.log`. |
+| Typecheck / build | Pass | Typecheck and production build pass. `/tmp/chromatics-lyric-details-build-20261022.log`. Moved-section whitespace normalized. |
+| Production entry | Pass | `--menu-surfaces-only` at 960/1400px verifies one in-score input, dock metadata, Enter advance, second-verse lyric selection, hidden-dock reopen, containment, collapsed tools and unchanged canvas top. Both `chromatics-lyric-properties-{960,1400}.png` captures inspected. `/tmp/chromatics-lyric-details-electron-20261022.log`. |
+| Pending / limits | Partial | Full Electron runner, extended with composition-start/Enter/composition-end behavior, is running. Full post-lyric Vitest has not yet run. Prior 909-test result predates span-entry and lyric changes. Unrelated open property sections still accumulate; manual density/engraving and external MuseScore/PDF QA remain. No baseline, version, commit or release changes. |
+| Full production follow-up | Pass | Complete Electron runner passes, including composition handling at both widths: Enter during composition leaves the event and uncommitted lyric unchanged; after composition ends, Enter commits and advances. This uses synthetic DOM composition/key events in the real renderer, not OS input-method automation or manual Korean IME approval. `/tmp/chromatics-lyric-details-full-electron-20261022.log`. Typecheck, both document verifiers and whitespace gate pass. |
+| Broad gate | Running | Full Vitest started after Electron completed, with source/tests frozen: `/tmp/chromatics-lyric-details-full-20261022.json` and `.log`. No concurrent build or source/test migration. |
+| Final broad result | Pass | That run completed with 63 files passed / 1 skipped, 912 tests passed / 1 skipped, 501.08s; JSON success=true, failed=0. Includes span-entry and lyric placement changes. Required verification processes have finished. Next: selected-object property density, preserving target identity/history rather than just hiding controls. Goal remains active; no commit, push or release. |
+
+## 2026-10-22 Contextual Properties And Lyric Entry
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.context` found unrelated editors visible after explicit entry; `workspace.lyrics opens only` found a visible chord section during lyric input. Logs: `/tmp/chromatics-properties-context-red-20261022.log`, `/tmp/chromatics-lyric-harmony-context-red-20261022.log`. |
+| Implementation | Verified | Selection-bound workspace context prioritizes the requested editor, reusing existing target setters, focus paths and command handlers. Note/measure selection invalidates stale context, not object IDs. `가사 입력` and existing `코드 심벌 입력` are separate entries; only lyric context mounts the in-score lyric editor. Explicit lyric entry clears span selection, while generic score/note switching retains it. No score/native schema or version changes. |
+| Focused | Pass | Six context, lyric-only and slur/hairpin-entry cases pass. `/tmp/chromatics-context-split-focused-20261022.log`. Earlier six migration cases also passed before lyric split. |
+| Typecheck / build | Pass | `/tmp/chromatics-context-split-typecheck-20261022.log`, `/tmp/chromatics-context-split-build-20261022.log`. |
+| Production focused | Pass | `--menu-surfaces-only` passes at 960/1400px: exclusive editor visibility, focus, lyric composition/advance/reselection, explicit span-to-lyric entry, chord mode hiding lyric input, note/measure return, unchanged edit count and no horizontal overflow. Both updated lyric-property captures inspected. `/tmp/chromatics-context-split-electron-focused-20261022.log`. |
+| Pending / limits | Running | Broader App migration and full Electron runner are in progress, not passes. Full post-context Vitest and visual regression have not run. Existing 912-test checkpoint predates these changes. Native macOS menu integration, manual IME and external MuseScore/PDF engraving QA remain unverified. Original checkout/Clef metadata remain unchanged under confirmed brand scope. |
+| Broader App migration | Fail, then Pass | Expanded bundle: 104 passed / 1 failed. Remaining legacy workflow expected measure/chord panels to stay visible across contexts; changed it to open actual measure properties and assert they close on note entry. That workflow passes separately. `/tmp/chromatics-context-split-broad-20261022.log`, `/tmp/chromatics-context-global-workflow-20261022.log`. No score/history assertions removed. |
+| Full production | Pass | Complete Electron runner passes, including shared/split/minimum-width property edits, generic span workspace persistence, lower-staff metadata and compact lyric isolation. `/tmp/chromatics-context-split-full-electron-20261022.log`. Both document verifiers and whitespace gate pass. |
+| Broad gate | Running | Full Vitest started after Electron completed, with source/tests frozen and no concurrent build: `/tmp/chromatics-context-split-full-20261022.json` and `.log`. Not yet a pass. |
+| Broad result | Fail | 62 files passed / 1 failed / 1 skipped; 912 tests passed / 1 failed / 1 skipped, 510.36s. JSON confirms the only failure is `ui.dock-visibility`, which still queried the now-hidden selection-summary region during text editing. |
+| Remaining test migration | Rechecking | Preserve the test's selection contract by checking the preview's `m1-d4` event ID, visible canonical text properties and retained `dock-edit` value after reopening, rather than requiring the unrelated summary to stay visible. Product code is unchanged after the full run. Eight related regressions are rerunning; a fresh all-suite PASS is not claimed. |
+| Final focused result | Pass | Eight cases pass, including the full-run failure, context isolation, lyric/chord separation, both span kinds and the broad workflow. `/tmp/chromatics-context-final-focused-20261022.log`. Final typecheck also passes (`/tmp/chromatics-context-final-typecheck-20261022.log`). All owned verification processes completed. A new whole-suite run after this test-only migration and external engraving/IME/native-menu QA remain unrun; no version, commit, push or release change. |
+
+## 2026-10-22 Canonical Dynamic Properties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `properties.dynamic-editor` found no canonical dynamic region after clicking a selected mark with work tools collapsed and properties hidden. `/tmp/chromatics-dynamic-properties-red-20261022.log`; implementation then passed (`...-focused-20261022.log`). |
+| Implementation | Verified | Move object chooser/value selector from notation tools into one properties section, remove the summary duplicate, retain dynamic target IDs and the existing update command. Add menu, searchable notation entry and glyph selection focus that field and reveal properties without changing tool disclosure. Palette application and measure-level/current-staff scope remain unchanged. No new score model. |
+| Focused workflows | Pass | Twenty cases cover same-measure neighbors, object clipboard, new/delete, history, native reopen, range guards, property context and span entry. `/tmp/chromatics-dynamic-properties-bundle-20261022.log`. Four final cases cover grand staff, prior dock regression, canonical dynamics and property context (`...-final-focused-20261022.log`). |
+| Typecheck / build | Fail, then Pass | Added test options used unsupported `ByRoleOptions.exact`; removed them because role name matching is already exact. Guarded the optional active measure before setting a dynamic target. Final typecheck and build pass: `/tmp/chromatics-dynamic-properties-typecheck-final-20261022.log`, `/tmp/chromatics-dynamic-properties-build-final-20261022.log`. |
+| Production | Retrying | First focused run failed to locate a button in the multi-step harness. The dynamic-entry check now explicitly searches for dynamics before opening the source entry, with a targeted missing-entry assertion. `/tmp/chromatics-dynamic-properties-electron-20261022.log`; retry is running, not a pass. |
+| Limits | Explicit | Current full Vitest and full production runner are not yet executed for this consolidation. The prior context full run was 912 passed / 1 failed and its test-only migration passed focused recheck; it is not relabeled a whole-suite pass. No external engraving/native-menu/OS IME QA, version change, commit, push or release. |
+| Production follow-up | Pass | Explicit notation search resolves the missing source-entry lookup; `--menu-surfaces-only` passes at 960/1400px. Verifies source/menu/glyph focus, reopening hidden properties, one editor, new-mark identity and preserved neighbors, scope, containment, collapsed tools and unchanged canvas top. `/tmp/chromatics-dynamic-properties-electron-retry-20261022.log`. Both `chromatics-dynamic-properties-{960,1400}.png` captures inspected. Full production runner is now running separately. |
+| Next engraving evidence | Open | Current `NotationPreview.tsx::drawSlurSegment` emits an open `M ... Q ...` path, while `.notation-slur` in CSS has `fill: none` and `stroke-width: 1.6`. Tapered contour is absent in this current worktree despite historical conversation notes. No claim about exact comparison with the lost original files. Contour, manual geometry/hit targets and interior collision tests must be separate. |
+| Full dynamic production | Pass | Complete Electron runner passes, including canonical lower-staff dynamic editing. `/tmp/chromatics-dynamic-properties-full-electron-20261022.log`. Roadmap/queue verifiers and whitespace gate pass. Next slur-contour test reproduces three failures (automatic/explicit above/explicit below); product contour is not changed yet. Full Vitest will include both completed changes after renderer verification. |
+
+## 2026-10-22 Tapered Slur Contour
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Automatic, explicit-above and explicit-below short-slur cases fail on the open quadratic path. `/tmp/chromatics-slur-taper-red-20261022.log`. CSS failure confirms no filled contour (`...-css-red-20261022.log`). |
+| Implementation | Verified | Closed mirrored quadratic edges taper to shared tips, with bounded 2.2–3.2px midpoint thickness. Centerline, endpoint policy, manual height/offset and span address remain; the separate transparent hit path uses the original centerline. Selection/focus recolors fill, while hairpins retain stroke highlighting. No score/native data change. |
+| Renderer / CSS | Fail, then Pass | Three first-follow-up failures were test normalization: CSSOM serializes color to RGB, and binary floating point produced 3.200000000000003. Match normalized colors and compare midpoint thickness with numerical tolerance while retaining exact zero-width endpoints, closed-path shape and centerline checks. All 24 cases pass, including existing staccato/tuplet clearance, selection and manual-height coverage. `/tmp/chromatics-slur-taper-focused-final-20261022.log`. |
+| Typecheck / production build | Pass | Typecheck passes; `verify:visual-regression` rebuild includes the final code and tests. |
+| Visual baseline | Fail, reviewed, then Pass | Only six scalar changes in slur bounding boxes at 960/1400px: first slur height 19.6→20.5 and y 205.4→204.5 at both widths; second height 14→15.3 / 13.9→15. Other marks/counts/score dimensions unchanged. Inspected both captures before updating baseline. Runner additionally asserts filled closed contour, no stroke and original centerline hit path in the actual renderer. `/tmp/chromatics-slur-taper-visual-20261022.log`, `...-baseline-20261022.log`, `...-visual-final-20261022.log`. |
+| Combined broad gate | Running | Full Vitest started with source/tests frozen after production verification: `/tmp/chromatics-dynamic-slur-full-20261022.json` and `.log`. Includes canonical dynamics and prior context/dock-test migration. Running is not a pass. |
+| Limits / next | Explicit | This contour test does not prove interior stem/notehead/duration-dot clearance, cross-system joins or human PDF engraving approval. `verify-part-span-geometry.cjs` still contains old category-button entry paths; migrate to real menus before using it as current end-to-end evidence. It was inspected but not run here. Full UI Electron passed immediately before the contour change; post-contour production evidence is the notation visual runner, not a newly rerun full UI suite. No version/commit/push/release. |
+
+## 2026-10-22 Dynamic / Slur Handoff
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Combined full Vitest | Pass | 63 files passed / 1 skipped; 917 tests passed / 1 skipped, 519.34s. JSON reports success, zero failures. `/tmp/chromatics-dynamic-slur-full-20261022.json` and `.log`. Source/tests were frozen during execution; the process completed with exit 0. Includes canonical dynamics, contextual-property migration and tapered slurs. |
+| Production scope | Explicit | Full UI Electron passed after dynamic consolidation but before slur taper. Post-taper production rebuild and notation visual regression passed; no new full UI Electron or PDF result is claimed. Six reviewed baseline values changed only slur boxes. |
+| Next slice | Not started | `verify-part-span-geometry.cjs` still uses removed category buttons and programmatically opens geometry details. Read-only audit only. Migrate to actual menu/shared-dock/disclosure interactions, preserve geometry/history/native/PDF assertions, then run and inspect output at 960/1400px. |
+| User-requested stop | Handoff | Finish documentation gates and pause the goal, not mark Commercial V1/RC complete. Existing dirty changes remain; version is still 0.1.0-alpha.34. No commit/push/merge/tag/release/site/signing changes. Parent brand 띠로리 applies only to Chromatics work; protected original checkout and both iOS metadata files remain untouched. |
+| Final documentation gates | Pass | Roadmap and work-queue verifiers pass after the handoff update: `/tmp/chromatics-handoff-roadmap-20261022.log`, `/tmp/chromatics-handoff-queue-20261022.log`. Whitespace gate also passes; final evidence-row whitespace is rechecked before pausing. |
+| Remaining QA | Unverified | Interior slur collisions, cross-system contour joins, real PDF/MuseScore exchange/manual engraving, OS IME and native macOS menu parity remain separate work. |
+
+## 2026-10-22 Part / Segment Menu Verification
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Fresh build followed by the old runner failed. Diagnostic propagation identifies `Missing enabled button: 표기 객체`. `/tmp/chromatics-part-span-red-20261022.log`, `...-diagnostic-red-20261022.log`. |
+| Implementation | Verified | Real File/Add/Format/Edit menu clicks, shared Properties tab and geometry summary clicks replace removed tabs and forced-open details. Editable fields must be visible/enabled/unobstructed and options valid. Initial shared-tab lookup found inherited workspace preferences; isolated in-memory `part-span-qa` partition makes this a fresh-default shared-dock case without altering user storage. No product handler/model change. |
+| Production | Pass | `npm run verify:part-span-geometry` rebuilds and passes: `/tmp/chromatics-part-span-final-20261022.log`. Preserves part/segment offsets, inheritance/reset, native disk reopen, inactive-segment cleanup/undo, musical-boundary restoration and PDF assertions. Shared Properties and no document horizontal overflow asserted at 960/1400px. |
+| PDF / captures | Inspected | Runner emits `chromatics-part-span-{960,1400}.png` and `chromatics-span-segments-{960,1400}.png` in Electron temp. Inspected segment 960 and part 1400 captures, plus all PDF pages rasterized under `/tmp/chromatics-part-span-pdf-20261022/`: part 1 page, segments 2 pages, A4. No page clipping or missing output observed. Manual offsets can cross notes; not a general collision-free engraving approval. |
+| Typecheck | Pass | `/tmp/chromatics-part-span-typecheck-20261022.log`. Latest full Vitest remains the prior 917 passed / 1 skipped; not rerun for this verifier-only change. |
+| Limits / next | Open | IPC file dialogs intercepted; actual parser/rendering/disk readback/Electron PDF exercised. Native OS dialogs, external MuseScore, dense-score engraving and native macOS menu QA not covered. Next inspect cross-system contour policy and manual geometry before interior collisions. No commit/push/release or original-worktree/iOS metadata changes. |
+
+## 2026-10-22 Slur Hanging-End Direction
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Initial fixture omitted rest IDs; fixed fixture first. Meaningful red: automatic above/below segments have zero hanging-end rise; two manual controls already pass. `/tmp/chromatics-slur-continuation-red-final-20261022.log`. |
+| Implementation | Verified | Automatic hanging endpoints use staff continuation clearance and at least 8px outward rise. Manual whole/segment geometry remains authoritative. No new score data/style preference. Reference policy: [MuseScore slurs and ties](https://handbook.musescore.org/en_gb/notation/expressive-markings/slurs-and-ties), not an assertion of identical curves. |
+| Focused | Pass | 38 tests across passive-attachment renderer, vertical layout and CSS, including six above/below automatic/whole-manual/segment-manual cases. `/tmp/chromatics-slur-continuation-focused-final-20261022.log`. |
+| Production | Fail, then Pass | First run wrongly required interactive hit paths in the print renderer. Interactive checks retain hit-path assertions; PDF checks contour and hanging-end direction only. Full part/segment/manual/native/PDF runner passes: `/tmp/chromatics-slur-continuation-production-final-20261022.log`. Automatic save confirms no synthesized engraving data. |
+| Visual | Pass with known gap | `verify:visual-regression` passes without baseline changes (`/tmp/chromatics-slur-continuation-visual-20261022.log`). New automatic PDF rasterized to `/tmp/chromatics-part-span-pdf-20261022/automatic-{1,2}.png`; inspected both pages. Hanging ends change as intended, but interior stems still cross automatic curves. Not a collision-free engraving approval. |
+| Next / limits | Open | Add actual interior-note/stem coordinate regression; preserve manual geometry. Latest 917-test full Vitest predates continuation code; no fresh whole-suite claim. No external MuseScore GUI or native macOS menu QA. |
+
+## 2026-10-22 Interior Stem Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Actual rendered stem path and quadratic centerline show upper/lower interior collisions (`/tmp/chromatics-slur-interior-red-20261022.log`). Short stem-side endpoint regression also fails before endpoint fix (`/tmp/chromatics-slur-stem-side-red-20261022.log`). |
+| Implementation | Verified | Collect same-staff/system interior stem coordinates; solve the quadratic at each stem X and move only the automatic control point outward with contour clearance. Automatic stem-side endpoints attach outside stem tips. Whole/segment manual geometry bypasses both adjustments; score data unchanged. Initial parameter patch matched hairpin signature instead of slur signature; typecheck caught it and it was corrected before production build. |
+| Focused / typecheck | Pass | 41 renderer/layout/CSS tests pass, including six continuation/manual contracts and three interior/endpoint cases. `/tmp/chromatics-slur-stem-side-focused-20261022.log`, `...-typecheck-20261022.log`. |
+| Production / PDF | Pass | `/tmp/chromatics-slur-clearance-production-20261022.log`. Full menu/shared-dock part/segment/native/history runner passes, plus measured editor/PDF curve-to-stem clearance and automatic-save nonmutation at 960/1400px. Final two automatic PDF pages inspected as `/tmp/chromatics-part-span-pdf-20261022/clearance-final-{1,2}.png`. |
+| Visual review | Fail, rejected candidate, then Pass | First control-only solution inflated a short arch to about 46px; rejected without baseline update. Endpoint fix restores height 20.5px and moves it above stem tips. Reviewed final differences: first slur Y 204.5→169.5 at both widths, second height 15.3→28.2 (960) / 15→27.8 (1400). Only these four scalar values differ from the preceding reviewed baseline. Final `verify:visual-regression` passes (`/tmp/chromatics-slur-clearance-visual-final-20261022.log`). |
+| Broad gate | Running | Source/tests frozen; full Vitest `/tmp/chromatics-span-clearance-full-20261022.json` and `.log` is running, not a pass. No concurrent production build/Electron runner. |
+| Broad result | Pass | Process exited 0; JSON success true and zero failures. 63 files passed / 1 skipped, 926 tests passed / 1 skipped in 521.92s. This supersedes the running row and includes all current continuation/clearance tests. |
+| Limits | Open | Stemless noteheads, interior dots/articulations, beams, extreme-density bounds and cross-staff ownership need dedicated fixtures. This is not general collision-free engraving or full MuseScore parity. No version/release/original-checkout/iOS changes. |
+| Next audit | Open | Current `manualBounds` collection drives SVG viewport expansion; automatic extreme arcs are not covered by the existing manual-bound helper tests. Next start with a stemless whole-note obstacle and an automatic-containment fixture. No unimplemented behavior is marked passed. Goal remains active. |
+
+## 2026-10-22 Stemless Slur Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Above/below interior whole-note clearance fails while manual controls pass: `/tmp/chromatics-slur-notehead-red-20261022.log`. Four 6/4 cases retain valid rhythm and score nonmutation. |
+| Implementation | Verified | Automatic control point bounds both head edges and stems. Uses VexFlow glyph ink bounding boxes, leaving existing endpoint semantics unchanged. Rests no longer contribute non-rendered stem extents. Manual whole/segment geometry still bypasses automatic obstacles. |
+| Test diagnostics | Corrected | Initial spy contexts needed an explicit StaveNote type guard. Initial production SVG text bbox included font-line height (161px), not notehead ink; verifier now uses computed font and Canvas actualBoundingBox metrics. Logical getNoteHeadBounds is also center height, so product uses measured glyph boxes. No lowered clearance tolerance. |
+| Focused / typecheck | Pass | 46 tests across renderer/layout/CSS; `/tmp/chromatics-slur-notehead-focused-final-20261022.log`. Typecheck `/tmp/chromatics-slur-notehead-ink-typecheck-20261022.log` passes before the final rest regression; rerun in next gate. |
+| Production | Pass | `/tmp/chromatics-slur-notehead-ink-production-20261022.log`: existing part/segment/native/history checks retained; new 960/1400px whole-note upper/lower ink-edge clearance, native reopen/nonmutation and PDF checks pass. Real file dialogs still intercepted. |
+| PDF / visual | Reviewed | Inspected compact capture and `/tmp/chromatics-part-span-pdf-20261022/stemless-1.png`. Snapshot differed only in rest-inflated lower slur heights: 28.2/27.8 to 15.3/15. Both viewport captures reviewed before updating these two values. `/tmp/chromatics-slur-notehead-visual-20261022.log`; final runner result recorded after completion. |
+| Limits | Open | Previous 926-test full Vitest predates this slice. Automatic extreme-arc viewport containment, interior articulations/dots/beams, cross-staff and external MuseScore/manual engraving remain unverified. No commit/push/release/version/iOS changes. |
+
+## 2026-10-22 Automatic Slur Viewport
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Actual Electron fixture: lower slur bottom 662.67 versus viewport bottom 629. `/tmp/chromatics-slur-auto-bounds-red-20261022.log`. |
+| Implementation | Verified | All slur boxes participate in the existing 8px-padded viewport helper. Manual hairpins retain previous handling; no event/score/schema change. Helper test covers the observed lower-bound shape and nonmutation, while production asserts real SVG bounds at 960/1400px and in print. |
+| Focused / typecheck | Pass | 49 tests across four files, `/tmp/chromatics-slur-auto-bounds-focused-20261022.log`; `/tmp/chromatics-slur-auto-bounds-typecheck-20261022.log`. Includes final stemless/rest regression. |
+| Production | Fail, then Pass | First green-geometry run hit a raw-fixture versus normalized native-score comparison. Extreme fixture now derives from the already saved/reopened canonical native project; full score nonmutation assertion retained. `/tmp/chromatics-slur-auto-bounds-production-final-20261022.log` passes. |
+| PDF / visual | Pass, inspected | One-page extreme PDF raster `/tmp/chromatics-part-span-pdf-20261022/extreme-1.png` and desktop capture inspected. Curves are fully contained; extreme-register arch quality is not approved. `/tmp/chromatics-slur-auto-bounds-visual-20261022.log` passes with no additional baseline change beyond the two reviewed rest-height values in the preceding slice. |
+| Broad gate | Running | `/tmp/chromatics-notehead-viewport-full-20261022.json` and `.log`; source/tests frozen, no concurrent build/Electron. Previous 926-pass run is not presented as current. |
+| Broad result | Pass | Exit 0; JSON success true, zero failures. 63 files passed / 1 skipped, 932 tests passed / 1 skipped in 519.65s. Supersedes the running row. Source/tests not edited during the run; tracked source/script/baseline diff hash unchanged from mid-run audit to completion. Another Vitest process was observed in the same worktree and left untouched; only this dedicated report is claimed as evidence. |
+| Limits / next | Open | Interior articulation/duration dots, beams, cross-staff ownership, extreme arch shape and external MuseScore/manual engraving still need coverage. Native macOS menus and real IME remain unverified. Goal active, no commit/push/release/version/secret/iOS changes. |
+| Read-only follow-up audit | Open | CursorPoint already carries articulation and tuplet clearances, but the interior solver currently consumes only stem/head ink bounds. Next add an interior staccato/tuplet fixture and measure actual mark-to-curve gaps before extending the solver. Excluding phantom rest stems does not prove actual rest-glyph clearance. SVG containment does not reserve additional space between adjacent systems/staves. New untracked brand asset directories are preserved and were not edited in these engraving slices. |
+
+## 2026-10-22 User-Requested Stop: Interior Staccato
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | Two automatic upper/lower staccato-stack cases fail, two manual controls pass: `/tmp/chromatics-slur-interior-staccato-red-20261022.log`. Actual circle center/radius used to check both horizontal edges against the filled curve envelope. |
+| Implementation | Verified in focused tests | Existing articulation placement provides staccato centers; a shared 1.9px radius drives both drawing and interior collision bounds. Automatic solver includes the actual dot edges. Manual geometry and native score data remain unchanged in the fixture. No tuplet/duration-dot change in this slice. |
+| Focused / typecheck | Pass | 4 files, 53 tests: `/tmp/chromatics-staccato-handoff-focused-20261022.log`. `/tmp/chromatics-staccato-handoff-typecheck-20261022.log` passes. Owned processes exited 0. |
+| Broad / production | Not rerun after final change | Previous full result is 932 passed / 1 skipped before these four staccato tests. Electron/PDF and visual evidence also predate this last modification. User requested stopping; do not claim current production acceptance. |
+| Handoff | Stop requested | Finish document verifiers and diff check, then pause the active goal. Next resume with production staccato fixtures/visual review, then tuplet and duration-dot obstacles. Preserve unrelated brand/appearance work. No commit/push/merge/release/tag/version/original-checkout/iOS edits. |
+| Documentation gates | Pass | Roadmap and work-queue verifiers exited 0 (`/tmp/chromatics-staccato-handoff-roadmap-20261022.log`, `...-queue-20261022.log`); diff check passed and is rechecked after this row. |
+
+## 2026-10-22 Staccato Production Resume
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| State | Verified | Goal query returned null, so registered the explicitly requested objective as active rather than claiming a paused goal was resumed. No matching test process was running. Existing ahead-one branch state and separate Appearance/brand edits preserved; package remains alpha.34. |
+| Production fixture | Pass | Added single/stacked staccato upper/lower edge checks at 960/1400px and PDF, plus manual height preservation and native score equality/reopen. First run failed on JSON property ordering; structural isDeepStrictEqual preserves the value-level assertion. `/tmp/chromatics-staccato-production-final-20261022.log` passes all prior part/segment/history checks too. |
+| Focused / typecheck | Pass | 53 tests, `/tmp/chromatics-staccato-resume-focused-20261022.log`; `/tmp/chromatics-staccato-resume-typecheck-20261022.log`. |
+| Visual / PDF | Pass, inspected | `/tmp/chromatics-staccato-resume-visual-20261022.log` passes without baseline changes. Single/stack/manual PDF rasters under `/tmp/chromatics-part-span-pdf-20261022/staccato-*-1.png` inspected, plus compact single-staccato capture. Manual overlap is expected preservation, not collision-free approval. |
+| Broad gate | Completed | `/tmp/chromatics-staccato-resume-full-20261022.json` and `.log`; source/tests frozen and no concurrent build/Electron run. Result below. |
+| Broad result | Pass | Exit 0, JSON success true: 64 files passed / 1 skipped, 942 tests passed / 1 skipped in 200.17s. Tracked source/script/baseline diff hash unchanged through execution. Includes the independently present Appearance test file; no authorship claim over those changes. |
+| Limits | Open | Interior tuplets, duration dots, beams, rest ink, cross-staff/system spacing and external MuseScore/manual QA remain. No version/commit/push/release/iOS changes by this slice. |
+
+## 2026-10-22 Interior Tuplet Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Resume state | Paused in manager, implementation resumed | User requested continuing after interruption. `get_goal` reports paused; available tools have no resume operation. No duplicate goal or false active claim. No matching verification process remained. |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-interior-tuplet-red-20261022.log`: two automatic bracketed/unbracketed cases fail, two manual controls pass. `/tmp/chromatics-interior-tuplet-rest-20261022.log`: all six cases pass including rest-only triplets. |
+| Implementation | Verified | Capture actual rendered tuplet text ink via canvas font metrics and visible bracket rectangles; ignore invisible VexFlow hit rectangles. Add edges to the existing automatic quadratic constraint solver, including rest members. Existing manual bypass, endpoint policy and native score model unchanged. |
+| Focused / types | Pass | 4 files / 59 tests, `/tmp/chromatics-tuplet-focused-final-20261022.log`; `/tmp/chromatics-tuplet-typecheck-final-20261022.log`. |
+| Production / native | Pass | `/tmp/chromatics-tuplet-production-20261022.log`: existing geometry/history checks plus bracketed, number-only and rest triplets at 960/1400px, manual height controls, score deep equality and native reopen. App bridge intercepted; actual parser/rendering/disk readback, not native OS dialog coverage. |
+| PDF / visual | Pass, inspected | `chromatics-tuplet-auto.pdf` and `chromatics-tuplet-manual.pdf` in Electron temp; rasters `/tmp/chromatics-part-span-pdf-20261022/tuplet-{auto,manual}-1.png` and compact auto capture inspected. Manual overlap is intentionally preserved. `/tmp/chromatics-tuplet-visual-20261022.log` passes without baseline edits. |
+| Limits | Open | Full 942-test pass predates tuplets. Current tuplet location is upper; no claim of lower-tuplet or cross-staff clearance. Duration dots, beams, rest ink, extreme spacing and external MuseScore/native-menu/IME QA remain. No commit/version/release/iOS/original-checkout changes. |
+
+## 2026-10-22 Duration Dot Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-duration-dot-red-20261022.log`: late double-dotted quarter between whole and sixteenth notes, automatic upper clearance fails by 0.1314px under test-font metrics; lower and two manual controls pass. An exploratory fixture typo (`sixteenth` instead of `16th`) was corrected before capturing this meaningful red result. |
+| Production before fix | Pass, not a production reproduction | `/tmp/chromatics-duration-dot-production-red-20261022.log` is named for the pre-fix run but passes with real font metrics. Do not characterize it as a failing production overlap. |
+| Implementation | Verified | Existing Dot.getDots and public text metrics/positions supply augmentation-dot ink bounds to the automatic solver. Staccato remains separate, manual geometry bypass and score model unchanged. |
+| Focused / types | Pass | 4 files / 63 tests, `/tmp/chromatics-duration-dot-focused-20261022.log`; `/tmp/chromatics-duration-dot-typecheck-20261022.log`. |
+| Production / visual | Pass | `/tmp/chromatics-duration-dot-production-20261022.log`: all existing checks plus upper/lower/manual double-dot fixtures at 960/1400px, native equality/reopen and PDF. `/tmp/chromatics-duration-dot-visual-20261022.log` passes with no baseline edit. |
+| PDF inspection | Pass, inspected | `/tmp/chromatics-part-span-pdf-20261022/duration-dot-{auto,manual}-1.png` reviewed. Manual upper curve crossing the stem is deliberately preserved, not an automatic-layout acceptance claim. |
+| Broad gate | Pass | `/tmp/chromatics-tuplet-dot-full-20261022.log` and `.json`: 64 files passed / 1 skipped, 952 tests passed / 1 skipped, 199.42s, exit 0 and JSON success true. Tracked source/script/baseline diff hash unchanged; no concurrent build/Electron or product/test edits. |
+| Remaining | Open | Beam/rest ink, extreme spacing, repeat/volta engraving/playback and external MuseScore/native-menu/IME QA remain. No commit/release/version/iOS/original-checkout changes. |
+
+## 2026-10-22 Rest Ink Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Production Fail, then Pass | `/tmp/chromatics-rest-ink-production-red-20261022.log`: `64th-below` actual ink bottom 638.1200 versus centerline 634.4897 at x347.645. Actual glyph crosses the lower slur. Eight unit cases already pass with stub metrics (`/tmp/chromatics-rest-ink-red-20261022.log` despite its filename); do not claim a unit red. |
+| Implementation | Verified | Include rest glyph head bounds in the existing automatic edge constraints; exclude only synthetic rest stems. No native model/handler change. Existing phantom-stem regression and manual bypass preserved. |
+| Focused / types | Pass | 4 files / 71 tests, `/tmp/chromatics-rest-ink-focused-20261022.log`; `/tmp/chromatics-rest-ink-typecheck-20261022.log`. |
+| Production | Pass | `/tmp/chromatics-rest-ink-production-20261022.log`: quarter/64th rests, above/below and manual controls, 960/1400px, native score equality/reopen, PDF, and all prior part/span/staccato/tuplet/dot checks. 33/64 is a geometry stress fixture. |
+| PDF / visual | Pass, inspected | `/tmp/chromatics-part-span-pdf-20261022/rest-ink-{auto,manual}-1.png` inspected. Manual overlap is deliberately preserved. `/tmp/chromatics-rest-ink-visual-20261022.log` passes without baseline edits. |
+| Broad gate | Pass | `/tmp/chromatics-rest-ink-full-20261022.log` and `.json`: 64 files passed / 1 skipped, 960 tests passed / 1 skipped, 203.34s, exit 0 and JSON success true. Tracked source/script/baseline diff hash unchanged. No concurrent build/Electron or product/test edits. |
+| Remaining | Open | Beam boundaries, extreme spacing, repeat/volta and external app/manual QA remain. Goal manager still reports paused with no available resume API; no completion/pause update made in this resumed turn. No commit/release/version/iOS/original-checkout changes. |
+
+## 2026-10-22 Beam Boundary Audit
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| State | Active goal registered | Goal query returned null; created the explicitly requested objective. Existing ahead-one branch, dirty changes and separate brand/Appearance files preserved. No matching verification process running. |
+| Current behavior | Pass without product change | `/tmp/chromatics-beam-audit-20261022.log`: 3 tests, twelve single/multiple/partial sloped beam above/below and automatic/manual combinations. Actual polygon corners/edges clear the conservative filled slur envelope. No red claimed. |
+| Focused / types / build | Pass | 5 files / 86 tests, `/tmp/chromatics-beam-focused-20261022.log`; `/tmp/chromatics-beam-types-20261022.log`, `/tmp/chromatics-beam-build-20261022.log`. |
+| Production / native | Pass | `/tmp/chromatics-beam-production-20261022.log`: 960/1400px, actual polygon edge samples, native score equality/reopen and PDF. Minimum conservative clearance 4.2745px (960), 4.2989px (1400), 4.2851px (PDF). Manual heights preserved, not required to avoid ink. |
+| PDF inspection | Pass, inspected | `/tmp/chromatics-beam-auto-1.png` and `/tmp/chromatics-beam-manual-{1,2}.png` reviewed. Auto PDF is one page; manual height spacing legitimately produces two. |
+| Limits | Open | Previous full 960-test run predates this audit. No new baseline or product change; separate visual regression not rerun for this test-only slice. Extreme spacing, other beam topologies and repeat/volta/external-app QA remain. No commit/release/version/iOS/original-checkout edits. |
+
+## 2026-10-22 Repeat/Volta Slur Contract
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Current behavior | Pass without product change | New authored `repeat-volta-slur-contract.musicxml`: tied pair inside repeat body, first/second endings and slur to second ending. Three new tests pass initially; no product red claimed. Internal XML/native round trips retain semantics; removing slurs leaves the same 16-beat playback and independently merged body ties. |
+| Focused / types | Pass | 4 files / 113 tests, `/tmp/chromatics-volta-focused-20261022.log`; `/tmp/chromatics-volta-types-20261022.log`. Screen and print renderer tests preserve source order, four source events, one tie and three broken-system slur segments. |
+| Production | Pass, bounded assertions | `/tmp/chromatics-volta-production-20261022.log`: real menu import/native equality/reopen, 960/1400px and PDF source-order/ending assertions, plus prior beam/geometry checks. Uses the prior build because this slice changes only tests/fixtures/scripts. |
+| PDF inspection | Structural pass; engraving issue open | `/tmp/chromatics-volta-contract-1.png` reviewed. Forced three-system output retains spans but shows slur/volta line and number proximity. No claim of collision-free volta layout. |
+| External CLI | First attempt abort, retry Pass | `/tmp/chromatics-volta-musescore-20261022.log`: first SIGABRT with mutex error, second exit 0, PDF 25197 bytes. `/tmp/chromatics-volta-musescore-1.png` inspected. MuseScore renders the authored fixture on one system; Chromatics test deliberately forces three. This is not GUI QA, Chromatics-export import, or external XML round-trip evidence. |
+| Remaining | Open | Full 960-test pass predates six new beam/volta tests. Branching ties into both endings, slur/volta collision, extreme system spacing, external GUI/native-menu/IME QA remain. No product/baseline/version/commit/release/iOS/original-checkout changes in this slice. |
+
+## 2026-10-22 Repeat/Volta External Exchange
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Broad gate | Pass | `/tmp/chromatics-beam-volta-full-20261022.log` and `.json`: 64 files passed / 1 skipped, 966 tests passed / 1 skipped, 210.12s, exit 0. No product/test edits or concurrent build/Electron during this run. Predates the new opt-in external exchange test. |
+| External XML exchange | First invocation abort, separate retry Pass | `RUN_MUSESCORE_SPAN_QA=1 npm test -- src/musicxml/musescore-mxl.test.ts -t 'tied repeat bodies'`: `/tmp/chromatics-volta-exchange-20261022.log` fails at MuseScore process exit status, not semantic comparison; `/tmp/chromatics-volta-exchange-retry-20261022.log` passes the new test, with the unrelated MXL test skipped. |
+| Contract | Pass | Actual Chromatics serializer output -> installed MuseScore CLI XML export -> Chromatics parser. Notes, endpoint indices, repeat/ending data and tied playback match; native create/encode/decode validates the returned score. Temporary exchange artifacts are retained for inspection. No user score touched. |
+| Types / document gates | Pass | `/tmp/chromatics-volta-exchange-types-20261022.log`; roadmap/work-queue verifier and diff check passed before this evidence update and are rerun at the next gate. |
+| Limits | Open | New test is opt-in because the installed external app is not a CI prerequisite. GUI, listening, native menus/IME, slur/volta collisions, branching-ending ties and system spacing remain unapproved. No product code or baseline changes in these audit slices. |
+
+## 2026-10-23 Automatic Slur System Spacing Diagnostic
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| First audit | No staff collision reproduced | Reversed extreme-register systems still clear neighboring staff lines because `system-layout.ts` already allocates pitch/stem extremes. This corrects the incomplete initial code audit, not a product fix. |
+| Actual curve audit | Fail, unresolved | `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-part-span-geometry.cjs --audit-system-spacing`; `/tmp/chromatics-system-spacing-red-20261023.log`, exit 1. Same-x centerline samples minus conservative 3.2px combined half-thickness yield minimum gap -46.4758px (960), -38.2912px (1400), -40.4615px (PDF). Both slurs remain within SVG and outside the neighboring staff itself. |
+| Visual evidence | Defect confirmed | `chromatics-extreme-slur-1400.png` in Electron temp and `/tmp/chromatics-system-gap-audit-pdf-1.png` inspected; visible crossing between systems. Optional diagnostic preserves capture/PDF before failing. It is not an acceptance PASS. |
+| Implementation boundary | Product unchanged | Added reproducible diagnostic mode only, without weakening default assertions or changing baselines. A repair needs actual automatic-envelope reservation in shared screen/print layout and page estimation; a renderer-only translation or SVG enlargement is insufficient. Manual/native preservation remains required. |
+| Current gates | Scoped | Latest full 966-test PASS predates the opt-in external exchange test and system diagnostic. External exchange test and typecheck pass separately. No new visual baseline changes. Goal remains active; no commit/release/version/iOS/original-checkout changes. |
+
+## 2026-10-23 Measured Automatic Slur System Envelopes
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-system-envelope-red-20261023.log`: two core layout cases fail at -296px gap. `/tmp/chromatics-system-renderer-red-20261023.log`: two screen/print automatic cases fail; two manual controls pass. Production red is recorded above. |
+| Implementation | Verified | Actual quadratic extrema plus conservative half-thickness produce per-system ink envelopes. Renderer synchronously repeats existing rendering/layout before paint; shared `createSystemLayout` reserves envelopes and upper ink at page transitions. Final-only segment callback, manual geometry and native data preservation are tested. No CSS translation or score-model rewrite. |
+| Focused / types / build | Pass | 5 files / 114 tests, `/tmp/chromatics-system-envelope-focused-final-20261023.log`; final callback/count checks in `/tmp/chromatics-system-renderer-final-20261023.log`. `/tmp/chromatics-system-envelope-types-final-20261023.log`, `/tmp/chromatics-system-envelope-build-final-20261023.log`. |
+| Production / PDF | Pass, inspected | `/tmp/chromatics-system-spacing-final-20261023.log`, including all existing part/segment/history/manual/native checks. Conservative curve gaps 13.8446px (960), 12.9840px (1400), 13.2055px (PDF). `/tmp/chromatics-system-envelope-final-1.png` inspected: formerly crossing curves separated. |
+| Visual | Pass | `/tmp/chromatics-system-envelope-visual-20261023.log`: production notation snapshots pass with no baseline changes. |
+| Page estimation boundary | Partial | Post-layout page-count/target-overflow metadata uses measured height through the existing estimate helper. Preflight target-page scale search is still unmeasured and may need re-optimization; no claim that a requested page count is always met. Same-system staff gaps and over-deep curves remain separate work. |
+| Broad gate | Pass | `/tmp/chromatics-system-envelope-full-20261023.log` and `.json`: 64 files passed / 1 skipped, 972 tests passed / 2 skipped, 205.27s, exit 0. Product/tests frozen, no concurrent build/Electron. Both skipped tests require an installed MuseScore opt-in run; the new span exchange passed separately in the previous slice. |
+| Remaining | Open | Slur/volta collisions, branching-ending ties, same-system staff collision, measured target-page optimization, external GUI/listening/native-menu/IME QA. Goal active; no version/commit/release/iOS/original-checkout changes. |
+
+## 2026-10-23 Volta / Slur Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-volta-clearance-red-20261023.log`: six screen/print automatic/whole-manual/segment-manual cases fail. `/tmp/chromatics-volta-clearance-production-red-20261023.log`: prior build fails actual ink clearance, line -26.1000px / label -9.7800px. |
+| Implementation | Verified | Shift automatic volta brackets above intersecting slur contour bounds, retaining one bracket height per system and unchanged x ranges. Reserve bracket/text ink in the measured system envelope. No slur geometry, score/native model or playback handler changes. |
+| Test diagnostics | Corrected | First green attempt used a constant 1.6px half-thickness even for a short 1.1px-half-thickness slur, reporting 5.5px. Tests now derive half-thickness from the actual filled path; the 6px clearance requirement is unchanged. |
+| Focused / types / build | Pass | Five-file 151-test bundle `/tmp/chromatics-volta-clearance-focused-20261023.log`; seven final cases including adjacent-ending alignment `/tmp/chromatics-volta-lane-final-20261023.log`. `/tmp/chromatics-volta-clearance-types-final-20261023.log`, `/tmp/chromatics-volta-clearance-build-20261023.log`. |
+| Production / native | Pass | `/tmp/chromatics-volta-clearance-production-green-20261023.log`: automatic/whole/segment modes at 960/1400px and PDF, native equality/reopen, plus existing part/span/history/beam/system-gap assertions. Minimum line gap 5.99999px within 0.01px float tolerance; label gap 22.31999px. |
+| PDF / visual | Pass, inspected | `/tmp/chromatics-volta-clearance-{auto,whole,segment}-1.png` reviewed. `/tmp/chromatics-volta-clearance-visual-20261023.log` passes without baseline changes. The verifier subsequently adds the manual PDF filenames to its summary only; assertions are unchanged. |
+| Broad gate | Pass | `/tmp/chromatics-volta-clearance-full-20261023.log` and `.json`: 64 files passed / 1 skipped, 979 tests passed / 2 skipped, exit 0. Product/tests frozen with no concurrent build/Electron. The two skipped external MuseScore tests require opt-in. |
+| Remaining | Open | Other annotation/tempo lanes, same-system inter-staff clearance, excessive curves, measured target-page re-optimization, branching-ending ties, manual volta policy, external GUI/listening/native-menu/IME QA. Goal active; no commit/release/version/iOS/original-checkout changes. |
+
+## 2026-10-23 Alternate-Ending Ties
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-branch-ties-red-20261023.log`: five cases reject the second stop, choose the wrong source, leave orphan flags or accept a linear exclusive-ending tie. |
+| Core / editing | Verified | Shared repeat traversal for playback and voice-local contiguous tie candidates; branch-safe creation/removal and original-edge structural preservation. Lower voice and timing-gap guards added. Native/MusicXML round-trip, playback two sustained two-beat events, undo and structural-edit cases pass. |
+| Focused / types / build | Pass | `/tmp/chromatics-branch-ties-focused-20261023.log`: four files, 153 tests. `/tmp/chromatics-branch-ties-types-20261023.log`, `/tmp/chromatics-branch-ties-build-20261023.log`. Intermediate failures from an omitted measure argument and incomplete test props/pitch were fixed before these gates. |
+| Production / native / PDF | Pass | `/tmp/chromatics-branch-ties-production-20261023.log`: 960/1400px and PDF, two ties over three source notes, 12px incoming second-ending tie not crossing first ending; native flags and reopen equality. Existing beam/slur/volta/system/part assertions also pass. `/tmp/chromatics-branch-ties-review-1.png` inspected, one page. |
+| Visual | Pass | `/tmp/chromatics-branch-ties-visual-20261023.log`; no baseline changes. |
+| Creation priority follow-up | Fail, then Pass | `/tmp/chromatics-branch-ties-forward-red-20261023.log` reproduces body-start creation choosing a repeat return. Forward incoming/source-order edge, then outgoing edge, then backward incoming fallback now preserves ordinary forward creation. `/tmp/chromatics-branch-ties-final-focused-20261023.log`: 154 tests; final types/build logs pass. |
+| Final production / visual | Pass | `/tmp/chromatics-branch-ties-final-production-20261023.log` and `-final-visual-20261023.log` pass after priority repair, baseline unchanged. 960/1400px captures also inspected; native save/reopen preserves both branches. |
+| Broad gate | Pass | `/tmp/chromatics-branch-ties-final-full-20261023.log` and `.json`: 64 files passed / 1 skipped, 991 tests passed / 2 skipped, 204.03s. Earlier 990-test pass predates the final priority guard. No concurrent product/test edits or build/Electron during full runs. Two external MuseScore tests remain opt-in/skipped. |
+| Remaining | Open | Partial-tie curve refinement, nested repeats, other annotation lanes, same-system staff collisions, external GUI/listening/native-menu/IME QA. Goal active; no commit/release/version/iOS/original-checkout changes. |
+
+## 2026-10-23 Partial Tie MusicXML Exchange
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first local | Fail, then Pass | `/tmp/chromatics-partial-tie-xml-red-20261023.log` and `-warning-red-20261023.log`: missing paired partial notation and missing destination warning. Export pairs visual tied start/stop separately from sounding flags; import prioritizes explicit sound flags. Native/XML and reverse-repeat cases pass. |
+| Local focused / App | Pass | `/tmp/chromatics-partial-tie-final-focused-20261023.log`: 134 passed / 3 opt-in skipped, 12 passed files / 1 skipped. `/tmp/chromatics-partial-tie-warning-app-20261023.log`: two actual menu/report cases. Initial App harness omitted the workspace fixture and expected code without its measure suffix; corrected, not a product defect. |
+| Types / build / production | Pass | `/tmp/chromatics-partial-tie-final-types-20261023.log`, `-build-20261023.log`, `-production-20261023.log`: actual File menu export, paired notation vs sound flags, affected measure warning, 960/1400/native/PDF plus existing engraving assertions. No renderer/baseline change in this slice. |
+| External startup / shutdown | Fail | `/tmp/chromatics-branch-musescore-20261023.log`, `-retry-20261023.log`, `-pdf-20261023.log`: mutex SIGABRT. Offscreen attempt unavailable because installed Qt provides only cocoa. `/tmp/chromatics-partial-tie-musescore-control-20261023.log`: ordinary body-tie/slur semantic signature passes but process exits SIGABRT; not a CLI PASS. |
+| External semantic parity | Fail, unresolved | `/tmp/chromatics-partial-tie-musescore-20261023.log`: second-ending sounding stop absent; second playback pass becomes separate notes. Generated XML in `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-volta-reference-y2wtBV/` converts paired tied elements to `let-ring`. Strict opt-in test remains failing. |
+| Reference PDF | Inspected, mismatch | `/tmp/chromatics-branch-musescore-review-1.png`: original second stop absent. `/tmp/chromatics-partial-tie-musescore-review-1.png`: outgoing let-ring and redundant clef/time signatures. Separate final PDF command exits 0 (`/tmp/chromatics-partial-tie-musescore-pdf-20261023.log`); that does not prove semantic parity. |
+| Standard / workflow reference | Reviewed | [MusicXML tied](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/tied/) separates notation from sound, with paired single-note notation. [MuseScore repeat/jump items](https://handbook.musescore.org/notation/repeats/items-across-repeats-and-jumps) describes branching tie endpoints; native GUI behavior is not equivalent to verified MusicXML import. |
+| Full suite | Pass, external excluded | `/tmp/chromatics-partial-tie-full-20261023.log` and `.json`: 64 files passed / 1 skipped, 995 tests passed / 3 skipped, 196.70s. Product/tests frozen, no concurrent build/Electron. Prior 991-test pass predates XML/report changes. External opt-in failures above are not converted to passes by this default gate. |
+| Remaining | Open | External partial-tie interoperability, sparse attribute export, partial contour refinement, same-system staff collisions, GUI/listening/native-menu/IME QA. Goal active; no commit/release/version/iOS/original worktree changes. |
+
+## 2026-10-23 Sparse Attribute Export
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-sparse-attributes-red-20261023.log`: six failures. Initial attributes per part, omitted unchanged bars, real signature changes/return, lower-staff numbered clef/transpose, zero reset, inline-clef carry/reset and non-mutation now pass. |
+| Implementation | Verified | `buildAttributes` compares previous measure state and actual last serialized inline clef. Empty attribute blocks omitted. Divisions/staves initial only; changes preserve attribute order and staff numbering. No native/score model change. |
+| Focused / types / build | Pass | `/tmp/chromatics-sparse-attributes-focused-20261023.log`: 12 tests; `-xml-20261023.log`: 140 tests. `-types-20261023.log`, `-build-20261023.log` pass. `-fixtures-20261023.log`: explicit external-app fixture unit gate, 1 passed / 61 filtered out. |
+| Production | Pass | `/tmp/chromatics-sparse-attributes-production-20261023.log`: actual App export contains only initial attributes for unchanged bars; existing branch warnings, 960/1400/native/PDF and engraving contracts pass. No renderer/baseline changes. |
+| External attributes | Semantic Pass, process Fail | `/tmp/chromatics-sparse-attributes-reference-20261023.log` and `-reference-retry-20261023.log`: strict signature/note/playback/native comparison passes, then status assertion fails on mutex SIGABRT. Files retained under `chromatics-volta-reference-1h6Bso` / `-LGCevR` in system temp. Not an integrated CLI PASS. |
+| External reference PDF | Pass, inspected | `/tmp/chromatics-sparse-attributes-pdf-20261023.log`: separate command exits 0. `/tmp/chromatics-sparse-attributes-review-1.png` inspected: no signatures in unchanged measure 2, real changes and natural-sign reset in 3/4. |
+| Additional external gap | Fail, unresolved | `/tmp/chromatics-sparse-attributes-musescore-20261023.log`: expanded existing slur-contract signature catches explicit `mode=major` becoming absent in MuseScore output. Assertions retained; not treated as fixed or silently normalized. |
+| Full suite | Pass, external excluded | `/tmp/chromatics-sparse-attributes-full-20261023.log` and `.json`: 65 files passed / 1 skipped, 1,001 tests passed / 4 skipped, 191.18s. Product/tests frozen; no concurrent build/Electron. Prior 995-test pass predates sparse attributes; external opt-in failures above remain separate. |
+| Remaining | Open | Partial-tie import changes to let-ring, mode metadata, MuseScore shutdown stability, manual GUI/listening/native-menu/IME, remaining same-system collision and manual-volta QA. Goal active; no commit/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Same-System Staff Slur Clearance
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-staff-slur-red-20261023.log`: screen/print automatic cases fail at -176.03/-170.37px, manual controls pass. `/tmp/chromatics-staff-slur-production-red-20261023.log`: previous build fails actual piano fixture at -97.9011px. |
+| Implementation | Verified | Actual slur contour bounds relative to each staff feed existing vertical-layout inner extents and render passes. Cumulative four-staff spacing and unchanged outer-system estimates covered. Manual shape and native model are not rewritten; global per-staff maximum spacing is retained. |
+| Focused / types / build | Pass | `/tmp/chromatics-staff-slur-focused-final-20261023.log`: four files / 122 tests. `-types-20261023.log`, `-build-20261023.log` pass. |
+| Fixture correction | Resolved | First production green attempt used manual height 18, above native schema max 8. `/tmp/chromatics-staff-slur-production-20261023.log` fails native open for that fixture; test and verifier now use height 8. No schema relaxation. |
+| Production / native / PDF | Pass | `/tmp/chromatics-staff-slur-production-final-20261023.log`: automatic gap 11.999985/12px at 960/1400 and 12px PDF; manual height/offset preserved with 113.8px gap. Native score equality/reopen and existing part/system/beam/volta contracts pass. |
+| Visual | Pass, inspected | `/tmp/chromatics-staff-slur-visual-20261023.log`: baseline unchanged. `/tmp/chromatics-staff-slur-{auto,manual}-review-1.png` and automatic 960/1400 captures inspected; no intersecting inward slurs. Wide manual spacing follows existing geometry estimates, not a density improvement. |
+| Broad gate | Pass, external excluded | `/tmp/chromatics-staff-slur-full-20261023.log` and `.json`: 65 files passed / 1 skipped, 1,006 tests passed / 4 skipped, 204.20s. Product/tests frozen, no concurrent build/Electron. External opt-in failures recorded above remain separate. |
+| Remaining | Open | Neighboring note/stem ink without matching slurs, annotation lanes, excessive curvature, per-system density, measured page-scale optimization, external semantic/GUI/listening/native-menu/IME QA. Goal active; no commit/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Unslurred Neighboring Staff Ink
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-neighbor-ink-red-20261023.log`: above/below whole-note gaps -61/-8px. `/tmp/chromatics-neighbor-ink-production-red-20261023.log`: actual Electron above fixture fails -28px. |
+| Implementation | Verified | Existing cursor note/rest-head, stem, staccato, duration-dot and tuplet ink metrics feed only the neighboring side of slur-bearing staves. No synthetic rest stems, score changes or alternate command path. Existing score-wide offsets remain, not per-system optimization. |
+| Focused / types / build | Pass | `/tmp/chromatics-neighbor-ink-focused-final-20261023.log`: four files / 124 tests, including above/below whole and half notes. `-types-final-20261023.log`, `-build-20261023.log` pass. |
+| Production / native / PDF | Pass | `/tmp/chromatics-neighbor-ink-production-20261023.log`: four head/stem direction fixtures at 960/1400 and PDF, actual glyph ink measured independently with canvas font metrics plus SVG stem geometry. Gaps 11.99964-12.00047px within 0.01px tolerance; native equality/reopen and previous manual/branch/volta/system contracts pass. |
+| Visual | Pass, inspected | `/tmp/chromatics-neighbor-ink-visual-20261023.log`: baseline unchanged. Four `/tmp/chromatics-neighbor-{above,below}-{head,stem}-review-1.png` PDF renders inspected with separated neighboring ink. |
+| Broad gate | Pass, external excluded | `/tmp/chromatics-neighbor-ink-full-20261023.log` and `.json`: 65 files passed / 1 skipped, 1,008 tests passed / 4 skipped, 192.65s. No product/test edits or concurrent build/Electron. External opt-in semantic/process failures remain separately recorded above. |
+| Remaining | Open | Ledger/beam/accidental/other-articulation combinations, per-system density, manual volta, external partial-tie and mode metadata, GUI/listening/native-menu/IME. No commit/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Open Volta Endings
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Reference | Verified | [MusicXML ending](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/ending/) distinguishes a closing jog (`stop`) from an open end (`discontinue`). Both terminate the ending range. |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-volta-open-red-20261023.log`: five failures across XML/native, structural deletion and screen/print rendering. `/tmp/chromatics-volta-open-production-red-20261023.log`: actual Electron draws `[3,3]` lines instead of closed/open `[3,2]`. |
+| Implementation | Verified | Optional `VoltaMark.endStyle`, strict native enum, parser/export mapping, conditional closing hook, end-style transfer when shrinking a range. Absent legacy style remains closed; explicit closed native values are preserved and XML uses canonical stop. Playback ignores the visual style and stays identical; undo restores the original score. |
+| Focused / types / build | Pass | `/tmp/chromatics-volta-open-focused-final-20261023.log`: five files / 143 tests. `-types-final-20261023.log`, `-build-20261023.log`. `-fixtures-20261023.log`: fixture gate one passed / 61 filtered. |
+| Production / native / PDF | Pass, inspected | `/tmp/chromatics-volta-open-production-20261023.log`: actual File-menu XML import/export, native save/reopen/resave equality, 960/1400/PDF `[3,2]` hook counts, next measure unmarked. `/tmp/chromatics-open-volta-review-1.png` inspected. Existing beam/slur/part/branch contracts pass. |
+| Visual | Pass | `/tmp/chromatics-volta-open-visual-20261023.log`: no baseline changes. |
+| External exchange | XML Pass, integrated Fail | `/tmp/chromatics-volta-open-musescore-20261023.log`: XML process exit 0 and strict signature/playback/native comparison pass. Following PDF command exits abnormally with mutex error; assertion remains failing. Files retained at `chromatics-volta-reference-sKQLlE` in system temp. |
+| External PDF artifact | Inspected, not process approval | `/tmp/chromatics-open-volta-musescore-review-1.png` confirms closed first/open second bracket. Artifact survived the failed PDF command; no claim that the command or whole external gate passed. GUI/listening not run. |
+| Broad gate | Pass, external excluded | `/tmp/chromatics-volta-open-full-20261023.log` and `.json`: 66 files passed / 1 skipped, 1,015 tests passed / 5 skipped, 285.91s. Product/tests frozen, no concurrent build/Electron. Live process polled until exit 0; no restart on the longer run. External PDF failure above remains distinct. |
+| Native compatibility | Scoped | Legacy missing-style files keep closed appearance. Older strict readers may reject the new optional field; no claim of forward compatibility with an old executable. Release-note review remains required before release approval. |
+| Remaining | Open | End-style editing UI, explicit long bracket/manual geometry, continuation styling, earlier external partial-tie/mode gaps, GUI/listening/native-menu/IME. No version/commit/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Volta End Properties And Score Keyboard Activation
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-volta-ui-red-20261023.log`: missing App control/resolver. `/tmp/chromatics-volta-ui-production-20261023.log`: focused score event did not activate with Return, leaving the end-style control disabled. |
+| Implementation | Verified | Shared selected-measure card resolves the end of the containing volta, displays target identity, disables outside/incomplete ranges and uses the existing measure/history path. Primary/lower-staff SVG event buttons now handle Enter/Space, preserve Shift range selection and suppress transport bubbling. |
+| Test fixture correction | Resolved | Initial keyboard fixture omitted required pitch and failed before reaching its assertion; this is not counted as a meaningful product red. Pitch corrected, with no schema relaxation. |
+| Focused / types / build | Pass | `/tmp/chromatics-volta-ui-focused-final-20261023.log`: three files / 32 passed / 408 filtered. `-types-final-20261023.log`, `-build-final-20261023.log` pass. App covers range start/interior/end, event selection, outside disabled state, focus, history and native reopen. Resolver covers aligned secondary staves and unaligned fallback. |
+| Production | Pass, scoped | `/tmp/chromatics-volta-ui-production-regular-20261023.log`: real menu and Return event selection, visible/enabled select-change helper, redraw, 960/1400 containment, undo/redo/native equality/reopen, prior slur/staff/volta/PDF contracts pass. `chromatics-volta-properties-{960,1400}.png` in system temp inspected. |
+| Native select keyboard | Fail, unresolved | `-production-final-20261023.log`, `-production-retry-20261023.log`, `-production-visible-20261023.log`, `-production-trace-20261023.log` retain failures: arrow/Return does not commit select value, including visible-window attempt. Focus remains on the correct select; root cause not confirmed. Strict assertion retained behind `--audit-native-volta-keyboard`. Regular gate does not claim this acceptance item. |
+| Visual | Pass | `/tmp/chromatics-volta-ui-visual-20261023.log`: baseline unchanged. |
+| First broad gate | Fail | `/tmp/chromatics-volta-ui-full-20261023.log` and `.json`: 1,019 passed / one failed / five skipped, 553.90s. Existing combined PDF result test exceeds 15s; isolated unchanged rerun (`-pdf-recheck-20261023.log`) passes in 1.21s test time. No product/test edits or concurrent build/Electron during full run. |
+| PDF test isolation | Pass | Success/cancellation/failure now run as independent cases with standard per-test cleanup and unchanged 15s limit per test. All prior outcome assertions retained; cancellation additionally waits for enabled export control and rejects an error message. `-pdf-focused-20261023.log`: four tests including volta properties pass; `-types-post-pdf-20261023.log` passes. This is not proof of a product PDF defect or a global performance fix. |
+| Fresh broad gate | Pass, external excluded | `/tmp/chromatics-volta-ui-full-recheck-20261023.log` and `.json`: 66 files passed / one skipped, 1,022 tests passed / five skipped, 371.79s. Product/tests frozen, no concurrent build/Electron. Two extra cases come from splitting the existing three-outcome PDF test, not two new product features. |
+| Documentation gates | Pass | `-roadmap-final-20261023.log` / `-queue-final-20261023.log`: schema verifiers pass (23 / 79 rows), automation queue remains open. `git diff --check` passes. |
+| Remaining | Open | Native select keyboard automation/manual verification, explicit long volta spans/manual geometry, external partial-tie/mode/PDF process failures, human GUI/listening/native-menu/IME. No version/commit/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Explicit Volta Display Extents
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Failure-first | Fail, then Pass | `/tmp/chromatics-volta-display-red-20261023.log`: five failures across native/schema, boundary deletion, screen/print contour extent. `-app-red-20261023.log`: missing end-measure control. `-projection-red-20261023.log`: missing part reference mapping; interior deletion case passes. |
+| Implementation | Verified | Optional start-mark `displayEndMeasureId`, within-ending native reference validation, shared end lookup, explicit renderer range and end style. Existing measure command/history updates a single start mark; auto reset removes the field. Boundary/interior removal rebases the reference, and part projection/removal remaps staff-local IDs without mutating the source. |
+| XML production red | Fail, then Pass | `-production-20261023.log`: save safety rejects native-only display metadata before export warning. `-export-red-20261023.log`: App rejects display extents and explicit closed styles; subsequent focused run also reveals unstated secondary-staff barlines. Save signature now compares exported semantics, not warned display metadata, and treats closed as default stop. Conflicting local volta numbers still block IPC/file writes. |
+| Reference | Scoped | [MusicXML barline](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/barline/) is part-measure data containing ending/repeat, without a staff selector. The save comparison follows that shared-part representation only for unstated secondary marks; explicit conflicts remain detectable. |
+| Fixture correction | Resolved | An attempted invalid select value becomes the empty auto option in the browser, so that synthetic App assertion was removed. Native missing/outside references are still explicitly rejected; no validation relaxation. |
+| Focused / types / build | Pass | `-focused-gate-20261023.log`: four files / 59 tests. `-types-gate-20261023.log`, `-build-gate-20261023.log` pass. Final focused/types reruns also cover open/closed explicit endpoints in screen/print; see `-focused-complete-20261023.log` / `-types-complete-20261023.log`. |
+| Production | Pass | `-production-gate-20261023.log`: actual menu/selection/visible controls at 960/1400, auto/full/interior extent, undo/redo, native equality/reopen, XML loss warning and second-part projection. Full-score PDF covers three systems with five first-ending segments `[2,1,1,1,2]`; part PDF preserves all five. Existing slur/staff/branch contracts pass. Native select keyboard opt-in not run; prior failure remains separate. |
+| Visual / PDF | Pass for scope, inspected | `-visual-20261023.log`: unchanged baseline. Both `chromatics-long-volta-{960,1400}.png` captures and `/tmp/chromatics-long-volta-{score-review,review}-1.png` inspected. First repeated boundary in the part PDF has tight whole-note spacing; coordinate collision/spacing audit remains open, not a blanket engraving approval. |
+| Broad gate | Pass, external excluded | `/tmp/chromatics-volta-display-full-20261023.log` and `.json`: 66 files passed / one skipped, 1,030 tests passed / five skipped, 201.25s. Product/tests frozen and no concurrent build/Electron. Prior 1,022-test pass is not reused. |
+| Documentation gates | Pass | `-roadmap-20261023.log` / `-queue-20261023.log`: both schema verifiers pass; automation queues remain open. `git diff --check` passes. |
+| Remaining | Open | Manual volta offset/height/segment geometry, per-system continuation refinement, tight boundary spacing, native select keyboard, external interchange/PDF shutdown/GUI/listening/native-menu/IME. New optional native field may be rejected by older strict readers; release compatibility review still required. No version/commit/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Repeat Boundary Ink
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Production red | Reproduced | `/tmp/chromatics-repeat-spacing-red-20261023.log`: first part-PDF whole-note ink right 494.60 vs measure right 484.33, exceeding by 10.27px. Next note starts 501.29: barline intrusion, not direct notehead overlap. |
+| Implementation | Narrow renderer layout | Minimum widths include VexFlow repeat-start footprint (5px modifier + 15px padding) and repeat-end inward footprint (10px). Existing system packing, formatter and native model retained. |
+| Unit red / focused | Pass after fix | `/tmp/chromatics-repeat-width-unit-red.log`: three start/end/both packing cases fail. `-unit-green.log`: 34 pass; `-focused.log`: four files / 162 pass. Initial test draft had wrong repeat field names/missing note ID caught by build; corrected before successful gates. A stale-build production attempt was terminated and is not counted. |
+| Types / production | Pass | `/tmp/chromatics-repeat-width-types.log`, `-build.log`, `-production.log`. Actual menu-based 960/1400 full/part views and both PDFs check real font ink inside every fixture measure with 4px right clearance; native equality/reopen, explicit volta range and existing slur/manual geometry contracts pass. Part minimum right gap: 30.40px at 960, 13.73px at 1400, 26.60px in PDF. |
+| Visual inspection | Pass for boundary scope | `/tmp/chromatics-repeat-width-visual.log`: unchanged baseline. Inspected `chromatics-long-volta-part-{960,1400}.png` and rendered `/tmp/chromatics-repeat-width-{part,score}-review-1.png`. Full-score first-onset x differs between parts with asymmetric repeat marks; separate audit remains, not blanket engraving approval. |
+| Broad / documentation gates | Pass | `/tmp/chromatics-repeat-width-full.log` and `.json`: 66 files / 1,033 tests pass, one file / five tests skipped, 201.80s. Product/tests frozen, no concurrent build/Electron. `-roadmap.log`, `-queue.log` and diff check pass. No version/commit/release/original-worktree/iOS edits. |
+| Remaining | Open | Cross-part note alignment, manual volta offsets/segment geometry, native select keyboard, external exchange/PDF shutdown/GUI/listening/native-menu/IME QA. |
+
+## 2026-10-23 Shared Repeat Projection In Full Score
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Regression red | Reproduced | `/tmp/chromatics-repeat-projection-red.log`: four screen/print cases, source above/below, fail on 20px same-onset delta. `-production-red.log` intentionally used the preceding build: actual 960px glyph left positions 489.60 vs 469.60. |
+| Implementation | Existing policy reused | Full-score render targets reuse `scoreRepeatSource` / `projectRepeatMarksToStaff`; canonical repeat/volta source matches playback and part extraction. Native content is not rewritten. Unaligned staff-count negative controls retain local marks. Lower-part source also supplies the primary volta renderer. General shared-rhythm formatting is outside this slice. |
+| Focused / types / build | Pass | `/tmp/chromatics-repeat-projection-focused.log`: four files / 166 tests. `-types.log`, `-build.log` pass. Initial spy contexts needed a StaveNote type predicate; fixed before final gates. |
+| Production / visual | Pass for scope | `-production.log`: actual 960/1400 full/part views and full-score PDF have zero same-onset x delta; boundary clearance, existing slur/manual geometry, native equality/reopen remain passing. `-visual.log` passes unchanged baseline. Inspected long-volta 960/1400 full-score captures and `/tmp/chromatics-repeat-projection-score-review-1.png`. |
+| Broad / docs | Pass | `/tmp/chromatics-repeat-projection-full.log` and `.json`: 66 files / 1,037 tests pass, one file / five tests skipped, 196.96s. No product/test edits or build/Electron during the run. `-roadmap.log`, `-queue.log` and final diff check pass. |
+| Remaining | Open | General mixed-rhythm staff alignment, manual volta geometry, native select keyboard and external exchange/PDF shutdown/GUI/listening/native-menu/IME. No commit/push/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Shared Rhythm Formatting
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-shared-rhythm-red.log`: four mixed-quarter/eighth screen/print cases fail. `-production-red.log` on the preceding build: 960px maximum same-onset delta 22.97px, with different clefs. |
+| Implementation | VexFlow shared formatting | Notes are prepared before drawing, with modifier contexts joined per staff and tick contexts shared per compatible measure-duration/voice-time group. Common note-start respects leading symbols; single-staff groups retain their formatter/tuplet correction. Shared groups do not reapply independent tuplet interpolation. Native score is not rewritten. |
+| Focused / types | Pass | `-green.log`, `-triplet.log`, `-focused.log`: final four files / 146 tests; eight new screen/print rhythm cases include dense upper/lower, triplets, same-staff second voice and score equality. `-types.log`, `-build.log` pass. |
+| Production | Pass | `env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-part-span-geometry.cjs --audit-shared-rhythm` (`-production.log`) checks every quarter onset at 960/1400 and PDF, dense part above/below, barline containment, native equality/reopen and saved manual slur geometry. All tested deltas zero. `--audit-system-spacing` (`-spans.log`) passes existing part/segment/manual/automatic slur and repeat fixtures. |
+| Visual | Pass, reviewed | `-visual.log`: unchanged baseline. Inspected `/tmp/chromatics-shared-rhythm-{0,1}-review-1.png` and `chromatics-shared-rhythm-1-{960,1400}.png`. Production triplet/polyvoice fixture not yet run; those combinations have renderer coverage only. |
+| Broad / docs | Pass | `/tmp/chromatics-shared-rhythm-full.log` and `.json`: 66 files / 1,045 tests pass, one file / five tests skipped, 200.08s. No product/test edits or build/Electron during full run. `-roadmap.log`, `-queue.log` and final diff check pass. |
+| Remaining | Open | Lower-staff density contribution to system widths, arbitrary imported gaps/polymeter and broader real-score comparison. Manual volta geometry, native select keyboard and external/native-menu/IME QA remain open. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Parallel Staff Width And Print Budgets
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-staff-density-unit-red.log`: two compact/regular layout failures. `-production-red.log`: real-font `Rhythm head crosses barline: rhythm-0-0-2`. `-print-red.log`: auto and explicit page plans differ with dense part order. |
+| Implementation | Existing layout reused | System minimum widths and extra-space weights take the maximum of displayed parallel staves using local preceding signatures. Renderer supplies displayed staves; print planner supplies all score staves. No score/native mutation or new command path. |
+| Focused / types | Pass | `-unit.log`: 36 system layout tests; `-focused.log`: three files / 146 tests. Print-layout tests pass 8/8 after planner fix. Final typecheck and `-build.log` pass. |
+| Production | Pass | `--audit-staff-density` (`-production.log`) checks dense upper/lower sixteenths at 960/1400 and PDF, every head inside its bar, adjacent gaps at least 2px, equal quarter-onset columns, part-order-independent widths and native equality/reopen. `--audit-system-spacing` (`-spans.log`) passes existing complete span checks before the final print-planner fix. An intermediate density verifier failure was an incorrect primary-rect selector, fixed without weakening geometry assertions. |
+| Visual | Pass, reviewed | `-visual.log`: baseline unchanged. Inspected 960/1400 captures and both fresh PDF pages (`/tmp/chromatics-staff-density-current-{1,2}.png`). Manual slur geometry remains preserved; it is not evidence for automatic slur shape approval. |
+| Broad / docs | Pass | `/tmp/chromatics-staff-density-full.log` and `.json`: 66 files / 1,049 tests pass, one file / five tests skipped, 196.12s. No concurrent build/Electron or product/test edits. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Production triplet/polyvoice, arbitrary imported gaps/polymeter, extreme single-bar density and different-header combinations require broader QA. Manual volta geometry, native select keyboard, external/native-menu/IME QA remain open. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Polyphonic Triplet Runtime Coverage
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Initial observation | Fixture error, not product red | `/tmp/chromatics-polyphonic-triplets-red.log`: 13.8px head difference on simultaneous voices. Capture and installed VexFlow `StaveNote.format` show collision displacement: fixture IDs did not select lower-voice policy and pitches crossed. Corrected to canonical voice IDs and a lower second-voice pitch. An intermediate assertion also expected numeric rather than actual `up`/`down` metadata; corrected against renderer code. |
+| Scope | Verifier only | `--audit-polyphonic-triplets` reuses actual menu/shared dock/native bridge/PDF paths. First-beat triplet, remaining quarters and same-staff half-note voice, dense part above/below, two systems. No product or native model changes. |
+| Production | Pass | `/tmp/chromatics-polyphonic-triplets-production.log`: every quarter-onset delta zero at 960/1400 and PDF, all heads within bars, at least 2px dense gaps, second-voice onset within 1px, tuplets and opposite stem policies present; native save/reopen and PDF score equality. |
+| Visual review | Pass within scope | Inspected `chromatics-polyphonic-triplets-0-960.png`, `-1-1400.png` and both `/tmp/chromatics-polyphonic-triplets-{0,1}-review-1.png` PDFs. Manual slur/beam overlap is intentionally preserved and is not automatic-clearance approval. |
+| Focused / types | Pass | `-focused.log`: eight existing mixed-rhythm renderer cases; `npm run typecheck` and `node --check scripts/verify-part-span-geometry.cjs` pass. No new global suite or snapshot baseline run; immediately preceding product checkpoint remains 1,049 tests and unchanged-baseline visual PASS. |
+| Regression / docs | Pass | Existing `--audit-staff-density` rerun passes (`/tmp/chromatics-polyphonic-triplets-density-regression.log`); roadmap/queue verifiers (`-roadmap.log`, `-queue.log`) and whitespace check pass. |
+| Remaining | Open | Automatic slur in this combined fixture, deliberate crossed voices, arbitrary gaps/polymeter, extreme density and broad real-score/external/native-menu/IME QA. No commit/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Polyphonic Slur Direction And Double Clearance
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Direction red | Reproduced | `/tmp/chromatics-polyphonic-slurs-unit-red.log`: four screen/print, primary/passive cases fail. `-production-red.log`: upper voice incorrectly renders `lower-slur` at 960px. |
+| Endpoint red | Reproduced | `-endpoint-red.log`: after direction fix, first tuplet endpoint is 33.66px above number ink. Captured PDF showed excessive first-system separation. Stem and attachment clearances were added twice. |
+| Implementation | Existing layout state reused | Cursor points retain existing voice lane; matching non-neutral endpoints choose outward direction before annotation fallback. Manual geometry remains authoritative. Endpoint Y unions notehead-relative attachment and stem-edge clearance. No score/model/command changes. Reference: [MuseScore 4.7 behavior](https://github.com/musescore/MuseScore/blob/v4.7.0/src/engraving/rendering/score/slurtielayout.cpp#L2420-L2439), not copied code. |
+| Focused / types | Pass | `-unit.log`: four new cases also assert manual reversal/height, score equality and staccato/stem margin union on both sides. `-focused.log`: three files / 126 tests. Final typecheck and `-build.log` pass. |
+| Production | Pass | `--audit-polyphonic-slurs` (`-production.log`): dense part above/below, 960/1400/PDF, four continuation segments, >=4px actual head/stem/beam/tuplet clearance, >=12px neighboring-staff ink clearance, endpoint over-clearance cap, zero quarter-onset delta and native equality/reopen. Complete existing `--audit-system-spacing` rerun (`-spans.log`) passes after endpoint change. |
+| Visual | Pass, reviewed | `-visual.log` passes unchanged baseline. Inspected final `chromatics-polyphonic-slurs-{0-960,1-1400}.png` and `/tmp/chromatics-polyphonic-slurs-{0,1}-current-1.png` PDF renders. |
+| Broad / docs | Pass | `/tmp/chromatics-polyphonic-slurs-full.log` and `.json`: 66 files / 1,053 tests pass, one file / five tests skipped, 196.09s. No concurrent build/Electron or product/test edits. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Lower annotation competition, mid-span voice-count changes, cross-voice connections and broader real-score QA. Manual volta geometry and external/native-menu/IME QA remain open. No commit/release/version/iOS/original-worktree changes. |
+
+## 2026-10-23 Automatic Slurs And Lower Text Rows
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-polyphonic-annotations-red.log`: lower slur crosses `dolce` ink at 960px (text y 198.16..208.05, sampled curve y 206.85..208.76). `-unit-red.log`: four primary/passive screen/print cases fail lyric clearance. |
+| Manual control | Fail, then pass | `-manual-red.log`: automatic row offset also moved a manual hairpin by about 39.81px. Manual segment geometry now uses an unshifted annotation baseline; four renderer cases compare local geometry with automatic/manual slurs. |
+| Implementation | Existing pass and lanes | Measured lower text envelopes reserve a shared staff/system offset on the next bounded pass. Existing lane outputs, lyrics/editor anchors and vertical spacing consume it; native data is untouched. Automatic hairpins follow shifted lanes; explicit geometry does not. |
+| Focused / types | Pass | `-focused.log`: three files / 128 tests. Includes row-internal gap preservation, upper lanes unchanged, staff/system expansion, inline editor alignment without commit and score equality. Final typecheck and `-build.log` pass. |
+| Production | Pass | `--audit-polyphonic-annotations` (`-production.log`) covers dense part above/below, 960/1400/PDF, lyric/dynamic/expression actual ink, >=4px slur separation, >=12px neighboring staff/system gap, SVG containment, zero beat delta and native save/reopen equality. `--audit-system-spacing` (`-spans.log`) passes all existing part/segment/manual/span cases. |
+| Review | Inspected | `chromatics-polyphonic-annotations-{0-960,1-1400}.png` and `/tmp/chromatics-polyphonic-annotations-{0,1}-review-1.png` PDF pages: text is below the lower slur and separated from subsequent staves/systems. |
+| Broad / visual | Pass | `-visual.log`: unchanged-baseline production snapshots pass. `-full.log` and `.json`: 66 files / 1,055 tests pass, one file / five tests skipped, 195.31s. No concurrent product/test edits or build/Electron during full suite. |
+| Remaining | Open | Combined automatic hairpins/shifted rows, multiple lyric verses/voices, mixed/crossed-voice spans and general real-score QA. Manual volta geometry and external/native-menu/IME QA remain. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Combined Automatic Hairpin And Lower Text
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Failure refinement | Reproduced after correction | `/tmp/chromatics-polyphonic-hairpins-production.log` initially used a conservative whole bounding box. `-ink-red.log` replaces that with actual line interpolation and half stroke: expression top 310.519, lower line max 305.918 plus 0.9px stroke leaves 3.70px, below 4px. This is insufficient clearance, not literal overlapping ink. |
+| Unit / fix | Fail then pass | `-unit-red.log`: lane budget fails open-end ink clearance. Existing hairpin-to-expression gap increases 20 to 28px, reserving 10px opening, 0.9px half stroke, 13px expression ink and 4px gap. No new model, command, or manual geometry policy. |
+| Focused / build | Pass | `-focused.log`: three files / 129 tests, including manual-hairpin geometry controls. `-types.log`, `-build.log` and script syntax pass. |
+| Production | Pass | `--audit-polyphonic-hairpins`, `-production-green.log`: 960/1400/PDF with dense staff above/below, actual line/text clearance, lower-slur separation, next staff/system and SVG containment, shared rhythm delta zero and native score equality through reopen/output. |
+| Review | Inspected | `chromatics-polyphonic-hairpins-{0-960,1-1400}.png` and `/tmp/chromatics-polyphonic-hairpins-{0,1}-review-1.png`: both part orders separate expression text from the hairpin and following staff/system. |
+| Broad / visual | Pass | `-spans.log`: complete existing part/span/system-spacing checks pass. `-visual.log`: production snapshots pass without baseline edits. `-full.log` and `.json`: 66 files / 1,056 tests pass, one file / five tests skipped, 197.10s, exit 0. Product/tests frozen and no build/Electron during full suite. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Multiple overlapping automatic hairpins: current lane allocator steps 16px and the existing renderer test only checks baseline separation; actual open-end ink/text needs a new fixture before declaring a defect. Multiple verses/voices, mixed-voice slurs and general real-score/external/native-menu/IME QA remain. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Automatic Hairpin Stack Clearance
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-hairpin-stack-red.log`: identical-range crescendos have first bottom 310.346 and second top 306.346, leaving -5.8px including stroke. `-unit-red.log`: renderer spacing and annotation-stack tests both fail. |
+| Fix | Existing layout flow | Lane step changes 16 to 26px. Measured extra row offset enters the existing bounded layout pass and lower annotation lane calculation; expression and vertical extents reserve it. Initial hairpin/dynamic/lyric baselines are not shifted by the stack. Native data is unchanged. |
+| Focused / types | Pass | `-focused.log`: three files / 132 tests, including two and three same-range hairpins, nested opposing wedge, extra-span removal and expression-row reset, score equality and existing manual controls. `-types.log` and `-build.log` pass. |
+| Production | Pass | `--audit-polyphonic-hairpin-stack`, `-production.log`: dense part above/below at 960/1400 and PDF, open-end stroke clearance, line/text ink checks, next staff/system and SVG containment, zero shared-beat delta, native save/reopen equality. Complete `--audit-system-spacing` (`-spans.log`) also passes. |
+| Review | Inspected | `chromatics-hairpin-stack-{0-960,1-1400}.png` and `/tmp/chromatics-hairpin-stack-{0,1}-review-1.png`: separate hairpin rows, expression text and following staves/systems. |
+| Broad / visual | Pass | `-visual.log`: production snapshots pass without baseline edits. `-full.log` and `.json`: 66 files / 1,059 tests pass, one file / five tests skipped, 198.63s, exit 0. No simultaneous product/test edits or build/Electron. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Overlaps with differing baseline/stem/lyric budgets, multiple lyric verses/voices, mixed-voice spans and external/native-menu/IME QA. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Unequal Automatic Hairpin Baselines
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-hairpin-mixed-red.log`: three verses followed by one verse make the short hairpin's baseline 6px above the long continuation; their open-end ink intersects despite lane allocation. The ordered first-bottom/second-top gap is -27.8px, not a literal penetration depth. `-unit-red.log`: forward order fails separation; reversed order fails expression clearance. |
+| Fix | Existing allocator/pass | Occupied lanes store actual staff-relative baseline offsets; subsequent overlapping spans reserve at least 26px below occupied baselines. Each traversed system reserves actual automatic hairpin height against its local annotation lane, including lane zero. Manual geometry and native contents are unchanged. |
+| Focused / types | Pass | `-focused.log`: three files / 134 tests, including reversed order and existing two/three/nested/removal/manual controls. `-types.log` and `-build.log` pass. |
+| Production | Pass | `--audit-hairpin-mixed-baselines` (`-production.log`) and prior `--audit-polyphonic-hairpin-stack` (`-stack.log`) pass 960/1400/PDF for dense staff above/below. Multi-verse glyphs, stroke/text separation, adjacent staff/system, SVG bounds, shared beat alignment and native save/reopen/output equality are checked. |
+| Review | Inspected | `chromatics-hairpin-mixed-{0-960,1-1400}.png`; `/tmp/chromatics-hairpin-mixed-{0,1}-review-1.png`, one PDF page each. Second-system continuation and new hairpin are separated from each other and expression text. |
+| Broad / visual | Pass | `-spans.log`: complete span/system-spacing runner passes. `-visual.log`: production snapshots pass without baseline changes. `-full.log` and `.json`: 66 files / 1,061 tests pass, one file / five tests skipped, 198.07s, exit 0. No concurrent product/test edits or build/Electron. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Interior-only annotation peaks, additional stem-driven baseline variation, crossed/mixed-voice spans and external/native-menu/IME QA. Reversed order has renderer coverage, not a separate production capture. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Interior Hairpin Annotation Peak
+
+| Check | Result | Evidence / scope |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-hairpin-interior-red.log`: middle `mf` ink y786.834..806.326 intersects hairpin line y794.434..794.559 (0.9px half stroke). `-unit-red.log`: screen/print renderer cases fail interior dynamic clearance. |
+| Fix | Existing lane data | Automatic hairpin baseline reads all measures between start/end anchors. Manual resolution still reads endpoint lanes and excludes automatic lower-row displacement. No score/native fields added. |
+| Focused / types | Pass | `-focused.log`: three files / 136 tests, including screen/print manual-anchor invariance under interior lyric-count changes. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-hairpin-interior` (`-production.log`) covers three systems, middle-only three verses, actual dynamic/lyric/expression ink, slur/hairpin and adjacent staff/system gaps at 960/1400/PDF in both part orders. Native save/reopen and output keep score equality. Mixed-baseline regression (`-mixed.log`) passes. |
+| Review | Partial visual acceptance | Screens `chromatics-hairpin-interior-{0-960,1-1400}.png` and all four `/tmp/chromatics-hairpin-interior-{0,1}-review-{1,2}.png` PDF pages inspected. No tested ink collision/clipping, but lower-part middle slur arc is unusually deep and sparse systems have large annotation gaps. These are explicit follow-up findings, not approved professional engraving. |
+| Broad / visual | Pass | `-spans.log`: complete existing span/system-spacing runner passes. `-visual.log`: production snapshots pass without baseline edits. `-full.log` and `.json`: 66 files / 1,063 tests pass, one file / five tests skipped, 208.41s, exit 0. Initial process creation failed before starting the full suite; explicit `/bin/zsh` with `login:false` succeeded after worktree verification. No concurrent product/test edits or build/Electron. Both document verifiers (`-roadmap.log`, `-queue.log`) and diff check pass. |
+| Remaining | Open | Quantify middle cross-system slur curvature and avoid excessive sparse-system spacing; varying stems, mixed/crossed voice spans and external/native-menu/IME QA remain. No commit/version/release/iOS/original-worktree changes. |
+
+## 2026-10-23 Middle Slur Continuation Shape
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-slur-continuation-red.log`: middle upper control depth 80.2927px, endpoints y597.7925 and control y517.4998. `-unit-red.log`: four screen/print and upper/lower-part cases fail. |
+| Implementation | Verified | Both-free automatic continuation ends move outward using nearby actual ink, then reuse the existing quadratic solver. No hard depth clamp, score mutation or attached/manual endpoint change. Manual height/offset controls remain exact. |
+| Focused / types / build | Pass | `-focused.log`: three files / 140 tests. `-types.log`, `-build.log` pass. |
+| Production | Pass | `-production.log`: `--audit-slur-continuation-shape`, flat middle depth within 40px, both part orders at 960/1400/PDF; existing slur/beam/tuplet/annotation and neighboring staff/system clearances, native save/reopen equality retained. `-spans.log`: complete existing system-spacing/span verifier passes. |
+| PDF review | Partial visual acceptance | All four `/tmp/chromatics-slur-continuation-{0,1}-review-{1,2}.png` pages reviewed. Middle curves are visibly shallower; sparse-system hairpin/annotation spacing remains overly generous. This does not approve varied pitch contours or general professional engraving. |
+| Visual regression | Pass | `-visual.log`: unchanged baseline. No baseline edits in this slice. |
+| Broad / documentation | Pass | `/tmp/chromatics-slur-continuation-full.log` and `.json`: 66 files passed / one skipped, 1,067 tests passed / five skipped, 209.88s, exit 0. No product/test edits or build/Electron runs during the suite. Both roadmap/work-queue verifiers pass; final diff check passes. |
+| Limits | Open | System-local automatic hairpin baseline density, varied slur contours, real-score external GUI/PDF, native macOS menus and actual IME remain unverified or incomplete. |
+
+## 2026-10-23 System-local Automatic Hairpin Baselines
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-local-hairpin-unit-red.log`: screen/print both fail (sparse/middle baseline difference zero). `-red.log`: actual Electron baselines all 227.9179px despite only the middle system having three verses. |
+| Implementation | Verified | Automatic annotation/stem budgets, overlapping-span allocation and measured expression reservation resolve per system. Draw uses the system baseline map; manual geometry keeps the previous endpoint/stem policy. Existing handlers/model and native score are unchanged. |
+| Acceptance refinement | Reviewed | Initial production requirement of at least 20px movement was arbitrary: actual slur/lyric ink yielded 19.4224px on the upper-part fixture after the fix. Final check requires closer sparse baselines and consistent baseline distance to each local dynamic within 0.05px, while retaining every ink/neighbor clearance check. Unit fixture retains its 20px check. |
+| Focused / types / build | Pass | `-focused.log`: three files / 140 tests, including manual-anchor invariance. `-types.log`, `-build.log` pass. |
+| Production | Pass | `-production.log`: `--audit-hairpin-local-baselines` at 960/1400/PDF, both dense-part orders, actual glyph/slur/beam/tuplet/neighbor clearances and native equality. `-mixed.log` preserves overlapping unequal baselines. `-spans.log` passes complete existing system-spacing/span verification. |
+| Visual review | Partial approval | `chromatics-local-hairpin-{0-960,1-1400}.png` and all four `/tmp/chromatics-local-hairpin-{0,1}-review-{1,2}.png` PDF pages inspected. Sparse annotation gaps shrink; conservative inter-staff spacing and page composition are not approved as finished engraving. |
+| Visual / documentation | Pass | `/tmp/chromatics-local-hairpin-visual.log`: unchanged notation baseline. `-roadmap.log`, `-queue.log` pass; whitespace check passes. |
+| Full suite | Pass | `/tmp/chromatics-local-hairpin-full.log` and `.json`: 66 files passed / one skipped, 1,067 tests passed / five skipped, 222.38s, exit 0. No product/test edits or build/Electron runs during this suite. |
+| Limits | Open | System-specific staff spacing, varied slur contours, external real-score/MuseScore GUI, native macOS menus and actual IME remain separate. No release, version or baseline change in this slice. |
+
+## 2026-10-23 Measured PDF Target Feedback
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| App red | Reproduced | `/tmp/chromatics-pdf-overflow-red.log`: target explicitly set to one, mocked renderer estimate three, missing notice fails; within-target/invalid controls pass. |
+| Production red qualification | Excluded | Initial `-production-red.log` expected one-page overflow but left the real default target at two. That run is a fixture error, not product red evidence. The final runner explicitly sets the visible enabled target input to one. |
+| Implementation | Verified | App snapshots finite integer renderer page estimate after print paint and before the save bridge. Successful save appends target and estimated pages; cancel/error do not. No geometry/model or page-fit algorithm change. |
+| Focused / types / build | Pass | `-focused.log`: nine PDF App tests, including overrun, within target, invalid estimate, cancel/error, selection restoration and existing fitting paths. `-types.log`, `-build.log` pass. |
+| Production | Pass | `-production.log`: `--audit-pdf-target-overflow`, explicit target one, both dense-part orders produce measured estimate two; notices contained at 960/1400. Existing slur/beam/tuplet/annotation/native contracts pass. `pdfinfo` independently reports two pages for each `chromatics-pdf-overflow-{0,1}.pdf`. |
+| Visual review | Scoped | All four `/tmp/chromatics-pdf-overflow-{0,1}-review-{1,2}.png` pages and 960/1400 notice captures reviewed. Notice wraps legibly; tested ink is retained. Conservative spacing/page composition remains a separate issue. |
+| Broad / final focused | Pass | `/tmp/chromatics-pdf-overflow-full.log` and `.json`: 66 files passed / one skipped, 1,072 tests passed / five skipped, 224.57s, exit 0. Product/tests stayed unchanged during the suite. Afterward only the mock's page attribute was converted to a string (matching dataset behavior and avoiding React's intentional NaN-fixture warning); `-focused-final.log`: nine tests pass. No later product change; full suite not repeated after that test-only conversion. |
+| Limits | Open | Actual PDF count is not parsed by the app. Automatic fitting does not yet iterate on measured renderer ink; this slice reports the overrun rather than claiming it resolves fitting. Notation baseline unchanged; standalone notation visual regression not rerun for this App-only behavior. Native macOS menus, IME and external GUI QA remain unverified. |
+
+## 2026-10-23 Nested Repeat Traversal
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-nested-repeat-red.log`: source traversal `[0,1,2,1,2,3,3]` instead of twelve visits. `-core-red.log`: five failing nested/limit tests, one passing implicit-section control. `-warning-red.log`: missing MusicXML consumer warning. Initial malformed fixture/selector failures are not product red evidence. |
+| Implementation | Verified | Static paired regions expand each inner section on every outer pass. Inner alternate endings, single-measure repeats and implicit sequential sections retain coverage. Limits of 100,000 visits / depth 32 raise an error; App rejects such edits without changing score/history. No schema, version or release change. |
+| Focused / types / build | Pass | `-focused-final.log`: five files / 106 tests. `-app.log`: one App limit rejection test. `-types-final.log`, `-build-final.log` pass. App Undo assertion uses the actual Edit menu; no hidden test control. |
+| Production | Scoped pass | `-production-final.log`: `--audit-nested-repeats` at 960/1400, five source notes, one written tie, four slur segments, twelve playback beats, native save/reopen equality, actual MIDI and PDF export. This checks structure, not every printed glyph. |
+| Independent semantics | Confirmed with difference | [music21 repeat documentation](https://music21.org/music21docs/moduleReference/moduleRepeat.html) documents nested expansion. Actual music21 10.5.1 (`-music21.log`) gives measures `[1,2,3,2,3,4,1,2,3,2,3,4]`. `-midi-compare.log`: Chromatics pitches `[72,74,76,74,76,77,72,74,76,74,76,77]`; MuseScore CLI emits `[72,74,76,74,76,77,74,76,77]`. First MuseScore run crashed with mutex error; retry exited zero. Neither GUI nor listening was tested. |
+| Visual review | Renderer difference | Both desktop captures and the one-page PDF reviewed. `pdftoppm` renders no beam in `/tmp/chromatics-nested-repeat-review-final-1.png`; the same PDF's `/tmp/chromatics-nested-repeat-cairo.png` from `pdftocairo` displays the beam correctly. Its vector SVG contains the filled beam path. Initial apparent missing-content diagnosis is withdrawn: PDF consumer/rasterizer difference remains to investigate, with no speculative product fix. |
+| Broad regression | Reproduced and fixed | `-full.log`: 1,079 pass / one failure / five skips. Existing measure-insertion test expected 28 beats but received 20: the traversal forgot the completed pass across an inserted unmarked measure before ending 2. `-gap-red.log` reproduces at core level; completed-pass retention restores the unchanged existing expectation. Focused 106 tests and final build/production rerun pass. |
+| Final broad / docs | Pass | `-full-final.log` and `.json`: 67 files pass / one skipped, 1,081 tests pass / five skipped, 228.26s, exit zero. No concurrent product/test edits or build/Electron. Both document verifiers and final diff check pass. |
+| Limits | Open | MuseScore nested-repeat compatibility, PDF renderer discrepancy, real-score manual engraving, native macOS menus and actual IME remain unresolved/unverified. No baseline changes; standalone notation visual regression not repeated for traversal/App-only product changes. |
+
+## 2026-10-23 Repeat Traversal Work Bound
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-repeat-work-red.log`: three nested 100-count repeats with first-ending marks return normally instead of rejecting excessive traversal work. Most measures are skipped, so the emitted-visit limit does not catch this fixture. The run completed in 22ms; this is evidence of a missing computational bound, not a reproduced UI hang. |
+| Implementation | Verified | A one-million-step budget includes skipped endings and region dispatch, reusing `RepeatExpansionError`. Existing emitted-visit (100,000) and depth (32) limits remain. No partial/truncated playback, new model or renderer behavior. |
+| Focused / types | Pass | `-focused.log`: five files / 107 tests. `-app.log`: both emitted-visit and skipped-work rejection cases pass with unchanged score and disabled Undo. `-types.log` passes. Initial App fixture incorrectly assumed entering 100 bypassed the existing eight-pass UI cap; final fixture uses a real two-to-eight edit on imported nested counts. That fixture error is not product red evidence. |
+| Broad / docs | Pass | `/tmp/chromatics-repeat-work-full.log` and `.json`: 67 files passed / one skipped, 1,083 tests passed / five skipped, 224.78s, exit zero. No simultaneous product/test edits or build/Electron. Both document verifiers and final diff check pass. |
+| PDF follow-up | Qualified evidence | Both `/opt/homebrew/bin/pdftoppm` and `pdftocairo` report Poppler 26.07.0. The previous beam discrepancy is between rendering backends of the same version, not established missing PDF content or a version mismatch. Other PDF viewers remain unchecked. |
+| Limits | Open | No fresh production build/Electron/notation snapshots for this core-only work-budget guard; the prior nested-repeat production pass predates it. Next contract audit is an inner repeat contained in an outer volta: existing nested tests do not establish independent ending ownership. External GUI/listening, native menus and IME remain unverified. |
+
+## 2026-10-23 Outer Volta Repeat Ownership
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-volta-ownership-red.log`: two failures. Outer first ending gave `[0,1,2,3,0,1,2,4]` instead of `[0,1,2,1,2,3,0,4]`; outer second ending omitted its inner replay. |
+| Implementation | Verified | Complete bracket ranges resolve their repeat owner and consult that owner's active/completed pass. An excluded enclosing ending skips a contained inner loop. Incomplete/unowned markings retain existing fallback. No renderer/model changes or weakened expectations. |
+| Focused / types / build | Pass | `-focused.log`: five files / 110 tests including MusicXML/native timeline and source immutability. `-app.log`: both expansion rejection controls pass. `-types.log`, `-build.log` pass. |
+| Production | Pass, bounded | `-production.log`: `--audit-nested-volta` at 960/1400, six written notes, one tie, five slur segments, eight playback beats, native save/reopen equality, actual MIDI/PDF export. `-nested-control.log`: earlier twelve-beat nested fixture still passes. |
+| Visual review | Scoped | Both `chromatics-nested-volta-{960,1400}.png` captures and `/tmp/chromatics-volta-ownership-review-1.png` (Cairo, one page) inspected. Bracket/slur/tie and beam retained. Does not establish general dense-engraving or external PDF viewer acceptance. |
+| External comparison | Difference, not approval | `-musescore.log`: CLI exits zero. `-midi-compare.log`: MuseScore pitches `[72,74,76,74,76,77,74,76,77]`, Chromatics `[72,74,76,74,76,77,72,79]`. music21 10.5.1 (`-music21.log`, `-music21-detail.log`) parses six source notes but returns no notes/measures after expansion. These tools do not independently validate this composite case; no GUI/listening performed. |
+| Broad / docs | Pass | Fresh full suite (`-full.log` / `.json`): 67 files passed / one skipped, 1,086 tests passed / five skipped, 220.84s, exit zero. No concurrent product/test edits or build/Electron. Both document verifiers and final diff check pass. |
+| Limits | Open | Interoperability of complex nested endings, native menus, IME and real-score manual QA remain. Standalone notation snapshots not rerun for core-only product changes; baseline untouched. No commit/release/version/iOS/original-worktree edits. |
+
+## 2026-10-23 System-local Staff Spacing
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-local-staff-red.log`: screen/print interior-lyric gap difference zero. `-production-red.log`: all three actual staff gaps 291.9179px, even on sparse systems. |
+| Implementation | Verified | Per-system measure indices and measured staff ink feed shared vertical-layout calculations. Renderer/print planner use per-system height/top metrics. Labels, braces, hit targets and passive staves use the same offsets. Manual geometry retains conservative whole-score envelopes; no score/native fields added. |
+| Focused / types / build | Pass | `-layout.log`: four files / 172 tests, including screen/print density and new varying-height automatic/explicit pagination coverage. `-types.log`, `-build.log` pass. |
+| Production | Pass | `-production.log`: `--audit-local-staff-spacing` at 960/1400/PDF in both part orders. Dense upper fixture gaps [272.4955,291.9179,272.4955]; dense lower fixture stays 122px between staves while lower annotation/system clearance remains guarded. Existing actual slur/beam/tuplet/text/hairpin/neighbor tests and native save/reopen equality pass. `-spans.log`: complete span/system-spacing runner passes. |
+| Visual / PDF | Scoped approval | Desktop captures `chromatics-local-staff-{0-960,1-1400}.png` and all four `/tmp/chromatics-local-staff-{0,1}-review-{1,2}.png` Cairo PDF pages inspected. Both PDFs remain two pages; general page-composition approval is not implied. |
+| Baseline / containment | Reviewed pass | Initial visual gate differs only in SVG heights: 855->707 at 960, 842->694 at 1400. Both captures inspected. A DOM group-box guard reported 5.94px overflow for m6-e5, but this included empty font-box descent; final guard uses actual canvas glyph ink and shape boundaries, which fit. Only those two baseline height values updated; `-visual-final.log` passes. Existing prior baseline edits are preserved. |
+| Broad | Pass | `/tmp/chromatics-local-staff-full.log` and `.json`: 67 files passed / 1 skipped; 1,089 tests passed / 5 skipped, 225.02s, exit 0. No simultaneous product/test edits or build/Electron. Roadmap/queue verifiers and final diff check pass. |
+| Limits | Open | Manual envelopes remain conservative; real-score page composition, external PDF/MuseScore GUI, native macOS menus and IME remain unverified. No version, commit, release, original-worktree or iOS metadata change. |
+
+## 2026-10-23 Oversized System Empty-page Guard
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-oversized-page-red.log`: first-system y 762 instead of 162, explicit later break y 1272 instead of 672, and 12-staff renderer first y 1194 beyond page height 1100. The automatic later-system control already passed. |
+| Production red | Reproduced with larger fixture | `-production-red.log` actually passes: App target-page fitting masks the 12-staff case. `-production-large-red.log` reproduces the 32-staff case against the pre-fix build: first y 1665, last y 5137. Do not describe the initial production probe as a failure. |
+| Implementation | Scoped | `alignSystemToPage` retains a system already at the page top rather than moving it to another equally insufficient page. Existing below/above ink, staff gaps, explicit break, manual geometry and scale policies are unchanged. |
+| Focused / types / build | Pass | `-focused.log`: four files / 176 tests. `-types.log`, `-build.log`: exit 0. |
+| Production | Pass for empty-page contract | `--audit-oversized-page`, `-production.log`: 960/1400 screen and PDF first y 97 / last y 3569; 32 events/staves remain. Native save/reopen and post-export equality pass. Actual PDF page count 3 equals renderer estimate 3. |
+| Visual | Scoped, remaining defect observed | Both `chromatics-oversized-page-{960,1400}.png` captures and all three `/tmp/chromatics-oversized-page-review-{1,2,3}.png` Cairo pages inspected. First page has notation, but Parts 14 and 28 cross page cuts and clefs are split. This PDF is not approved for professional engraving. |
+| Notation snapshots | Pass | `-visual.log`: current build, existing baseline and real-ink containment pass; no baseline change in this slice. |
+| Broad | Pass | `/tmp/chromatics-oversized-page-full.log` and `.json`: 67 files passed / 1 skipped, 1,093 tests passed / 5 skipped; 219.63s, exit 0. No simultaneous product/test edits or build/Electron. Roadmap/queue verifiers and diff check pass. |
+| Follow-up | Open | Detect oversized printed systems and define fitting or safe rejection before export; no claim that this guard solves multi-page system composition. External MuseScore/real-score PDF, native macOS menus and actual IME remain unverified. No commit/push/release/version or protected-file changes. |
+
+## 2026-10-23 PDF Staff-system Preflight
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-pdf-preflight-red.log`: renderer lacks the overflowing measure metadata and App calls save without rejection. `-production-red.log`: pre-fix build never reports oversized-system rejection. |
+| Implementation | Scoped | Final print render compares each system's actual VexFlow first/last staff lines with PDF page boundaries and reports its starting measure. App rejects before `window.inC.pdf.save`, via existing error/finally handling. No new score model, automatic scaling, manual-geometry rewrite or hidden UI path. This does not yet detect all annotation/header ink outside staff lines. |
+| Focused / types / build | Pass | `-focused.log`: PDF/App and renderer 13 tests, covering no-save, measure identity, selection retention, editable/busy-state restoration and retry; existing normal multipage, cancel/error and target notices retained. `-layout.log`: four files / 176 tests. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-oversized-page`, `-production.log`: 32-staff case at 960/1400, measure 1 / estimate 3 captured from actual print renderer; save bridge not called, editor restored, native equality maintained. Same score's Part 1 retries through real menus and saves successfully. `-spans.log`: complete geometry/system-spacing/native/PDF runner passes. |
+| Visual / PDF | Scoped approval | `chromatics-pdf-preflight-rejection-{960,1400}.png` inspected; message fully visible with coordinate containment checks. `chromatics-oversized-page-part.pdf` has one page; `/tmp/chromatics-pdf-preflight-part-review-1.png` inspected with no clipping. Earlier three-page whole-score PDF is historical defect evidence and is no longer produced by this App export path. |
+| Notation snapshots | Pass | `-visual.log`: unchanged baseline, current production build. |
+| Broad | Pass | `/tmp/chromatics-pdf-preflight-full.log` and `.json`: 67 files passed / 1 skipped, 1,094 tests passed / 5 skipped; 218.04s, exit 0. No concurrent product/test edits or build/Electron. Roadmap/queue verifiers and final diff check pass. |
+| Limits | Open | General annotation/clef/header-only boundary ink, readable full-score fitting and external real-score/MuseScore review remain open. Native macOS menu and actual IME unverified. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 Slur Ink PDF Preflight
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-manual-slur-page-red.log`: nine-staff auto print plan has fitting staff lines and out-of-page manual filled slur ink, but no overflowing measure metadata. `-production-red.log`: pre-fix Electron build does not reject this print-mode case before the save bridge. No pre-fix whole-score PDF was written by this probe. |
+| Implementation | Scoped | Existing `slurInk` bounds are compared with the owning system's page after viewport-origin adjustment. Manual geometry/centerline hit targets and source score remain unchanged; existing App preflight/error/restore path is reused. |
+| Focused / types / build | Pass | `-layout.log`: four files / 177 tests; `-app.log`: ten PDF tests. New renderer regression also covers fitting-curve retry and clearing metadata outside print mode. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-manual-slur-page`, `-production.log`: 960/1400 and native equality. Actual print last-staff y 993, manual slur bottom 1332.6; measure 1 rejection before PDF save, error containment and edit restoration. Affected Part 9 retries successfully and manual height remains 8 staff spaces. `-spans.log`: complete span/geometry/system-spacing/native/PDF verifier passes. |
+| Visual / PDF | Scoped review | `chromatics-manual-slur-page-detail.png` and rejection capture inspected. Affected-part PDF `chromatics-manual-slur-page-part.pdf` is one page; `/tmp/chromatics-manual-slur-page-part-review-1.png` inspected, retaining the extreme low-note/manual-curve geometry without page cuts. This is a stress fixture, not real-score engraving approval. |
+| Notation snapshots | Pass | `-visual.log`: current build, unchanged baseline. |
+| Broad | Pass | `/tmp/chromatics-manual-slur-page-full.log` and `.json`: 67 files passed / 1 skipped, 1,095 tests passed / 5 skipped; 221.38s, exit 0. No concurrent product/test edits or build/Electron. Roadmap/queue verifiers and final diff check pass. |
+| Limits | Open | General annotation/header/tie/hairpin ink and full readable-page fitting are not covered by this slur guard. External MuseScore/real-score QA, native macOS menu and IME remain unverified. No commit/push/release/version/protected-file changes. |
+
+### External Repeat-reference Follow-up
+
+Reviewed the [MuseScore repeat-sign handbook](https://handbook.musescore.org/notation/repeats/repeat-signs)
+and [upstream issue 28511](https://github.com/musescore/MuseScore/issues/28511)
+while the broad gate ran. The handbook documents simple repeat counts and volta
+entry points, not an independent traversal contract for our nested-ending
+fixture. The issue mixes nested repeats and D.C./D.S. behavior; its closure and
+discussion are not proof that our composite traversal is correct. Prior CLI/MIDI
+differences remain unresolved; no new GUI/listening or MusicXML exchange pass is
+claimed from this reference read. Next interoperability work must distinguish
+simple repeats, nested loops and jump behavior instead of changing expectations
+to match one consumer's output.
+
+## 2026-10-23 Independent MuseScore MIDI Comparison
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Scope | Verification-only | `musescore-playback.test.ts` writes Chromatics XML/MIDI, invokes MuseScore, then uses Mido 1.3.3 via `inspect_midi_notes.py` to compare independent note-on order/timing and tied sustain. No product model/traversal changes, no expected-failure assertions. Default tests skip absent explicit `RUN_MUSESCORE_PLAYBACK_QA=1`; this is not an external pass. |
+| Simple repeat/volta | Scoped pass on normal-exit run | `/tmp/chromatics-midi-contract-simple-retry.log`: one pass. `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-midi-reference-sKZD1M/comparison.json`: both `[72,74,72,76]` at `[0,4,8,12]`; tied C durations 4 vs 3.9979167 beats. Later runner edits add version recording and check every tied C occurrence. |
+| Nested repeat | Strict semantic failure | `-nested-retry2.log`: CLI exit 0; Chromatics 12 notes vs MuseScore 9. Artifacts `chromatics-midi-reference-2N7YPy`. Earlier attempts in `-nested.log` / `-nested-retry.log` aborted before comparison. |
+| Nested volta | Strict semantic failure | `-nested.log`: this case exits 0; Chromatics `[72,74,76,74,76,77,72,79]`, MuseScore `[72,74,76,74,76,77,74,76,77]`. Artifacts `chromatics-midi-reference-Yhdq4O`. Existing unresolved external difference is now reproducible in a persistent test. |
+| Tool reliability | Failure / not stable | Installed CLI reports MuseScore4 4.7.5. `-simple.log`, `-simple-final.log` and some nested attempts show `SIGABRT`, mutex-lock error. Last simple run did not reach comparison. Native-arm64 direct probe also aborted; Qt bundle only has Cocoa, and `-offscreen.log` fails due missing plugin. No live process restarted on observation timeout; retries followed terminal exits. |
+| Inspector | Pass | `-inspector.log`: five Python unittest cases covering PPQN conversion, velocity-zero note-off, track/channel/overlapping-unison clocks, unmatched/unclosed notes and async rejection. Generated Python bytecode removed; subsequent invocations use `-B`. |
+| Internal / types | Pass | `-focused.log`: five files pass / one skipped, 80 tests pass / three external cases skipped. `-types.log` pass. Product unchanged; no fresh full Vitest, build/Electron, PDF or GUI/listening run for this audit. |
+| Documentation | Updated | `docs/testing/musescore-playback-qa.md` has opt-in commands, dependency/version policy, artifact locations and explicit failure scope; roadmap/work queue retain partial status. |
+| Limits | Open | Nested repeat interpretation, GUI/listening, real-score exchange, full engraving preflight and native macOS/IME QA remain open. CLI crashes and semantic differences are not interchangeable. No commit/push/release/version or protected-file changes. |
+
+## 2026-10-23 Hairpin Ink PDF Preflight
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-hairpin-page-red.log`: crescendo/diminuendo ink exceeds the page while staff lines fit, but overflow metadata is absent. `-electron-red.log`: pre-fix production does not reject before the PDF bridge. No invalid full-score PDF was saved by the probe. |
+| Implementation | Scoped | Renderer collects hairpin line endpoints plus computed stroke half-width, before selection binding, and reuses system/page/viewport-aware preflight. Transparent selection targets are excluded. No automatic scaling, manual geometry rewrite or score model change. |
+| Focused / types / build | Pass | `-focused.log`: four files / 179 tests. Includes stroke-only boundary, fitting above-staff retry, score equality and print-mode exit. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-manual-hairpin-page`, `-electron.log`: 960/1400, first staff y 97 / last y 993, print hairpin bottom 1217.9; measure 1 rejection before save and error containment. Native save/reopen equality and editing restoration pass. Affected Part 9 retry retains manual height 8 and saves successfully. Existing part/segment setup checks in the runner also execute. |
+| Visual / PDF | Scoped review | `chromatics-manual-hairpin-page-detail.png` and rejection-960/1400 captures inspected. `chromatics-manual-hairpin-page-part.pdf` has one A4 page; `/tmp/chromatics-hairpin-page-pdf-review.png` inspected with the complete oversized manual wedge visible. This fixture verifies preservation/containment, not professional-looking automatic placement or real-score approval. |
+| Notation snapshots | Pass | `-visual.log`: current production build and unchanged baseline. |
+| Broad | Pass | `/tmp/chromatics-hairpin-page-full.log`: 67 files passed / 2 skipped, 1,097 tests passed / 8 skipped, 221.47s, exit 0. Product/test sources remained fixed with no concurrent build/Electron. External opt-in skips are not interoperability passes. Roadmap/queue verifiers and diff check pass. |
+| Limits | Open | Tie, text, clef/header-only ink and general readable-page fitting remain partial. External MuseScore nested traversal mismatch/CLI instability are unchanged; no fresh GUI/listening, native macOS menu or IME pass. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 Lower Text Ink and Page Spacing
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| State | Confirmed | Goal lookup returned no goal, rather than the historical blocked state; a new goal was created from the explicit resume request and returned active. Correct permanent branch, dirty changes and alpha.34 retained; initial diff check passed. No test/Electron/MuseScore processes were running. |
+| Red | Reproduced | `/tmp/chromatics-text-page-red.log`: nine-staff expression ink exceeds the page while staff lines fit and overflow metadata is absent. `-electron-red.log`: actual pre-fix build fails to reject before PDF save. No invalid full-score PDF was written. |
+| Implementation | Scoped | Existing canvas/font/anchor text measurement is shared between slur clearance and lower-text envelopes. Lyrics, dynamics and expression ink feed staff/system spacing and the page guard; transparent targets excluded. Existing App rejection/retry and source score are unchanged. Tie/clef/header measurement is not included. |
+| Focused / types / build | Pass | `-focused.log`: four files / 183 tests. Three lower-text kinds, fitting-part retry, print exit and source equality covered. Enlarged 80px descent test verifies automatic later-system movement; it is a synthetic metric regression, not actual-font evidence. Initial additional fixture errors (missing pitch and lyric type narrowing) were fixed before the passing types/cases runs. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-lower-text-page`, `-electron.log`: 960/1400, last staff y 993 and actual expression ink bottom 1187.818359375; measure 1 rejected before IPC, error contained, editing restored, native save/reopen unchanged. Affected Part 9 retries successfully with all four expressions. |
+| Visual / PDF | Scoped review | Both `chromatics-lower-text-page-rejection-{960,1400}.png` captures inspected. `chromatics-lower-text-page-part.pdf` is one A4 page; `/tmp/chromatics-text-page-pdf-review.png` inspected, complete texts without clipping. Their existing per-object descending lanes are retained; this stress fixture is not real-score typography approval. |
+| Notation snapshots | Pass | `-visual.log`: current build and unchanged baseline. |
+| Broad | Pass | `/tmp/chromatics-text-page-full.log`: 67 files passed / 2 skipped, 1,101 tests passed / 8 skipped, 230.00s, exit 0. No concurrent product/test edits or build/Electron. Roadmap/work-queue verifiers and final diff check pass. External opt-in skips are not interoperability passes. |
+| Limits | Open | Ties, clefs, upper/header text and general readable fitting remain pending. External nested-repeat differences and CLI instability remain unresolved; no fresh MuseScore GUI/listening, actual IME or native macOS menu pass. No commit/push/release/version or protected-file changes. |
+
+## 2026-10-23 Tie Contour Page Preflight
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-tie-page-red.log`: explicit low-tie metric fixture has staff lines inside and tie ink outside but lacks overflow metadata. `-electron-red.log`: actual pre-fix VexFlow SVG build does not reject before PDF bridge. No invalid whole-score PDF was written. |
+| Implementation | Scoped | `drawTie` returns the VexFlow tie; filled path `getBBox` is read without a custom curve formula. Bounds feed existing staff/system layout and page preflight. Cross-system/discontinuous pieces use the corresponding endpoint's system/staff. Tie model, manual slurs and playback are not rewritten. |
+| Focused / types / build | Pass | `-focused.log`: four files / 185 tests. Low tie rejection, fitting-part retry, print exit, source equality and cross-system/second-ending ownership covered. jsdom's unrelated fixed rectangle is no longer treated as tie ink: unrelated tests report no path metrics; the low-tie test supplies known fixture bounds. Actual geometry approval comes from Electron, not these mocks. `-types.log`, `-build.log` pass; final visual command also rebuilds. |
+| Production | Pass | `--audit-tie-page`, `-electron.log`: 960/1400, last staff y 993, actual tie bottom 1109, measure 1 rejection before IPC, contained error and restored editor. Native save/reopen unchanged; Part 9 retry retains one tie and exports. |
+| Repeat regression | Scoped pass | `--audit-nested-volta`, `-volta.log`: six written events, one written tie, five slur segments, eight playback beats and native equality. This is the existing Chromatics contract, not resolution of the external MuseScore traversal mismatch. |
+| Visual / PDF | Scoped review | Both `chromatics-tie-page-rejection-{960,1400}.png` captures inspected. `chromatics-tie-page-part.pdf` is one A4 page; `/tmp/chromatics-tie-page-pdf-review.png` inspected with complete low-note tie, no page cut. Stress fixture only, not general real-score engraving approval. |
+| Notation snapshots | Pass | `-visual.log`: current build and unchanged baseline. |
+| Broad | Pass | `/tmp/chromatics-tie-page-full.log`: 67 files passed / 2 skipped, 1,103 tests passed / 8 skipped, 229.48s, exit 0. No concurrent product/test edits or build/Electron. Roadmap/work-queue verifiers and final diff check pass. External opt-in skips are not interoperability passes. |
+| Limits | Open | Clef/header/upper-text ink, untied-note edge cases and general fitting remain pending. No fresh MuseScore GUI/listening, native menu or IME evidence; external nested-repeat mismatch/CLI instability unchanged. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 Leading Symbol Ink Page Preflight
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-leading-ink-red.log`: corrected controlled-descent clef fixture exceeds the page without overflow metadata. Initial smaller descent did not cross and was a fixture failure, not product evidence. `-electron-red.log`: pre-fix build does not reject the nine-staff fixture before PDF save. No invalid whole-score PDF was written. |
+| Implementation | Scoped | Read the actual SVG text of VexFlow clef/key/time modifiers and reuse canvas/font/anchor ink measurement for system envelopes and PDF preflight. No score/manual geometry mutation, new glyph formula or transparent hit bounds. Internal staff lanes remain unchanged. Inline clefs and header/upper text are not covered. |
+| Focused / types / build | Pass | `-focused.log`: four files / 188 tests. Three modifier kinds, fitting-part retry, print exit and source equality. The key/time tests use deliberately enlarged descent metrics, not actual-font defects. `-types.log`, `-build.log` pass. |
+| Production | Pass | `--audit-leading-ink-page`, `-electron.log`: 960/1400, actual staff bottom 1051.5, A4 printable bottom 1063, clef ink bottom 1067.4400062561035. Rejects measure 1 before IPC, restores editing and preserves native save/reopen. Affected Part 9 retry retains the clef. |
+| Probe corrections | Recorded | Initial production post-fix assertion incorrectly compared ink with selection y + 80. The final probe compares actual stave bounds and the A4 printable page height. Retry clef queries are scoped to the score preview, excluding palette thumbnails. Neither correction weakens the requirement that staff lines fit and clef ink crosses. |
+| Visual / PDF | Scoped review | Both `chromatics-leading-ink-page-rejection-{960,1400}.png` captures inspected. `chromatics-leading-ink-page-part.pdf` is one A4 page; `/tmp/chromatics-leading-ink-pdf-review.png` inspected with complete clef. Stress fixture, not real-score typography approval. |
+| Notation snapshots | Pass | `-visual.log`: current production build, unchanged baseline. |
+| Broad | Pass | `/tmp/chromatics-leading-ink-full.log`: 67 files passed / 2 skipped, 1,106 tests passed / 8 skipped, 247.72s, exit 0. Product/test sources fixed with no concurrent build/Electron. Roadmap/work-queue verifiers and diff check pass. External opt-in skips are not compatibility passes. |
+| Limits | Open | Inline clefs, header/upper text and general fitting remain pending. No fresh external MuseScore, GUI/listening, native menu or IME pass. Nested-repeat mismatch/CLI instability unchanged. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 MuseScore Original / Round-trip Playback Isolation
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Scope | Verification-only | `musescore-playback.test.ts` preserves the original fixture, converts source and round-trip separately, saves version/stage process diagnostics before assertions and requires source-vs-round-trip note equality as well as the existing independent expectations. No product/model/traversal change or expected-failure conversion. |
+| Simple endings | External runtime failure | `/tmp/chromatics-musescore-source-simple.log`: MuseScore 4.7.5 original exit 0, round-trip SIGABRT. Directory `chromatics-midi-reference-u4BTHG` under system temp retains inputs and process JSON. Comparison not reached; not a new compatibility pass. |
+| Nested cases | External runtime failures | `-nested.log`: plain nested repeat source SIGABRT (`chromatics-midi-reference-LZ8oNu`); nested volta source exit 0 then round-trip SIGABRT (`chromatics-midi-reference-EYQ8oT`). Terminal exits confirmed before further runs; no live job restarted and no generated output accepted from aborted processes. Existing normal-exit mismatches remain unresolved. |
+| Internal / types | Pass | `-focused.log`: three files passed / one skipped, 46 tests passed / three external cases skipped. `-types.log` passes. Opt-in skips are not compatibility evidence. |
+| Scope limits | Open | Three-way consumer note comparison did not execute successfully in these runs. Full 1,106-pass suite and production/visual gates above precede this verification-only test expansion; they are not fresh external approval. No new GUI/listening, real-score, native menu or IME verification. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 Horizontal Page Ink and Upper Text Spacing
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| State | Confirmed | Active goal, permanent worktree/branch and existing dirty changes preserved; initial diff check passed. No test/Electron/MuseScore process was running. User subsequently requested finishing this slice and pausing; no further independent slice will start. |
+| Red | Reproduced | `/tmp/chromatics-horizontal-page-red.log`: missing horizontal guard for staff/system text. Initial expression fixture omitted its required tick and was corrected with an assertion that the text actually renders. `-app-red.log`: width error incorrectly reports height. `-electron-red.log`: actual pre-fix long staff text does not reject before save. No invalid PDF was written. |
+| Implementation | Scoped | Existing measured ink is tested horizontally against the final SVG viewport, including manual viewport offsets. `data-print-overflow-axis` distinguishes width/height and clears on valid retry/print exit. Existing App save guard displays width-specific guidance. Staff/system glyph ink also feeds automatic system/staff spacing; source content and manual geometry are not modified. |
+| Focused / types / build | Pass | `-focused.log`: four files / 192 tests. `-app.log`: 11 PDF tests, including height/width rejection before IPC, restored selection, enabled retry and existing cancellation paths. `-types.log`, `-build.log` pass. Large-ascent automatic-fitting test uses synthetic metrics; an initial missing event ID in that new fixture was corrected. |
+| Production | Pass | `--audit-horizontal-text-page`, `-electron.log`: 960/1400; actual text right 3221.912109375 exceeds print width 750. Rejects before bridge, message contained, native save/reopen unchanged. Actual Add > staff text property selection edits the existing object to `dolce`; saved score differs only by that text and retry PDF exports. Initial scripted blur did not dispatch React focusout; corrected before final pass. |
+| Visual / PDF | Reviewed | Both horizontal rejection captures inspected. `chromatics-horizontal-text-page-retry.pdf` is one A4 page; `/tmp/chromatics-horizontal-page-pdf-review.png` inspected with complete `dolce` text. The long imported-text fixture is not a general typography approval or automatic wrapping implementation. |
+| Snapshot review | Fail, reviewed update, Pass | Initial `-visual.log` fails on metrics. Both 960/1400 captures and diff inspected: measured upper ascent shifts content by 10.826px, with the same relative shapes; SVG heights increase by that amount. Two dynamic bbox widths differ by 0.1px at the fractional baseline. Only the reviewed generated baseline is updated, preserving earlier unrelated work. `-baseline.log` and `-visual-final.log` pass. |
+| Broad | Pass | `/tmp/chromatics-horizontal-page-full.log`: 67 files passed / 2 skipped, 1,111 tests passed / 8 skipped, 251.02s, exit 0. No concurrent product/test edits or build/Electron. Roadmap/work-queue verifiers and final diff check pass. External skips are not interoperability approval. |
+| Limits | Open | Inline clefs, harmony/rehearsal/tempo/header and other unmeasured glyph families still require audit. External nested-repeat differences/CLI aborts, real-score GUI/listening/PDF, native macOS menus and IME are not approved. No commit/push/release/version/protected-file changes. |
+
+## 2026-10-23 Rehearsal Frame Ink and Reserved Page-start Space
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| State | Confirmed | Goal query returned no current goal, so an active goal was created without replacing a paused goal. Permanent worktree/branch and existing dirty changes retained. No test/Electron/MuseScore process was running initially. Other ongoing work is preserved; no commit/push/version/protected-file operation performed here. |
+| Ink red | Reproduced | `/tmp/chromatics-rehearsal-page-red.log`: missing glyph/stroke boundary rejection. The initial stroke fixture used 63 characters, which did not cross the unit print width 760; corrected to 64 before recording red. Actual-font `-electron-red.log` fails before a PDF is written: 63 narrow letters put the frame stroke beyond production width 750. Synthetic glyph metrics are not real-font glyph-failure evidence. |
+| Ink implementation | Scoped | Existing text measurement is unioned with the painted rehearsal rectangle and half its stroke; transparent hit targets excluded. Existing page/spacing guard and Add/property editor reused. No score/model or text truncation change. |
+| Spacing red / correction | Reproduced, Pass | `/tmp/chromatics-rehearsal-spacing-red.log`: two first/explicit-page cases add 62.75 twice; automatic page case starts at 676 instead of 592. Page starts now take the larger reserved/required inset, not their sum. Measured between-system gaps remain. PDF review caught the need to retain the base title/header margin; an integrated regression preserves it. Oversized-first-system test retains no-empty-page and score-preservation assertions with the corrected y/height. |
+| Focused / types | Pass | `-spacing-focused-final.log`: four files / 199 tests; `-spacing-types-final.log` passes. Includes glyph/stroke retry and print-exit reset, header margin, implicit/explicit page starts and unchanged score. |
+| Production | Pass | `/tmp/chromatics-rehearsal-page-production-final.log`: 960/1400, frame right 750.75 vs page 750 while text right 627.462 fits. Save blocked before IPC; native unchanged. Actual Add > rehearsal input edits the same marker to A, with only that text changing, then a one-page retry PDF exports. `/tmp/chromatics-rehearsal-spacing-{slur,leading}.log` separately rechecks manual-slur and leading-clef height rejection and fitting Part 9 retry. |
+| Visual review | Reviewed update | Initial new measurement expands the snapshot by 28.924px over the previous baseline, exposing duplicate reservation. After correction, reviewed 960/1400 captures shift content up 10.826px from the prior baseline with unchanged relative shapes; fractional dynamic bbox width changes 0.1px. Only those metrics are regenerated. `/tmp/chromatics-rehearsal-spacing-pdf-final.png` shows complete A frame below the title block. Rehearsal placement/style is otherwise unchanged, not a general typography approval. |
+| Broad / final gates | Mixed, recheck pending | `/tmp/chromatics-rehearsal-page-full.log`: 67 files pass / one fails / two skip; 1,123 tests pass / one fails / eight skip, 575.49s. Failure is the existing `properties.volta-end` integrated workflow's 5s timeout. Unmodified isolated rerun (`-volta-recheck.log`) passes in 2.60s test time; this is not a full-suite pass. No product/test edits or build/Electron were run by this task during the suite; another Node workload was observed and not terminated. Final `-visual-final.log`, roadmap/queue verifiers and diff check pass. `-spacing-hairpin.log` also rechecks manual hairpin height rejection/native/Part 9 retry. |
+| Limits | Open | Inline clef, harmony, tempo/header ink still require audit. Fixed header margin is preserved, not actual header-ink measurement. Real-score GUI/listening/PDF, native macOS menus and IME remain unverified. External nested-repeat differences and intermittent CLI aborts remain unresolved. |
+
+## 2026-10-23 Non-resetting MuseScore CLI and Completed Source Comparison
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Safety finding | Corrected | Existing five exports used `-F`. [CLI handbook](https://handbook.musescore.org/en_gb/appendix) warns about preference deletion; [4.7.5 settings source](https://raw.githubusercontent.com/musescore/MuseScore/v4.7.5/src/framework/global/settings.cpp) also has resetting/removal paths. No conversion using `-F` was run by this task. Past impact was not inspected. Installed `--help` exits 0 (`/tmp/chromatics-musescore-safe-help.log`) and does not list config-folder: no unsupported isolation flag is used. |
+| Red / fix | Pass after failure | `-safe-red.log`: three argument tests fail on the previous `-F` list. A shared export argument builder now omits factory/revert flags at all five call sites. `-safe-focused.log`: three pass / eight external skip; `-safe-types.log` passes. XML span exchange now checks exit 0 before parsing/comparing output, not after a success-looking semantic log. Playback process evidence includes exact args. No product traversal/model change. |
+| Simple endings | Pass | `-safe-simple.log`, temp `chromatics-midi-reference-GdqwtQ`: source and round-trip exit 0, consumer notes equal; all three MIDI streams pass `[72,74,72,76]`, starts `[0,4,8,12]`, tied-duration tolerance. Version 4.7.5. |
+| Nested volta | Semantic failure retained | `-safe-nested.log`, temp `chromatics-midi-reference-ccC83G`: source and round-trip exit 0 and produce identical nine-note streams `[72,74,76,74,76,77,74,76,77]`; Chromatics produces its expected eight notes. Strict test fails, not changed to expected-failure or a consumer golden. |
+| Plain nested repeat | Runtime failure then semantic failure | First source SIGABRT (`chromatics-midi-reference-6aICtv`); terminated before rerun. `-safe-nested-repeat-recheck.log`, temp `chromatics-midi-reference-VP4bGO`: both stages exit 0; original/round-trip consumer streams equal with nine notes versus Chromatics' twelve. Comparison JSON retained. |
+| Interpretation / limits | Open | These fixtures differ even with original XML, so the difference is not introduced solely by serialization. Neither consumer is declared the musical authority. Preference isolation is not available/verified; removing resets is not proof of crash resolution. No GUI/listening, real-score, native-menu or IME approval. Full-suite recheck follows; previous broad timeout remains recorded above. |
+
+## 2026-10-23 Full-suite Workflow Timeout Follow-up
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Repeated failure | Confirmed | `/tmp/chromatics-page-consumer-full-recheck.log`: 68 files pass / one fails / two skip; 1,126 tests pass / one fails / eight skip, 583.93s. Same existing `properties.volta-end` workflow reaches its default 5s limit; no other failing assertion. |
+| Narrow test budget | Scoped | That multi-reopen/history/XML export workflow alone gets 15s, matching existing long workflow tests. No assertions, selection/undo/native/XML checks, global timeout, product code or expectations are removed/changed. Isolated 2.60s pass is evidence of load-sensitive timing, not a performance guarantee. |
+| Focused | Pass | `/tmp/chromatics-page-consumer-app-final.log`: 16 tests pass, covering volta end/display and PDF paths. Full-suite final rerun is still pending at this row's creation. |
+| Final broad | Pass | `/tmp/chromatics-page-consumer-full-final.log`: 70 files passed / two skipped, 1,134 tests passed / eight skipped, 565.38s, exit 0. This includes concurrent worktree additions, not 1,134 new tests from this slice. No product/test edits or build/Electron run by this task during the suite. Earlier failures and opt-in external semantic failures remain separate evidence. |
+| Post-suite production | Pass | `-types-current.log` and `-build-final.log` pass. `-horizontal-final.log` and `-rehearsal-final.log` repeat both 960/1400 horizontal guard/property-correction/native/PDF paths on the latest build. `/tmp/chromatics-page-consumer-horizontal-pdf.png` reviewed; complete `dolce` remains below the title. Rehearsal frame still reaches 750.75 vs page 750 while its text fits. |
+| Final snapshots / docs | Pass | `/tmp/chromatics-page-consumer-snapshots-final.log` passes on the post-suite build without another baseline change. `-roadmap-final.log`, `-queue-final.log` and final diff check pass. Goal remains active; these completed validation processes are not reported as still running. No commit/push/merge/release/version/protected-file changes performed by this task. |
+
+## 2026-10-23 Harmony Ink Boundary
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-harmony-page-red.log`: missing width rejection and synthetic tall ink top -117. An initial missing event ID in the test fixture/build was corrected before this red. `-electron-red.log` independently reproduces missing rejection with a long imported label and real fonts; no invalid PDF written. |
+| Implementation | Scoped | `.notation-harmony-mark` joins the existing text measurement loop using its measure identity. Both page guard and automatic staff/system envelopes consume the same bounds. No text truncation, new score model or manual geometry mutation. |
+| Focused / types | Pass | `-focused.log`: four files / 201 tests. `-typecheck.log`, `-build.log` pass. Wide rejection/retry/print-exit reset and tall automatic-fitting tests preserve source JSON. Tall metrics are synthetic, not a real-font vertical failure claim. |
+| Production / PDF | Pass, reviewed | `-electron.log`: 960/1400; x 1083.0390625 exceeds print width 750. Rejection occurs before PDF bridge; native save/reopen unchanged. Actual Add > chord symbol input selects the same object and changes text to C7; semantic root/kind and other content remain intact. One-page A4 `chromatics-harmony-page-retry.pdf` rendered to `/tmp/chromatics-harmony-page-pdf.png` and reviewed, along with rejection captures. |
+| Visual / limits | Pass / open | `-visual.log` passes with no baseline change. Inline clef, tempo/header ink, real-score typography and external nested-repeat/GUI/listening remain open. Goal active; no commit/push/release/version/protected-file changes by this task. |
+| Broad | Pass, scoped | `/tmp/chromatics-harmony-page-full.log`: 70 files passed / two skipped, 1,137 tests passed / eight skipped, 560.14s, exit 0. No product/test edits or build/Electron by this task while it ran. Separate baseline/cache regression processes belonged to other temporary working directories and were not killed. Concurrent brand/staged changes appeared during the run, so this result is not a claim that every subsequently added file was covered. |
+| Post-run type finding | Fail then Pass | `-types-final.log` and `-build-final.log` fail on two unsupported `getByRole` `exact` options in the newly added `ddirori.controls` test. Removed only those options, retaining exact string accessible-name matching and all assertions. `-types-recheck.log` passes; `-app-final.log` passes 15 brand/PDF tests. The full run above precedes this two-option test correction. |
+| Final production / gates | Pass | `-build-recheck.log`, `-electron-final.log`, `-snapshots-final.log` pass on the post-suite build; harmony width edge remains 1083.039 vs 750 and corrected PDF is one A4 page. No baseline update. `-roadmap.log`, `-queue.log`, script syntax and final diff checks pass. All processes started by this task are terminal; other temporary-worktree regression jobs are untouched. Goal query still active, not a claim of a running background test or full V1/RC completion. |
+
+## 2026-10-23 Inline Clef Ink Audit and PDF Gaps
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Audit | Ink fit only | `/tmp/chromatics-inline-clef-page-{electron,diagnostic}.log`, `--audit-inline-clef-page`: nine G/F/C markers retain source event identity and native save/reopen content at 960/1400. Actual glyph bottom max 1003.718 fits page bottom 1086. No clipped-glyph failure reproduced, so no product change is claimed. |
+| PDF review | Gaps found | `chromatics-inline-clef-page.pdf` has two A4 pages. `/tmp/chromatics-inline-clef-page-pdf.png` shows all nine staves on page one, but inline clefs float above the staff; `-pdf-2.png` is blank. SVG/layout height 1125, whole SVG bbox bottom 1121.5 includes selection geometry, not just ink. These are not a normal-output PASS. The script reports `inline-clef-ink-audited` with `pdfReviewRequired`, rather than general PDF acceptance. |
+| Follow-up | Open | Separate print-tail and inline-clef alignment regressions are required. Avoid cropping based on partial measured ink while tempo/header/other families remain unaudited. Existing manual geometry, normal multipage/part/retry paths must remain intact. |
+| Static semantic finding | Needs regression | `createStaveNote` reads `measure.clef` for note/rest positioning without applying `clefBefore`; both primary and passive paths call it. PDF fixture notes also stay at the same line. Next slice should isolate within-measure same-staff effective clef and placement, preserving MIDI pitch and the existing XML next-measure reset contract. No correction or test pass for this is claimed yet. |
+
+## 2026-10-23 Inline Clef Geometry and Staff Timeline
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-inline-clef-render-red.log`: three generic glyph/alignment failures and two primary/passive effective-clef failures (C4 line 0 instead of bass line 6). `-render-electron-red.log` independently shows floating Georgia symbols and C5 staying in treble positions. `-boundary-red.log` fails both restored/continued clef visibility cases; `-spacing-red.log` reserves y 145 instead of equivalent bass y 205. |
+| Implementation | Scoped | Shared `resolveMeasureClefAtTick` considers same-staff voices chronologically; note/rest construction, next-measure visibility and ledger-space calculations reuse it. Actual VexFlow small clefs replace Unicode display characters; the conflicting serif CSS is removed. Event identity maps actual inline text ink into existing page/spacing measurement. No new score model, pitch change or automatic manual-geometry rewrite. |
+| Test correction | Explained | The new polyphonic-rest test initially assumed line 3 after Formatter, which legitimately aligns it to line 4. It now asserts the clef-specific key; adapter tests separately retain centered single-voice rest checks. Production comparison permits 0.51px for VexFlow staff-stroke half-pixel snapping, while renderer clef baseline checks remain exact. No product expectation is changed to match a broken glyph. |
+| Focused / build / visual | Pass | `-render-focused-final.log`: four files / 204 tests; `-app-xml.log`: two files / five App/XML tests. `-render-types-final.log` and `-render-visual.log` pass, including build and unchanged snapshots. Covers before/change/after tick, second voice, other staff, next-measure reset, rest keys and unmodified source JSON. |
+| Production | Pass with explicit fitting action | `-render-electron-final.log`, `--audit-inline-clef-page`: 960/1400, Bravura G/F/C baseline and C5 placement checks. Correctly placed small glyphs add real inner-staff clearance; default nine-staff page is rejected because painted clef bottom 1090.307 exceeds page 1086 despite staff bottom 1074.367 fitting. The prior fitting expectation was replaced by rejection plus an explicit real-control 90% staff-size retry, not relaxed clipping checks. An initial probe retained an earlier `__pdf` value; cleared that harness state before the final run. |
+| PDF / native | Reviewed | Actual File export surface and PDF staff-size control are used, then native save/reopen differs only by normalized page setup. `chromatics-inline-clef-page.pdf` is one A4 page after the explicit 90% setting; `/tmp/chromatics-inline-clef-render-pdf.png` inspected with clefs on staff and distinct correct C5 positions. Source notes, inline declarations and identities preserved. This does not repair arbitrary blank trailing pages. |
+| Broad / docs | Pass, scoped | `/tmp/chromatics-inline-clef-render-full.log`: 71 files passed / two skipped, 1,159 tests passed / eight skipped, 568.05s. This includes concurrent worktree additions, not 1,159 new tests. No product/test edits or build/Electron by this task while it ran; unrelated temporary-worktree tests were not terminated. Both document verifiers and diff check pass. Current 960 capture directly inspected as well as 1400/PDF. |
+| Limits | Open | Dense inline accidental/chord collisions, conflicting same-tick clefs, extreme lower-staff ledgers, external GUI/listening, general tail padding, tempo/header ink and nested-repeat compatibility remain unverified/unresolved. No commit/push/release/version/protected-file changes by this task. |
+
+## 2026-10-23 Tempo Ink and Visibility Preservation
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Renderer red | Reproduced | `/tmp/chromatics-tempo-page-red-final.log`: global/positioned wide text misses the page guard; synthetic tall positioned text reaches top -117. Initial tall fixture lacked an event ID and was corrected before the meaningful final red. |
+| App red | Reproduced | `/tmp/chromatics-tempo-visibility-red.log`: hiding imported `Allegro con brio` replaces it with a generated quarter-note = 120 label. No BPM edit was requested. |
+| Production red | Reproduced | `-electron-red-final.log`, `--audit-tempo-page`: missing rejection with actual fonts. Initial harness used the staff-text selector for a tempo fixture; corrected before this real failure. No invalid PDF file was written. |
+| Implementation | Scoped | Existing text-ink measurement includes tempo. Fixed header tempo contributes page bounds without falsely moving staff geometry; positioned tempo also contributes staff/system envelopes. Print-transparent marks are excluded. Visibility handler spreads the existing tempo object, preserving imported text and BPM; no new model or automatic truncation. |
+| Focused / static | Pass | `-layout.log`: four files / 211 tests. `-app.log`: 18 App/PDF/tempo tests, including undo/redo/native reopen. New reopen assertion initially used MusicXML wording rather than the native-open message and was corrected; product assertions retained. `-types.log`, `-build.log`, script syntax and diff check pass. |
+| Production / PDF | Pass, reviewed | `-electron.log`: 960/1400, actual text right 4720.0137 vs print width 750, preflight before IPC. Real Format menu, tempo disclosure and visibility checkbox hide the mark. Native save/reopen differs only in transparency. `chromatics-tempo-page-retry.pdf` is one A4 page; `/tmp/chromatics-tempo-page-pdf.png`, 960 rejection and 1400 score captures directly inspected. Printed page has no hidden text. |
+| Visual | Pass | `-visual.log` includes build and notation snapshots; no baseline changes. Synthetic tall-text regression is not claimed as an actual-font vertical failure. |
+| Broad | Pass | `/tmp/chromatics-tempo-page-full.log`: 71 files passed / two skipped, 1,163 tests passed / eight skipped, 559.04s, exit 0. Includes the latest inline-clef and tempo changes plus other existing worktree work. No product/test changes or build/Electron by this task during the full run. Required verification processes are terminal; goal remains active. |
+| Remaining | Open | Header/title, rhythm-feel ink, general tail padding, dense real scores, external nested-repeat/GUI/listening, native-menu and IME remain open. No commit/push/release/version/protected-file edits by this task. |
+| Independent read-only audit | Documented, not executed | Reviewed official MusicXML repeat/ending references and MuseScore volta handbook while the full run was active. `docs/testing/musescore-playback-qa.md` records the ending `times` isolation hypothesis and source links. Original fixtures and expected traversal remain unchanged; no new external app run or compatibility PASS is claimed. Header CSS is absolute only in print media, so current screen geometry cannot establish header print clearance. |
+| Final documentation gates | Pass | `/tmp/chromatics-tempo-page-roadmap-final.log` and `-queue-final.log` pass (23 roadmap rows, 79 queue rows / 16 required umbrellas; automation remains undrained). Final whitespace check passes. Goal queried as active; completed test jobs are not described as background work still running. |
+
+## 2026-10-23 Rhythm-feel Ink and Ending-count Isolation
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Red | Reproduced | `/tmp/chromatics-rhythm-feel-page-red.log`: two long custom rhythm-feel cases miss page rejection. `-electron-red.log` reproduces with real fonts before PDF IPC; no invalid PDF is written. |
+| Implementation | Scoped | Existing page text measurement includes rhythm-feel glyphs/text and actual painted triplet bracket stroke. Page coordinates replace group translation without moving the visible mark; fixed header ink does not move staff geometry. Score/native content and manual geometry are unchanged. Stroke tests are added coverage, not separately claimed pre-fix failures. |
+| Focused / static | Pass | `-layout.log`: four files / 215 tests. `-focused-final.log`: four rhythm cases. Initial test-only SVG prototype typing error corrected; `-types-final.log` and `/tmp/chromatics-rhythm-control-types.log` pass. `-build.log` and `-visual.log` pass, no baseline changes. |
+| Production / PDF | Pass, reviewed | `-electron-final.log` and `/tmp/chromatics-rhythm-feel-16th-page-electron-final.log`: 960/1400; right edges 4125.393/4219.393 vs width 750; real Format menu/disclosure/rhythm select, native equality before edit, explicit replacement only after edit and reopen. Each retry PDF is one A4 page. Reviewed rejection captures plus `/tmp/chromatics-rhythm-feel-page-pdf.png` and `/tmp/chromatics-rhythm-feel-16th-page-pdf-final.png`. Default numeral top 0.256px and bracket top 9.375px fit this font; not a cross-platform font approval. |
+| External control coverage | Pass | `/tmp/chromatics-rhythm-control-focused.log`: four files / 28 tests, four opt-in external tests skipped. Ordered temporary XML normalization removes exactly one ending count; unit checks other structure, unchanged Chromatics MIDI, idempotence and untouched source. Latest default run `chromatics-ending-count-default-final.log`: one passed / four skipped. |
+| External semantic result | Fail, unresolved | `/tmp/chromatics-ending-count-control-external.log`, retained `chromatics-midi-reference-dsuSvT`: normalized original and round-trip both exit 0, both produce pitches `[72,74,76,74,76,77,74,76,77]` rather than `[72,74,76,74,76,77,72,79]`. Attribute omission alone does not resolve the difference; expected playback is not weakened. |
+| External process result | Abort, not semantic evidence | `chromatics-ending-count-written-external.log`: simple ending round-trip, nested-repeat source, nested-volta round-trip SIGABRT. Separate `-written-isolated.log` repeats nested-volta round-trip SIGABRT with no concurrent Electron. No product parser/exporter, source fixture, preference or expected traversal was changed. |
+| Broad | Fail, two timeouts | `/tmp/chromatics-rhythm-ink-full.log`: one failed / 71 passed / one skipped file; 1,166 passed / two failed / nine skipped tests, 608.40s, exit 1. App command-palette work-mode case exceeds 15s; volta-display edit/reset case exceeds 5s. No product/test edits or build/Electron by this task during the run. Another suite belonged to a separate temporary worktree and was left alone. |
+| Timeout isolation | Pass, not a full-gate replacement | `/tmp/chromatics-rhythm-ink-timeout-isolation.log`: both cases pass unchanged, 6.83s total, original timeout/assertions retained. No timing cause established and no full green claim. This remains a follow-up broad-gate stability risk. |
+| Limits / follow-up | Open | Header/title uses print-only HTML outside measured SVG; actual print-media bounds and first-system overlap require reproduction, not screen-only approval. Print-tail padding, external GUI/listening, actual-score typography, native menus and IME remain open. Other worktree changes/commits are preserved, not attributed to this task. No commit/push/release/version/protected-file edits by this task. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

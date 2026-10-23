@@ -1,6 +1,6 @@
 import type { Score, ScorePageSetup } from '../../../score-core'
 import { createSystemLayout } from './system-layout'
-import { resolveScoreVerticalLayout } from './score-vertical-layout'
+import { resolveScoreVerticalLayout, resolveScoreSystemVerticalLayouts } from './score-vertical-layout'
 
 export type PrintPageTarget = 'auto' | number
 export type PrintEngravingStylePreset = 'default' | 'readable' | 'compact'
@@ -145,14 +145,19 @@ function evaluatePrintLayoutCandidate(
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const vertical = resolveScoreVerticalLayout(score, Math.max(0.82, normalizedCandidate.scale), normalizedCandidate.systemHeight, normalizedCandidate.systemTop)
-  const layout = createSystemLayout(measures, normalizedCandidate.renderWidth, {
+  const layoutOptions = {
+    parallelMeasures: score.parts.flatMap(part => part.staves).slice(1).map(staff => staff.measures),
     compactSpacing: normalizedCandidate.compactSpacing,
     layout: score.layout,
     lyricScale: Math.max(0.82, normalizedCandidate.scale),
     pageHeight: normalizedCandidate.pageHeight,
     systemHeight: vertical.systemHeight,
     systemTop: vertical.systemTop
-  })
+  }
+  const initialLayout = createSystemLayout(measures, normalizedCandidate.renderWidth, layoutOptions)
+  const systemMetrics = resolveScoreSystemVerticalLayouts(score, initialLayout.placements,
+    Math.max(0.82, normalizedCandidate.scale), normalizedCandidate.systemHeight, normalizedCandidate.systemTop)
+  const layout = createSystemLayout(measures, normalizedCandidate.renderWidth, { ...layoutOptions, systemMetrics })
   const estimatedPageCount = estimatePrintedPageCount(
     layout.height,
     normalizedCandidate.pageHeight

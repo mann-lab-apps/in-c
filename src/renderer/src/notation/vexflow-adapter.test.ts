@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { StaveNote } from 'vexflow'
 import type { Clef } from '../../../score-core'
+import { createMeasure, createNote, createVoice, createTimePosition } from '../../../score-core'
 
 import {
+  resolveMeasureClefAtTick,
   toVexFlowAccidental,
   toVexFlowClef,
   toVexFlowDuration,
@@ -12,6 +14,21 @@ import {
 } from './vexflow-adapter'
 
 describe('VexFlow adapter', () => {
+  it('resolves inline clefs in time order across voices without mutating the measure', () => {
+    const measure = createMeasure({ voices: [createVoice({ events: [createNote({ id: 'later-clef',
+      pitch: { step: 'C', octave: 4 }, position: createTimePosition(30), clefBefore: { sign: 'C', line: 4 }
+    })] }), createVoice({ events: [createNote({ id: 'earlier-clef', pitch: { step: 'C', octave: 4 },
+      position: createTimePosition(10), clefBefore: { sign: 'F', line: 4 }
+    })] })] })
+    const before = structuredClone(measure)
+    expect(resolveMeasureClefAtTick(measure, 9)).toEqual(measure.clef)
+    expect(resolveMeasureClefAtTick(measure, 10)).toEqual({ sign: 'F', line: 4 })
+    expect(resolveMeasureClefAtTick(measure, 29)).toEqual({ sign: 'F', line: 4 })
+    expect(resolveMeasureClefAtTick(measure, 30)).toEqual({ sign: 'C', line: 4 })
+    expect(resolveMeasureClefAtTick(measure)).toEqual({ sign: 'C', line: 4 })
+    expect(measure).toEqual(before)
+  })
+
   it('maps score-core durations for notes and rests', () => {
     expect(toVexFlowDuration({ value: 'quarter', dots: 0 })).toBe('q')
     expect(toVexFlowDuration({ value: 'eighth', dots: 0 }, true)).toBe('8r')

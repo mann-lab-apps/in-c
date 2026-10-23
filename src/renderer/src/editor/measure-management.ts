@@ -3,6 +3,8 @@ import {
   createFullMeasureRest,
   createMeasure,
   createVoice,
+  findVoltaEndIndex,
+  scoreRepeatSource,
   type Measure,
   type Part,
   type Score,
@@ -16,6 +18,24 @@ export interface MeasureEditResult {
   command: ScoreCommand
   inputState?: NoteInputState
   selection: EditorSelection
+}
+
+export function resolveVoltaEndMeasure(score: Score, measureId: string): Measure | undefined {
+  return resolveVoltaRange(score, measureId)?.end
+}
+
+export function resolveVoltaRange(score: Score, measureId: string): { start: Measure; end: Measure; measures: Measure[] } | undefined {
+  const location = locateMeasureForEdit(score, measureId)
+  if (!location) return undefined
+  const measures = (scoreRepeatSource(score) ?? location.staff).measures
+  for (const [index, measure] of measures.entries()) {
+    if (!measure.volta?.start || index > location.measureIndex) continue
+    const endIndex = findVoltaEndIndex(measures, index)
+    if (endIndex !== undefined && location.measureIndex <= endIndex) {
+      return { start: measure, end: measures[endIndex]!, measures: measures.slice(index, endIndex + 1) }
+    }
+  }
+  return undefined
 }
 
 export function buildInsertMeasureAfter(
@@ -193,14 +213,18 @@ function removeMeasuresKeepingVoltaRange(measures: Measure[], removedIndexes: Se
     if (measure.volta?.start) startIndex = index
     if (startIndex === undefined || !measure.volta?.end) continue
     const start = measures[startIndex]!
-    if (start.volta?.number === measure.volta.number &&
-      (removedIndexes.has(startIndex) || removedIndexes.has(index))) {
+    if (start.volta?.number === measure.volta.number) {
       const surviving = measures.slice(startIndex, index + 1).filter((_, offset) => !removedIndexes.has(startIndex! + offset))
       const first = remaining.find(item => item.id === surviving[0]?.id)
       const last = remaining.find(item => item.id === surviving.at(-1)?.id)
       if (first && last) {
-        first.volta = { ...first.volta, number: measure.volta.number, start: true }
-        last.volta = { ...last.volta, number: measure.volta.number, end: true }
+        const displayIndex = measures.findIndex(item => item.id === start.volta?.displayEndMeasureId)
+        const displayEnd = measures.slice(startIndex, displayIndex + 1)
+          .filter((_, offset) => !removedIndexes.has(startIndex! + offset)).at(-1) ?? first
+        first.volta = { ...first.volta, number: measure.volta.number, start: true,
+          ...(start.volta.displayEndMeasureId ? { displayEndMeasureId: displayEnd.id } : {}) }
+        last.volta = { ...last.volta, number: measure.volta.number, end: true,
+          ...(measure.volta.endStyle ? { endStyle: measure.volta.endStyle } : {}) }
       }
     }
     startIndex = undefined
@@ -216,10 +240,12 @@ function hasAlignedMeasures(score: Score): boolean {
 function buildStructuralCommand(score: Score, nextParts: Part[]): ScoreCommand {
   const oldPairs = collectTiePairs(score)
   const newPairs = collectTiePairs({ ...score, parts: nextParts })
-  const nextTargets = new Map(newPairs.map(pair => [pair.fromEventId, pair.toEventId]))
-  const brokenPairs = oldPairs.filter(pair => nextTargets.get(pair.fromEventId) !== pair.toEventId)
-  const brokenStarts = new Set(brokenPairs.map(pair => pair.fromEventId))
-  const brokenStops = new Set(brokenPairs.map(pair => pair.toEventId))
+  const pairKey = (pair: typeof oldPairs[number]) => JSON.stringify([pair.fromEventId, pair.toEventId])
+  const nextPairs = new Set(newPairs.map(pairKey))
+  const survivingPairs = oldPairs.filter(pair => nextPairs.has(pairKey(pair)))
+  const brokenPairs = oldPairs.filter(pair => !nextPairs.has(pairKey(pair)))
+  const brokenStarts = new Set(brokenPairs.filter(pair => !survivingPairs.some(other => other.fromEventId === pair.fromEventId)).map(pair => pair.fromEventId))
+  const brokenStops = new Set(brokenPairs.filter(pair => !survivingPairs.some(other => other.toEventId === pair.toEventId)).map(pair => pair.toEventId))
   const parts = nextParts.map(part => ({ ...part, staves: part.staves.map(staff => ({ ...staff,
     measures: staff.measures.map(measure => ({ ...measure, voices: measure.voices.map(voice => ({ ...voice,
       events: voice.events.map(event => {

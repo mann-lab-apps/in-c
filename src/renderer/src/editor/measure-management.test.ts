@@ -6,6 +6,8 @@ import { createPlaybackTimeline } from '../playback/timeline'
 
 import {
   applyScoreCommand,
+  collectTiePairs,
+  validateTieRelations,
   createDuration,
   createFullMeasureRest,
   createMeasure,
@@ -14,6 +16,7 @@ import {
   createScore,
   createStaff,
   createVoice,
+  projectRepeatMarksToStaff,
   validateMeasureRhythm
 } from '../../../score-core'
 import {
@@ -21,7 +24,8 @@ import {
   buildInsertMeasureBefore,
   buildRemoveMeasure,
   buildRemoveMeasures,
-  resolveActiveMeasureId
+  resolveActiveMeasureId,
+  resolveVoltaEndMeasure
 } from './measure-management'
 import { createNoteInputState } from './note-input-state'
 
@@ -38,6 +42,16 @@ const inputState = createNoteInputState({
 })
 
 describe('measure management', () => {
+  it.each(['append', 'remove-second'])('preserves surviving alternate-ending tie branches on %s', operation => {
+    const score = parseMusicXml(readFileSync('src/musicxml/fixtures/repeat-volta-branch-ties.musicxml', 'utf8'))
+    const last = score.parts[0]!.staves[0]!.measures.at(-1)!
+    const edit = operation === 'append' ? buildInsertMeasureAfter(score, last.id, kind => `branch-${kind}`) : buildRemoveMeasure(score, last.id)
+    const result = applyScoreCommand(score, edit!.command)
+    expect(collectTiePairs(result.score)).toHaveLength(operation === 'append' ? 2 : 1)
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
   it.each([1, 2, 3, 4])('shrinks a volta when its boundary measure %i is deleted', index => {
     const score = createVoltaEnsemble()
     const selected = score.parts[1]!.staves[0]!.measures[index]!
@@ -50,6 +64,77 @@ describe('measure management', () => {
     const reopened = parseMusicXml(serializeMusicXml(result.score))
     expect(reopened.parts[0]!.staves[0]!.measures.map(measure => measure.volta)).toEqual(primary.map(measure => measure.volta))
     expect(createPlaybackTimeline(reopened).totalBeats).toBe(createPlaybackTimeline(result.score).totalBeats)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('resolves the shared volta end from any covered staff and rejects outside or incomplete ranges', () => {
+    const score = createVoltaEnsemble()
+    for (const part of score.parts) for (const index of [1, 2, 3, 4]) {
+      const selected = part.staves[0]!.measures[index]!
+      expect(resolveVoltaEndMeasure(score, selected.id)?.id).toBe(`p0-m${index < 3 ? 2 : 4}`)
+    }
+    expect(resolveVoltaEndMeasure(score, 'p0-m0')).toBeUndefined()
+    expect(resolveVoltaEndMeasure(score, 'missing')).toBeUndefined()
+    delete score.parts[0]!.staves[0]!.measures[4]!.volta
+    expect(resolveVoltaEndMeasure(score, 'p0-m3')).toBeUndefined()
+    score.parts[0]!.staves[0]!.measures[4]!.volta = { number: 1, end: true }
+    expect(resolveVoltaEndMeasure(score, 'p0-m3')).toBeUndefined()
+  })
+
+  it('uses the selected staff for an unaligned local volta range', () => {
+    const score = createVoltaEnsemble()
+    const local = score.parts[1]!.staves[0]!
+    local.measures.pop()
+    local.measures[1]!.volta = { number: 1, start: true }
+    local.measures[2]!.volta = { number: 1, end: true, endStyle: 'open' }
+    expect(resolveVoltaEndMeasure(score, local.measures[1]!.id)).toBe(local.measures[2])
+  })
+
+  it('preserves an open ending when its final measure is removed and undone', () => {
+    const score = createVoltaEnsemble()
+    Object.assign(score.parts[0]!.staves[0]!.measures[4]!.volta!, { endStyle: 'open' })
+    const result = applyScoreCommand(score, buildRemoveMeasure(score, 'p0-m4')!.command)
+    const mark = result.score.parts[0]!.staves[0]!.measures[3]!.volta
+    expect(mark).toEqual({ number: 2, start: true, end: true, endStyle: 'open' })
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
+    expect(parseMusicXml(serializeMusicXml(result.score)).parts[0]!.staves[0]!.measures[3]!.volta).toEqual(mark)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it.each([1, 2])('preserves explicit volta display when deleting covered boundary %i', index => {
+    const score = createVoltaEnsemble()
+    const measures = score.parts[0]!.staves[0]!.measures
+    Object.assign(measures[1]!.volta!, { displayEndMeasureId: measures[2]!.id })
+    const result = applyScoreCommand(score, buildRemoveMeasure(score, `p1-m${index}`)!.command)
+    const survivor = result.score.parts[0]!.staves[0]!.measures[1]!
+    expect(survivor.volta).toEqual({ number: 1, start: true, end: true, displayEndMeasureId: survivor.id })
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('remaps explicit volta display references when projecting repeats into another part', () => {
+    const score = createVoltaEnsemble()
+    const source = score.parts[0]!.staves[0]!
+    Object.assign(source.measures[1]!.volta!, { displayEndMeasureId: source.measures[2]!.id })
+    const snapshot = structuredClone(score)
+    const projected = projectRepeatMarksToStaff(source, score.parts[1]!.staves[0]!)
+    expect(projected.measures[1]!.volta).toEqual({ number: 1, start: true, end: undefined, displayEndMeasureId: 'p1-m2' })
+    expect(score).toEqual(snapshot)
+    score.parts[1]!.staves[0] = projected
+    score.parts.shift()
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(score))).score).toEqual(score)
+  })
+
+  it('rebases an interior display endpoint when only that measure is removed', () => {
+    const score = createVoltaEnsemble()
+    const measures = score.parts[0]!.staves[0]!.measures
+    measures[2]!.volta = undefined
+    measures[3]!.volta = undefined
+    measures[4]!.volta = { number: 1, end: true }
+    Object.assign(measures[1]!.volta!, { displayEndMeasureId: measures[2]!.id })
+    const result = applyScoreCommand(score, buildRemoveMeasure(score, 'p1-m2')!.command)
+    expect(result.score.parts[0]!.staves[0]!.measures[1]!.volta).toEqual({ number: 1, start: true, end: undefined, displayEndMeasureId: 'p0-m1' })
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 

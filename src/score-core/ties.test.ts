@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../project/schema'
+import { parseMusicXml, serializeMusicXml } from '../musicxml'
+import { createPlaybackTimeline } from '../renderer/src/playback/timeline'
 
 import {
   TICKS_PER_QUARTER,
@@ -21,6 +24,77 @@ import {
 const quarter = TICKS_PER_QUARTER
 
 describe('score-core ties', () => {
+  it('preserves both alternate-ending tie stops through native save and reopen', () => {
+    const score = voltaTieFixture(true)
+    expect(validateTieRelations(score)).toEqual([])
+    expect(buildInvalidTieRepairCommand(score)).toBeUndefined()
+    expect(collectTiePairs(score)).toEqual([
+      { fromEventId: 'branch-start', toEventId: 'first-stop' },
+      { fromEventId: 'branch-start', toEventId: 'second-stop', isDiscontinuous: true }
+    ])
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(score))).score).toEqual(score)
+    const reopened = parseMusicXml(serializeMusicXml(score))
+    expect(validateTieRelations(reopened)).toEqual([])
+    expect(collectTiePairs(reopened)).toHaveLength(2)
+    expect(createPlaybackTimeline(reopened).events.map(event => [event.startBeat, event.durationBeats])).toEqual([[0, 2], [2, 2]])
+  })
+
+  it('keeps lower-voice cross-measure ties independent of interleaved upper voices', () => {
+    const score = crossMeasureFixture()
+    score.parts[0]!.staves[0]!.measures.forEach((measure, index) => {
+      measure.voices[0]!.id = 'lower'
+      measure.voices.unshift(createVoice({ id: 'upper', events: [createNote({ id: `upper-${index}`, pitch: { step: 'G', octave: 5 } })] }))
+    })
+    const result = applyScoreCommand(score, buildTieCommand(score, 'measure-2-note', true)!)
+    expect(collectTiePairs(result.score)).toEqual([{ fromEventId: 'measure-1-note', toEventId: 'measure-2-note' }])
+    expect(validateTieRelations(result.score)).toEqual([])
+  })
+
+  it('does not tie across an unfilled timing gap', () => {
+    const score = crossMeasureFixture()
+    score.parts[0]!.staves[0]!.measures[0]!.timeSignature = { beats: 2, beatType: 4 }
+    expect(buildTieCommand(score, 'measure-2-note', true)).toBeUndefined()
+  })
+
+  it('creates a second-ending tie from the repeated body, not the exclusive first ending', () => {
+    const score = voltaTieFixture(false)
+    const command = buildTieCommand(score, 'second-stop', true)
+    expect(command).toBeDefined()
+    const result = applyScoreCommand(score, command!)
+    expect(collectTiePairs(result.score)).toEqual([
+      { fromEventId: 'branch-start', toEventId: 'second-stop', isDiscontinuous: true }
+    ])
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('prefers the forward ending when starting a tie at the repeat body', () => {
+    const score = voltaTieFixture(false)
+    const result = applyScoreCommand(score, buildTieCommand(score, 'branch-start', true)!)
+    expect(collectTiePairs(result.score)).toEqual([{ fromEventId: 'branch-start', toEventId: 'first-stop' }])
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it.each(['branch-start', 'second-stop'])('removes branching ties from %s without leaving orphan flags', selected => {
+    const score = voltaTieFixture(true)
+    const result = applyScoreCommand(score, buildTieCommand(score, selected, false)!)
+    expect(collectTiePairs(result.score)).toEqual(selected === 'branch-start' ? [] : [
+      { fromEventId: 'branch-start', toEventId: 'first-stop' }
+    ])
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('rejects a linear tie between mutually exclusive endings', () => {
+    const score = voltaTieFixture(false)
+    const measures = score.parts[0]!.staves[0]!.measures
+    Object.assign(measures[1]!.voices[0]!.events[0]!, { ties: { start: true } })
+    Object.assign(measures[2]!.voices[0]!.events[0]!, { ties: { stop: true } })
+    expect(collectTiePairs(score)).toEqual([])
+    expect(validateTieRelations(score)).toHaveLength(2)
+  })
+
   it('creates and removes a tie between adjacent equal pitches', () => {
     const score = tiedFixture(false)
     const command = buildTieCommand(score, 'note-1', true)
@@ -193,6 +267,19 @@ function tiedFixture(tied: boolean, secondStep: 'C' | 'D' = 'C') {
       })
     ]
   })
+}
+
+function voltaTieFixture(tied: boolean) {
+  return createScore({ parts: [createPart({ staves: [createStaff({ measures:
+    ['branch-start', 'first-stop', 'second-stop'].map((id, index) => createMeasure({
+      id: `branch-measure-${index}`, number: index + 1, timeSignature: { beats: 1, beatType: 4 },
+      repeat: index === 0 ? { start: true } : index === 1 ? { end: true } : undefined,
+      volta: index === 0 ? undefined : { number: index as 1 | 2, start: true, end: true },
+      voices: [createVoice({ events: [createNote({ id, pitch: { step: 'E', octave: 4 },
+        ties: tied ? index === 0 ? { start: true } : { stop: true } : undefined
+      })] })]
+    }))
+  })] })] })
 }
 
 function crossMeasureFixture() {

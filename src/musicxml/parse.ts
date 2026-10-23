@@ -1284,6 +1284,7 @@ function readVoltaMark(measureNode: XmlNode): Score['parts'][number]['staves'][n
   let number: 1 | 2 | undefined
   let start = false
   let end = false
+  let openEnd = false
 
   for (const barline of barlines) {
     const ending = readOptionalNode(barline, 'ending')
@@ -1303,6 +1304,7 @@ function readVoltaMark(measureNode: XmlNode): Score['parts'][number]['staves'][n
       start = true
     } else if (type === 'stop' || type === 'discontinue') {
       end = true
+      openEnd = type === 'discontinue'
     }
   }
 
@@ -1310,7 +1312,8 @@ function readVoltaMark(measureNode: XmlNode): Score['parts'][number]['staves'][n
     ? {
         number,
         start: start || undefined,
-        end: end || undefined
+        end: end || undefined,
+        ...(openEnd ? { endStyle: 'open' } : {})
       }
     : undefined
 }
@@ -1690,7 +1693,8 @@ function readTieFlags(node: XmlNode) {
   const notationTypes = toArray(
     notations?.tied as XmlNode | XmlNode[] | undefined
   ).map((tie) => readOptionalString(tie, '@_type'))
-  const types = new Set([...directTypes, ...notationTypes])
+  // A paired partial <tied> is visual, not a sounding start-and-stop chain.
+  const types = new Set(directTypes.length ? directTypes : notationTypes)
   const start = types.has('start')
   const stop = types.has('stop')
 

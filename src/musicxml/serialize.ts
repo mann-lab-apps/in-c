@@ -2,6 +2,7 @@ import { XMLBuilder } from 'fast-xml-parser'
 
 import {
   resolveNotePitch,
+  collectTiePairs,
   convertOctaveShiftPitches,
   shouldDisplayAccidental,
   sortVoiceEvents,
@@ -35,11 +36,12 @@ const defaultRhythmFeelText = {
 } as const satisfies Record<RhythmFeelMarking['unit'], string>
 type SpanDirections = Map<Measure, Record<string, unknown>[]>
 type PrintBreaks = { system: Set<number>; page: Set<number> }
+type NoteBoundary = { starts?: string[]; stops?: string[]; partialTieStart?: boolean; partialTieStop?: boolean }
 
 export function serializeMusicXml(score: Score): string {
   score = convertOctaveShiftPitches(score, 'performed')
   const tieIssues = validateTieRelationIssues(score)
-  const slurBoundaries = createSlurBoundaries(score)
+  const slurBoundaries = createNoteBoundaries(score)
   const spanDirections = createSpanDirections(score)
   const printBreaks: PrintBreaks = {
     system: new Set((score.layout?.systemBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id))),
@@ -123,7 +125,7 @@ function validatePartStructure(part: Score['parts'][number]): void {
 }
 
 export interface MusicXmlExportWarning {
-  code: 'unsupported-layout'
+  code: 'unsupported-layout' | 'consumer-compatibility'
   message: string
   path: string
   measureId?: string
@@ -149,6 +151,37 @@ function collectUnsupportedMusicXmlExportWarnings(
   score: Score
 ): MusicXmlExportWarning[] {
   const warnings: MusicXmlExportWarning[] = []
+
+  score.parts.forEach((part, p) => part.staves.forEach((staff, s) => {
+    let depth = 0
+    staff.measures.forEach((measure, m) => {
+      if (measure.repeat?.start && ++depth > 1) warnings.push({
+        code: 'consumer-compatibility', measureId: measure.id,
+        path: `score.parts[${p}].staves[${s}].measures[${m}].repeat`,
+        message: `마디 ${measure.number}: 중첩 도돌이표는 다른 앱에서 재생 순서가 달라질 수 있습니다. 가져온 악보의 반복 재생을 확인하세요.`
+      })
+      if (measure.repeat?.end) depth = Math.max(0, depth - 1)
+    })
+  }))
+
+  score.parts.forEach((part, p) => part.staves.forEach((staff, s) => staff.measures.forEach((measure, m) => {
+    if (!measure.volta?.displayEndMeasureId) return
+    warnings.push({ code: 'unsupported-layout', measureId: measure.id,
+      path: `score.parts[${p}].staves[${s}].measures[${m}].volta.displayEndMeasureId`,
+      message: `마디 ${measure.number}: 볼타 선의 사용자 지정 표시 범위는 프로젝트에만 보존됩니다. MusicXML에는 반복 구간을 내보냅니다.` })
+  })))
+
+  const partialTieStops = new Set(collectTiePairs(score).filter(pair => pair.isDiscontinuous).map(pair => pair.toEventId))
+  score.parts.forEach((part, p) => part.staves.forEach((staff, s) => staff.measures.forEach((measure, m) =>
+    measure.voices.forEach((voice, v) => voice.events.forEach((event, e) => {
+      if (!partialTieStops.has(event.id)) return
+      warnings.push({
+        code: 'consumer-compatibility', measureId: measure.id,
+        path: `score.parts[${p}].staves[${s}].measures[${m}].voices[${v}].events[${e}].ties`,
+        message: `마디 ${measure.number}: 반복/볼타를 건너는 타이는 다른 앱에서 표기나 재생 연결이 손실될 수 있습니다. 원본 프로젝트를 유지하고 가져온 악보를 확인하세요.`
+      })
+    }))
+  )))
 
   for (const kind of ['slurs', 'hairpins'] as const) {
     for (const [index, span] of (score[kind] ?? []).entries()) {
@@ -206,7 +239,7 @@ function layoutMeasureIndex(score: Score, id: string): number {
 function buildPartMeasureElements(
   score: Score,
   part: Score['parts'][number],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  slurBoundaries: Map<string, NoteBoundary>,
   spanDirections: SpanDirections,
   printBreaks: PrintBreaks
 ) {
@@ -217,7 +250,7 @@ function buildPartMeasureElements(
       score,
       part.staves.map((staff) => staff.measures[measureIndex]),
       slurBoundaries,
-      part.staves.some((staff) => staff.measures.some((measure) => measure.transposition)),
+      measureIndex > 0 ? part.staves.map(staff => staff.measures[measureIndex - 1]) : undefined,
       score.parts[0]?.id === part.id,
       spanDirections,
       { system: printBreaks.system.has(measureIndex), page: printBreaks.page.has(measureIndex) }
@@ -228,8 +261,8 @@ function buildPartMeasureElements(
 function buildMeasureElement(
   score: Score,
   measures: Measure[],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
-  hasTransposition: boolean,
+  slurBoundaries: Map<string, NoteBoundary>,
+  previousMeasures: Measure[] | undefined,
   primaryPart: boolean,
   spanDirections: SpanDirections,
   printBreak: { system: boolean; page: boolean }
@@ -259,6 +292,7 @@ function buildMeasureElement(
     ]
   })
   const barlines = buildMeasureBarlines(primaryMeasure)
+  const attributes = buildAttributes(measures, previousMeasures)
 
   return xmlElement(
     'measure',
@@ -267,7 +301,7 @@ function buildMeasureElement(
         ...(printBreak.system ? { '@_new-system': 'yes' } : {}),
         ...(printBreak.page ? { '@_new-page': 'yes' } : {})
       })] : []),
-      xmlElement('attributes', buildAttributes(measures, hasTransposition)),
+      ...(Object.keys(attributes).length ? [xmlElement('attributes', attributes)] : []),
       ...annotations,
       ...buildStaffPlaybackElements(measures, slurBoundaries),
       ...barlines.map((barline) => xmlElement('barline', barline))
@@ -285,7 +319,7 @@ function buildMeasureElement(
 
 function buildStaffPlaybackElements(
   measures: Measure[],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+  slurBoundaries: Map<string, NoteBoundary>
 ) {
   const cursor = {
     currentCursorTicks: 0
@@ -303,7 +337,7 @@ function buildStaffPlaybackElements(
 
 function buildMeasurePlaybackElements(
   measure: Measure,
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  slurBoundaries: Map<string, NoteBoundary>,
   staffNumber: number | undefined,
   cursor: {
     currentCursorTicks: number
@@ -615,7 +649,7 @@ function buildMeasureBarlines(measure: Measure) {
               ? {
                   ending: {
                     '@_number': measure.volta.number,
-                    '@_type': 'stop'
+                    '@_type': measure.volta.endStyle === 'open' ? 'discontinue' : 'stop'
                   }
                 }
               : {}),
@@ -679,42 +713,49 @@ function createSpanDirections(score: Score): SpanDirections {
   return directions
 }
 
-function buildAttributes(measures: Measure[], hasTransposition: boolean) {
+function buildAttributes(measures: Measure[], previousMeasures: Measure[] | undefined) {
   const primaryMeasure = measures[0]
-  const clefs = measures.map((measure) => clefToMusicXml(measure.clef))
+  const previous = previousMeasures?.[0]
+  const keyChanged = !previous || primaryMeasure.keySignature.fifths !== previous.keySignature.fifths || primaryMeasure.keySignature.mode !== previous.keySignature.mode
+  const timeChanged = !previous || primaryMeasure.timeSignature.beats !== previous.timeSignature.beats || primaryMeasure.timeSignature.beatType !== previous.timeSignature.beatType
+  const clefs = measures.flatMap((measure, index) => {
+    const prior = previousMeasures?.[index]
+    // Inline clefs persist beyond the bar, in the order actually serialized.
+    const priorClef = prior ? sortScoreVoices(prior.voices).flatMap(voice => sortVoiceEvents(voice.events))
+      .filter(event => event.clefBefore).at(-1)?.clefBefore ?? prior.clef : undefined
+    const clef = measure.clef
+    if (priorClef && clef.sign === priorClef.sign && clef.line === priorClef.line && (clef.octaveChange ?? 0) === (priorClef.octaveChange ?? 0)) return []
+    return [{ ...(measures.length > 1 ? { '@_number': index + 1 } : {}), ...buildClefAttributes(clefToMusicXml(clef)) }]
+  })
+  const transpositions = measures.flatMap((measure, index) => {
+    const current = measure.transposition, prior = previousMeasures?.[index]?.transposition
+    if (!previousMeasures && !current) return []
+    if (previousMeasures && (current?.chromatic ?? 0) === (prior?.chromatic ?? 0) &&
+      current?.diatonic === prior?.diatonic && (current?.octaveChange ?? 0) === (prior?.octaveChange ?? 0)) return []
+    return [{ ...(measures.length > 1 ? { '@_number': index + 1 } : {}),
+      ...(current?.diatonic !== undefined ? { diatonic: current.diatonic } : {}),
+      chromatic: current?.chromatic ?? 0,
+      ...(current?.octaveChange !== undefined ? { 'octave-change': current.octaveChange } : {})
+    }]
+  })
 
   return {
-    divisions,
-    key: {
+    ...(!previousMeasures ? { divisions } : {}),
+    ...(keyChanged ? { key: {
       fifths: primaryMeasure.keySignature.fifths,
       ...(primaryMeasure.keySignature.mode
         ? {
             mode: primaryMeasure.keySignature.mode
           }
         : {})
-    },
-    time: {
+    } } : {}),
+    ...(timeChanged ? { time: {
       beats: primaryMeasure.timeSignature.beats,
       'beat-type': primaryMeasure.timeSignature.beatType
-    },
-    staves: measures.length,
-    clef:
-      measures.length === 1
-        ? buildClefAttributes(clefs[0])
-        : clefs.map((clef, index) => ({
-            '@_number': index + 1,
-            ...buildClefAttributes(clef)
-          })),
-    ...(hasTransposition
-      ? { transpose: measures.map((measure, index) => ({
-          ...(measures.length > 1 ? { '@_number': index + 1 } : {}),
-          ...(measure.transposition?.diatonic !== undefined
-            ? { diatonic: measure.transposition.diatonic } : {}),
-          chromatic: measure.transposition?.chromatic ?? 0,
-          ...(measure.transposition?.octaveChange !== undefined
-            ? { 'octave-change': measure.transposition.octaveChange } : {})
-        })) }
-      : {})
+    } } : {}),
+    ...(!previousMeasures ? { staves: measures.length } : {}),
+    ...(clefs.length ? { clef: clefs } : {}),
+    ...(transpositions.length ? { transpose: transpositions } : {})
   }
 }
 
@@ -740,10 +781,7 @@ function buildNoteElements(
     start?: boolean
     stop?: boolean
   },
-  slurBoundary?: {
-    starts?: string[]
-    stops?: string[]
-  }
+  slurBoundary?: NoteBoundary
 ): unknown[] {
   if (event.type === 'note') {
     const notePitches = event.pitches?.length
@@ -764,7 +802,9 @@ function buildNoteElements(
       slurBoundary
     )
     const chordNotes = notePitches.slice(1).map((pitch) =>
-      buildNote(event, measure, voice, pitch, voiceNumber, staffNumber, true)
+      buildNote(event, measure, voice, pitch, voiceNumber, staffNumber, true, undefined, {
+        partialTieStart: slurBoundary?.partialTieStart, partialTieStop: slurBoundary?.partialTieStop
+      })
     )
 
     return [...graceNotes, mainNote, ...chordNotes]
@@ -836,10 +876,7 @@ function buildNote(
     start?: boolean
     stop?: boolean
   },
-  slurBoundary?: {
-    starts?: string[]
-    stops?: string[]
-  }
+  slurBoundary?: NoteBoundary
 ) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
   const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
@@ -858,6 +895,13 @@ function buildNote(
     ...(tupletBoundary?.start ? ['start'] as const : []),
     ...(tupletBoundary?.stop ? ['stop'] as const : [])
   ]
+  // MusicXML separates sounding ties from single-note (repeat/jump) notation.
+  const notationTies = tieTypes.flatMap<Record<string, string | number>>(type => {
+    const partial = type === 'start' ? slurBoundary?.partialTieStart : slurBoundary?.partialTieStop
+    return partial
+      ? [{ '@_type': 'start', '@_number': type === 'start' ? 3 : 2 }, { '@_type': 'stop', '@_number': type === 'start' ? 3 : 2 }]
+      : [{ '@_type': type }]
+  })
   const notationSlurs = [
     ...(slurBoundary?.starts ?? []).map((number) => ({
       number,
@@ -967,9 +1011,7 @@ function buildNote(
           notations: {
             ...(tieTypes.length > 0
               ? {
-                  tied: tieTypes.map((type) => ({
-                    '@_type': type
-                  }))
+                  tied: notationTies
                 }
               : {}),
             ...(notationTuplets.length > 0
@@ -1063,10 +1105,10 @@ function createTupletBoundaries(
   return boundaries
 }
 
-function createSlurBoundaries(
+function createNoteBoundaries(
   score: Score
-): Map<string, { starts?: string[]; stops?: string[] }> {
-  const boundaries = new Map<string, { starts?: string[]; stops?: string[] }>()
+): Map<string, NoteBoundary> {
+  const boundaries = new Map<string, NoteBoundary>()
 
   ;(score.slurs ?? []).forEach((slur, index) => {
     const number = String(slur.number ?? index + 1)
@@ -1083,6 +1125,15 @@ function createSlurBoundaries(
     })
   })
 
+  const ties = collectTiePairs(score)
+  for (const tie of ties.filter(pair => pair.isDiscontinuous)) {
+    if (!ties.some(pair => !pair.isDiscontinuous && pair.fromEventId === tie.fromEventId)) {
+      boundaries.set(tie.fromEventId, { ...boundaries.get(tie.fromEventId), partialTieStart: true })
+    }
+    if (!ties.some(pair => !pair.isDiscontinuous && pair.toEventId === tie.toEventId)) {
+      boundaries.set(tie.toEventId, { ...boundaries.get(tie.toEventId), partialTieStop: true })
+    }
+  }
   return boundaries
 }
 
