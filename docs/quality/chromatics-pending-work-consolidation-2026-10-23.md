@@ -69,6 +69,21 @@
 - Whitespace/tab scan across all 58 paths and `git diff --check`: PASS.
 - Remote CI is a separate gate and will be recorded on the consolidation PR.
 
+### CI Follow-up
+
+- PR #789's first remote run (`39959636269`) failed one test: the volta display
+  endpoint workflow took 5,269ms at the unchanged five-second limit. Remote
+  totals were 1,167 passed / one failed / nine opt-in skips. It was not merged.
+- The unchanged isolated test passed in 1,269ms; the prior full local run took
+  4,313ms for that case. The test repeatedly searched the complete editor for
+  menu and measure controls. Its queries now use the existing application-menu
+  and notation containers, keeping all history, save/reopen, timeline and XML
+  warning assertions intact. No timeout or product code changed.
+- Focused follow-up: seven volta/clipboard tests PASS, including the volta case
+  in 1,144ms. Typecheck PASS. The complete remote suite must pass before merge.
+- Per the user's latest instruction, release builds, signing, packaging and
+  distribution remain deferred until the revised design system is applied.
+
 ## Consolidation Commits
 
 - `1bd69a61`: repeat ownership, branch ties, MusicXML contracts and independent
