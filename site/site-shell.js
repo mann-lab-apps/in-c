@@ -16,6 +16,10 @@ const renderHeader = (root) => `
       <img src="${iconUrl}" width="36" height="36" alt="" />
       <span>in C</span>
     </a>
+    <nav aria-label="주요 링크">
+      <a href="${root}index.html#services">서비스</a>
+      <a href="${root}support.html">문의</a>
+    </nav>
   </header>
 `
 

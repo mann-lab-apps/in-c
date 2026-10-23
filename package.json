@@ -3,7 +3,7 @@
   "productName": "in-C",
   "desktopName": "in-c.desktop",
   "version": "0.1.0-alpha.14",
-  "description": "Electron-based notation editor inspired by modern scorewriting workflows.",
+  "description": "in C concert promotion service and related music app surfaces.",
   "author": "mann-lab-apps",
   "homepage": "https://github.com/mann-lab-apps/in-c",
   "repository": {
@@ -48,6 +48,7 @@
     "verify:musescore-cli-fixtures": "node scripts/verify-musescore-cli-fixtures.mjs",
     "verify:site-content": "node scripts/verify-site-content.mjs",
     "verify:site-seo": "node scripts/verify-site-seo.cjs",
+    "verify:classic-quiz": "node scripts/verify-classic-quiz.mjs",
     "verify:site-production": "node scripts/verify-production-site.cjs",
     "validation:ops": "node scripts/summarize-validation-ops.mjs",
     "test:components": "vitest run src/renderer/src/App.test.tsx"

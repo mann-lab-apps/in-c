@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Counterpoint | PDF/Image to MusicXML</title>
+    <meta
+      name="description"
+      content="Counterpoint는 PDF와 이미지 악보를 편집 가능한 MusicXML 초안으로 변환하는 로컬 프로토타입입니다."
+    />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href="https://in-c.mannlab.app/counterpoint.html" />
+    <meta property="og:title" content="Counterpoint | PDF/Image to MusicXML" />
+    <meta
+      property="og:description"
+      content="PDF와 이미지 악보를 편집 가능한 MusicXML 초안으로 변환하고 검수 리포트를 확인합니다."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://in-c.mannlab.app/counterpoint.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta property="og:image:alt" content="in C 앱 아이콘" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Counterpoint | PDF/Image to MusicXML" />
+    <meta
+      name="twitter:description"
+      content="PDF와 이미지 악보를 편집 가능한 MusicXML 초안으로 변환하고 검수 리포트를 확인합니다."
+    />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta name="twitter:image:alt" content="in C 앱 아이콘" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="counterpoint-page">
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="in C 홈">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="Counterpoint 링크">
+        <a href="./index.html#services">서비스</a>
+        <a href="./support.html">문의</a>
+      </nav>
+    </header>
+
+    <main class="counterpoint-shell" id="top">
+      <section class="counterpoint-workspace" aria-labelledby="counterpoint-title">
+        <div class="counterpoint-copy">
+          <p class="eyebrow">Counterpoint Prototype</p>
+          <h1 id="counterpoint-title">PDF와 이미지 악보를 MusicXML 초안으로</h1>
+          <p>
+            PDF, JPG, PNG 악보를 올리면 로컬 서버가 변환 job을 만들고 MusicXML/MXL
+            결과와 검수 리포트를 돌려줍니다. 결과는 최종본이 아니라 Chromatics나
+            다른 악보 편집기에서 확인해야 하는 초안입니다.
+          </p>
+        </div>
+
+        <form class="counterpoint-uploader" data-counterpoint-form>
+          <label class="counterpoint-dropzone" data-counterpoint-dropzone>
+            <input
+              accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+              data-counterpoint-file
+              required
+              type="file"
+            />
+            <span class="counterpoint-dropzone__icon" aria-hidden="true">♪</span>
+            <span class="counterpoint-dropzone__title">PDF, JPG, PNG 악보 선택</span>
+            <span class="counterpoint-dropzone__hint">
+              파일을 끌어오거나 클릭해서 업로드합니다. 로컬 프로토타입 기본 서버는
+              <strong>127.0.0.1:4174</strong>를 사용합니다.
+            </span>
+          </label>
+
+          <div class="counterpoint-selected" data-counterpoint-selected hidden></div>
+
+          <div class="counterpoint-actions">
+            <button class="button button--primary" data-counterpoint-submit type="submit">
+              변환 시작
+            </button>
+            <button
+              class="button button--secondary"
+              title="Chromatics 연동은 변환 플로우가 안정된 뒤 연결합니다."
+              data-tooltip="Chromatics 연동은 변환 플로우가 안정된 뒤 연결합니다."
+              disabled
+              type="button"
+            >
+              Chromatics에서 열기
+            </button>
+          </div>
+
+          <p class="counterpoint-note">
+            저작권이 있는 악보는 본인이 변환 권한을 가진 경우에만 업로드해 주세요.
+            이 프로토타입은 로컬 개발용이며 장기 저장소가 아닙니다.
+          </p>
+        </form>
+      </section>
+
+      <section class="counterpoint-status-panel" aria-labelledby="counterpoint-status-title">
+        <div>
+          <p class="eyebrow">Job</p>
+          <h2 id="counterpoint-status-title">변환 상태</h2>
+        </div>
+        <ol class="counterpoint-steps" aria-label="변환 단계">
+          <li data-step="queued">queued</li>
+          <li data-step="processing">processing</li>
+          <li data-step="complete">complete</li>
+        </ol>
+        <p class="counterpoint-status" data-counterpoint-status role="status">
+          파일을 선택하면 변환을 시작할 수 있습니다.
+        </p>
+      </section>
+
+      <section class="counterpoint-result" data-counterpoint-result hidden>
+        <div class="counterpoint-result__head">
+          <div>
+            <p class="eyebrow">Result</p>
+            <h2>MusicXML 결과</h2>
+          </div>
+          <a class="button button--primary" data-counterpoint-download href="#">다운로드</a>
+        </div>
+        <dl class="counterpoint-report" data-counterpoint-report></dl>
+        <div class="counterpoint-warnings" data-counterpoint-warnings hidden>
+          <h3>검수할 항목</h3>
+          <ul></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 mann-lab-apps.</p>
+      <div>
+        <a href="./index.html">홈</a>
+        <a href="./privacy.html">개인정보 처리방침</a>
+      </div>
+    </footer>
+    <script type="module" src="./counterpoint.js"></script>
+  </body>
+</html>

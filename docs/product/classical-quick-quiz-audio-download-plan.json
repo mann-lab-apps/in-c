@@ -1,0 +1,233 @@
+{
+  "generatedAt": "2026-09-07T11:01:07.700Z",
+  "source": "/Users/jaemankim/Desktop/privates/coding/in-c/docs/product/classical-quick-quiz-audio-candidates.json",
+  "selectedStatus": "cleared-open",
+  "count": 9,
+  "downloadMode": false,
+  "networkChecked": false,
+  "localVerified": true,
+  "outDir": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals",
+  "summary": {
+    "readyToDownload": 9,
+    "existingLocalFiles": 0,
+    "failedNetworkChecks": 0,
+    "downloadedFiles": 0
+  },
+  "metadataReport": {
+    "appAudioPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/classic-quiz-audio.js",
+    "checkedAppRecords": 9,
+    "clearedCandidateCount": 9,
+    "mismatchCount": 0,
+    "mismatches": [],
+    "localAssets": []
+  },
+  "items": [
+    {
+      "seedId": "beethoven-symphony-5-1",
+      "fileName": "Ludwig van Beethoven - symphony no. 5 in c minor, op. 67 - i. allegro con brio.ogg",
+      "sourceName": "Wikimedia Commons / Musopen",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor,_op._67_-_i._allegro_con_brio.ogg",
+      "license": "Public domain / PD-author with attribution-only note",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Skidmore College orchestra",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_i._allegro_con_brio.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/beethoven-symphony-5-1-skidmore-college-orchestra.ogg",
+      "publicPath": "./audio/classic-quiz/originals/beethoven-symphony-5-1-skidmore-college-orchestra.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 8,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "beethoven-fur-elise",
+      "fileName": "FurElise.ogg",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:FurElise.ogg",
+      "license": "Public domain / CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "performer": "V Gao / Gaodifan",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7b/FurElise.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/beethoven-fur-elise-v-gao-gaodifan.ogg",
+      "publicPath": "./audio/classic-quiz/originals/beethoven-fur-elise-v-gao-gaodifan.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 8,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "bach-air",
+      "fileName": "Air - Air Force Strings - United States Air Force Band.mp3",
+      "sourceName": "Wikimedia Commons / United States Air Force Band",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Air_-_Air_Force_Strings_-_United_States_Air_Force_Band.mp3",
+      "license": "Public domain / U.S. federal government work",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/Template:PD-USGov-Military-Air_Force",
+      "performer": "United States Air Force Band, Air Force Strings",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Air_-_Air_Force_Strings_-_United_States_Air_Force_Band.mp3",
+      "expectedMime": "audio/mpeg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/bach-air-united-states-air-force-band-air-force-strings.mp3",
+      "publicPath": "./audio/classic-quiz/originals/bach-air-united-states-air-force-band-air-force-strings.mp3",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 9,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "handel-messiah-hallelujah",
+      "fileName": "Handel Messiah Hallelujah by Oratorio Chorus.ogg",
+      "sourceName": "Wikimedia Commons / Internet Archive",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Handel_Messiah_Hallelujah_by_Oratorio_Chorus.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Oratorio Chorus",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Handel_Messiah_Hallelujah_by_Oratorio_Chorus.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/handel-messiah-hallelujah-oratorio-chorus.ogg",
+      "publicPath": "./audio/classic-quiz/originals/handel-messiah-hallelujah-oratorio-chorus.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 8,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "dvorak-new-world",
+      "fileName": "Antonin Dvorak - symphony no. 9 in e minor 'from the new world', op. 95 - iv. allegro con fuoco.ogg",
+      "sourceName": "Wikimedia Commons / Musopen",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27,_op._95_-_iv._allegro_con_fuoco.ogg",
+      "license": "Public domain / PD-author",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Musopen",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/1/17/Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27%2C_op._95_-_iv._allegro_con_fuoco.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/dvorak-new-world-musopen.ogg",
+      "publicPath": "./audio/classic-quiz/originals/dvorak-new-world-musopen.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 9,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "debussy-clair-de-lune",
+      "fileName": "Clair de lune (Claude Debussy) Suite bergamasque.ogg",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Clair_de_lune_(Claude_Debussy)_Suite_bergamasque.ogg",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "performer": "Laurens Goedhart",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/b/be/Clair_de_lune_%28Claude_Debussy%29_Suite_bergamasque.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/debussy-clair-de-lune-laurens-goedhart.ogg",
+      "publicPath": "./audio/classic-quiz/originals/debussy-clair-de-lune-laurens-goedhart.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 10,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "satie-gymnopedie-1",
+      "fileName": "Erik Satie - gymnopedies - la 1 ere. lent et douloureux.ogg",
+      "sourceName": "Wikimedia Commons / Musopen",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg",
+      "license": "Public domain by performer / Musopen",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Robin Alciatore",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/satie-gymnopedie-1-robin-alciatore.ogg",
+      "publicPath": "./audio/classic-quiz/originals/satie-gymnopedie-1-robin-alciatore.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 9,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "mussorgsky-promenade",
+      "fileName": "Modest Mussorgsky - pictures at an exhibition - promenade - moderato comodo e con delicatezza.ogg",
+      "sourceName": "Wikimedia Commons / Musopen",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Modest_Mussorgsky_-_pictures_at_an_exhibition_-_promenade_-_moderato_comodo_e_con_delicatezza.ogg",
+      "license": "Public domain / PD-author",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Musopen",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Modest_Mussorgsky_-_pictures_at_an_exhibition_-_promenade_-_moderato_comodo_e_con_delicatezza.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/mussorgsky-promenade-musopen.ogg",
+      "publicPath": "./audio/classic-quiz/originals/mussorgsky-promenade-musopen.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 8,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    },
+    {
+      "seedId": "brahms-hungarian-dance-5",
+      "fileName": "Brahms nikisch hd5.ogg",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Brahms_nikisch_hd5.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "performer": "Artur Nikisch / Welte-Mignon reproducing piano",
+      "actualAudioUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Brahms_nikisch_hd5.ogg",
+      "expectedMime": "audio/ogg",
+      "verifiedAudioStatus": "cleared-open",
+      "targetPath": "/Users/jaemankim/Desktop/privates/coding/in-c/site/public/audio/classic-quiz/originals/brahms-hungarian-dance-5-artur-nikisch-welte-mignon-reproducing-piano.ogg",
+      "publicPath": "./audio/classic-quiz/originals/brahms-hungarian-dance-5-artur-nikisch-welte-mignon-reproducing-piano.ogg",
+      "recommendedClipStart": 0,
+      "recommendedClipDuration": 8,
+      "ffmpegPlan": "ffmpeg -ss <start> -t <duration> -i <original> -vn -ac 2 -ar 44100 -b:a 128k <clip>.mp3",
+      "remote": null,
+      "local": {
+        "exists": false,
+        "sizeBytes": null,
+        "checksum": ""
+      }
+    }
+  ]
+}

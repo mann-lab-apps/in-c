@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "createdAt": "2026-10-13",
+  "description": "Example local data manifest. Paths are intentionally missing until files are downloaded manually.",
+  "entries": [
+    {
+      "candidateId": "chopin-impromptu-1-op29-levy",
+      "workTitle": "Impromptu No.1, Op.29",
+      "composer": "Frederic Chopin",
+      "scorePath": "data/raw/chopin-impromptu-1-op29/score.musicxml",
+      "performanceMidiPath": "data/raw/chopin-impromptu-1-op29/performance.mid",
+      "audioPath": "data/raw/chopin-impromptu-1-op29/recording.mp3",
+      "sidecarPath": "data/raw/chopin-impromptu-1-op29/recording.sidecar.json",
+      "sourceUrl": "https://imslp.org/wiki/Impromptu_No.1,_Op.29_(Chopin,_Fr%C3%A9d%C3%A9ric)",
+      "imslpFileId": "#473658",
+      "license": "Creative Commons Attribution 4.0",
+      "attribution": "Frank Levy / Musopen, as listed by IMSLP",
+      "territoryRiskKo": "needs-legal-review",
+      "allowedForMvpExperiment": true,
+      "notes": "Manual download placeholder."
+    },
+    {
+      "candidateId": "chopin-impromptu-2-op36-levy",
+      "workTitle": "Impromptu No.2, Op.36",
+      "composer": "Frederic Chopin",
+      "scorePath": "data/raw/chopin-impromptu-2-op36/score.musicxml",
+      "performanceMidiPath": "data/raw/chopin-impromptu-2-op36/performance.mid",
+      "audioPath": "data/raw/chopin-impromptu-2-op36/recording.mp3",
+      "sidecarPath": "data/raw/chopin-impromptu-2-op36/recording.sidecar.json",
+      "sourceUrl": "https://imslp.org/wiki/Impromptu_No.2,_Op.36_(Chopin,_Fr%C3%A9d%C3%A9ric)",
+      "imslpFileId": "#473659",
+      "license": "Creative Commons Attribution 4.0",
+      "attribution": "Frank Levy / Musopen, as listed by IMSLP",
+      "territoryRiskKo": "needs-legal-review",
+      "allowedForMvpExperiment": true,
+      "notes": "Manual download placeholder."
+    },
+    {
+      "candidateId": "chopin-polonaise-b6-faulkner",
+      "workTitle": "Polonaise in G-sharp minor, B.6",
+      "composer": "Frederic Chopin",
+      "scorePath": "data/raw/chopin-polonaise-b6/score.musicxml",
+      "performanceMidiPath": "data/raw/chopin-polonaise-b6/performance.mid",
+      "audioPath": "data/raw/chopin-polonaise-b6/recording.mp3",
+      "sidecarPath": "data/raw/chopin-polonaise-b6/recording.sidecar.json",
+      "sourceUrl": "https://imslp.org/wiki/Polonaise_in_G-sharp_minor,_B.6_(Chopin,_Fr%C3%A9d%C3%A9ric)",
+      "imslpFileId": "#473666",
+      "license": "Creative Commons Attribution 4.0",
+      "attribution": "Luke Faulkner / Musopen, as listed by IMSLP",
+      "territoryRiskKo": "needs-legal-review",
+      "allowedForMvpExperiment": true,
+      "notes": "Manual download placeholder."
+    }
+  ]
+}

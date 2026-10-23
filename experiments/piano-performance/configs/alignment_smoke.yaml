@@ -1,0 +1,5 @@
+local_manifest: data/manifest.example.json
+candidate_id: chopin-impromptu-1-op29-levy
+method: simple-onset
+output_dir: runs/alignment-smoke
+seconds_per_beat: 0.5

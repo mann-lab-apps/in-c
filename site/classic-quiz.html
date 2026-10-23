@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>in C | 클래식 빨리 맞추기</title>
+    <meta
+      name="description"
+      content="하루 10문제, 짧은 클래식 클립을 듣고 작곡가와 곡명을 빠르게 맞히는 한국어 음악 퀴즈입니다."
+    />
+    <link rel="canonical" href="https://in-c.mannlab.app/classic-quiz.html" />
+    <meta property="og:title" content="in C | 클래식 빨리 맞추기" />
+    <meta
+      property="og:description"
+      content="아는 멜로디를 10문제 안에 발견하는 클래식 듣기 퀴즈."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://in-c.mannlab.app/classic-quiz.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta property="og:image:alt" content="in C 클래식 빨리 맞추기" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="in C | 클래식 빨리 맞추기" />
+    <meta
+      name="twitter:description"
+      content="하루 10문제, 짧은 클래식 클립을 듣고 작곡가와 곡명을 빠르게 맞히는 한국어 음악 퀴즈입니다."
+    />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta name="twitter:image:alt" content="in C 클래식 빨리 맞추기" />
+    <meta name="theme-color" content="#b43d2f" />
+    <link rel="manifest" href="./classic-quiz.webmanifest" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="classic-quiz-page">
+    <div data-site-header data-site-root="./"></div>
+
+    <main id="top" class="classic-quiz-shell">
+      <section class="classic-game" aria-labelledby="classic-quiz-title">
+        <div class="classic-game__topbar">
+          <div>
+            <p class="classic-game__kicker">클래식 10문제</p>
+            <h1 id="classic-quiz-title">이 멜로디, 누구 곡?</h1>
+          </div>
+          <div class="classic-session-stats" aria-label="현재 세션">
+            <span data-progress-label>대기</span>
+            <span data-score-label>0점</span>
+            <span data-timer-label>0.0초</span>
+          </div>
+        </div>
+
+        <div class="classic-progress" aria-hidden="true">
+          <span data-progress-bar></span>
+        </div>
+
+        <div class="classic-mode-switch" role="group" aria-label="퀴즈 모드">
+          <button type="button" data-mode-choice="daily" aria-pressed="true">
+            데일리
+          </button>
+          <button type="button" data-mode-choice="composer" aria-pressed="false">
+            작곡가 연습
+          </button>
+          <button type="button" data-mode-choice="title" aria-pressed="false">
+            곡명 연습
+          </button>
+        </div>
+
+        <section class="classic-stage" aria-live="polite">
+          <div class="classic-panel classic-panel--start" data-panel="intro">
+            <div class="classic-start-copy">
+              <p class="classic-panel__eyebrow">운명 · 사계 봄 · 월광 · 터키 행진곡</p>
+              <h2>오늘의 10문제 시작</h2>
+              <p>
+                쉬운 4지선다에서 출발해 시대, 장르, 자동완성, 주관식까지 올라갑니다.
+              </p>
+            </div>
+            <div class="classic-daily-card">
+              <div>
+                <span>오늘 남은 도전</span>
+                <strong data-daily-status>1회</strong>
+                <small data-daily-next>자정에 다시 열려요</small>
+              </div>
+              <button class="classic-secondary-action" type="button" data-enable-reminder>
+                회복 알림 받기
+              </button>
+            </div>
+            <div class="classic-daily-mini" aria-label="데일리 기록">
+              <span data-daily-streak>연속 0일</span>
+              <span data-daily-best>데일리 최고 0점</span>
+              <span data-daily-last>최근 데일리 없음</span>
+            </div>
+            <div class="classic-last-result" data-last-result>
+              <span>최근 기록</span>
+              <strong>아직 없음</strong>
+            </div>
+            <div class="classic-review-card" data-review-card hidden>
+              <div>
+                <span>오답 노트</span>
+                <strong data-review-count>최근 오답 0곡</strong>
+                <small>데일리 제한 없이 다시 들을 수 있어요</small>
+              </div>
+              <button class="classic-secondary-action" type="button" data-start-review>
+                오답 복습
+              </button>
+            </div>
+            <button class="classic-primary-action" type="button" data-start-selected>
+              ▶ 오늘 도전 시작
+            </button>
+          </div>
+
+          <div class="classic-panel classic-panel--question" data-panel="question" hidden>
+            <div class="classic-question-head">
+              <div>
+                <p class="classic-panel__eyebrow" data-difficulty-label>입문 · 6초</p>
+                <h2 data-question-title>작곡가를 맞혀보세요</h2>
+                <p class="classic-round-brief" data-round-brief>
+                  오늘의 코스가 여기서 시작됩니다.
+                </p>
+              </div>
+              <span class="classic-audio-status" data-audio-status>데모 클립</span>
+            </div>
+
+            <button class="classic-player" type="button" data-play-clip>
+              <span class="classic-player__icon" aria-hidden="true">▶</span>
+              <span class="classic-player__copy">
+                <strong data-play-label>클립 듣기</strong>
+                <small data-listening-hint data-play-hint>가장 먼저 떠오르는 이름을 고르세요</small>
+              </span>
+              <span class="classic-player__rings" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </span>
+            </button>
+
+            <div class="classic-wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span>
+            </div>
+
+            <div class="classic-answer-grid" data-answer-grid></div>
+            <form class="classic-input-answer" data-input-answer hidden>
+              <label for="classic-answer-input" data-input-label>정답 입력</label>
+              <div class="classic-input-row">
+                <input
+                  id="classic-answer-input"
+                  type="text"
+                  data-answer-input
+                  autocomplete="off"
+                  inputmode="text"
+                  placeholder="떠오르는 답을 입력"
+                />
+                <button class="classic-primary-action" type="submit">제출</button>
+              </div>
+              <div class="classic-suggestion-list" data-suggestion-list hidden></div>
+            </form>
+          </div>
+
+          <div class="classic-panel classic-panel--feedback" data-panel="feedback" hidden>
+            <p class="classic-feedback-result" data-feedback-result>정답</p>
+            <h2 data-feedback-title></h2>
+            <p class="classic-feedback-subtitle" data-feedback-work></p>
+            <p data-feedback-body></p>
+            <p class="classic-feedback-confusion" data-feedback-confusion></p>
+            <p class="classic-score-detail" data-feedback-score-detail></p>
+            <div class="classic-meta-row">
+              <span data-feedback-era></span>
+              <span data-feedback-familiar></span>
+              <span data-feedback-license></span>
+            </div>
+            <a class="classic-source-link" data-feedback-source href="#" target="_blank" rel="noreferrer" hidden>
+              음원 출처 보기
+            </a>
+            <button class="classic-primary-action" type="button" data-next-question>
+              다음 문제 →
+            </button>
+          </div>
+
+          <div class="classic-panel classic-panel--result" data-panel="result" hidden>
+            <p class="classic-panel__eyebrow">결과</p>
+            <h2 data-result-title>10문제 완료</h2>
+            <div class="classic-result-grid">
+              <div>
+                <span>점수</span>
+                <strong data-result-score>0점</strong>
+              </div>
+              <div>
+                <span>정답률</span>
+                <strong data-result-accuracy>0%</strong>
+              </div>
+              <div>
+                <span>평균 응답</span>
+                <strong data-result-average>0.0초</strong>
+              </div>
+            </div>
+            <div class="classic-daily-summary" data-daily-summary></div>
+            <div class="classic-training-tip" data-training-tip></div>
+            <div class="classic-round-breakdown" data-round-breakdown></div>
+            <div class="classic-misses" data-misses></div>
+            <div class="classic-result-actions">
+              <button class="classic-primary-action" type="button" data-start-selected>
+                다시 도전
+              </button>
+              <button class="classic-secondary-action" type="button" data-retry-misses hidden>
+                오답만 다시
+              </button>
+              <button class="classic-secondary-action" type="button" data-start-practice="composer">
+                작곡가 연습
+              </button>
+              <button class="classic-secondary-action" type="button" data-start-practice="title">
+                곡명 연습
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="classic-next-steps" aria-label="다음 단계">
+          <span>1-2R 4지선다</span>
+          <span>3-4R 시대·장르</span>
+          <span>7-8R 자동완성</span>
+          <span>9-10R 주관식</span>
+          <a href="./classic-quiz-credits.html">음원 크레딧</a>
+        </section>
+      </section>
+    </main>
+
+    <div data-site-footer data-site-root="./"></div>
+    <script type="module" src="./classic-quiz.js"></script>
+  </body>
+</html>

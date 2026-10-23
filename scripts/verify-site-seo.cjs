@@ -1,4 +1,4 @@
-const { existsSync, readdirSync, readFileSync } = require('node:fs')
+const { existsSync, readFileSync } = require('node:fs')
 const { resolve } = require('node:path')
 
 const siteRoot = resolve(__dirname, '../site')
@@ -91,29 +91,9 @@ function verifyPage({ filePath, publicPath }) {
 function getPages() {
   const pages = [
     { filePath: 'index.html', publicPath: 'index.html' },
-    { filePath: 'columns.html', publicPath: 'columns.html' },
-    { filePath: 'concerts.html', publicPath: 'concerts.html' },
-    { filePath: 'community.html', publicPath: 'community.html' },
-    { filePath: 'community-post.html', publicPath: 'community-post.html' },
-    { filePath: 'community-write.html', publicPath: 'community-write.html' },
-    { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
-    { filePath: 'login.html', publicPath: 'login.html' },
-    { filePath: 'utility-apps.html', publicPath: 'utility-apps.html' },
-    { filePath: 'metronome.html', publicPath: 'metronome.html' },
-    { filePath: 'in-c-click-privacy.html', publicPath: 'in-c-click-privacy.html' },
     { filePath: 'support.html', publicPath: 'support.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
-
-  const columnsRoot = resolve(siteRoot, 'columns')
-  for (const entry of readdirSync(columnsRoot, { withFileTypes: true })) {
-    if (entry.isFile() && entry.name.endsWith('.html') && !entry.name.startsWith('_')) {
-      pages.push({
-        filePath: `columns/${entry.name}`,
-        publicPath: `columns/${entry.name}`
-      })
-    }
-  }
 
   return pages
 }

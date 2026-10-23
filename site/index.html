@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>in C | 클래식 감상 글</title>
+    <title>in C | 음악앱 공연 정보 홍보 시스템</title>
     <meta
       name="description"
-      content="클래식 감상 글을 모아둔 in C 홈입니다."
+      content="in C에 포함된 음악앱의 배너 공간에 공연·연주회 정보를 노출해, 연관성 높은 사용자에게 공연 소식을 전합니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/index.html" />
-    <meta property="og:title" content="in C | 클래식 감상 글" />
+    <meta property="og:title" content="in C | 음악앱 공연 정보 홍보 시스템" />
     <meta
       property="og:description"
-      content="클래식 감상 글을 모아둔 in C 홈."
+      content="Clef & Staff와 Chromatics 같은 in C 앱의 배너 공간에서 공연·연주회 정보를 관련 있는 사용자에게 소개합니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/index.html" />
@@ -21,28 +21,24 @@
     <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta property="og:image:alt" content="in C 앱 아이콘" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="in C | 클래식 감상 글" />
+    <meta name="twitter:title" content="in C | 음악앱 공연 정보 홍보 시스템" />
     <meta
       name="twitter:description"
-      content="클래식 감상 글을 모아둔 in C 홈."
+      content="in C 앱의 배너 공간에서 공연·연주회 정보를 관련 있는 사용자에게 소개합니다."
     />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "Blog",
+        "@type": "ProfessionalService",
         "name": "in C",
-        "description": "클래식 감상 글을 모아둔 in C 홈입니다.",
+        "description": "in C에 포함된 음악앱의 배너 공간에 공연·연주회 정보를 노출해, 연관성 높은 사용자에게 공연 소식을 전합니다.",
         "url": "https://in-c.mannlab.app/index.html",
         "inLanguage": "ko-KR",
-        "publisher": {
+        "provider": {
           "@type": "Organization",
-          "name": "in C"
-        },
-        "author": {
-          "@type": "Organization",
-          "name": "in C"
+          "name": "mann-lab-apps"
         }
       }
     </script>
@@ -50,43 +46,133 @@
     <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body class="opentutorials-home inc-sketch-theme">
+  <body class="small-home">
     <div data-site-header data-site-root="./"></div>
 
-    <main id="top" class="ot-main">
-      <section id="posts" class="ot-section ot-section--recent" aria-label="게시글">
-        <ol class="ot-recent-list">
-          <li>
-            <a href="./columns/choral-symphony-hiphop.html">
-              <span>2026.08.17</span>
-              <strong>합창교향곡이 힙합인 이유</strong>
-              <small>작품 듣기</small>
-            </a>
-          </li>
-          <li>
-            <a href="./columns/repetition-power.html">
-              <span>2026.08.08</span>
-              <strong>반복의 힘</strong>
-              <small>연주회 준비</small>
-            </a>
-          </li>
-          <li>
-            <a href="./columns/genre-appeal.html">
-              <span>2026.08.01</span>
-              <strong>장르의 매력</strong>
-              <small>감상 기준</small>
-            </a>
-          </li>
-          <li>
-            <a href="./columns/starting-to-listen-classical.html">
-              <span>2026.07.25</span>
-              <strong>출발</strong>
-              <small>처음 듣기</small>
-            </a>
-          </li>
-        </ol>
+    <main id="top" class="small-home-main">
+      <section class="small-hero" aria-labelledby="hero-title">
+        <div class="small-hero__copy">
+          <p class="eyebrow">Concert Banner Network</p>
+          <h1 id="hero-title">음악앱의 배너 공간으로 공연 정보를 전합니다</h1>
+          <p>
+            in C는 Clef &amp; Staff와 Chromatics 같은 음악앱의 배너 공간을 활용해
+            공연·연주회 정보를 푸시하는 홍보 시스템입니다. 앱을 쓰는 사용자의
+            음악적 맥락을 바탕으로 더 연관성 높은 관객에게 공연 소식을 전합니다.
+          </p>
+          <div class="small-hero__actions">
+            <a class="button button--secondary" href="./support.html">문의하기</a>
+          </div>
+        </div>
+
+        <aside class="concert-hero-board" aria-label="앱 안 공연 광고 예시">
+          <div class="concert-hero-board__phone">
+            <div class="concert-hero-board__bar"></div>
+            <article class="concert-ad-preview">
+              <span>Sponsored</span>
+              <h2>이번 주말 실내악 연주회</h2>
+              <p>현악 4중주 · 공연 정보 보기</p>
+            </article>
+            <article class="concert-context-card">
+              <strong>Clef &amp; Staff</strong>
+              <p>악보를 보는 흐름 안에서 관련 공연 정보를 조심스럽게 제안합니다.</p>
+            </article>
+          </div>
+        </aside>
       </section>
 
+      <section id="services" class="service-story" aria-labelledby="services-title">
+        <div class="service-story__intro">
+          <p class="eyebrow">Services</p>
+          <h2 id="services-title">in C에 포함되는 앱들의 배너 공간</h2>
+        </div>
+
+        <article class="service-story-row">
+          <div>
+            <p class="eyebrow">Clef &amp; Staff</p>
+            <h3>악보를 보는 사람에게 공연 정보를</h3>
+            <p>
+              악보를 보며 연습하는 사용자는 실제 공연을 들을 가능성이 높은 관객입니다.
+              Clef &amp; Staff 안에서는 악기, 레퍼토리, 연습 맥락을 해치지 않는 배너
+              공간에 공연·연주회 정보를 노출합니다.
+            </p>
+          </div>
+          <figure class="service-visual service-visual--sheet">
+            <img
+              src="./assets/services/clef-ios23-ipad-home.png"
+              alt="Clef &amp; Staff 악보 라이브러리 화면 캡처"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </article>
+
+        <article class="service-story-row service-story-row--reverse">
+          <div>
+            <p class="eyebrow">Chromatics</p>
+            <h3>악보를 만드는 사람에게 관련 공연을</h3>
+            <p>
+              사보와 편곡을 하는 사용자는 레퍼토리, 악기 편성, 창작자 네트워크와
+              연결되어 있습니다. Chromatics에서는 작업 흐름을 방해하지 않는 자리에서
+              연관 공연과 연주회 정보를 배너로 소개합니다.
+            </p>
+          </div>
+          <figure class="service-visual service-visual--score">
+            <img
+              src="./assets/app-preview.svg"
+              alt="Chromatics 악보 편집 화면 캡처"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </article>
+
+        <article class="service-story-row">
+          <div>
+            <p class="eyebrow">Counterpoint</p>
+            <h3>PDF와 이미지 악보를 MusicXML 초안으로</h3>
+            <p>
+              Counterpoint는 PDF, JPG, PNG 악보를 편집 가능한 MusicXML 초안으로
+              변환하는 실험입니다. 변환 결과는 검수 리포트와 함께 내려받고, 이후
+              Chromatics에서 수정하는 흐름으로 확장합니다.
+            </p>
+            <div class="service-story-row__actions">
+              <a class="button button--secondary" href="./counterpoint.html">Counterpoint 열기</a>
+            </div>
+          </div>
+          <figure class="service-visual service-visual--counterpoint" aria-label="Counterpoint 변환 흐름 예시">
+            <div class="counterpoint-service-card">
+              <span>PDF / IMG</span>
+              <strong>OMR job</strong>
+              <em>queued → processing → complete</em>
+            </div>
+            <div class="counterpoint-service-card counterpoint-service-card--score">
+              <span>MusicXML</span>
+              <strong>검수 가능한 초안</strong>
+              <em>download · report · Chromatics ready</em>
+            </div>
+          </figure>
+        </article>
+
+        <article class="service-story-row">
+          <div>
+            <p class="eyebrow">Concert Push</p>
+            <h3>공연 정보는 넓게보다 알맞게</h3>
+            <p>
+              in C의 공연·연주회 광고는 불특정 다수에게 뿌리는 배너가 아니라, 앱을
+              쓰는 사용자의 음악적 관심, 악기, 레퍼토리, 필요할 경우 지역 단서를 기준으로 노출됩니다. 유료 노출은
+              sponsored 또는 promoted로 명확히 표시합니다.
+            </p>
+          </div>
+          <figure class="service-visual service-visual--map">
+            <img
+              src="./assets/posters/one-page-recital.svg"
+              alt="공연·연주회 광고 소재 예시"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </article>
+      </section>
     </main>
 
     <div data-site-footer data-site-root="./"></div>

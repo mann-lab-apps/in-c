@@ -1,6 +1,4 @@
 import { bindTrackedLinks, configureAnalytics } from './analytics.js'
-import { initAuthNavigation } from './auth-nav.js'
-import { initGlobalBanner } from './global-banner.js'
 import { initSiteShell } from './site-shell.js'
 import { initDisabledTooltips } from './tooltip.js'
 
@@ -165,18 +163,10 @@ const renderDownloads = (manifest) => {
   }
 }
 
-const shouldShowGlobalBanner = () =>
-  !document.body.classList.contains('opentutorials-home') &&
-  !document.body.classList.contains('columns-page')
-
 const init = async () => {
   initSiteShell()
-  if (shouldShowGlobalBanner()) {
-    initGlobalBanner()
-  }
   bindTrackedLinks()
   configureAnalytics()
-  initAuthNavigation()
   initDisabledTooltips()
 
   try {

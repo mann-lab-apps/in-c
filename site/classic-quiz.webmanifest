@@ -1,0 +1,18 @@
+{
+  "name": "in C 클래식 빨리 맞추기",
+  "short_name": "클래식퀴즈",
+  "start_url": "./classic-quiz.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#b43d2f",
+  "description": "하루 10문제, 짧은 클래식 클립을 듣고 작곡가와 곡명을 빠르게 맞히는 한국어 음악 퀴즈.",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
