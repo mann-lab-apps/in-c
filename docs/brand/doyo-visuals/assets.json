@@ -1,0 +1,103 @@
+{
+  "status": "Design exploration, not production app assets",
+  "date": "2026-10-22",
+  "generation": "Built-in image_gen; source images preserved",
+  "files": [
+    {
+      "file": "explorations/original-reference.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "9ac658631d1c5aa49a6390ff583e072f7abb0d2bd49c83ea14f084f2bda8f617"
+    },
+    {
+      "file": "explorations/palette-a-cocoa-bluegray.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b655306245ef5eb72f7787698ea67031d3106737f5ae9528df96e24e18322651"
+    },
+    {
+      "file": "explorations/palette-b-navy-terracotta.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "6cc9abb682270e5e0bec18aa3592c61e56f24d40e7f17bd35492eb2b83f69707"
+    },
+    {
+      "file": "explorations/palette-c-plum-rose.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "578b65b79cd7da0f7549f1c8796da289c889408b63276623d6d164ed78786cf1"
+    },
+    {
+      "file": "monochrome-gait-study-v2.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "932b61d21c9f7aee272b25c1c44821f263ce48785960cfb0fa31b95b6d17f85b"
+    },
+    {
+      "file": "monochrome-gait-study-v3.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "8be83111493922d6a9285200d257f67bb72e88590140bc8d0ad15ffca44d77d0"
+    },
+    {
+      "file": "monochrome-gait-study-v4.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5691b5190626d5683ed923d4fb57d96bf2a0680cff1f97aa37ce0310862a4651"
+    },
+    {
+      "file": "monochrome-gait-study.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "bdbe2e87d55203c970ee2f9fcabfa95cbdb30e019cf5bb67dec051c3dd895625"
+    },
+    {
+      "file": "palettes/a-cocoa-bluegray.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "165df85fefb7bbda4f399532fea1f437b16adf01b7cb3c7a9914471874c0db60"
+    },
+    {
+      "file": "palettes/a-rhythmic-banner.png",
+      "width": 2162,
+      "height": 727,
+      "sha256": "0dc3d6df2adcd883b115f5b0d8a7fbb94165fcf11ec5bdf66103c43e0043d6c4"
+    },
+    {
+      "file": "palettes/b-navy-terracotta.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "98379cc6c45372c3dc8e65942336fd6610d75ba806ab48b9cc34437a3a61c6a8"
+    },
+    {
+      "file": "palettes/c-plum-rose.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "82aab8c072c62e26f101a6da959b64c8884590c1e66e0e54e99fd25387cdf6c7"
+    },
+    {
+      "file": "rhythmic-banner-v2.png",
+      "width": 2164,
+      "height": 727,
+      "sha256": "7ca0f1d2aa8a2a12915c920b16f95bbfadc78928612dfacec359ddd16b522844"
+    },
+    {
+      "file": "rhythmic-banner-v3.png",
+      "width": 2163,
+      "height": 727,
+      "sha256": "f0e9656a0c21f30d2221c2aaaa44fb2d3b29f58e8002833e460c91bd27f52e67"
+    },
+    {
+      "file": "rhythmic-banner-v4.png",
+      "width": 2163,
+      "height": 727,
+      "sha256": "46e12bbf620c5483f34fa478c07fb2991c95f45658879837dad2ed9f72da87a1"
+    },
+    {
+      "file": "rhythmic-banner.png",
+      "width": 2164,
+      "height": 727,
+      "sha256": "b1f760395d4e3685b5c7f6bd0453f8729808e47b492824b05f9128db71236453"
+    }
+  ]
+}

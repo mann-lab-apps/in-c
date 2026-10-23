@@ -5,6 +5,7 @@ import 'dart:ui' as ui show Canvas;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
+import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
@@ -80,23 +81,22 @@ Future<int> _readPdfFileRange(
 }
 
 class InCSheetApp extends StatelessWidget {
-  const InCSheetApp({required this.controller, super.key});
+  const InCSheetApp({required this.controller, this.fontFamily, super.key});
 
   final SheetLibraryController controller;
+  final String? fontFamily;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Clef & Staff',
+      title: '띠로리 스코어',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xff2f6f73),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xfffbfbf7),
-        useMaterial3: true,
+      theme: ddiroriTheme(fontFamily: fontFamily),
+      darkTheme: ddiroriTheme(
+        brightness: Brightness.dark,
+        fontFamily: fontFamily,
       ),
+      themeMode: ThemeMode.system,
       home: SheetLibraryScreen(controller: controller),
     );
   }
@@ -469,9 +469,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${imported.length}개 PDF를 Clef & Staff 라이브러리에 추가했습니다.'),
-      ),
+      SnackBar(content: Text('${imported.length}개 PDF를 띠로리 스코어 악보함에 추가했습니다.')),
     );
     await _openScore(imported.first);
   }
@@ -1160,103 +1158,128 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             final isWide = constraints.maxWidth >= 720;
             return Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isWide ? 1120 : 640),
+                constraints: BoxConstraints(
+                  maxWidth: isWide ? DdiroriTokens.layout['contentMax']! : 640,
+                ),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    isWide ? 28 : 16,
+                    isWide
+                        ? DdiroriTokens.layout['pageGutterWide']!
+                        : DdiroriTokens.layout['pageGutter']!,
                     12,
-                    isWide ? 28 : 16,
+                    isWide
+                        ? DdiroriTokens.layout['pageGutterWide']!
+                        : DdiroriTokens.layout['pageGutter']!,
                     96,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SearchField(
-                        query: controller.query,
-                        onChanged: controller.updateQuery,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryProfileBar(
-                        activeLibrary: controller.activeLibraryProfile.name,
-                        visibleCount: scores.length,
-                        totalCount: controller.scores.length,
-                        onPressed: _showLibrarySwitcher,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryViewBar(
-                        settings: controller.libraryViewSettings,
-                        onSortPressed: _selectSortMode,
-                        onFavoriteChanged: controller.updateFavoriteFilter,
-                        onTagPressed: _selectTagFilter,
-                        onCollectionPressed: _selectCollectionFilter,
-                        onGroupPressed: _selectGroupFilter,
-                        onRatingPressed: _selectRatingFilter,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryFacetExplorer(
-                        collectionFacets: controller.collectionFacets,
-                        groupFacets: controller.groupFacets,
-                        ratingFacets: controller.ratingFacets,
-                        selectedCollection:
-                            controller.libraryViewSettings.collectionQuery,
-                        selectedGroup:
-                            controller.libraryViewSettings.groupQuery,
-                        selectedMinimumRating:
-                            controller.libraryViewSettings.minimumRating,
-                        onCollectionSelected: controller.updateCollectionFilter,
-                        onGroupSelected: controller.updateGroupFilter,
-                        onRatingSelected: controller.updateMinimumRatingFilter,
-                      ),
-                      const SizedBox(height: 14),
-                      if (controller.errorMessage != null)
-                        _NoticeBanner(message: controller.errorMessage!),
-                      if (controller.errorMessage != null)
-                        const SizedBox(height: 12),
-                      if (!controller.isLoading &&
-                          (controller.pinnedScores.isNotEmpty ||
-                              controller.favoriteScores.isNotEmpty ||
-                              controller.recentScores.isNotEmpty)) ...[
-                        _QuickAccessBand(
-                          pinnedScores: controller.pinnedScores
-                              .take(8)
-                              .toList(growable: false),
-                          favoriteScores: controller.favoriteScores
-                              .take(8)
-                              .toList(growable: false),
-                          recentScores: controller.recentScores
-                              .take(8)
-                              .toList(growable: false),
-                          onOpen: _openScore,
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-                      Expanded(
-                        child: controller.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : scores.isEmpty
-                            ? _EmptyLibrary(
-                                hasQuery: controller.query.isNotEmpty,
-                                hasFilter:
-                                    controller.libraryViewSettings.hasAnyFilter,
-                                onImportPressed: _showImportOptions,
-                                onClearPressed:
-                                    controller.clearLibrarySearchAndFilters,
-                                onTesterInfoPressed: _showTesterInfo,
-                              )
-                            : _ScoreGrid(
-                                scores: scores,
-                                isWide: isWide,
+                  child: NestedScrollView(
+                    headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const DdiroriProductSignature(
+                              product: DdiroriProduct.score,
+                              name: '띠로리 스코어',
+                              subtitle: '연습부터 공연까지, 내 악보함',
+                            ),
+                            const SizedBox(height: 16),
+                            _SearchField(
+                              query: controller.query,
+                              onChanged: controller.updateQuery,
+                            ),
+                            SizedBox(height: DdiroriTokens.layout['itemGap']),
+                            _LibraryProfileBar(
+                              activeLibrary:
+                                  controller.activeLibraryProfile.name,
+                              visibleCount: scores.length,
+                              totalCount: controller.scores.length,
+                              onPressed: _showLibrarySwitcher,
+                            ),
+                            SizedBox(height: DdiroriTokens.layout['itemGap']),
+                            _LibraryViewBar(
+                              settings: controller.libraryViewSettings,
+                              onSortPressed: _selectSortMode,
+                              onFavoriteChanged:
+                                  controller.updateFavoriteFilter,
+                              onTagPressed: _selectTagFilter,
+                              onCollectionPressed: _selectCollectionFilter,
+                              onGroupPressed: _selectGroupFilter,
+                              onRatingPressed: _selectRatingFilter,
+                            ),
+                            SizedBox(height: DdiroriTokens.layout['itemGap']),
+                            _LibraryFacetExplorer(
+                              collectionFacets: controller.collectionFacets,
+                              groupFacets: controller.groupFacets,
+                              ratingFacets: controller.ratingFacets,
+                              selectedCollection: controller
+                                  .libraryViewSettings
+                                  .collectionQuery,
+                              selectedGroup:
+                                  controller.libraryViewSettings.groupQuery,
+                              selectedMinimumRating:
+                                  controller.libraryViewSettings.minimumRating,
+                              onCollectionSelected:
+                                  controller.updateCollectionFilter,
+                              onGroupSelected: controller.updateGroupFilter,
+                              onRatingSelected:
+                                  controller.updateMinimumRatingFilter,
+                            ),
+                            SizedBox(height: DdiroriTokens.spacing['lg']),
+                            if (controller.errorMessage != null)
+                              _NoticeBanner(message: controller.errorMessage!),
+                            if (controller.errorMessage != null)
+                              const SizedBox(height: 12),
+                            if (!controller.isLoading &&
+                                (controller.pinnedScores.isNotEmpty ||
+                                    controller.favoriteScores.isNotEmpty ||
+                                    controller.recentScores.isNotEmpty)) ...[
+                              _QuickAccessBand(
+                                pinnedScores: controller.pinnedScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                favoriteScores: controller.favoriteScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                recentScores: controller.recentScores
+                                    .take(8)
+                                    .toList(growable: false),
                                 onOpen: _openScore,
-                                onFavorite: controller.toggleFavorite,
-                                onPin: controller.togglePinned,
-                                isSelecting: _isBulkSelecting,
-                                selectedIds: _bulkSelectedScoreIds,
-                                onSelectionChanged: _toggleBulkScoreSelection,
-                                onEdit: _editScore,
-                                onShare: _shareScore,
                               ),
+                              SizedBox(height: DdiroriTokens.spacing['lg']),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
+                    body: controller.isLoading
+                        ? const Center(
+                            child: DdiroriProgress(label: '악보함을 불러오는 중'),
+                          )
+                        : scores.isEmpty
+                        ? _EmptyLibrary(
+                            hasQuery: controller.query.isNotEmpty,
+                            hasError: controller.errorMessage != null,
+                            onReloadPressed: controller.load,
+                            hasFilter:
+                                controller.libraryViewSettings.hasAnyFilter,
+                            onImportPressed: _showImportOptions,
+                            onClearPressed:
+                                controller.clearLibrarySearchAndFilters,
+                            onTesterInfoPressed: _showTesterInfo,
+                          )
+                        : _ScoreGrid(
+                            scores: scores,
+                            isWide: isWide,
+                            onOpen: _openScore,
+                            onFavorite: controller.toggleFavorite,
+                            onPin: controller.togglePinned,
+                            isSelecting: _isBulkSelecting,
+                            selectedIds: _bulkSelectedScoreIds,
+                            onSelectionChanged: _toggleBulkScoreSelection,
+                            onEdit: _editScore,
+                            onShare: _shareScore,
+                          ),
                   ),
                 ),
               ),
@@ -1268,59 +1291,16 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 }
 
-class _SearchField extends StatefulWidget {
+class _SearchField extends StatelessWidget {
   const _SearchField({required this.query, required this.onChanged});
-
   final String query;
   final ValueChanged<String> onChanged;
-
   @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.query);
-  }
-
-  @override
-  void didUpdateWidget(covariant _SearchField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.query != _controller.text) {
-      _controller.text = widget.query;
-      _controller.selection = TextSelection.collapsed(
-        offset: _controller.text.length,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      onChanged: widget.onChanged,
-      decoration: InputDecoration(
-        hintText: '제목, 작곡가, 태그, 컬렉션, 사용자 필드 검색',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => DdiroriSearch(
+    value: query,
+    onChanged: onChanged,
+    label: '제목, 작곡가, 태그, 컬렉션, 사용자 필드 검색',
+  );
 }
 
 String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
@@ -1382,7 +1362,7 @@ class _LibraryProfileBar extends StatelessWidget {
         ? '$totalCount곡'
         : '$visibleCount곡 표시 · 전체 $totalCount곡';
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
@@ -1611,7 +1591,7 @@ class _LibraryFacetExplorer extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -1749,26 +1729,10 @@ IconData _librarySortIcon(SheetLibrarySortMode sortMode) {
 
 class _NoticeBanner extends StatelessWidget {
   const _NoticeBanner({required this.message});
-
   final String message;
-
   @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xfffff0e8),
-        border: Border.all(color: const Color(0xffe7b599)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      DdiroriBanner(message: message, kind: DdiroriNoticeKind.error);
 }
 
 Future<String?> _showTextEntryDialog({
@@ -2374,92 +2338,54 @@ IconData _shareCandidateIcon(SheetScoreShareCandidate candidate) {
 class _EmptyLibrary extends StatelessWidget {
   const _EmptyLibrary({
     required this.hasQuery,
+    required this.hasError,
+    required this.onReloadPressed,
     required this.hasFilter,
     required this.onImportPressed,
     required this.onClearPressed,
     required this.onTesterInfoPressed,
   });
-
-  final bool hasQuery;
-  final bool hasFilter;
-  final VoidCallback onImportPressed;
-  final VoidCallback onClearPressed;
-  final VoidCallback onTesterInfoPressed;
-
+  final bool hasQuery, hasFilter, hasError;
+  final Future<void> Function() onReloadPressed;
+  final VoidCallback onImportPressed, onClearPressed, onTesterInfoPressed;
   @override
   Widget build(BuildContext context) {
-    final isFilteredEmpty = hasQuery || hasFilter;
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+    final filtered = hasQuery || hasFilter;
+    return SingleChildScrollView(
+      child: DdiroriStatePanel(
+        bach: !filtered && !hasError,
+        error: hasError,
+        title: hasError
+            ? '악보함을 확인해 주세요.'
+            : filtered
+            ? '조건에 맞는 악보가 없습니다.'
+            : '첫 악보를 펼쳐볼까요?',
+        message: hasError
+            ? '위 오류 안내를 확인한 뒤 악보함을 다시 불러와 주세요.'
+            : filtered
+            ? '검색어나 필터를 바꾸면 다른 악보를 찾을 수 있어요.'
+            : 'PDF 또는 JPG/PNG 이미지를 가져와 내 악보함을 채워보세요.',
+        action: hasError
+            ? DdiroriButton(label: '다시 불러오기', onPressed: onReloadPressed)
+            : filtered
+            ? DdiroriButton(
+                label: '검색/필터 초기화',
+                onPressed: onClearPressed,
+                kind: DdiroriButtonKind.secondary,
+              )
+            : Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
                 children: [
-                  Icon(
-                    hasQuery ? Icons.search_off : Icons.library_music_outlined,
-                    size: 58,
-                    color: Theme.of(context).colorScheme.primary,
+                  DdiroriButton(label: '악보 추가', onPressed: onImportPressed),
+                  DdiroriButton(
+                    label: '테스트 항목',
+                    onPressed: onTesterInfoPressed,
+                    kind: DdiroriButtonKind.secondary,
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    isFilteredEmpty
-                        ? '조건에 맞는 악보가 없습니다.'
-                        : '악보를 추가해 테스트를 시작하세요.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  if (isFilteredEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 18),
-                    OutlinedButton.icon(
-                      onPressed: onClearPressed,
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                      label: const Text('검색/필터 초기화'),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: onImportPressed,
-                          icon: const Icon(Icons.add_to_photos_outlined),
-                          label: const Text('악보 추가'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: onTesterInfoPressed,
-                          icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('테스트 항목'),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -2580,7 +2506,7 @@ pageMetadataScores=$pageMetadataCount
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef & Staff 테스트 정보',
+                  '띠로리 스코어 테스트 정보',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -2589,7 +2515,7 @@ pageMetadataScores=$pageMetadataCount
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(label: '앱', value: 'Clef & Staff'),
+          _InfoRow(label: '앱', value: '띠로리 스코어 (이전 Clef & Staff)'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: 'Beta test build'),
           _InfoRow(label: '악보', value: '${scores.length}개'),
@@ -2837,7 +2763,7 @@ class _QuickAccessBand extends StatelessWidget {
 
     final theme = Theme.of(context);
     return SizedBox(
-      height: 148,
+      height: _quickAccessHeight(context),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
@@ -2846,7 +2772,7 @@ class _QuickAccessBand extends StatelessWidget {
             width: 350,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withValues(
@@ -2898,6 +2824,33 @@ class _QuickAccessBand extends StatelessWidget {
       ),
     );
   }
+}
+
+// Reserve title, metadata and page rows using actual text metrics at the current scale.
+double _quickAccessHeight(BuildContext context) {
+  final text = Theme.of(context).textTheme;
+  double measure(TextStyle? style, {int lines = 1}) {
+    final painter = TextPainter(
+      text: TextSpan(text: List.filled(lines, '가').join('\n'), style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final height = painter.height;
+    painter.dispose();
+    return height;
+  }
+
+  final header = measure(text.labelLarge).clamp(18.0, double.infinity);
+  final footer = measure(text.labelSmall).clamp(14.0, double.infinity);
+  return 20 +
+      header +
+      8 +
+      20 +
+      measure(text.bodyMedium, lines: 2) +
+      4 +
+      measure(text.bodySmall) +
+      8 +
+      footer;
 }
 
 class _QuickAccessGroup {
@@ -3238,9 +3191,9 @@ class _ScoreGrid extends StatelessWidget {
     }
 
     return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
-        mainAxisExtent: 150,
+        mainAxisExtent: 216 * MediaQuery.textScalerOf(context).scale(1),
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -3301,7 +3254,7 @@ class _ScoreTile extends StatelessWidget {
     ];
 
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -3419,7 +3372,7 @@ class _ScoreTile extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 footerParts.join(' · '),
                 maxLines: 1,
@@ -3592,7 +3545,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
                 itemBuilder: (context, index) {
                   final setlist = setlists[index];
                   return ListTile(
-                    tileColor: Colors.white,
+                    tileColor: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -3869,7 +3822,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 itemBuilder: (context, index) {
                   final score = scores[index];
                   return ListTile(
-                    tileColor: Colors.white,
+                    tileColor: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -14655,7 +14608,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       ),
       SheetTunerInputStatus.permissionDenied => (
         icon: Icons.mic_off_outlined,
-        label: '설정에서 Clef & Staff 마이크 권한을 허용해주세요',
+        label: '설정에서 띠로리 스코어 마이크 권한을 허용해주세요',
       ),
       SheetTunerInputStatus.audioPipelineUnavailable => (
         icon: Icons.error_outline,

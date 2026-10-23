@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-23T12:41:56.606Z",
+  "checks": [
+    "violet/light: same neutral canvas; screenshot recorded",
+    "blue/light: same neutral canvas; screenshot recorded",
+    "teal/light: same neutral canvas; screenshot recorded",
+    "coral/light: same neutral canvas; screenshot recorded",
+    "yellow/light: same neutral canvas; screenshot recorded",
+    "lime/light: same neutral canvas; screenshot recorded",
+    "violet/dark: same neutral canvas; screenshot recorded",
+    "blue/dark: same neutral canvas; screenshot recorded",
+    "teal/dark: same neutral canvas; screenshot recorded",
+    "coral/dark: same neutral canvas; screenshot recorded",
+    "yellow/dark: same neutral canvas; screenshot recorded",
+    "lime/dark: same neutral canvas; screenshot recorded",
+    "selection has checkbox + accent, and persists across palette switches",
+    "search/reset uses common components",
+    "favorite filter and dialog keyboard dismissal",
+    "compact and reduced motion",
+    "390px no horizontal overflow",
+    "200% root text on 390px"
+  ],
+  "errors": []
+}

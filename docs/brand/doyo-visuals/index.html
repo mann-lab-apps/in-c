@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>도요 로고와 리듬 실루엣 비교</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f7f4ef;color:#3e332f;font:16px/1.65 system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif}
+    main{max-width:1440px;margin:auto;padding:40px 24px 72px}
+    h1{font-size:32px;letter-spacing:-1px;margin:0 0 8px}
+    h2{font-size:22px;margin:32px 0 12px}
+    p{margin:0 0 20px}
+    .status{font-size:13px;color:#66594e}
+    figure{margin:0 0 32px}
+    img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #dbd4ca}
+    figcaption{margin:10px 0;font-size:14px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    details{border-top:1px solid #bfb6aa;padding-top:20px;margin-top:40px}
+    summary{cursor:pointer;font-weight:650;margin-bottom:20px}
+    a{color:inherit;text-underline-offset:3px}
+    a:focus-visible,summary:focus-visible{outline:3px solid #3e332f;outline-offset:5px}
+    @media(max-width:700px){main{padding:24px 16px 48px}.grid{grid-template-columns:1fr}h1{font-size:26px}}
+  </style>
+</head>
+<body>
+  <main>
+    <p class="status">2026-10-22 · 코코아·블루그레이 선택 · 제품 미적용</p>
+    <h1>도요, 들썩이는 실루엣</h1>
+    <p>단색의 새와 다리의 접힘·폄으로 리듬을 만든다. 사용자가 선택한 A 코코아·블루그레이를 기준으로 한다.</p>
+    <p><a href="palette.html">선택 팔레트와 밝은·다크 화면 보기</a> · <a href="PALETTE.md">색상 적용 원칙</a> · <a href="palette.json">HEX 토큰</a></p>
+    <figure><a href="palettes/a-cocoa-bluegray.png"><img src="palettes/a-cocoa-bluegray.png" alt="배선을 올리고 머리와 부리를 앞으로 편 단색 도요의 리듬 포즈"></a><figcaption>선택 팔레트 A — 코코아의 새와 블루그레이 배경. 형태는 배선을 올리고 머리·부리를 앞으로 편 v4를 기준으로 한다. 연속 애니메이션이 아닌 콘셉트 보드다.</figcaption></figure>
+    <h2>배너 적용</h2>
+    <figure><a href="palettes/a-rhythmic-banner.png"><img src="palettes/a-rhythmic-banner.png" alt="수직 지지 다리와 앞으로 내딛는 앞발을 반영한 도요 리듬 배너"></a><figcaption>코코아 단색의 새, 블루그레이·모래색 배경으로 배너를 정리했다.</figcaption></figure>
+    <p>이전 자세와 비교: <a href="monochrome-gait-study-v4.png">로고 v4</a> · <a href="rhythmic-banner-v4.png">배너 v4</a> · <a href="monochrome-gait-study-v3.png">로고 v3</a> · <a href="rhythmic-banner-v3.png">배너 v3</a> · <a href="monochrome-gait-study-v2.png">로고 v2</a> · <a href="rhythmic-banner-v2.png">배너 v2</a> · <a href="monochrome-gait-study.png">로고 v1</a> · <a href="rhythmic-banner.png">배너 v1</a></p>
+    <details>
+      <summary>앞선 팔레트 비교 기록 보기</summary>
+      <p>색 분할형 새를 사용했던 이전 탐색이다. 현재 단색 방향의 확정 팔레트가 아니다.</p>
+      <div class="grid">
+        <figure><img src="explorations/original-reference.png" alt="최초 청록·살구 도요 시안" loading="lazy"><figcaption>원본 — 형태와 글자의 비교 기준</figcaption></figure>
+        <figure><img src="explorations/palette-a-cocoa-bluegray.png" alt="A 코코아·블루그레이 팔레트 시안" loading="lazy"><figcaption>A — 코코아·블루그레이</figcaption></figure>
+        <figure><img src="explorations/palette-b-navy-terracotta.png" alt="B 네이비·테라코타 팔레트 시안" loading="lazy"><figcaption>B — 네이비·테라코타</figcaption></figure>
+        <figure><img src="explorations/palette-c-plum-rose.png" alt="C 플럼·로즈 팔레트 시안" loading="lazy"><figcaption>C — 플럼·로즈</figcaption></figure>
+      </div>
+    </details>
+    <p class="status" style="margin-top:32px"><a href="README.md">설계 방향</a> · <a href="prompts.json">제작 프롬프트</a> · <a href="assets.json">자산 목록</a></p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-23T11:00:07.849Z",
+  "scope": "Local brand gallery in Chromium; CSS masks are geometric previews, not installed platform launchers",
+  "checks": [
+    "7 product identities",
+    "all images loaded",
+    "dark theme",
+    "24px icons and circular mask",
+    "grayscale",
+    "completion replaces loader",
+    "error replaces success",
+    "real progress semantics in example",
+    "reduced motion",
+    "mobile layout 390px",
+    "mobile 200 percent typography"
+  ],
+  "errors": [],
+  "status": "passed"
+}

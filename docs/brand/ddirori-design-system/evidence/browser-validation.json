@@ -1,0 +1,307 @@
+{
+  "date": "2026-10-22T08:03:20.011Z",
+  "scope": "Built React catalog in standalone Chromium; not product or hardware certification",
+  "checks": [
+    {
+      "name": "컴포넌트 light 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 dark 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 dark 390 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 light 840 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 dark 1440 compact 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 light 390 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 390 comfortable 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 light 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 dark 390 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 light 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 dark 840 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 light 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "사보 작업 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "플레이 dark 1440 compact 2 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "악보함 light 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Empty state after query",
+      "result": "pass"
+    },
+    {
+      "name": "Query reset restores items",
+      "result": "pass"
+    },
+    {
+      "name": "Instrument filter changes items",
+      "result": "pass"
+    },
+    {
+      "name": "Title sort applies",
+      "result": "pass"
+    },
+    {
+      "name": "Opening a score updates recents",
+      "result": "pass"
+    },
+    {
+      "name": "Controlled selection callback",
+      "result": "pass"
+    },
+    {
+      "name": "악보 보기 dark 390 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "First page cannot move previous",
+      "result": "pass"
+    },
+    {
+      "name": "Page advances",
+      "result": "pass"
+    },
+    {
+      "name": "Performance mode removes annotation toolbar",
+      "result": "pass"
+    },
+    {
+      "name": "연습 도구 light 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Meter selection updates beat count",
+      "result": "pass"
+    },
+    {
+      "name": "Manual demo advances within selected meter",
+      "result": "pass"
+    },
+    {
+      "name": "Invalid number reports error",
+      "result": "pass"
+    },
+    {
+      "name": "Valid number updates slider",
+      "result": "pass"
+    },
+    {
+      "name": "Tuner has no stale cents on no signal",
+      "result": "pass"
+    },
+    {
+      "name": "컴포넌트 light 1440 comfortable 1 bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Sheet opens as modal",
+      "result": "pass"
+    },
+    {
+      "name": "Modal Tab stays inside",
+      "result": "pass"
+    },
+    {
+      "name": "Escape dismisses sheet",
+      "result": "pass"
+    },
+    {
+      "name": "Modal returns focus",
+      "result": "pass"
+    },
+    {
+      "name": "Focus ring visible",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion stops note pulse",
+      "result": "pass"
+    },
+    {
+      "name": "Scoped CSS leaves outside button native",
+      "result": "pass"
+    },
+    {
+      "name": "Keyboard activates navigation",
+      "result": "pass"
+    },
+    {
+      "name": "Keyboard toggles selection mode",
+      "result": "pass"
+    },
+    {
+      "name": "No asset or runtime errors",
+      "result": "pass"
+    }
+  ],
+  "captures": [
+    "web-0-light.png",
+    "web-1-light.png",
+    "web-2-dark.png",
+    "web-3-dark.png",
+    "web-4-light.png",
+    "web-5-dark.png",
+    "web-6-light.png",
+    "web-7-light.png"
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55",
+  "status": "passed"
+}

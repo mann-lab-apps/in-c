@@ -1,0 +1,220 @@
+{
+  "date": "2026-10-23T12:54:33.001Z",
+  "source": "tokens.json + current palette light/darkProposal + round-4 SVG",
+  "generatedCheck": "passed",
+  "contrastPairs": [
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "background",
+      "ratio": 16.29,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "surface",
+      "ratio": 16.29,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 6.19,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surfaceMuted",
+      "ratio": 5.68,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onAction",
+      "background": "action",
+      "ratio": 6.49,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onAction",
+      "background": "actionHover",
+      "ratio": 8.24,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onAction",
+      "background": "actionPressed",
+      "ratio": 10.58,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onPastel",
+      "background": "sky",
+      "ratio": 10.25,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onPastel",
+      "background": "peach",
+      "ratio": 9.61,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "ratio": 3.95,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "surface",
+      "ratio": 6.49,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "foreground": "success",
+      "background": "surfaceMuted",
+      "ratio": 6.71,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "warning",
+      "background": "surfaceMuted",
+      "ratio": 5.99,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "error",
+      "background": "surfaceMuted",
+      "ratio": 5.64,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "foreground": "onOverlay",
+      "background": "overlay",
+      "ratio": 16.29,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "background",
+      "ratio": 16.29,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "surface",
+      "ratio": 14.59,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 8.02,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surfaceMuted",
+      "ratio": 7.04,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAction",
+      "background": "action",
+      "ratio": 12.55,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAction",
+      "background": "actionHover",
+      "ratio": 13.27,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAction",
+      "background": "actionPressed",
+      "ratio": 14.96,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onPastel",
+      "background": "sky",
+      "ratio": 10.25,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onPastel",
+      "background": "peach",
+      "ratio": 9.61,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "ratio": 4.49,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "surface",
+      "ratio": 12.26,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "foreground": "success",
+      "background": "surfaceMuted",
+      "ratio": 8.18,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "warning",
+      "background": "surfaceMuted",
+      "ratio": 9.2,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "error",
+      "background": "surfaceMuted",
+      "ratio": 7.92,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "foreground": "onOverlay",
+      "background": "overlay",
+      "ratio": 16.29,
+      "minimum": 4.5
+    }
+  ],
+  "linksChecked": 120,
+  "missingLinks": [],
+  "assets": 9
+}

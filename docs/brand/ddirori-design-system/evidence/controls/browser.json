@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "light: pointer selection has check + fill, 14/500 label, 36px height, no focus halo or inset shadow",
+    "light: keyboard ring + Space toggles filter",
+    "dark: pointer selection has check + fill, 14/500 label, 36px height, no focus halo or inset shadow",
+    "dark: keyboard ring + Space toggles filter",
+    "pointer compact 32px",
+    "390px at 200% text without horizontal overflow",
+    "touch target at least 48px"
+  ],
+  "errors": []
+}

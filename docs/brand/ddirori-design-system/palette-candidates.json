@@ -1,0 +1,288 @@
+{
+  "status": "neutral foundation trial; accent selection remains open",
+  "recommended": null,
+  "variants": [
+    {
+      "key": "violet",
+      "name": "바이올렛",
+      "brand": {
+        "primary": "#D0BFFF",
+        "onPrimary": "#202020"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#6741D9",
+        "primaryHover": "#5F3DC4",
+        "primaryPressed": "#5033A6",
+        "onPrimary": "#FFFFFF",
+        "tint": "#F3F0FF",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#D0BFFF",
+        "primaryHover": "#E5DBFF",
+        "primaryPressed": "#F3F0FF",
+        "onPrimary": "#202020",
+        "tint": "#30283F",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "blue",
+      "name": "블루",
+      "brand": {
+        "primary": "#A5D8FF",
+        "onPrimary": "#202020"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#1971C2",
+        "primaryHover": "#1864AB",
+        "primaryPressed": "#155592",
+        "onPrimary": "#FFFFFF",
+        "tint": "#E7F5FF",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#A5D8FF",
+        "primaryHover": "#D0EBFF",
+        "primaryPressed": "#E7F5FF",
+        "onPrimary": "#202020",
+        "tint": "#233344",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "teal",
+      "name": "틸",
+      "brand": {
+        "primary": "#96F2D7",
+        "onPrimary": "#202020"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#087F5B",
+        "primaryHover": "#066849",
+        "primaryPressed": "#05563C",
+        "onPrimary": "#FFFFFF",
+        "tint": "#E6FCF5",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#96F2D7",
+        "primaryHover": "#C3FAE8",
+        "primaryPressed": "#E6FCF5",
+        "onPrimary": "#202020",
+        "tint": "#203A32",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "coral",
+      "name": "코럴",
+      "brand": {
+        "primary": "#FF927E",
+        "onPrimary": "#202020"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#9D4034",
+        "primaryHover": "#853428",
+        "primaryPressed": "#70291F",
+        "onPrimary": "#FFFFFF",
+        "tint": "#FFF0EC",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#FFB4A4",
+        "primaryHover": "#FFD8CE",
+        "primaryPressed": "#FFF0EC",
+        "onPrimary": "#202020",
+        "tint": "#402C28",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "yellow",
+      "name": "옐로",
+      "brand": {
+        "primary": "#F5D45C",
+        "onPrimary": "#202020"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#796000",
+        "primaryHover": "#655000",
+        "primaryPressed": "#524100",
+        "onPrimary": "#FFFFFF",
+        "tint": "#FFF9DB",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#F5D45C",
+        "primaryHover": "#FFEC99",
+        "primaryPressed": "#FFF9DB",
+        "onPrimary": "#202020",
+        "tint": "#393222",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "lime",
+      "name": "라임",
+      "brand": {
+        "primary": "#D5ED70",
+        "onPrimary": "#263125"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "surfaceMuted": "#F5F5F5",
+        "ink": "#202020",
+        "muted": "#616161",
+        "border": "#E5E5E5",
+        "controlBorder": "#808080",
+        "primary": "#52651A",
+        "primaryHover": "#435514",
+        "primaryPressed": "#35440F",
+        "onPrimary": "#FFFFFF",
+        "tint": "#F3F8DD",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#181818",
+        "surface": "#222222",
+        "surfaceMuted": "#2C2C2C",
+        "ink": "#F5F5F5",
+        "muted": "#B8B8B8",
+        "border": "#424242",
+        "controlBorder": "#888888",
+        "primary": "#D5ED70",
+        "primaryHover": "#E3EDBC",
+        "primaryPressed": "#F3F8DD",
+        "onPrimary": "#202020",
+        "tint": "#303624",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    }
+  ]
+}

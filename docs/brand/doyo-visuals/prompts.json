@@ -1,0 +1,148 @@
+{
+  "mode": "built-in image_gen",
+  "date": "2026-10-22",
+  "current": [
+    {
+      "file": "palettes/a-cocoa-bluegray.png",
+      "name": "코코아·블루그레이",
+      "prompt": "Use case: precise-object-edit. Palette-only recolor of the supplied Doyo monochrome branding board.\nPreserve EXACTLY the existing bird silhouettes, raised belly, forward-reaching shallow-angle bills, vertical rear leg and lifted front foot. Preserve ALL typography, wordmark forms, positions, spacing and board layout. Do not redraw, round or cute-ify the bird. Change ONLY colors.\nPalette A, 코코아·블루그레이:\nAll birds and ALL typography use ONE solid dark ink #3E332F. Do not split the bird into colored parts.\nMain board background paper #F7F4EF.\nThree rounded-square icon tile backgrounds from left to right: #A8BECC, #DCC5B0, #E8E0D5. Each tile uses the SAME dark monochrome bird #3E332F.\nBaseline under gait row: #DCC5B0.\nUse clean flat color fields without texture, gradients, shadow or glow. Do not add swatches, labels or captions. Keep the original size and composition. This is a strict color comparison using the already approved forward-stretched silhouette.",
+      "references": [
+        "monochrome-gait-study-v4.png"
+      ]
+    },
+    {
+      "file": "palettes/a-rhythmic-banner.png",
+      "prompt": "Use case: precise-object-edit. Recolor only the supplied Doyo v4 banner to the selected palette A, preserving every bird silhouette, pose, head/bill angle, lifted belly, wordmark, spacing and layout EXACTLY.\nMain paper background #F7F4EF.\nAll birds and all lettering one solid cocoa #3E332F.\nLarge bluegray corner at bottom-left #A8BECC.\nSmall warm sand corner at top-right #DCC5B0.\nFlat clean color fields, no texture, gradients, shadow or glow. Do not change the bird or add details. Preserve the existing banner aspect ratio.",
+      "references": [
+        "rhythmic-banner-v4.png"
+      ]
+    }
+  ],
+  "earlierPaletteStudies": [
+    {
+      "key": "cocoa-bluegray",
+      "name": "A · Cocoa / Blue Gray",
+      "colors": [
+        "#3E332F",
+        "#9BB3C3",
+        "#F6F3ED",
+        "#D8C9B6",
+        "#B8ABB8"
+      ],
+      "prompt": "Use case: precise-object-edit. This is a PALETTE-ONLY edit of input image 1, a finished Korean \"도요 / doyo\" brand board.\nKeep absolutely ALL existing shapes, bird anatomy and exact poses, lettering, Hangul, Latin wordmarks, spacing, panel dimensions, crops, positions, scale, border radii, lines, tiny details, number of birds and the entire layout unchanged. The user specifically likes this original design more than a later overly cute redesign. DO NOT redesign, re-typeset, add anything or make the bird cuter. Do not add dots, smiles, a rounder body, or bubble letters. Only recolor existing regions.\nApply this systematic palette substitution everywhere in the original, including the big bird, all wordmarks, reverse logo panels, app icons, swatches, banner waves, banner birds and product labels:\n1. Original dark teal/ink green #223C3B -> #3E332F.\n2. Original apricot/orange wing #F5B878 -> #9BB3C3.\n3. Original warm cream/paper #FFF6E8 -> #F6F3ED.\n4. Original pale blue #B7D0D7 -> #D8C9B6.\n5. Original sage #C1D0B4 -> #B8ABB8.\nPreserve the original light/dark contrast relationships, original material/edge treatment, antialiasing, canvas aspect ratio and all text exactly: \"도요\", \"doyo\", \"도요 Note\", \"도요 Studio\". Make this a faithful colorway of the SAME original board. No labels identifying this colorway, no extra text, no watermark. Full opaque original canvas, not transparent."
+    },
+    {
+      "key": "navy-terracotta",
+      "name": "B · Navy / Terracotta",
+      "colors": [
+        "#29364A",
+        "#C98465",
+        "#F5F1E9",
+        "#A7B5C1",
+        "#C4B9AA"
+      ],
+      "prompt": "Use case: precise-object-edit. This is a PALETTE-ONLY edit of input image 1, a finished Korean \"도요 / doyo\" brand board.\nKeep absolutely ALL existing shapes, bird anatomy and exact poses, lettering, Hangul, Latin wordmarks, spacing, panel dimensions, crops, positions, scale, border radii, lines, tiny details, number of birds and the entire layout unchanged. The user specifically likes this original design more than a later overly cute redesign. DO NOT redesign, re-typeset, add anything or make the bird cuter. Do not add dots, smiles, a rounder body, or bubble letters. Only recolor existing regions.\nApply this systematic palette substitution everywhere in the original, including the big bird, all wordmarks, reverse logo panels, app icons, swatches, banner waves, banner birds and product labels:\n1. Original dark teal/ink green #223C3B -> #29364A.\n2. Original apricot/orange wing #F5B878 -> #C98465.\n3. Original warm cream/paper #FFF6E8 -> #F5F1E9.\n4. Original pale blue #B7D0D7 -> #A7B5C1.\n5. Original sage #C1D0B4 -> #C4B9AA.\nPreserve the original light/dark contrast relationships, original material/edge treatment, antialiasing, canvas aspect ratio and all text exactly: \"도요\", \"doyo\", \"도요 Note\", \"도요 Studio\". Make this a faithful colorway of the SAME original board. No labels identifying this colorway, no extra text, no watermark. Full opaque original canvas, not transparent."
+    },
+    {
+      "key": "plum-rose",
+      "name": "C · Plum / Dusty Rose",
+      "colors": [
+        "#493C4B",
+        "#CCA3A5",
+        "#F6F0ED",
+        "#B9B1C9",
+        "#C8BCAE"
+      ],
+      "prompt": "Use case: precise-object-edit. This is a PALETTE-ONLY edit of input image 1, a finished Korean \"도요 / doyo\" brand board.\nKeep absolutely ALL existing shapes, bird anatomy and exact poses, lettering, Hangul, Latin wordmarks, spacing, panel dimensions, crops, positions, scale, border radii, lines, tiny details, number of birds and the entire layout unchanged. The user specifically likes this original design more than a later overly cute redesign. DO NOT redesign, re-typeset, add anything or make the bird cuter. Do not add dots, smiles, a rounder body, or bubble letters. Only recolor existing regions.\nApply this systematic palette substitution everywhere in the original, including the big bird, all wordmarks, reverse logo panels, app icons, swatches, banner waves, banner birds and product labels:\n1. Original dark teal/ink green #223C3B -> #493C4B.\n2. Original apricot/orange wing #F5B878 -> #CCA3A5.\n3. Original warm cream/paper #FFF6E8 -> #F6F0ED.\n4. Original pale blue #B7D0D7 -> #B9B1C9.\n5. Original sage #C1D0B4 -> #C8BCAE.\nPreserve the original light/dark contrast relationships, original material/edge treatment, antialiasing, canvas aspect ratio and all text exactly: \"도요\", \"doyo\", \"도요 Note\", \"도요 Studio\". Make this a faithful colorway of the SAME original board. No labels identifying this colorway, no extra text, no watermark. Full opaque original canvas, not transparent."
+    }
+  ],
+  "originalReferencePrompt": "Use case: logo-brand.\nAsset type: a polished landscape brand identity presentation board for a Korean music software family, brand name \"도요\" / \"doyo\". This is an original professional design exploration, not a website screenshot.\nPrimary request: Visualize an excellent Korean and English typographic logo, a simple bird icon logo and a wide brand banner together in one coherent identity board. Figma is a STRUCTURAL reference only: playful geometric primitives, modular shape language, precise typography, family consistency, quiet professional creative-tool confidence. Do not copy Figma's logo, its signature stacked symbol or its rainbow palette.\nBrand: musicians who make, practice, listen and share, with honest creative attempts and their own rhythm. A hint of the gently bobbing woodcock bird meme, but the identity must work as a still graphic. Friendly, witty and grown up, suitable for a serious notation editor and score reader.\nSubject: a woodcock/sandpiper-derived bird mark, NOT a goose or duck: compact rounded plump body, tiny head merging into the body with a short neck, unmistakably LONG thin straight bill, short simple legs with a subtle stepping stance. Reduce to 4–6 confident flat geometric shapes and meaningful negative space. Small eye at most, no baby eyes, no smile, no clothes. An apricot wing or small apricot accent may integrate into an ink-green silhouette. Make it a memorable logo, not a detailed zoological illustration, and readable at app-icon size.\nPalette: ink green #223C3B, warm cream #FFF6E8, apricot #F5B878; restrained accents sky #B7D0D7 and sage #C1D0B4 only. Flat solid fills. No glossy effects, paper texture, gradients, 3D, shadows or noisy grid wallpaper.\nLayout: clean spacious editorial board with carefully aligned panels, generous cream margins. Upper main panel: very large bold Korean \"도요\", balanced lowercase geometric sans \"doyo\", and the main bird mark. Side panel: positive and inverse logo lockups in ink/cream and a rounded-square launcher icon. A small restrained palette strip. Lower wide panel: a real usable campaign-banner concept using the same wordmark and 3 rhythmic poses of the SAME bird, with modular rounded shapes implying movement without musical-note symbols. Include two understated product-name samples \"도요 Note\" and \"도요 Studio\". Make all elements consistent and art-directed, with excellent whitespace and strong hierarchy.\nText verbatim, only these strings as needed: \"도요\", \"doyo\", \"도요 Note\", \"도요 Studio\". Correct Korean Hangul is crucial. DOYO spelled D O Y O. No other slogans or filler text, no fake UI, no arbitrary brand names, no watermark.\nWide 3:2 landscape composition, exceptionally crisp vector-like edges and large legible typography.",
+  "previousMonochromeStudies": [
+    {
+      "file": "monochrome-gait-study.png",
+      "prompt": "Use case: logo-brand.\nAsset: refined landscape logo and rhythmic silhouette study for Korean music app family \"도요\" / \"doyo\".\nInput images 1–3 are MOVEMENT AND POSTURE REFERENCES: the user's woodcock rocking walk. Study the actual long-billed adult bird (not the chicks): compact low horizontal plump body, almost no visible neck, long slim bill pointing gently downward, short legs that alternately compress/bend and extend, making the WHOLE BODY visibly lower and rise. The identity should come from this rhythmic low-to-high SILHOUETTE, not decorated wings or cheerful paint.\nCritical user correction: draw every bird as ONE SOLID INK COLOR ONLY. Use cocoa-charcoal #3E332F as the single ink. No colored belly, no different wing color, no plumage patches, no gradients, no internal feathers, no shadows. A tiny negative-space eye may be used. Use leg/body negative space. The silhouette must be very recognizable in monochrome.\nDesign: cute through proportions and the authentic slightly crouching, bobbing woodcock gait. Not a generic tall standing bird or goose with a lifted marching foot. No long neck, no oversized cartoon feet, no dodo, no smile, no clothes. Keep the same low rounded body, head and beak across poses. Make the difference in BENT LEG ANGLES and resulting body height obvious. The lower/crouched pose has both legs visibly flexed under the body; the extended pose rises with straighter legs while stepping forward. Do not just rotate the entire bird.\nFigma is a structural reference only: clear modular forms, balanced negative space, elegant geometric construction, precise typography. No copied Figma mark or rainbow scheme.\nLayout: professionally designed spacious 3:2 landscape board on an almost-white neutral background #F6F3ED. Top left is a confident large main logo using one slightly compressed/bobbing bird silhouette with bold clean Korean \"도요\" and lowercase geometric sans \"doyo\", matching the original understated strong typographic approach, not bubble font. Top right shows the SAME single-color icon on three restrained background squares: blue-gray #C3CDD5, warm clay #D7B5A3, muted lavender #C9C2D2. These are background color experiments; the bird is the SAME cocoa ink on all three. Do not settle a full palette or add color inside the bird.\nBottom is a large legible four-pose horizontal motion sequence of the SAME adult bird: slightly extended, compressed low, extended high, compressed low again. Same physical body dimensions; a fine common ground guide helps compare body heights, NO ground shadows. The pose changes must be anatomically plausible and convey the user's actual reference gait, not a typical cheerful walking cartoon. Small clean phase labels can be the numerals \"01\", \"02\", \"03\", \"04\" only.\nInclude small product-name typography samples \"도요 Note\" and \"도요 Studio\" at the bottom edge. Exact text ONLY: \"도요\", \"doyo\", \"도요 Note\", \"도요 Studio\", \"01\", \"02\", \"03\", \"04\". No extra captions, note symbols, headphones, beat doodles or watermarks. Crisp flat vector-like graphics. All source photo environment, camera texture and chicks are excluded from the output.",
+      "references": "User-provided three movement images in this conversation"
+    },
+    {
+      "file": "rhythmic-banner.png",
+      "prompt": "Use case: ads-marketing.\nAsset: a genuinely wide horizontal brand banner for \"도요\" / \"doyo\", a family of music practice and notation tools. Target wide 3:1 composition.\nInput image 1 is the authoritative latest logo and POSE reference. Preserve the cocoa single-ink woodcock silhouette from this reference, including the long downward bill, low plump body with a short neck, tiny negative-space eye, short articulated legs and understated feet. Use exactly the SAME body outline/proportions across all poses.\nThe important brand gesture is the woodcock rocking walk: legs bend and extend so the body alternately lowers and rises, as in the reference's numbered lower row. This is not a generic raised-foot march. Show three adults as a deliberate motion study across the banner: extended, LOW compressed with clearly bent legs, extended. Same bird at three phases, no chicks.\nEvery bird is ONE flat cocoa ink #3E332F ONLY. No colored wing, no belly patches, no internal feather decoration, no gradients or shadows. Do not introduce a new bird design.\nTypography: on one side leave a strong spacious brand anchor with exactly Korean \"도요\" and lowercase \"doyo\", the bold quiet geometric typography from input image 1. No slogan or additional copy. On the other side three same-size woodcock phases with the rhythmic high/low/high body heights and the feet aligned along a common ground. Do not draw a literal ground line.\nBackground: pale neutral paper #F6F3ED. Only a restrained cropped rounded background form in muted blue-gray #C3CDD5 and another small form in warm clay #D7B5A3 may frame the edges. These background colors are provisional. Keep most of the background open and quiet. No bright yellow, no tomato coral, no old teal palette.\nFigma is a STRUCTURAL reference only: modular shapes, confident typography, precise alignment and playful negative space, never its actual logo or palette. Crisp clean flat vector-like graphic art, pleasing adult-friendly wit, not a toy brand. No extra labels, music-note icons, numbers, app UI, badges, watermark, 3D, paper grain or textures. Text verbatim only \"도요\" and \"doyo\".",
+      "references": "monochrome-gait-study.png"
+    },
+    {
+      "file": "monochrome-gait-study-v2.png",
+      "prompt": "Use case: precise-object-edit.\nAsset type: Doyo monochrome woodcock brand study board, focused pose correction.\nInput image 1 is the edit target. Keep the entire existing board composition, wordmarks 도요 and doyo, product text, background colors, tiny eye, body/head/bill/tail shape and one cocoa ink color unchanged. Change ONLY the legs and feet of the bird silhouettes.\nCRITICAL movement correction: all birds face LEFT. The rear/support leg, on the RIGHT side under the belly, must descend STRAIGHT VERTICALLY from the body to a planted small foot. No backward sloping rear leg. The front leg on the LEFT stretches STRAIGHT diagonally FORWARD-LEFT, not sideways, with its small foot slightly LIFTED CLEAR OF THE GROUND. Show a small visible gap under the front toes. It is a subtle reaching step in the woodcock's rhythmic bobbing walk, with weight balanced over the vertical rear leg; no falling backwards, sitting back, split stance, waddling duck, hopping, wide shoes or cartoon high kick. Thin compact feet, no flippers.\nApply this same clear single-support geometry to the main logo and three small icon tiles. In the four numbered gait study birds, maintain their existing alternating body heights but correct the rear support to vertical and make the forward-reaching foot slightly lifted in 01 and 03; 02 and 04 may bring the forward foot close to touching. The front leg should be nearly straight rather than a bent zigzag. Preserve all other design decisions. Render as a clean flat monochrome raster concept with no added annotations.",
+      "references": [
+        "monochrome-gait-study.png"
+      ]
+    },
+    {
+      "file": "rhythmic-banner-v2.png",
+      "prompt": "Use case: precise-object-edit. Edit target: supplied Doyo banner. Change ONLY the legs of its three LEFT-facing cocoa woodcock silhouettes. Keep all wordmarks, spacing, body shapes, long bills, tiny eyes, colors, background curves and banner aspect ratio unchanged. The rear leg (image-RIGHT beneath each bird) must be STRAIGHT VERTICAL with a tiny planted foot directly beneath the hip. The front leg (image-LEFT) extends STRAIGHT diagonally FORWARD-LEFT. On the first and third tall bird the front foot is lifted just a little ABOVE ground level, visible gap, while the middle lowered bird has the forward foot nearly touching. Keep the existing tall-low-tall body rhythm. Do not splay the rear leg backwards; no backward lean, seated stance, hopping or cartoon flipper feet. Subtle bobbing-walk forward reach, not a high kick. All birds remain a single cocoa silhouette.",
+      "references": [
+        "rhythmic-banner.png"
+      ]
+    },
+    {
+      "file": "monochrome-gait-study-v3.png",
+      "prompt": "Use case: precise-object-edit.\nAsset type: Doyo monochrome bird brand study, silhouette revision v3.\nInput image: edit target board. Change ONLY the upper outline of every bird, specifically the junction of back and back-of-head. Keep the wordmarks, typography, layout, existing monochrome cocoa color, background palette, feet/leg stance, long downward-pointing bill and tiny eye unchanged.\nPRIMARY CORRECTION: the current bird has a separate rounded head bump sitting ABOVE a low, sloping back. RAISE AND ROUND THE BACK UP TO THE HEIGHT OF THE BACK OF THE HEAD. The upper back/shoulders must be at crown height, or very slightly higher. Merge the head and elevated upper back into ONE LONG, BROAD CONVEX ARCH, with no neck dip, no separate head bump and no distinct lower shoulder. Think of the huddled, bobbing real woodcock walking with its head tucked low into its raised back: the head is forward-left, back is humped up behind it. The tiny eye and bill root remain low on the front of this continuous compact egg-shaped body. Keep a short tapered tail at image-right, smoothly descending from the high rounded back. Do not simply enlarge the head. Do not create a tall neck, goose silhouette, prominent round head on a lower body, or add wing details.\nIMPORTANT retain v2 movement exactly: image-right rear leg is VERTICAL and planted; image-left front leg extends straight forward-left and its foot is subtly raised on the high poses. These legs stay unchanged. Main logo and all three small tiles use the tucked-head, raised-back profile. Four gait poses maintain alternating body heights but all have the continuous head-to-raised-back arch. The rhythm should read through the broad body's lifted hunch as well as its feet. Crisp simple one-ink silhouette, no additional text.",
+      "references": [
+        "monochrome-gait-study-v2.png"
+      ],
+      "userReference": "User-attached walking woodcock photo informed the requested raised-back outline; photo not passed as local tool input."
+    },
+    {
+      "file": "rhythmic-banner-v3.png",
+      "prompt": "Use case: precise-object-edit. Image 1 is the banner edit target. Image 2 is the silhouette reference ONLY; do not adopt its layout or text.\nChange ONLY the upper outline of the three birds in the banner to match image 2's continuous broad convex head-to-back arch. Raise each bird's back to the height of its crown, blending the back of the head into the elevated rounded shoulders. Eliminate the separate head bump above a low sloping back. The bird has a tucked-low head, no visible neck dip, and a broad raised rounded back with a short tapering tail. Keep the same small eye and long downward bill, belly, legs and feet. Keep image-right rear leg vertical and planted and image-left front leg straight reaching forward with subtly lifted toes. Retain tall-low-tall body positions. Preserve original banner dimensions, all wordmarks, layout, one cocoa bird color, paper backdrop and bluegray/clay corner curves. Add no new text or decorative detail.",
+      "references": [
+        "rhythmic-banner-v2.png",
+        "monochrome-gait-study-v3.png"
+      ]
+    },
+    {
+      "file": "monochrome-gait-study-v4.png",
+      "prompt": "Use case: precise-object-edit.\nAsset type: Doyo monochrome bird brand board, pose revision v4.\nInput image is the edit target. Preserve all layout, wordmarks 도요 and doyo, Note/Studio product names, colors, icon backgrounds and overall style.\nRedraw ONLY the bird silhouettes to show a rhythmic FORWARD HEAD-THRUST and a LIFTED, EXTENDED UNDERSIDE instead of the existing heavy drooping round chest/belly.\nCritical changes: pull the eye/head and bill root distinctly FORWARD-LEFT from the shoulders, as if the woodcock is reaching its head forward on a beat. Extend the long slim bill forward at a shallow downward angle, about 15–20 degrees below horizontal, rather than the existing steep downward angle. Lift and flatten the belly/chest lower contour substantially, reducing the deep hanging front breast and making the body visibly shallower and stretched horizontally. The throat should flow in a long taut gently rising curve into the raised belly. This is a compact short-necked woodcock stretching forward, not a goose with a long thin neck. Keep a broad continuous rounded back flowing into the back of the tucked-forward head, without a separate head bump. Modestly flatten the arch as the body stretches; do not grow the body vertically or inflate its chest. Keep a short tapered tail.\nKeep the v3 leg structure: image-right support leg vertical and planted, image-left front leg straight reaching forward with slightly lifted foot on the main logo, icon tiles and poses 01/03. The raised belly may expose more of the upper legs but keep original foot placements and all ground levels. Poses 02/04 are slightly lower phases of the same forward-reaching compact body, without a sagging belly.\nBird stays one cocoa ink shape with only the tiny negative-space eye. No feather details or color patches, no music symbols, no added text. The visual difference MUST be obvious in the forward projection of the head/bill AND the lifted non-drooping chest and belly, while retaining the recognizable prior brand design.",
+      "references": [
+        "monochrome-gait-study-v3.png"
+      ]
+    },
+    {
+      "file": "rhythmic-banner-v4.png",
+      "prompt": "Use case: precise-object-edit. Image 1 is the Doyo banner edit target; image 2 is the updated bird silhouette reference only.\nRedraw the three birds in image 1 to match image 2's slimmer forward-reaching stance. Lift and flatten the deep drooping belly and chest, with a taut shallow lower contour; stretch the head and long slim bill FORWARD-LEFT on a beat, with the bill at a shallow downward angle of about 15–20 degrees below horizontal. Keep the broad continuous high rounded back flowing into the head; no separate head bump, no long goose neck. The body should look shallower and horizontally extended, not inflated or sagging underneath. Keep short tapered tails and tiny eye cutouts. Keep the vertical planted rear leg (image-right), straight reaching front leg (image-left) and slight front-foot lift. Preserve tall-low-tall body rhythm.\nKeep all typography, wordmark, layout, cocoa single-color birds, pale paper background and bluegray/clay corner shapes exactly as in the target banner. No added text, feather details or new motifs.",
+      "references": [
+        "rhythmic-banner-v3.png",
+        "monochrome-gait-study-v4.png"
+      ]
+    }
+  ],
+  "paletteStudies": [
+    {
+      "file": "palettes/a-cocoa-bluegray.png",
+      "name": "코코아·블루그레이",
+      "prompt": "Use case: precise-object-edit. Palette-only recolor of the supplied Doyo monochrome branding board.\nPreserve EXACTLY the existing bird silhouettes, raised belly, forward-reaching shallow-angle bills, vertical rear leg and lifted front foot. Preserve ALL typography, wordmark forms, positions, spacing and board layout. Do not redraw, round or cute-ify the bird. Change ONLY colors.\nPalette A, 코코아·블루그레이:\nAll birds and ALL typography use ONE solid dark ink #3E332F. Do not split the bird into colored parts.\nMain board background paper #F7F4EF.\nThree rounded-square icon tile backgrounds from left to right: #A8BECC, #DCC5B0, #E8E0D5. Each tile uses the SAME dark monochrome bird #3E332F.\nBaseline under gait row: #DCC5B0.\nUse clean flat color fields without texture, gradients, shadow or glow. Do not add swatches, labels or captions. Keep the original size and composition. This is a strict color comparison using the already approved forward-stretched silhouette.",
+      "references": [
+        "monochrome-gait-study-v4.png"
+      ]
+    },
+    {
+      "file": "palettes/b-navy-terracotta.png",
+      "name": "네이비·테라코타",
+      "prompt": "Use case: precise-object-edit. Palette-only recolor of the supplied Doyo monochrome branding board.\nPreserve EXACTLY the existing bird silhouettes, raised belly, forward-reaching shallow-angle bills, vertical rear leg and lifted front foot. Preserve ALL typography, wordmark forms, positions, spacing and board layout. Do not redraw, round or cute-ify the bird. Change ONLY colors.\nPalette B, 네이비·테라코타:\nAll birds and ALL typography use ONE solid dark ink #293747. Do not split the bird into colored parts.\nMain board background paper #F6F2EB.\nThree rounded-square icon tile backgrounds from left to right: #C98868, #A8BAC8, #E7DFD3. Each tile uses the SAME dark monochrome bird #293747.\nBaseline under gait row: #A8BAC8.\nUse clean flat color fields without texture, gradients, shadow or glow. Do not add swatches, labels or captions. Keep the original size and composition. This is a strict color comparison using the already approved forward-stretched silhouette.",
+      "references": [
+        "monochrome-gait-study-v4.png"
+      ]
+    },
+    {
+      "file": "palettes/c-plum-rose.png",
+      "name": "플럼·로즈",
+      "prompt": "Use case: precise-object-edit. Palette-only recolor of the supplied Doyo monochrome branding board.\nPreserve EXACTLY the existing bird silhouettes, raised belly, forward-reaching shallow-angle bills, vertical rear leg and lifted front foot. Preserve ALL typography, wordmark forms, positions, spacing and board layout. Do not redraw, round or cute-ify the bird. Change ONLY colors.\nPalette C, 플럼·로즈:\nAll birds and ALL typography use ONE solid dark ink #493D50. Do not split the bird into colored parts.\nMain board background paper #F7F2F4.\nThree rounded-square icon tile backgrounds from left to right: #C9A3AF, #BDB4CE, #E8DFE5. Each tile uses the SAME dark monochrome bird #493D50.\nBaseline under gait row: #BDB4CE.\nUse clean flat color fields without texture, gradients, shadow or glow. Do not add swatches, labels or captions. Keep the original size and composition. This is a strict color comparison using the already approved forward-stretched silhouette.",
+      "references": [
+        "monochrome-gait-study-v4.png"
+      ]
+    }
+  ],
+  "selectedPalette": {
+    "key": "a",
+    "name": "코코아·블루그레이",
+    "basis": "User selected A in conversation on 2026-10-22"
+  }
+}

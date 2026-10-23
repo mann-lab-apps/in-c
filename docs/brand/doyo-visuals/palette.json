@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "0.1",
+  "date": "2026-10-22",
+  "brand": "도요 / doyo",
+  "status": "Palette A selected by user for brand exploration; not applied to products",
+  "selectedPalette": "a",
+  "light": {
+    "ink": "#3E332F",
+    "paper": "#F7F4EF",
+    "brand": "#A8BECC",
+    "sand": "#DCC5B0",
+    "surface": "#E8E0D5",
+    "action": "#486879",
+    "onAction": "#FFFFFF"
+  },
+  "darkProposal": {
+    "background": "#24211F",
+    "ink": "#F1ECE5",
+    "action": "#B4CDDA",
+    "onAction": "#24211F"
+  },
+  "scorePaper": {
+    "background": "#FFFFFF",
+    "notation": "#202020"
+  },
+  "contrasts": [
+    {
+      "name": "기본 본문 / 종이색",
+      "fg": "#3E332F",
+      "bg": "#F7F4EF",
+      "ratio": 11.132636430266361,
+      "passesNormalText": true
+    },
+    {
+      "name": "대표 아이콘 / 배경",
+      "fg": "#3E332F",
+      "bg": "#A8BECC",
+      "ratio": 6.340727797011722,
+      "passesNormalText": true
+    },
+    {
+      "name": "밝은 버튼 글자 / 행동색",
+      "fg": "#FFFFFF",
+      "bg": "#486879",
+      "ratio": 5.946036253138299,
+      "passesNormalText": true
+    },
+    {
+      "name": "행동색 글자 / 종이색",
+      "fg": "#486879",
+      "bg": "#F7F4EF",
+      "ratio": 5.419813127630804,
+      "passesNormalText": true
+    },
+    {
+      "name": "다크 본문 / 배경",
+      "fg": "#F1ECE5",
+      "bg": "#24211F",
+      "ratio": 13.616697644516211,
+      "passesNormalText": true
+    },
+    {
+      "name": "다크 버튼 글자 / 배경",
+      "fg": "#24211F",
+      "bg": "#B4CDDA",
+      "ratio": 9.666367118084285,
+      "passesNormalText": true
+    },
+    {
+      "name": "다크 링크 / 배경",
+      "fg": "#B4CDDA",
+      "bg": "#24211F",
+      "ratio": 9.666367118084285,
+      "passesNormalText": true
+    }
+  ],
+  "notes": [
+    "Exact HEX values are the design tokens; generated raster colors are approximate.",
+    "Dark palette and UI examples are proposed derivatives of selected light palette.",
+    "Named contrast pairs checked only; this does not certify whole-product accessibility."
+  ],
+  "variants": [
+    {
+      "key": "a",
+      "name": "코코아·블루그레이",
+      "ink": "#3E332F",
+      "paper": "#F7F4EF",
+      "brand": "#A8BECC",
+      "secondary": "#DCC5B0",
+      "surface": "#E8E0D5",
+      "action": "#486879",
+      "darkPaper": "#24211F",
+      "darkInk": "#F1ECE5",
+      "darkAction": "#B4CDDA",
+      "file": "palettes/a-cocoa-bluegray.png"
+    },
+    {
+      "key": "b",
+      "name": "네이비·테라코타",
+      "ink": "#293747",
+      "paper": "#F6F2EB",
+      "brand": "#C98868",
+      "secondary": "#A8BAC8",
+      "surface": "#E7DFD3",
+      "action": "#8E4D34",
+      "darkPaper": "#1D252E",
+      "darkInk": "#F2EDE5",
+      "darkAction": "#E3AD91",
+      "file": "palettes/b-navy-terracotta.png"
+    },
+    {
+      "key": "c",
+      "name": "플럼·로즈",
+      "ink": "#493D50",
+      "paper": "#F7F2F4",
+      "brand": "#C9A3AF",
+      "secondary": "#BDB4CE",
+      "surface": "#E8DFE5",
+      "action": "#73566F",
+      "darkPaper": "#262128",
+      "darkInk": "#F2EAF0",
+      "darkAction": "#DCB6C7",
+      "file": "palettes/c-plum-rose.png"
+    }
+  ]
+}

@@ -1,0 +1,849 @@
+{
+  "generatedAt": "2026-10-21T10:55:39.828Z",
+  "status": "passed",
+  "scope": "Isolated design proposal; not product or device QA",
+  "checks": [
+    {
+      "name": "All aliases resolve: light/compact",
+      "result": "pass"
+    },
+    {
+      "name": "All aliases resolve: light/comfortable",
+      "result": "pass"
+    },
+    {
+      "name": "All aliases resolve: dark/compact",
+      "result": "pass"
+    },
+    {
+      "name": "All aliases resolve: dark/comfortable",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light text/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light text/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light muted/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light muted/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light onAction/action",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light focus/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light focus/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light controlBorder/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light controlBorder/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light selection/selectionFill",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light input/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light error/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light playback/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light scoreSelection/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light scoreInput/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light scorePlayback/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark text/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark text/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark muted/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark muted/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark onAction/action",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark focus/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark focus/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark controlBorder/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark controlBorder/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark selection/selectionFill",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark input/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark error/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark playback/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark scoreSelection/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark scoreInput/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark scorePlayback/scorePaper",
+      "result": "pass"
+    },
+    {
+      "name": "Overview light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Library mobile light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader tablet light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader mobile light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader mobile light touch targets >=44",
+      "result": "pass"
+    },
+    {
+      "name": "Editor light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Editor compact light bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Overview dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Library mobile dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader tablet dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader mobile dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Reader mobile dark touch targets >=44",
+      "result": "pass"
+    },
+    {
+      "name": "Editor dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Editor compact dark bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Search empty state has recovery text",
+      "result": "pass"
+    },
+    {
+      "name": "Search narrows library",
+      "result": "pass"
+    },
+    {
+      "name": "Favorite filter returns two fixtures",
+      "result": "pass"
+    },
+    {
+      "name": "Title sort orders fixtures",
+      "result": "pass"
+    },
+    {
+      "name": "Import explains prototype boundary",
+      "result": "pass"
+    },
+    {
+      "name": "Dialog traps Tab on available action",
+      "result": "pass"
+    },
+    {
+      "name": "Dialog restores triggering focus",
+      "result": "pass"
+    },
+    {
+      "name": "Library opens reader",
+      "result": "pass"
+    },
+    {
+      "name": "Page navigation increments index",
+      "result": "pass"
+    },
+    {
+      "name": "Page navigation preserves focus",
+      "result": "pass"
+    },
+    {
+      "name": "Practice panel opens outside score",
+      "result": "pass"
+    },
+    {
+      "name": "Tempo output follows range input",
+      "result": "pass"
+    },
+    {
+      "name": "Score selection works from keyboard",
+      "result": "pass"
+    },
+    {
+      "name": "Escape clears selection",
+      "result": "pass"
+    },
+    {
+      "name": "Properties panel can collapse",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion removes control transitions",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion leaves flock still",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion hides replay action",
+      "result": "pass"
+    },
+    {
+      "name": "Flock overview mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Flock motion replays on request",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: note-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: note-a",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: parent-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: parent-a",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: play-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: play-a",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: stage-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: stage-a",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: studio-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: studio-a",
+      "result": "pass"
+    },
+    {
+      "name": "Symbol stays inside master: talk-a",
+      "result": "pass"
+    },
+    {
+      "name": "Sampled contours keep circular mask margin: talk-a",
+      "result": "pass"
+    },
+    {
+      "name": "No runtime errors or missing assets",
+      "result": "pass"
+    }
+  ],
+  "contrast": [
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "background",
+      "colors": [
+        "#223C3B",
+        "#FFF6E8"
+      ],
+      "ratio": 11.026386276242619,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "surface",
+      "colors": [
+        "#223C3B",
+        "#FFFFFF"
+      ],
+      "ratio": 11.814258993618319,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "background",
+      "colors": [
+        "#596C68",
+        "#FFF6E8"
+      ],
+      "ratio": 5.199246793751244,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surface",
+      "colors": [
+        "#596C68",
+        "#FFFFFF"
+      ],
+      "ratio": 5.570750620759885,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "onAction",
+      "background": "action",
+      "colors": [
+        "#FFF6E8",
+        "#223C3B"
+      ],
+      "ratio": 11.026386276242619,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "surface",
+      "colors": [
+        "#255C99",
+        "#FFFFFF"
+      ],
+      "ratio": 6.8414985591007635,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "background",
+      "colors": [
+        "#255C99",
+        "#FFF6E8"
+      ],
+      "ratio": 6.385250726410429,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "colors": [
+        "#74817C",
+        "#FFFFFF"
+      ],
+      "ratio": 4.058950847776409,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "background",
+      "colors": [
+        "#74817C",
+        "#FFF6E8"
+      ],
+      "ratio": 3.78826636084757,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "selection",
+      "background": "selectionFill",
+      "colors": [
+        "#255C99",
+        "#E4EEF7"
+      ],
+      "ratio": 5.822340202195341,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "input",
+      "background": "surface",
+      "colors": [
+        "#935000",
+        "#FFFFFF"
+      ],
+      "ratio": 6.1982133504287455,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "error",
+      "background": "surface",
+      "colors": [
+        "#A33135",
+        "#FFFFFF"
+      ],
+      "ratio": 6.8896746425026185,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "playback",
+      "background": "surface",
+      "colors": [
+        "#216143",
+        "#FFFFFF"
+      ],
+      "ratio": 7.353987067661552,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "scoreSelection",
+      "background": "scorePaper",
+      "colors": [
+        "#255C99",
+        "#FFFFFF"
+      ],
+      "ratio": 6.8414985591007635,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "scoreInput",
+      "background": "scorePaper",
+      "colors": [
+        "#935000",
+        "#FFFFFF"
+      ],
+      "ratio": 6.1982133504287455,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "light",
+      "foreground": "scorePlayback",
+      "background": "scorePaper",
+      "colors": [
+        "#216143",
+        "#FFFFFF"
+      ],
+      "ratio": 7.353987067661552,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "background",
+      "colors": [
+        "#FFF6E8",
+        "#142725"
+      ],
+      "ratio": 14.55412106268267,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "surface",
+      "colors": [
+        "#FFF6E8",
+        "#203936"
+      ],
+      "ratio": 11.529588447321151,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "background",
+      "colors": [
+        "#B4C6C0",
+        "#142725"
+      ],
+      "ratio": 8.747116004526877,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surface",
+      "colors": [
+        "#B4C6C0",
+        "#203936"
+      ],
+      "ratio": 6.929353356263883,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAction",
+      "background": "action",
+      "colors": [
+        "#223C3B",
+        "#F5B878"
+      ],
+      "ratio": 6.756577284789799,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "surface",
+      "colors": [
+        "#B4D6FF",
+        "#203936"
+      ],
+      "ratio": 8.237544472911846,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "background",
+      "colors": [
+        "#B4D6FF",
+        "#142725"
+      ],
+      "ratio": 10.398482137135387,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "colors": [
+        "#90AAA0",
+        "#203936"
+      ],
+      "ratio": 4.966874498610328,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "background",
+      "colors": [
+        "#90AAA0",
+        "#142725"
+      ],
+      "ratio": 6.269824208055051,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "selection",
+      "background": "selectionFill",
+      "colors": [
+        "#B4D6FF",
+        "#253E52"
+      ],
+      "ratio": 7.410903161211002,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "input",
+      "background": "surface",
+      "colors": [
+        "#FFD096",
+        "#203936"
+      ],
+      "ratio": 8.656069506990098,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "error",
+      "background": "surface",
+      "colors": [
+        "#FFB4B4",
+        "#203936"
+      ],
+      "ratio": 7.31767036363519,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "playback",
+      "background": "surface",
+      "colors": [
+        "#A6DFBA",
+        "#203936"
+      ],
+      "ratio": 8.16825722199547,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "scoreSelection",
+      "background": "scorePaper",
+      "colors": [
+        "#255C99",
+        "#FFFFFF"
+      ],
+      "ratio": 6.8414985591007635,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "scoreInput",
+      "background": "scorePaper",
+      "colors": [
+        "#935000",
+        "#FFFFFF"
+      ],
+      "ratio": 6.1982133504287455,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "scorePlayback",
+      "background": "scorePaper",
+      "colors": [
+        "#216143",
+        "#FFFFFF"
+      ],
+      "ratio": 7.353987067661552,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "mode": "brand",
+      "foreground": "white",
+      "background": "apricot",
+      "colors": [
+        "#FFFFFF",
+        "#F5B878"
+      ],
+      "ratio": 1.748556775960251,
+      "minimum": 4.5,
+      "pass": false,
+      "usage": "Forbidden for normal text; use ink foreground."
+    }
+  ],
+  "screenshots": [
+    "overview-light.png",
+    "library-mobile-light.png",
+    "reader-tablet-light.png",
+    "reader-annotation-light.png",
+    "reader-mobile-light.png",
+    "editor-default-light.png",
+    "editor-selected-light.png",
+    "editor-states-light.png",
+    "editor-compact-light.png",
+    "components-light.png",
+    "overview-dark.png",
+    "library-mobile-dark.png",
+    "reader-tablet-dark.png",
+    "reader-annotation-dark.png",
+    "reader-mobile-dark.png",
+    "editor-default-dark.png",
+    "editor-selected-dark.png",
+    "editor-states-dark.png",
+    "editor-compact-dark.png",
+    "components-dark.png",
+    "library-empty.png",
+    "flock-mobile.png",
+    "family-board.png",
+    "flock-board.png",
+    "flock-light.png",
+    "flock-dark.png",
+    "flight-rise.png",
+    "flight-glide.png",
+    "icon-comparison.png",
+    "small-icons.png",
+    "wordmark.png",
+    "derivation-board.png",
+    "typography.png",
+    "note-a.png",
+    "note-inverse.png",
+    "note-mono.png",
+    "note-tile.png",
+    "parent-a.png",
+    "parent-inverse.png",
+    "parent-mono.png",
+    "parent-tile.png",
+    "play-a.png",
+    "play-inverse.png",
+    "play-mono.png",
+    "play-tile.png",
+    "stage-a.png",
+    "stage-inverse.png",
+    "stage-mono.png",
+    "stage-tile.png",
+    "studio-a.png",
+    "studio-inverse.png",
+    "studio-mono.png",
+    "studio-tile.png",
+    "talk-a.png",
+    "talk-inverse.png",
+    "talk-mono.png",
+    "talk-tile.png"
+  ],
+  "iconBounds": [
+    {
+      "asset": "note-a",
+      "x": 42.20000457763672,
+      "y": 68.9800033569336,
+      "width": 128.33999633789062,
+      "height": 117.25000762939453,
+      "sampledMaxRadius": 91.45834487240101
+    },
+    {
+      "asset": "parent-a",
+      "x": 29,
+      "y": 48.87260055541992,
+      "width": 204.0370330810547,
+      "height": 153.2872314453125,
+      "sampledMaxRadius": 116.70807755587057
+    },
+    {
+      "asset": "play-a",
+      "x": 44.34895324707031,
+      "y": 93.08516693115234,
+      "width": 150.57774353027344,
+      "height": 102.0528793334961,
+      "sampledMaxRadius": 82.86147610652452
+    },
+    {
+      "asset": "stage-a",
+      "x": 30.219554901123047,
+      "y": 66.80786895751953,
+      "width": 195.56088256835938,
+      "height": 111.86559295654297,
+      "sampledMaxRadius": 91.32871416167173
+    },
+    {
+      "asset": "studio-a",
+      "x": 61.62453079223633,
+      "y": 34.55595397949219,
+      "width": 137.42332458496094,
+      "height": 183.78903198242188,
+      "sampledMaxRadius": 88.61551454359272
+    },
+    {
+      "asset": "talk-a",
+      "x": 57.02000045776367,
+      "y": 42.05919647216797,
+      "width": 141.95999145507812,
+      "height": 171.88162231445312,
+      "sampledMaxRadius": 92.14663100803963
+    }
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55"
+}

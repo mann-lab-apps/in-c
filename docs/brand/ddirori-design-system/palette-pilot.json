@@ -1,0 +1,50 @@
+{
+  "key": "lime",
+  "name": "라임",
+  "brand": {
+    "primary": "#D5ED70",
+    "onPrimary": "#263125"
+  },
+  "light": {
+    "background": "#FFFFFF",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#F5F5F5",
+    "ink": "#202020",
+    "muted": "#616161",
+    "border": "#E5E5E5",
+    "controlBorder": "#808080",
+    "primary": "#52651A",
+    "primaryHover": "#435514",
+    "primaryPressed": "#35440F",
+    "onPrimary": "#FFFFFF",
+    "tint": "#F3F8DD",
+    "sky": "#A8D4E5",
+    "peach": "#F3BB9B",
+    "success": "#246145",
+    "warning": "#805500",
+    "error": "#AF344B"
+  },
+  "darkProposal": {
+    "background": "#181818",
+    "surface": "#222222",
+    "surfaceMuted": "#2C2C2C",
+    "ink": "#F5F5F5",
+    "muted": "#B8B8B8",
+    "border": "#424242",
+    "controlBorder": "#888888",
+    "primary": "#D5ED70",
+    "primaryHover": "#E3EDBC",
+    "primaryPressed": "#F3F8DD",
+    "onPrimary": "#202020",
+    "tint": "#303624",
+    "sky": "#A8D4E5",
+    "peach": "#F3BB9B"
+  },
+  "scorePaper": {
+    "background": "#FFFFFF",
+    "notation": "#202020"
+  },
+  "status": "neutral foundation trial; accent selection remains open",
+  "source": "color-system.json",
+  "date": "2026-10-23"
+}

@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-10-22T05:55:19.228119+00:00",
+  "status": "passed",
+  "localLinksChecked": 54,
+  "missingLinks": [],
+  "generatedFilesReproducible": 10,
+  "assetHashes": 8,
+  "baselineFilesCompared": 955,
+  "baselineMismatches": [],
+  "screenshots": [
+    {
+      "file": "components-dark.png",
+      "width": 1400,
+      "height": 1965,
+      "sha256": "113396532a6b8a098c07732d8b611e22e9fbb9f97a639514075fe22798d5ebd5"
+    },
+    {
+      "file": "components-light.png",
+      "width": 1400,
+      "height": 1965,
+      "sha256": "663195ce1598f9048bed86240670fa8be044ab7906189c6b807fc6116738f3bf"
+    },
+    {
+      "file": "components-mobile-dark.png",
+      "width": 390,
+      "height": 3048,
+      "sha256": "22172c0e7f57a43f63cb29d6f71d25facc6e3201e69dbb409365f3fb36d776e0"
+    },
+    {
+      "file": "components-mobile-light.png",
+      "width": 390,
+      "height": 3048,
+      "sha256": "93ee3e63c50076bc7d48d7196cb694701f78c8cf701a4459ad92aec88c4271d2"
+    },
+    {
+      "file": "loader-mid-cycle.png",
+      "width": 610,
+      "height": 181,
+      "sha256": "92ab48bae70516f476599a94cc9d8d50d26157e090356a2c4da560f71f57e4e1"
+    },
+    {
+      "file": "loader-reduced-motion.png",
+      "width": 1400,
+      "height": 1965,
+      "sha256": "46ee452c7d2366a7c22968c77cd9c6425def3e6fe29a539a5886b98037808129"
+    },
+    {
+      "file": "overview-dark.png",
+      "width": 1400,
+      "height": 1555,
+      "sha256": "4c2f688efaf8c2b3fe277a2188dd40bbbd2206fc5f5bbd1f3705d7ea24a323ea"
+    },
+    {
+      "file": "overview-light.png",
+      "width": 1400,
+      "height": 1555,
+      "sha256": "04cd4ccebe714d0221791c04bb58a019647abe6c8d9e1893c4b9b0a0e29ea1d2"
+    },
+    {
+      "file": "reader-dark.png",
+      "width": 1024,
+      "height": 1478,
+      "sha256": "2d8836cf8849e54eae17fe7dd9ef9d15cd6477c8eebb4667921ea0afeba4563e"
+    },
+    {
+      "file": "reader-light.png",
+      "width": 1024,
+      "height": 1478,
+      "sha256": "2e1b7c89e815e1914f03b201891142ee59a63fcfb4ebd280465418f9da515861"
+    },
+    {
+      "file": "reader-mobile-dark.png",
+      "width": 390,
+      "height": 1625,
+      "sha256": "e529528536d88486ea0be089299fee0ae7a4200f517e926aa82b018117e70a38"
+    },
+    {
+      "file": "reader-mobile-light.png",
+      "width": 390,
+      "height": 1625,
+      "sha256": "f498b5938c3b799239dd98512020e8c447f92d3f9a441d56b9b1ae3039fae68d"
+    },
+    {
+      "file": "studio-dark.png",
+      "width": 1400,
+      "height": 1626,
+      "sha256": "2ff0a009a0f8edb0a6908dc08ed455ea31170b861029c7b7bbcb58f5d830ea3d"
+    },
+    {
+      "file": "studio-light.png",
+      "width": 1400,
+      "height": 1626,
+      "sha256": "5f18292e9f51fb1576b3215f02a66def8a24e1392f210f21905ddbe58ad22e31"
+    }
+  ]
+}

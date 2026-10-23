@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-22T08:01:16.200Z",
+  "scope": "Independent React package only",
+  "steps": [
+    {
+      "name": "contracts",
+      "command": "npm test -- --reporter=json",
+      "exitCode": 0,
+      "stdout": "\n> @ddirori/ui@0.1.0 test\n> vitest run --reporter=json\n\n{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":7,\"numPassedTests\":7,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792656076492,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts locks async action synchronously and re-enables after completion\",\"status\":\"passed\",\"title\":\"locks async action synchronously and re-enables after completion\",\"duration\":74.66795800000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts syncs external query and clear delegates to parent\",\"status\":\"passed\",\"title\":\"syncs external query and clear delegates to parent\",\"duration\":11.130457999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts rejects invalid numeric entry before emitting\",\"status\":\"passed\",\"title\":\"rejects invalid numeric entry before emitting\",\"duration\":12.140709000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts multi-choice adds and removes without losing peers\",\"status\":\"passed\",\"title\":\"multi-choice adds and removes without losing peers\",\"duration\":5.539459000000079,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts page edges block navigation\",\"status\":\"passed\",\"title\":\"page edges block navigation\",\"duration\":4.79341700000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts progress exposes measured value only when available\",\"status\":\"passed\",\"title\":\"progress exposes measured value only when available\",\"duration\":9.084999999999923,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Ddirori contracts\"],\"fullName\":\"Ddirori contracts tuner no-signal cannot expose a stale numeric pitch\",\"status\":\"passed\",\"title\":\"tuner no-signal cannot expose a stale numeric pitch\",\"duration\":2.9395000000000664,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792656077004,\"endTime\":1792656077124.9395,\"status\":\"passed\",\"message\":\"\",\"name\":\"/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/components.test.tsx\"}]}\n",
+      "stderr": "",
+      "tests": 7,
+      "passed": 7
+    },
+    {
+      "name": "type and production build",
+      "command": "npm run build",
+      "exitCode": 0,
+      "stdout": "\n> @ddirori/ui@0.1.0 build\n> tsc --noEmit && vite build\n\nvite v7.3.5 building client environment for production...\ntransforming...\n✓ 33 modules transformed.\nrendering chunks...\ncomputing gzip size...\n../../docs/brand/ddirori-design-system/preview/index.html                                    0.52 kB │ gzip:  0.37 kB\n../../docs/brand/ddirori-design-system/preview/assets/icon-blue-DgNBR6lu.svg                 0.90 kB │ gzip:  0.46 kB\n../../docs/brand/ddirori-design-system/preview/assets/bach-surprised-BiJ8JrW2.png          739.86 kB\n../../docs/brand/ddirori-design-system/preview/assets/PretendardVariable-CJuje-Rk.woff2  2,057.69 kB\n../../docs/brand/ddirori-design-system/preview/assets/index-B38Nli8y.css                    14.99 kB │ gzip:  3.53 kB\n../../docs/brand/ddirori-design-system/preview/assets/index-B-sah_jm.js                    216.87 kB │ gzip: 69.80 kB\n✓ built in 455ms\n",
+      "stderr": ""
+    }
+  ],
+  "status": "passed"
+}

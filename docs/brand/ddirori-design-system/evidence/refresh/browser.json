@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-23T11:39:34.745Z",
+  "checks": [
+    "four palettes, identical fixtures",
+    "dark theme",
+    "compact controls",
+    "reduced motion",
+    "390px layout",
+    "controlled search/reset",
+    "24/32px glyphs and grayscale circular masks: visual preview",
+    "200% sample text",
+    "keyboard focus"
+  ],
+  "errors": []
+}

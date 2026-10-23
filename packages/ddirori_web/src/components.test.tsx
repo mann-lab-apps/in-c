@@ -1,7 +1,7 @@
 import React from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { Button, Search, NumberControl, Choices, PageControls, Progress, TunerMeter } from './index';
+import { Text, ServiceLink, Button, Search, NumberControl, Choices, PageControls, Progress, TunerMeter } from './index';
 afterEach(cleanup);
 describe('Ddirori contracts', () => {
     it('locks async action synchronously and re-enables after completion', async () => {
@@ -63,4 +63,17 @@ describe('Ddirori contracts', () => {
         expect(screen.getByRole('img').getAttribute('aria-label')).toBe('A4 신호 없음');
         expect(screen.queryByText('12 cents')).toBeNull();
     });
+});
+
+it('service handoff blocks unavailable destinations and names external actions', () => {
+ const open=vi.fn();const {rerender}=render(<ServiceLink product="play" name="띠로리 플레이" description="관련 연주" availability="unavailable" onOpen={open}/>);
+ fireEvent.click(screen.getByRole('button'));expect(open).not.toHaveBeenCalled();
+ rerender(<ServiceLink product="play" name="띠로리 플레이" description="관련 연주" availability="external" onOpen={open}/>);
+ fireEvent.click(screen.getByRole('button',{name:'띠로리 플레이 · 외부 서비스로 이동'}));expect(open).toHaveBeenCalledOnce();
+});
+
+it('visual title role preserves the requested heading level', () => {
+ render(<Text as="h3" variant="screenTitle">작품 목록</Text>);
+ expect(screen.getByRole('heading', {level:3}).className).toContain('dd-text--screen-title');
+ expect(screen.queryByRole('heading', {level:1})).toBeNull();
 });

@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-10-23T12:46:29.816Z",
+  "scope": "Web contract fixture, not native app",
+  "checks": [
+    "light semantic h3 with 24px visual title",
+    "light selected state",
+    "light hover preserves selection",
+    "light disabled wins over selected",
+    "light error and focus coexist",
+    "light nested comfortable does not inherit compact selector",
+    "light outer compact is 32px",
+    "light dialog opens",
+    "light modal restores trigger focus",
+    "dark semantic h3 with 24px visual title",
+    "dark selected state",
+    "dark hover preserves selection",
+    "dark disabled wins over selected",
+    "dark error and focus coexist",
+    "dark nested comfortable does not inherit compact selector",
+    "dark outer compact is 32px",
+    "dark dialog opens",
+    "dark modal restores trigger focus",
+    "reduced motion stops motif",
+    "390px 200% has no horizontal page overflow",
+    "large type control grows"
+  ],
+  "errors": []
+}

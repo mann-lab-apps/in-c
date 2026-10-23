@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 164" role="img" aria-label="불러오는 중인 도요새"><style>svg{color:#3E332F}
+[data-part]{fill:currentColor;transform-box:view-box}
+[data-part="body"]{transform-origin:155px 104px;animation:doyo-body var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+[data-part="rear-leg"]{transform-origin:177px 149px;animation:doyo-rear-leg var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+[data-part="front-leg"]{transform-origin:132px 109px;animation:doyo-front-leg var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+@keyframes doyo-body{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-6px,10px) rotate(-1deg)}}
+@keyframes doyo-rear-leg{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.76)}}
+@keyframes doyo-front-leg{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-6px,10px) rotate(12deg)}}
+@media(prefers-reduced-motion:reduce){[data-part]{animation:none!important}}
+@media(prefers-color-scheme:dark){svg{color:#F1ECE5}}</style><path data-part="rear-leg" d="M 173 108 L 182 108 L 182 143 Q 183 147 189 149 L 160 149 Q 162 145 173 143 Z"/><path data-part="front-leg" d="M 127 107 L 140 108 L 85 137 L 87 140 L 60 140 Q 62 137 74 135 Z"/><path data-part="body" fill-rule="evenodd" d="M 10 83 L 65 54 C 67 34 99 27 126 34 C 163 41 189 62 218 88 L 246 99 Q 251 102 244 105 C 215 113 179 109 151 109 C 113 109 84 103 74 85 Q 70 79 70 68 L 12 86 Q 7 88 10 83 Z M 72.2 56 a 2.8 2.8 0 1 0 5.6 0 a 2.8 2.8 0 1 0 -5.6 0 Z"/></svg>

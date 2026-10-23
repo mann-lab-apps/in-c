@@ -1,6 +1,20 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type HTMLAttributes, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
+import type { DdiroriTextRole } from '../../../docs/brand/ddirori-design-system/generated/tokens';
+export type { DdiroriTextRole } from '../../../docs/brand/ddirori-design-system/generated/tokens';
+
+/** Visual style is independent of document semantics. Headings require an explicit `as`. */
+export function Text({as: Element = 'span', variant = 'body', className = '', ...props}: HTMLAttributes<HTMLElement> & {
+  as?: 'span' | 'p' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'strong' | 'output' | 'kbd';
+  variant?: DdiroriTextRole;
+}) {
+  const role = variant.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+  return <Element {...props} className={`dd-text dd-text--${role} ${className}`}/>;
+}
 import geometry from '../../../docs/brand/ddirori-design-system/generated/geometry.json';
-import bach from '../../../docs/brand/ddirori-design-system/assets/bach-surprised.png';
+import bach from '../../../docs/brand/ddirori-brand-system/assets/bach-surprised.svg';
+import bachCalm from '../../../docs/brand/ddirori-brand-system/assets/bach-calm.svg';
+import bachHappy from '../../../docs/brand/ddirori-brand-system/assets/bach-happy.svg';
+import family from '../../../docs/brand/ddirori-brand-system/family.json';
 export function Mark({ size = 48, pulse = false }: {
     size?: number;
     pulse?: boolean;
@@ -9,13 +23,22 @@ export function Mark({ size = 48, pulse = false }: {
     return <svg className={pulse ? 'dd-mark dd-mark--pulse' : 'dd-mark'} width={size} height={size} viewBox={g.viewBox.join(' ')} aria-hidden="true" fill="currentColor">
  {g.stems.lines.map((s, i) => <path key={'s' + i} d={`M${s[0]} ${s[1]}V${s[2]}`} fill="none" stroke="currentColor" strokeWidth={g.stems.width}/>)}
  {g.beams.map((b, i) => <rect key={'b' + i} x={b[0]} y={b[1]} width={b[2]} height={b[3]}/>)}
- {g.heads.map((h, i) => <ellipse className="dd-head" style={{ animationDelay: `-${i * 180}ms` }} key={i} cx={h[0]} cy={h[1]} rx={h[2]} ry={h[3]} transform={`rotate(${h[4]} ${h[0]} ${h[1]})`}/>)}
+ {g.heads.map((h, i) => <ellipse className="dd-head"  key={i} cx={h[0]} cy={h[1]} rx={h[2]} ry={h[3]} transform={`rotate(${h[4]} ${h[0]} ${h[1]})`}/>)}
  <circle cx={g.dot[0]} cy={g.dot[1]} r={g.dot[2]}/>
  </svg>;
 }
-export function Bach({ size = 64 }: {
+export function Bach({ size = 64, expression = 'surprised' }: {
     size?: number;
-}) { return <img src={bach} width={size} height={size} alt="놀란 바흐" className="dd-bach"/>; }
+    expression?: 'surprised' | 'calm' | 'happy';
+}) { return <img src={{surprised:bach,calm:bachCalm,happy:bachHappy}[expression]} width={size} height={size} alt={{surprised:'놀란 바흐',calm:'차분한 바흐',happy:'기쁜 바흐'}[expression]} className="dd-bach"/>; }
+export type ProductId = 'play' | 'score' | 'studio' | 'talk' | 'stage' | 'click' | 'chime';
+export function ProductGlyph({product,size=32}:{product:ProductId;size?:number}) {
+ const p=family.products.find(p=>p.id===product)!;
+ return <svg width={size} height={size} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d={[p.path,...(p.cutouts||[])].join(' ')}/>{p.extra?<path d={p.extra}/>:null}</svg>;
+}
+export function ProductSignature({product,name,subtitle}:{product:ProductId;name:string;subtitle?:string}){
+ return <div className="dd-product-signature"><ProductGlyph product={product}/><div><Text as="h2" variant="screenTitle">{name}</Text>{subtitle?<p>{subtitle}</p>:null}</div></div>;
+}
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & {
     onClick?: () => void | Promise<void>;
     kind?: 'primary' | 'secondary' | 'danger' | 'quiet';
@@ -48,9 +71,9 @@ export function Button({ children, onClick, kind = 'primary', busy = false, sele
     } };
     return <button type="button" {...props} className={`dd-button dd-button--${kind} ${props.className ?? ''}`} aria-pressed={selected} aria-busy={busy || pending} disabled={disabled || busy || pending || !onClick} onClick={() => void run()}>{pending || busy ? <span aria-hidden="true">◌ </span> : null}{children}{pending || busy ? ' · 처리 중' : ''}</button>;
 }
-export function IconButton({ label, children, ...props }: ButtonProps & {
+export function IconButton({ label, children, className = '', ...props }: ButtonProps & {
     label: string;
-}) { return <Button {...props} kind={props.kind ?? 'quiet'} aria-label={label} title={label} className="dd-icon-button">{children}</Button>; }
+}) { return <Button {...props} kind={props.kind ?? 'quiet'} aria-label={label} title={label} className={`dd-icon-button ${className}`}>{children}</Button>; }
 export function Input({ label, error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {
     label: string;
     error?: string;
@@ -77,7 +100,7 @@ export function Choices<T extends string | number>({ label, options, selected, o
     multiple?: boolean;
     disabled?: boolean;
 }) {
-    return <div className="dd-choices" role="group" aria-label={label}>{options.map(o => <Button key={o.value} kind="secondary" disabled={disabled} selected={selected.includes(o.value)} onClick={() => { const next = multiple ? [...selected] : []; onChange(selected.includes(o.value) ? next.filter(v => v !== o.value) : [...next, o.value]); }}>{o.label}</Button>)}</div>;
+    return <div className="dd-choices" role="group" aria-label={label}>{options.map(o => <Button key={o.value} className="dd-choice" kind="secondary" disabled={disabled} selected={selected.includes(o.value)} onClick={() => { const next = multiple ? [...selected] : []; onChange(selected.includes(o.value) ? next.filter(v => v !== o.value) : [...next, o.value]); }}><span className="dd-choice-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="m2 7 3 3 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span><span>{o.label}</span></Button>)}</div>;
 }
 export function Toolbar({ children, label = '도구' }: {
     children: ReactNode;
@@ -93,7 +116,7 @@ export function Item({ title, subtitle, leading, actions, selected = false, sele
     onSelected?: (v: boolean) => void;
     onOpen?: () => void;
 }) {
-    return <article className={`dd-item ${selected ? 'is-selected' : ''}`}><div className="dd-item-main">{selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} onChange={e => onSelected?.(e.target.checked)}/> : leading}<div>{onOpen ? <button type="button" className="dd-item-title" onClick={onOpen}>{title}</button> : <strong>{title}</strong>}{subtitle ? <p>{subtitle}</p> : null}</div></div>{actions ? <div className="dd-item-actions">{actions}</div> : null}</article>;
+    return <article className={`dd-item ${selected ? 'is-selected' : ''}`}><div className="dd-item-main">{selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} onChange={e => onSelected?.(e.target.checked)}/> : leading}<div>{onOpen ? <button type="button" className="dd-item-title dd-text--item-title" onClick={onOpen}>{title}</button> : <Text as="strong" variant="itemTitle">{title}</Text>}{subtitle ? <p>{subtitle}</p> : null}</div></div>{actions ? <div className="dd-item-actions">{actions}</div> : null}</article>;
 }
 export function Banner({ children, kind = 'info', action }: {
     children: ReactNode;
@@ -139,7 +162,7 @@ export function Dialog({ open, title, children, onClose, actions, sheet = false 
         el.close(); if (open)
         previous?.focus(); }; }, [open]);
     return <dialog ref={ref} className={`dd-dialog ${sheet ? 'dd-dialog--sheet' : ''}`} aria-labelledby={titleId} onCancel={e => { e.preventDefault(); onClose(); }} onClose={() => { if (open)
-        onClose(); }}><div className="dd-dialog-head"><h2 id={titleId}>{title}</h2><IconButton label="닫기" onClick={onClose}>×</IconButton></div><div className="dd-dialog-body">{children}</div><div className="dd-dialog-actions">{actions}</div></dialog>;
+        onClose(); }}><div className="dd-dialog-head"><Text as="h2" variant="sectionTitle" id={titleId}>{title}</Text><IconButton label="닫기" onClick={onClose}>×</IconButton></div><div className="dd-dialog-body">{children}</div><div className="dd-dialog-actions">{actions}</div></dialog>;
 }
 export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {
     label: string;
@@ -191,3 +214,10 @@ export function BeatIndicator({ beats, currentBeat, running }: {
 }) { return <div className="dd-beats" role="img" aria-label={running ? `${beats}박 중 ${currentBeat}번째 박` : `${beats}박 대기`}>{Array.from({ length: beats }, (_, i) => <span key={i} className={running && i + 1 === currentBeat ? 'is-active' : ''}>{i + 1}</span>)}</div>; }
 
 export { ddiroriTokens } from "../../../docs/brand/ddirori-design-system/generated/tokens";
+
+export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';
+/** The host owns navigation and URL validation. */
+export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void}) {
+ const label={available:'열기',external:'외부 서비스로 이동',install:'설치 안내 보기',unavailable:'연결 준비 중'}[availability];
+ return <section className="dd-service-link"><ProductSignature product={product} name={name} subtitle={description}/><Button kind="secondary" disabled={availability==='unavailable'||!onOpen} onClick={onOpen} aria-label={`${name} · ${label}`}>{label}</Button></section>;
+}

@@ -1,0 +1,230 @@
+{
+  "scope": "Proposal assets, not production packaging",
+  "files": [
+    {
+      "path": "assets/VEXFLOW-LICENSE.txt",
+      "bytes": 1201,
+      "sha256": "5522a52057a68b081dd3e06a878584b565c6a3f7e7ddb154dd24f25b5630216f"
+    },
+    {
+      "path": "assets/derivation-board.svg",
+      "bytes": 8670,
+      "sha256": "809b915e745c5f02d8459d73ef5159911a05d1e023d977924721ca0803392797"
+    },
+    {
+      "path": "assets/family-board.svg",
+      "bytes": 11340,
+      "sha256": "8c3275d3a09cc99e7704b3c6854bef7b5b37fe1bd33048d8209d4be9171adc0b"
+    },
+    {
+      "path": "assets/flight-glide.svg",
+      "bytes": 521,
+      "sha256": "b88354477f20b841bc52650de244cfbc9f3fbff908eefb522f504053136795d1"
+    },
+    {
+      "path": "assets/flight-rise.svg",
+      "bytes": 517,
+      "sha256": "43436f0c140035f94518748d94c45419cdfdac568aeb4ac5ccb1170f24583b10"
+    },
+    {
+      "path": "assets/flock-board.svg",
+      "bytes": 9651,
+      "sha256": "91d94b18054a1d95d4748937ca0622f4ff0ce226c8b19ddf942325ba07d3958f"
+    },
+    {
+      "path": "assets/flock-dark.svg",
+      "bytes": 3349,
+      "sha256": "0de22e4343795caf54ed16a2654cb55964da545b2c847853b2fc1b25dae49859"
+    },
+    {
+      "path": "assets/flock-light.svg",
+      "bytes": 3349,
+      "sha256": "988ad2ca23db46fca283ed9b9e3944ec99cc94cd9d11022d35fd9645df25fc2b"
+    },
+    {
+      "path": "assets/fonts/LICENSE.txt",
+      "bytes": 4418,
+      "sha256": "d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04"
+    },
+    {
+      "path": "assets/fonts/PretendardVariable.woff2",
+      "bytes": 2057688,
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+    },
+    {
+      "path": "assets/icon-comparison.svg",
+      "bytes": 7244,
+      "sha256": "e1a0c7df5b5f1ea0e604782b2d83cc5c823e967580774d655aa5fac8163fe66e"
+    },
+    {
+      "path": "assets/note-a.svg",
+      "bytes": 512,
+      "sha256": "454ef55e478d93d1083e8acd0ceafe247224d0d3a3c14dcdfc34e51b5bf861c5"
+    },
+    {
+      "path": "assets/note-b.svg",
+      "bytes": 590,
+      "sha256": "b68ee8c99688efe71de1281f5297a63505606ede0bcc73b013b78b460886818f"
+    },
+    {
+      "path": "assets/note-inverse.svg",
+      "bytes": 509,
+      "sha256": "63d8364cdf0c2b51f33ee4134b093f0927f77f4e1c035acb82fc741a3ce0d545"
+    },
+    {
+      "path": "assets/note-mono.svg",
+      "bytes": 506,
+      "sha256": "0f2c3cc4a535f982bed0295351003f7c28f1248b3637309450d783fd01a793f1"
+    },
+    {
+      "path": "assets/note-tile.svg",
+      "bytes": 577,
+      "sha256": "bb64b5c838ffca2c9f7c103c15d32f475c56fe1a491a181101cf766051aed274"
+    },
+    {
+      "path": "assets/parent-a.svg",
+      "bytes": 704,
+      "sha256": "92afb9db77f37cc6c0f3508c844e4b5765aac2569938282319b8fe0f1cbbc04d"
+    },
+    {
+      "path": "assets/parent-b.svg",
+      "bytes": 782,
+      "sha256": "67df467e27703d63e9c3d9b903e060cea8e0ccdcbc13376a98e55d7aed2a334e"
+    },
+    {
+      "path": "assets/parent-inverse.svg",
+      "bytes": 701,
+      "sha256": "52e6e73eeb9cecc3165d67d4ff6528e199f65ea6a3710d1d7d9a969dd97eabcf"
+    },
+    {
+      "path": "assets/parent-mono.svg",
+      "bytes": 698,
+      "sha256": "32c1a4359e6c65b47d88422f7c79e7268e9658d0304b4879307370b4a9468aa8"
+    },
+    {
+      "path": "assets/parent-tile.svg",
+      "bytes": 769,
+      "sha256": "d54241378bca68a7c8f442585b20cf418f48b28464d466e54fc6886d0d4f4808"
+    },
+    {
+      "path": "assets/play-a.svg",
+      "bytes": 376,
+      "sha256": "702f43a1fc9342fe755e8bc12ea9b58e5fc3851a300ad84652972345ce17b0c9"
+    },
+    {
+      "path": "assets/play-b.svg",
+      "bytes": 454,
+      "sha256": "954a84e6d267937c7a98815907dfbebb01f39bd9a582f436c3371025e7535dc5"
+    },
+    {
+      "path": "assets/play-inverse.svg",
+      "bytes": 373,
+      "sha256": "622d61973647aec41f246bf6f958a948eaba6cf4533a0a5f32115bb28f210941"
+    },
+    {
+      "path": "assets/play-mono.svg",
+      "bytes": 370,
+      "sha256": "95cfcf5373ed13af76608142e311f58c5ec0126ebc642441a27b442dbd87c28b"
+    },
+    {
+      "path": "assets/play-tile.svg",
+      "bytes": 441,
+      "sha256": "702e182a7bab29ff58374c23cee58c5a94bf98be4936f452b9a88b52b15a864b"
+    },
+    {
+      "path": "assets/practice-score.svg",
+      "bytes": 97082,
+      "sha256": "4a1635080e5b84618aaed61544307500eb5374b691017d30742bf8113e4c8dd8"
+    },
+    {
+      "path": "assets/small-icons.svg",
+      "bytes": 14847,
+      "sha256": "5ed81b37b1205be4ce097f8ec439fcd2a828cb923e6abd9aaa45996931105918"
+    },
+    {
+      "path": "assets/stage-a.svg",
+      "bytes": 698,
+      "sha256": "033c6fa1d15f50337d5433c0155635f9e77d8fe4d5e5fc7bc688b3f596e69702"
+    },
+    {
+      "path": "assets/stage-b.svg",
+      "bytes": 776,
+      "sha256": "d2ee2ea6e2b84e06bbdc5ed861f30149c2f76b6e4c1735371b38a17546ab0dae"
+    },
+    {
+      "path": "assets/stage-inverse.svg",
+      "bytes": 695,
+      "sha256": "aefd156fc34545c0021f30e4338f185963524dc2f0a22bc00e504ba5d7697863"
+    },
+    {
+      "path": "assets/stage-mono.svg",
+      "bytes": 692,
+      "sha256": "005a041e966579861892e98f0f04dc4af015623ae34cd23fb71dc654a00a6363"
+    },
+    {
+      "path": "assets/stage-tile.svg",
+      "bytes": 763,
+      "sha256": "1ba2e705a9a40d2f93aaa5418a92268dbcd46b418439a3432169fe6237f7b44d"
+    },
+    {
+      "path": "assets/studio-a.svg",
+      "bytes": 360,
+      "sha256": "ea382f91106e6089b712d3ecf7d0899d33e1f4e9bd996536e12276ca282e4385"
+    },
+    {
+      "path": "assets/studio-b.svg",
+      "bytes": 438,
+      "sha256": "802571f85bb75c184357bcd00371604142da341cb5e22c99e6a2556afb259cbe"
+    },
+    {
+      "path": "assets/studio-inverse.svg",
+      "bytes": 357,
+      "sha256": "9ae1ac55a1f4ea040e475d88c23acdabe618c4773e48c84e753c6e4d0345f513"
+    },
+    {
+      "path": "assets/studio-mono.svg",
+      "bytes": 354,
+      "sha256": "bc7f6d53687894af2e9cf91a1a022eb8d6ccd307afe3bd7a7ad699c2ace65ae0"
+    },
+    {
+      "path": "assets/studio-tile.svg",
+      "bytes": 425,
+      "sha256": "26d600dfa5dfd88ff72c45806e71329df85d124e352b85af5891f8002023655a"
+    },
+    {
+      "path": "assets/talk-a.svg",
+      "bytes": 653,
+      "sha256": "bb6a91dd009eaa20742a05951930992482e0dc4fa139857eaa15a2161338ade0"
+    },
+    {
+      "path": "assets/talk-b.svg",
+      "bytes": 731,
+      "sha256": "bf3851f6c5aec2e4648623e8681bba86b8da7b02a760df2b216f052df4fcf092"
+    },
+    {
+      "path": "assets/talk-inverse.svg",
+      "bytes": 650,
+      "sha256": "4125bf8e78c28e98ce294d6dfec13e14a94b736ad57a9317fed4533e51d87285"
+    },
+    {
+      "path": "assets/talk-mono.svg",
+      "bytes": 647,
+      "sha256": "ffd7dc14bf0db1365463cc573706756584a03dcaa5a3589130ec5a9571e67892"
+    },
+    {
+      "path": "assets/talk-tile.svg",
+      "bytes": 718,
+      "sha256": "11dd002545b0284cd39902167b465703303de59a49b1defe8572f104fe1de889"
+    },
+    {
+      "path": "assets/typography.svg",
+      "bytes": 3148,
+      "sha256": "e6ef4173cfdcb7d115c54296d1b423fa4656acc206f7ec2f972ab563659a9ee4"
+    },
+    {
+      "path": "assets/wordmark.svg",
+      "bytes": 1203,
+      "sha256": "8c4580bcf10b49f5a6ad561037ed95710f3c883fd536675fbfed5d4a91daeae6"
+    }
+  ]
+}

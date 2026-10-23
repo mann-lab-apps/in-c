@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-22",
+  "currentRound": 4,
+  "selectedPalette": "blue",
+  "primary": "#0077C8",
+  "currentGeometry": "round-4/motif.svg",
+  "headAttachment": "Full heads moved 5 units left, small heads 0.65 units left; dots moved with final heads. Stems and beam arrangement preserved.",
+  "palette": "Selected light palette; dark UI derivation preliminary.",
+  "localLinksChecked": 30,
+  "missingLinks": [],
+  "baselineFilesCompared": 1057,
+  "changedBaselineFiles": [
+    "docs/brand/ddirori-visuals/index.html",
+    "docs/brand/ddirori-visuals/prompts.json",
+    "docs/brand/ddirori-visuals/palette.json",
+    "docs/brand/ddirori-visuals/assets.json",
+    "docs/brand/ddirori-visuals/verify.mjs",
+    "docs/brand/README.md",
+    "docs/brand/ddirori-visuals/README.md"
+  ],
+  "changesOutsideScope": [],
+  "browserChecks": 14,
+  "browserStatus": "passed",
+  "browserReport": "evidence/round-4/browser-review.json",
+  "visualReview": "Current round-4 brand-board and 24/32/48/64 strip visually inspected. No production-device or final logo certification.",
+  "productChanges": false
+}

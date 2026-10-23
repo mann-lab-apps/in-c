@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "1.0",
+  "active": "lime",
+  "status": "neutral foundation trial; accent selection remains open",
+  "references": {
+    "excalidraw": "https://github.com/excalidraw/excalidraw/blob/master/packages/common/src/colors.ts",
+    "excalidrawUI": "https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/css/theme.scss",
+    "radix": "https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale",
+    "carbon": "https://www.carbondesignsystem.com/building-blocks/foundations/color/overview"
+  },
+  "neutral": {
+    "light": {
+      "background": "#FFFFFF",
+      "surface": "#FFFFFF",
+      "surfaceMuted": "#F5F5F5",
+      "ink": "#202020",
+      "muted": "#616161",
+      "border": "#E5E5E5",
+      "controlBorder": "#808080"
+    },
+    "dark": {
+      "background": "#181818",
+      "surface": "#222222",
+      "surfaceMuted": "#2C2C2C",
+      "ink": "#F5F5F5",
+      "muted": "#B8B8B8",
+      "border": "#424242",
+      "controlBorder": "#888888"
+    }
+  },
+  "accents": [
+    {
+      "key": "violet",
+      "name": "바이올렛",
+      "brand": "#D0BFFF",
+      "onBrand": "#202020",
+      "action": "#6741D9",
+      "hover": "#5F3DC4",
+      "pressed": "#5033A6",
+      "selection": "#F3F0FF",
+      "selectionDark": "#30283F",
+      "darkAction": "#D0BFFF",
+      "darkHover": "#E5DBFF",
+      "darkPressed": "#F3F0FF"
+    },
+    {
+      "key": "blue",
+      "name": "블루",
+      "brand": "#A5D8FF",
+      "onBrand": "#202020",
+      "action": "#1971C2",
+      "hover": "#1864AB",
+      "pressed": "#155592",
+      "selection": "#E7F5FF",
+      "selectionDark": "#233344",
+      "darkAction": "#A5D8FF",
+      "darkHover": "#D0EBFF",
+      "darkPressed": "#E7F5FF"
+    },
+    {
+      "key": "teal",
+      "name": "틸",
+      "brand": "#96F2D7",
+      "onBrand": "#202020",
+      "action": "#087F5B",
+      "hover": "#066849",
+      "pressed": "#05563C",
+      "selection": "#E6FCF5",
+      "selectionDark": "#203A32",
+      "darkAction": "#96F2D7",
+      "darkHover": "#C3FAE8",
+      "darkPressed": "#E6FCF5"
+    },
+    {
+      "key": "coral",
+      "name": "코럴",
+      "brand": "#FF927E",
+      "onBrand": "#202020",
+      "action": "#9D4034",
+      "hover": "#853428",
+      "pressed": "#70291F",
+      "selection": "#FFF0EC",
+      "selectionDark": "#402C28",
+      "darkAction": "#FFB4A4",
+      "darkHover": "#FFD8CE",
+      "darkPressed": "#FFF0EC"
+    },
+    {
+      "key": "yellow",
+      "name": "옐로",
+      "brand": "#F5D45C",
+      "onBrand": "#202020",
+      "action": "#796000",
+      "hover": "#655000",
+      "pressed": "#524100",
+      "selection": "#FFF9DB",
+      "selectionDark": "#393222",
+      "darkAction": "#F5D45C",
+      "darkHover": "#FFEC99",
+      "darkPressed": "#FFF9DB"
+    },
+    {
+      "key": "lime",
+      "name": "라임",
+      "brand": "#D5ED70",
+      "onBrand": "#263125",
+      "action": "#52651A",
+      "hover": "#435514",
+      "pressed": "#35440F",
+      "selection": "#F3F8DD",
+      "selectionDark": "#303624",
+      "darkAction": "#D5ED70",
+      "darkHover": "#E3EDBC",
+      "darkPressed": "#F3F8DD"
+    }
+  ],
+  "content": {
+    "gray": {
+      "name": "회색",
+      "fill": "#E9ECEF",
+      "stroke": "#343A40"
+    },
+    "red": {
+      "name": "빨강",
+      "fill": "#FFC9C9",
+      "stroke": "#C92A2A"
+    },
+    "pink": {
+      "name": "분홍",
+      "fill": "#FCC2D7",
+      "stroke": "#C2255C"
+    },
+    "grape": {
+      "name": "자주",
+      "fill": "#EEBEFA",
+      "stroke": "#9C36B5"
+    },
+    "violet": {
+      "name": "보라",
+      "fill": "#D0BFFF",
+      "stroke": "#6741D9"
+    },
+    "blue": {
+      "name": "파랑",
+      "fill": "#A5D8FF",
+      "stroke": "#1971C2"
+    },
+    "cyan": {
+      "name": "청록",
+      "fill": "#99E9F2",
+      "stroke": "#0C8599"
+    },
+    "teal": {
+      "name": "비취",
+      "fill": "#96F2D7",
+      "stroke": "#087F5B"
+    },
+    "green": {
+      "name": "초록",
+      "fill": "#B2F2BB",
+      "stroke": "#2B8A3E"
+    },
+    "yellow": {
+      "name": "노랑",
+      "fill": "#FFEC99",
+      "stroke": "#946200"
+    },
+    "orange": {
+      "name": "주황",
+      "fill": "#FFD8A8",
+      "stroke": "#B84B00"
+    },
+    "bronze": {
+      "name": "갈색",
+      "fill": "#EADDD7",
+      "stroke": "#745447"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-23",
+  "scope": "Local palette recommendation, shared UI and Play/Score pilot; not release approval",
+  "recommendedPalette": "lime",
+  "tests": {
+    "flutterShared": 20,
+    "reactShared": 23,
+    "playComponentsAndPilot": 14,
+    "scorePilot": 7
+  },
+  "additionalValidation": {
+    "scoreCaptureWithPretendard": 7,
+    "flutterSharedAnalyze": "passed",
+    "scoreAnalyze": "passed",
+    "reactBuild": "passed",
+    "chromaticsExistingBuildAndCapture": "passed",
+    "iosMetadataChecks": [
+      "clef",
+      "classical-local-library"
+    ],
+    "brandAssetChecks": 164,
+    "paletteContrastPairs": 88,
+    "selectedSemanticContrastPairs": 30
+  },
+  "browserReport": "browser.json",
+  "limitations": [
+    "Physical launchers and VoiceOver not verified",
+    "Color recognition and extended playing-session comfort need user testing",
+    "Chromatics existing app reviewed; new theme not installed in desktop app",
+    "No store upload or final palette approval"
+  ]
+}

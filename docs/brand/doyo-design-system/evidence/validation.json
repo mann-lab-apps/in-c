@@ -1,0 +1,581 @@
+{
+  "generatedAt": "2026-10-22T05:51:22.810Z",
+  "scope": "Doyo design artifacts only; no real file/audio/notation validation",
+  "checks": [
+    {
+      "name": "Contrast light: text/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: text/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: muted/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: muted/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: onAction/action",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: onAction/actionHover",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: onAction/actionPressed",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: action/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: action/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: onSelected/selected",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: controlBorder/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: controlBorder/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: focus/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: focus/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: error/errorSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: success/successSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast light: warning/warningSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: text/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: text/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: muted/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: muted/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: onAction/action",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: onAction/actionHover",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: onAction/actionPressed",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: action/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: action/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: onSelected/selected",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: controlBorder/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: controlBorder/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: focus/surface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: focus/background",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: error/errorSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: success/successSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Contrast dark: warning/warningSurface",
+      "result": "pass"
+    },
+    {
+      "name": "Score overlay selection on white",
+      "result": "pass"
+    },
+    {
+      "name": "Score overlay input on white",
+      "result": "pass"
+    },
+    {
+      "name": "Score overlay playback on white",
+      "result": "pass"
+    },
+    {
+      "name": "overview light desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "overview light mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "components light desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "components light mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "reader light desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "reader light mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "studio light desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "studio light mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "overview dark desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "overview dark mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "components dark desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "components dark mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "reader dark desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "reader dark mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "studio dark desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "studio dark mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Keyboard focus visible",
+      "result": "pass"
+    },
+    {
+      "name": "Mode selection semantics",
+      "result": "pass"
+    },
+    {
+      "name": "Bird body moves over the cycle",
+      "result": "pass"
+    },
+    {
+      "name": "Support leg compresses independently",
+      "result": "pass"
+    },
+    {
+      "name": "Front leg articulates independently",
+      "result": "pass"
+    },
+    {
+      "name": "Busy region semantics",
+      "result": "pass"
+    },
+    {
+      "name": "Loading button uses bird",
+      "result": "pass"
+    },
+    {
+      "name": "Cancellation restores state",
+      "result": "pass"
+    },
+    {
+      "name": "Completion restores state",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion stops bird",
+      "result": "pass"
+    },
+    {
+      "name": "Reduced motion retains loading text",
+      "result": "pass"
+    },
+    {
+      "name": "Mobile reader targets >=48px",
+      "result": "pass"
+    },
+    {
+      "name": "Reader page state updates",
+      "result": "pass"
+    },
+    {
+      "name": "Practice panel expands",
+      "result": "pass"
+    },
+    {
+      "name": "Dark theme keeps score white",
+      "result": "pass"
+    },
+    {
+      "name": "Tempo range updates output",
+      "result": "pass"
+    },
+    {
+      "name": "Keyboard can select score",
+      "result": "pass"
+    },
+    {
+      "name": "Input caret distinct from selection",
+      "result": "pass"
+    },
+    {
+      "name": "Playback cursor distinct",
+      "result": "pass"
+    },
+    {
+      "name": "Escape clears selection",
+      "result": "pass"
+    },
+    {
+      "name": "Native dialog opens",
+      "result": "pass"
+    },
+    {
+      "name": "components 200% text bounds",
+      "result": "pass"
+    },
+    {
+      "name": "reader 200% text bounds",
+      "result": "pass"
+    },
+    {
+      "name": "studio 200% text bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Compact becomes >=48px for coarse pointer",
+      "result": "pass"
+    },
+    {
+      "name": "No browser errors or missing assets",
+      "result": "pass"
+    }
+  ],
+  "contrast": [
+    {
+      "mode": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 11.132636430266361,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "text",
+      "bg": "surface",
+      "ratio": 12.213531767341241,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 5.418931578771477,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 5.945069112509454,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 5.946036253138299,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 7.444225728598493,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 9.48907979840727,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "action",
+      "bg": "background",
+      "ratio": 5.419813127630804,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "action",
+      "bg": "surface",
+      "ratio": 5.946036253138299,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "onSelected",
+      "bg": "selected",
+      "ratio": 7.383362488742341,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.143391463714317,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "background",
+      "ratio": 3.776702073772229,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 5.946036253138299,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "fg": "focus",
+      "bg": "background",
+      "ratio": 5.419813127630804,
+      "minimum": 3
+    },
+    {
+      "mode": "light",
+      "fg": "error",
+      "bg": "errorSurface",
+      "ratio": 5.5864823473156475,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "success",
+      "bg": "successSurface",
+      "ratio": 5.274285045664625,
+      "minimum": 4.5
+    },
+    {
+      "mode": "light",
+      "fg": "warning",
+      "bg": "warningSurface",
+      "ratio": 5.624776801114787,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 13.616697644516211,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "text",
+      "bg": "surface",
+      "ratio": 11.898369035235532,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 7.968575780513247,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 6.962999237922438,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 9.666367118084285,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 11.27170938250073,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 7.897087795738844,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "action",
+      "bg": "background",
+      "ratio": 9.666367118084285,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "action",
+      "bg": "surface",
+      "ratio": 8.446541606756762,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "onSelected",
+      "bg": "selected",
+      "ratio": 6.728000389592673,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.444881587755717,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "background",
+      "ratio": 5.086798742492411,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 8.446541606756762,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "background",
+      "ratio": 9.666367118084285,
+      "minimum": 3
+    },
+    {
+      "mode": "dark",
+      "fg": "error",
+      "bg": "errorSurface",
+      "ratio": 6.122774219367098,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "success",
+      "bg": "successSurface",
+      "ratio": 6.183421897995565,
+      "minimum": 4.5
+    },
+    {
+      "mode": "dark",
+      "fg": "warning",
+      "bg": "warningSurface",
+      "ratio": 6.5575904744015805,
+      "minimum": 4.5
+    }
+  ],
+  "screenshots": [
+    "overview-light.png",
+    "components-light.png",
+    "components-mobile-light.png",
+    "reader-light.png",
+    "reader-mobile-light.png",
+    "studio-light.png",
+    "overview-dark.png",
+    "components-dark.png",
+    "components-mobile-dark.png",
+    "reader-dark.png",
+    "reader-mobile-dark.png",
+    "studio-dark.png",
+    "loader-mid-cycle.png",
+    "loader-reduced-motion.png"
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55",
+  "status": "passed"
+}

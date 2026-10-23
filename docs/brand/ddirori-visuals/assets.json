@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-22",
+  "status": "Current round-4 blue SVG head attachment refined; selected light palette; dark proposal. Brand concepts, not installed in products.",
+  "files": [
+    {
+      "file": "banner-b.png",
+      "sha256": "951458aff094958b4a2200bee2c07e6ffb014682ce01d974f3fb6b3a752c6fc4",
+      "width": 2167,
+      "height": 725,
+      "pngColorType": 2
+    },
+    {
+      "file": "explorations/motif-revision-a.png",
+      "sha256": "266665f65736d8ce157655a6130ec480c9cb69b5df804bf0b29655c45de49951",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "explorations/palette-a-initial.png",
+      "sha256": "b048470ddb8de784ebdc55e790e1752d57cf52f3fb3fe6f6d45fcf219df20ee4",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "explorations/palette-b-initial.png",
+      "sha256": "ea023bddfbf5352c76aa0047341efe74fc85a9a07979071e9037988efeca2f49",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "explorations/palette-c-initial.png",
+      "sha256": "04b8e85ec0c55aeb252120e58d7f580e23cbffe7924c4d2cef3c3deae4ff77c3",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "icon-b.png",
+      "sha256": "b974ad686f514b9054e2b70eeebc879bcc1926024c18a333ae8919ff2a87c2f5",
+      "width": 1254,
+      "height": 1254,
+      "pngColorType": 2
+    },
+    {
+      "file": "identity-b.png",
+      "sha256": "b9f02a44e68f30331573b3f409fb7d3659c69b5aded56ea049a649e57da99c77",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "round-2/icon-lilac-small.svg",
+      "sha256": "f687941d895e85a2a13ec7dc0a72387c683735040a2f82962feb383f8cfbe295"
+    },
+    {
+      "file": "round-2/icon-lilac.svg",
+      "sha256": "46bd5a65c38b2fb53b7ffb8d9d64de133cea241875b50e10fc21995090e3cb92"
+    },
+    {
+      "file": "round-2/icon-peach-small.svg",
+      "sha256": "4971d2e731b806c7c00258444782c2f3b366f984bdbc2789e589f3d11dfd2648"
+    },
+    {
+      "file": "round-2/icon-peach.svg",
+      "sha256": "1bc44aa147c63d2424a38362d5f01927daa7129e0284be29e362666229881a92"
+    },
+    {
+      "file": "round-2/icon-sky-small.svg",
+      "sha256": "5abac3824d4744c7bf2eaf66154c26054f58f5163045753a850372630f78fc57"
+    },
+    {
+      "file": "round-2/icon-sky.svg",
+      "sha256": "143df4bc373b2df01d70001eb928027758ee1ab732209cfaf65855b9abb7bac7"
+    },
+    {
+      "file": "round-2/motif-64-small.svg",
+      "sha256": "4bc279954405549fa1b240cefd7f1c7b4ee3a43740979de7f8733f282d91c392"
+    },
+    {
+      "file": "round-2/motif-64.svg",
+      "sha256": "a5561b5d8458e6b2ed383b8729120430f5ae2032ed2ec2ccbf55f8d5fecfa1a3"
+    },
+    {
+      "file": "round-2/palette-lilac.png",
+      "sha256": "9682c13e1cae06ead8ad742b650a9d628e9a7f6e3c86e3c4a6c437ce8d1e9afa",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "round-2/palette-peach.png",
+      "sha256": "ca8960ffbbf2888b25ce701b55102d86d2d55a6301f604099678bb9cac74f3e6",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "round-2/palette-sky.png",
+      "sha256": "39f342a3759d151e0000209b63acb7701c554e03191fc8351d1125aff8726887",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "round-3/bach-surprised.png",
+      "sha256": "239ea19278f77a7abbf7ae100a9498d513b7e4eabc0fd778ff5227be29c64655",
+      "width": 1254,
+      "height": 1254,
+      "pngColorType": 6
+    },
+    {
+      "file": "round-3/icon-blue-small.svg",
+      "sha256": "c372855ad3e650f5e124935f83de049c84f7e94dc4a754bcf6db36aac84f37c8"
+    },
+    {
+      "file": "round-3/icon-blue.svg",
+      "sha256": "bf1f8f31e6d0ef726e285669a01504e55b9963318e9507db5187bdd53d947ada"
+    },
+    {
+      "file": "round-3/icon-orange-small.svg",
+      "sha256": "39101e2862a58a09a9c31be622478ba37121a1e70403237aca361ad15c6924eb"
+    },
+    {
+      "file": "round-3/icon-orange.svg",
+      "sha256": "8dfb28dafaf6c9f02c36a56dd16ab1f2c431ea02ff9af450a19fc49be9fe88e3"
+    },
+    {
+      "file": "round-3/icon-teal-small.svg",
+      "sha256": "e373afb7644759c389fefa508a197f2c9998a38fba88c87dca999fdd379e8a33"
+    },
+    {
+      "file": "round-3/icon-teal.svg",
+      "sha256": "dfe3a171b6f4a0a3bbcc3e81ea1524994bf4c560f12ea201d0bb5b20d9b0d075"
+    },
+    {
+      "file": "round-3/motif-small.svg",
+      "sha256": "19e25eb5b58283c8502671a2e6875a443c6eb9a67fcc321eb2149eba1087a702"
+    },
+    {
+      "file": "round-3/motif.svg",
+      "sha256": "190564c3f958eb00c35240a18d62cee9e046e487dc65878f9b7e5ccd01186ef7"
+    },
+    {
+      "file": "round-3/primary-comparison.png",
+      "sha256": "27321f5aa242f5e386f8e0f648bb39ed7780af4e732ceb9d66fddbc281f4bc07",
+      "width": 1536,
+      "height": 1024,
+      "pngColorType": 2
+    },
+    {
+      "file": "round-4/icon-blue-small.svg",
+      "sha256": "e301f9f079738b79d62b831bbf7dfd09aaa6328d0f36a22d3088fbc57597dfcd"
+    },
+    {
+      "file": "round-4/icon-blue.svg",
+      "sha256": "d712c227e843061813df7279af1384af025917c69554958774db4a5f8d086076"
+    },
+    {
+      "file": "round-4/motif-small.svg",
+      "sha256": "f11ce3b0eb9f7043fcf8c45a082aa795d7334b40ce61934f3460b53b93827b52"
+    },
+    {
+      "file": "round-4/motif.svg",
+      "sha256": "39d9e5d63cd49dfadfb5650d6a7f5b9e820582daa4f77320abb0e660f2b38374"
+    }
+  ]
+}

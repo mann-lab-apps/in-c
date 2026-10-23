@@ -1,0 +1,10 @@
+{
+  "baselineFilesCompared": 1068,
+  "changedPreexistingFiles": [
+    "docs/brand/README.md",
+    "docs/brand/ddirori-visuals/README.md"
+  ],
+  "changesOutsideAuthorizedDocs": [],
+  "productCodeChangesByThisTask": false,
+  "deploymentMetadataChangesByThisTask": false
+}

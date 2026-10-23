@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-22T08:01:55.664Z",
+  "scope": "Compiled Flutter catalog rendered in Chromium; not native-device or audio QA",
+  "captures": [
+    {
+      "file": "flutter-0-light.png",
+      "width": 1440,
+      "theme": "light",
+      "view": 0,
+      "semanticNodes": 40
+    },
+    {
+      "file": "flutter-1-light.png",
+      "width": 390,
+      "theme": "light",
+      "view": 1,
+      "semanticNodes": 38
+    },
+    {
+      "file": "flutter-2-dark.png",
+      "width": 840,
+      "theme": "dark",
+      "view": 2,
+      "semanticNodes": 32
+    },
+    {
+      "file": "flutter-3-light.png",
+      "width": 1440,
+      "theme": "light",
+      "view": 3,
+      "semanticNodes": 39
+    },
+    {
+      "file": "flutter-4-dark.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": 4,
+      "semanticNodes": 28
+    },
+    {
+      "file": "flutter-5-light.png",
+      "width": 390,
+      "theme": "light",
+      "view": 5,
+      "semanticNodes": 25
+    }
+  ],
+  "errors": [],
+  "externalHosts": [
+    "fonts.gstatic.com"
+  ],
+  "status": "passed"
+}

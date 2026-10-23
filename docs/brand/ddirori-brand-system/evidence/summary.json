@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-23T11:00:52.735100+00:00",
+  "scope": "Local brand assets and two product pilots. No remote publication or physical-device certification.",
+  "tests": {
+    "ui": 19,
+    "score": 46,
+    "play": 34,
+    "web": 22
+  },
+  "totalTests": 121,
+  "analyze": "three Flutter targets: no issues",
+  "webBuild": "passed",
+  "assetChecks": 164,
+  "browserChecks": 11,
+  "contrastPairs": 30,
+  "documentationLinks": 12,
+  "metadata": [
+    {
+      "app": "clef",
+      "sourceState": "pending",
+      "contentReviewed": false
+    },
+    {
+      "app": "classical-local-library",
+      "sourceState": "pending",
+      "contentReviewed": false
+    }
+  ],
+  "widgetCaptures": 11,
+  "remaining": [
+    "User naming and icon recognition",
+    "Installed launcher masks and physical device VoiceOver",
+    "Exact release checkpoint/version reconciliation and screenshot pipeline",
+    "Trademark/domain/store/handle clearance before release"
+  ]
+}

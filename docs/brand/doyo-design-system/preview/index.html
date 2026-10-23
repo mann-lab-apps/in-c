@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>도요 디자인 시스템</title><link rel="stylesheet" href="../adapters/web/components.css"><link rel="stylesheet" href="style.css">
+</head><body class="doyo" data-theme="light" data-density="comfortable">
+<header class="review-header"><a class="wordmark" href="?view=overview">도요<span>doyo</span></a><div><strong>Design System</strong><small>0.1 · 컴포넌트와 적용 예시</small></div><button class="doyo-button" data-variant="secondary" id="theme-toggle" aria-pressed="false">다크 모드</button></header>
+<nav class="review-nav" aria-label="검토 화면"><button data-view="overview" aria-pressed="true">기준</button><button data-view="components" aria-pressed="false">컴포넌트</button><button data-view="reader" aria-pressed="false">악보 열람</button><button data-view="studio" aria-pressed="false">사보</button><button data-view="adoption" aria-pressed="false">적용 순서</button></nav>
+<main id="content"></main>
+<footer><p>독립 디자인 목업 · 예제 데이터 · 실제 파일·음원·저장 기능 미연결</p><a href="../README.md">문서</a> · <a href="../tokens.json">기준 토큰</a> · <a href="../../doyo-visuals/palette.html">선택한 브랜드 시안</a></footer>
+<dialog id="explain-dialog"><h2>프로젝트 저장과 내보내기</h2><p>.chromatics 프로젝트 저장, MusicXML 교환, PDF 출력은 별도 행동이다. 이 목업은 파일을 만들지 않는다.</p><form method="dialog"><button class="doyo-button" autofocus>닫기</button></form></dialog>
+<script src="../generated/tokens.js"></script><script src="../generated/loader.js"></script><script src="app.js"></script>
+</body></html>

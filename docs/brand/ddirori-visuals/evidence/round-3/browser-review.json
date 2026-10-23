@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-10-22T06:50:48.328Z",
+  "scope": "Static brand gallery and vector structure; not product/device/icon/accessibility certification",
+  "checks": [
+    {
+      "name": "Desktop bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Delegated primary choice is blue",
+      "result": "pass"
+    },
+    {
+      "name": "Rhythm 64/64/dotted32",
+      "result": "pass"
+    },
+    {
+      "name": "All declared primary-label contrasts >=4.5",
+      "result": "pass"
+    },
+    {
+      "name": "24/32/48/64 review widths",
+      "result": "pass"
+    },
+    {
+      "name": "motif.svg three heads/three shared beams/partial fourth/dot",
+      "result": "pass"
+    },
+    {
+      "name": "motif.svg short top beam and full right stem",
+      "result": "pass"
+    },
+    {
+      "name": "motif-small.svg three heads/three shared beams/partial fourth/dot",
+      "result": "pass"
+    },
+    {
+      "name": "motif-small.svg short top beam and full right stem",
+      "result": "pass"
+    },
+    {
+      "name": "Mobile bounds",
+      "result": "pass"
+    },
+    {
+      "name": "200% text bounds",
+      "result": "pass"
+    },
+    {
+      "name": "Keyboard focus visible",
+      "result": "pass"
+    },
+    {
+      "name": "No page errors or failed asset responses",
+      "result": "pass"
+    }
+  ],
+  "screenshots": [
+    "gallery-desktop.png",
+    "icon-pair.png",
+    "icon-sizes.png",
+    "gallery-mobile.png"
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55",
+  "status": "passed"
+}

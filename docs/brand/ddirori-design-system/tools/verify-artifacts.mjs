@@ -1,0 +1,16 @@
+import assert from'node:assert/strict';import{readFile,readdir,writeFile,mkdir}from'node:fs/promises';import{createHash}from'node:crypto';import{spawnSync}from'node:child_process';import path from'node:path';import{fileURLToPath}from'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),repo=path.resolve(root,'../../..');
+const r=spawnSync(process.execPath,[path.join(root,'tools/build.mjs'),'--check'],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
+const t=JSON.parse(await readFile(path.join(root,'generated/tokens.resolved.json'),'utf8'));
+const luminance=h=>h.match(/[a-f\d]{2}/gi).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((n,x,i)=>n+x*[.2126,.7152,.0722][i],0);
+const ratio=(a,b)=>{const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const pairs=[];
+for(const[mode,c]of Object.entries(t.themes))for(const[fg,bg,min]of [['text','background',4.5],['text','surface',4.5],['muted','surface',4.5],['muted','surfaceMuted',4.5],['onAction','action',4.5],['onAction','actionHover',4.5],['onAction','actionPressed',4.5],['onPastel','sky',4.5],['onPastel','peach',4.5],['controlBorder','surface',3],['focus','surface',3],['success','surfaceMuted',4.5],['warning','surfaceMuted',4.5],['error','surfaceMuted',4.5],['onOverlay','overlay',4.5]]){const value=ratio(c[fg],c[bg]);assert(value>=min,mode+' '+fg+'/'+bg+' '+value);pairs.push({mode,foreground:fg,background:bg,ratio:+value.toFixed(2),minimum:min})}
+let checked=0;const missing=[];
+for(const f of ['README.md','inventory.md','foundations.md','components.md','score-apps.md','adoption.md','handoff.md','validation.md','assets/PROVENANCE.md']){const full=path.join(root,f),text=await readFile(full,'utf8');for(const m of text.matchAll(/\]\(([^)]+)\)/g)){const link=m[1];if(/^(https?:|#)/.test(link))continue;checked++;try{await readFile(path.resolve(path.dirname(full),link.split('#')[0]))}catch(e){if(e.code!=='EISDIR'&&path.resolve(path.dirname(full),link.split('#')[0])!==path.join(root,'evidence/artifact-validation.json'))missing.push(f+': '+link)}}}
+assert.deepEqual(missing,[]);
+const manifest=[];for(const f of(await readdir(path.join(root,'assets'))).filter(f=>!['manifest.json','PROVENANCE.md'].includes(f))){const body=await readFile(path.join(root,'assets',f));manifest.push({file:f,sha256:createHash('sha256').update(body).digest('hex'),bytes:body.length})}
+await writeFile(path.join(root,'assets/manifest.json'),JSON.stringify({generatedBy:'tools/verify-artifacts.mjs',files:manifest},null,2)+'\n');
+const original=JSON.parse(await readFile(path.join(repo,'docs/brand/ddirori-design-system/palette-pilot.json'),'utf8'));assert.equal(t.themes.light.action,original.light.primary);
+const report={date:new Date().toISOString(),source:'tokens.json + current palette light/darkProposal + round-4 SVG',generatedCheck:'passed',contrastPairs:pairs,linksChecked:checked,missingLinks:missing,assets:manifest.length};
+await mkdir(path.join(root,'evidence'),{recursive:true});await writeFile(path.join(root,'evidence/artifact-validation.json'),JSON.stringify(report,null,2)+'\n');await readFile(path.join(root,'evidence/artifact-validation.json'));console.log(pairs.length+' contrast pairs; '+checked+' local links; '+manifest.length+' hashed assets.');

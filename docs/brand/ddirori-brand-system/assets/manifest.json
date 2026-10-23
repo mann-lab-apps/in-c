@@ -1,0 +1,390 @@
+{
+  "generatedBy": "tools/build.py + tools/render.mjs",
+  "files": [
+    {
+      "file": "FONT-LICENSE.txt",
+      "bytes": 4418,
+      "sha256": "d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04"
+    },
+    {
+      "file": "bach-calm-mono.svg",
+      "bytes": 808,
+      "sha256": "ae4916f86c623e42651e995ddd0f87056720c5298106f4cbbd7bdf9869e15998"
+    },
+    {
+      "file": "bach-calm.svg",
+      "bytes": 807,
+      "sha256": "a6e39d41ada00eaebe3ccf5cc025baa8fd53bf316f6fb049d45d9d9bad5204c5"
+    },
+    {
+      "file": "bach-happy-mono.svg",
+      "bytes": 737,
+      "sha256": "045eb2cb1cb42102e5c2b349002868033e2d622f44ab40979cd871ec14d0a951"
+    },
+    {
+      "file": "bach-happy.svg",
+      "bytes": 736,
+      "sha256": "7455ed0a652c9f6eef5dde29fb9e4f08a10f1072999cfc9faaf3d8279ba58e94"
+    },
+    {
+      "file": "bach-surprised-mono.svg",
+      "bytes": 747,
+      "sha256": "9c84e0a4091be271f647888b1af2d95d79bd4c697449bb6c9a10a3a0a79b6d35"
+    },
+    {
+      "file": "bach-surprised.svg",
+      "bytes": 746,
+      "sha256": "efd5236f9064adca5a77531d0d9c80c8cbf8d1e83594e0bef22d8211a9bd467a"
+    },
+    {
+      "file": "banner-template.svg",
+      "bytes": 3823,
+      "sha256": "acb21f7f953aae5f0fa9992055fc23f32bcd98ca7ab16342131e595178f84c02"
+    },
+    {
+      "file": "glyph-chime.svg",
+      "bytes": 333,
+      "sha256": "52d1229f003cc2ef2530ae45f6a86a479e9366fd88e864b2cf4686211b2d1abc"
+    },
+    {
+      "file": "glyph-click.svg",
+      "bytes": 322,
+      "sha256": "48e43787e5780b2c162415842c548e63e390bf5ee8dab735c1fa40a7d9d4288e"
+    },
+    {
+      "file": "glyph-play.svg",
+      "bytes": 280,
+      "sha256": "dc82c43c8239c401c05c67cf8e43d79d704cee8b038af10b73cb73cd109c0cbc"
+    },
+    {
+      "file": "glyph-score.svg",
+      "bytes": 510,
+      "sha256": "74517170aa5291a8a31bc3d54531a645b2fcd14099b7377ab58a479eabef9345"
+    },
+    {
+      "file": "glyph-stage.svg",
+      "bytes": 329,
+      "sha256": "2f84ffebecc1cc5d034a0536cfa3e179ff95f4c2062e699d6da1183083bd2e79"
+    },
+    {
+      "file": "glyph-studio.svg",
+      "bytes": 331,
+      "sha256": "8f43efc22e68ff2b8473cfe14662c2faa2cf2624427071b09e9deda6c2c7ce37"
+    },
+    {
+      "file": "glyph-talk.svg",
+      "bytes": 435,
+      "sha256": "d28f101fb53a65ea95e50d666bb17e2f96b7928e7052607f9b310df9f9d88d0f"
+    },
+    {
+      "file": "icon-bach.svg",
+      "bytes": 872,
+      "sha256": "d0dcc0523d92ebb2ec22704d700684f117b6b02e70e31b9305520bfd814dc6f1"
+    },
+    {
+      "file": "icon-chime.svg",
+      "bytes": 359,
+      "sha256": "ba44ae983105b6017eb628851244db4bde72996af43dcbd37bc6f119b75eeece"
+    },
+    {
+      "file": "icon-click.svg",
+      "bytes": 375,
+      "sha256": "cce7b1ea1a43ef13c7ee6fb85eb90d13bb45840275c68ab9b18b51cc4b459af8"
+    },
+    {
+      "file": "icon-master.svg",
+      "bytes": 956,
+      "sha256": "4b23551734f6b3d56cf4cb6ec6e57381d8fc7683af34aa53289394f84ee506ae"
+    },
+    {
+      "file": "icon-play.svg",
+      "bytes": 306,
+      "sha256": "7b5fa8c4e2f2a9ae7261602acfe74c032c363dc4c30a7e938ca196f017d294e1"
+    },
+    {
+      "file": "icon-score.svg",
+      "bytes": 667,
+      "sha256": "82d55df5fa9c81204bfcf330854e3efaaebdfa26c7355d2c32c4e0643f6d519a"
+    },
+    {
+      "file": "icon-stage.svg",
+      "bytes": 355,
+      "sha256": "4db34246f710df036ed0bd3adb851cdaf4cbe0584c1c44c4d741385f615d2040"
+    },
+    {
+      "file": "icon-studio.svg",
+      "bytes": 410,
+      "sha256": "84bf8afaa06674c7a263f907e4ca54b6e3a97a3d64f5b242566092d16eab3b8e"
+    },
+    {
+      "file": "icon-talk.svg",
+      "bytes": 540,
+      "sha256": "eff286b801a6b7277990643c903eb79feff05913438291789825561ca911d585"
+    },
+    {
+      "file": "loader.svg",
+      "bytes": 1338,
+      "sha256": "3c7df7dc3904d66618316c6b1e1d0d7ecd8ea9e090dd9a5753c26ee1bb615633"
+    },
+    {
+      "file": "lockup-en-horizontal-blue.svg",
+      "bytes": 9125,
+      "sha256": "56871508f6d4238c3eda6e43199252a95be887bf4e019e61a2bded87198ab35d"
+    },
+    {
+      "file": "lockup-en-horizontal-ink.svg",
+      "bytes": 9125,
+      "sha256": "6a2dc303f7fd9241ec36c26e81704f7e64c9787f42bba6a53c225164ebd39df8"
+    },
+    {
+      "file": "lockup-en-horizontal-white.svg",
+      "bytes": 9125,
+      "sha256": "cd0421e468a73cfc1bb1ff3d6f913c142282d35149e179d8484c316faf0e9b83"
+    },
+    {
+      "file": "lockup-en-stacked-blue.svg",
+      "bytes": 9131,
+      "sha256": "5db26a8f1a894bb12c98e475f800d7c874ee6531c3dea702704b775d7b9e2fc8"
+    },
+    {
+      "file": "lockup-en-stacked-ink.svg",
+      "bytes": 9131,
+      "sha256": "47d3ef756c42aba9a4eb02e23810d3901555e0f48f8e7166d6f20bb352c6bbe9"
+    },
+    {
+      "file": "lockup-en-stacked-white.svg",
+      "bytes": 9131,
+      "sha256": "c85de9332b2a08446d8878ba75c5af5d214222cc8052908fb445dcf586722cfa"
+    },
+    {
+      "file": "lockup-ko-horizontal-blue.svg",
+      "bytes": 3410,
+      "sha256": "e730229d4f1bfd92e52bca96179c460ea78f4a63d0f3bf9e46aa468609551c59"
+    },
+    {
+      "file": "lockup-ko-horizontal-ink.svg",
+      "bytes": 3410,
+      "sha256": "07e9a76a7f9aca0914e27825a4a7374e38abc7eed1e6bef3221ad03bf2862181"
+    },
+    {
+      "file": "lockup-ko-horizontal-white.svg",
+      "bytes": 3410,
+      "sha256": "d0c303dd0f5701d6235bf49d7aef9065abb1f9e4e523434ce606a232696aa53c"
+    },
+    {
+      "file": "lockup-ko-stacked-blue.svg",
+      "bytes": 3416,
+      "sha256": "1e0ed9385a5e2c9f5e595c9a0c3188345624f6d7e0c519c4b955db9b0f643a49"
+    },
+    {
+      "file": "lockup-ko-stacked-ink.svg",
+      "bytes": 3416,
+      "sha256": "efa0c89c6ee7e721dbaa2398c2e3abfdab1b676f07beae47f49645dafca36971"
+    },
+    {
+      "file": "lockup-ko-stacked-white.svg",
+      "bytes": 3416,
+      "sha256": "598d449b5a4629596ec6e6f9f257941f5f17e0ce277a8081f5d3fd795cf9de63"
+    },
+    {
+      "file": "motif-small.svg",
+      "bytes": 886,
+      "sha256": "4608346c4dc64002bf8e9c64acfac89f3535f7e0b40d9b5b3b8b9dfb1f197553"
+    },
+    {
+      "file": "motif.svg",
+      "bytes": 893,
+      "sha256": "540d807bbf6026885beeaae48c413da5088df74d7a4fef357da8b1a89a0bd43a"
+    },
+    {
+      "file": "platform/play/ios-1024.png",
+      "bytes": 11155,
+      "sha256": "d1c17df684d612a51d6b487112dee0697fe24edf7bad8444d727162c83792f94"
+    },
+    {
+      "file": "platform/play/play-store-512.png",
+      "bytes": 4190,
+      "sha256": "193bd70be54e57b16ce3f2222a5b599fc4e86ba55ee80552e54729d61b1adcb6"
+    },
+    {
+      "file": "platform/score/ios-1024.png",
+      "bytes": 9659,
+      "sha256": "4ada55a4bcccf0faa5356d728e11d45fe32de716a4f871f22789ee2b6a5bd060"
+    },
+    {
+      "file": "platform/score/play-store-512.png",
+      "bytes": 4601,
+      "sha256": "82791cb01fe39cd52dd90ebd53e6e5fc026a4287e5fbbfcbda253bbe7c89f61a"
+    },
+    {
+      "file": "png/bach-calm-mono.png",
+      "bytes": 31938,
+      "sha256": "ae5ee2312ae44c67b3e33ab51ac339503e579875e4f7198b5ef61c05125cebf4"
+    },
+    {
+      "file": "png/bach-calm.png",
+      "bytes": 45159,
+      "sha256": "a2c9de38e4baca9f2860e7c3cc4f4b9518703aeb739f094a2097448ea862b497"
+    },
+    {
+      "file": "png/bach-happy-mono.png",
+      "bytes": 31798,
+      "sha256": "db9c31d5abaaec407b7312eb9a868759d40340ab2499881aeec7884be8a9d0cc"
+    },
+    {
+      "file": "png/bach-happy.png",
+      "bytes": 44974,
+      "sha256": "d07f05654f84e3221ce3b4a76b7417dc978ea072c13b6dc17b3bb554d77b02ef"
+    },
+    {
+      "file": "png/bach-surprised-mono.png",
+      "bytes": 32082,
+      "sha256": "7375bb0168690945f88d557e88019da7b08cfe92341d044a8a0041c9e242718c"
+    },
+    {
+      "file": "png/bach-surprised.png",
+      "bytes": 45430,
+      "sha256": "581e7c0723f94c314a07637abb124f5795ba04e5ea655025522a0a5e47e2003b"
+    },
+    {
+      "file": "png/banner-template.png",
+      "bytes": 35839,
+      "sha256": "274aeadd6eb0b3b2b563ae949ccd437d69028ef401c76de05fe9a2ac30764bd6"
+    },
+    {
+      "file": "png/glyph-chime.png",
+      "bytes": 16492,
+      "sha256": "ee6f34da58c64daa4dfcef1e417fbb6a3b2039b0eeac1320f0c61a76a6f61946"
+    },
+    {
+      "file": "png/glyph-click.png",
+      "bytes": 21498,
+      "sha256": "c40bf4344549cd87231e5a78e2b5d6a54b9319b2272e6ae7663241f6e188f852"
+    },
+    {
+      "file": "png/glyph-play.png",
+      "bytes": 13526,
+      "sha256": "74b4d9821ef24377260369d114ff75eee593014d75951b8aed4a0b29f9f01024"
+    },
+    {
+      "file": "png/glyph-score.png",
+      "bytes": 19317,
+      "sha256": "57276ddc316012c437ca8d74a5bb87e04ff73a3609a96842699c272c55c69839"
+    },
+    {
+      "file": "png/glyph-stage.png",
+      "bytes": 17788,
+      "sha256": "c131c2da0177c8d1b3ccbb63f2ce6351b3979306e23a0977a46ab7cc93b4af28"
+    },
+    {
+      "file": "png/glyph-studio.png",
+      "bytes": 13899,
+      "sha256": "7c3e265db84dc375b0a8abec6935bd675d6f79e9bdd519737b6bd6ff26680b89"
+    },
+    {
+      "file": "png/glyph-talk.png",
+      "bytes": 14258,
+      "sha256": "64c73552f2b760f1029f1507220dbdb229f1e562d0ba0dd11ca8547d7040614b"
+    },
+    {
+      "file": "png/icon-bach.png",
+      "bytes": 34674,
+      "sha256": "4cef3974ac85c442c2232ac3c06d66c2f512efb93b762063ffc3ec95aeb7225c"
+    },
+    {
+      "file": "png/icon-chime.png",
+      "bytes": 10143,
+      "sha256": "694c1c5060913a6373c1313e87e376b43efeb8076ebb2f532f56c4439635b95b"
+    },
+    {
+      "file": "png/icon-click.png",
+      "bytes": 16950,
+      "sha256": "8b13794bd4369a3cbde9230954ea02de9b3480460be1fc7a53bb085a26bbe854"
+    },
+    {
+      "file": "png/icon-master.png",
+      "bytes": 10851,
+      "sha256": "3b354cd3ef75f8c2b62bbfe2b6718f02e5b973f1e511743d437e6aa8b20c8c29"
+    },
+    {
+      "file": "png/icon-play.png",
+      "bytes": 11155,
+      "sha256": "d1c17df684d612a51d6b487112dee0697fe24edf7bad8444d727162c83792f94"
+    },
+    {
+      "file": "png/icon-score.png",
+      "bytes": 9659,
+      "sha256": "4ada55a4bcccf0faa5356d728e11d45fe32de716a4f871f22789ee2b6a5bd060"
+    },
+    {
+      "file": "png/icon-stage.png",
+      "bytes": 11413,
+      "sha256": "d6487d569b6c467680a33ead6cb0034cab5e84523332ec0d1f213f81ba9838f2"
+    },
+    {
+      "file": "png/icon-studio.png",
+      "bytes": 11082,
+      "sha256": "28cc4b248b1d74a93b2e2abc8f574dc0c74192dd7cc8325fdb3485101129a278"
+    },
+    {
+      "file": "png/icon-talk.png",
+      "bytes": 8719,
+      "sha256": "c44753db02dcd48ff907ddd0b11203209eb42a9ee72e6a3f6a6737060a13e96d"
+    },
+    {
+      "file": "png/loader.png",
+      "bytes": 16732,
+      "sha256": "a873c988d95f3c3ebc7412a13c170f7bc78c97be9606dd7afee9d0a97e30b7fc"
+    },
+    {
+      "file": "png/motif-small.png",
+      "bytes": 17112,
+      "sha256": "a4850159f4fd97d9109905383209fbe57745c003578bace16fa664341d21f2bd"
+    },
+    {
+      "file": "png/motif.png",
+      "bytes": 15994,
+      "sha256": "281f030fac4e4528c2e00af0b0ba99eef5e4e01f0692ca3a164a7816a2d7695a"
+    },
+    {
+      "file": "png/store-template.png",
+      "bytes": 21083,
+      "sha256": "03ce1146558e9cff7f34d49e6cbabdd36da900df47380a88fa8914db2489db7c"
+    },
+    {
+      "file": "store-template.svg",
+      "bytes": 730,
+      "sha256": "994d6ca22b32826d11590e41844cb1e24cf194b75ef01affcc19cb165d4b5c94"
+    },
+    {
+      "file": "wordmark-en-blue.svg",
+      "bytes": 8291,
+      "sha256": "8bedf6cde89471eb70cd7593b366825f3cf50bb3566a686a5a50be542dcb73ba"
+    },
+    {
+      "file": "wordmark-en-ink.svg",
+      "bytes": 8291,
+      "sha256": "fb8cf3b07defcd5151a18d6e85d9c58126e30efba26d6e5bd2a3e4695e32b6a5"
+    },
+    {
+      "file": "wordmark-en-white.svg",
+      "bytes": 8291,
+      "sha256": "7a8089a0acfffde4d69be4d8bb25aa8877b503fb588a3467244aaed031b4090e"
+    },
+    {
+      "file": "wordmark-ko-blue.svg",
+      "bytes": 2576,
+      "sha256": "5cc7dcf02063c1d678e95d1b42c62b5b494c7501f82ae486678f63ce37dbf95e"
+    },
+    {
+      "file": "wordmark-ko-ink.svg",
+      "bytes": 2576,
+      "sha256": "512befc0f6c33bde57751f29ce9981f8f1a7dbc6950a90992672fb4ff4150266"
+    },
+    {
+      "file": "wordmark-ko-white.svg",
+      "bytes": 2576,
+      "sha256": "f169a2f82a2fc4cfc5d8e0fb42b7ffcf436823c0a317600c73fd79b8b0b6db39"
+    }
+  ]
+}

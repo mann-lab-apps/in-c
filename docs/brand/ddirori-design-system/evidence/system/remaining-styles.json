@@ -1,0 +1,340 @@
+{
+  "scope": "Heuristic sample, not all hardcodes or migration coverage. Score notation/PDF values may be intentional.",
+  "areas": {
+    "sharedFlutter": {
+      "matchedLines": 15,
+      "examples": [
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 469,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 541,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 553,
+          "example": "?.copyWith(fontWeight: FontWeight.w700),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 658,
+          "example": "borderRadius: BorderRadius.circular(12),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 661,
+          "example": "padding: const EdgeInsets.all(8),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 727,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 843,
+          "example": "?.copyWith(color: toneColor, fontWeight: FontWeight.w700),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 902,
+          "example": "padding: const EdgeInsets.all(16),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 906,
+          "example": "borderRadius: BorderRadius.circular(12),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 947,
+          "example": "padding: const EdgeInsets.all(24),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/components.dart",
+          "line": 970,
+          "example": "padding: const EdgeInsets.all(12),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/music.dart",
+          "line": 27,
+          "example": "borderRadius: BorderRadius.circular(12),"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/music.dart",
+          "line": 47,
+          "example": "fontWeight: FontWeight.w700,"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/music.dart",
+          "line": 370,
+          "example": "fontWeight: FontWeight.w700,"
+        },
+        {
+          "file": "packages/ddirori_ui/lib/src/theme.dart",
+          "line": 66,
+          "example": "fontWeight: FontWeight.values[(value['weight']! / 100).round() - 1],"
+        }
+      ]
+    },
+    "sharedWeb": {
+      "matchedLines": 10,
+      "examples": [
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 39,
+          "example": ".ddirori .dd-help,.ddirori .dd-error{font-size:.875rem;margin:0}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 45,
+          "example": ".ddirori .dd-item p{margin:6px 0;color:var(--dd-muted);font-size:.875rem}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 49,
+          "example": ".ddirori .dd-banner>div{min-width:0;flex:1}.ddirori .dd-banner-symbol{color:var(--dd-action);font-size:1.25rem;font-weight:800}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 53,
+          "example": ".ddirori .dd-state{text-align:center;padding:28px;max-width:560px;margin:auto}.ddirori .dd-state-symbol{font-size:2.5rem}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 58,
+          "example": ".ddirori .dd-settings p{font-size:.875rem;color:var(--dd-muted);margin:4px 0}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 60,
+          "example": ".ddirori .dd-dialog::backdrop{background:#20202099}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 66,
+          "example": ".ddirori .dd-pages .dd-button{color:var(--dd-on-overlay);background:transparent}.ddirori .dd-pages .dd-button:disabled{opacity:.5}.ddirori .dd-pages--performance{padding:18px;font-"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 69,
+          "example": ".ddirori .dd-tuner-track>i{position:absolute;left:50%;height:48px;width:3px;background:var(--dd-action)}.ddirori .dd-tuner-track>b{position:absolute;top:0;transform:translateX(-50%"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 84,
+          "example": ".ddirori .dd-product-signature h2{margin:0;font-size:1.5rem;overflow-wrap:anywhere}"
+        },
+        {
+          "file": "packages/ddirori_web/src/styles.css",
+          "line": 85,
+          "example": ".ddirori .dd-product-signature p{margin:0;font-size:.875rem;color:var(--dd-muted)}"
+        }
+      ]
+    },
+    "score": {
+      "matchedLines": 111,
+      "examples": [
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 855,
+          "example": "?.copyWith(fontWeight: FontWeight.w900),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 1360,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 1372,
+          "example": "style: const TextStyle(fontWeight: FontWeight.w900),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 1590,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 1593,
+          "example": "padding: const EdgeInsets.all(10),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 1679,
+          "example": "style: const TextStyle(fontWeight: FontWeight.w800),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2147,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2236,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2505,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2526,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2613,
+          "example": "style: const TextStyle(fontWeight: FontWeight.w800),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2663,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2770,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2789,
+          "example": "fontWeight: FontWeight.w900,"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2892,
+          "example": "borderRadius: BorderRadius.circular(8),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2897,
+          "example": "padding: const EdgeInsets.all(10),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 2905,
+          "example": "style: const TextStyle(fontWeight: FontWeight.w900),"
+        },
+        {
+          "file": "apps/in_c_sheet/lib/main.dart",
+          "line": 3003,
+          "example": "?.copyWith(fontWeight: FontWeight.w900),"
+        }
+      ]
+    },
+    "play": {
+      "matchedLines": 1,
+      "examples": [
+        {
+          "file": "apps/classical_local_library/lib/presentation/metadata_edit_dialog.dart",
+          "line": 39,
+          "example": "insetPadding: const EdgeInsets.all(16),"
+        }
+      ]
+    },
+    "studio": {
+      "matchedLines": 310,
+      "examples": [
+        {
+          "file": "src/renderer/src/App.tsx",
+          "line": 5363,
+          "example": "{`@page { size: ${printLayoutPlan.pageCssSize}; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 2,
+          "example": "--inc-color-app-background: #ece8dd;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 3,
+          "example": "--inc-color-surface: #fffdf8;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 4,
+          "example": "--inc-color-surface-muted: #faf7f0;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 5,
+          "example": "--inc-color-text: #202326;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 6,
+          "example": "--inc-color-text-soft: #4a555c;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 7,
+          "example": "--inc-color-border: #d4cec1;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 8,
+          "example": "--inc-color-border-strong: #c7c0b3;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 9,
+          "example": "--inc-color-accent: #b43d2f;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 10,
+          "example": "--inc-color-accent-contrast: #fffdf8;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 11,
+          "example": "--inc-color-focus: #47616c;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 12,
+          "example": "--inc-color-error: #a33125;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 16,
+          "example": "color: #202326;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 67,
+          "example": "#ece8dd;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 98,
+          "example": "color: #4a555c;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 99,
+          "example": "font-size: 1rem;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 116,
+          "example": "border: 1px solid #c7c0b3;"
+        },
+        {
+          "file": "src/renderer/src/styles.css",
+          "line": 118,
+          "example": "color: #202326;"
+        }
+      ]
+    }
+  }
+}

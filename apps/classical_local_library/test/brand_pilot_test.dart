@@ -1,3 +1,5 @@
+import 'package:classical_local_library/presentation/play_library_components.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -117,6 +119,36 @@ void main() {
           await file.writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
+      }
+      if (entry.$1 == 'library') {
+        await t.scrollUntilVisible(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is PlayWorkRow &&
+                widget.work.id == sampleClassicalLibrary.works.first.id,
+          ),
+          300,
+          scrollable: find.byType(Scrollable).first,
+          maxScrolls: 30,
+        );
+        await t.pumpAndSettle();
+        expect(t.takeException(), isNull);
+        if (Platform.environment['DDIRORI_BRAND_CAPTURE'] == 'true') {
+          final boundary = t.renderObject<RenderRepaintBoundary>(
+            find.byKey(const Key('brand-capture')),
+          );
+          await t.runAsync(() async {
+            final image = await boundary.toImage(pixelRatio: 1.5);
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            final file = File(
+              '${Platform.environment['DDIRORI_BRAND_CAPTURE_OUTPUT'] ?? '../../docs/brand/ddirori-brand-system/evidence'}/play-work-list-light.png',
+            );
+            await file.writeAsBytes(bytes!.buffer.asUint8List());
+            image.dispose();
+          });
+        }
       }
       await t.pumpWidget(const SizedBox());
     });

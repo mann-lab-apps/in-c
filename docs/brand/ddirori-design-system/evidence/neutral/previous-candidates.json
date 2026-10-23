@@ -1,0 +1,186 @@
+{
+  "status": "local pilot recommendation; not final brand approval",
+  "recommended": "lime",
+  "variants": [
+    {
+      "key": "lime",
+      "name": "라임 · 다음 시도",
+      "brand": {
+        "primary": "#D5ED70",
+        "onPrimary": "#263125"
+      },
+      "light": {
+        "primary": "#52651A",
+        "primaryHover": "#435514",
+        "primaryPressed": "#35440F",
+        "onPrimary": "#FFFFFF",
+        "sky": "#E3EDBC",
+        "peach": "#F3BB9B",
+        "tint": "#F0F2E9",
+        "background": "#FAFAF6",
+        "surface": "#FFFFFF",
+        "ink": "#263125",
+        "muted": "#586052",
+        "border": "#DDE1D6",
+        "controlBorder": "#78806F",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#191D18",
+        "surface": "#242A22",
+        "ink": "#F3F5EE",
+        "muted": "#B6BEAF",
+        "primary": "#D5ED70",
+        "onPrimary": "#263125",
+        "border": "#454D40",
+        "sky": "#E3EDBC",
+        "peach": "#F3BB9B",
+        "primaryHover": "#E3EDBC",
+        "primaryPressed": "#E8EED7",
+        "tint": "#30382C",
+        "controlBorder": "#89977D"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "coral",
+      "name": "코럴 · 반기는 음악",
+      "brand": {
+        "primary": "#FF927E",
+        "onPrimary": "#382823"
+      },
+      "light": {
+        "primary": "#9D4034",
+        "primaryHover": "#853428",
+        "primaryPressed": "#70291F",
+        "onPrimary": "#FFFFFF",
+        "sky": "#F8D9CD",
+        "peach": "#F3BB9B",
+        "tint": "#F0F2E9",
+        "background": "#FAFAF6",
+        "surface": "#FFFFFF",
+        "ink": "#382823",
+        "muted": "#586052",
+        "border": "#DDE1D6",
+        "controlBorder": "#78806F",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#191D18",
+        "surface": "#242A22",
+        "ink": "#F3F5EE",
+        "muted": "#B6BEAF",
+        "primary": "#FF927E",
+        "onPrimary": "#382823",
+        "border": "#454D40",
+        "sky": "#F8D9CD",
+        "peach": "#F3BB9B",
+        "primaryHover": "#F8D9CD",
+        "primaryPressed": "#E8EED7",
+        "tint": "#30382C",
+        "controlBorder": "#89977D"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "key": "yellow",
+      "name": "노랑 · 발견의 순간",
+      "brand": {
+        "primary": "#F5D45C",
+        "onPrimary": "#332E20"
+      },
+      "light": {
+        "primary": "#796000",
+        "primaryHover": "#655000",
+        "primaryPressed": "#524100",
+        "onPrimary": "#FFFFFF",
+        "sky": "#F5E8B7",
+        "peach": "#F3BB9B",
+        "tint": "#F0F2E9",
+        "background": "#FAFAF6",
+        "surface": "#FFFFFF",
+        "ink": "#332E20",
+        "muted": "#586052",
+        "border": "#DDE1D6",
+        "controlBorder": "#78806F",
+        "success": "#246145",
+        "warning": "#805500",
+        "error": "#AF344B"
+      },
+      "darkProposal": {
+        "background": "#191D18",
+        "surface": "#242A22",
+        "ink": "#F3F5EE",
+        "muted": "#B6BEAF",
+        "primary": "#F5D45C",
+        "onPrimary": "#332E20",
+        "border": "#454D40",
+        "sky": "#F5E8B7",
+        "peach": "#F3BB9B",
+        "primaryHover": "#F5E8B7",
+        "primaryPressed": "#E8EED7",
+        "tint": "#30382C",
+        "controlBorder": "#89977D"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      }
+    },
+    {
+      "light": {
+        "primary": "#0077C8",
+        "primaryHover": "#0067AF",
+        "primaryPressed": "#00558F",
+        "onPrimary": "#FFFFFF",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "tint": "#E8F4FC",
+        "background": "#F7FBFE",
+        "surface": "#FFFFFF",
+        "ink": "#203849",
+        "muted": "#536B7A",
+        "border": "#CCDCE6",
+        "controlBorder": "#718898",
+        "success": "#19734D",
+        "warning": "#8A5700",
+        "error": "#C13F50"
+      },
+      "darkProposal": {
+        "background": "#12232E",
+        "surface": "#1B3343",
+        "ink": "#EAF4FB",
+        "muted": "#A6BCCC",
+        "primary": "#72B8EE",
+        "onPrimary": "#102637",
+        "border": "#426174",
+        "sky": "#A8D4E5",
+        "peach": "#F3BB9B",
+        "tint": "#233F51",
+        "controlBorder": "#7691A3",
+        "primaryHover": "#95CCF5",
+        "primaryPressed": "#B2DBFA"
+      },
+      "scorePaper": {
+        "background": "#FFFFFF",
+        "notation": "#202020"
+      },
+      "key": "blue",
+      "name": "기존 파랑",
+      "brand": {
+        "primary": "#0077C8",
+        "onPrimary": "#FFFFFF"
+      }
+    }
+  ]
+}

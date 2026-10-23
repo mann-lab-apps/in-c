@@ -1,0 +1,685 @@
+[
+  {
+    "symbol": "_SearchField",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1271,
+    "stateSymbol": "_SearchFieldState",
+    "stateLine": 1281,
+    "role": "검색과 외부 query 동기화",
+    "target": "DdiroriInput / DdiroriSearch",
+    "decision": "추출",
+    "boundary": "TextEditingController 수명과 선택 보존은 입력 위젯; query와 검색 결과는 앱",
+    "regression": "입력·지우기·외부 query·한글 조합",
+    "fieldDeclarations": [
+      "String query",
+      "ValueChanged<String> onChanged",
+      "TextEditingController _controller"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_LibraryViewBar",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1502,
+    "role": "정렬·필터·탐색",
+    "target": "DdiroriChoices / Toolbar",
+    "decision": "합성",
+    "boundary": "SheetLibraryViewSettings와 facet 집계는 앱",
+    "regression": "즐겨찾기·태그·컬렉션·그룹·별점 조합",
+    "fieldDeclarations": [
+      "SheetLibraryViewSettings settings",
+      "VoidCallback onSortPressed",
+      "ValueChanged<bool> onFavoriteChanged",
+      "VoidCallback onTagPressed",
+      "VoidCallback onCollectionPressed",
+      "VoidCallback onGroupPressed",
+      "VoidCallback onRatingPressed"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "spacing: 8",
+      "runSpacing: 8"
+    ]
+  },
+  {
+    "symbol": "_LibraryFacetExplorer",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1578,
+    "role": "정렬·필터·탐색",
+    "target": "DdiroriChoices / Toolbar",
+    "decision": "합성",
+    "boundary": "SheetLibraryViewSettings와 facet 집계는 앱",
+    "regression": "즐겨찾기·태그·컬렉션·그룹·별점 조합",
+    "fieldDeclarations": [
+      "List<SheetLibraryFacet> collectionFacets",
+      "List<SheetLibraryFacet> groupFacets",
+      "List<SheetLibraryFacet> ratingFacets",
+      "String selectedCollection",
+      "String selectedGroup",
+      "int selectedMinimumRating",
+      "ValueChanged<String> onCollectionSelected",
+      "ValueChanged<String> onGroupSelected",
+      "ValueChanged<int> onRatingSelected"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "height: 8"
+    ]
+  },
+  {
+    "symbol": "_LibraryFacetRow",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1674,
+    "role": "정렬·필터·탐색",
+    "target": "DdiroriChoices / Toolbar",
+    "decision": "합성",
+    "boundary": "SheetLibraryViewSettings와 facet 집계는 앱",
+    "regression": "즐겨찾기·태그·컬렉션·그룹·별점 조합",
+    "fieldDeclarations": [
+      "String label",
+      "IconData icon",
+      "List<SheetLibraryFacet> facets",
+      "String selectedValue",
+      "ValueChanged<String> onSelected"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "width: 76",
+      "height: 32",
+      "width: 6",
+      "spacing: 6",
+      "runSpacing: 6"
+    ]
+  },
+  {
+    "symbol": "_LibraryProfileBar",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1363,
+    "role": "작업 공간 선택",
+    "target": "Choices / 시트 helper",
+    "decision": "합성",
+    "boundary": "profile 생성·이름·삭제와 저장은 앱",
+    "regression": "선택·취소·삭제 후 현재 profile",
+    "fieldDeclarations": [
+      "String activeLibrary",
+      "int visibleCount",
+      "int totalCount",
+      "VoidCallback onPressed"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_LibraryProfileSheet",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1408,
+    "role": "작업 공간 선택",
+    "target": "Choices / 시트 helper",
+    "decision": "합성",
+    "boundary": "profile 생성·이름·삭제와 저장은 앱",
+    "regression": "선택·취소·삭제 후 현재 profile",
+    "fieldDeclarations": [
+      "String activeLibraryId",
+      "List<SheetLibraryProfile> profiles",
+      "int activeScoreCount"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "spacing: 0"
+    ]
+  },
+  {
+    "symbol": "_ScoreGrid",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 3195,
+    "role": "악보 목록·그리드·선택·보조 행동",
+    "target": "DdiroriItem + 앱 레이아웃",
+    "decision": "부분 추출",
+    "boundary": "SheetScore·metadata formatting·열기·공유는 앱",
+    "regression": "긴 제목·목록/그리드·favorite/pin·다중 선택",
+    "fieldDeclarations": [
+      "List<SheetScore> scores",
+      "bool isWide",
+      "ValueChanged<SheetScore> onOpen",
+      "ValueChanged<SheetScore> onFavorite",
+      "ValueChanged<SheetScore> onPin",
+      "bool isSelecting",
+      "Set<String> selectedIds",
+      "ValueChanged<SheetScore> onSelectionChanged",
+      "ValueChanged<SheetScore> onEdit",
+      "ValueChanged<SheetScore> onShare"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "height: 10"
+    ]
+  },
+  {
+    "symbol": "_ScoreTile",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 3263,
+    "role": "악보 목록·그리드·선택·보조 행동",
+    "target": "DdiroriItem + 앱 레이아웃",
+    "decision": "부분 추출",
+    "boundary": "SheetScore·metadata formatting·열기·공유는 앱",
+    "regression": "긴 제목·목록/그리드·favorite/pin·다중 선택",
+    "fieldDeclarations": [
+      "SheetScore score",
+      "ValueChanged<SheetScore> onOpen",
+      "ValueChanged<SheetScore> onFavorite",
+      "ValueChanged<SheetScore> onPin",
+      "bool isSelecting",
+      "bool isSelected",
+      "ValueChanged<SheetScore> onSelectionChanged",
+      "ValueChanged<SheetScore> onEdit",
+      "ValueChanged<SheetScore> onShare"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 10",
+      "fontSize: 17",
+      "height: 8",
+      "height: 4",
+      "width: 36",
+      "height: 36",
+      "iconSize: 21",
+      "height: 6"
+    ]
+  },
+  {
+    "symbol": "_QuickAccessBand",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 2806,
+    "role": "최근·고정 악보 접근",
+    "target": "Choices / Item 합성",
+    "decision": "합성",
+    "boundary": "최근/고정 목록·정렬은 controller",
+    "regression": "항목 없음·긴 이름·실행 대상",
+    "fieldDeclarations": [
+      "List<SheetScore> pinnedScores",
+      "List<SheetScore> favoriteScores",
+      "List<SheetScore> recentScores",
+      "ValueChanged<SheetScore> onOpen"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 148",
+      "width: 350",
+      "width: 6",
+      "height: 8",
+      "width: 8",
+      "width: 10"
+    ]
+  },
+  {
+    "symbol": "_QuickAccessScoreChip",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 2928,
+    "role": "최근·고정 악보 접근",
+    "target": "Choices / Item 합성",
+    "decision": "합성",
+    "boundary": "최근/고정 목록·정렬은 controller",
+    "regression": "항목 없음·긴 이름·실행 대상",
+    "fieldDeclarations": [
+      "SheetScore score",
+      "ValueChanged<SheetScore> onOpen"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 176",
+      "height: 4",
+      "width: 4"
+    ]
+  },
+  {
+    "symbol": "_EmptyLibrary",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 2374,
+    "role": "빈 상태와 안내",
+    "target": "StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "가져오기·다음 행동 callback은 앱",
+    "regression": "안내와 오류 구분·다음 행동·글자 확대",
+    "fieldDeclarations": [
+      "bool hasQuery",
+      "bool hasFilter",
+      "VoidCallback onImportPressed",
+      "VoidCallback onClearPressed",
+      "VoidCallback onTesterInfoPressed"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 18",
+      "height: 8",
+      "spacing: 10",
+      "runSpacing: 10"
+    ]
+  },
+  {
+    "symbol": "_NoticeBanner",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 1750,
+    "role": "빈 상태와 안내",
+    "target": "StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "가져오기·다음 행동 callback은 앱",
+    "regression": "안내와 오류 구분·다음 행동·글자 확대",
+    "fieldDeclarations": [
+      "String message"
+    ],
+    "explicitColors": [
+      "0xfffff0e8",
+      "0xffe7b599"
+    ],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_ViewerLoadingBanner",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11139,
+    "role": "대기·오류·파일 상태·복구",
+    "target": "Progress / StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "파일 크기·경로·오류 원인 판정은 앱",
+    "regression": "큰 PDF 대기·누락·손상·진단 펼치기",
+    "fieldDeclarations": [
+      "String message"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 12",
+      "height: 8"
+    ]
+  },
+  {
+    "symbol": "_ViewerProblemBanner",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11215,
+    "role": "대기·오류·파일 상태·복구",
+    "target": "Progress / StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "파일 크기·경로·오류 원인 판정은 앱",
+    "regression": "큰 PDF 대기·누락·손상·진단 펼치기",
+    "fieldDeclarations": [
+      "IconData icon",
+      "String title",
+      "String message",
+      "String detail"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 12",
+      "height: 8"
+    ]
+  },
+  {
+    "symbol": "_ViewerFileStatusBanner",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11179,
+    "role": "대기·오류·파일 상태·복구",
+    "target": "Progress / StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "파일 크기·경로·오류 원인 판정은 앱",
+    "regression": "큰 PDF 대기·누락·손상·진단 펼치기",
+    "fieldDeclarations": [
+      "SheetViewerFileStatus status"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_ViewerErrorBanner",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11198,
+    "role": "대기·오류·파일 상태·복구",
+    "target": "Progress / StatePanel / Banner",
+    "decision": "추출",
+    "boundary": "파일 크기·경로·오류 원인 판정은 앱",
+    "regression": "큰 PDF 대기·누락·손상·진단 펼치기",
+    "fieldDeclarations": [
+      "String filePath",
+      "Object error"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_ScrollableAppBarActions",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 10660,
+    "stateSymbol": "_ScrollableAppBarActionsState",
+    "stateLine": 10670,
+    "role": "좁은 화면의 행동 묶음",
+    "target": "Toolbar / IconButton",
+    "decision": "합성",
+    "boundary": "각 행동의 실행 조건은 viewer",
+    "regression": "keyboard focus·작은 폭·overflow",
+    "fieldDeclarations": [
+      "List<Widget> children",
+      "ScrollController _scrollController = ScrollController()"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_AppBarActionSlot",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 10707,
+    "role": "좁은 화면의 행동 묶음",
+    "target": "Toolbar / IconButton",
+    "decision": "합성",
+    "boundary": "각 행동의 실행 조건은 viewer",
+    "regression": "keyboard focus·작은 폭·overflow",
+    "fieldDeclarations": [
+      "Widget child"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_AnnotationToolbar",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11991,
+    "role": "주석 도구·색·굵기·undo/redo",
+    "target": "DdiroriAnnotationTools",
+    "decision": "표시 추출",
+    "boundary": "annotation enum adapter·펜 좌표·저장·layer/export는 앱",
+    "regression": "선택 도구·색·굵기·undo/redo enabled",
+    "fieldDeclarations": [
+      "_AnnotationToolbarTool selectedTool",
+      "_AnnotationStamp selectedStamp",
+      "int selectedColor",
+      "double selectedWidth",
+      "bool hasFavoritePreset",
+      "bool isLayerVisible",
+      "bool includeLayerInExport",
+      "bool isCompact",
+      "ValueChanged<_AnnotationToolbarTool> onToolSelected",
+      "ValueChanged<_AnnotationStamp> onStampSelected",
+      "ValueChanged<int> onColorSelected",
+      "ValueChanged<double> onWidthChanged",
+      "VoidCallback onUndo",
+      "VoidCallback onRedo",
+      "VoidCallback onSaveFavorite",
+      "VoidCallback onApplyFavorite",
+      "VoidCallback onToggleLayerVisibility",
+      "VoidCallback onToggleLayerExport"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "runSpacing: 8",
+      "radius: 18",
+      "width: 24",
+      "height: 24",
+      "width: 34",
+      "height: 30",
+      "width: 18"
+    ]
+  },
+  {
+    "symbol": "_ViewerControls",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 12215,
+    "role": "페이지와 공연 모드",
+    "target": "PageControls / Toolbar / IconButton",
+    "decision": "표시 추출",
+    "boundary": "페이지·setlist·pedal·공연 실행 상태는 앱",
+    "regression": "첫/끝 페이지·큰 조작·공연 모드에서 도구 숨김",
+    "fieldDeclarations": [
+      "int pageNumber",
+      "int? pageCount",
+      "bool canGoPrevious",
+      "bool canGoNext",
+      "VoidCallback onPrevious",
+      "VoidCallback onNext",
+      "bool isPerformanceMode",
+      "String modeLabel"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_PerformanceQuickActions",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 12300,
+    "role": "페이지와 공연 모드",
+    "target": "PageControls / Toolbar / IconButton",
+    "decision": "표시 추출",
+    "boundary": "페이지·setlist·pedal·공연 실행 상태는 앱",
+    "regression": "첫/끝 페이지·큰 조작·공연 모드에서 도구 숨김",
+    "fieldDeclarations": [
+      "bool isBookmarked",
+      "bool hasSetlistContext",
+      "bool isAutoScrolling",
+      "bool isAutoScrollPaused",
+      "bool isAutoScrollCueActive",
+      "bool allowMenus",
+      "VoidCallback onBookmark",
+      "VoidCallback onAutoScroll",
+      "VoidCallback onMetronome",
+      "VoidCallback onTuner",
+      "VoidCallback onSettings",
+      "VoidCallback onPreviousScore",
+      "VoidCallback onNextScore"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "height: 4",
+      "width: 28",
+      "height: 1"
+    ]
+  },
+  {
+    "symbol": "_PerformanceQuickActionButton",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 12407,
+    "role": "페이지와 공연 모드",
+    "target": "PageControls / Toolbar / IconButton",
+    "decision": "표시 추출",
+    "boundary": "페이지·setlist·pedal·공연 실행 상태는 앱",
+    "regression": "첫/끝 페이지·큰 조작·공연 모드에서 도구 숨김",
+    "fieldDeclarations": [
+      "String tooltip",
+      "VoidCallback onPressed",
+      "IconData icon",
+      "bool isActive"
+    ],
+    "explicitColors": [
+      "0xffffd54f"
+    ],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_CropSlider",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 11420,
+    "role": "범위 값과 변경 없음 선택",
+    "target": "Number / Segments",
+    "decision": "합성",
+    "boundary": "crop 적용·metadata null 의미는 앱",
+    "regression": "경계·step·변경 없음 유지",
+    "fieldDeclarations": [
+      "String label",
+      "double value",
+      "ValueChanged<double> onChanged"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": [
+      "width: 44"
+    ]
+  },
+  {
+    "symbol": "_NullableBoolControl",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 3145,
+    "role": "범위 값과 변경 없음 선택",
+    "target": "Number / Segments",
+    "decision": "합성",
+    "boundary": "crop 적용·metadata null 의미는 앱",
+    "regression": "경계·step·변경 없음 유지",
+    "fieldDeclarations": [
+      "String label",
+      "bool? value",
+      "ValueChanged<bool?> onChanged"
+    ],
+    "explicitColors": [],
+    "themeAccess": false,
+    "layoutLiterals": []
+  },
+  {
+    "symbol": "_LinkedAudioPlayerSheet",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 13252,
+    "stateSymbol": "_LinkedAudioPlayerSheetState",
+    "stateLine": 13262,
+    "role": "오디오 조작·BPM·박자",
+    "target": "Transport / Number / BeatIndicator",
+    "decision": "표시 추출",
+    "boundary": "SheetAudioPlayer/Metronome·ticker·preferences는 기존 엔진",
+    "regression": "재생/정지·seek·BPM 경계·박자",
+    "fieldDeclarations": [
+      "SheetLinkedFile linkedFile",
+      "SheetAudioPlayer _player"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 10",
+      "height: 12"
+    ]
+  },
+  {
+    "symbol": "_MetronomeSheet",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 15069,
+    "stateSymbol": "_MetronomeSheetState",
+    "stateLine": 15083,
+    "role": "오디오 조작·BPM·박자",
+    "target": "Transport / Number / BeatIndicator",
+    "decision": "표시 추출",
+    "boundary": "SheetAudioPlayer/Metronome·ticker·preferences는 기존 엔진",
+    "regression": "재생/정지·seek·BPM 경계·박자",
+    "fieldDeclarations": [
+      "SheetMetronomeSettings initialSettings",
+      "Future<void> Function(SheetMetronomeSettings settings) onSettingsChanged"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 10",
+      "height: 22",
+      "height: 16",
+      "width: 16",
+      "height: 18",
+      "spacing: 8",
+      "runSpacing: 8",
+      "height: 12",
+      "height: 8"
+    ]
+  },
+  {
+    "symbol": "_TunerMeter",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 14720,
+    "role": "음정·신뢰도·목표·파워",
+    "target": "TunerMeter + Choices / SettingsRow",
+    "decision": "미터 표시 추출, 나머지 합성",
+    "boundary": "SheetTunerFeedback·프로필·측정·noise floor는 앱",
+    "regression": "낮음/정확/높음·신호 없음·낮은 신뢰도·목표 변경",
+    "fieldDeclarations": [
+      "SheetTunerFeedback feedback"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 54",
+      "height: 10",
+      "width: 3",
+      "height: 42"
+    ]
+  },
+  {
+    "symbol": "_TunerLedStrip",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 14793,
+    "role": "음정·신뢰도·목표·파워",
+    "target": "TunerMeter + Choices / SettingsRow",
+    "decision": "미터 표시 추출, 나머지 합성",
+    "boundary": "SheetTunerFeedback·프로필·측정·noise floor는 앱",
+    "regression": "낮음/정확/높음·신호 없음·낮은 신뢰도·목표 변경",
+    "fieldDeclarations": [
+      "SheetTunerFeedback feedback"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 6"
+    ]
+  },
+  {
+    "symbol": "_TunerStringTargetPanel",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 14856,
+    "role": "음정·신뢰도·목표·파워",
+    "target": "TunerMeter + Choices / SettingsRow",
+    "decision": "미터 표시 추출, 나머지 합성",
+    "boundary": "SheetTunerFeedback·프로필·측정·noise floor는 앱",
+    "regression": "낮음/정확/높음·신호 없음·낮은 신뢰도·목표 변경",
+    "fieldDeclarations": [
+      "String title",
+      "List<SheetTunerStringTarget> stringTargets",
+      "int? selectedConcertMidiNumber",
+      "int referencePitchA4",
+      "bool preferFlats",
+      "ValueChanged<SheetTunerTarget> onSelected"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "width: 6",
+      "height: 10"
+    ]
+  },
+  {
+    "symbol": "_TunerInputPowerBar",
+    "file": "apps/in_c_sheet/lib/main.dart",
+    "line": 15022,
+    "role": "음정·신뢰도·목표·파워",
+    "target": "TunerMeter + Choices / SettingsRow",
+    "decision": "미터 표시 추출, 나머지 합성",
+    "boundary": "SheetTunerFeedback·프로필·측정·noise floor는 앱",
+    "regression": "낮음/정확/높음·신호 없음·낮은 신뢰도·목표 변경",
+    "fieldDeclarations": [
+      "SheetTunerInputPower power"
+    ],
+    "explicitColors": [],
+    "themeAccess": true,
+    "layoutLiterals": [
+      "height: 6"
+    ]
+  }
+]

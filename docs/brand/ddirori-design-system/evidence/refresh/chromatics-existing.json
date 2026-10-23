@@ -1,0 +1,6 @@
+{
+  "scope": "Existing desktop implementation review; no new theme applied",
+  "title": "in-C",
+  "events": 33,
+  "text": "파일\n악보\n음표\n표기 객체\n가사\n내보내기\n재생\n작업\n음표\n입력\n선택\n대상\nMelody · 보표 1 · 성부 1\n음가\n4분음표\n재생\n정지\n필터\n전체\n성부\n입력 보표\nMelody\n입력 성부\n1\n2\n3\n4\n속성\n점\n-\n0\n+\n임시표\n♭\n♮\n♯\n쉼표로 변환\n정지 기호\n𝄐\n,\n//\n표현 기호\n•\n>\n−\n^\n화음\n3도 추가\n5도 추가\n트레몰로\n없음\n1줄\n2줄\n3줄\n장식음\ntr\nmord.\nturn\ngrace\n♭\n♮\n♯\n64\n32\n16\n8\n4\n2\n온\n점\n0\nT\n3\n8\n⌘/Ctrl+3\n4분음표\n총보\n0회 수정\n정지\n0.0 / 32.0박\n팔레트\n파일\n악보\n음표\n표기 객체\n가사\n내보내기\n재생\nSingle Voice MVP\nin-C\n♩ = 120\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n속성\n대상\n음표\n위치\nMelody\n마디\n1\n성부\n1\n틱\n0\n음가\n4분음표\n음높이\nC4\n셈여림\n없음\nppp\npp\np\nmp\nmf\nf\nff\nfff\nsfz\n코드\n연습표\n보표 글자\n시스템 텍스트\n표현 텍스트"
+}

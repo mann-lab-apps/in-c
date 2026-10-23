@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko" data-theme="light" data-density="comfortable">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>기러기 디자인 시스템 제안</title>
+  <link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 이동</a>
+  <header class="review-bar">
+    <a href="?view=overview" class="review-brand">gireogi <span>Design proposal 01</span></a>
+    <nav aria-label="설계안 둘러보기">
+      <button data-view="overview">브랜드</button><button data-view="library">악보함</button>
+      <button data-view="reader">악보 보기</button><button data-view="editor">사보</button><button data-view="components">컴포넌트</button>
+    </nav>
+    <button id="theme" aria-label="어두운 테마로 변경">다크</button>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

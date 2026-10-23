@@ -1,0 +1,50 @@
+{
+  "generatedBy": "tools/verify-artifacts.mjs",
+  "files": [
+    {
+      "file": "FONT-LICENSE.txt",
+      "sha256": "d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04",
+      "bytes": 4418
+    },
+    {
+      "file": "PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "bytes": 2057688
+    },
+    {
+      "file": "bach-surprised.png",
+      "sha256": "239ea19278f77a7abbf7ae100a9498d513b7e4eabc0fd778ff5227be29c64655",
+      "bytes": 739858
+    },
+    {
+      "file": "icon-blue.svg",
+      "sha256": "d712c227e843061813df7279af1384af025917c69554958774db4a5f8d086076",
+      "bytes": 896
+    },
+    {
+      "file": "icon-current.svg",
+      "sha256": "4b23551734f6b3d56cf4cb6ec6e57381d8fc7683af34aa53289394f84ee506ae",
+      "bytes": 956
+    },
+    {
+      "file": "loader-still.svg",
+      "sha256": "372c29bccec4ebce44957197bc0e2b7204f24aca5a0c545df69d4f16214cb16b",
+      "bytes": 893
+    },
+    {
+      "file": "loader.svg",
+      "sha256": "3c7df7dc3904d66618316c6b1e1d0d7ecd8ea9e090dd9a5753c26ee1bb615633",
+      "bytes": 1338
+    },
+    {
+      "file": "motif-small.svg",
+      "sha256": "f11ce3b0eb9f7043fcf8c45a082aa795d7334b40ce61934f3460b53b93827b52",
+      "bytes": 886
+    },
+    {
+      "file": "motif.svg",
+      "sha256": "39d9e5d63cd49dfadfb5650d6a7f5b9e820582daa4f77320abb0e660f2b38374",
+      "bytes": 893
+    }
+  ]
+}

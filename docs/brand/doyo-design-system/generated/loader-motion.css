@@ -1,0 +1,8 @@
+.doyo-bird [data-part]{fill:currentColor;transform-box:view-box}
+.doyo-bird [data-part="body"]{transform-origin:155px 104px;animation:doyo-body var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+.doyo-bird [data-part="rear-leg"]{transform-origin:177px 149px;animation:doyo-rear-leg var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+.doyo-bird [data-part="front-leg"]{transform-origin:132px 109px;animation:doyo-front-leg var(--doyo-loader-cycle,900ms) ease-in-out infinite}
+@keyframes doyo-body{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-6px,10px) rotate(-1deg)}}
+@keyframes doyo-rear-leg{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.76)}}
+@keyframes doyo-front-leg{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-6px,10px) rotate(12deg)}}
+@media(prefers-reduced-motion:reduce){.doyo-bird [data-part]{animation:none!important}}

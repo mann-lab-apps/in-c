@@ -1,0 +1,10 @@
+.ddirori.foundations{max-width:var(--dd-layout-content-max);margin:auto;min-height:100vh;padding:var(--dd-layout-page-gutter);display:grid;gap:var(--dd-layout-section-gap)}
+.foundations>header,.foundation-controls{display:flex;align-items:center;flex-wrap:wrap;gap:var(--dd-spacing-lg)}
+.foundations>header h1{flex:1 1 100%}.foundations a{color:var(--dd-action)}
+.foundations>section{min-width:0;display:grid;gap:var(--dd-layout-item-gap);border-top:1px solid var(--dd-border);padding-top:var(--dd-layout-section-gap)}
+.foundation-controls label{display:flex;align-items:center;gap:var(--dd-spacing-sm)}
+.foundation-type{display:grid;gap:var(--dd-layout-label-gap)}
+.foundation-nested{padding:var(--dd-spacing-lg);border-radius:var(--dd-radius-card);display:grid;gap:var(--dd-spacing-md)}
+.foundation-spacing{display:flex;gap:var(--dd-spacing-lg);flex-wrap:wrap}
+.foundation-spacing>div{display:grid;gap:var(--dd-spacing-xs)}.foundation-spacing span[aria-hidden]{height:var(--dd-spacing-sm);background:var(--dd-action)}
+@media(min-width:960px){.ddirori.foundations{padding:var(--dd-layout-page-gutter-wide)}}

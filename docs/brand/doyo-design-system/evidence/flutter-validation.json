@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-10-22T05:53:32.410227+00:00",
+  "scope": "Reference adapters only; no production app or device tests",
+  "commands": [
+    {
+      "command": [
+        "flutter",
+        "--version"
+      ],
+      "exitCode": 0,
+      "output": "Flutter 3.47.2 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git\nFramework \u2022 revision d3b14c8769 (8 weeks ago) \u2022 2026-08-26 16:07:51 -0700\nEngine \u2022 hash 1cf1c4773fb941c4c74a7f8bb144a8837596c0f4 (revision a804b26164) (1 months ago) \u2022 2026-08-26 18:46:13.000Z\nTools \u2022 Dart 3.13.2 \u2022 DevTools 2.60.0\n"
+    },
+    {
+      "command": [
+        "flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "exitCode": 0,
+      "output": "Resolving dependencies...\nDownloading packages...\n+ async 2.13.1\n+ boolean_selector 2.1.2\n+ characters 1.4.1\n+ clock 1.1.3\n+ collection 1.19.1\n+ fake_async 1.3.3\n+ flutter 0.0.0 from sdk flutter\n+ flutter_test 0.0.0 from sdk flutter\n+ leak_tracker 11.0.2\n+ leak_tracker_flutter_testing 3.0.10\n+ leak_tracker_testing 3.0.2\n+ matcher 0.12.20\n+ material_color_utilities 0.13.0\n+ meta 1.19.0\n+ path 1.9.1\n+ sky_engine 0.0.0 from sdk flutter\n+ source_span 1.10.2\n+ stack_trace 1.12.2\n+ stream_channel 2.1.4\n+ string_scanner 1.4.1\n+ term_glyph 1.2.2\n+ test_api 0.7.12\n+ vector_math 2.4.2\n+ vm_service 15.3.0\nChanged 24 dependencies!\n"
+    },
+    {
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "exitCode": 0,
+      "output": "Analyzing doyo-flutter-c91nda6d...                              \nNo issues found! (ran in 2.9s)\n"
+    },
+    {
+      "command": [
+        "flutter",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "exitCode": 0,
+      "output": "00:00 +0: loading /private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/doyo-flutter-c91nda6d/test/adapter_test.dart\n00:00 +0: Selected brand and touch/desktop density survive Material theming\n00:00 +1: Bird paints different frames; reduced motion is static and announced\n00:00 +2: All tests passed!\n"
+    }
+  ],
+  "status": "passed"
+}

@@ -1,6 +1,8 @@
-# Clef & Staff
+# 띠로리 스코어
 
-`Clef & Staff` is an Android-first sheet music viewer and practice tool prototype.
+`띠로리 스코어 / Ddirori Score` (formerly `Clef & Staff`) is a sheet music viewer and practice tool.
+
+The local brand pilot uses `packages/ddirori_ui` for theme, search and library states, plus the shared product glyph and vector Bach. iOS/Android display names and icons follow the local pilot; identifiers, saved data and existing support URLs are unchanged. See [brand adoption](../../docs/brand/ddirori-brand-system/adoption.md).
 
 The current V1 beta focuses on the MobileSheets-style foundation plus rehearsal
 helpers:

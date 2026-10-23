@@ -1,0 +1,709 @@
+{
+  "checks": [
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 12.96,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 6.54,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.49,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 8.24,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 10.58,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 12,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.1,
+      "minimum": 3
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.49,
+      "minimum": 3
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 5.44,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 6.47,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 10.45,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 15.53,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 7.68,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 10.45,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 11.05,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 11.39,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 11.06,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.75,
+      "minimum": 3
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 11.32,
+      "minimum": 3
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 6.89,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 7.12,
+      "minimum": 4.5
+    },
+    {
+      "palette": "lime",
+      "mode": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 10.45,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 13.42,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 6.54,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.53,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 8.34,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 10.37,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 12.42,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.1,
+      "minimum": 3
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.53,
+      "minimum": 3
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 5.44,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 6.47,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 6.46,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 15.53,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 7.68,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.46,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 10.56,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 11.79,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 11.06,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.75,
+      "minimum": 3
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.76,
+      "minimum": 3
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 6.89,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 7.12,
+      "minimum": 4.5
+    },
+    {
+      "palette": "coral",
+      "mode": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 6.46,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 12.93,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 6.54,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.02,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 7.78,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 9.93,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 11.97,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.1,
+      "minimum": 3
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.02,
+      "minimum": 3
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 5.44,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 6.47,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 9.31,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 15.53,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 7.68,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 9.31,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 11.02,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 11.36,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 11.06,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.75,
+      "minimum": 3
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 10.11,
+      "minimum": 3
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 6.89,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 7.12,
+      "minimum": 4.5
+    },
+    {
+      "palette": "yellow",
+      "mode": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 9.31,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 11.71,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 5.6,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 4.7,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 5.9,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 7.79,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 10.9,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 3.7,
+      "minimum": 3
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 4.7,
+      "minimum": 3
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 4.59,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 5.21,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 4.7,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 14.42,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "muted",
+      "bg": "surface",
+      "ratio": 6.67,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 7.24,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionHover",
+      "ratio": 9.03,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "onAction",
+      "bg": "actionPressed",
+      "ratio": 10.64,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "text",
+      "bg": "surfaceMuted",
+      "ratio": 9.9,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 3.97,
+      "minimum": 3
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.12,
+      "minimum": 3
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "error",
+      "bg": "surfaceMuted",
+      "ratio": 6.26,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "success",
+      "bg": "surfaceMuted",
+      "ratio": 6.47,
+      "minimum": 4.5
+    },
+    {
+      "palette": "blue",
+      "mode": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 4.7,
+      "minimum": 4.5
+    }
+  ],
+  "status": "passed"
+}

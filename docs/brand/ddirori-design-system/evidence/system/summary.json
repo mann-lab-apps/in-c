@@ -1,0 +1,139 @@
+{
+  "recordedAt": "2026-10-23T12:54:10.758244+00:00",
+  "scope": "Executed locally during the system refinement; app captures are Flutter widget renders with fixtures, not store/device evidence",
+  "results": {
+    "tokenTests": 3,
+    "reactTests": 24,
+    "flutterSharedTests": 23,
+    "scoreWidgetTests": 7,
+    "playWidgetAndComponentTests": 15,
+    "systemBrowserChecks": 21,
+    "controlsBrowserChecks": 7,
+    "paletteBrowserChecks": 18,
+    "studioBrowserChecks": 145,
+    "contrastPairs": 300,
+    "neutralInvariants": 12,
+    "generatedCheck": "passed",
+    "sharedFlutterAnalyze": "passed",
+    "scoreChangedFilesAnalyze": "passed",
+    "playChangedTestAnalyze": "passed",
+    "webBuild": "passed",
+    "iosMetadataChecks": [
+      "clef: passed, pending",
+      "classical-local-library: passed, pending"
+    ]
+  },
+  "sourceHashes": {
+    "docs/brand/ddirori-design-system/tokens.json": "31b9b90115b68a4ac4fecf10451324ed5c5e8a669aceab1590b91dd07fe0d2d7",
+    "docs/brand/ddirori-design-system/color-system.json": "4c1c672d9564efd106c82b31ff87757d59298fe77ce4545cf56156dce24327ab",
+    "docs/brand/ddirori-design-system/tools/build.mjs": "9d4db708ddad22ee01d0831e7ed8e5b426f614648a038764b597560346b61f44",
+    "docs/brand/ddirori-design-system/tools/token-model.mjs": "a2a799b5e7c8fbf8edc41cd1d6a58375ae1d59b1c8d16a9095b6759e011f0bd1",
+    "packages/ddirori_web/src/index.tsx": "65adca3f33636d3e2b0d5981c495e8a7d8e7a86ac1c9380b616baa405fa6b15b",
+    "packages/ddirori_web/src/styles.css": "b03bb586b7a565b78a11a9c8ef00f08d310d6d44bbdedb6e3767665f4e84df3c",
+    "packages/ddirori_ui/lib/src/theme.dart": "930461f78b95cd2f521d0d4b3e33577ec7e168d6a2cd05ad92c0ac8a22085a14",
+    "packages/ddirori_ui/lib/src/components.dart": "ad84cf19549a58b5611b44a0c27cd2c5d0b699d5173b24d99bfb25c71f69546a",
+    "apps/in_c_sheet/lib/main.dart": "f8f5f102ad075c194d8275a223c8842c58353ae7bd19d3be6b3fad33e0fe80d9",
+    "apps/in_c_sheet/test/brand_pilot_test.dart": "ece6b5b60c191e60bf51d9c872d183c3069a32f3498ba009811451c4631dcf22",
+    "apps/classical_local_library/test/brand_pilot_test.dart": "8421728fe512dbb6ec284b4910929efe56968646d22706684d9030ab9ee866e2"
+  },
+  "captures": [
+    {
+      "file": "evidence/system/play-work-list-light.png",
+      "sha256": "aae63ec2f16a5da749eecd3aa739d3b13206b3ea5024348a0e6c5af0cfea66c1"
+    },
+    {
+      "file": "evidence/system/play-library-light.png",
+      "sha256": "56c3f3b0065434a472525fa3654708c41340d0c02b0a0e8139b13fa24eb41d62"
+    },
+    {
+      "file": "evidence/system/score-library-light.png",
+      "sha256": "ca11d056bc1488e84ed390e2041396ad16104f5decfc95d3c8bb11eaab5226dc"
+    },
+    {
+      "file": "evidence/system/before-score-library-light.png",
+      "sha256": "4e7cb6feb02ccfcd6121de2edd3bb68c20e7b739fe455c8b121dc300699e8962"
+    },
+    {
+      "file": "evidence/system/before-play-library-light.png",
+      "sha256": "92a2ab4c097bbfc511fdb8e390f67efdd2103cc0edc30316fcd50110d743a40f"
+    },
+    {
+      "file": "evidence/system/foundations-light.png",
+      "sha256": "57da71cdafefaa94a4f447ad696d38c4595303917e0fee7b68244c6bd31207a4"
+    },
+    {
+      "file": "evidence/system/score-library-search-light.png",
+      "sha256": "a9a26ccae04d7d77f549ece9e1f017676f6008ed1c953a15a4cde67469ca7bca"
+    },
+    {
+      "file": "evidence/system/score-library-wide-light.png",
+      "sha256": "09ecbb3e05a9f584a9ab68d9865b0e10e9a28030f2d1e98ab395a8446fd589cd"
+    },
+    {
+      "file": "evidence/system/play-wide-light.png",
+      "sha256": "6c5aca6d3706314d33b9aa366a2370390a0cd27bc786f9c5e1a63dfec7c2822d"
+    },
+    {
+      "file": "evidence/system/play-large-dark.png",
+      "sha256": "b7c2e0c4ae718f2ca8aba28af2799c392ecb43b97ef86d65b80179fdfa5018a5"
+    },
+    {
+      "file": "evidence/system/score-library-large-dark.png",
+      "sha256": "d611e5eb277fdcc67a143d28b127ad072300835c531a9e5aa6b671a7c28ba967"
+    },
+    {
+      "file": "evidence/system/foundations-dark.png",
+      "sha256": "aefb692e6ea8e74c117448a2b9845256e5134cfbd29a9e223f424f602cad2cd7"
+    },
+    {
+      "file": "evidence/system/foundations-large.png",
+      "sha256": "7a0bfbde6a174ac65f03aded4a0764864bc7c6c26fc5c69f02d58f05b9c4499a"
+    },
+    {
+      "file": "evidence/system/studio/light-390-2.png",
+      "sha256": "fd28248cc42f1601c5673c1bc32a080763fe65d5ff95b743403bcb1f6968840c"
+    },
+    {
+      "file": "evidence/system/studio/flow-8.png",
+      "sha256": "cc8d927ae2ee1196808d3399e0006916de97832f147e5ebf723be67c89cb99d7"
+    },
+    {
+      "file": "evidence/system/studio/flow-9.png",
+      "sha256": "0b23b5b8105e690ddc17fd98bdc491a66264386f63bdee75394e3f97528ad89b"
+    },
+    {
+      "file": "evidence/system/studio/light-1440-1.png",
+      "sha256": "2a5a9440ae81300bcd9a453030a17f9dc7c8a3869aff00e0c0ba7393636cfc53"
+    },
+    {
+      "file": "evidence/system/studio/editing-states.png",
+      "sha256": "241c98ad3277ab4819ea5b84101d98ac0788aac7f76d3c5d7dd5c85864285dcb"
+    },
+    {
+      "file": "evidence/system/studio/flow-5.png",
+      "sha256": "c4fd333fc8af622a6e441da5747765c17308d15ff136b5f675caacda9d12fdf3"
+    },
+    {
+      "file": "evidence/system/studio/dark-1440-1.png",
+      "sha256": "b944818c4216d87e71a5dc02ead617d37ad60950bd16f976801e42820e4d62b5"
+    },
+    {
+      "file": "evidence/system/studio/flow-7.png",
+      "sha256": "6948b0464c0cac1ae19e6ab43c4b08df4ff1a5013499415e256797ee4e026113"
+    },
+    {
+      "file": "evidence/system/studio/flow-6.png",
+      "sha256": "a4e2361878824cf56463f8f99497250d08759dc9576a83d1dae2c4e00d27bf39"
+    },
+    {
+      "file": "evidence/system/studio/dark-390-2.png",
+      "sha256": "dfd8d777a0ec90c50473f79fa374ac9fed4134f3a9b33c95f9114f965561569d"
+    }
+  ],
+  "limitations": [
+    "No physical device/VoiceOver/store screenshot approval",
+    "Electron Studio is not migrated; standalone catalog only",
+    "Figma mapping documented; no Figma file edited",
+    "Palette remains provisional; all-app custom styles remain"
+  ]
+}
