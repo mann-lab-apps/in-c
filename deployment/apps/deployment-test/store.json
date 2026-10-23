@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "app": "deployment-test",
+  "app_id": "6825212101",
+  "bundle_id": "com.mannlab.deployment-test",
+  "expected_name": "Deployment Test",
+  "locale": "ko",
+  "version": "1.0",
+  "app_info": {
+    "name": "Deployment Test",
+    "subtitle": "PDF 악보와 세트리스트"
+  },
+  "version_info": {
+    "description": "Clef & Staff는 연습과 공연을 위한 악보 앱입니다.\n\nPDF, JPG, PNG 악보와 일반 텍스트, ChordPro 파일을 가져와 한곳에서 관리할 수 있습니다. DOCX와 RTF 문서는 읽기 쉬운 텍스트로 추출해 확인할 수 있습니다.\n\n제목, 작곡가, 태그, 컬렉션과 사용자 필드로 악보를 정리하고, 필요한 악보를 세트리스트로 묶어 연주 순서를 준비하세요. 세트리스트와 관련 악보는 ZIP 패키지로 공유하고 다른 기기에서 다시 가져올 수 있습니다.\n\n악보 뷰어\n• 터치와 키보드를 이용한 페이지 넘김\n• 1페이지, 2페이지, 세로 스크롤 보기\n• PDF 목차, 북마크와 페이지 빠른 이동\n• 페이지 회전, 순서 변경, 여백과 배경 설정\n• 긴 악보를 위한 검색과 빠른 탐색\n\n필기와 공유\n• 펜, 형광펜, 도형, 텍스트와 스탬프\n• 사용자 스탬프와 이미지 스탬프\n• 여러 필기 레이어 생성, 이름 변경과 이동\n• 필기가 포함된 PDF 사본 공유\n• 지원되는 필기의 편집 가능한 PDF 주석 내보내기\n\n연습 도구\n• 박자, subdivision, 강세와 탭 템포를 지원하는 메트로놈\n• 현재 음과 cents 변화를 보여주는 크로매틱 튜너\n• 드론과 기준음 재생\n• 연결 오디오와 A-B 반복 구간\n• Bluetooth/USB 페달과 키보드 페이지 이동 설정\n\n악보와 필기, 세트리스트는 기본적으로 사용자의 기기에 보관됩니다. 공연 전에는 중요한 라이브러리를 백업하는 것을 권장합니다.",
+    "keywords": "악보,PDF악보,악보앱,세트리스트,필기,메트로놈,튜너,sheet music,pdf score,metronome,tuner",
+    "promotionalText": "PDF·이미지·텍스트·ChordPro 악보를 한곳에서 정리하고, 세트리스트 공유, 레이어 필기, 메트로놈과 튜너로 연습부터 공연까지 준비하세요."
+  }
+}

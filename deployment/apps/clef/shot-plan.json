@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "80103707a186586a5140031196ea27d6f8328fa7",
+  "capture_policy": "Actual release-matching iOS UI with self-authored score fixtures; no generated app screens.",
+  "scenes": [
+    {"id": "library", "purpose": "첫 화면에서 PDF 악보 정리 가치를 보여준다", "route": "라이브러리", "fixture": "자가 제작 악보 3개 이상, 컬렉션과 즐겨찾기 포함", "must_show": "악보 썸네일과 읽을 수 있는 제목, 정리 상태", "exclude": "빈 라이브러리, 테스트 체크리스트, 개인정보, 오류 배너", "verified": false},
+    {"id": "annotation", "purpose": "악보 읽기와 실제 주석을 보여준다", "route": "라이브러리 → 자가 제작 악보 → 펜/주석", "fixture": "직접 만든 악보와 짧은 연습 표시", "must_show": "읽을 수 있는 악보와 저장된 주석, 실제 지원되는 도구", "exclude": "저작권 미확인 악보, 지원되지 않는 iOS 기능", "verified": false},
+    {"id": "setlist", "purpose": "공연/연습 순서 정리를 보여준다", "route": "세트리스트 → 연습 목록", "fixture": "자가 제작 악보 3개를 연습 순서대로 배치", "must_show": "세트리스트 이름과 악보 순서", "exclude": "실제 개인 일정과 연락처", "verified": false},
+    {"id": "two_page", "purpose": "iPad의 넓은 악보 보기", "route": "악보 → 가로 회전 → 2페이지", "fixture": "자가 제작 3페이지 악보", "must_show": "실제 2페이지 레이아웃", "exclude": "미검증 화면 크기와 가짜 확대 합성", "verified": false},
+    {"id": "tuner", "purpose": "실기기에서 검증된 경우에만 튜너 홍보", "route": "튜너 → 마이크 권한 허용 → 기준음", "fixture": "실제 기준음과 검증된 실기기", "must_show": "실제 음 인식, 거부 시 정상 복귀", "exclude": "시뮬레이터로 정확도/지연 보장", "verified": false},
+    {"id": "review_core", "purpose": "심사자에게 설치 빌드의 핵심 동선을 재현", "route": "앱 실행 → PDF 가져오기 → 라이브러리 → 보기/주석 → 세트리스트 → 공유/백업", "fixture": "개인정보 없는 자가 제작 PDF", "must_show": "권한 요청, 성공 결과, 필요한 경우 권한 거부 뒤 정상 동작", "exclude": "편집으로 실패를 숨기는 영상, 다른 버전 빌드", "verified": false},
+    {"id": "review_hardware", "purpose": "페달/마이크/오디오처럼 심사자가 재현하기 어려운 기능 증명", "route": "실기기 및 외부 장치 연결 → 동작 → 화면 변화", "fixture": "실제 지원 장치와 출시 빌드", "must_show": "하드웨어와 앱을 함께 보여주는 연속 촬영, 실제 오디오 출력", "exclude": "무음 화면녹화만으로 타이밍·가청성 주장", "verified": false}
+  ],
+  "app_preview": {"required": false, "duration_seconds": [15, 30], "storyboard": "0–5초 라이브러리 → 5–15초 악보 보기/주석 → 15–25초 세트리스트. 실제 앱 화면만 사용."},
+  "review_video": {"required": false, "scene": "review_core", "reason": "심사 요청 또는 재현하기 어려운 하드웨어 기능을 포함할 때 활성화. App Preview와 별도 자산이며 TestFlight의 일반 필수 영상이 아님."}
+}

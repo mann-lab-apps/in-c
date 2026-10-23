@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "app": "deployment-test",
+  "app_id": "6825212101",
+  "bundle_id": "com.mannlab.deployment-test",
+  "expected_name": "Deployment Test",
+  "version": "1.0",
+  "source_commit": "80103707a186586a5140031196ea27d6f8328fa7",
+  "first_release": true,
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "locales": [
+    "ko"
+  ],
+  "metadata_dir": "metadata/ios",
+  "declarations": {
+    "reviewed": true,
+    "primary_category": "MUSIC",
+    "secondary_category": null,
+    "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+    "age_rating": "age-rating.json"
+  },
+  "review": {
+    "reviewed": true,
+    "demo_account_required": false,
+    "notes_file": "review-notes.txt"
+  },
+  "testflight": {
+    "reviewed": true,
+    "description_file": "testflight-description.txt",
+    "test_notes_file": "testflight-test-notes.txt",
+    "feedback_email": "daga42@naver.com",
+    "build_id": null
+  },
+  "assets": [
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ipad-13-01-library.jpg",
+      "position": 1,
+      "scene": "imported_ipad-13-01-library",
+      "sha256": "b3339b41409f743957d711abdc779dbf825e7ea010367e7c166b22c89324a821",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "c183a52f-f2f8-40e9-9843-7cdae38e21c5"
+      }
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ipad-13-02-score.jpg",
+      "position": 2,
+      "scene": "imported_ipad-13-02-score",
+      "sha256": "84ed528de35f167badd82030ff55f9ba00485cd1d88cd781716166f974ee2cce",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "91c207c4-3f2d-4620-8a47-4c58a18a4307"
+      }
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ipad-13-03-tuner.jpg",
+      "position": 3,
+      "scene": "imported_ipad-13-03-tuner",
+      "sha256": "da77508dc0784a808f7958e8bae384ac4bee361dd1dff8bf739025e3e56f2d13",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "882d93b0-a162-4fb7-926c-c4c6554cf5c6"
+      }
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_65",
+      "path": "media/iphone-65-01-library.jpg",
+      "position": 1,
+      "scene": "imported_iphone-65-01-library",
+      "sha256": "4da5c70e657a23bca720bbe75aca873eaf82b8f0fbf78b6759346aa9976f64c3",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "4534668f-7a72-4837-baad-67cc2e4f406d"
+      }
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_65",
+      "path": "media/iphone-65-02-score.jpg",
+      "position": 2,
+      "scene": "imported_iphone-65-02-score",
+      "sha256": "7850f316c22327771fe1782a7d51c3584207a3e5380924469358c05e7ec5b3e2",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "62914441-6a8f-4dc4-a9c4-06a37680403b"
+      }
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_65",
+      "path": "media/iphone-65-03-tuner.jpg",
+      "position": 3,
+      "scene": "imported_iphone-65-03-tuner",
+      "sha256": "8e3edfc2ebc418529174e8d1ba2a51e3f6581f23d3e59641c3c5a33c88492966",
+      "reviewed": true,
+      "authentic": false,
+      "source_commit": null,
+      "provenance": {
+        "type": "app_store_connect_asset",
+        "app_id": "6808164371",
+        "version": "1.0.2",
+        "asset_id": "ea10e90b-f4f1-4fa9-b1d6-3e46add08a6b"
+      }
+    }
+  ],
+  "shot_plan": "shot-plan.json",
+  "manual": {
+    "privacy_labels": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "export_compliance": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "content_licenses": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "accessibility": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "pricing_availability": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "agreements_tax_banking": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "trader_status": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "review_device_qa": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "build_selection": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "purchases_eula_app_clips": {
+      "status": "pending",
+      "evidence": ""
+    }
+  },
+  "test_only": true
+}

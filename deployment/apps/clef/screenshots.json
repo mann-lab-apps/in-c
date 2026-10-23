@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "app": "clef",
+  "engine": "flutter_integration_ios",
+  "source_commit": "81219851ed436e29b4e416afbbbc5da693b7ea36",
+  "source_path": "apps/in_c_sheet",
+  "bundle_id": "com.mannlab.inc.clefandstaff",
+  "version": "1.0.2",
+  "build_number": 29,
+  "adapter": "capture/clef/adapter.dart",
+  "dart_defines": {
+    "IN_C_DISCOVERY_HOME": "false"
+  },
+  "devices": [
+    {
+      "id": "iphone",
+      "family": "iphone",
+      "type_id": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+      "display_type": "APP_IPHONE_67",
+      "width": 1320,
+      "height": 2868,
+      "locale": "ko"
+    },
+    {
+      "id": "ipad",
+      "family": "ipad",
+      "type_id": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "width": 2064,
+      "height": 2752,
+      "locale": "ko"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "library",
+      "purpose": "현재 앱에서 원본 악보 3개가 저장된 라이브러리",
+      "steps": [],
+      "assertions": [
+        {
+          "by": "tooltip",
+          "value": "라이브러리 메뉴",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "Prelude",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "annotation",
+      "purpose": "실제 PDF 렌더러에서 저장된 형광펜/펜 필기를 표시",
+      "steps": [
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "Prelude"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 5000
+        },
+        {
+          "action": "tap",
+          "by": "tooltip",
+          "value": "악보 도구"
+        },
+        {
+          "action": "scroll_to",
+          "by": "text",
+          "value": "필기 모드",
+          "delta": 300
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "필기 모드"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 4000
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "PdfViewer",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "필기 도구 선택",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "setlist",
+      "purpose": "실제 UI로 진입한 세 곡의 연습 세트리스트",
+      "steps": [
+        {
+          "action": "back"
+        },
+        {
+          "action": "tap",
+          "by": "tooltip",
+          "value": "세트리스트"
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "Evening Practice"
+        }
+      ],
+      "assertions": [
+        {
+          "by": "text",
+          "value": "Evening Practice",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "Prelude",
+          "present": true
+        }
+      ]
+    }
+  ]
+}

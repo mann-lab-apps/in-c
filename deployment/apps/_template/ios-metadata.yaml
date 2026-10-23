@@ -1,0 +1,123 @@
+# 다른 앱용 시작 템플릿. 실제 값으로 교체하고 제품 commit을 고정하기 전에는 실행할 수 없습니다.
+---
+schema_version: 1
+app: example-app
+source:
+  state: pending
+  path: apps/your_app
+  commit: '0000000000000000000000000000000000000000'
+  version: 1.0.0
+  build_number: 1
+  bundle_id: com.example.yourapp
+  dart_defines: {}
+  flavor:
+store:
+  app_id:
+  bundle_id: com.example.yourapp
+  expected_name: Your App
+  version: 1.0.0
+  first_release: true
+  test_only: false
+content:
+  reviewed: false
+  copyright: REPLACE_ME
+  locales:
+    ko:
+      name: Your App
+      subtitle:
+      description: 'DRAFT: 실제 앱 기능 설명을 작성하세요.'
+      keywords:
+      support_url:
+      privacy_url:
+      marketing_url:
+      promotional_text:
+      release_notes:
+declarations:
+  reviewed: false
+  primary_category: MUSIC
+  secondary_category:
+  content_rights:
+  age_rating:
+review:
+  reviewed: false
+  demo_account_required: false
+  notes: 'DRAFT: 실제 심사자 진입/로그인/권한 동선을 작성하세요.'
+testflight:
+  reviewed: false
+  feedback_email:
+  build_id:
+  description: 'DRAFT: 테스트할 앱의 기능을 작성하세요.'
+  test_notes: 'DRAFT: 재현 단계와 기대 결과를 작성하세요.'
+screenshots:
+  engine: flutter_integration_ios
+  adapter: capture/default_adapter.dart
+  devices:
+  - id: iphone
+    family: iphone
+    type_id: com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max
+    runtime: com.apple.CoreSimulator.SimRuntime.iOS-26-5
+    display_type: APP_IPHONE_67
+    width: 1320
+    height: 2868
+    locale: ko
+  scenes:
+  - id: home
+    purpose: 첫 화면의 핵심 가치
+    route: 앱 실행 → 홈
+    fixture: 개인정보 없는 샘플 데이터
+    must_show:
+    - 핵심 기능과 실제 데이터
+    exclude:
+    - 빈 화면·오류·개인정보
+    steps: []
+    assertions:
+    - by: text
+      value: Your App
+      present: true
+videos:
+  app_preview:
+    required: false
+    storyboard: '선택 사항: 실제 앱 화면에서 핵심 동선을 구성하세요.'
+  review_video:
+    required: false
+    scene: review_core
+    reason: 심사 요청/재현하기 어려운 기능이 있는 경우 실제 설치 빌드의 데모 동선을 작성하세요.
+manual:
+  privacy_labels:
+    status: pending
+    evidence: ''
+  export_compliance:
+    status: pending
+    evidence: ''
+  content_licenses:
+    status: pending
+    evidence: ''
+  accessibility:
+    status: pending
+    evidence: ''
+  pricing_availability:
+    status: pending
+    evidence: ''
+  agreements_tax_banking:
+    status: pending
+    evidence: ''
+  trader_status:
+    status: pending
+    evidence: ''
+  review_device_qa:
+    status: pending
+    evidence: ''
+  build_selection:
+    status: pending
+    evidence: ''
+  purchases_eula_app_clips:
+    status: pending
+    evidence: ''
+artifacts:
+  capture_verification:
+secrets:
+  api_credentials_env: ASC_METADATA_API_JSON
+  review_details_env: ASC_REVIEW_DETAILS_JSON
+policy:
+  submit_for_review: false
+  release: false

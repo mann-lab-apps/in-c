@@ -1,0 +1,32 @@
+name: Mobile deployment checks
+
+on:
+  pull_request:
+    paths: ["deployment/**", ".github/workflows/mobile-deployment*.yml"]
+  push:
+    branches: [main]
+    paths: ["deployment/**", ".github/workflows/mobile-deployment*.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    runs-on: macos-15
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: deployment
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+          working-directory: deployment
+      - run: bundle exec ruby test/release_test.rb
+      - run: bundle exec ruby test/store_metadata_test.rb
+      - run: bundle exec ruby test/ios_release_test.rb
+      - run: bundle exec ruby test/ios_metadata_test.rb
+      - run: python3 -m unittest discover -s test -p '*_test.py'
+      - run: bundle exec fastlane lanes

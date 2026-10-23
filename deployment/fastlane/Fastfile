@@ -1,0 +1,95 @@
+require_relative '../lib/release'
+require_relative '../lib/store_metadata'
+require_relative '../lib/ios_release'
+require_relative '../lib/ios_metadata'
+require_relative '../lib/ios_release_preflight'
+
+ENV['FASTLANE_SKIP_UPDATE_CHECK'] = '1'
+ENV['FASTLANE_HIDE_CHANGELOG'] = '1'
+opt_out_usage
+
+Deployment::Pipeline::ACTIONS.each do |action|
+  desc "Shared release #{action}; select app with manifest:"
+  lane action.to_sym do |options|
+    executor = lambda do |name, **arguments|
+      case name
+      when :build_app then build_app(**arguments)
+      when :upload_to_testflight then upload_to_testflight(**arguments)
+      when :upload_to_play_store then upload_to_play_store(**arguments)
+      else UI.user_error!("Unsupported action: #{name}")
+      end
+    end
+    Deployment::Pipeline.new(options, actions: executor).run(action)
+  end
+end
+
+desc 'Inspect or save draft metadata and verify by reading it back; no binary/review/release operations'
+lane :store_metadata do |options|
+  unknown = options.keys.map(&:to_s) - %w[store_manifest credentials mode]
+  UI.user_error!("Unsupported store_metadata options: #{unknown.join(', ')}") unless unknown.empty?
+  api = Deployment::StoreMetadataAPI.new(options.fetch(:credentials))
+  Deployment::StoreMetadata.new(options.fetch(:store_manifest), api: api).run(options.fetch(:mode, 'inspect'))
+end
+
+desc 'Prepare, inspect, sync or verify iOS release information; submission/release unavailable'
+lane :ios_release do |options|
+  unknown = options.keys.map(&:to_s) - %w[manifest mode sections credentials private_details capture_verification]
+  UI.user_error!("Unsupported ios_release options: #{unknown.join(', ')}") unless unknown.empty?
+  mode = options.fetch(:mode, 'plan')
+  manifest = options.fetch(:manifest)
+  bundle = %w[.yaml .yml].include?(File.extname(manifest)) ? Deployment::IOSMetadata.new(manifest).compile(capture_verification: options[:capture_verification]) : nil
+  UI.user_error!('capture_verification requires authored YAML metadata') if options[:capture_verification] && !bundle
+  private_details = options[:private_details] || (bundle && ENV[bundle['secrets']['review_details_env']])
+  credentials = options[:credentials] || (bundle && ENV[bundle['secrets']['api_credentials_env']])
+  package = Deployment::IOSPackage.new(bundle ? bundle['ios_release'] : manifest).prepare(private_details: private_details)
+  UI.user_error!('API credential file is required for remote mode') if %w[inspect sync verify].include?(mode) && !credentials
+  api = %w[inspect sync verify].include?(mode) ? Deployment::IOSReleaseAPI.new(credentials) : nil
+  sections = options.fetch(:sections, Deployment::IOSPackage::GROUPS.join(',')).split(',')
+  Deployment::IOSRelease.new(package, api: api).run(mode, sections: sections)
+end
+
+desc 'Check or prepare app-authored iOS metadata; no store operations'
+lane :prepare_ios_metadata do |options|
+  unknown = options.keys.map(&:to_s) - %w[manifest mode capture_verification]
+  UI.user_error!("Unsupported metadata options: #{unknown.join(', ')}") unless unknown.empty?
+  mode = options.fetch(:mode, 'prepare')
+  UI.user_error!('mode must be check or prepare') unless %w[check prepare].include?(mode)
+  metadata = Deployment::IOSMetadata.new(options.fetch(:manifest))
+  if mode == 'check'
+    UI.message("Metadata valid: #{metadata.data['app']} (source #{metadata.data['source']['state']})")
+  else
+    result = metadata.compile(capture_verification: options[:capture_verification])
+    UI.message("Metadata result: #{File.join(File.dirname(result['ios_release']), 'result.json')}")
+  end
+end
+
+desc 'Audit local iOS release readiness without store writes or secret output'
+lane :release_candidate_preflight do |options|
+  unknown = options.keys.map(&:to_s) - %w[manifest artifact feedback review_details output require_ready]
+  UI.user_error!("Unsupported preflight options: #{unknown.join(', ')}") unless unknown.empty?
+  report = Deployment::IOSReleasePreflight.new(
+    manifest: options.fetch(:manifest),
+    artifact: options[:artifact],
+    feedback: options.fetch(:feedback, '').split(',').reject(&:empty?),
+    review_details: options[:review_details],
+  ).run
+  rendered = Deployment::IOSReleasePreflight.text(report)
+  File.write(options[:output], JSON.pretty_generate(report) + "\n") if options[:output]
+  UI.message(rendered)
+  UI.user_error!('Release preflight found implementation failures') if report.dig('counts', 'fail').positive?
+  require_ready = %w[1 true yes].include?(options.fetch(:require_ready, 'false').to_s.downcase)
+  UI.user_error!('Release preflight is blocked by external inputs') if require_ready && report.dig('counts', 'blocked').positive?
+end
+
+desc 'Capture and verify current iOS UI from app-specific screenshot configuration'
+lane :store_screenshots do |options|
+  unknown = options.keys.map(&:to_s) - %w[manifest mode source_root devices result review]
+  UI.user_error!("Unsupported screenshot options: #{unknown.join(', ')}") unless unknown.empty?
+  manifest = File.expand_path(options.fetch(:manifest), Deployment::ROOT)
+  argv = ['python3', File.join(Deployment::ROOT, 'capture_screenshots.py'), options.fetch(:mode, 'plan'), '--manifest', manifest]
+  { source_root: '--source-root', result: '--result', review: '--review' }.each do |key, flag|
+    argv += [flag, File.expand_path(options[key], Deployment::ROOT)] if options[key]
+  end
+  options.fetch(:devices, '').split(',').each { |device| argv += ['--device', device] }
+  sh(*argv)
+end

@@ -1,0 +1,89 @@
+name: Mobile local deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Manifest directory under deployment/apps
+        type: string
+        default: clef
+        required: true
+      operation:
+        description: Local operation (store uploads are run locally after approval)
+        type: choice
+        options: [plan, preflight, metadata, archive, aab]
+        default: plan
+      platform:
+        type: choice
+        options: [ios, android]
+        default: ios
+
+permissions:
+  contents: read
+
+concurrency:
+  group: in-c-local-mobile-deployment
+  cancel-in-progress: false
+
+jobs:
+  local:
+    # No PR or push trigger: this machine has local signing access.
+    runs-on: [self-hosted, macOS, ARM64, in-c-release]
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: pipeline/deployment
+    env:
+      RELEASE_APP: ${{ inputs.app }}
+      RELEASE_OPERATION: ${{ inputs.operation }}
+      RELEASE_PLATFORM: ${{ inputs.platform }}
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      FASTLANE_OPT_OUT_USAGE: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: pipeline
+          persist-credentials: false
+      - name: Resolve pinned app source
+        id: source
+        run: |
+          ruby -r ./lib/release -e '
+            app = ENV.fetch("RELEASE_APP")
+            abort "invalid app" unless app.match?(/\A[a-z][a-z0-9_-]*\z/)
+            manifest = Deployment::Manifest.new("apps/#{app}/release.json")
+            File.open(ENV.fetch("GITHUB_OUTPUT"), "a") { |f| f.puts "commit=#{manifest["source_commit"]}" }
+          '
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.source.outputs.commit }}
+          path: source
+          persist-credentials: false
+      - name: Install pinned dependencies
+        run: bundle install --quiet
+      - name: Test deployment guards
+        run: bundle exec ruby test/release_test.rb
+      - name: Stage local Android signing
+        id: signing
+        if: inputs.operation == 'aab'
+        run: python3 runner_signing.py stage "apps/$RELEASE_APP/release.json" "$GITHUB_WORKSPACE/source"
+      - name: Run local lane
+        run: |
+          export BUNDLETOOL_JAR="$HOME/.local/share/in-c-release-tools/bundletool-all-1.18.3.jar"
+          bundle exec fastlane "$RELEASE_OPERATION" \
+            "manifest:apps/$RELEASE_APP/release.json" \
+            "platform:$RELEASE_PLATFORM" \
+            "source_root:$GITHUB_WORKSPACE/source"
+      - name: Remove staged signing properties
+        if: always() && steps.signing.outcome == 'success'
+        run: python3 runner_signing.py cleanup "apps/$RELEASE_APP/release.json" "$GITHUB_WORKSPACE/source"
+      - name: Preserve results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-${{ inputs.app }}-${{ github.run_id }}
+          path: |
+            pipeline/deployment/output/**/result.json
+            pipeline/deployment/output/**/release-manifest.json
+            pipeline/deployment/output/ledger.jsonl
+          if-no-files-found: warn
+          retention-days: 30

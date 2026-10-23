@@ -1,0 +1,23 @@
+METADATA PIPELINE TEST ONLY — Deployment Test; no Clef binary is attached.
+
+The following notes are copied from Clef & Staff 1.0.2 for field-transfer verification. They do not describe an executable build of Deployment Test.
+
+Clef & Staff is a local-first sheet music library and practice app.
+
+Version 1.0.2 adds:
+- Plain text, ChordPro, DOCX, and RTF import and viewing
+- Setlist ZIP package export and import
+- Custom and image stamps
+- Annotation layer management
+- Improved PDF annotation export
+- Native iOS metronome, reference tone, drone, and linked-audio playback
+- Backup conflict preview and additional save/import recovery
+
+Suggested review flow:
+1. Import a PDF from the Library screen.
+2. Open the score and use the Tools menu to access annotations, metronome, tuner, and page navigation.
+3. Create a setlist and add imported scores.
+4. Use Setlist Package to preview an export or import.
+5. Import a ChordPro or text file to verify the text score viewer.
+
+Microphone permission is used only by the chromatic tuner. No account, subscription, or in-app purchase is required. Cloud synchronization and live multi-tablet collaboration are not advertised as completed production features.

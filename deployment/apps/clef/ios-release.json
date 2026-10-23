@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "app": "clef",
+  "app_id": "6808164371",
+  "bundle_id": "com.mannlab.inc.clefandstaff",
+  "expected_name": "Clef & Staff",
+  "version": "1.0.2",
+  "source_commit": "80103707a186586a5140031196ea27d6f8328fa7",
+  "first_release": false,
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "locales": [
+    "ko"
+  ],
+  "metadata_dir": "metadata/ios",
+  "declarations": {
+    "reviewed": false,
+    "primary_category": "MUSIC",
+    "secondary_category": null,
+    "content_rights": null,
+    "age_rating": null
+  },
+  "review": {
+    "reviewed": false,
+    "demo_account_required": false,
+    "notes_file": "review-notes.txt"
+  },
+  "testflight": {
+    "reviewed": false,
+    "description_file": "testflight-description.txt",
+    "test_notes_file": "testflight-test-notes.txt",
+    "feedback_email": null,
+    "build_id": null
+  },
+  "assets": [
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_67",
+      "path": "media/ko/iphone/01-library.png",
+      "position": 1,
+      "scene": "library",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_67",
+      "path": "media/ko/iphone/02-annotation.png",
+      "position": 2,
+      "scene": "annotation",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "iphone",
+      "display_type": "APP_IPHONE_67",
+      "path": "media/ko/iphone/03-setlist.png",
+      "position": 3,
+      "scene": "setlist",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ko/ipad/01-library.png",
+      "position": 1,
+      "scene": "library",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ko/ipad/02-annotation.png",
+      "position": 2,
+      "scene": "annotation",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    },
+    {
+      "kind": "screenshot",
+      "locale": "ko",
+      "device": "ipad",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "path": "media/ko/ipad/03-setlist.png",
+      "position": 3,
+      "scene": "setlist",
+      "sha256": null,
+      "reviewed": false,
+      "authentic": false,
+      "source_commit": "80103707a186586a5140031196ea27d6f8328fa7"
+    }
+  ],
+  "shot_plan": "shot-plan.json",
+  "manual": {
+    "privacy_labels": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "export_compliance": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "content_licenses": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "accessibility": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "pricing_availability": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "agreements_tax_banking": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "trader_status": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "review_device_qa": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "build_selection": {
+      "status": "pending",
+      "evidence": ""
+    },
+    "purchases_eula_app_clips": {
+      "status": "pending",
+      "evidence": ""
+    }
+  }
+}

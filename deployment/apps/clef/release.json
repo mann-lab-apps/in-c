@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "app": "clef",
+  "display_name": "Clef & Staff",
+  "source_path": "apps/in_c_sheet",
+  "source_commit": "80103707a186586a5140031196ea27d6f8328fa7",
+  "version": "1.0.2",
+  "build_number": 29,
+  "entrypoint": "lib/main.dart",
+  "dart_defines": {
+    "IN_C_DISCOVERY_HOME": "false"
+  },
+  "version_constant": "_clefAppVersion",
+  "ios": {
+    "bundle_id": "com.mannlab.inc.clefandstaff",
+    "scheme": "Runner",
+    "configuration": "Release",
+    "team_id": "ZRA4DHHKQ4",
+    "profile": "Clef And Staff",
+    "export_options": "ExportOptions.plist",
+    "baseline": "apps/in_c_sheet/releases/ios-1.0.2+29/clef-and-staff-1.0.2+29.ipa",
+    "baseline_sha256": "6d76f48ed2f6a01114aa7f4b01fc40411206ef26652eec34bdf69cf548b53632"
+  },
+  "android": {
+    "package_name": "com.mannlab.clef",
+    "upload_certificate_sha1": "4C78A91A12985CCE7BCE3EC061A9CE08F17CA1B9",
+    "baseline": "apps/in_c_sheet/releases/clef-and-staff-1.0.1+27-release.aab",
+    "baseline_sha256": "1167bdf20c687fbce51775427d8356c5fea0eef561ba3532a56a71be21c3bc5f"
+  },
+  "metadata": "metadata",
+  "release_notes": "notes/1.0.2+29.txt"
+}

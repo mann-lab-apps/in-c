@@ -1,0 +1,10 @@
+Clef & Staff is a PDF sheet-music library and reader.
+Verify these instructions against the exact iOS release build before marking them reviewed.
+
+Import the self-authored sample PDF using the add-score action and the system file picker.
+Open the score, add a short annotation, return to the library, and add the score to a setlist.
+Use the app's export/share action to inspect an exported copy or backup.
+No demo account is required for this local workflow.
+
+If microphone or external pedal functionality is advertised in this build, attach the verified
+physical-device demonstration and describe setup, permissions, expected results and limitations.

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "capture_policy": "Test-only reuse of published store assets; original capture commit and build authenticity are not verified. Production still requires actual release-matching captures.",
+  "scenes": [
+    {
+      "id": "imported_ipad-13-01-library",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    },
+    {
+      "id": "imported_ipad-13-02-score",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    },
+    {
+      "id": "imported_ipad-13-03-tuner",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    },
+    {
+      "id": "imported_iphone-65-01-library",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    },
+    {
+      "id": "imported_iphone-65-02-score",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    },
+    {
+      "id": "imported_iphone-65-03-tuner",
+      "purpose": "기존 Clef 스토어 자산을 그대로 복사해 업로드/순서/체크섬을 검증한다. 새 빌드 화면 검증이 아니다.",
+      "verified": true,
+      "visual_review": "2026-10-21: 스토어에서 내려받은 라이브러리/악보·필기/튜너 이미지를 확인. 개인정보와 오류 메시지는 보이지 않음. 튜너의 실기기 정확도는 미검증."
+    }
+  ],
+  "review_video": {
+    "required": false,
+    "scene": "review_core"
+  }
+}
