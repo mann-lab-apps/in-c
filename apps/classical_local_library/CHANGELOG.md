@@ -26,7 +26,7 @@
 
 ### 검증과 남은 범위
 
-- 체크포인트 준비 시 플레이 320개 테스트, 정적 분석, format, fixture와 host PCM 검사를 통과했다.
+- 깨끗한 체크포인트 checkout에서 플레이 321개 테스트, 정적 분석, format, fixture와 host PCM 검사를 통과했다.
 - iOS Simulator 결과와 fake/host/물리 환경의 경계는
   [QA 기록](../../docs/quality/classical-local-library-local-qa-2026-10-23.md)을 따른다.
 - MP3 실측, 실제 VoiceOver·Files/iCloud 제공자·출력 장치·interruption은 미검증으로 남는다.

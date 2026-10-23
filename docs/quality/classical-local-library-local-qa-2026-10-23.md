@@ -134,3 +134,22 @@ MP3는 기존 ffmpeg/lame 실행 파일이 없고 시스템 afconvert의 MP3 인
 이 추가 실행은 앞서 확인한 공통 UI 변경을 포함하지만 native 통합 검사를 새로 수행한
 것은 아니다. metadata check도 pending 상태에서 통과했다.
 앞 절의 커밋 없음은 배포 보류 당시 실행에 대한 기록이며, 후속 Git 체크포인트와 구분한다.
+
+### 깨끗한 checkout 재검증
+
+- `064a8e63`를 별도 임시 worktree에 checkout해 7개 검사를 수행했다. 각 명령은 통과했으나
+  첫 Flutter 실행이 만드는 ignored `ios/Runner/GeneratedPluginRegistrant.h/.m` 때문에
+  전체 상태는 `sourceChanged`였다. 로그는 로컬 `build/local_qa/checkpoint-064a8e63-first-run/`에
+  보존했다. 실패 기록을 PASS로 바꾸지 않았다.
+- `265570fd`에서 해당 두 생성 파일만 fingerprint에서 제외하고 회귀 테스트를 추가했다.
+  앱 native 코드, 공통 디자인 토큰과 fixture는 여전히 소스 변경 검사 대상이다.
+- 다시 새로운 worktree에서 호스트 7개 검사 모두 PASS, **321 tests passed**를 확인했다.
+  실행 전후 hash는 `208334b5b646b91bb9c664dc96c354bb9b7d6597b2d4ce5f70ead34a43f62c17`로
+  동일했고 검사 후 `git status --short`도 비어 있었다.
+- 이 결과는 로컬 `build/local_qa/checkpoint-265570fd-clean/`에 복사했다. 로그는 Git에
+  넣지 않으며 임시 worktree를 제거해도 로컬 증적은 남는다.
+- 공통 UI의 component tests 23개, catalog tests 24개와 공통 패키지 analyze도 통과했다.
+- 기존 다른 앱의 worktree와 변경은 보존한다. 체크포인트 이후 별도 디자인 작업이 만든
+  플레이 캡처 테스트·메타데이터 수정은 이 결과에 포함하지 않는다.
+- 커밋·브랜치 push는 개발 이력 보존이다. store pinning·버전 변경·최종 디자인 승인이나
+  배포 재개가 아니며 원격 CI 통과를 대신하지 않는다.
