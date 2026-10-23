@@ -123,6 +123,7 @@ import {
 import './styles.css'
 import './ddirori-product.css'
 import { AppearanceSettings } from './AppearanceSettings'
+import { ModalBackdrop } from './ModalBackdrop'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -1265,6 +1266,7 @@ export const App = () => {
   const [readingRecovery, setReadingRecovery] = useState(false)
   const [discardingRecovery, setDiscardingRecovery] = useState(false)
   const recoveryReadRequest = useRef(0)
+  const recoveryFocusTarget = useRef<HTMLElement | null>(null)
   const recoveryDiscardInFlight = useRef(false)
   const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
     RecentMusicXmlFile[]
@@ -2373,6 +2375,7 @@ export const App = () => {
   )
 
   const readAutosaveRecovery = useCallback(async () => {
+    recoveryFocusTarget.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const request = ++recoveryReadRequest.current
     const generation = documentGeneration.current
     const isCurrent = () => request === recoveryReadRequest.current && generation === documentGeneration.current
@@ -10464,9 +10467,10 @@ export const App = () => {
       ) : null}
 
       {newScoreDraft ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => setNewScoreDraft(undefined)}>
           <form
             aria-label="새 악보 만들기"
+            aria-modal="true"
             className="new-score-dialog"
             onSubmit={(event) => {
               event.preventDefault()
@@ -10713,13 +10717,14 @@ export const App = () => {
               </button>
             </footer>
           </form>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {shortcutHelpOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => setShortcutHelpOpen(false)}>
           <section
             aria-label="단축키 도움말"
+            aria-modal="true"
             className="shortcut-help-dialog"
             role="dialog"
           >
@@ -10753,13 +10758,14 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {commandPaletteOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop onDismiss={() => { setCommandPaletteOpen(false); setCommandPaletteQuery('') }}>
           <section
             aria-label="명령 검색"
+            aria-modal="true"
             className="command-palette-dialog"
             role="dialog"
           >
@@ -10847,15 +10853,16 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
 
       {nativeBackupsOpen ? <NativeBackupsDialog onClose={closeNativeBackups} onRestore={restoreNativeBackup} /> : null}
 
       {recoverySnapshot && !startScreenVisible && !nativeBackupsOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <ModalBackdrop restoreFocusTo={recoveryFocusTarget.current} onDismiss={() => { if (!recoveryDiscardInFlight.current) postponeAutosave() }}>
           <section
             aria-label="자동저장 복구"
+            aria-modal="true"
             className="recovery-dialog"
             role="dialog"
           >
@@ -10883,7 +10890,7 @@ export const App = () => {
               <button onClick={discardAutosave} disabled={discardingRecovery} type="button">
                 삭제
               </button>
-              <button onClick={postponeAutosave} disabled={discardingRecovery} type="button">
+              <button autoFocus onClick={postponeAutosave} disabled={discardingRecovery} type="button">
                 나중에
               </button>
               <button
@@ -10896,7 +10903,7 @@ export const App = () => {
               </button>
             </footer>
           </section>
-        </div>
+        </ModalBackdrop>
       ) : null}
     </main>
   )

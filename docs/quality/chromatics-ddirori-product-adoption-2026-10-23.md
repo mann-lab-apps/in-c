@@ -2,8 +2,9 @@
 
 This continues the October 22 draft, not a release. Existing uncommitted App,
 styles, notation, playback and test changes belong to the user's separate work.
-Only the two appearance imports and the AppearanceSettings instance in App are
-part of this design change. No engine, release version or iOS metadata changes.
+Only the appearance imports/instance, four ModalBackdrop connections and recovery
+opener focus capture in App are part of this design change. No engine, release
+version or iOS metadata changes.
 
 ## Product boundary
 
@@ -108,7 +109,78 @@ A separate integration snapshot at
 without changing it; all 160 source files were hash-compared after copying.
 It is separate from the design-only verification worktree. A full run there uses
 an explicit 15-second per-test limit, without modifying tests or assertions.
-Its result is pending and does not erase the default-timeout failures. Counts
-between live runs are not assumed identical while other work is in progress.
+That run passed 1,062 tests but failed one suite before collection because this
+verification copy omitted site/compositions-catalog.json. This is a failed run,
+not a full pass. A fresh snapshot includes those read-only test fixtures and the
+modal changes described below. Counts between live runs are not assumed identical
+while other work is in progress. Neither snapshot changes the live test timeout.
 
 The initial design commit is d1f5a22. Deployment remains outside this task.
+
+## Modal keyboard follow-up
+
+- Actual Electron run-N11lnZ reproduced Shift+Tab escaping command search.
+  ModalBackdrop now bounds Tab/Shift+Tab, preserves child autofocus, handles
+  Escape and restores the opener (or the persistent trigger of a closed menu).
+- New-score draft, shortcut help, command search and autosave recovery use the wrapper and declare
+  aria-modal. Their commands, score model and undo/save handlers are unchanged.
+- Composing key events are stopped before nested command handlers, without
+  preventing the browser's input default. Synthetic composing Escape is checked
+  in Electron; this is not a claim of every OS/input-method combination tested.
+- Eight unit tests cover the keyboard boundary, no-controls fallback, autofocus,
+  composing keys, removed menu items and an async request's disabled opener.
+  Appearance, backup and modal focused suite: 20 passed, exit 0.
+- Combined Electron run-ezzXQR: 141 checks / 11 captures, exit 0. Independent
+  run-v2k8J3: 139 checks / 11 captures, exit 0. The two-check difference is the
+  existing product's keyboard-resize support, not skipped failures.
+- Typecheck and development compilation pass in the product; independent
+  development compilation passes. Latest PDF was rendered and inspected, along
+  with dark desktop and narrow enlarged modal captures. At that checkpoint the
+  captured hashes matched the integration snapshot's 163 source files.
+- Final integration snapshot: `/private/tmp/chromatics-ddirori-final-integration-20261023-HKimrD`.
+  Full suite: 1,134 passed / 8 skipped, exit 0 (573.09 seconds), with an explicit
+  15-second per-test limit. This precedes the recovery modal follow-up below.
+  Subsequent concurrent App.test.tsx edits are outside that frozen result.
+- Independent default-timeout final suite: 852 passed, 1 failed, 1 skipped,
+  exit 1 (339.06 seconds). The existing explicit hairpin paste/history case
+  exceeded 5 seconds; its isolated rerun passed under the unchanged default
+  limit (1.36 seconds test time). The full run remains a failure in this record.
+
+## Recovery modal follow-up
+
+- Electron run-NJPa6G reproduced missing safe initial focus; run-fjMmza then
+  exposed lost return focus after the async entry button was disabled. Both are
+  failed runs. The UI now captures the opener before reading, initially focuses
+  Postpone rather than Delete, and restores the captured opener on dismissal.
+- Escape uses the existing postpone operation; it does not clear the snapshot.
+  The existing in-flight deletion ref blocks dismissal until deletion settles.
+- Combined run-98NWPV: 149 checks / 11 captures, exit 0. Native autosave content
+  is compared before/after postpone and failed deletion. The delayed clear
+  failure is injected at IPC in the disposable Electron process, not claimed
+  as a spontaneous storage failure. No real user profile is accessed.
+- Existing App recovery/autosave/new-score/command/shortcut cases: 44 passed,
+  289 not selected, exit 0. This run preceded the explicit opener capture;
+  that final delta is covered by the 20 focused tests and latest Electron run.
+- Latest native PDF was rendered: its PNG is byte-identical to the previously
+  inspected run-ezzXQR rendering. Latest report source hashes match product code.
+- Final staged-only source is extracted directly from the Git index into
+  `/private/tmp/chromatics-ddirori-final-stage-20261023-Tih8AF`. It excludes the
+  user's unstaged changes. Development compilation passes. The final full suite
+  with the explicit 15-second limit passed 854 tests / 1 skipped, exit 0
+  (318.49 seconds). Final independent Electron run-XPkwAx passed 147 checks /
+  11 captures. Product source typecheck also passed after opener capture.
+- The exact staged source files were byte-compared against that final snapshot.
+  Shared tokens/font/palette/license still match a21ddde byte-for-byte. Both
+  staged and worktree whitespace checks pass (original font license retained).
+  No repository timeout setting, test assertion or skip policy was weakened.
+
+## Remaining boundaries
+
+This applies the design to existing product controls; it is not a wholesale
+replacement with catalog components. Generic mixed-value multi-selection,
+arbitrary docking and new notation features remain out of scope. Hardware audio,
+release signing, every OS/input-method combination and assistive technology
+screen-reader certification are not implied by these checks.
+Existing user changes in App/styles/notation/tests remain uncommitted and are
+not included in these focused design commits. No production profile, signing,
+packaging, metadata upload, push or merge was performed.
