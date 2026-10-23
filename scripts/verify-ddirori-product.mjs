@@ -61,7 +61,38 @@ try {
       check(`page overflow ${theme}/${density}/${width}/${font}`, metrics.scroll <= metrics.width + 1)
       check(`music present ${theme}/${density}/${width}/${font}`, metrics.glyphs > 20)
       check(`controls fit ${theme}/${density}/${width}/${font}`, metrics.controls.length > 0 && metrics.controls.every(c => c.h >= 30 && c.scroll <= c.client + 1))
+      check(`input control theme ${theme}/${density}/${width}/${font}`, await page.evaluate(() => {
+        const probe = document.createElement('span')
+        document.body.append(probe)
+        const color = token => { probe.style.color = `var(${token})`; return getComputedStyle(probe).color }
+        const enabled = color('--dd-text'), disabled = color('--dd-on-disabled')
+        probe.remove()
+        const controls = [...document.querySelectorAll('.note-entry-toolbar button, .toolbar .duration-strip button, .toolbar .accidental-control button, .dot-control output, .dot-control__label')]
+          .filter(el => el.getClientRects().length)
+        return controls.length > 0 && controls.every(el => getComputedStyle(el).color === (el.disabled ? disabled : enabled))
+      }))
       if (density === 'compact' && ((width === 1440 && font === 16) || (width === 390 && font === 32))) await capture(`${theme}-${width}-${font}`)
+      if (width === 390 && font === 32) {
+        const status = page.locator('.editor-status')
+        const lastStatus = status.locator(':scope > :last-child')
+        await lastStatus.scrollIntoViewIfNeeded()
+        check(`status reachable ${theme}/${density}`, await lastStatus.evaluate(el => {
+          const rect = el.getBoundingClientRect()
+          const viewport = el.parentElement.getBoundingClientRect()
+          return rect.top >= Math.max(0, viewport.top) &&
+            rect.bottom <= Math.min(innerHeight, viewport.bottom) + 1 &&
+            rect.left >= 0 && rect.right <= innerWidth + 1 &&
+            el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+        }))
+        const lastInput = page.locator('.note-entry-toolbar button, .toolbar .duration-strip button').last()
+        await lastInput.scrollIntoViewIfNeeded()
+        check(`last input tool reachable ${theme}/${density}`, await lastInput.evaluate(el => {
+          const rect = el.getBoundingClientRect()
+          return rect.top >= 0 && rect.bottom <= innerHeight &&
+            el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+        }))
+        await page.evaluate(() => window.scrollTo(0, 0))
+      }
     }
   }
   await size(1440)
@@ -106,7 +137,15 @@ try {
   const inputToggle = page.getByRole('button', { name: '음표 입력', exact: true })
   if (await inputToggle.count()) await inputToggle.click()
   else await page.keyboard.press('n')
-  await page.getByRole('button', { name: '8분음표', exact: true }).first().click()
+  const eighth = page.getByRole('button', { name: '8분음표', exact: true }).first()
+  check('duration uses the shared Button', (await eighth.getAttribute('class')).includes('dd-button'))
+  await eighth.click()
+  await eighth.click()
+  check('repeated duration selection stays selected', await eighth.getAttribute('aria-pressed') === 'true')
+  const voiceOne = page.getByRole('button', { name: '1성부', exact: true })
+  check('voice uses the shared Button', (await voiceOne.getAttribute('class')).includes('dd-button'))
+  await voiceOne.click()
+  check('repeated voice selection stays selected', await voiceOne.getAttribute('aria-pressed') === 'true')
   await page.locator('.notation-preview').first().click({ position: { x: 4, y: 4 } })
   await page.keyboard.press('c')
   const revision = async () => Number((await page.locator('.editor-status').innerText()).match(/(\d+)회 수정/)?.[1])
@@ -118,9 +157,17 @@ try {
   await menu('편집', '다시 실행', '다시 실행')
   check('redo restores actual history', await revision() === editedRevision)
   await menu('추가', '표기 도구 열기', '표기 객체')
+  const hairpin = page.getByRole('button', { name: '크레셴도 헤어핀', exact: true })
+  check('range command uses the shared Button', (await hairpin.getAttribute('class')).includes('dd-button'))
+  check('range command remains disabled for a single event', await hairpin.isDisabled())
+  const beforeDisabledCommand = await revision()
+  await hairpin.evaluate(element => element.click())
+  check('disabled range command cannot change history', await revision() === beforeDisabledCommand)
   await page.getByRole('searchbox', { name: '기호 검색', exact: true }).fill('no-such-symbol-qa')
   check('search query retained', await page.getByRole('searchbox', { name: '기호 검색', exact: true }).inputValue() === 'no-such-symbol-qa')
+  check('palette exposes its actual empty result', await page.getByText('일치하는 표기 객체가 없습니다.', { exact: true }).isVisible())
   await page.getByRole('button', { name: '표기 객체 검색 지우기', exact: true }).click()
+  check('clearing the query restores the actual palette', await hairpin.isVisible())
   await capture('palette')
   await menu('형식', '악보 및 마디 설정 열기', '악보')
   await capture('score-settings')
@@ -224,6 +271,13 @@ try {
   await page.getByRole('button', { name: '프로젝트 백업', exact: true }).click()
   const backups = page.getByRole('dialog', { name: '프로젝트 백업', exact: true })
   await backups.getByRole('alert').waitFor()
+  await backups.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true })))
+  check('backup composing Escape does not dismiss', await backups.isVisible())
+  await backups.getByRole('button', { name: '닫기', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  check('backup Tab wraps to the first available command', await backups.getByRole('button', { name: '백업 목록 다시 불러오기' }).evaluate(element => element === document.activeElement))
+  await page.keyboard.press('Shift+Tab')
+  check('backup reverse Tab returns to close', await backups.getByRole('button', { name: '닫기', exact: true }).evaluate(element => element === document.activeElement))
   check('backup list failure remains an error', await backups.getByRole('alert').innerText() !== '')
   await size(390)
   await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
@@ -273,7 +327,7 @@ try {
   await recovery.getByRole('button', { name: '나중에', exact: true }).click()
   check('renderer has no uncaught errors', errors.length === 0)
   const sourceHashes = {}
-  for (const file of ['src/renderer/src/App.tsx', 'src/renderer/src/styles.css', 'src/renderer/src/ddirori-product.css', 'src/renderer/src/AppearanceSettings.tsx', 'src/renderer/src/NativeBackupsDialog.tsx', 'src/renderer/src/ModalBackdrop.tsx']) sourceHashes[file] = createHash('sha256').update(await readFile(file)).digest('hex')
+  for (const file of ['src/renderer/src/App.tsx', 'src/renderer/src/styles.css', 'src/renderer/src/ddirori-product.css', 'src/renderer/src/AppearanceSettings.tsx', 'src/renderer/src/NativeBackupsDialog.tsx', 'src/renderer/src/ModalBackdrop.tsx', 'src/renderer/src/SpanProperties.tsx', 'packages/ddirori_web/src/controls.tsx', 'scripts/verify-ddirori-product.mjs']) sourceHashes[file] = createHash('sha256').update(await readFile(file)).digest('hex')
   await writeFile(join(output, 'report.json'), JSON.stringify({ timestamp: new Date().toISOString(), scope: 'Actual Electron renderer and native preload; isolated profile; no release packaging', productVariant: menuDriven ? 'menu-driven product' : 'legacy category UI; dock restoration checked with pointer, not Enter; keyboard resize absent', checks, errors, captures, sourceHashes }, null, 2))
   console.log(`${checks.length} checks passed; ${captures.length} screenshots: ${output}`)
 } finally { await app.close() }

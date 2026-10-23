@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
+import { useState } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
@@ -9,10 +10,46 @@ const entry = { id: 'one', title: 'Practice', fileName: 'practice.chromatics', u
 beforeEach(() => {
   listBackups.mockReset()
   vi.stubGlobal('inC', { project: { listBackups } })
+  vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([new DOMRect(0, 0, 40, 32)] as unknown as DOMRectList)
 })
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('native backup dialog recovery states', () => {
+  it('does not dismiss during IME composition or send keys to the score', async () => {
+    listBackups.mockResolvedValue([])
+    const close = vi.fn(), scoreKey = vi.fn()
+    render(<div onKeyDown={scoreKey}><NativeBackupsDialog onClose={close} onRestore={vi.fn()} /></div>)
+    await screen.findByText('백업 없음')
+    const dialog = screen.getByRole('dialog')
+    fireEvent.keyDown(dialog, { key: 'Escape', isComposing: true })
+    fireEvent.keyDown(dialog, { key: 'n' })
+    expect(close).not.toHaveBeenCalled()
+    expect(scoreKey).not.toHaveBeenCalled()
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('returns focus to the menu trigger when the launching menu item disappears', async () => {
+    listBackups.mockResolvedValue([])
+    function Workspace() {
+      const [menu, setMenu] = useState(true), [open, setOpen] = useState(false)
+      return <>
+        <button aria-controls="backup-menu" onClick={() => setMenu(true)}>File menu</button>
+        {menu && <div id="backup-menu" role="menu"><button role="menuitem" onClick={() => {
+          setMenu(false); setOpen(true)
+        }}>Backups</button></div>}
+        {open && <NativeBackupsDialog onClose={() => setOpen(false)} onRestore={vi.fn()} />}
+      </>
+    }
+    render(<Workspace />)
+    const item = screen.getByRole('menuitem', { name: 'Backups' })
+    item.focus()
+    fireEvent.click(item)
+    await screen.findByText('백업 없음')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'File menu' })).toHaveFocus()
+  })
   it('retries a failed list request without restoring or claiming success', async () => {
     listBackups.mockRejectedValueOnce(Error('Directory unavailable')).mockResolvedValueOnce([entry])
     const restore = vi.fn()

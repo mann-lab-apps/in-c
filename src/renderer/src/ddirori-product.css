@@ -37,7 +37,7 @@
   .ddirori .appearance-settings label { display: grid; gap: 4px; margin-bottom: 10px; }
   .ddirori .appearance-settings p { margin: 0; overflow-wrap: anywhere; color: var(--dd-error); }
 
-  .ddirori :is(.editor-toolbar-stack, .application-menu, .toolbar-tabs, .selection-toolbar, .note-entry-toolbar, .toolbar, .docked-palette, .docked-properties, .docked-sidebar__header, .part-mixer, .selection-properties, .inspector-properties, .recent-files, .status-bar) {
+  .ddirori :is(.editor-toolbar-stack, .application-menu, .toolbar-tabs, .selection-toolbar, .editor-context-strip, .note-entry-toolbar, .toolbar, .docked-palette, .docked-properties, .docked-sidebar__header, .part-mixer, .selection-properties, .inspector-properties, .recent-files, .status-bar) {
     background: var(--dd-surface); color: var(--dd-text); border-color: var(--dd-border);
   }
   .ddirori :is(.application-menu__popup, .quick-actions-panel, .new-score-dialog, .command-palette-dialog, .shortcut-help-dialog, .recovery-dialog) {
@@ -45,22 +45,22 @@
   }
   .ddirori :is(.new-score-dialog, .command-palette-dialog, .shortcut-help-dialog, .recovery-dialog) { grid-template-columns: minmax(0, 1fr); overflow-wrap: anywhere; }
   .ddirori .modal-backdrop [role='alert'] { color: var(--dd-error); min-width: 0; overflow-wrap: anywhere; }
-  .ddirori :is(.appearance-settings, .editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, input, select, textarea) {
+  .ddirori :is(.appearance-settings, .editor-toolbar-stack, .toolbar, .editor-context-strip, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, input, select, textarea) {
     color: var(--dd-text); background-color: var(--dd-surface); border-color: var(--dd-control-border);
     font-family: var(--dd-font); font-size: var(--dd-control-font); letter-spacing: 0;
     min-height: var(--dd-control); height: auto; border-radius: 6px; max-width: 100%;
     accent-color: var(--dd-action);
   }
   .ddirori :is(.editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop) :is(input[type='checkbox'], input[type='radio']) { min-height: 18px; height: 18px; width: 18px; flex: 0 0 auto; }
-  .ddirori :is(.appearance-settings, .editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, select, input, summary):focus-visible {
+  .ddirori :is(.appearance-settings, .editor-toolbar-stack, .toolbar, .editor-context-strip, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, select, input, summary):focus-visible {
     outline: 3px solid var(--dd-focus); outline-offset: 2px;
   }
-  .ddirori :is(.editor-toolbar-stack, .docked-palette, .docked-properties, .modal-backdrop) button:is([aria-pressed='true'], [aria-checked='true'], .is-active),
+  .ddirori :is(.editor-toolbar-stack, .toolbar, .editor-context-strip, .docked-palette, .docked-properties, .modal-backdrop) button:is([aria-pressed='true'], [aria-checked='true'], .is-active),
   .ddirori .new-score-template-option[aria-pressed='true'] {
     background: var(--dd-surface-muted); color: var(--dd-text); border-color: var(--dd-action); box-shadow: inset 0 -3px 0 var(--dd-action);
   }
   .ddirori :is(.editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) button:hover:not(:disabled) { background: var(--dd-surface-muted); }
-  .ddirori :is(.editor-toolbar-stack, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, input, select):disabled {
+  .ddirori :is(.editor-toolbar-stack, .toolbar, .editor-context-strip, .docked-palette, .docked-properties, .part-mixer, .modal-backdrop, .start-screen) :is(button, input, select):disabled {
     color: var(--dd-on-disabled); background: var(--dd-disabled); opacity: 1; cursor: not-allowed;
   }
   .ddirori .dialog-actions .primary-action:not(:disabled) { color: var(--dd-on-action); background: var(--dd-action); }
@@ -75,11 +75,15 @@
   .ddirori .note-entry-toolbar__staff { flex-wrap: wrap; }
   .ddirori .note-entry-toolbar__staff select { width: auto; max-width: 220px; }
   .ddirori :is(.dot-control, .accidental-control, .compact-dock-bar, .editor-status) { background: var(--dd-surface); color: var(--dd-text); border-color: var(--dd-border); }
+  .ddirori .dot-control :is(.dot-control__label, output) { color: var(--dd-text); }
+  .ddirori .editor-context-strip div { background: var(--dd-surface); border-color: var(--dd-border); }
+  .ddirori .editor-context-strip span { color: var(--dd-muted); }
+  .ddirori .editor-context-strip strong { color: var(--dd-text); }
   .ddirori .compact-dock-bar button { color: var(--dd-text); background: var(--dd-surface); border-color: var(--dd-control-border); min-height: var(--dd-control); }
   .ddirori .compact-dock-bar [role='tab'][aria-selected='true'] { background: var(--dd-surface-muted); color: var(--dd-text); border-color: var(--dd-action); }
   .ddirori .compact-dock-bar button:focus-visible { outline: 3px solid var(--dd-focus); outline-offset: -3px; }
   .ddirori .application-menu > nav[role='menubar'] { flex-wrap: wrap; }
-  .ddirori .note-entry-toolbar .tuplet-duration-label { color: inherit; }
+  .ddirori :is(.note-entry-toolbar, .toolbar) .tuplet-duration-label { color: inherit; }
   .ddirori :is(.docked-palette, .docked-properties) { overflow-wrap: anywhere; }
   .ddirori :is(.docked-sidebar__header, .inspector-properties__header, .inspector-properties__buttons) { flex-wrap: wrap; }
   .ddirori .part-mixer__row { border-color: var(--dd-border); background: var(--dd-surface); color: var(--dd-text); }

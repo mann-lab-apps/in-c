@@ -124,6 +124,7 @@ import './styles.css'
 import './ddirori-product.css'
 import { AppearanceSettings } from './AppearanceSettings'
 import { ModalBackdrop } from './ModalBackdrop'
+import { Button as DdiroriButton } from '../../../packages/ddirori_web/src/controls'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -7494,9 +7495,10 @@ export const App = () => {
             <span>입력 성부</span>
             <div className="inspector-properties__buttons">
               {voiceNumbers.map((voiceNumber) => (
-                <button
+                <DdiroriButton
+                  kind="quiet"
                   aria-label={`${voiceNumber}성부`}
-                  aria-pressed={activeVoiceNumber === voiceNumber}
+                  selected={activeVoiceNumber === voiceNumber}
                   className={
                     activeVoiceNumber === voiceNumber ? 'is-active' : undefined
                   }
@@ -7506,7 +7508,7 @@ export const App = () => {
                   type="button"
                 >
                   {voiceNumber}
-                </button>
+                </DdiroriButton>
               ))}
             </div>
           </div>
@@ -7994,26 +7996,28 @@ export const App = () => {
               <div className="inspector-properties__row">
                 <span>헤어핀</span>
                 <div className="inspector-properties__buttons">
-                  <button
+                  <DdiroriButton
+                    kind="quiet"
                     aria-label="크레셴도 헤어핀"
-                    aria-pressed={selectedRangeHairpin?.type === 'crescendo'}
+                    selected={selectedRangeHairpin?.type === 'crescendo'}
                     disabled={!canApplyRangeHairpin}
                     title="크레셴도 헤어핀"
                     onClick={() => toggleHairpin('crescendo')}
                     type="button"
                   >
                     <ChevronLeft aria-hidden="true" size={18} />
-                  </button>
-                  <button
+                  </DdiroriButton>
+                  <DdiroriButton
+                    kind="quiet"
                     aria-label="디미누엔도 헤어핀"
-                    aria-pressed={selectedRangeHairpin?.type === 'diminuendo'}
+                    selected={selectedRangeHairpin?.type === 'diminuendo'}
                     disabled={!canApplyRangeHairpin}
                     title="디미누엔도 헤어핀"
                     onClick={() => toggleHairpin('diminuendo')}
                     type="button"
                   >
                     <ChevronRight aria-hidden="true" size={18} />
-                  </button>
+                  </DdiroriButton>
                 </div>
               </div>
               <button
@@ -9828,9 +9832,10 @@ export const App = () => {
               const label = durationLabels[duration]
 
               return (
-                <button
+                <DdiroriButton
+                  kind="quiet"
                   aria-label={label}
-                  aria-pressed={activeDurationValue === duration}
+                  selected={activeDurationValue === duration}
                   className={
                     activeDurationValue === duration ? 'is-active' : undefined
                   }
@@ -9840,7 +9845,7 @@ export const App = () => {
                   type="button"
                 >
                   {durationToolbarLabels[duration]}
-                </button>
+                </DdiroriButton>
               )
             })}
 

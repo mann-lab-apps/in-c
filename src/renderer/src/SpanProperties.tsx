@@ -1,5 +1,6 @@
 import { Link2, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { IconButton } from '../../../packages/ddirori_web/src/controls'
 import { isSpanSegmentAddressValid, replaceSpanSegmentEngraving, resolveSpanSegmentEngraving, spanSegmentKey,
   type Score, type SpanEngraving, type SpanGeometry, type SpanSegmentAddress } from '../../score-core'
 import { locateEvent } from './editor/editor-state'
@@ -108,14 +109,14 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
               disabled={inactiveSegment}
               value={geometry?.[field]} onCommit={value => commitGeometry({ ...geometry, [field]: value })} />
           </label>)}
-          <button type="button" className="icon-button" aria-label="표기 자동 배치 복원" title="표기 자동 배치 복원" disabled={inactiveSegment || !geometry} onClick={() => commitGeometry(undefined)}><RotateCcw size={18} aria-hidden="true" /></button>
-          {segment ? <button type="button" className="icon-button" aria-label="객체 전체 배치 따르기" title="객체 전체 배치 따르기" disabled={!segmentOverride}
-            onClick={() => onEngravingChange(replaceSpanSegmentEngraving(span.engraving, segment, undefined))}><Link2 size={18} aria-hidden="true" /></button> : null}
-          {onInheritEngraving && !segment ? <button type="button" className="icon-button" aria-label="총보 배치 따르기" title="총보 배치 따르기" disabled={!independentGeometry} onClick={onInheritEngraving}><Link2 size={18} aria-hidden="true" /></button> : null}
+          <IconButton className="icon-button" label="표기 자동 배치 복원" disabled={inactiveSegment || !geometry} onClick={() => commitGeometry(undefined)}><RotateCcw size={18} aria-hidden="true" /></IconButton>
+          {segment ? <IconButton className="icon-button" label="객체 전체 배치 따르기" disabled={!segmentOverride}
+            onClick={() => onEngravingChange(replaceSpanSegmentEngraving(span.engraving, segment, undefined))}><Link2 size={18} aria-hidden="true" /></IconButton> : null}
+          {onInheritEngraving && !segment ? <IconButton className="icon-button" label="총보 배치 따르기" disabled={!independentGeometry} onClick={onInheritEngraving}><Link2 size={18} aria-hidden="true" /></IconButton> : null}
         </details>
         <div className="span-properties__actions">
-          <button aria-label="선택 표기 삭제" title="선택 표기 삭제" onClick={onDelete} type="button"><Trash2 size={18} aria-hidden="true" /></button>
-          <button aria-label="표기 선택 해제" title="표기 선택 해제" onClick={() => onSelect(undefined)} type="button"><X size={18} aria-hidden="true" /></button>
+          <IconButton label="선택 표기 삭제" onClick={onDelete}><Trash2 size={18} aria-hidden="true" /></IconButton>
+          <IconButton label="표기 선택 해제" onClick={() => onSelect(undefined)}><X size={18} aria-hidden="true" /></IconButton>
         </div>
       </> : null}
     </section>
