@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="띠로리 Play · 2안 · 브랜드 심벌"><defs><mask id="cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256" style="mask-type:luminance"><path d="M48 39Q48 21 64 31L225 118Q242 128 225 138L64 225Q48 235 48 217Z" fill="white"/><path d="" fill="black"/><g transform="translate(54 59.5) scale(.53)"><g fill="#000" data-symbol="three-notes-gesture-not-notation">
+<ellipse data-role="high-1" cx="63" cy="110" rx="25" ry="18" transform="rotate(-18 63 110)"/>
+<ellipse data-role="low" cx="116" cy="158" rx="25" ry="18" transform="rotate(-18 116 158)"/>
+<ellipse data-role="high-2" cx="169" cy="110" rx="25" ry="18" transform="rotate(-18 169 110)"/>
+<circle data-role="terminal-dot" cx="208" cy="110" r="8"/>
+</g></g></mask></defs><rect width="256" height="256" fill="#A5D8FF"/><g transform=""><path d="M48 39Q48 21 64 31L225 118Q242 128 225 138L64 225Q48 235 48 217Z" fill="#202020" mask="url(#cutout)"/></g></svg>

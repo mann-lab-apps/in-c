@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "combinations": 24,
+  "checks": [
+    "seven current/previous images load at selected size",
+    "image alternative text",
+    "hidden names",
+    "dark background and monochrome",
+    "four measured metric rows",
+    "all page images loaded",
+    "390px and 320px no page overflow",
+    "no page/resource errors"
+  ],
+  "limitations": [
+    "Standalone isolated Playwright: connected browser tool unavailable",
+    "No screen reader or native platform review"
+  ]
+}

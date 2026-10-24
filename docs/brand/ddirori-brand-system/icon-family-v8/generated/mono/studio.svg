@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Studio · 64·64·점32"><rect width="256" height="256" fill="#FFFFFF"/><defs><mask id="cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256" style="mask-type:luminance"><path d="M92 40H164Q176 40 176 52V170L134 219Q128 226 122 219L80 170V52Q80 40 92 40Z" fill="white"/><path d="M88 59H168V67H88Z M94 174H162L134 203Q128 210 122 203Z" fill="black"/><g transform="translate(69 53) scale(.46)"><g fill="#000" data-rhythm="64-64-dotted32">
+<ellipse data-role="head-1" cx="63" cy="80" rx="22" ry="16" transform="rotate(-18 63 80)"/>
+<ellipse data-role="head-2" cx="116" cy="102" rx="22" ry="16" transform="rotate(-18 116 102)"/>
+<ellipse data-role="head-3" cx="169" cy="80" rx="22" ry="16" transform="rotate(-18 169 80)"/>
+<circle data-role="augmentation-dot" cx="207" cy="80" r="7"/>
+<path data-role="stems" d="M49 80V202M102 102V202M155 80V202" fill="none" stroke="#000" stroke-width="10"/>
+<rect data-role="partial-fourth-beam" x="49" y="122" width="58" height="11"/>
+<g data-role="shared-beams"><rect x="49" y="145" width="111" height="11"/><rect x="49" y="168" width="111" height="11"/><rect x="49" y="191" width="111" height="11"/></g>
+</g></g></mask></defs><g transform="translate(0 2) rotate(35 128 128)"><path d="M92 40H164Q176 40 176 52V170L134 219Q128 226 122 219L80 170V52Q80 40 92 40Z" fill="#202020" mask="url(#cutout)"/></g></svg>

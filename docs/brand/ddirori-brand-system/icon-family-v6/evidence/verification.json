@@ -1,0 +1,61 @@
+{
+  "status": "passed",
+  "fileHashes": 88,
+  "pngSizeChecks": 72,
+  "sourceMotif": "unchanged embedded geometry in all three icons",
+  "containment": [
+    {
+      "product": "play",
+      "motifBounds": [
+        76,
+        87,
+        167,
+        169
+      ],
+      "carrierBounds": [
+        48,
+        27,
+        234,
+        229
+      ],
+      "minimumCheckedInsetPx": 3
+    },
+    {
+      "product": "studio",
+      "motifBounds": [
+        82,
+        59,
+        198,
+        156
+      ],
+      "carrierBounds": [
+        58,
+        37,
+        218,
+        210
+      ],
+      "minimumCheckedInsetPx": 3
+    },
+    {
+      "product": "score",
+      "motifBounds": [
+        134,
+        98,
+        211,
+        167
+      ],
+      "carrierBounds": [
+        34,
+        63,
+        223,
+        200
+      ],
+      "minimumCheckedInsetPx": 3
+    }
+  ],
+  "limitations": [
+    "No native packaging or launcher replacement",
+    "No user recognition study",
+    "At 16–32px beams and dot are not reliably readable"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "status": "candidate; not applied",
+  "assetChecks": 375,
+  "browserChecks": 75,
+  "pngCount": 279,
+  "preservation": {
+    "compared": 3037,
+    "changed": [
+      "docs/brand/ddirori-brand-system/README.md",
+      "docs/brand/ddirori-brand-system/visual-identity.md",
+      "docs/brand/ddirori-design-system/system-review.md"
+    ]
+  },
+  "visualReview": "assistant inspected draft, size strip, current family, blind grayscale and mobile capture; user recognition not tested",
+  "reviewedFiles": {
+    "family.json": "af04aa1c21d4f1c0f2215ef5d9455a7c677ffd0a0a68fb1242d4bcdb6f5ceeb9",
+    "evidence/family-preview.png": "4c890cb7a0d22603eaf130787be7e0ffb6c3d8a777d6692ecd3d1e90b5e46a35",
+    "evidence/sizes.png": "9a271fe5ca066a59b7de2cdd0931733a74c421e4740c8d45bee02274c34c0d48",
+    "evidence/comparison-blind-gray.png": "3821ba215a54c1857374a462dcc973eb38cb176c7f8a3f23bf05d74ed22f906e"
+  }
+}

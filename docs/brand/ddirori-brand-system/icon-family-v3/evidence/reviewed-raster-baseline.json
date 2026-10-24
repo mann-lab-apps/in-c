@@ -1,0 +1,79 @@
+{
+  "reviewer": "assistant visual review",
+  "approval": "internal reference only; user brand and release approval pending",
+  "scope": "Viewed mono size strip and A/B blue comparison. No user recognition score.",
+  "files": [
+    {
+      "file": "png/a/mono/play-16.png",
+      "sha256": "4e896b2d16f8ec6171d592f6a94c8faaf74dce5b6ad19944d101163e07e90af5"
+    },
+    {
+      "file": "png/a/mono/play-24.png",
+      "sha256": "c23b893c2f222e2e6eb56368f030b08eb5617949d38e6adcf2d8cd49870fc7a4"
+    },
+    {
+      "file": "png/a/mono/play-48.png",
+      "sha256": "2a2fc20545797ec5be1904ca7c27f210624955483139b2fb6633aa48631d9744"
+    },
+    {
+      "file": "png/a/mono/play-64.png",
+      "sha256": "9c03f1112f04271c7fdc1c58108ece6708a34b7f6f117e6a15f13b540bf759be"
+    },
+    {
+      "file": "png/a/blue/play-128.png",
+      "sha256": "a45c23ddaec3132cc63e5f96caa2c45a9dfd97afc0f3d6050ded9d3eb198b6e0"
+    },
+    {
+      "file": "png/b/blue/play-128.png",
+      "sha256": "346e0edfaddfc456d7c5b8698bd79954270d44167f492a22f1c7155b1da73b44"
+    },
+    {
+      "file": "png/a/mono/studio-16.png",
+      "sha256": "93dc22280582cfb2bc4844eda5787162bfabb49cb7ac0e7eee28f8ba2064f074"
+    },
+    {
+      "file": "png/a/mono/studio-24.png",
+      "sha256": "f76c474ad487fca957e1dcf35b05f66659106d0201090406b6505b3d8fa8ac30"
+    },
+    {
+      "file": "png/a/mono/studio-48.png",
+      "sha256": "65a650714948957b0c5c7b58627dcf5cb95fd6408d59b30dbe5d74716ba4cb70"
+    },
+    {
+      "file": "png/a/mono/studio-64.png",
+      "sha256": "e7daa65b24fe041982f1f9562235c1640ca1d93a429a40710ce85b664ea1d211"
+    },
+    {
+      "file": "png/a/blue/studio-128.png",
+      "sha256": "f8161a3c46dfe99708b0bf30499034f8f65e567b9fe59c8d83c02f4025cdbccf"
+    },
+    {
+      "file": "png/b/blue/studio-128.png",
+      "sha256": "4e815796947bb7c52cb437724ae041fc5ff61c5dbc2d864ef4604b42133de27b"
+    },
+    {
+      "file": "png/a/mono/score-16.png",
+      "sha256": "f57ace36407d10df5c56e436a8a9553c3a01846db207e0ff1448cf166148d648"
+    },
+    {
+      "file": "png/a/mono/score-24.png",
+      "sha256": "9bc73fed6309ca7f402696496ca6ad70a85c962d87f372cf5abda3ac3cd1ae96"
+    },
+    {
+      "file": "png/a/mono/score-48.png",
+      "sha256": "6c14ab8bb9892704b94c54f85b716df4015a4547313003fa65b518f135ac7904"
+    },
+    {
+      "file": "png/a/mono/score-64.png",
+      "sha256": "48e5638b5ec52eeb80149f494fa4b0a03dfd3e2b70f76a4a63fa47d9becf94c1"
+    },
+    {
+      "file": "png/a/blue/score-128.png",
+      "sha256": "b0eb1e9aaf43a8d552b0df602ba92e94bc165d2f8d3952074be4a00c97387385"
+    },
+    {
+      "file": "png/b/blue/score-128.png",
+      "sha256": "c6d0c8fdec9301f80f62a2eed08cab08a029c3ef4cf46fd4007a003ef078995e"
+    }
+  ]
+}

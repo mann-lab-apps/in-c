@@ -1,0 +1,46 @@
+{
+  "reviewer": "assistant visual review",
+  "approval": "internal reference only; user approval and release approval pending",
+  "files": [
+    {
+      "file": "png/a/blue/play-128.png",
+      "sha256": "f371189139fa1a530e832ac888b25531aa2e1935a672908aa988bc238508fbc0"
+    },
+    {
+      "file": "png/a/mono/play-24.png",
+      "sha256": "5f62cfe2a884ecf30d1e8af36cdaf3fdc9e768788b783f2e4a427cdfe8106396"
+    },
+    {
+      "file": "png/a/mono/play-64.png",
+      "sha256": "f2f2f55e0e7daa684f4e3d38334e188e3d996a397964a0768575f1eff6838893"
+    },
+    {
+      "file": "png/a/blue/studio-128.png",
+      "sha256": "09bbbd839559806b919b52c3ffe461ca7065101fa8b22ec641f848a6403ae40d"
+    },
+    {
+      "file": "png/a/mono/studio-24.png",
+      "sha256": "0276abcf80e32c4dc111f8fe5c3446650c6a0ddfa11b491426129ebaf9fddce9"
+    },
+    {
+      "file": "png/a/mono/studio-64.png",
+      "sha256": "ac7d22147e9008e5c5828b894b0aee678b69587beeb68fbc3166257f69fb7f05"
+    },
+    {
+      "file": "png/a/blue/score-128.png",
+      "sha256": "b0e54a4d662808a9b1ad8dc497adcb141e6696813b272a7afcedde5a9e058f83"
+    },
+    {
+      "file": "png/a/mono/score-24.png",
+      "sha256": "f12163dce9845e14d6a68b1a57b4aac11279df7b48dee7b8944b652381c0ee52"
+    },
+    {
+      "file": "png/a/mono/score-64.png",
+      "sha256": "eaba70d024648dc5db337f2c90559f5759675dd8521903173ef6595246fb6b4f"
+    },
+    {
+      "file": "png/b/mono/studio-64.png",
+      "sha256": "f9c7de8a6846182c8949ae10562be007342e110962de7536994f159ad497e609"
+    }
+  ]
+}

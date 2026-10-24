@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="띠로리 Score · 1안 · 음가 유지"><defs><mask id="cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256" style="mask-type:luminance"><path d="M42 66Q75 60 105 78Q111 81 111 88V196Q111 202 104 198Q74 184 42 190Q34 192 34 183V76Q34 68 42 66Z M133 78Q173 58 215 66Q223 68 223 76V183Q223 192 215 190Q174 182 133 198Q125 202 125 194V88Q125 81 133 78Z" fill="white"/><path d="M57 109L92 117Q98 118 98 124Q98 131 90 129L55 121Q49 120 50 114Q50 107 57 109Z M57 143L92 151Q98 152 98 158Q98 165 90 163L55 155Q49 154 50 148Q50 141 57 143Z" fill="black"/><g transform="translate(115 74) scale(.45)"><g fill="#000" data-rhythm="64-64-dotted32">
+<ellipse data-role="head-1" cx="63" cy="80" rx="22" ry="16" transform="rotate(-18 63 80)"/>
+<ellipse data-role="head-2" cx="116" cy="102" rx="22" ry="16" transform="rotate(-18 116 102)"/>
+<ellipse data-role="head-3" cx="169" cy="80" rx="22" ry="16" transform="rotate(-18 169 80)"/>
+<circle data-role="augmentation-dot" cx="207" cy="80" r="7"/>
+<path data-role="stems" d="M49 80V202M102 102V202M155 80V202" fill="none" stroke="#000" stroke-width="10"/>
+<rect data-role="partial-fourth-beam" x="49" y="122" width="58" height="11"/>
+<g data-role="shared-beams"><rect x="49" y="145" width="111" height="11"/><rect x="49" y="168" width="111" height="11"/><rect x="49" y="191" width="111" height="11"/></g>
+</g></g></mask></defs><rect width="256" height="256" fill="#A5D8FF"/><g transform=""><path d="M42 66Q75 60 105 78Q111 81 111 88V196Q111 202 104 198Q74 184 42 190Q34 192 34 183V76Q34 68 42 66Z M133 78Q173 58 215 66Q223 68 223 76V183Q223 192 215 190Q174 182 133 198Q125 202 125 194V88Q125 81 133 78Z" fill="#202020" mask="url(#cutout)"/></g></svg>

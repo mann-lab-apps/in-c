@@ -1,0 +1,46 @@
+{
+  "status": "review candidates complete; not installed or approved",
+  "recommendedDirection": "a",
+  "palette": "shared blue proposed, not final",
+  "assetChecks": 538,
+  "browserChecks": 246,
+  "pngCount": 375,
+  "preservation": {
+    "compared": 2518,
+    "changed": [
+      "docs/brand/ddirori-brand-system/visual-identity.md",
+      "docs/brand/ddirori-brand-system/README.md",
+      "docs/brand/ddirori-design-system/system-review.md"
+    ],
+    "unchanged": 2515
+  },
+  "files": {
+    "family.json": "7b7dcdd61976662faeec88282a2fa27808614f32951e82d5c8fbd54855fd6040",
+    "index.html": "cca50482e05d8a4883b05adc2f92b8374b1cf550f26b7125b66893e1fd6298fb",
+    "review.js": "5a915e26d8aada8c3814cad7505d0263529d89b796ba1d7909ac5053d63676ed",
+    "README.md": "1dbd0cf7ba65c04277204a2c8fce5602234f11e8039ba201c88f7cd6210b097e",
+    "references.md": "6e27c7068feafa3d3a67a9aacf269e7e52790b252f9d693481ef5c9fa2623578",
+    "verification.md": "bfd1f3c2a9f08dcd97f4119c40dbfe1f1054f4badd697bbeaf581ea37c6c2004",
+    "tools/build.mjs": "77bfc89a6df7c444237ea7646fde78d2b9cf23dfc6bfa213afb9b961254a6759",
+    "tools/containers.py": "1bd6aeca70b6dbf4be1053479fdb6e4ed88cd2ef4f9f9a4dda30dfc7257ee866",
+    "tools/verify.mjs": "32bedbe4b94240bae8ffaabeb27828e62843eba88a95078273c8bfa81fad6063",
+    "tools/verify_pixels.py": "96f42cddcc2e00f458d6ad95fc25f5dfa9f4827a7d07a9f279fecab924a71fa1",
+    "tools/verify-review.mjs": "8dfec621b8275bb5431314adeeef854d8c2cb77358b48bd035672677fe03278f",
+    "generated/manifest.json": "4f8492bf854814111b20f0e79ecf01e3316af87de1225dd37653c5c44ce2ab06",
+    "evidence/verification.json": "e8cb771fc67b7c1377b9755bebf95d7ec643ef576358c78bde205c0bacbb6893",
+    "evidence/browser.json": "180247213c6ebe16447fa1d78370744788b45c582d0226a5515b7ac4460663a1",
+    "evidence/family-preview.png": "781114eede41fee7327b211457af6e2af9df6822e4263b2555cc8f87ce66dc71",
+    "evidence/size-preview.png": "43ef71d38e52d225e9de39651613feeb3dfff63d882f90af9e238fc4b9d0fcd9",
+    "evidence/review-mobile-top.png": "b54c85e161aebb73e5ae39fad5a9a53985d797582227b3dc3c6dc46935bba85e",
+    "evidence/review-mobile-comparison.png": "1bf59a924f5be4c0bde15d4c8fc2772fdff6d2e6376122b13dcadbfe211f23de",
+    "evidence/reviewed-raster-baseline.json": "2d2558bb1b61463e2091062252440e7d4e90b2f8d4b3eee1c5b5ee2d3c7f2574"
+  },
+  "notPerformed": [
+    "user recognition test",
+    "native device installation",
+    "Icon Composer compilation",
+    "platform packaging",
+    "remote CI",
+    "commit/push/deploy"
+  ]
+}

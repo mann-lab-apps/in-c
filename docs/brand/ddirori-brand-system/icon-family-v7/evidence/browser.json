@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "combinations": 24,
+  "checks": [
+    "six images load at selected size",
+    "image alternative text",
+    "hidden names",
+    "dark background and monoscale",
+    "390px no page overflow",
+    "no page/resource errors"
+  ],
+  "limitations": [
+    "Standalone isolated Playwright: connected browser tool unavailable",
+    "No screen reader or native platform review"
+  ]
+}

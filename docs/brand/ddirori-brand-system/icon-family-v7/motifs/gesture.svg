@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="2안 · 세 음의 높낮이와 끝점을 남긴 브랜드 심벌, 악보 표기 아님">
+<g fill="currentColor" data-symbol="three-notes-gesture-not-notation">
+<ellipse data-role="high-1" cx="63" cy="110" rx="25" ry="18" transform="rotate(-18 63 110)"/>
+<ellipse data-role="low" cx="116" cy="158" rx="25" ry="18" transform="rotate(-18 116 158)"/>
+<ellipse data-role="high-2" cx="169" cy="110" rx="25" ry="18" transform="rotate(-18 169 110)"/>
+<circle data-role="terminal-dot" cx="208" cy="110" r="8"/>
+</g></svg>

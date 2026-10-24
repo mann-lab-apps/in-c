@@ -1,0 +1,81 @@
+{
+  "recordedAt": "2026-10-24T11:51:16.938002+00:00",
+  "reviewer": "assistant visual review",
+  "approval": "internal rendering reference only; user brand/launch approval pending",
+  "environment": "@resvg/resvg-js existing isolated tools; deterministic vector rasterization",
+  "files": [
+    {
+      "file": "png/a/mono/play-16.png",
+      "sha256": "1e0a5475968e6a985e68ac5b07597109e1352808aa456af2796c2616f063f3f0"
+    },
+    {
+      "file": "png/a/mono/play-24.png",
+      "sha256": "52b9fa152ecb3d92b2f091fd239e108783c63777af9b12fa418107872aeb0f40"
+    },
+    {
+      "file": "png/a/mono/play-64.png",
+      "sha256": "4691ea972c8d7450a184fa1486a2c01590ccc790d4a7678143887e4937c5581b"
+    },
+    {
+      "file": "png/a/mono/studio-16.png",
+      "sha256": "ee9c8f0b6055dfb4f273f92dec8793c887c7661ffca33572d86a3eaffc18c07a"
+    },
+    {
+      "file": "png/a/mono/studio-24.png",
+      "sha256": "04aa6b805a0523b04992b15a715556cd2a6eedfbb949be6dabbf04ebcde4e713"
+    },
+    {
+      "file": "png/a/mono/studio-64.png",
+      "sha256": "b832f186c328d0688e7b376a145bcf7cbed6bcdb8e012366824088c615219c68"
+    },
+    {
+      "file": "png/a/mono/score-16.png",
+      "sha256": "5ba598583309e5929af13eb50dbfe47c9024960568bb257300a95338c2533949"
+    },
+    {
+      "file": "png/a/mono/score-24.png",
+      "sha256": "bdcc590a3c0ae58548613d162162e29c412947a71e6ec1cc0800d2b60f584702"
+    },
+    {
+      "file": "png/a/mono/score-64.png",
+      "sha256": "0fdd1cf9e328ab4ce74a083b74670b95f981165fbf1927c0a77e93f3feb643ed"
+    },
+    {
+      "file": "png/a/violet/play-128.png",
+      "sha256": "52a0c54100b17d0f34cb2ee01931b4935bbefc75d7f138664a390a3b292d956a"
+    },
+    {
+      "file": "png/a/violet/studio-128.png",
+      "sha256": "ac0374884b8f302ba1ceaba4ec0d8f54f445db6f2b1ca7e8b2dbb2dd9ff19fb7"
+    },
+    {
+      "file": "png/a/violet/score-128.png",
+      "sha256": "5fb54264bfd7d22c9ca03c32f74c0eb20f6efa33709a8e1343f3de692486015a"
+    },
+    {
+      "file": "png/a/blue/play-128.png",
+      "sha256": "507bc4813ec1b1a69434f57f9bd5d8696fcc8fe19cd45bbb24fb66784a7e280c"
+    },
+    {
+      "file": "png/a/blue/studio-128.png",
+      "sha256": "fc67ee89f8ad42255bf577ae306a95c1a12f2fe6c3479c027f7fb11f1198a763"
+    },
+    {
+      "file": "png/a/blue/score-128.png",
+      "sha256": "648e7a17654ac9cc2ccac21dd1a74475fa76442c12b4b8a207cb47f752205111"
+    },
+    {
+      "file": "png/a/teal/play-128.png",
+      "sha256": "d3c9b9de90b4e64aa7451a1071dec34ba21ddb5f13876576c3a596217fcb0023"
+    },
+    {
+      "file": "png/a/teal/studio-128.png",
+      "sha256": "1bcffd2662b798878e76437b25ed132401313d52d98debbd1db20be718d4fad7"
+    },
+    {
+      "file": "png/a/teal/score-128.png",
+      "sha256": "16a63caa9808dbf1d0b5301e8b29405894c6e5365686aff5a06abddd757e2414"
+    }
+  ],
+  "rule": "Generator never updates this file. A mismatch requires inspect, explain and explicitly record a new visual review; do not auto-accept."
+}

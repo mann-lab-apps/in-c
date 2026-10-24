@@ -1,0 +1,165 @@
+{
+  "status": "passed",
+  "files": 145,
+  "pngChecks": 120,
+  "sharedMotif": "byte-identical to v7 precise.svg; 64/64/dotted32 structure verified",
+  "containment": "all app motif pixels have at least 3px checked radial inset at 256px",
+  "metrics": [
+    {
+      "id": "brand",
+      "bounds": [
+        40,
+        51,
+        227,
+        202
+      ],
+      "inkFraction": 0.1745,
+      "centroid": [
+        110.99,
+        126.98
+      ],
+      "motifBounds": [
+        40,
+        51,
+        227,
+        202
+      ],
+      "opaqueComponentAreas": [
+        11255,
+        178
+      ],
+      "circleMaxRadius": 116.12
+    },
+    {
+      "id": "play",
+      "bounds": [
+        58,
+        39,
+        222,
+        217
+      ],
+      "inkFraction": 0.198,
+      "centroid": [
+        115.76,
+        126.96
+      ],
+      "motifBounds": [
+        76,
+        93,
+        168,
+        167
+      ],
+      "opaqueComponentAreas": [
+        12226,
+        154,
+        154,
+        154,
+        154,
+        132
+      ],
+      "circleMaxRadius": 109.72
+    },
+    {
+      "id": "studio",
+      "bounds": [
+        64,
+        34,
+        214,
+        209
+      ],
+      "inkFraction": 0.1693,
+      "centroid": [
+        135.14,
+        121.75
+      ],
+      "motifBounds": [
+        86,
+        73,
+        183,
+        153
+      ],
+      "opaqueComponentAreas": [
+        10554,
+        109,
+        109,
+        108,
+        108,
+        108
+      ],
+      "circleMaxRadius": 95.83
+    },
+    {
+      "id": "score",
+      "bounds": [
+        37,
+        66,
+        221,
+        198
+      ],
+      "inkFraction": 0.2557,
+      "centroid": [
+        129.12,
+        129.25
+      ],
+      "motifBounds": [
+        132,
+        99,
+        211,
+        162
+      ],
+      "opaqueComponentAreas": [
+        8588,
+        7642,
+        118,
+        113,
+        100,
+        100,
+        95
+      ],
+      "circleMaxRadius": 108.07
+    },
+    {
+      "id": "studio-b",
+      "bounds": [
+        67,
+        35,
+        212,
+        210
+      ],
+      "inkFraction": 0.1704,
+      "centroid": [
+        136.37,
+        119.32
+      ],
+      "motifBounds": [
+        90,
+        75,
+        181,
+        150
+      ],
+      "opaqueComponentAreas": [
+        10694,
+        96,
+        95,
+        95,
+        95,
+        94
+      ],
+      "circleMaxRadius": 97.78
+    }
+  ],
+  "preservation": {
+    "compared": 4235,
+    "changed": [
+      "docs/brand/ddirori-brand-system/README.md",
+      "docs/brand/ddirori-brand-system/visual-identity.md",
+      "docs/brand/ddirori-design-system/system-review.md"
+    ],
+    "headAndWorktrees": "unchanged"
+  },
+  "limitations": [
+    "No user recognition testing",
+    "No native packaging, installation, screen reader or remote CI",
+    "Small internal beams and dot still merge at 16–32px"
+  ]
+}

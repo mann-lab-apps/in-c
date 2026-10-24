@@ -1,0 +1,47 @@
+[
+  {
+    "trackId": 362057947,
+    "trackName": "카카오톡 KakaoTalk",
+    "sellerName": "Kakao Corp.",
+    "trackViewUrl": "https://apps.apple.com/kr/app/%EC%B9%B4%EC%B9%B4%EC%98%A4%ED%86%A1-kakaotalk/id362057947?uo=4",
+    "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/57/29/03/572903d9-dde2-3750-92e0-5c43f5822f3f/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-sRGB-85-220.png/512x512bb.jpg",
+    "checkedAt": "2026-10-24",
+    "usage": "research reference only; excluded from generated exports"
+  },
+  {
+    "trackId": 304608425,
+    "trackName": "카카오맵 - 대한민국 No.1 지도앱",
+    "sellerName": "Kakao Corp.",
+    "trackViewUrl": "https://apps.apple.com/kr/app/%EC%B9%B4%EC%B9%B4%EC%98%A4%EB%A7%B5-%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD-no-1-%EC%A7%80%EB%8F%84%EC%95%B1/id304608425?uo=4",
+    "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/43/5d/a9/435da987-8efa-cb58-9b43-f45f1a2b8e64/AppIconStore-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "checkedAt": "2026-10-24",
+    "usage": "research reference only; excluded from generated exports"
+  },
+  {
+    "trackId": 1464496236,
+    "trackName": "카카오페이",
+    "sellerName": "Kakao Pay Co., Ltd.",
+    "trackViewUrl": "https://apps.apple.com/kr/app/%EC%B9%B4%EC%B9%B4%EC%98%A4%ED%8E%98%EC%9D%B4/id1464496236?uo=4",
+    "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/57/cc/0a/57cc0af4-05e7-5aea-b5ed-dcb8a35d06ef/AppIcon-0-0-1x_U007emarketing-0-11-0-85-220.png/512x512bb.jpg",
+    "checkedAt": "2026-10-24",
+    "usage": "research reference only; excluded from generated exports"
+  },
+  {
+    "trackId": 1258016944,
+    "trackName": "카카오뱅크",
+    "sellerName": "KakaoBank Corp.",
+    "trackViewUrl": "https://apps.apple.com/kr/app/%EC%B9%B4%EC%B9%B4%EC%98%A4%EB%B1%85%ED%81%AC/id1258016944?uo=4",
+    "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/45/1b/7d/451b7d65-63a5-8257-f38b-f83ebde6dfd6/AppIcon_real-0-0-1x_U007ephone-0-1-0-sRGB-85-220.png/512x512bb.jpg",
+    "checkedAt": "2026-10-24",
+    "usage": "research reference only; excluded from generated exports"
+  },
+  {
+    "trackId": 981110422,
+    "trackName": "카카오 T - 택시, 세차, 주차, 바이크, 항공, 퀵",
+    "sellerName": "Kakao Mobility Corp.",
+    "trackViewUrl": "https://apps.apple.com/kr/app/%EC%B9%B4%EC%B9%B4%EC%98%A4-t-%ED%83%9D%EC%8B%9C-%EC%84%B8%EC%B0%A8-%EC%A3%BC%EC%B0%A8-%EB%B0%94%EC%9D%B4%ED%81%AC-%ED%95%AD%EA%B3%B5-%ED%80%B5/id981110422?uo=4",
+    "artworkUrl512": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/7b/04/58/7b0458b6-a923-83f5-5259-4dfaa890827e/AppIcon-0-0-1x_U007emarketing-0-7-0-85-220.png/512x512bb.jpg",
+    "checkedAt": "2026-10-24",
+    "usage": "research reference only; excluded from generated exports"
+  }
+]

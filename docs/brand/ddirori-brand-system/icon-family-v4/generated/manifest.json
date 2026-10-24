@@ -1,0 +1,1833 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate, not installed or submitted",
+  "generator": "tools/build.mjs + tools/containers.py",
+  "sources": {
+    "family.json": "af04aa1c21d4f1c0f2215ef5d9455a7c677ffd0a0a68fb1242d4bcdb6f5ceeb9",
+    "palette-candidates.json": "9bffa68724d69d6e3927f6ad24c17a9aa5f51288f890d68f793a64d1aa7d97d4",
+    "build.mjs": "3ad6ef65265701d42dc1ed9c77d37384f2cbc689c9db8a869d30ec14ec2f74cc",
+    "containers.py": "1bd6aeca70b6dbf4be1053479fdb6e4ed88cd2ef4f9f9a4dda30dfc7257ee866"
+  },
+  "files": [
+    {
+      "file": "adaptive/a/blue/play.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "adaptive/a/blue/score.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "adaptive/a/blue/studio.svg",
+      "bytes": 864,
+      "sha256": "f71300e0fddf5bf0a0bf70ccb10ff8038d59351a5f6bd8a66ba91d256a724074"
+    },
+    {
+      "file": "adaptive/a/mono/play.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "adaptive/a/mono/score.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "adaptive/a/mono/studio.svg",
+      "bytes": 864,
+      "sha256": "f71300e0fddf5bf0a0bf70ccb10ff8038d59351a5f6bd8a66ba91d256a724074"
+    },
+    {
+      "file": "adaptive/a/teal/play.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "adaptive/a/teal/score.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "adaptive/a/teal/studio.svg",
+      "bytes": 864,
+      "sha256": "f71300e0fddf5bf0a0bf70ccb10ff8038d59351a5f6bd8a66ba91d256a724074"
+    },
+    {
+      "file": "adaptive/a/violet/play.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "adaptive/a/violet/score.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "adaptive/a/violet/studio.svg",
+      "bytes": 864,
+      "sha256": "f71300e0fddf5bf0a0bf70ccb10ff8038d59351a5f6bd8a66ba91d256a724074"
+    },
+    {
+      "file": "icons/a/blue/play.svg",
+      "bytes": 933,
+      "sha256": "a22cad74b0649b8bf301d514ae40a58915d3d7a502f444f0a934aa63edf0ef57"
+    },
+    {
+      "file": "icons/a/blue/score.svg",
+      "bytes": 640,
+      "sha256": "74926ea7882b143343c00479073e1152eef572cdbff17763c9b90899e81ee883"
+    },
+    {
+      "file": "icons/a/blue/studio.svg",
+      "bytes": 895,
+      "sha256": "592b207bf8f96ca83e32cce3143755e46be458ad2dc70192f7eb30c1603a3a61"
+    },
+    {
+      "file": "icons/a/mono/play.svg",
+      "bytes": 933,
+      "sha256": "8e83f180da61d889de072423bca42a07887fa9acd87a56b6b9f0a7e5ce758f39"
+    },
+    {
+      "file": "icons/a/mono/score.svg",
+      "bytes": 640,
+      "sha256": "7d8336df48f49221d43b20e5fb5efe9559669b39ec9c71234590cc4b34d76a80"
+    },
+    {
+      "file": "icons/a/mono/studio.svg",
+      "bytes": 895,
+      "sha256": "206963c3ba9fa57eb06f254b592a53cf7c862632e34ad45dfcc6fa1f875dff67"
+    },
+    {
+      "file": "icons/a/teal/play.svg",
+      "bytes": 933,
+      "sha256": "4342eaf8025757ee7cfb9ebd7ff48736582ce36c8666319927afb619105b9463"
+    },
+    {
+      "file": "icons/a/teal/score.svg",
+      "bytes": 640,
+      "sha256": "8f1934d0df407aa4df1fd6ea9b5064baa681b62a0e87b298105ecb0f4983e532"
+    },
+    {
+      "file": "icons/a/teal/studio.svg",
+      "bytes": 895,
+      "sha256": "040eab66ab3886423c3c3328773958ef121128b1806643fef9416ab45645cf60"
+    },
+    {
+      "file": "icons/a/violet/play.svg",
+      "bytes": 935,
+      "sha256": "341903498fcfa43d05bfa452cadb34d48ed748999bf983d2a940a9502acacbe4"
+    },
+    {
+      "file": "icons/a/violet/score.svg",
+      "bytes": 642,
+      "sha256": "33bd0a3b7d0ab9cdd15239e03483968e1f2e452ee713f312135a2b9bf3bc48ad"
+    },
+    {
+      "file": "icons/a/violet/studio.svg",
+      "bytes": 897,
+      "sha256": "1f7f89e53f71b604fcc47132292e27433d3f1bdce090d92a4a58a1b21d76a451"
+    },
+    {
+      "file": "masters/a/play-regular.svg",
+      "bytes": 889,
+      "sha256": "c6f0e06ad905b3c0ae6a5e25faacbacedf756cfaa76c71c7ba26393115ade9e6"
+    },
+    {
+      "file": "masters/a/play-small.svg",
+      "bytes": 487,
+      "sha256": "16f4d77db40ecb05b988fdec53cf21472bf5b8d8275cce3eb80e099ee5465b0e"
+    },
+    {
+      "file": "masters/a/score-regular.svg",
+      "bytes": 596,
+      "sha256": "9550459c3b440dfae96fd718fdc4c3ab650d8e44a740083fd335475196c8773c"
+    },
+    {
+      "file": "masters/a/score-small.svg",
+      "bytes": 566,
+      "sha256": "580c51ebfc39467ce45d503bcf8ecef5949b0fcecd3ccb15572d78818e5b4981"
+    },
+    {
+      "file": "masters/a/studio-regular.svg",
+      "bytes": 851,
+      "sha256": "e041b25b222b9bfd181af5cd5ce679414e598fe76b4106a92daa4ade9aceaaef"
+    },
+    {
+      "file": "masters/a/studio-small.svg",
+      "bytes": 815,
+      "sha256": "4b1c84ef6a1de1d2cd4bc0ab16337c08decb65f8961887ac2942b65ccdba4ef7"
+    },
+    {
+      "file": "platform/blue/play/android/adaptive-foreground.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "platform/blue/play/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 1044,
+      "sha256": "a91f85f0b649e8fa00d15a7225a6bed199d899351eca8794081b9c10226fe520"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1688,
+      "sha256": "85ea32251d50c5edbef0e2b06e1f59607b45773f721476c81f570bc282c70e3f"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1162,
+      "sha256": "dbbf21fb4dd86a9f554cdaa70f156a9b5e853395bb124ec3f326721977d7ad1a"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 2213,
+      "sha256": "8236fe7ca3ef08571024d246453d03e9c0fec7d761a88ba6784e15ab1b75cf00"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 3330,
+      "sha256": "e11bc100516ef3761048942572f1603a04ec49ce7be303239de7a0db915b3f1a"
+    },
+    {
+      "file": "platform/blue/play/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 4441,
+      "sha256": "b2f58ef0b874e4d6e0080de125fe259d3e67d6a342369aa6d95074cff12a0e0d"
+    },
+    {
+      "file": "platform/blue/play/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "8ed4531efe4803f37870d669b805b69f0bad771c3cc6b892bc6dd43223486f1e"
+    },
+    {
+      "file": "platform/blue/play/google-play-512.png",
+      "bytes": 12038,
+      "sha256": "bd608dc500bc68441981820f61b963f6bb12eb3ee51b9d4ba0f081c6aba10a7d"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 27237,
+      "sha256": "4a19e8c2ab2dfcb790f328b8df244440bc6c2bf716618b02255cfcd64aa9967c"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 368,
+      "sha256": "dc6ecdbd74dac6bab5e28f944b71871195dce0bf262d6fc6251b035c63354b69"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 977,
+      "sha256": "ea0e05c191ed0d61ec17d39a87d07f662f4a5436f8b004fe1e4a2501d981225f"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 1457,
+      "sha256": "ebcf3279cedd2a9e937d39915113122e731ede9b6576be86af88236c523022b3"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 754,
+      "sha256": "e268c674b2020d5339c04fe1895592a605aef4ed1fdf6bd01d0d9e9a4738c10e"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 1329,
+      "sha256": "32f4610a10b65f5f07e96c38216761067e070625d29c01267eaabe4b1f6c0b58"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 2064,
+      "sha256": "3c140f3b612ed2e4389fb0acfe5dd90ef03b996512fe04ad0ad3e90e2e6c8da8"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 977,
+      "sha256": "ea0e05c191ed0d61ec17d39a87d07f662f4a5436f8b004fe1e4a2501d981225f"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1837,
+      "sha256": "c0e3d087804928f77cb1a6d9112a74f236032952c2f4138d6148b3fcec222ac6"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 2823,
+      "sha256": "aa298e0ca0083895c3120d8bc0e715629bc2996c4fbe50412b1ccfa073d30b17"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 2823,
+      "sha256": "aa298e0ca0083895c3120d8bc0e715629bc2996c4fbe50412b1ccfa073d30b17"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 4278,
+      "sha256": "3674723ec4cab2dfe0f395e4096b4059c904ad302a3675f05853467d909442df"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1761,
+      "sha256": "19a39f09767e70432d7b6f24b3738d8558d91a305974f08ca585c323b3eae287"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 3458,
+      "sha256": "6231ed040df4191bad06c753e3fce5f1a38b568c0d556f21eb752ff5b7b4c04b"
+    },
+    {
+      "file": "platform/blue/play/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 3813,
+      "sha256": "0f15fb290049f5bcc8d02202b06caa6b16cbffd9ab0e3f8ed310b7ff44187e19"
+    },
+    {
+      "file": "platform/blue/play/layers/background.svg",
+      "bytes": 150,
+      "sha256": "29d90c43b5c979b3604b0ad4b3a499ff0c465de1220119f2f290c4ae53eb5874"
+    },
+    {
+      "file": "platform/blue/play/layers/foreground.svg",
+      "bytes": 848,
+      "sha256": "238f50ccf989bae1d402e12fe69aa3f438328deb77674f16796e8d64ac36ad7e"
+    },
+    {
+      "file": "platform/blue/score/android/adaptive-foreground.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "platform/blue/score/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 769,
+      "sha256": "ec62692b7a5be048c5d318b2cce8345f6524be867c2f11e255979a73d71c6d44"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1167,
+      "sha256": "909c6c2ce467f2c628201bf3eb39cf1cc94259bcac811c7caf939bc4d6c8c30a"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 815,
+      "sha256": "08065748749604b2d110df1aca247a241eae5a1f61b555e80da7c5e94882e9f1"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1365,
+      "sha256": "bf5375f20570a35449d2108a342ed6ccc73f688c239447c93d09102097e0a9b9"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 1862,
+      "sha256": "3cc3ae19ecf70bd0a4ac52c04e4ca09041258a1c8a247752c88ef9f7437d1276"
+    },
+    {
+      "file": "platform/blue/score/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 2441,
+      "sha256": "beaf13e6439fa08779fe32e17269e4b8e57262e242ee2f5af3b1510e046ff6ef"
+    },
+    {
+      "file": "platform/blue/score/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "8ed4531efe4803f37870d669b805b69f0bad771c3cc6b892bc6dd43223486f1e"
+    },
+    {
+      "file": "platform/blue/score/google-play-512.png",
+      "bytes": 6500,
+      "sha256": "44eb3307f29b13e7912daab33a7ef45e3f5efc912143a2bdb7abcfb84687a1c0"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 12728,
+      "sha256": "5e2fe091753b2bf16a257087cb2f9daafbb62eb606a3cd9cecd3012df0bd78b2"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 386,
+      "sha256": "6597fd623b200da0d0812b8af28c51e8f45033addc88c95ca3776f179fac5df4"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 725,
+      "sha256": "5112a7a3c6261bd4192947da6feeef740d2e62f1e600875a66eeb668baab8b34"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 945,
+      "sha256": "5aec712dfe833562ed12fc521b664a2c30a6a20f5a9fc7d355c09e3da0025baf"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 494,
+      "sha256": "ea16fbb6c1a40e192a97f143cd58472ca5f0fc111dbe9e81861534c022331f5b"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 945,
+      "sha256": "8fb6f51d443bc85518763621c77aa04f9daf3c55c7ae754adc563deef8cd5e1e"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 1259,
+      "sha256": "1555886073bfd6adacd8f9a3c60671cf2552f3570af3bc1b89fbcff7ecc0b42d"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 725,
+      "sha256": "5112a7a3c6261bd4192947da6feeef740d2e62f1e600875a66eeb668baab8b34"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1206,
+      "sha256": "43b5eb0b3ac3b3d17d7d5be014ae0d6f1f779c50ad62ad439240b92b3dea0919"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 1605,
+      "sha256": "a19d1e2fcb652e655f9462deaad23c1ea9de45846d683e6698246a9ac7283b16"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 1605,
+      "sha256": "a19d1e2fcb652e655f9462deaad23c1ea9de45846d683e6698246a9ac7283b16"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 2371,
+      "sha256": "32030f0f3e0053e63fe6571f1d17d5c163179eb267f143d89f7fdc7e1f2cbb3a"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1149,
+      "sha256": "2b20ed3cb1d9cb05ccbed104034f974cf7110686575a2809c428bc2ee4611ed3"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 1953,
+      "sha256": "afae32829dfca8325dcac3af8781613eda83b36f6542a19f050e91af9399ef2b"
+    },
+    {
+      "file": "platform/blue/score/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 1959,
+      "sha256": "ba3d1c8ea814242879e16cc6514644fce9632fb723d8930e96cba61711b42360"
+    },
+    {
+      "file": "platform/blue/score/layers/background.svg",
+      "bytes": 150,
+      "sha256": "0e5085285c114d3b7dc10b2ad44dceb90a864bc50fca1d6ee63fa59c918e05a1"
+    },
+    {
+      "file": "platform/blue/score/layers/foreground.svg",
+      "bytes": 555,
+      "sha256": "2223ed7fbc19a9a5f19b071f01dff356ee186c383e17c9f595ec418e06c1c271"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.icns",
+      "bytes": 72421,
+      "sha256": "a789dc076801e7f3e2267de48eee015d789b1b81abd95eb39afe891f86dc8e21"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.ico",
+      "bytes": 10250,
+      "sha256": "2279737fbfbd0b1f2c3b1a46f8aa000b71f4bf6486b12786ef49eb007f41218f"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_128x128.png",
+      "bytes": 2819,
+      "sha256": "0192e29409228cd9844d5e302ebfd5e8f078262ee74ca1932849951e1926b648"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_128x128@2x.png",
+      "bytes": 5569,
+      "sha256": "214d9051ed8f3165595f76f1c5233ee500843b1f6a00e542eb82be41e380ce53"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_16x16.png",
+      "bytes": 439,
+      "sha256": "047baff06538f5d0a0a8d72c6a5968bb4fc6b1149d4db6c0bbfa3ae010b363aa"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_16x16@2x.png",
+      "bytes": 765,
+      "sha256": "23bb49747c383ff0dfb7ffae6aa67f031536f64a4ff8be2f2bf098b3d901cc5f"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_256x256.png",
+      "bytes": 5569,
+      "sha256": "214d9051ed8f3165595f76f1c5233ee500843b1f6a00e542eb82be41e380ce53"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_256x256@2x.png",
+      "bytes": 12175,
+      "sha256": "7e8eb67244dbfa50f15ac67d0381075335880337d7566538fa7ca13e1ddd48f2"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_32x32.png",
+      "bytes": 785,
+      "sha256": "cd3a7429dfcbfe9d7e26d927ee74a7670284d8143d0daa9e17acb8c0b5763247"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_32x32@2x.png",
+      "bytes": 1434,
+      "sha256": "5ca817e766c92af4d0125f466b1d11daa7fa0a7d9c4cee762fd78c29253e05e7"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_512x512.png",
+      "bytes": 12175,
+      "sha256": "7e8eb67244dbfa50f15ac67d0381075335880337d7566538fa7ca13e1ddd48f2"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.iconset/icon_512x512@2x.png",
+      "bytes": 29161,
+      "sha256": "9d14ab152a7b2dee80f3b5ae2e074f0fd78ef7d002f1a7eb328bb4c1c194128e"
+    },
+    {
+      "file": "platform/blue/studio/desktop/icon.png",
+      "bytes": 19060,
+      "sha256": "98f625df2f16c1559f91ce07f3f47544c9e109c4fbe46cdf4528d987ae383f58"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_128x128.png",
+      "bytes": 2103,
+      "sha256": "7194c10f257838195e1f67f6d0d961c609c3e85f1ff71cdaece17782b716aaef"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_16x16.png",
+      "bytes": 293,
+      "sha256": "381b6f90da55df31408bf9d0d8018e2787db7f496a60cc360f86a7040757b54a"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_24x24.png",
+      "bytes": 438,
+      "sha256": "b1fe009401d0098a84c9973d1cd61528131a20af49cde24af04377c1debbfaa5"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_256x256.png",
+      "bytes": 4039,
+      "sha256": "680a828f87295a6764a296d234562979b4d26ad50a0db1236e93236a73a31080"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_32x32.png",
+      "bytes": 590,
+      "sha256": "3102fbcc959f06fba8f39ab1ef689ad63fa272d51f9276688297938d539b7386"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_48x48.png",
+      "bytes": 901,
+      "sha256": "871d907fdcbd4e4a967de110e615a62ba3549e51e9325591db674f4c82e322e7"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_512x512.png",
+      "bytes": 8503,
+      "sha256": "9a611a16fb4bd7934b639bfab781cec1246bab120e7fabe788a306c0868d0276"
+    },
+    {
+      "file": "platform/blue/studio/desktop/linux/icon_64x64.png",
+      "bytes": 1143,
+      "sha256": "89afe6f6c93b1ee4551dfbd1966ff4d362691d3ddd108e9e718fe3033ae0e872"
+    },
+    {
+      "file": "platform/blue/studio/layers/background.svg",
+      "bytes": 153,
+      "sha256": "a8ea3a7877d43eb93a85241176aa38f5d1f831febe7cd01ec5ee515177799917"
+    },
+    {
+      "file": "platform/blue/studio/layers/foreground.svg",
+      "bytes": 810,
+      "sha256": "46f90fdfb9635d5ff2cdb2ba6e172df86dc03b567d0e91141600eb705b330126"
+    },
+    {
+      "file": "platform/teal/play/android/adaptive-foreground.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "platform/teal/play/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 1044,
+      "sha256": "a91f85f0b649e8fa00d15a7225a6bed199d899351eca8794081b9c10226fe520"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1746,
+      "sha256": "4d5bffedf77bfb45db8d2f545b335dedcac6fcdae38bd42786cd34b34eae14f8"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1167,
+      "sha256": "938b8cbdfc1b71aa8c75d5f8764f391f3a90217e61319301caca1b00dfe48d7d"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 2263,
+      "sha256": "44d01a8546bd4c4265a3d462e00d19d2f89f8332225a157f5ad36062b69d0041"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 3436,
+      "sha256": "69577aaa9febf68fa7a10908190cebb3a30c83672c46ac73e79fd1aa735a8158"
+    },
+    {
+      "file": "platform/teal/play/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 4585,
+      "sha256": "2e0d213f8e60181acbc71db78d22698d785375e79c784cd8db6dd83f818e53ef"
+    },
+    {
+      "file": "platform/teal/play/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "c486d4e189560dcef5bce28b31cf54aacbc06796d65ac333948550866f072fcd"
+    },
+    {
+      "file": "platform/teal/play/google-play-512.png",
+      "bytes": 12300,
+      "sha256": "fbb25ade88a42b30bd8328314c3c097cb1529b33a7d212f44ee74641e2ac6e75"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 27967,
+      "sha256": "ff7ab6617ae3f170250ac81cd59c9e76b65098aea2e588e469daddbb75b12f3c"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 378,
+      "sha256": "33a4546b055579b5e93d90bd8b783f8ef281f5c27147111596f18103ac5f29de"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 1025,
+      "sha256": "579ea69149d5103b43eba25b57b6ccebc123033338ced0a4b82c761ea65d44fb"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 1484,
+      "sha256": "b990219dd80f2181bb11b53196e071fa072229292adcd491992ad74e9c58701d"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 772,
+      "sha256": "a89f519fd86715431861f6a0e237260fe74b9550fa8001bca0d37c07fb492c27"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 1358,
+      "sha256": "afd4f0d8089d4ff2738362f770b882ed2b4264bd3a1fd1459583dff3e1e8df02"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 2132,
+      "sha256": "9970cdc04c7e7728b88353ac81349602b414d93056c2f661879a0c0769586e85"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 1025,
+      "sha256": "579ea69149d5103b43eba25b57b6ccebc123033338ced0a4b82c761ea65d44fb"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1877,
+      "sha256": "434d8ab27a08b7a6aac1060fc02f49bfe4e7a017947cdc5feebf09b5c0a415fb"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 2902,
+      "sha256": "f5ffaab70f092b90b5b16c25dc6702fd17e6330d45b3648dfcb08034acd56476"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 2902,
+      "sha256": "f5ffaab70f092b90b5b16c25dc6702fd17e6330d45b3648dfcb08034acd56476"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 4383,
+      "sha256": "c2487c1c2d3b545021a3b4c79884a0978991c3b84ff2d3918d3695fc43494334"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1809,
+      "sha256": "b0c41e11c84617724fb6a041fdb8fe8622a871b8d0214771c5d7fca355cafd99"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 3578,
+      "sha256": "9f2e7696f063bf443eae92b03faa991f1088d9623e0668b5ca1074aad3ff03d0"
+    },
+    {
+      "file": "platform/teal/play/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 3944,
+      "sha256": "65cf836e9a0522cd8421cfa4e0232bdc66c1fbbf7e542ce1a269c2cd4f8c95da"
+    },
+    {
+      "file": "platform/teal/play/layers/background.svg",
+      "bytes": 150,
+      "sha256": "a687668ed8c77187c701d917341a7cd3a3187753f87130ac9df637bb79a7a835"
+    },
+    {
+      "file": "platform/teal/play/layers/foreground.svg",
+      "bytes": 848,
+      "sha256": "238f50ccf989bae1d402e12fe69aa3f438328deb77674f16796e8d64ac36ad7e"
+    },
+    {
+      "file": "platform/teal/score/android/adaptive-foreground.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "platform/teal/score/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 769,
+      "sha256": "ec62692b7a5be048c5d318b2cce8345f6524be867c2f11e255979a73d71c6d44"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1216,
+      "sha256": "22c5978d9dbb907a8ae5a099da7ed731dc9b36d564e29700aca4f4c48fe4b3e0"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 844,
+      "sha256": "5b455d1f1e9e30dd8591ddd84985eb5fc51f521c88d98b3c4416a4eef24e55fe"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1433,
+      "sha256": "a7b7433b87b3e98459ba7fa85a1433d39df41e09d9634c5edc318cab3a3c0eba"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 1939,
+      "sha256": "96148531f37f322ed14d6f71cf9ce9aa8de4fea59b0ac118b57af55c1767692e"
+    },
+    {
+      "file": "platform/teal/score/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 2541,
+      "sha256": "33e06ad79f4542b018310f2eecff2de32d521750b84da318b8354d928363a648"
+    },
+    {
+      "file": "platform/teal/score/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "c486d4e189560dcef5bce28b31cf54aacbc06796d65ac333948550866f072fcd"
+    },
+    {
+      "file": "platform/teal/score/google-play-512.png",
+      "bytes": 6743,
+      "sha256": "13f13c985ce603823029cc549406de83120eb1b291ad0fadb9389bdf4ee146cd"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 12997,
+      "sha256": "2679299ef47f005093599ef1e7907e4dd3535885e33049a1b3cdd05dc75b2497"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 380,
+      "sha256": "c12d67c1f93e1e802d9b5adef2f9d3737e685dda645630c1c2e75c6e586496d8"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 746,
+      "sha256": "4569b917016797f7e888c60b88b412f125b4eff736fa83fb291b9cb96f3639d7"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 966,
+      "sha256": "3ef13e7dc0155ceac72c68317425631c67384dc53ec8941c9fcf666dc41451ff"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 501,
+      "sha256": "648c4aefcfc8cb3da5a580faef1fbc5fd49da197bca9cd324f73a15473b5460f"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 980,
+      "sha256": "dcae201855b7e5a3d3dd41c928d5d3d107fd8071e5a6be058c69260ac10efe5d"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 1305,
+      "sha256": "944ed5573564940457f1b0eac4ede3e8afd0095af18680be5b0d9e526d4a6c01"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 746,
+      "sha256": "4569b917016797f7e888c60b88b412f125b4eff736fa83fb291b9cb96f3639d7"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1262,
+      "sha256": "269c9db7531f3f5f37b2664f9e35d7d15559b439353a254ec48611b4d357ae4c"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 1649,
+      "sha256": "a164ba35146780ca040fb088a1e99e55d21cb0a0239794022f07ece45b93b5db"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 1649,
+      "sha256": "a164ba35146780ca040fb088a1e99e55d21cb0a0239794022f07ece45b93b5db"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 2454,
+      "sha256": "78b319e988a2fe089d821014ea1c4b83bc0f785bcd0093b52539466cf0f52b48"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1191,
+      "sha256": "835b96fe3e998a755cfbbb014a6d56ac26f4c71f5d44ae1e6240cb5f78c9b1de"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 2019,
+      "sha256": "f058201c169dcd4d957e7362789d36147ed973c1a9c90217893a866c327a65e2"
+    },
+    {
+      "file": "platform/teal/score/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 2014,
+      "sha256": "1263961dc29da31b39da50acbd714fda492db06b517b1a46aad9fbb8666bffac"
+    },
+    {
+      "file": "platform/teal/score/layers/background.svg",
+      "bytes": 150,
+      "sha256": "32df230faa0f0579af05d275dab81b15730baa98cede2009170b7f9d9a29503e"
+    },
+    {
+      "file": "platform/teal/score/layers/foreground.svg",
+      "bytes": 555,
+      "sha256": "2223ed7fbc19a9a5f19b071f01dff356ee186c383e17c9f595ec418e06c1c271"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.icns",
+      "bytes": 73633,
+      "sha256": "1c06d0418d47028f531b15b4150b9916823a82d6ad666ec9d106d5e70e4edb8d"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.ico",
+      "bytes": 10439,
+      "sha256": "128c47b16c5cfcf083939d4cf4ac96759ba8e45e3dec9d9677320c0c02e52332"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_128x128.png",
+      "bytes": 2890,
+      "sha256": "334933872a98d39ffaa1aca20e65dfce00b9350eee534322bc5fa72a74b988de"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_128x128@2x.png",
+      "bytes": 5653,
+      "sha256": "15a21b48a334cb8c39077e6951809df9c0784674f3deb4346bc8028ef4d260d3"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_16x16.png",
+      "bytes": 456,
+      "sha256": "36aa0395e3479b23e1d1ab5b886d316c38853fccdce2e1cb7872a507c7a17006"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_16x16@2x.png",
+      "bytes": 782,
+      "sha256": "e1f8172a34393544a3c86c2a50ab6f6455d87a6ba505d49acc19a9692a10b15c"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_256x256.png",
+      "bytes": 5653,
+      "sha256": "15a21b48a334cb8c39077e6951809df9c0784674f3deb4346bc8028ef4d260d3"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_256x256@2x.png",
+      "bytes": 12441,
+      "sha256": "6fff44a0f27ff3681c58edc11c059773533e56a10eee75d0869c6a69e57e7396"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_32x32.png",
+      "bytes": 801,
+      "sha256": "71355f8590802dc15bc7a51e4dc88ee126a13235bc310d325d8c84c25d415d5d"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_32x32@2x.png",
+      "bytes": 1463,
+      "sha256": "7eebad9bd35aafb34eae1fc808da9acf3d6102a7398353213c1754032b005fe8"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_512x512.png",
+      "bytes": 12441,
+      "sha256": "6fff44a0f27ff3681c58edc11c059773533e56a10eee75d0869c6a69e57e7396"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.iconset/icon_512x512@2x.png",
+      "bytes": 29494,
+      "sha256": "da57c3271821ebb86537dd83847fbacd668aee13bc5729e00559814b2b71f675"
+    },
+    {
+      "file": "platform/teal/studio/desktop/icon.png",
+      "bytes": 19509,
+      "sha256": "fde309b9e91be9034ea417ee085b21c4062c89ea5ceb8e9dff5ce8b7a68c5ba4"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_128x128.png",
+      "bytes": 2177,
+      "sha256": "dcd43889d4aa875396fcf9ea1ff51eb26622f923048f8c0bbb654e163fd63d96"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_16x16.png",
+      "bytes": 293,
+      "sha256": "e39f22389ca5bf55f94ea7d3606d012745e62e7a7c7e96d8f0caedb09645c4b9"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_24x24.png",
+      "bytes": 445,
+      "sha256": "2a68dc0ba81ca8eb7a947c743b67d41bef4fe55fb47a746f6bdd02c127e4eb85"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_256x256.png",
+      "bytes": 4129,
+      "sha256": "c4f0fb5bffd8d588f1bc67a6330b87fb6ee20618928f1f0b37f0e0cf0b431069"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_32x32.png",
+      "bytes": 608,
+      "sha256": "a4f5fa44f4e4b7c7dfbbeca8f3c1468f9965f20940fc4075957d3421dc4ebaf3"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_48x48.png",
+      "bytes": 929,
+      "sha256": "c0acac2743ecd3333c547d90bf035c36bc3e716b5688dc56b8a3af9f41fbaa83"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_512x512.png",
+      "bytes": 8729,
+      "sha256": "d2aa4a11d97e1454a1c54ab70578937a37faad5839af4fef3cfa12c7a8dbd0fe"
+    },
+    {
+      "file": "platform/teal/studio/desktop/linux/icon_64x64.png",
+      "bytes": 1178,
+      "sha256": "f2ee2f49c5fd74849f91cba7d03b71e36f628248c36dec3ed789d60682fc5e58"
+    },
+    {
+      "file": "platform/teal/studio/layers/background.svg",
+      "bytes": 153,
+      "sha256": "040384ca31c41c08b0c856ddb701043c6b6fd24e5885799d6345029a17f65cba"
+    },
+    {
+      "file": "platform/teal/studio/layers/foreground.svg",
+      "bytes": 810,
+      "sha256": "46f90fdfb9635d5ff2cdb2ba6e172df86dc03b567d0e91141600eb705b330126"
+    },
+    {
+      "file": "platform/violet/play/android/adaptive-foreground.svg",
+      "bytes": 902,
+      "sha256": "63c24705dbd8b89244a998ce6413faebc556a786c881ebd48096228b54724da0"
+    },
+    {
+      "file": "platform/violet/play/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 1044,
+      "sha256": "a91f85f0b649e8fa00d15a7225a6bed199d899351eca8794081b9c10226fe520"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1629,
+      "sha256": "dd9f34bfedc42fa0f75c50db5fc758a2ee198672c6cde296eb97a1f9c6c4ee75"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1101,
+      "sha256": "e49de4302bc07b4a0c29d56120916f998dc397aec08b27286f346dbfe5e51050"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 2121,
+      "sha256": "9e6601238bd4e30776936509f2c2b72d7b93b81fd30fb6574d632fed0968c870"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 3184,
+      "sha256": "9f44759858c63016532061bed68bc55850b78257f53679a4483aa36e213ee184"
+    },
+    {
+      "file": "platform/violet/play/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 4228,
+      "sha256": "62b93302f0aad18a5fbe15a66604147721cdf80b04b94dd6ebd8927e45e85215"
+    },
+    {
+      "file": "platform/violet/play/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "6aef0a535c4a2033bae6ed5907cac3815aff2b4515bf96874ef295d7f3fad78a"
+    },
+    {
+      "file": "platform/violet/play/google-play-512.png",
+      "bytes": 11570,
+      "sha256": "0276e8092984759bf4a05f2328397058c125348d3b8f6aae5679fa7e40de1533"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 26326,
+      "sha256": "931cfa93f98d85744edb2437732022d7ba9e598dd3c3ba227588a25594a8f534"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 353,
+      "sha256": "f104e884ae1e033c5461e6775fa4f425dfe9a4084e1b68463671447acbdcb782"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 951,
+      "sha256": "d6cd55405ea32c9b4e146d258c6ba78e1c0b30614cb56d59bc49112957740581"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 1397,
+      "sha256": "dbd9c1b18ca3b09e8e25ff3ed46a817a6d3f1dfc8180c3c287cdd15b72a46e05"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 725,
+      "sha256": "2ce0a04e19cd917286d79d9854571c38feeaccb60faff6bf517d0d31199c0312"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 1281,
+      "sha256": "6cd19fc0ab798efbd440d1dd71d0e31075ac1a51e3d39be979175650427b005e"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 1977,
+      "sha256": "35fba55222df546d5e8c63dca1b8262f4bafea9225c544217f0e86edbc234e23"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 951,
+      "sha256": "d6cd55405ea32c9b4e146d258c6ba78e1c0b30614cb56d59bc49112957740581"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1758,
+      "sha256": "5321220395be2f69b6e6179022475c4f312f5c64929d57f6a328e18539a1c466"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 2680,
+      "sha256": "0c1af69805ecf6322e6581ae5d1a3f6300982aa7082b7e47593a00aebd9dae7e"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 2680,
+      "sha256": "0c1af69805ecf6322e6581ae5d1a3f6300982aa7082b7e47593a00aebd9dae7e"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 4128,
+      "sha256": "c0612bd224ea48049e076a0460bfa14c6ac1bd3da4ed3f9471849318eedaac3e"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1684,
+      "sha256": "f824416630a40ea42a47d7565270eea5134f4523b0ca4eda433667036f192a3f"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 3300,
+      "sha256": "d86ffae67385188f92d6bf258c2053605992a3a15397520369e27ba52fb046a3"
+    },
+    {
+      "file": "platform/violet/play/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 3662,
+      "sha256": "18471f10714a759f843640d222c4ca43af8b1e68f4cc79a45365bf38b9f3bb14"
+    },
+    {
+      "file": "platform/violet/play/layers/background.svg",
+      "bytes": 150,
+      "sha256": "9eb6cc8c295abc5668a8044d0323a30f66a1d40e4fcdbe5e444ff8811dc81e14"
+    },
+    {
+      "file": "platform/violet/play/layers/foreground.svg",
+      "bytes": 848,
+      "sha256": "238f50ccf989bae1d402e12fe69aa3f438328deb77674f16796e8d64ac36ad7e"
+    },
+    {
+      "file": "platform/violet/score/android/adaptive-foreground.svg",
+      "bytes": 609,
+      "sha256": "cf20e8721ec778212746b57c59454d03fc2cb0dde983e054f8fdb668d5f0514a"
+    },
+    {
+      "file": "platform/violet/score/android/res/drawable/ddirori_foreground.xml",
+      "bytes": 769,
+      "sha256": "ec62692b7a5be048c5d318b2cce8345f6524be867c2f11e255979a73d71c6d44"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 271,
+      "sha256": "b6add93e253719f05dc391470bca10c5a094e5bd558a476cb4f31af00a357851"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1114,
+      "sha256": "16b732c8d1cf12610dd1c7d55eb4d1c0c0d0c0cb6f234b97250b6c6be99fe12a"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 779,
+      "sha256": "81ecb6856b069c02f1818b12ae89b6a360961d09541aa865f0bcee4dbbffbd98"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1323,
+      "sha256": "cf8c6a0afbb567cf87698594d5dec7b70ee5132eea0000f0a6be6f5a8a7e379a"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 1782,
+      "sha256": "5400eab422d00373ae21430d8cb56d9284e029172d5c7c7be89a2b17339e80bc"
+    },
+    {
+      "file": "platform/violet/score/android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 2330,
+      "sha256": "4d9fcfa573a4173c094c4b3467edfbe16a5a15158eb0625077f827e178a9c3e9"
+    },
+    {
+      "file": "platform/violet/score/android/res/values/ddirori_brand.xml",
+      "bytes": 72,
+      "sha256": "6aef0a535c4a2033bae6ed5907cac3815aff2b4515bf96874ef295d7f3fad78a"
+    },
+    {
+      "file": "platform/violet/score/google-play-512.png",
+      "bytes": 6222,
+      "sha256": "e27f847e6bfa3cd82aa21d16d3553aa41ddd29b02a55686811c338d29224d496"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Contents.json",
+      "bytes": 2439,
+      "sha256": "cd841cae92e48a8d48c79a6b634e7fb1f88fb97c924e24736b3bc3824ede3975"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "bytes": 12370,
+      "sha256": "5014b94174c8ee64ae909f668c24431ae424f6d2624224de8385eceb15a2ff32"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "bytes": 381,
+      "sha256": "e2c7c9aa4593d7e27528442d23e12481e8af044be4de640f2d8fb61722ce02d7"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "bytes": 690,
+      "sha256": "589dcc8a1e78b5043f2ca22e4b9b793f862a0d643e6e58b7993cfe7d6f529abe"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "bytes": 895,
+      "sha256": "4e36b1d805027bdbac7325636fef49387ee2653bfa7d8ab85d508c6b2d79dd4d"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "bytes": 488,
+      "sha256": "22264f5aedf2fc4daa7786df12faac61ac7da1f6bb5f8ef6937c596d38052517"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "bytes": 915,
+      "sha256": "e0922535680b7f7ffd68497c5520da1aa2f6e636101447d234c7275c02c6e46b"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "bytes": 1224,
+      "sha256": "49da02c6f002848969d007cb4bc3af985c8e39a08195f76f6774a03c91e3a9dc"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "bytes": 690,
+      "sha256": "589dcc8a1e78b5043f2ca22e4b9b793f862a0d643e6e58b7993cfe7d6f529abe"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "bytes": 1163,
+      "sha256": "3d333b7ed904c9875ed3070423274d5fa4687b9768c07d28838a11e35d3417a4"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "bytes": 1578,
+      "sha256": "a67fdc5151d61a3e3aab7057926b28aa5993628562ffa54991f9a77831228093"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "bytes": 1578,
+      "sha256": "a67fdc5151d61a3e3aab7057926b28aa5993628562ffa54991f9a77831228093"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "bytes": 2296,
+      "sha256": "9f87c51300b98a4768acfee0711e836c948d42339fb27eb819af259c7ac90b1c"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "bytes": 1108,
+      "sha256": "32a78a8dfe7d298bacd35e909e3e267947b9b771a4623c3cbdb884ba1d740d8c"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "bytes": 1881,
+      "sha256": "259a0f0ba8462baba85fb4ce37954236f82154eda4c59a1618f2fa935966bb24"
+    },
+    {
+      "file": "platform/violet/score/ios/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "bytes": 1887,
+      "sha256": "157d82a4f5188cf83e5aa743e7a3db2a469be16712678af405de4d4f015891bd"
+    },
+    {
+      "file": "platform/violet/score/layers/background.svg",
+      "bytes": 150,
+      "sha256": "37c95df3bdb534a0f37ebeadccc39d73ca3ead02acede91f80f5ffd0542d013e"
+    },
+    {
+      "file": "platform/violet/score/layers/foreground.svg",
+      "bytes": 555,
+      "sha256": "2223ed7fbc19a9a5f19b071f01dff356ee186c383e17c9f595ec418e06c1c271"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.icns",
+      "bytes": 74032,
+      "sha256": "2d1c02959e42862eff297117a62a03d1fa979815a22a1e0bb325da4ca803ee58"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.ico",
+      "bytes": 10151,
+      "sha256": "e2aa4f0fb8c0272140d635ffc88328deb6e01fe352d6eb2ff3188b2753ca69d0"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_128x128.png",
+      "bytes": 2825,
+      "sha256": "01ed4af57041bf47189f757388c3a703c5f7cab79e0305062f43804d098ff130"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_128x128@2x.png",
+      "bytes": 5679,
+      "sha256": "f8232158e9daafc25e9465179f12249f7f50308616e69284bb4f4e182086a61c"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_16x16.png",
+      "bytes": 432,
+      "sha256": "58dbbaf5daa63d28a042231721bce9268a96e010ab752f7119f4f35c7e5be063"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_16x16@2x.png",
+      "bytes": 762,
+      "sha256": "68e2b2697d98b9fa5adb74143fe8c971398344d91b6174ef6e131852dfe5a749"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_256x256.png",
+      "bytes": 5679,
+      "sha256": "f8232158e9daafc25e9465179f12249f7f50308616e69284bb4f4e182086a61c"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_256x256@2x.png",
+      "bytes": 12641,
+      "sha256": "10ad59b242327e4bf2aaf80f50c7fbbe471b5d927162c0674d8e987d8b390530"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_32x32.png",
+      "bytes": 780,
+      "sha256": "414c2c3c838e3e16229ac27f50afb608353fad81cabf1fe3bf66a29ed187c872"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_32x32@2x.png",
+      "bytes": 1467,
+      "sha256": "ed023909482e5fb08d03f5f4c5beb3bbcc80559854e859ac9d7ec41f4f1f6e9c"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_512x512.png",
+      "bytes": 12641,
+      "sha256": "10ad59b242327e4bf2aaf80f50c7fbbe471b5d927162c0674d8e987d8b390530"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.iconset/icon_512x512@2x.png",
+      "bytes": 29563,
+      "sha256": "f8ba61dec358372b398902f972c172c14440a82210a5625bbc2b1ca9db68beaf"
+    },
+    {
+      "file": "platform/violet/studio/desktop/icon.png",
+      "bytes": 18452,
+      "sha256": "34d5a0e9ece20d3f3d5fc721216f9caa0b4f9a00479219e0744e68d8e7da5717"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_128x128.png",
+      "bytes": 2000,
+      "sha256": "5e3e0d4d83a82d8997087ed8462855dc36083426aa17ce6ce13077550759e175"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_16x16.png",
+      "bytes": 293,
+      "sha256": "a58672a6e8080606077faf92cb03109220ea0b78070c2c9a82035cc1c8b0710b"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_24x24.png",
+      "bytes": 424,
+      "sha256": "0e3c5e28bc5461132be0c184a9ec2789b3e3cfc06cb5f2517fb7b03422f70ce3"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_256x256.png",
+      "bytes": 3902,
+      "sha256": "a82673b033539536872463eee8e1c049763c4cb51710c91a448a814bba3a9c94"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_32x32.png",
+      "bytes": 587,
+      "sha256": "6a5e9c43943b80a5cb04cdfc570f6e34bdbe16003d3c36fcecd00c8e1a629517"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_48x48.png",
+      "bytes": 879,
+      "sha256": "ead64bdd7abad99ed963a2af78278282a1533475a58207d959f15d55262692dd"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_512x512.png",
+      "bytes": 8121,
+      "sha256": "e0a1d5f192b9baa7452c0453756d1df67f438d044d350d83166638984ebcf062"
+    },
+    {
+      "file": "platform/violet/studio/desktop/linux/icon_64x64.png",
+      "bytes": 1092,
+      "sha256": "07eaed2fac2b9c2c7c9dc26f7d47954721f7eb8e267f40041771be8828e2d0b0"
+    },
+    {
+      "file": "platform/violet/studio/layers/background.svg",
+      "bytes": 153,
+      "sha256": "21924376a4e444f706608f7d4935eda95c6eba05cc9e25eaf6386f3f3ce5517c"
+    },
+    {
+      "file": "platform/violet/studio/layers/foreground.svg",
+      "bytes": 810,
+      "sha256": "46f90fdfb9635d5ff2cdb2ba6e172df86dc03b567d0e91141600eb705b330126"
+    },
+    {
+      "file": "png/a/blue/play-1024.png",
+      "bytes": 31391,
+      "sha256": "64fc46e5d131817d84aa7a57f1f577207139debfeb4ed2b399134b0f583bf44b"
+    },
+    {
+      "file": "png/a/blue/play-128.png",
+      "bytes": 3017,
+      "sha256": "841a7bb1de2532615387559d250a814188f36288c813d0267237709ce659b6cb"
+    },
+    {
+      "file": "png/a/blue/play-16.png",
+      "bytes": 363,
+      "sha256": "306b83c9b3871b1156517e6dd78dcb5f515574cf82e8eda9b117e36d97894da8"
+    },
+    {
+      "file": "png/a/blue/play-24.png",
+      "bytes": 444,
+      "sha256": "c5cea24e1e547377fe426ff4660433ab69d0657289859d89a4c65814ed2912c0"
+    },
+    {
+      "file": "png/a/blue/play-256.png",
+      "bytes": 6096,
+      "sha256": "1697922487724ef77b172a3270fed66578f3ce812a8b7ea0b22a59b2f9224759"
+    },
+    {
+      "file": "png/a/blue/play-32.png",
+      "bytes": 781,
+      "sha256": "1de33664bd22f79e86dd90fbebc8996a79343c69fe27839a85adc277062fddad"
+    },
+    {
+      "file": "png/a/blue/play-48.png",
+      "bytes": 1173,
+      "sha256": "27c1e693e21853aac42d9b5f3b3bde608ddaba1006a6fc56d76c5a3d5fb7cd18"
+    },
+    {
+      "file": "png/a/blue/play-64.png",
+      "bytes": 1479,
+      "sha256": "cf1484044ec2ba2ffa0a073d1d4928a3b777bd37b3b2c784af6e037081df4328"
+    },
+    {
+      "file": "png/a/blue/score-1024.png",
+      "bytes": 22164,
+      "sha256": "a6d89cc64717719872f6ddbffd5bd9860cd2c0988214af03c2e8db249d2dfc1b"
+    },
+    {
+      "file": "png/a/blue/score-128.png",
+      "bytes": 1921,
+      "sha256": "eab92d1d950ba4d8814f71ea8bd871e7b600b44f8a40c2ac53ac3b5e6276c047"
+    },
+    {
+      "file": "png/a/blue/score-16.png",
+      "bytes": 356,
+      "sha256": "9190735b111e366c12c1a204620f277b47ad2cdb8b5e21b5fb772223efcd320f"
+    },
+    {
+      "file": "png/a/blue/score-24.png",
+      "bytes": 454,
+      "sha256": "64c3e512a4ddf49eff9ab58d0e7e1ff0e49e87e6a43622ae0e88c2d259597796"
+    },
+    {
+      "file": "png/a/blue/score-256.png",
+      "bytes": 4371,
+      "sha256": "9dbd868988574e71f6e28c3e5337fd1345742a50847da9f80d1b0d0d73192ce9"
+    },
+    {
+      "file": "png/a/blue/score-32.png",
+      "bytes": 554,
+      "sha256": "3cfc744952d2d857849024e7bb29af0a40253fe454e980aa07a55c80134c013a"
+    },
+    {
+      "file": "png/a/blue/score-48.png",
+      "bytes": 780,
+      "sha256": "a443b0bf78088ad0bd406ae43cc362f578f84703435683cf9f699e292dccb643"
+    },
+    {
+      "file": "png/a/blue/score-64.png",
+      "bytes": 975,
+      "sha256": "c445794e2e24f4908ea1c624c3d83fe4e4be478eb88e312bf0d2e7d56794908d"
+    },
+    {
+      "file": "png/a/blue/studio-1024.png",
+      "bytes": 22674,
+      "sha256": "2318b38f9de540438c5c4f1171d23179b2379006c3784bd9b21dd54414457b30"
+    },
+    {
+      "file": "png/a/blue/studio-128.png",
+      "bytes": 2123,
+      "sha256": "4f08e533ef77a75a6e80baa355340114791b7ab18be25b942f07b455aa0acae3"
+    },
+    {
+      "file": "png/a/blue/studio-16.png",
+      "bytes": 325,
+      "sha256": "903cc47a2e4d5d0c3630faab668674bfdfcfe98975d73dc2f3ef29086122c8ff"
+    },
+    {
+      "file": "png/a/blue/studio-24.png",
+      "bytes": 497,
+      "sha256": "3889e1022be102c40ac27a69e72e779bd2115d88e19fc8109efdb3c078d3f9ae"
+    },
+    {
+      "file": "png/a/blue/studio-256.png",
+      "bytes": 4502,
+      "sha256": "ee976bf3c134737cc1d963303280fcf047b0cd358768525b52a9ea00af073b39"
+    },
+    {
+      "file": "png/a/blue/studio-32.png",
+      "bytes": 652,
+      "sha256": "6cdcc5d92e2cb82dadc6343a6e77682271470d8508e7463da20d3b815ff6aebb"
+    },
+    {
+      "file": "png/a/blue/studio-48.png",
+      "bytes": 887,
+      "sha256": "4afed3b79f348cdedf1fd8f9822b1743fe88cb89cc6d1eae0d16db207eb330bf"
+    },
+    {
+      "file": "png/a/blue/studio-64.png",
+      "bytes": 1146,
+      "sha256": "ee53f4cfd544d5fc7a6a42a26fa83d6c6f1f8db27b9c170f7c24d982919c64b1"
+    },
+    {
+      "file": "png/a/mono/play-1024.png",
+      "bytes": 30289,
+      "sha256": "ad8ec06e420cc7d82c737064a0c8c27d479791ddfe59ac461f789244a9ea2393"
+    },
+    {
+      "file": "png/a/mono/play-128.png",
+      "bytes": 2839,
+      "sha256": "fba96a568fc55ee246b7eea161a8af2727267f26b534287ea8bd6df35dd2c1fc"
+    },
+    {
+      "file": "png/a/mono/play-16.png",
+      "bytes": 316,
+      "sha256": "840fd1f7f03a5d69180247dcc053fc2790a11b826328bd20204a2a162a18b276"
+    },
+    {
+      "file": "png/a/mono/play-24.png",
+      "bytes": 403,
+      "sha256": "83e6367d1d0d6bc1fe83586f590c32b6da28b796d7cb870ef02bdc39350efb1d"
+    },
+    {
+      "file": "png/a/mono/play-256.png",
+      "bytes": 5879,
+      "sha256": "cb3a4c00307b2d2b0ecabe226d789a17f80c5e3fcb2a7f5a6100c46b2006d209"
+    },
+    {
+      "file": "png/a/mono/play-32.png",
+      "bytes": 693,
+      "sha256": "d1d8c28998f24a8db0b53c301552304a63a848b541989e716c56db06b73a5bec"
+    },
+    {
+      "file": "png/a/mono/play-48.png",
+      "bytes": 1055,
+      "sha256": "2dcd58207a1151d1b361d5b61cde37d012be1c4fb3008b100ec7d0fa06654cec"
+    },
+    {
+      "file": "png/a/mono/play-64.png",
+      "bytes": 1358,
+      "sha256": "4cb81f503e12453727eef699464f9a9142248b0c314b784ed0439449118d3083"
+    },
+    {
+      "file": "png/a/mono/score-1024.png",
+      "bytes": 21745,
+      "sha256": "c662513c052d8fc01dfab3c088e8296a87b69332b9216db2804471e34fec374e"
+    },
+    {
+      "file": "png/a/mono/score-128.png",
+      "bytes": 1790,
+      "sha256": "8abb5afadf1f3f8eb771e55a3ff22f68c74470209cf207ef8c6b79788c682fa6"
+    },
+    {
+      "file": "png/a/mono/score-16.png",
+      "bytes": 305,
+      "sha256": "5a6bf45b339d0c5dda7b04deb17b5ffe330f246b95bf4026c89d28dceb1dee17"
+    },
+    {
+      "file": "png/a/mono/score-24.png",
+      "bytes": 400,
+      "sha256": "4532be667ab545086978d48b076caa3c446f97682e50cd77f4108ba7f3bcd403"
+    },
+    {
+      "file": "png/a/mono/score-256.png",
+      "bytes": 4119,
+      "sha256": "359de9169364945a6137e9004a46ef64feb5270cca91613f378f0f8f23a3fa81"
+    },
+    {
+      "file": "png/a/mono/score-32.png",
+      "bytes": 496,
+      "sha256": "01ed45f209b10b5d93ac2aed0395fce66fdc0e60cacfa985471a9acfe5469f6d"
+    },
+    {
+      "file": "png/a/mono/score-48.png",
+      "bytes": 692,
+      "sha256": "5b630c5bf320a1f295589682253d9b2fa4ae0e926d03dc72987f2d0e81b35409"
+    },
+    {
+      "file": "png/a/mono/score-64.png",
+      "bytes": 892,
+      "sha256": "d85f92d55569ca761ec029eea3ffe75a6aa3c29408c5b487f6df95fe642f95ee"
+    },
+    {
+      "file": "png/a/mono/studio-1024.png",
+      "bytes": 22290,
+      "sha256": "3e923ed215e39e06ac5838abb13eb84ffdf36b780cb5e12a73d5dc85687d5058"
+    },
+    {
+      "file": "png/a/mono/studio-128.png",
+      "bytes": 2030,
+      "sha256": "afcc5d61b1a22187e4925b70e91ec42655f0122b3e52dc2bec8fe31923f31b2a"
+    },
+    {
+      "file": "png/a/mono/studio-16.png",
+      "bytes": 302,
+      "sha256": "f3985b03ca2c44de37fc7ac5e39de846d8ee8f8a093e0c799d10543664d05ec1"
+    },
+    {
+      "file": "png/a/mono/studio-24.png",
+      "bytes": 443,
+      "sha256": "cb86b71a711bbf961bcb5d323d9445d2834d2cd66833d09ef53d6829e992e2f2"
+    },
+    {
+      "file": "png/a/mono/studio-256.png",
+      "bytes": 4430,
+      "sha256": "97732041436ef53f2f3bc70f8bf5c1e04af709a9c4c944f67947cffbfa883660"
+    },
+    {
+      "file": "png/a/mono/studio-32.png",
+      "bytes": 567,
+      "sha256": "3fcbb0b5a2d0d91e65f47ef619a20b085f69db5e1531eefebb12490dc934a319"
+    },
+    {
+      "file": "png/a/mono/studio-48.png",
+      "bytes": 806,
+      "sha256": "c3f061320121c586ee102555ab9e0eaca95f84cfee7cf2e8c0061e2501a31781"
+    },
+    {
+      "file": "png/a/mono/studio-64.png",
+      "bytes": 1079,
+      "sha256": "613ee0efc09ad7c321ea06a76183acfbd2a98208f99b3700755b548a7f12ef16"
+    },
+    {
+      "file": "png/a/teal/play-1024.png",
+      "bytes": 31515,
+      "sha256": "d8f16ae399a9683f28f07f621e6f9c90e778b24493d7859a8609c0eb4c18c39f"
+    },
+    {
+      "file": "png/a/teal/play-128.png",
+      "bytes": 3049,
+      "sha256": "f4af9f75d8af7dca1af2ff4280d8a644356945c1e4376f49def20f04d5e28014"
+    },
+    {
+      "file": "png/a/teal/play-16.png",
+      "bytes": 354,
+      "sha256": "a7199cb08b2edc4b01d5097678efde1d36367d64cead2bb645c04e84207b9c42"
+    },
+    {
+      "file": "png/a/teal/play-24.png",
+      "bytes": 450,
+      "sha256": "833e0a18bb81b2209726aa788607c261559284db3f2de08cc86a2d1889deb0e7"
+    },
+    {
+      "file": "png/a/teal/play-256.png",
+      "bytes": 6140,
+      "sha256": "ac5bca3ec4db9dd873b11e14fbebab0bc7d094dc024c2104d9c8afe6144116cc"
+    },
+    {
+      "file": "png/a/teal/play-32.png",
+      "bytes": 814,
+      "sha256": "5d88b431ed5a5ef8d69523551fc13ace781c17a7fd00147657709a461ee63b4c"
+    },
+    {
+      "file": "png/a/teal/play-48.png",
+      "bytes": 1209,
+      "sha256": "2cd85ac37f66b8cce8ee99f3cc861e2c88d08f32070da9be971036fcae97ea96"
+    },
+    {
+      "file": "png/a/teal/play-64.png",
+      "bytes": 1509,
+      "sha256": "da1ea746fccc2508b009da83f31ab2227f92ce16991ab0df908f0c25416ee782"
+    },
+    {
+      "file": "png/a/teal/score-1024.png",
+      "bytes": 22468,
+      "sha256": "55bf784f677a91210381b2de28e6ec1082a304164dd5f19e8dfe25af08c2a923"
+    },
+    {
+      "file": "png/a/teal/score-128.png",
+      "bytes": 1966,
+      "sha256": "cab4cfe75717a02420f31525e32c5bb36594e21aaf327abe424f90a71e4bf7c8"
+    },
+    {
+      "file": "png/a/teal/score-16.png",
+      "bytes": 372,
+      "sha256": "a6bd0886fdbe25660fb21006ccaba1f33254efe1657c9d3e2d3d65f5cb7630fd"
+    },
+    {
+      "file": "png/a/teal/score-24.png",
+      "bytes": 471,
+      "sha256": "1544984f0962b74b8ba9de4bdd7d278bb129cff5563ad918e6bd63e062f05860"
+    },
+    {
+      "file": "png/a/teal/score-256.png",
+      "bytes": 4370,
+      "sha256": "5735cf9459d39507d5c11804e534778fd537416467ceff90d1630eb29e1d8861"
+    },
+    {
+      "file": "png/a/teal/score-32.png",
+      "bytes": 597,
+      "sha256": "8e1bed8a5efcdf382e168ca975794e5bb9ac2530f4dffac602770729c905ae49"
+    },
+    {
+      "file": "png/a/teal/score-48.png",
+      "bytes": 805,
+      "sha256": "94e7d0bc454fbbb40760f6b0f7c094ce96455e031b1f0b8817d0b3028e3dea0d"
+    },
+    {
+      "file": "png/a/teal/score-64.png",
+      "bytes": 1004,
+      "sha256": "86f0e55a23637236369f23ad6850c85f30cccca888e5d721c00b7d8972c6ba1f"
+    },
+    {
+      "file": "png/a/teal/studio-1024.png",
+      "bytes": 22663,
+      "sha256": "d941930434d1efe20a99091d8c69f5cd6326f844859073e5e2dbd7f20c877dd2"
+    },
+    {
+      "file": "png/a/teal/studio-128.png",
+      "bytes": 2185,
+      "sha256": "6d2965dc0d98ade0aaff78932104a2a6b2e2db7aba15fa4008cc0c5c58be0bed"
+    },
+    {
+      "file": "png/a/teal/studio-16.png",
+      "bytes": 333,
+      "sha256": "1c0644dc18ba1a82bd5a92bf78e8c6c1f6fdf45feeeb98fb49991bbb8f9864a2"
+    },
+    {
+      "file": "png/a/teal/studio-24.png",
+      "bytes": 508,
+      "sha256": "c0e28127265851da7074e71d7ce5d29d4e9837d5e03e576a4e166100bc3e8d05"
+    },
+    {
+      "file": "png/a/teal/studio-256.png",
+      "bytes": 4573,
+      "sha256": "9cd2ec077e4efd21592b3319cad186293455bb29f66e436eaeec72b183470107"
+    },
+    {
+      "file": "png/a/teal/studio-32.png",
+      "bytes": 658,
+      "sha256": "9ead1e071d255039664eb02b33a92cc8d6010af01745eef9e19b6fdf20cfd7ce"
+    },
+    {
+      "file": "png/a/teal/studio-48.png",
+      "bytes": 906,
+      "sha256": "47ba9a49ad78bea349c5a37cf379fa4b09905c57433f672bdc2a2c394eac6a1e"
+    },
+    {
+      "file": "png/a/teal/studio-64.png",
+      "bytes": 1158,
+      "sha256": "c5d86c6e779cf7aec6177c27639a43f4dc0701dacb62e19dcf6e7296c148ea32"
+    },
+    {
+      "file": "png/a/violet/play-1024.png",
+      "bytes": 31000,
+      "sha256": "25684200599ec2734292f735868835f1d49cfb52ad7b14590eb79b9e929944e7"
+    },
+    {
+      "file": "png/a/violet/play-128.png",
+      "bytes": 2974,
+      "sha256": "3e78066165d5fe872767b51eef73697d18ffef85d8ceee19a35194e1ff65aff7"
+    },
+    {
+      "file": "png/a/violet/play-16.png",
+      "bytes": 358,
+      "sha256": "00beee4466a5b16ed4712109f4d14250d1e1810bc273efae50fee618e718ad03"
+    },
+    {
+      "file": "png/a/violet/play-24.png",
+      "bytes": 437,
+      "sha256": "fa33b31315332dd985069745533438c122f68c145a48ab9803c5b840c9794f24"
+    },
+    {
+      "file": "png/a/violet/play-256.png",
+      "bytes": 6079,
+      "sha256": "77353ff472f966de65ab914658df37f7835dca1560f8b3b5db3f60804b795e03"
+    },
+    {
+      "file": "png/a/violet/play-32.png",
+      "bytes": 778,
+      "sha256": "4cc8ae657130603d2b531c3ac1dd08276472aed45ac97711a3187e5c7a7133b1"
+    },
+    {
+      "file": "png/a/violet/play-48.png",
+      "bytes": 1131,
+      "sha256": "c4ab359e465ea1a5d4d7e4d59a96f2ee2cb2644faee7f1b5b69d38117385c671"
+    },
+    {
+      "file": "png/a/violet/play-64.png",
+      "bytes": 1437,
+      "sha256": "f1ff35f302c5f87e2db569615f8f3970c0bf3a7de7da33c94e3b0521932cc0a0"
+    },
+    {
+      "file": "png/a/violet/score-1024.png",
+      "bytes": 21808,
+      "sha256": "49508087c56da75aa6ac0807519092b1ff0c773332d35e04e7400996c21f1cdf"
+    },
+    {
+      "file": "png/a/violet/score-128.png",
+      "bytes": 1888,
+      "sha256": "5436d4d0b719be11695576971b4148dedfb3d2c7958663d6bbfaa1dac28d87bd"
+    },
+    {
+      "file": "png/a/violet/score-16.png",
+      "bytes": 345,
+      "sha256": "a22eabaa104c618385cf97e3e802dfc9babe4c8a86edc06ed8f1ec9300dbaa0c"
+    },
+    {
+      "file": "png/a/violet/score-24.png",
+      "bytes": 458,
+      "sha256": "403218ad9f97f928db2ad8bd938762857bf46a3a015ffb4da356a5f31b1186e3"
+    },
+    {
+      "file": "png/a/violet/score-256.png",
+      "bytes": 4274,
+      "sha256": "68487cb52e7784384666bcbb4457f670080dbfa6a4f53fae063732df8d7ed121"
+    },
+    {
+      "file": "png/a/violet/score-32.png",
+      "bytes": 558,
+      "sha256": "dd791938b04bdc1d3e1115309936e52a1d56d73ef90819caf7ff87f27893261c"
+    },
+    {
+      "file": "png/a/violet/score-48.png",
+      "bytes": 773,
+      "sha256": "678d59af5f4860692d592fac39d7148b306d987b9dfca2d0ce92c46800b11d9c"
+    },
+    {
+      "file": "png/a/violet/score-64.png",
+      "bytes": 949,
+      "sha256": "fd704f904bb3ee9d96e4809c50a449d021ab8d3275b7427bfb4481a742e99c6b"
+    },
+    {
+      "file": "png/a/violet/studio-1024.png",
+      "bytes": 22550,
+      "sha256": "77e46cc0cf3f91e095870c80304b9fd0117d1cf27b11a0342adab45ec3ce49b9"
+    },
+    {
+      "file": "png/a/violet/studio-128.png",
+      "bytes": 2122,
+      "sha256": "5571bfa6123e26333448166f2673302aa2dcd15a935800b0982b9e17fcbb3865"
+    },
+    {
+      "file": "png/a/violet/studio-16.png",
+      "bytes": 317,
+      "sha256": "61462f22da9996413b33adbdf2c8a927c546ec9ec60d36bc702110aa5eae6d51"
+    },
+    {
+      "file": "png/a/violet/studio-24.png",
+      "bytes": 494,
+      "sha256": "fe079eb250f78a173752eb230b17ad8b214dd3c38e54b9482e16a9a7dba531b2"
+    },
+    {
+      "file": "png/a/violet/studio-256.png",
+      "bytes": 4486,
+      "sha256": "d31864529879134bd9b371aed64717336d33c4e792aefb8559fab636ed807d67"
+    },
+    {
+      "file": "png/a/violet/studio-32.png",
+      "bytes": 632,
+      "sha256": "de4b5b89649268018f10fc487b713148a59ad8b454416e7be066b043063f7348"
+    },
+    {
+      "file": "png/a/violet/studio-48.png",
+      "bytes": 861,
+      "sha256": "3c4b1eba0e0770d76f2f404699224cc67aa1f204da68655f66e2cac3054fabc2"
+    },
+    {
+      "file": "png/a/violet/studio-64.png",
+      "bytes": 1121,
+      "sha256": "13662de75a891c5cc2b813522096f11c3246af44a59574d1fe0f7d75e1ca238d"
+    },
+    {
+      "file": "review-data.js",
+      "bytes": 3571,
+      "sha256": "227a0e7774a717b84e4751b703ff8887411b932fb9ac7c3242a09ccfad653ffb"
+    }
+  ]
+}

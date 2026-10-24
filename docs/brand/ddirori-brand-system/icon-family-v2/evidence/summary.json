@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-10-24T11:53:51.295966+00:00",
+  "scope": "candidate icons, documentation authority and actual Studio local input behavior",
+  "status": "local checks passed; user approval and device checks pending",
+  "results": {
+    "typecheck": "passed; evidence/typecheck.log",
+    "productTests": 140,
+    "targetedStudioTests": 7,
+    "newStudioTests": 3,
+    "generatedAssetChecks": 477,
+    "pngInspected": 375,
+    "browserChecks": 197,
+    "reviewedRasterHashes": 18,
+    "specifications": "passed --skip-flutter; unchanged Flutter packages not rerun",
+    "remoteCI": "not run",
+    "iosMetadata": "N/A: no mobile UI or installed asset change"
+  },
+  "versions": {
+    "node": "v22.22.0"
+  },
+  "sourceHashes": {
+    "src/renderer/src/SpanProperties.tsx": "4948aed3dd25dafb33d5a4f1b7eb19f097dfbc810824dc8e733853df30f121d6",
+    "src/renderer/src/SpanProperties.test.tsx": "07a8a64f3f174111bb7e809bbf6792c6778ef2b01489fb0d10acb88e5e527a26",
+    "docs/brand/ddirori-brand-system/icon-family-v2/family.json": "8c51ffe1a0c721dd9fe43feeb532147872fd7fc11e4b81bab7d5db4f3241b9c6",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/build.mjs": "5506982ba516e66b030805bee016919d06fa2af2cc9861659533da39ec28ee77",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/containers.py": "1bd6aeca70b6dbf4be1053479fdb6e4ed88cd2ef4f9f9a4dda30dfc7257ee866",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/verify.mjs": "1c1577928585c4cc73ce21a0ac713a7ce38c51a1a9ea56b7916734a8f0a408c8",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/verify_pixels.py": "658e6503e11af754c64f3c1edb544a5a6cb3ae3dd34bd7d9766c839a02f79be6",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/check-contract.mjs": "446eb04f3dd6b518d8c7de076fe440c335cf0bd5fbe6c7eeda3244bc97dfc899",
+    "docs/brand/ddirori-brand-system/icon-family-v2/tools/verify-review.mjs": "2028cb99d617383448cd16c0daab742c0288cd723703ed147aa93dafd80b6c8c",
+    "docs/brand/ddirori-brand-system/icon-family-v2/index.html": "260f41889b7e7788354928b86813a1239fe107dba6a29b725b729c3d09be49b2",
+    "docs/brand/ddirori-brand-system/icon-family-v2/review.js": "4600c42507ccb0a0190e98abd6c013a6555b463d321493e20ce62a82d39ff3b2"
+  },
+  "screenshots": [
+    {
+      "file": "comparison-adaptive.png",
+      "sha256": "ce10e62499f4cb998764099ce62137fc82dc457cdca7df6ad5847a1a79eeb32e"
+    },
+    {
+      "file": "comparison-blind-gray.png",
+      "sha256": "fa417e11b0bc0392d1d18ff4c39442ff2d52c4b1097fe9c464903d2f5bbef155"
+    },
+    {
+      "file": "comparison-dark.png",
+      "sha256": "6c5e0609c850f82819eb596418fcaa99796e338b27b3c900eaf458d17dda7fb9"
+    },
+    {
+      "file": "comparison-light.png",
+      "sha256": "1c046b1b8eab9c1950f191352aacbe742a1eb86b68acf4280482504039ad73b1"
+    },
+    {
+      "file": "comparison-wallpaper.png",
+      "sha256": "09f5179271aeca26138a29141b9471e89a36148e0432ccc56b7bdec3d5887a5b"
+    },
+    {
+      "file": "family-preview.png",
+      "sha256": "6b0c06184c87367b854e96021e2ce18305afb9433540cf549610ae437b58939b"
+    },
+    {
+      "file": "review-desktop.png",
+      "sha256": "31a36fddef1b35c4aa3c8eb4c41ba95f31838a48b068c5568062d64af2a8f573"
+    },
+    {
+      "file": "review-mobile.png",
+      "sha256": "f8448f62ab55d81da5702d2b059b6d4f058cad6d8c651d5bf7363f297b608951"
+    },
+    {
+      "file": "size-preview.png",
+      "sha256": "fb9da715562f19b74c7e299ef64d032a29d3ba0c534cf1393f68df12172432ec"
+    }
+  ],
+  "preservation": {
+    "compared": 2021,
+    "changed": [
+      ".github/workflows/design-system.yml",
+      "docs/brand/ddirori-design-system/specifications/decisions.md",
+      "docs/brand/ddirori-design-system/specifications/services/studio.md",
+      "docs/brand/ddirori-brand-system/README.md",
+      "docs/brand/ddirori-brand-system/visual-identity.md",
+      "docs/brand/ddirori-design-system/README.md",
+      "docs/brand/ddirori-design-system/system-review.md",
+      "src/renderer/src/SpanProperties.tsx"
+    ],
+    "unchanged": 2013
+  }
+}

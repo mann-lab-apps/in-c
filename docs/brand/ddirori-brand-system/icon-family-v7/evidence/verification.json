@@ -1,0 +1,75 @@
+{
+  "status": "passed",
+  "files": 175,
+  "pngSizeChecks": 144,
+  "sameV6CarrierGeometry": true,
+  "precise": "3 full lower beams; 1 partial upper beam; 3 stems ending at last beam; high-low-high heads and augmentation dot",
+  "gesture": "3 ellipses plus terminal dot; no stems or beams; not musical notation",
+  "containment": [
+    {
+      "candidate": "precise-play",
+      "motifBounds": [
+        76,
+        93,
+        168,
+        167
+      ],
+      "checkedInsetPx": 3
+    },
+    {
+      "candidate": "precise-studio",
+      "motifBounds": [
+        83,
+        63,
+        195,
+        155
+      ],
+      "checkedInsetPx": 3
+    },
+    {
+      "candidate": "precise-score",
+      "motifBounds": [
+        133,
+        102,
+        212,
+        165
+      ],
+      "checkedInsetPx": 3
+    },
+    {
+      "candidate": "gesture-play",
+      "motifBounds": [
+        74,
+        107,
+        169,
+        154
+      ],
+      "checkedInsetPx": 3
+    },
+    {
+      "candidate": "gesture-studio",
+      "motifBounds": [
+        106,
+        75,
+        187,
+        134
+      ],
+      "checkedInsetPx": 3
+    },
+    {
+      "candidate": "gesture-score",
+      "motifBounds": [
+        132,
+        115,
+        213,
+        154
+      ],
+      "checkedInsetPx": 3
+    }
+  ],
+  "limitations": [
+    "Not a user recognition test",
+    "No native installation or export",
+    "1st option still loses beam readability at 16–32px"
+  ]
+}
