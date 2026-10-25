@@ -1,0 +1,25 @@
+Running build hooks...Running build hooks...{
+  "fixture": {
+    "composers": 100,
+    "works": 1000,
+    "recordings": 1000,
+    "tracks": 5000
+  },
+  "environment": "dartHostProcess",
+  "catalogLoadQueryCountFromCodeInspection": 9,
+  "fixtureCreationMicros": 12728,
+  "rssBeforeBytes": 346243072,
+  "rssAfterBytes": 334397440,
+  "processMaxRssBytes": 356614144,
+  "physicalDevicePerformanceVerified": false,
+  "timingsMicros": {
+    "indexWarmup": 12764,
+    "search": 190013,
+    "workDetail": 2585,
+    "recordingDetail": 2077,
+    "discovery": 955,
+    "queuePlan": 325
+  },
+  "searchResults": 7,
+  "queueItems": 5
+}

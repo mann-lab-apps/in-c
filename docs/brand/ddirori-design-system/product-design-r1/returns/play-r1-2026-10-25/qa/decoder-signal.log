@@ -1,0 +1,149 @@
+Running build hooks...Running build hooks...{
+  "schemaVersion": 1,
+  "environment": "macosHostDecoder",
+  "physicalOutputVerified": false,
+  "mp3": "notVerifiedNoLocalEncoder",
+  "stereoRoutingAndTransitionGap": "notVerifiedMonoOfflineDecodeOnly",
+  "results": [
+    {
+      "fixture": "movement_1.wav",
+      "inputSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "pcmSha256": "23a633134d6603e9b7f1a8fbf41ebfaa43f9d6b3b0e872c179cc9b2d424700d3",
+      "capturePoint": "hostDecoderPcm",
+      "sampleRate": 22050,
+      "channels": 1,
+      "frames": 52920,
+      "durationMillis": 2400.0,
+      "peak": 12000,
+      "clippedSamples": 0,
+      "quietRms": 0.0,
+      "markers": [
+        {
+          "expectedHz": 880.0,
+          "measuredHz": 881.7498581962564,
+          "rms": 8484.799678831763,
+          "passed": true
+        },
+        {
+          "expectedHz": 659.25,
+          "measuredHz": 662.1246458923513,
+          "rms": 8475.706755626072,
+          "passed": true
+        },
+        {
+          "expectedHz": 440.0,
+          "measuredHz": 443.75,
+          "rms": 8467.104270354575,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "physicalOutputVerified": false
+    },
+    {
+      "fixture": "movement_1_aac.m4a",
+      "inputSha256": "4f270357ebd1354b6ef6c77c726734dc65f7c6adfdcef1d2cd9f192a429cc575",
+      "pcmSha256": "152a945345b4fbc6ae43413efcb0f172ece6030f21109fd175b49bc5ff304098",
+      "capturePoint": "hostDecoderPcm",
+      "sampleRate": 22050,
+      "channels": 1,
+      "frames": 52920,
+      "durationMillis": 2400.0,
+      "peak": 13234,
+      "clippedSamples": 0,
+      "quietRms": 91.62479356961316,
+      "markers": [
+        {
+          "expectedHz": 880.0,
+          "measuredHz": 881.7498581962564,
+          "rms": 8328.509696392515,
+          "passed": true
+        },
+        {
+          "expectedHz": 659.25,
+          "measuredHz": 662.1246458923513,
+          "rms": 8283.734450537722,
+          "passed": true
+        },
+        {
+          "expectedHz": 440.0,
+          "measuredHz": 443.75,
+          "rms": 8376.291574283632,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "physicalOutputVerified": false
+    },
+    {
+      "fixture": "movement_1_alac.m4a",
+      "inputSha256": "611f4fa7c0cb274ece397f42226777716b763da774e8aad1b07352e4b3c5555d",
+      "pcmSha256": "78b3259b324b89efb181b5248933764ba28385bbe708dfd088ed806d49e6d7b3",
+      "capturePoint": "hostDecoderPcm",
+      "sampleRate": 22050,
+      "channels": 1,
+      "frames": 52920,
+      "durationMillis": 2400.0,
+      "peak": 12000,
+      "clippedSamples": 0,
+      "quietRms": 0.0,
+      "markers": [
+        {
+          "expectedHz": 880.0,
+          "measuredHz": 881.7498581962564,
+          "rms": 8484.799678831763,
+          "passed": true
+        },
+        {
+          "expectedHz": 659.25,
+          "measuredHz": 662.1246458923513,
+          "rms": 8475.706755626072,
+          "passed": true
+        },
+        {
+          "expectedHz": 440.0,
+          "measuredHz": 443.75,
+          "rms": 8467.104270354575,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "physicalOutputVerified": false
+    },
+    {
+      "fixture": "movement_1.flac",
+      "inputSha256": "3a24217063e9586580ee66db634c2b847fb6a3789d69c092c24e32c1d0350de3",
+      "pcmSha256": "78b3259b324b89efb181b5248933764ba28385bbe708dfd088ed806d49e6d7b3",
+      "capturePoint": "hostDecoderPcm",
+      "sampleRate": 22050,
+      "channels": 1,
+      "frames": 52920,
+      "durationMillis": 2400.0,
+      "peak": 12000,
+      "clippedSamples": 0,
+      "quietRms": 0.0,
+      "markers": [
+        {
+          "expectedHz": 880.0,
+          "measuredHz": 881.7498581962564,
+          "rms": 8484.799678831763,
+          "passed": true
+        },
+        {
+          "expectedHz": 659.25,
+          "measuredHz": 662.1246458923513,
+          "rms": 8475.706755626072,
+          "passed": true
+        },
+        {
+          "expectedHz": 440.0,
+          "measuredHz": 443.75,
+          "rms": 8467.104270354575,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "physicalOutputVerified": false
+    }
+  ]
+}

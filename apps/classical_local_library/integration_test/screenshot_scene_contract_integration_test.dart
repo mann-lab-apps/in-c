@@ -42,11 +42,13 @@ void main() {
   ) async {
     await restart(tester);
     expect(find.text('띠로리 플레이'), findsOneWidget);
-    expect(find.text('내 음원에서 다음 음악으로'), findsOneWidget);
+    expect(find.byTooltip('관리 보기'), findsOneWidget);
     expect(find.text('검색'), findsWidgets);
     expect(find.textContaining('/Users/'), findsNothing);
 
     await restart(tester);
+    await tester.tap(find.byTooltip('현재 재생 보기'));
+    await tester.pumpAndSettle();
     await scrollTo(tester, '현재 재생 큐');
     expect(find.text('현재 재생 큐'), findsOneWidget);
     expect(find.text('1악장 Allegro con brio'), findsWidgets);

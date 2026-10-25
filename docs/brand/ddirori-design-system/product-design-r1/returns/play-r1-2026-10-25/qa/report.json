@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-25T12:08:06.670036Z",
+  "environment": "hostAndIosSimulator",
+  "sourceSha256Before": "f6bc74180f27c89adfb9370485e99a08706c693a745b89a199bf5feee83eddb8",
+  "physicalDeviceVerified": false,
+  "storeScreenshotsVerified": false,
+  "status": "passed",
+  "checks": [
+    {
+      "id": "flutter-version",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 330,
+      "log": "flutter-version.log",
+      "logSha256": "c528a6a6894e49b9c11a6acb40793d19c0ca4a803c9e0f5b1c1a8a196f2d65f9"
+    },
+    {
+      "id": "format",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 718,
+      "log": "format.log",
+      "logSha256": "09bf90e595db43c294474b482cccabc7a9bbe0c2dd5f752d69b4f26a606c8722"
+    },
+    {
+      "id": "test",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 15093,
+      "log": "test.log",
+      "logSha256": "353408642d9001c52b63b4754c3ae3a848c0c05970665bab8dfaecfac9e54c99"
+    },
+    {
+      "id": "analyze",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 2712,
+      "log": "analyze.log",
+      "logSha256": "f43c80db7ee4ba6809cadce66f5d072145e048ea3c636bcfac4a8983c76469aa"
+    },
+    {
+      "id": "fixtures",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 607,
+      "log": "fixtures.log",
+      "logSha256": "dd35d399349c10aa3a96d7b290940c947560d0a57270cc0c46cfa73c85128ef6"
+    },
+    {
+      "id": "decoder-signal",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 738,
+      "log": "decoder-signal.log",
+      "logSha256": "b57a0cfcb7c149496c71f64ce7efb24dc7b8db745ebd121e9c8a9a956093b29a"
+    },
+    {
+      "id": "large-library",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 1810,
+      "log": "large-library.log",
+      "logSha256": "ff53695195df0a9bcabdd5458baa6ed39f022e524869a36e7ef68cbe8b1e953f"
+    },
+    {
+      "id": "ios-build",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 18928,
+      "log": "ios-build.log",
+      "logSha256": "1d16dd789a88c2c99e03c9f1643ca894416ca83ce99f2474b7eac33571c69e61"
+    },
+    {
+      "id": "ios_app_smoke",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 32916,
+      "log": "ios_app_smoke.log",
+      "logSha256": "d3e26834a10e3419ca52d3ded0c237a0899ef40bd072557d5b22aff137009609"
+    },
+    {
+      "id": "audio_playback",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 36351,
+      "log": "audio_playback.log",
+      "logSha256": "3eac8175fd64481ae25c65531df69a998a949a80a1c2d7018ff72ebd779bd39d"
+    },
+    {
+      "id": "local_reset_playback",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 27536,
+      "log": "local_reset_playback.log",
+      "logSha256": "ce3d1158c6b05eb2777f8522bdedf792121d68cc7fff469d38f759b2c36dd9a0"
+    },
+    {
+      "id": "large_library",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 32596,
+      "log": "large_library.log",
+      "logSha256": "7b05f454f2e66a6c5230fd407ed3e607c5989b64ca09012701b1f67e60f33e5a"
+    },
+    {
+      "id": "local_audio_import",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 25349,
+      "log": "local_audio_import.log",
+      "logSha256": "62d7de8ddfe70ceb34395387cfbe2e8fffa712a1d6cb6045ca36b242a59ef9e7"
+    },
+    {
+      "id": "screenshot_scene_contract",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 30859,
+      "log": "screenshot_scene_contract.log",
+      "logSha256": "e7d1d686f7f7271b5494d2a36594e234406e5d185dd84cf82f5a79c8dfda5c57"
+    }
+  ],
+  "sourceSha256After": "f6bc74180f27c89adfb9370485e99a08706c693a745b89a199bf5feee83eddb8",
+  "completedAt": "2026-10-25T12:11:53.308530Z"
+}

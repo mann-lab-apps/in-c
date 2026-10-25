@@ -57,6 +57,7 @@ class _MetadataEditDialogState extends State<MetadataEditDialog> {
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
+          padding: const EdgeInsets.only(top: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

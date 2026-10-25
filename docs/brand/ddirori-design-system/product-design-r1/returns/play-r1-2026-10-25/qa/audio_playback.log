@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/integration_test/audio_playback_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.1s
+00:00 +0: native FLAC decoder advances, seeks and completes synthetic audio
+00:03 +1: native audio queue updates playback, position, and history
+00:12 +2: (tearDownAll)
+00:12 +2: All tests passed!

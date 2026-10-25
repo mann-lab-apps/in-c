@@ -198,6 +198,46 @@ class _DdiroriPlaybackProgressState extends State<DdiroriPlaybackProgress> {
       0,
       durationMs,
     );
+    final positionLabel = formatDdiroriDuration(shownPosition);
+    final durationLabel = duration == null
+        ? '--:--'
+        : formatDdiroriDuration(duration);
+    final timeStyle = Theme.of(context).textTheme.labelSmall;
+    double timeWidth(String label) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: timeStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final width = painter.width.ceilToDouble() + 8;
+      painter.dispose();
+      return width < 52 ? 52 : width;
+    }
+
+    final positionWidth = timeWidth(positionLabel);
+    final durationWidth = timeWidth(durationLabel);
+    final slider = Slider(
+      key: widget.sliderKey,
+      label: positionLabel,
+      semanticFormatterCallback: (value) =>
+          formatDdiroriDuration(Duration(milliseconds: value.round())),
+      min: 0,
+      max: durationMs > 0 ? durationMs.toDouble() : 1,
+      value: durationMs > 0 ? shownMs.toDouble() : 0,
+      secondaryTrackValue: durationMs > 0 ? bufferedMs?.toDouble() : null,
+      onChanged: canSeek
+          ? (value) => setState(
+              () => _dragPosition = Duration(milliseconds: value.round()),
+            )
+          : null,
+      onChangeEnd: canSeek
+          ? (value) {
+              final requested = Duration(milliseconds: value.round());
+              setState(() => _dragPosition = null);
+              widget.onSeek!(requested);
+            }
+          : null,
+    );
     return Semantics(
       container: true,
       label:
@@ -205,52 +245,33 @@ class _DdiroriPlaybackProgressState extends State<DdiroriPlaybackProgress> {
           '${duration == null ? '알 수 없음' : formatDdiroriDuration(duration)}',
       child: Column(
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 52,
-                child: Text(
-                  formatDdiroriDuration(shownPosition),
-                  textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              Expanded(
-                child: Slider(
-                  key: widget.sliderKey,
-                  label: formatDdiroriDuration(shownPosition),
-                  min: 0,
-                  max: durationMs > 0 ? durationMs.toDouble() : 1,
-                  value: durationMs > 0 ? shownMs.toDouble() : 0,
-                  secondaryTrackValue: durationMs > 0
-                      ? bufferedMs?.toDouble()
-                      : null,
-                  onChanged: canSeek
-                      ? (value) => setState(
-                          () => _dragPosition = Duration(
-                            milliseconds: value.round(),
-                          ),
-                        )
-                      : null,
-                  onChangeEnd: canSeek
-                      ? (value) {
-                          final requested = Duration(
-                            milliseconds: value.round(),
-                          );
-                          setState(() => _dragPosition = null);
-                          widget.onSeek!(requested);
-                        }
-                      : null,
-                ),
-              ),
-              SizedBox(
-                width: 52,
-                child: Text(
-                  duration == null ? '--:--' : formatDdiroriDuration(duration),
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final position = Text(
+                positionLabel,
+                style: timeStyle,
+                maxLines: 1,
+              );
+              final total = Text(durationLabel, style: timeStyle, maxLines: 1);
+              if (constraints.maxWidth < positionWidth + durationWidth + 160) {
+                return Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [position, total],
+                    ),
+                    slider,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  SizedBox(width: positionWidth, child: position),
+                  Expanded(child: slider),
+                  SizedBox(width: durationWidth, child: total),
+                ],
+              );
+            },
           ),
           if (widget.statusLabel != null)
             Text(

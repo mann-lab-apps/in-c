@@ -79,7 +79,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -520));
     await tester.pumpAndSettle();
     expect(find.text('내 클래식 라이브러리'), findsOneWidget);
-    expect(find.text('로컬 음원부터 가져오세요.'), findsOneWidget);
+    expect(find.text('첫 음악을 담아볼까요?'), findsOneWidget);
     expect(find.text('작품 랜덤'), findsNothing);
     expect(
       tester
@@ -190,18 +190,26 @@ void main() {
 
     expect(find.text('띠로리 플레이'), findsWidgets);
     expect(find.text('검색'), findsOneWidget);
+    await _showHomeView(tester, '관리');
     expect(find.text('스캔'), findsOneWidget);
     expect(find.text('폴더 추가'), findsOneWidget);
     expect(find.text('데모 스캔'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byType(DdiroriMetricGroup), 250);
     expect(find.byType(DdiroriMetricGroup), findsOneWidget);
     expect(find.byType(DdiroriStatusBadge), findsWidgets);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -420));
+    await _showHomeView(tester, '현재 재생');
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('작품 랜덤'), 250);
     expect(find.text('작품 랜덤'), findsOneWidget);
     expect(find.text('녹음 랜덤'), findsOneWidget);
     expect(find.text('악장/소품 랜덤'), findsOneWidget);
 
+    await Scrollable.ensureVisible(
+      tester.element(find.byIcon(Icons.music_note_outlined)),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.music_note_outlined));
     await tester.pumpAndSettle();
 
@@ -269,6 +277,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('데모 스캔'));
     await tester.tap(find.text('데모 스캔'));
     await tester.pumpAndSettle();
 
@@ -304,12 +314,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('데모 스캔'));
     await tester.tap(find.text('데모 스캔'));
     await tester.pumpAndSettle();
     expect(find.text('음원 파일을 스캔하지 못했습니다. 다시 시도해 주세요.'), findsOneWidget);
     expect(find.textContaining('/Users/private'), findsNothing);
     expect(tester.takeException(), isNull);
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('데모 스캔'));
     await tester.tap(find.text('데모 스캔'));
     await tester.pumpAndSettle();
     expect(scanner.scanCount, 2);
@@ -341,6 +355,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('폴더 추가'));
     await tester.tap(find.text('폴더 추가'));
     await tester.pumpAndSettle();
 
@@ -424,6 +440,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
     expect(find.text('파일 가져오기'), findsOneWidget);
     expect(find.text('폴더 추가'), findsNothing);
     expect(find.text('가져온 음원 파일이 없습니다.'), findsOneWidget);
@@ -498,6 +515,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('폴더 추가'));
     await tester.tap(find.text('폴더 추가'));
     await tester.pumpAndSettle();
 
@@ -543,6 +562,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('데모 스캔'));
     await tester.tap(find.text('데모 스캔'));
     await tester.pumpAndSettle();
 
@@ -680,7 +701,7 @@ void main() {
     await tester.tap(find.byTooltip('재생'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('재생할 수 없음'), findsOneWidget);
+    expect(find.text('재생 오류'), findsOneWidget);
     expect(find.textContaining('재생할 트랙이 없습니다.'), findsOneWidget);
   });
 
@@ -804,15 +825,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '관리');
+    await tester.ensureVisible(find.text('데모 스캔'));
     await tester.tap(find.text('데모 스캔'));
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '라이브러리');
     await tester.enterText(find.byType(TextField), '베토벤 5번');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
 
     expect(find.text('교향곡 5번 다단조'), findsWidgets);
 
+    await _showHomeView(tester, '라이브러리');
     await tester.enterText(find.byType(TextField), 'Symphony 5 Allegro');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
@@ -838,6 +863,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '라이브러리');
     await tester.enterText(find.byType(TextField), '운명');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
@@ -890,6 +916,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '라이브러리');
     await tester.enterText(find.byType(TextField), '운명');
     await tester.pumpAndSettle();
     await tester.tap(find.text('교향곡 5번 다단조').last);
@@ -1139,6 +1166,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _showHomeView(tester, '감상');
     await tester.scrollUntilVisible(
       find.text('감상 통계'),
       450,
@@ -1453,7 +1481,13 @@ class _SequencedImportController implements LocalAudioImportController {
   }
 }
 
+Future<void> _showHomeView(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('$label 보기'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _scrollToQueue(WidgetTester tester) async {
+  await _showHomeView(tester, '현재 재생');
   for (var i = 0; i < 4 && find.text('현재 재생 큐').evaluate().isEmpty; i += 1) {
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
@@ -1467,6 +1501,7 @@ Future<void> _scrollToPlaybackControls(WidgetTester tester) async {
 }
 
 Future<void> _scrollToRecentListening(WidgetTester tester) async {
+  await _showHomeView(tester, '감상');
   await tester.scrollUntilVisible(
     find.text('최근 감상'),
     450,
@@ -1476,6 +1511,8 @@ Future<void> _scrollToRecentListening(WidgetTester tester) async {
 }
 
 Future<void> _scrollBackToQueue(WidgetTester tester) async {
+  await _showHomeView(tester, '현재 재생');
+  await _scrollToQueue(tester);
   for (var i = 0; i < 4 && find.text('3개 트랙').evaluate().isEmpty; i += 1) {
     await tester.drag(find.byType(ListView), const Offset(0, 450));
     await tester.pumpAndSettle();

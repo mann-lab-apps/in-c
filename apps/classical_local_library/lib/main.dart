@@ -61,6 +61,8 @@ void main() {
   );
 }
 
+enum _LibraryView { library, playback, management, listening }
+
 enum _HomeToolAction {
   discovery,
   imslp,
@@ -301,6 +303,9 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       ClassicalQueueMissingPolicy.playAvailable;
   String searchQuery = '';
   Timer? searchDebounce;
+  _LibraryView homeView = _LibraryView.library;
+  bool onlyRecordedWorks = false;
+  bool sortWorksByComposer = false;
   String scanStatus = '스캔 저장소 준비 중';
   bool isScanning = false;
   bool isPickingFolder = false;
@@ -1625,7 +1630,11 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         await localPlayer.resume();
       } else {
         await playbackHistoryCoordinator.closeCurrent();
-        await localPlayer.loadQueue(_currentLocalQueue());
+        final retryQueue =
+            playbackState.failure != null && playbackState.hasQueue
+            ? playbackState.queue
+            : _currentLocalQueue();
+        await localPlayer.loadQueue(retryQueue);
         if (localPlayer.playbackState.playerState != LocalPlayerState.error) {
           await localPlayer.play();
         }
@@ -1801,7 +1810,12 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('라이브러리'),
+        title: Text(switch (homeView) {
+          _LibraryView.library => '라이브러리',
+          _LibraryView.playback => '현재 재생',
+          _LibraryView.management => '가져오기 및 관리',
+          _LibraryView.listening => '감상 기록',
+        }),
         backgroundColor: colorScheme.surface,
         actions: [
           if (!useCompactTools)
@@ -1889,132 +1903,233 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
           ],
         ],
       ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: _LibraryNavigation(
+          selected: homeView,
+          onChanged: (value) => setState(() => homeView = value),
+        ),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          key: PageStorageKey('home-${homeView.name}'),
+          padding: EdgeInsets.fromLTRB(
+            MediaQuery.sizeOf(context).width >= 1024
+                ? 32
+                : MediaQuery.sizeOf(context).width >= 600
+                ? 24
+                : 16,
+            12,
+            MediaQuery.sizeOf(context).width >= 1024
+                ? 32
+                : MediaQuery.sizeOf(context).width >= 600
+                ? 24
+                : 16,
+            24,
+          ),
           children: [
-            const DdiroriProductSignature(
-              product: DdiroriProduct.play,
-              name: '띠로리 플레이',
-              subtitle: '내 음원에서 다음 음악으로',
-            ),
-            const SizedBox(height: 16),
-            _LibrarySummary(
-              library: library,
-              scannedCount: scannedFiles.length,
-              needsReviewCount: _needsReviewCount(scannedFiles),
-            ),
-            const SizedBox(height: 16),
-            _SearchPanel(
-              query: searchQuery,
-              results: searchResults,
-              onQueryChanged: _setSearchQuery,
-              onResultSelected: _openSearchResult,
-            ),
-            const SizedBox(height: 16),
-            _ScanPanel(
-              files: scannedFiles,
-              candidates: metadataCandidates,
-              links: fileTrackLinks,
-              locations: scanLocations,
-              status: scanStatus,
-              isScanning: isScanning,
-              isPickingFolder: isPickingFolder,
-              isImportingFiles: isImportingFiles,
-              isCatalogSaving: isCatalogSaving,
-              supportsFolderScan: supportsFolderScan,
-              showDemoActions: widget.enableDemoFeatures,
-              onRetryStoragePressed: hasStorageInitializationError
-                  ? _prepareStorage
-                  : null,
-              onImportFilesPressed: localAudioImportCoordinator == null
-                  ? null
-                  : _importAudioFiles,
-              onAddFolderPressed: scanLocationRepository == null
-                  ? null
-                  : _addFolder,
-              onSampleScanPressed: scanRepository == null
-                  ? null
-                  : _runSampleScan,
-              onRegisterFiles: _openCatalogRegistration,
-              onRescanLocation: _rescanLocation,
-              onSetLocationActive: _setLocationActive,
-            ),
-            const SizedBox(height: 16),
-            if (activePlan == null)
-              _EmptyCatalogPanel(
-                hasFiles: scannedFiles.isNotEmpty,
-                onRegister:
-                    scannedFiles
-                        .where(
-                          (file) =>
-                              file.importStatus ==
-                              AudioImportStatus.needsReview,
-                        )
-                        .isEmpty
-                    ? null
-                    : () => _openCatalogRegistration(
+            if (homeView == _LibraryView.library) ...[
+              const DdiroriProductSignature(
+                product: DdiroriProduct.play,
+                name: '띠로리 플레이',
+              ),
+              const SizedBox(height: 24),
+              DdiroriToolbar(
+                label: '라이브러리 작업',
+                children: [
+                  DdiroriButton(
+                    label: '파일 가져오기',
+                    icon: Icons.file_open_outlined,
+                    busy: isImportingFiles,
+                    onPressed: localAudioImportCoordinator == null || isScanning
+                        ? null
+                        : () async {
+                            setState(() => homeView = _LibraryView.management);
+                            await _importAudioFiles();
+                          },
+                  ),
+                  DdiroriIconButton(
+                    label: '가져오기 및 관리',
+                    icon: Icons.folder_outlined,
+                    onPressed: () =>
+                        setState(() => homeView = _LibraryView.management),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (hasStorageInitializationError)
+                DdiroriBanner(
+                  message: scanStatus,
+                  kind: DdiroriNoticeKind.error,
+                  action: DdiroriButton(
+                    label: '보관함 다시 불러오기',
+                    onPressed: isPreparingStorage ? null : _prepareStorage,
+                  ),
+                )
+              else if (_needsReviewCount(scannedFiles) > 0 ||
+                  scannedFiles.any(
+                    (file) => file.importStatus == AudioImportStatus.missing,
+                  ))
+                DdiroriBanner(
+                  message:
+                      '정리 필요 ${_needsReviewCount(scannedFiles)}개 · 누락 ${scannedFiles.where((file) => file.importStatus == AudioImportStatus.missing).length}개',
+                  kind: DdiroriNoticeKind.warning,
+                  action: DdiroriIconButton(
+                    label: '파일 상태 확인',
+                    icon: Icons.rule_folder_outlined,
+                    onPressed: () =>
+                        setState(() => homeView = _LibraryView.management),
+                  ),
+                ),
+              _SearchPanel(
+                query: searchQuery,
+                results: searchResults,
+                onQueryChanged: _setSearchQuery,
+                onResultSelected: _openSearchResult,
+              ),
+              const SizedBox(height: 16),
+              if (searchQuery.trim().isEmpty) ...[
+                if (library.works.isEmpty)
+                  _EmptyCatalogPanel(
+                    hasFiles: scannedFiles.isNotEmpty,
+                    onRegister:
                         scannedFiles
                             .where(
                               (file) =>
                                   file.importStatus ==
                                   AudioImportStatus.needsReview,
                             )
-                            .toList(),
-                      ),
-              )
-            else ...[
-              _PlaybackModePanel(
-                mode: mode,
-                plan: activePlan,
-                missingPolicy: queueMissingPolicy,
-                onModeChanged: _setMode,
-                onMissingPolicyChanged: (policy) {
-                  setState(() => queueMissingPolicy = policy);
-                },
+                            .isEmpty
+                        ? null
+                        : () => _openCatalogRegistration(
+                            scannedFiles
+                                .where(
+                                  (file) =>
+                                      file.importStatus ==
+                                      AudioImportStatus.needsReview,
+                                )
+                                .toList(),
+                          ),
+                  )
+                else ...[
+                  _WorksPanel(
+                    library: library,
+                    onlyRecorded: onlyRecordedWorks,
+                    sortByComposer: sortWorksByComposer,
+                    onFilterChanged: (value) =>
+                        setState(() => onlyRecordedWorks = value),
+                    onSortChanged: (value) =>
+                        setState(() => sortWorksByComposer = value),
+                    onWorkSelected: (id) => unawaited(_openWorkDetail(id)),
+                  ),
+                  const SizedBox(height: 24),
+                  _RecordingsPanel(
+                    library: library,
+                    onRecordingSelected: (recordingId) =>
+                        unawaited(_openRecordingDetail(recordingId)),
+                  ),
+                ],
+              ],
+            ],
+            if (homeView == _LibraryView.management) ...[
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: DdiroriIconButton(
+                  label: '파일 정리 열기',
+                  icon: Icons.rule_folder_outlined,
+                  onPressed: scanRepository == null || isImportingFiles
+                      ? null
+                      : _openLibraryManagement,
+                ),
               ),
-              const SizedBox(height: 16),
-              _QueuePanel(
-                plan: activePlan,
-                scannedFiles: scannedFiles,
+              _ScanPanel(
+                files: scannedFiles,
+                candidates: metadataCandidates,
                 links: fileTrackLinks,
-                playbackState: playbackState,
-                isCommandRunning: isPlaybackCommandRunning,
-                onPlayPausePressed: _togglePlayback,
-                onNextPressed: _nextPlaybackItem,
-                onStopPressed: _stopPlayback,
-                onSeek: _seekPlayback,
+                locations: scanLocations,
+                status: scanStatus,
+                isScanning: isScanning,
+                isPickingFolder: isPickingFolder,
+                isImportingFiles: isImportingFiles,
+                isCatalogSaving: isCatalogSaving,
+                supportsFolderScan: supportsFolderScan,
+                showDemoActions: widget.enableDemoFeatures,
+                onRetryStoragePressed: hasStorageInitializationError
+                    ? _prepareStorage
+                    : null,
+                onImportFilesPressed: localAudioImportCoordinator == null
+                    ? null
+                    : _importAudioFiles,
+                onAddFolderPressed: scanLocationRepository == null
+                    ? null
+                    : _addFolder,
+                onSampleScanPressed: scanRepository == null
+                    ? null
+                    : _runSampleScan,
+                onRegisterFiles: _openCatalogRegistration,
+                onRescanLocation: _rescanLocation,
+                onSetLocationActive: _setLocationActive,
+              ),
+              const SizedBox(height: 24),
+              _LibrarySummary(
+                library: library,
+                scannedCount: scannedFiles.length,
+                needsReviewCount: _needsReviewCount(scannedFiles),
               ),
             ],
-            const SizedBox(height: 16),
-            _RecentListeningPanel(
-              entries: recentPlaybackHistory,
-              continuationFor: _continuationFor,
-              retentionPolicy: retentionPolicy,
-              isCommandRunning:
-                  isPlaybackCommandRunning || isHistoryManagementRunning,
-              onContinue: _continueListening,
-              onDelete: _deleteHistoryEntry,
-              onClearAll: _clearPlaybackHistory,
-              onRetentionPolicyChanged: _changeRetentionPolicy,
-            ),
-            const SizedBox(height: 16),
-            _ListeningStatisticsPanel(
-              statistics: playbackHistoryStatistics,
-              period: statisticsPeriod,
-              onPeriodChanged: _setStatisticsPeriod,
-            ),
-            const SizedBox(height: 16),
-            _WorksPanel(
-              library: library,
-              onWorkSelected: (workId) => unawaited(_openWorkDetail(workId)),
-            ),
-            const SizedBox(height: 16),
-            _RecordingsPanel(
-              library: library,
-              onRecordingSelected: (recordingId) =>
-                  unawaited(_openRecordingDetail(recordingId)),
-            ),
+            if (homeView == _LibraryView.playback) ...[
+              if (activePlan != null) ...[
+                _QueuePanel(
+                  plan: activePlan,
+                  scannedFiles: scannedFiles,
+                  links: fileTrackLinks,
+                  playbackState: playbackState,
+                  isCommandRunning: isPlaybackCommandRunning,
+                  onPlayPausePressed: _togglePlayback,
+                  onNextPressed: _nextPlaybackItem,
+                  onStopPressed: _stopPlayback,
+                  onSeek: _seekPlayback,
+                ),
+                const SizedBox(height: 24),
+                _PlaybackModePanel(
+                  mode: mode,
+                  plan: activePlan,
+                  missingPolicy: queueMissingPolicy,
+                  onModeChanged: _setMode,
+                  onMissingPolicyChanged: (policy) {
+                    setState(() => queueMissingPolicy = policy);
+                  },
+                ),
+              ] else
+                PlayNowPlayingControls(
+                  state: playbackState,
+                  canUseQueue: playbackState.hasQueue,
+                  commandRunning: isPlaybackCommandRunning,
+                  onPlayPause: _togglePlayback,
+                  onNext: _nextPlaybackItem,
+                  onStop: _stopPlayback,
+                  onSeek: _seekPlayback,
+                ),
+            ],
+            if (homeView == _LibraryView.listening) ...[
+              _RecentListeningPanel(
+                entries: recentPlaybackHistory,
+                continuationFor: _continuationFor,
+                retentionPolicy: retentionPolicy,
+                isCommandRunning:
+                    isPlaybackCommandRunning || isHistoryManagementRunning,
+                onContinue: _continueListening,
+                onDelete: _deleteHistoryEntry,
+                onClearAll: _clearPlaybackHistory,
+                onRetentionPolicyChanged: _changeRetentionPolicy,
+              ),
+              const SizedBox(height: 16),
+              _ListeningStatisticsPanel(
+                statistics: playbackHistoryStatistics,
+                period: statisticsPeriod,
+                onPeriodChanged: _setStatisticsPeriod,
+              ),
+            ],
           ],
         ),
       ),

@@ -1,0 +1,658 @@
+{
+  "service": "play",
+  "generated_at": "2026-10-25T12:07:47.212Z",
+  "implementation_commit": "uncommitted",
+  "base_product_commit": "6bb5f027cfa5df3a78094a97699c6c5a84c9f0c1",
+  "design_revision": "product-design-r1",
+  "design_manifest_sha256": "00d7e83fa897871ccb399c5ca2d8ca1dbb84632e7b630e2df15b84bd693d2efb",
+  "runtime": "Flutter 3.47.2 / Dart 3.13.2",
+  "capture_command": "env DDIRORI_R1_CAPTURE_OUTPUT=<returns>/screens DDIRORI_BRAND_FONT=/tmp/ddirori-brand-tools/Pretendard.ttf DDIRORI_MATERIAL_FONT=/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf flutter test test/product_design_r1_test.dart",
+  "font_sha256": "09fc9443a0a6a3d44a8eb4cccfe9daf4b25e0c03d4de25fa293c8cbe13df1cc4",
+  "sources": {
+    "apps/classical_local_library/lib/main.dart": "b098ea1f5372f899d2666e7806e05f1d2c3ca2a67729500d9f03585ed270e9b6",
+    "apps/classical_local_library/lib/presentation/library_home_components.dart": "563572921d3bc73a436502de45d2d59be161c9fc70f884806e802e6c7cef3c69",
+    "apps/classical_local_library/lib/presentation/play_library_components.dart": "87b75d4e40f72cf69e9a0db568894c7d067b5c60fa7687d5427f860b08bbe448",
+    "apps/classical_local_library/lib/presentation/play_playback_components.dart": "c87139794c48842b40ba0cc7652ab03e4ccfbb676066fd265962790a4dd71fc7",
+    "apps/classical_local_library/test/product_design_r1_test.dart": "0ad33806dcbffa1cf9574c50ecc51ebe33128f7e9366560ae9aba27c5049dfa2",
+    "packages/ddirori_ui/lib/src/music.dart": "f4a9a555d38fa136ae8fdd861375ae7b0d7033e2ca4519b2539582e305aa7724",
+    "apps/classical_local_library/lib/presentation/metadata_edit_dialog.dart": "c62ca450ac30730d07987f0dbe300de7bfc3d6f4c643fcf182664c5d0444bbc0"
+  },
+  "screens": [
+    {
+      "file": "screens/disabled-320-dark-200.png",
+      "sha256": "c0b82ab7fb84c7f2ea00102253373d71e97f76c204504c5819c0afa54c8ed030",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-transport-widget-renderer; injected state",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/empty-390-light.png",
+      "sha256": "cabc692a6ac796e32470ad9cc8b20ed8cbdebdf359dc3ee944ace3324df8b64c",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/failed-320-dark-200.png",
+      "sha256": "2eab44061286970253a7a8cb3f6f44e7dc1d306503f5217e65877f16b06c7ad0",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-transport-widget-renderer; injected state",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-1024-1-dark.png",
+      "sha256": "904b2f5eee5dd126b052dcc932f36a353d0738e1ee3dde55299eccdc7305e283",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-1024-1-light.png",
+      "sha256": "61217cfd50392dd7573132c43ad840016113f4829ef97e4a715f444e3b8cfa28",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-1024-2-dark.png",
+      "sha256": "f871c797b8792c056b51a3a731d38b4627fb0213ba36be6280eae0894f00cc2d",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-1024-2-light.png",
+      "sha256": "b5fe23b79c2e954bc9ef10e250839536da21fde63e35ad92f0194bb0ad90ca61",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-320-1-dark.png",
+      "sha256": "5d28afb84fb48722c314caec371fb43d97788431faee546002658e9c9245549f",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-320-1-light.png",
+      "sha256": "f2f8ff87d4ce61844f399102884ba53adff914996583d25980527469b4c904bf",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-320-2-dark.png",
+      "sha256": "84c6a734e6ce6bf665f7367983c95a6690013e996a00e54a35d94efa687521e0",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-320-2-light.png",
+      "sha256": "b4d5028e09aa069ca3a6c5a88676a80c9a0ffbec4af3c73c8c252ece5483478d",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-390-1-dark.png",
+      "sha256": "a0fffba3eed20dbcdf9d4a742b783f2a4df02b027f22be37d63c468969c771c7",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-390-1-light.png",
+      "sha256": "2cd569f97b891efdf6ad74320ecd30ca392532707973118b13f7a628645e9b2e",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-390-2-dark.png",
+      "sha256": "25126a1cbf9ff8fb6b4e9792229d247e57533c84afbd138e8e1da28fef5f21a9",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/library-390-2-light.png",
+      "sha256": "7b89dd2ab00140ad680e214099c1eb30b4f5263e35b18c3c18dc2079d411b4f0",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/loading-320-dark-200.png",
+      "sha256": "14336bf3b760fea989973f8a9b2eb8101d62fca24bfea08f190305c9d0beb2ae",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-transport-widget-renderer; injected state",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/metadata-failure-320-dark-200.png",
+      "sha256": "4be9836b4f42139b14e199141f855de4122ddc7ed4cbd80cf576298bbc801299",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-dialog-widget-renderer; injected async save",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/metadata-pending-320-dark-200.png",
+      "sha256": "543b1d90562c1ccf29d26917d65f5381b3102bac118a65f7ab8723722011d83b",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-dialog-widget-renderer; injected async save",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/missing-320-dark-200.png",
+      "sha256": "44ac6ff2182fe23562daf242cb16d30601b3421922d4e8c563f9f4fbbed655fc",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-transport-widget-renderer; injected state",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/no-results-390-light.png",
+      "sha256": "fb072152e01eafc1d36d07ded60df4cb9641a9435616437fb0ea22e6dee6b084",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-1024-1-dark.png",
+      "sha256": "280484830346ea2c54b43d213d218ddfde8cd11052101c90f15a40043076c867",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-1024-1-light.png",
+      "sha256": "29934518f321c01eb9eb90f298c1989d09873a5a7d989301b399b2a4a7f9613e",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-1024-2-dark.png",
+      "sha256": "ecb7cf90faecfd649d0b25e18a4b0dd1cb3cf15bdacde8c4133cb529667007f8",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-1024-2-light.png",
+      "sha256": "1c6e5a6eed24a12480d40b833336bce9c1bdfb2f2a29e5cd3cf75aef58004fd4",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-320-1-dark.png",
+      "sha256": "6d635e2322c76724ba41772d5f5af3e12ed02693edfd4766dfdfbf36feec5f4c",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-320-1-light.png",
+      "sha256": "20344bd85b2c5828a8204b977a427fb18e447318081b5cfc88afbba2fbdf0df7",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-320-2-dark.png",
+      "sha256": "e0e256cc8074a81ae0615d2f1a2f378841e771b96afe1b79ff1ac88ac9a2c61f",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-320-2-light.png",
+      "sha256": "c24260096c8780ea54fe34784ddc0d296515973642dfbcb19a934ed7557007d2",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-390-1-dark.png",
+      "sha256": "e7498f0acb73688621f5e3bdf9977f16ffc08cfd1718848643345211c6d0e506",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-390-1-light.png",
+      "sha256": "fbddb95897f882818163995c5d224ce6bda6eaf3eacc9fedc490560eb3bc040b",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-390-2-dark.png",
+      "sha256": "127281d520b2ea3acd500a53f6e09f80e99387b87794943d8a50651ace4263dd",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-390-2-light.png",
+      "sha256": "3d0a5edb292242ddea690376937c466a8456a33be58cd426a3a8d2f9ab924ab2",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-1024-1-dark.png",
+      "sha256": "280484830346ea2c54b43d213d218ddfde8cd11052101c90f15a40043076c867",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-1024-1-light.png",
+      "sha256": "29934518f321c01eb9eb90f298c1989d09873a5a7d989301b399b2a4a7f9613e",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-1024-2-dark.png",
+      "sha256": "e746b45fefa3d4a85e4c8d825b2f55850db06780222d28476dc8ea029884d990",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-1024-2-light.png",
+      "sha256": "8c373c2a25bfb882715d40947b19779e8bd1792394e075adc0aaadb0e06929e2",
+      "viewport": [
+        1024,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-320-1-dark.png",
+      "sha256": "6d635e2322c76724ba41772d5f5af3e12ed02693edfd4766dfdfbf36feec5f4c",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-320-1-light.png",
+      "sha256": "20344bd85b2c5828a8204b977a427fb18e447318081b5cfc88afbba2fbdf0df7",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-320-2-dark.png",
+      "sha256": "e3e771f1d0845cfa8b78a1b922e9df4fc2c486839716c1a6b8472cb245ef3e10",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-320-2-light.png",
+      "sha256": "275351276349e494e5cc0237e955f27b5f485d5991fb9793c386c7c8c178359b",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-390-1-dark.png",
+      "sha256": "e7498f0acb73688621f5e3bdf9977f16ffc08cfd1718848643345211c6d0e506",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-390-1-light.png",
+      "sha256": "fbddb95897f882818163995c5d224ce6bda6eaf3eacc9fedc490560eb3bc040b",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 1,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-390-2-dark.png",
+      "sha256": "535b10f3e0ed4d332c87ad929ee3122a8e36ec719b7a67acb77314f33a57daac",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/playback-top-390-2-light.png",
+      "sha256": "0f8fede61cf3a2cca98f6adfac41ba1331c38749c63fe114581f96b6d826f4f6",
+      "viewport": [
+        390,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "light",
+      "text_scale": 2,
+      "kind": "actual-product-widget-renderer; fake adapters",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    },
+    {
+      "file": "screens/unknown-320-dark-200.png",
+      "sha256": "64338d4ff4d120fcb4c00b18a1fde7a2691fbf48889d13ee4a03ba00c704c275",
+      "viewport": [
+        320,
+        1000
+      ],
+      "device_scale": 1,
+      "theme": "dark",
+      "text_scale": 2,
+      "kind": "actual-transport-widget-renderer; injected state",
+      "accent": "existing palette, not final brand approval",
+      "fixture": "test/product_design_r1_test.dart"
+    }
+  ],
+  "store_capture_approval": false,
+  "physical_device_verified": false,
+  "capture_log": {
+    "file": "widget-capture.log",
+    "sha256": "d4afe8476d11a782a2a59d92f7d96b632727cb4ec005456b53e163f226d8765e"
+  }
+}

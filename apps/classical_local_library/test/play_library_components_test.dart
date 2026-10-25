@@ -69,11 +69,11 @@ void main() {
     expect(find.textContaining('Allegro energico'), findsOneWidget);
     expect(find.textContaining('연결 파일'), findsOneWidget);
     expect(find.textContaining('/music/'), findsNothing);
-    expect(find.bySemanticsLabel('상태: 재생 중'), findsOneWidget);
+    expect(find.bySemanticsLabel('상태: 현재 악장'), findsOneWidget);
     expect(
       find.bySemanticsLabel(
         '큐 1번, IV. Allegro energico e passionato, 매우 긴 악장 표시 이름, '
-        '교향곡 제5번 다단조, Op. 67, 연주 녹음, 연결 파일, 현재 재생 중',
+        '교향곡 제5번 다단조, Op. 67, 연주 녹음, 연결 파일, 현재 악장',
       ),
       findsOneWidget,
     );

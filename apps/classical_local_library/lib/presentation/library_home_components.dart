@@ -17,8 +17,8 @@ class _EmptyCatalogPanel extends StatelessWidget {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const DdiroriBach(size: 48),
-          title: Text(hasFiles ? '가져온 음원을 작품으로 정리하세요.' : '로컬 음원부터 가져오세요.'),
+          leading: const DdiroriBach(size: 64),
+          title: Text(hasFiles ? '가져온 음원을 작품으로 정리하세요.' : '첫 음악을 담아볼까요?'),
           subtitle: Text(
             hasFiles
                 ? '작곡가, 작품, 녹음과 악장 순서를 확인하면 재생 큐가 만들어집니다.'
@@ -103,34 +103,31 @@ class _SearchPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: '검색',
-      trailingWidget: DdiroriStatusBadge(
-        label: query.trim().isEmpty ? '대기' : '${results.length}개',
-        tone: query.trim().isEmpty
-            ? DdiroriStatusTone.neutral
-            : DdiroriStatusTone.info,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Semantics(
+          header: true,
+          child: Text('검색', style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        const SizedBox(height: 8),
         DdiroriSearch(
           value: query,
           label: '작품, 작곡가와 파일 검색',
           onChanged: onQueryChanged,
         ),
         const SizedBox(height: 12),
-        if (query.trim().isEmpty)
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.manage_search_outlined),
-            title: Text('검색어를 입력하세요.'),
+        if (query.trim().isNotEmpty && results.isEmpty)
+          DdiroriStatePanel(
+            title: '검색 결과가 없습니다.',
+            message: '다른 검색어로 찾아보세요.',
+            action: DdiroriButton(
+              label: '검색 초기화',
+              icon: Icons.clear,
+              onPressed: () => onQueryChanged(''),
+            ),
           )
-        else if (results.isEmpty)
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.search_off_outlined),
-            title: Text('검색 결과가 없습니다.'),
-          )
-        else
+        else if (query.trim().isNotEmpty)
           for (final result in results.take(5))
             PlaySearchResultRow(
               result: result,
@@ -470,10 +467,7 @@ class _QueuePanel extends StatelessWidget {
       scannedFiles: scannedFiles,
       links: links,
     );
-    final showsActiveQueue =
-        playbackState.hasQueue &&
-        playbackState.playerState != LocalPlayerState.idle &&
-        playbackState.playerState != LocalPlayerState.stopped;
+    final showsActiveQueue = playbackState.hasQueue;
     final localQueue = showsActiveQueue ? playbackState.queue : plannedQueue;
 
     return KeyedSubtree(
@@ -497,16 +491,12 @@ class _QueuePanel extends StatelessWidget {
             onSeek: onSeek,
           ),
           const SizedBox(height: 8),
-          if (availability.missingCount > 0)
+          if (!showsActiveQueue && availability.missingCount > 0)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.warning_amber_outlined),
               title: Text('연결되지 않은 악장 ${availability.missingCount}개'),
-              subtitle: Text(
-                availability.missingTitles.join(' · '),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              subtitle: Text(availability.missingTitles.join(' · ')),
             ),
           for (var index = 0; index < localQueue.length; index += 1)
             PlayQueueRow(
@@ -715,18 +705,86 @@ class _StatisticsGroupList extends StatelessWidget {
 }
 
 class _WorksPanel extends StatelessWidget {
-  const _WorksPanel({required this.library, required this.onWorkSelected});
+  const _WorksPanel({
+    required this.library,
+    required this.onWorkSelected,
+    required this.onlyRecorded,
+    required this.sortByComposer,
+    required this.onFilterChanged,
+    required this.onSortChanged,
+  });
 
   final ClassicalLibrary library;
   final ValueChanged<String> onWorkSelected;
+  final bool onlyRecorded;
+  final bool sortByComposer;
+  final ValueChanged<bool> onFilterChanged;
+  final ValueChanged<bool> onSortChanged;
 
   @override
   Widget build(BuildContext context) {
+    final works = library.works
+        .where(
+          (work) =>
+              !onlyRecorded || library.recordingsForWork(work.id).isNotEmpty,
+        )
+        .toList();
+    works.sort((a, b) {
+      final order = sortByComposer
+          ? library
+                .person(a.composerId)
+                .name
+                .ko
+                .compareTo(library.person(b.composerId).name.ko)
+          : a.title.ko.compareTo(b.title.ko);
+      return order == 0 ? a.id.compareTo(b.id) : order;
+    });
     return _Section(
       title: '작품',
-      trailing: '한국어/원어/별칭 보존',
+      trailing: '${works.length}개 작품',
       children: [
-        for (final work in library.works)
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          children: [
+            Semantics(
+              label: '작품 필터',
+              child: DdiroriChoices<bool>(
+                options: const {false: '전체 작품', true: '녹음 있는 작품'},
+                selected: {onlyRecorded},
+                onChanged: (values) =>
+                    onFilterChanged(values.firstOrNull ?? false),
+              ),
+            ),
+            DdiroriMenuButton<bool>(
+              label: '작품 정렬',
+              icon: Icons.sort,
+              onSelected: onSortChanged,
+              itemBuilder: (_) => [
+                CheckedPopupMenuItem(
+                  value: false,
+                  checked: !sortByComposer,
+                  child: const Text('작품명순'),
+                ),
+                CheckedPopupMenuItem(
+                  value: true,
+                  checked: sortByComposer,
+                  child: const Text('작곡가순'),
+                ),
+              ],
+            ),
+          ],
+        ),
+        if (works.isEmpty)
+          DdiroriStatePanel(
+            title: '조건에 맞는 작품이 없습니다.',
+            message: '작품 필터를 바꿔보세요.',
+            action: DdiroriButton(
+              label: '필터 초기화',
+              onPressed: () => onFilterChanged(false),
+            ),
+          ),
+        for (final work in works) ...[
           PlayWorkRow(
             work: work,
             composer: library.person(work.composerId),
@@ -734,6 +792,8 @@ class _WorksPanel extends StatelessWidget {
             recordingCount: library.recordingsForWork(work.id).length,
             onTap: () => onWorkSelected(work.id),
           ),
+          const Divider(height: 1),
+        ],
       ],
     );
   }
@@ -786,20 +846,68 @@ class _Section extends StatelessWidget {
           Text(trailing!, style: Theme.of(context).textTheme.labelLarge);
       final stackHeading =
           constraints.maxWidth / MediaQuery.textScalerOf(context).scale(1) <
-          280;
-      return DdiroriSection(
-        title: title,
-        trailing: stackHeading ? null : tools,
-        spacing: 0,
+          480;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: DdiroriPageHeader(title: title)),
+              if (!stackHeading) Flexible(child: tools),
+            ],
+          ),
           if (stackHeading)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Align(alignment: Alignment.centerLeft, child: tools),
-            ),
+            Align(alignment: Alignment.centerLeft, child: tools),
+          const SizedBox(height: 12),
           ...children,
         ],
       );
     },
+  );
+}
+
+class _LibraryNavigation extends StatelessWidget {
+  const _LibraryNavigation({required this.selected, required this.onChanged});
+  final _LibraryView selected;
+  final ValueChanged<_LibraryView> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surface,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final entry in const [
+            (_LibraryView.library, '라이브러리', Icons.library_music_outlined),
+            (_LibraryView.playback, '현재 재생', Icons.play_circle_outline),
+            (_LibraryView.management, '관리', Icons.folder_outlined),
+            (_LibraryView.listening, '감상', Icons.history_outlined),
+          ])
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DdiroriIconButton(
+                    label: '${entry.$2} 보기',
+                    icon: entry.$3,
+                    selected: selected == entry.$1,
+                    onPressed: () => onChanged(entry.$1),
+                  ),
+                  ExcludeSemantics(
+                    child: Text(
+                      entry.$2,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ),
   );
 }

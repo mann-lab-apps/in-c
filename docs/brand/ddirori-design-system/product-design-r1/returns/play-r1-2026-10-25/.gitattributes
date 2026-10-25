@@ -1,0 +1,2 @@
+# Preserve raw command logs byte-for-byte for report SHA-256 verification.
+qa/*.log -whitespace

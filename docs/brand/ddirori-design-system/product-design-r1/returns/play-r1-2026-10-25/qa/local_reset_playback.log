@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/integration_test/local_reset_playback_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           17.2s
+00:00 +0: home reset drains stop writes and disposal cannot recreate deleted positions
+00:02 +1: (tearDownAll)
+00:02 +1: All tests passed!

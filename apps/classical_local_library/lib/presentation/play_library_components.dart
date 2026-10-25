@@ -25,6 +25,7 @@ class PlayWorkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DdiroriItem(
+    flat: true,
     title: work.title.ko,
     subtitle: [
       _localizedName(composer.name),
@@ -59,6 +60,7 @@ class PlayRecordingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DdiroriItem(
+    flat: true,
     title: recording.title.ko,
     subtitle: '$workTitle · ${recording.recordedYear ?? '연도 미상'}',
     leading: const Icon(Icons.graphic_eq),
@@ -111,20 +113,23 @@ class PlayMovementRow extends StatelessWidget {
       button: onTap != null,
       child: ExcludeSemantics(
         child: DdiroriItem(
+          flat: true,
           title: title,
           subtitle: details.join(' · '),
           leading: CircleAvatar(child: Text('$sequenceNumber')),
-          trailing: current
-              ? const DdiroriStatusBadge(
-                  label: '재생 중',
-                  tone: DdiroriStatusTone.success,
-                )
-              : DdiroriStatusBadge(
-                  label: hasLocalFile ? '재생 가능' : '파일 없음',
-                  tone: hasLocalFile
-                      ? DdiroriStatusTone.success
-                      : DdiroriStatusTone.warning,
-                ),
+          actions: [
+            current
+                ? const DdiroriStatusBadge(
+                    label: '재생 중',
+                    tone: DdiroriStatusTone.success,
+                  )
+                : DdiroriStatusBadge(
+                    label: hasLocalFile ? '재생 가능' : '파일 없음',
+                    tone: hasLocalFile
+                        ? DdiroriStatusTone.success
+                        : DdiroriStatusTone.warning,
+                  ),
+          ],
           selected: current,
           enabled: hasLocalFile || onTap == null,
           onTap: hasLocalFile ? onTap : null,
@@ -142,16 +147,19 @@ class PlaySearchResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DdiroriItem(
+    flat: true,
     title: result.title,
     subtitle: result.subtitle,
     leading: CircleAvatar(
       child: ExcludeSemantics(child: Text(result.type.label.characters.first)),
     ),
-    trailing: DdiroriStatusBadge(
-      label: result.type.label,
-      tone: DdiroriStatusTone.info,
-      icon: _searchResultIcon(result.type),
-    ),
+    actions: [
+      DdiroriStatusBadge(
+        label: result.type.label,
+        tone: DdiroriStatusTone.info,
+        icon: _searchResultIcon(result.type),
+      ),
+    ],
     onTap: onTap,
   );
 }
@@ -174,20 +182,22 @@ class PlayQueueRow extends StatelessWidget {
     label:
         '큐 ${index + 1}번, ${item.displayTitle}, ${item.workTitle}, '
         '${item.recordingTitle}, ${item.fileSourceLabel}'
-        '${current ? ', 현재 재생 중' : ''}',
+        '${current ? ', 현재 악장' : ''}',
     selected: current,
     child: DdiroriItem(
+      flat: true,
       title: item.displayTitle,
       subtitle:
           '${item.workTitle} · ${item.recordingTitle}\n'
           '${item.fileSourceLabel} · ${_fileName(item.path)}',
       leading: CircleAvatar(child: Text('${index + 1}')),
-      trailing: current
-          ? const DdiroriStatusBadge(
-              label: '재생 중',
-              tone: DdiroriStatusTone.success,
-            )
-          : null,
+      actions: [
+        if (current)
+          const DdiroriStatusBadge(
+            label: '현재 악장',
+            tone: DdiroriStatusTone.info,
+          ),
+      ],
       selected: current,
     ),
   );

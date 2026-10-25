@@ -13,6 +13,7 @@ import 'package:classical_local_library/scanned_audio_store.dart';
 import 'package:classical_local_library/sqlite_database.dart';
 import 'package:classical_local_library/sqlite_migration.dart';
 import 'package:flutter/material.dart';
+import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
@@ -39,7 +40,12 @@ void main() {
     );
     await _pumpUntil(
       tester,
-      find.text('음원 파일을 가져와 라이브러리를 시작하세요.'),
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is DdiroriButton &&
+            widget.label == '파일 가져오기' &&
+            widget.onPressed != null,
+      ),
       description: 'production storage startup',
     );
 

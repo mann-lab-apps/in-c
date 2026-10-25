@@ -1,0 +1,83 @@
+service: play
+implementation_commit: uncommitted
+base_product_commit: 6bb5f027cfa5df3a78094a97699c6c5a84c9f0c1
+design_revision: product-design-r1
+design_manifest_sha256: 00d7e83fa897871ccb399c5ca2d8ca1dbb84632e7b630e2df15b84bd693d2efb
+status: implemented-awaiting-review
+runtime: Flutter 3.47.2 / Dart 3.13.2
+simulator: DDIRORI-QA-Play-20261023 / iPhone 17 Pro / iOS 26.5
+database_schema: 14
+screens:
+  index: evidence.json
+  count: 45
+  kind: actual-product-widget-renderer-with-fixture-adapters
+  viewport_widths: [320, 390, 1024]
+  viewport_height: 1000
+  device_scale: 1
+  text_scale: [1, 2]
+  themes: [light, dark]
+  accent: existing-palette-not-final-approval
+  fixture: apps/classical_local_library/test/product_design_r1_test.dart
+  store_capture_approval: false
+tests:
+  - command: dart run tool/run_local_qa.dart --simulator 38B3F034-2212-4566-B09B-AC5DFEEB1187
+    cwd: apps/classical_local_library
+    result: pass
+    log: qa/report.json
+  - command: flutter test
+    cwd: apps/classical_local_library
+    result: pass
+    count: 347
+    log: qa/test.log
+  - command: flutter test
+    cwd: packages/ddirori_ui
+    result: pass
+    count: 38
+    log: shared-test.log
+  - command: flutter analyze
+    cwd: packages/ddirori_ui
+    result: pass
+  - command: flutter test test/product_design_r1_test.dart
+    cwd: apps/classical_local_library
+    environment: evidence.json capture_command
+    result: pass
+    count: 20
+    log: widget-capture.log
+  - command: python3 docs/brand/ddirori-design-system/product-design-r1/revision.py --check
+    result: pass
+    note: manifest was not regenerated; music.dart is not a manifest dependency
+  - command: bundle exec fastlane prepare_ios_metadata manifest:apps/classical-local-library/ios-metadata.yaml mode:check
+    cwd: deployment
+    result: pass
+    log: metadata-check.log
+  - command: git diff --check
+    result: pass
+differences:
+  - design: library followed by current playback area
+    actual: persistent four-view navigation with one-tap current playback
+    reason: prevents large-text mini-player overlap; requires design review
+  - design: optional tablet split layout
+    actual: single-column layout at 1024px, gutter 32
+    reason: preserves existing navigation and reading order
+  - design: review mock catalog and suggested palette
+    actual: existing sample catalog and original palette
+    reason: preserves real entity IDs and avoids unapproved brand decisions
+shared_proposals:
+  - component: DdiroriPlaybackProgress
+    status: internal-layout-fix-implemented-awaiting-review
+    api_changed: false
+    details: README.md common change section
+    consumers: [PlayNowPlayingControls]
+metadata_check: valid; source pending; content reviewed false
+unverified:
+  - Physical VoiceOver speech and navigation
+  - Real Files/iCloud provider selection and permission UI
+  - Physical MP3/FLAC/M4A audibility, Bluetooth, wired output and OS interruption
+  - iPad native execution in this run; 1024px widget rendering only
+  - Store screenshot capture, release signing, metadata pinning and upload
+limitations:
+  - Fake playback state in widget images does not prove audible output
+  - Native simulator and host PCM evidence do not prove physical device output
+  - Retry reloads the existing queue from its first item
+  - Four-view navigation awaits product design review
+  - Unrelated concurrent changes and later design revisions were preserved, not adopted

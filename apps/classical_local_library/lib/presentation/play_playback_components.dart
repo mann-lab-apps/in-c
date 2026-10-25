@@ -32,6 +32,7 @@ class PlayNowPlayingControls extends StatelessWidget {
         duration != null &&
         duration > Duration.zero &&
         currentItem != null &&
+        state.failure == null &&
         !busy;
     final statusLabel = state.isSeeking
         ? '탐색 중'
@@ -45,41 +46,35 @@ class PlayNowPlayingControls extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        '현재 재생',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      currentItem?.displayTitle ?? '현재 재생',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      state.failure != null
-                          ? state.playerState.label
-                          : currentItem == null
-                          ? '재생할 음원을 선택하세요.'
-                          : '${state.summary}\n'
-                                '${currentItem.workTitle} · '
-                                '${currentItem.recordingTitle} · '
-                                '${currentItem.fileSourceLabel}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    currentItem == null
+                        ? '재생할 음원을 선택하세요.'
+                        : '${_playerStateLabel(state.playerState)} · '
+                              '${state.currentIndex + 1}/${state.queue.length}\n'
+                              '${currentItem.workTitle} · '
+                              '${currentItem.recordingTitle} · '
+                              '${currentItem.fileSourceLabel}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 8),
               if (busy)
-                const SizedBox.square(
-                  dimension: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                DdiroriProgress(size: 24, label: statusLabel ?? '불러오는 중')
               else
                 DdiroriStatusBadge(
                   label: _playerStateLabel(state.playerState),
@@ -92,6 +87,11 @@ class PlayNowPlayingControls extends StatelessWidget {
             DdiroriBanner(
               message: failure.userMessage,
               kind: DdiroriNoticeKind.error,
+              action: DdiroriIconButton(
+                label: '재생 다시 시도',
+                icon: Icons.refresh,
+                onPressed: canUseQueue && !busy ? onPlayPause : null,
+              ),
             ),
           if (state.failure != null) const SizedBox(height: 8),
           DdiroriToolbar(
@@ -120,12 +120,19 @@ class PlayNowPlayingControls extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           DdiroriPlaybackProgress(
+            key: ValueKey(currentItem?.trackId),
             sliderKey: const ValueKey('playback-progress'),
             position: state.normalizedPosition,
             duration: duration,
             bufferedPosition: state.normalizedBufferedPosition,
             enabled: canSeek,
-            statusLabel: statusLabel,
+            statusLabel:
+                statusLabel ??
+                (currentItem == null
+                    ? '선택한 음원 없음'
+                    : duration == null || duration <= Duration.zero
+                    ? '재생 길이 확인 전'
+                    : null),
             onSeek: canSeek ? onSeek : null,
           ),
         ],

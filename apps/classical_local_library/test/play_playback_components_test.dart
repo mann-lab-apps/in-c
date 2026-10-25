@@ -5,6 +5,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets(
+    'seek draft survives engine ticks but never changes engine position',
+    (t) async {
+      var state = _playingState();
+      final seeks = <Duration>[];
+      Future<void> render() => t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayNowPlayingControls(
+              state: state,
+              canUseQueue: true,
+              commandRunning: false,
+              onPlayPause: _noop,
+              onNext: _noop,
+              onStop: _noop,
+              onSeek: seeks.add,
+            ),
+          ),
+        ),
+      );
+      await render();
+      t.widget<Slider>(find.byType(Slider)).onChanged!(90000);
+      await t.pump();
+      state = state.copyWith(position: const Duration(seconds: 31));
+      await render();
+      expect(t.widget<Slider>(find.byType(Slider)).value, 90000);
+      expect(state.position, const Duration(seconds: 31));
+      expect(seeks, isEmpty);
+      t.widget<Slider>(find.byType(Slider)).onChangeEnd!(90000);
+      await t.pump();
+      expect(seeks, [const Duration(seconds: 90)]);
+      expect(t.widget<Slider>(find.byType(Slider)).value, 31000);
+      expect(
+        find.bySemanticsLabel(RegExp(r'재생 위치 00:31 / 02:00')),
+        findsOneWidget,
+      );
+      state = state.copyWith(
+        failure: const LocalPlaybackFailure(
+          kind: LocalPlaybackFailureKind.loadFailed,
+          userMessage: '오디오를 불러오지 못했습니다.',
+        ),
+      );
+      await render();
+      expect(t.widget<Slider>(find.byType(Slider)).onChanged, isNull);
+      expect(t.widget<Slider>(find.byType(Slider)).value, 31000);
+    },
+  );
+
   testWidgets('현재 재생 컨트롤은 상태와 동작을 연결한다', (tester) async {
     var toggles = 0;
     var next = 0;
