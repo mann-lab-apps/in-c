@@ -1,0 +1,21 @@
+Studio Electron shared panel and single undo passed {
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 255,
+  overflow: false
+}
+AssertionError [ERR_ASSERTION]: Visible file controls must paint pixels, not just have DOM boxes
+    at verifyR1 (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:184:10)
+    at async /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:61:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

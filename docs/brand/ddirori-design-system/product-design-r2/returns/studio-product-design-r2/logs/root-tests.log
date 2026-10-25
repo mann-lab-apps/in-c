@@ -1,0 +1,305 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+TAP version 13
+# Subtest: API snapshots match across macOS and Linux checkout paths without losing type information
+ok 1 - API snapshots match across macOS and Linux checkout paths without losing type information
+  ---
+  duration_ms: 0.91375
+  type: 'test'
+  ...
+TAP version 13
+# Subtest: aliases resolve across source/palette and preserve arrays and fractional units
+ok 1 - aliases resolve across source/palette and preserve arrays and fractional units
+  ---
+  duration_ms: 1.353083
+  type: 'test'
+  ...
+# Subtest: missing aliases and cycles fail instead of silently substituting
+ok 2 - missing aliases and cycles fail instead of silently substituting
+  ---
+  duration_ms: 1.925708
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14.320834
+······-------xxxxxxxxxxxx·········---------------···································································································································································································································································································································stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"G","line":2}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"F","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":3}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+········································································································································-·················································································································································
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ddirori_web/src/adoption.test.tsx [ packages/ddirori_web/src/adoption.test.tsx ]
+ReferenceError: HTMLDialogElement is not defined
+ ❯ packages/ddirori_web/src/adoption.test.tsx:7:3
+      5| afterEach(cleanup);
+      6| beforeAll(() => {
+      7|   HTMLDialogElement.prototype.showModal = function () { this.open = tr…
+       |   ^
+      8|   HTMLDialogElement.prototype.close = function () { this.open = false;…
+      9| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  packages/ddirori_web/src/basic.test.tsx [ packages/ddirori_web/src/basic.test.tsx ]
+ReferenceError: HTMLElement is not defined
+ ❯ packages/ddirori_web/src/basic.test.tsx:22:23
+     20|   ToggleButton,
+     21| } from "./index";
+     22| Object.defineProperty(HTMLElement.prototype, "showPopover", {
+       |                       ^
+     23|   configurable: true,
+     24|   value(this: HTMLElement) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  packages/ddirori_web/src/studio.test.tsx [ packages/ddirori_web/src/studio.test.tsx ]
+ReferenceError: HTMLDialogElement is not defined
+ ❯ packages/ddirori_web/src/studio.test.tsx:11:3
+      9| vi.mock('../catalog/studio/Score', () => ({ Score: () => <div>Score fi…
+     10| beforeAll(() => {
+     11|   HTMLDialogElement.prototype.showModal = function () { this.setAttrib…
+       |   ^
+     12|   HTMLDialogElement.prototype.close = function () { this.removeAttribu…
+     13| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  docs/brand/ddirori-design-system/tools/api-portability.test.mjs [ docs/brand/ddirori-design-system/tools/api-portability.test.mjs ]
+Error: No test suite found in file /Users/jaemankim/Desktop/privates/coding/in-c/docs/brand/ddirori-design-system/tools/api-portability.test.mjs
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  docs/brand/ddirori-design-system/tools/token-model.test.mjs [ docs/brand/ddirori-design-system/tools/token-model.test.mjs ]
+Error: No test suite found in file /Users/jaemankim/Desktop/privates/coding/in-c/docs/brand/ddirori-design-system/tools/token-model.test.mjs
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > locks async action synchronously and re-enables after completion
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:10:9
+      8|         let finish!: () => void;
+      9|         const action = vi.fn(() => new Promise<void>(r => finish = r));
+     10|         render(<Button onClick={action}>저장</Button>);
+       |         ^
+     11|         const button = screen.getByRole('button');
+     12|         fireEvent.click(button);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > syncs external query and clear delegates to parent
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:21:30
+     19|     it('syncs external query and clear delegates to parent', () => {
+     20|         const changed = vi.fn();
+     21|         const { rerender } = render(<Search value="바흐" onChange={chang…
+       |                              ^
+     22|         rerender(<Search value="평균율" onChange={changed}/>);
+     23|         expect((screen.getByRole('searchbox') as HTMLInputElement).val…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > rejects invalid numeric entry before emitting
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:29:9
+     27|     it('rejects invalid numeric entry before emitting', () => {
+     28|         const changed = vi.fn();
+     29|         render(<NumberControl label="빠르기" value={96} min={40} max={240…
+       |         ^
+     30|         const input = screen.getByRole('textbox');
+     31|         fireEvent.change(input, { target: { value: '999' } });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > multi-choice adds and removes without losing peers
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:42:9
+     40|         const changed = vi.fn();
+     41|         const options = [{ value: 1, label: '피아노' }, { value: 2, label…
+     42|         render(<Choices label="악기" options={options} selected={[1]} on…
+       |         ^
+     43|         fireEvent.click(screen.getByRole('button', { name: '현악' }));
+     44|         expect(changed).toHaveBeenLastCalledWith([1, 2]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > page edges block navigation
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:50:9
+     48|     it('page edges block navigation', () => {
+     49|         const changed = vi.fn();
+     50|         render(<PageControls page={1} count={2} onChange={changed}/>);
+       |         ^
+     51|         expect((screen.getByRole('button', { name: '이전 페이지' }) as HTML…
+     52|         fireEvent.click(screen.getByRole('button', { name: '다음 페이지' })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > progress exposes measured value only when available
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:56:30
+     54|     });
+     55|     it('progress exposes measured value only when available', () => {
+     56|         const { rerender } = render(<Progress label="준비"/>);
+       |                              ^
+     57|         expect(screen.getByRole('progressbar').hasAttribute('aria-valu…
+     58|         rerender(<Progress label="가져오기" value={.65}/>);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > Ddirori contracts > tuner no-signal cannot expose a stale numeric pitch
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:62:9
+     60|     });
+     61|     it('tuner no-signal cannot expose a stale numeric pitch', () => {
+     62|         render(<TunerMeter status="noSignal" cents={12}/>);
+       |         ^
+     63|         expect(screen.getByRole('img').getAttribute('aria-label')).toB…
+     64|         expect(screen.queryByText('12 cents')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > service handoff blocks unavailable destinations and names external actions
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:69:38
+     67|
+     68| it('service handoff blocks unavailable destinations and names external…
+     69|  const open=vi.fn();const {rerender}=render(<ServiceLink product="play…
+       |                                      ^
+     70|  fireEvent.click(screen.getByRole('button'));expect(open).not.toHaveBe…
+     71|  rerender(<ServiceLink product="play" name="띠로리 플레이" description="관련 연…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  packages/ddirori_web/src/components.test.tsx > visual title role preserves the requested heading level
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/components.test.tsx:76:2
+     74|
+     75| it('visual title role preserves the requested heading level', () => {
+     76|  render(<Text as="h3" variant="screenTitle">작품 목록</Text>);
+       |  ^
+     77|  expect(screen.getByRole('heading', {level:3}).className).toContain('d…
+     78|  expect(screen.queryByRole('heading', {level:1})).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  packages/ddirori_web/src/item.test.tsx > flat rows keep open, selection, trailing and footer actions independent
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/item.test.tsx:10:23
+      8| it('flat rows keep open, selection, trailing and footer actions indepe…
+      9|   const open = vi.fn(), select = vi.fn(), info = vi.fn(), share = vi.f…
+     10|   const {container} = render(<List label="악보">
+       |                       ^
+     11|     <Item title="연습곡" subtitle="작곡가" flat selecting selected onOpen={o…
+     12|       trailing={<button onClick={info}>정보</button>}
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+ FAIL  packages/ddirori_web/src/item.test.tsx > disabled rows isolate all interactive slots and can become enabled again
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/item.test.tsx:34:22
+     32|   const item = (disabled: boolean) => <Item title="녹음" disabled={disab…
+     33|     leading={<button>재생</button>} trailing={<button>메뉴</button>} actio…
+     34|   const {rerender} = render(item(true));
+       |                      ^
+     35|   for (const name of ['재생', '메뉴', '내보내기']) {
+     36|     expect(screen.getByRole('button', {name}).closest('[inert]')).not.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/17]⎯
+
+ FAIL  packages/ddirori_web/src/item.test.tsx > existing card calls retain their defaults without empty trailing slots
+ReferenceError: document is not defined
+ ❯ render node_modules/@testing-library/react/dist/pure.js:256:5
+ ❯ packages/ddirori_web/src/item.test.tsx:48:23
+     46|
+     47| it('existing card calls retain their defaults without empty trailing s…
+     48|   const {container} = render(<Item title="기존 카드" actions={<button>정보</…
+       |                       ^
+     49|   expect(container.querySelector('.dd-item--flat')).toBeNull();
+     50|   expect(container.querySelector('.dd-item-trailing')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/17]⎯
+
+
+ Test Files  7 failed | 51 passed | 1 skipped (59)
+      Tests  12 failed | 619 passed | 23 skipped (654)
+   Start at  22:22:20
+   Duration  78.49s (transform 5.85s, setup 0ms, import 12.37s, tests 81.11s, environment 2.71s)
+

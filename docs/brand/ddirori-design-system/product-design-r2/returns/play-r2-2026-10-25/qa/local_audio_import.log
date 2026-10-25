@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/integration_test/local_audio_import_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.8s
+00:00 +0: picked audio is copied, indexed, played, and restored on iOS
+00:01 +1: (tearDownAll)
+00:01 +1: All tests passed!

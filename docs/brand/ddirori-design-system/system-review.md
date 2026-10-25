@@ -1,5 +1,10 @@
 # 시스템 고도화: 감사·레퍼런스·적용 경계
 
+2026-10-25 현재 설계 방향: [서비스 테마 확장 기준](service-theme-contract.md) · [실행 가능한 조합 기준](theme-reference/README.md). 중앙에서는 공통 문법·컴포넌트를 관리하고 각 서비스에서 UX·전용 컴포넌트를 설계한다. 아래 R1~R3 인계와 날짜별 검토는 탐색 이력이며 현재 서비스 화면의 필수 구현 순서가 아니다.
+
+화면 설계 후속: [Product Design R1](product-design-r1/README.md). [실행 화면](http://127.0.0.1:8091/?products)에서 세 앱·팔레트·상태·v8 아이콘을 비교한다. 실제 앱 적용 완료와 별개인 디자인 인계 revision이다.
+
+
 2026-10-25 현재 도입 기준: [공유 기준](shared-baseline.md) · [지원 환경](support-matrix.md) · [이번 검증](evidence/shared-baseline-2026-10-25/README.md). 아래 이전 기록은 날짜별 이력이며 현재 적용 범위는 위 링크를 우선한다.
 
 

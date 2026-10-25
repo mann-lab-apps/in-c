@@ -1,0 +1,103 @@
+{
+  "manifestSha256": "af56b0a3ca6e25b9928835645562f5056cfa16553f2881bdb9750df37636f416",
+  "differences": [
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/lib/library_detail_screen.dart",
+      "expected": "6ecab626e3c3e500facd1f8305771d06dd23815e6899e3b752e28a285fca9c8e",
+      "actual": "fbf382ca16fc5097e0328624a0b235dfb986d95489c84341dee5fef6173c12ed",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/lib/main.dart",
+      "expected": "b098ea1f5372f899d2666e7806e05f1d2c3ca2a67729500d9f03585ed270e9b6",
+      "actual": "e7518f8ebd0ccaa81a9402f67d6539682277d1582fdc6bbd34a7d814a85fef11",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/lib/presentation/library_home_components.dart",
+      "expected": "563572921d3bc73a436502de45d2d59be161c9fc70f884806e802e6c7cef3c69",
+      "actual": "639b7b5abe3e639c4b26b9d480942d5a53ab36a9268aac9cfda3ed861d2635d7",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/lib/presentation/play_playback_components.dart",
+      "expected": "c87139794c48842b40ba0cc7652ab03e4ccfbb676066fd265962790a4dd71fc7",
+      "actual": "410219109280180097aa2fdb6ff05de2365ba780206d18813e9acc522652a0a5",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/lib/presentation/play_library_components.dart",
+      "expected": "87b75d4e40f72cf69e9a0db568894c7d067b5c60fa7687d5427f860b08bbe448",
+      "actual": "8c7bbe59af4cf4af0b2bfd4ff95bccf806fa4af521175596909492564ae37aa3",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:play",
+      "file": "apps/classical_local_library/test/product_design_r1_test.dart",
+      "expected": "0ad33806dcbffa1cf9574c50ecc51ebe33128f7e9366560ae9aba27c5049dfa2",
+      "actual": "61858154dc8cdae397993cd16415da9a46c53410bc1474e830c01700f20e53b2",
+      "classification": "implemented-play-change"
+    },
+    {
+      "group": "product:score",
+      "file": "apps/in_c_sheet/lib/main.dart",
+      "expected": "66331e10d40372bb0f087b9f27b4cb665868c7b3bd4a4eebb9e8700d865e3373",
+      "actual": "71cc48742866a9d902ca351f8b0e325e4c3c2cf72fcc78cbd3012f87513202a2",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:score",
+      "file": "apps/in_c_sheet/test/score_r1_adoption_test.dart",
+      "expected": "128a48b2b2bb73a9ee179d0a9ca077284e56066ab725e381a008290bdd64420e",
+      "actual": "1429a3fea6b3ac8e93e36b714d314917b63de334530116ff82b602b1ab3c1888",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "src/renderer/src/App.tsx",
+      "expected": "b741f43a5f71f8684e6b84281b0bbe58020ba8a77d0506998960e47c1cbaee78",
+      "actual": "2b25c5021fb6cd93260898bbec6eb226ea0133b06df5be797291ffb5650e8cce",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "src/renderer/src/SpanProperties.tsx",
+      "expected": "f27ed9721c6114ae353b39e221e58257c61db8b1d5c496caa827a76051f03841",
+      "actual": "1ec0311985d81350b95b5ba657b7db79a5d5fde39f852e05c16b5abebe4f988c",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "src/renderer/src/notation/NotationPreview.tsx",
+      "expected": "691341714aa2cc9a9d86f5f475092546c1fc854cf91ecd3d6d3020726f06aff7",
+      "actual": "0f2a40c977fea0f68e753c969e10d1944b71038f256f31d3958bc9efa5921f02",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "src/renderer/src/editor/keyboard-input.ts",
+      "expected": "b9386d8ae84b2d3650468d21b77073485b185570a13599a386a04e286e4945c8",
+      "actual": "cd8ea5fe4094e7e8f906312ef6bf71ce72567d4c814287a38005abc5be94aeda",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "src/renderer/src/editor/keyboard-input.test.ts",
+      "expected": "c8185d61820d7a746a9dfa6233dbcb74864dcd057da3c0dd8f32e2094b89d40f",
+      "actual": "5e07980f477a8224d3c03d5e022298c65e5cd9d4558128b78a6962364b99687f",
+      "classification": "concurrent-change-review-required"
+    },
+    {
+      "group": "product:studio",
+      "file": "scripts/verify-ddirori-studio.cjs",
+      "expected": "83ed8831cf62bfc9f8defdfb6b49fb12d145bd1c3bbd2f4ecfd452d4ca56c537",
+      "actual": "6f8c8fd320c78bbed6deb4b0c42b7904473ffdfa01fb3b522a7786df73051283",
+      "classification": "concurrent-change-review-required"
+    }
+  ]
+}

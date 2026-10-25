@@ -1,0 +1,545 @@
+{
+  "method": "sRGB relative luminance; opaque token pairs only. Not a full accessibility audit or color-vision simulation.",
+  "checks": [
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 6.19,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.3,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 14.52,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 9.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.3,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 3.95,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 6.15,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 7.31,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "light",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 6.53,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 8.95,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 9.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 12.83,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 9.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 9.53,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.49,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 9.02,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 9.32,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "violet",
+      "theme": "dark",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 10.48,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 6.19,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 5.02,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 14.67,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 10.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 5.02,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 3.95,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 6.15,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 7.31,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "light",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 6.53,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 8.95,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 10.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 11.83,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 10.76,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 10.51,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.49,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 9.02,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 9.32,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "blue",
+      "theme": "dark",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 10.48,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 6.19,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 6.53,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 14.69,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 7.5,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 6.53,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 3.95,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 6.15,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 7.31,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "light",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 6.53,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "text",
+      "bg": "background",
+      "ratio": 16.29,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "muted",
+      "bg": "background",
+      "ratio": 8.95,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "onAction",
+      "bg": "action",
+      "ratio": 9.56,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "onSelection",
+      "bg": "selection",
+      "ratio": 11.97,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "onBrand",
+      "bg": "brand",
+      "ratio": 7.5,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "focus",
+      "bg": "surface",
+      "ratio": 9.33,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "controlBorder",
+      "bg": "surface",
+      "ratio": 4.49,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "error",
+      "bg": "surface",
+      "ratio": 9.02,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "success",
+      "bg": "surface",
+      "ratio": 9.32,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "palette": "coral",
+      "theme": "dark",
+      "fg": "warning",
+      "bg": "surface",
+      "ratio": 10.48,
+      "minimum": 4.5,
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+R2 inputs/artifacts changed; inspect changes, do not blindly regenerate:
+apps/classical_local_library/lib/library_detail_screen.dart
+apps/classical_local_library/lib/main.dart
+apps/classical_local_library/lib/presentation/library_home_components.dart
+apps/classical_local_library/lib/presentation/play_library_components.dart
+apps/classical_local_library/lib/presentation/play_playback_components.dart
+apps/classical_local_library/test/product_design_r1_test.dart
+apps/in_c_sheet/lib/main.dart
+apps/in_c_sheet/lib/sheet_library_controller.dart
+apps/in_c_sheet/test/score_r1_adoption_test.dart
+scripts/verify-ddirori-studio.cjs
+src/renderer/src/App.tsx
+src/renderer/src/SpanProperties.tsx
+src/renderer/src/editor/keyboard-input.test.ts
+src/renderer/src/editor/keyboard-input.ts
+src/renderer/src/notation/NotationPreview.tsx

@@ -1,0 +1,10 @@
+{
+  "localLinks": 64,
+  "missing": [],
+  "http": {
+    "http://127.0.0.1:8096/catalog/product-r3.html": 200,
+    "http://127.0.0.1:8097/docs/brand/ddirori-design-system/product-design-r3/preview/catalog/product-r3.html": 200,
+    "http://127.0.0.1:8097/docs/brand/ddirori-design-system/product-design-r2/preview/catalog/product-r2.html": 200
+  },
+  "manifestExists": true
+}

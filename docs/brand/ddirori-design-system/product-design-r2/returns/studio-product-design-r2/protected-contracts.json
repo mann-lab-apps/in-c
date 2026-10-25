@@ -1,0 +1,44 @@
+[
+  {
+    "path": "src/score-core/commands.ts",
+    "baseSha256": "802e9890b1e347c77f6299fa81ef0d576b108e9fcde3d845cfb6a8fee0c447bb",
+    "currentSha256": "802e9890b1e347c77f6299fa81ef0d576b108e9fcde3d845cfb6a8fee0c447bb",
+    "unchanged": true
+  },
+  {
+    "path": "src/score-core/types.ts",
+    "baseSha256": "25dc2bc082875803417f3657128826c5060c53526cdca6b1fa8fcfdc2a22cebb",
+    "currentSha256": "25dc2bc082875803417f3657128826c5060c53526cdca6b1fa8fcfdc2a22cebb",
+    "unchanged": true
+  },
+  {
+    "path": "src/project/schema.ts",
+    "baseSha256": "037f0a71212825f351cf01d82eac2513ebefcee041add1afe4cbd2039d90f69a",
+    "currentSha256": "037f0a71212825f351cf01d82eac2513ebefcee041add1afe4cbd2039d90f69a",
+    "unchanged": true
+  },
+  {
+    "path": "src/musicxml/serialize.ts",
+    "baseSha256": "ed3ef116e2a5e78f19cf045852c3811ed7d4cb33b1cf2c66fb774eaba0f02154",
+    "currentSha256": "ed3ef116e2a5e78f19cf045852c3811ed7d4cb33b1cf2c66fb774eaba0f02154",
+    "unchanged": true
+  },
+  {
+    "path": "src/renderer/src/styles.css",
+    "baseSha256": "a4da3bcec75742ff196ea14ad423b7d33d823bc68d0f1b334b4952fe2fad08cb",
+    "currentSha256": "a4da3bcec75742ff196ea14ad423b7d33d823bc68d0f1b334b4952fe2fad08cb",
+    "unchanged": true
+  },
+  {
+    "path": "src/renderer/src/studio-r1.css",
+    "baseSha256": "4f2951dd65e359e679f6b996a282f95ba4a24c0179040b5d941e606ede18439c",
+    "currentSha256": "4f2951dd65e359e679f6b996a282f95ba4a24c0179040b5d941e606ede18439c",
+    "unchanged": true
+  },
+  {
+    "path": "docs/testing/notation-snapshot-baseline.json",
+    "baseSha256": "765c39fa9637304a1f0e082637c027f1cb2d4e4f9fab4943e07b67618858ca73",
+    "currentSha256": "765c39fa9637304a1f0e082637c027f1cb2d4e4f9fab4943e07b67618858ca73",
+    "unchanged": true
+  }
+]

@@ -334,7 +334,7 @@
       "name": "Item",
       "file": "packages/ddirori_web/src/index.tsx",
       "line": 109,
-      "signature": "export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {\n    title: string;\n    subtitle?: string;\n    leading?: ReactNode;\n    actions?: ReactNode;\n    selected?: boolean;\n    selecting?: boolean;\n    disabled?: boolean;\n    onSelected?: (v: boolean) => void;\n    onOpen?: () => void;\n})",
+      "signature": "export function Item({ title, subtitle, leading, trailing, actions, flat = false, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {\n    title: string;\n    subtitle?: string;\n    leading?: ReactNode;\n    trailing?: ReactNode;\n    actions?: ReactNode;\n    flat?: boolean;\n    selected?: boolean;\n    selecting?: boolean;\n    disabled?: boolean;\n    onSelected?: (v: boolean) => void;\n    onOpen?: () => void;\n})",
       "props": [
         {
           "name": "title",
@@ -355,10 +355,22 @@
           "default": "—"
         },
         {
+          "name": "trailing",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
           "name": "actions",
           "type": "ReactNode",
           "required": false,
           "default": "—"
+        },
+        {
+          "name": "flat",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
         },
         {
           "name": "selected",
@@ -395,7 +407,7 @@
     {
       "name": "Banner",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 122,
+      "line": 131,
       "signature": "export function Banner({ children, kind = 'info', action }: {\n    children: ReactNode;\n    kind?: 'info' | 'success' | 'warning' | 'error';\n    action?: ReactNode;\n})",
       "props": [
         {
@@ -421,7 +433,7 @@
     {
       "name": "StatePanel",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 130,
+      "line": 139,
       "signature": "export function StatePanel({ title, message, error = false, bachFace = false, action, diagnostic }: {\n    title: string;\n    message: string;\n    error?: boolean;\n    bachFace?: boolean;\n    action?: ReactNode;\n    diagnostic?: string;\n})",
       "props": [
         {
@@ -465,7 +477,7 @@
     {
       "name": "Progress",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 140,
+      "line": 149,
       "signature": "export function Progress({ value, label = '불러오는 중' }: {\n    value?: number;\n    label?: string;\n})",
       "props": [
         {
@@ -485,7 +497,7 @@
     {
       "name": "SettingsRow",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 144,
+      "line": 153,
       "signature": "export function SettingsRow({ label, description, children }: {\n    label: string;\n    description?: string;\n    children: ReactNode;\n})",
       "props": [
         {
@@ -511,7 +523,7 @@
     {
       "name": "Dialog",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 149,
+      "line": 158,
       "signature": "export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {\n    open: boolean;\n    title: string;\n    children: ReactNode;\n    onClose: () => void;\n    actions?: ReactNode;\n    sheet?: boolean;\n    busy?: boolean;\n})",
       "props": [
         {
@@ -561,7 +573,7 @@
     {
       "name": "NumberControl",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 176,
+      "line": 185,
       "signature": "export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {\n    label: string;\n    value: number;\n    onChange: (v: number) => void;\n    min: number;\n    max: number;\n    step?: number;\n    unit?: string;\n    disabled?: boolean;\n})",
       "props": [
         {
@@ -617,7 +629,7 @@
     {
       "name": "PageControls",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 212,
+      "line": 221,
       "signature": "export function PageControls({ page, count, onChange, performance = false }: {\n    page: number;\n    count?: number;\n    onChange: (v: number) => void;\n    performance?: boolean;\n})",
       "props": [
         {
@@ -649,7 +661,7 @@
     {
       "name": "Transport",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 218,
+      "line": 227,
       "signature": "export function Transport({ playing, onToggle, position = 0, duration, onSeek, onPrevious, onNext }: {\n    playing: boolean;\n    onToggle?: () => void;\n    position?: number;\n    duration?: number;\n    onSeek?: (n: number) => void;\n    onPrevious?: () => void;\n    onNext?: () => void;\n})",
       "props": [
         {
@@ -699,14 +711,14 @@
     {
       "name": "TunerStatus",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 227,
+      "line": 236,
       "signature": "export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfidence';",
       "props": []
     },
     {
       "name": "TunerMeter",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 228,
+      "line": 237,
       "signature": "export function TunerMeter({ status, cents, note = 'A4' }: {\n    status: TunerStatus;\n    cents?: number;\n    note?: string;\n})",
       "props": [
         {
@@ -732,7 +744,7 @@
     {
       "name": "BeatIndicator",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 236,
+      "line": 245,
       "signature": "export function BeatIndicator({ beats, currentBeat, running }: {\n    beats: number;\n    currentBeat: number;\n    running: boolean;\n})",
       "props": [
         {
@@ -758,14 +770,14 @@
     {
       "name": "ServiceAvailability",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 244,
+      "line": 253,
       "signature": "export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';",
       "props": []
     },
     {
       "name": "ServiceLink",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 246,
+      "line": 255,
       "signature": "export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void})",
       "props": [
         {
@@ -2299,7 +2311,7 @@
     {
       "name": "DdiroriTransport",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 267,
+      "line": 288,
       "kind": "class",
       "signature": "class DdiroriTransport extends StatelessWidget {\nconst DdiroriTransport({\n    super.key,\n    required this.playing,\n    required this.onToggle,\n    this.position = Duration.zero,\n    this.duration,\n    this.onSeek,\n    this.onPrevious,\n    this.onNext,\n    this.bufferedPosition,\n    this.statusLabel,\n    this.variant = DdiroriTransportVariant.full,\n  });\n  final bool playing;\n  final VoidCallback? onToggle, onPrevious, onNext;\n  final Duration position;\n  final Duration? duration;\n  final Duration? bufferedPosition;\n  final String? statusLabel;\n  final DdiroriTransportVariant variant;\n  final ValueChanged<Duration>? onSeek;\n}",
       "fields": [
@@ -2319,7 +2331,7 @@
     {
       "name": "DdiroriBeatIndicator",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 330,
+      "line": 351,
       "kind": "class",
       "signature": "class DdiroriBeatIndicator extends StatelessWidget {\nconst DdiroriBeatIndicator({\n    super.key,\n    required this.beats,\n    required this.currentBeat,\n    this.running = false,\n  }) : assert(beats > 0);\n  final int beats, currentBeat;\n  final bool running;\n}",
       "fields": [
@@ -2333,7 +2345,7 @@
     {
       "name": "DdiroriTunerStatus",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 380,
+      "line": 401,
       "kind": "enum",
       "signature": "enum DdiroriTunerStatus { flat, centered, sharp, noSignal, lowConfidence }",
       "fields": [],
@@ -2342,7 +2354,7 @@
     {
       "name": "DdiroriTunerMeter",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 382,
+      "line": 403,
       "kind": "class",
       "signature": "class DdiroriTunerMeter extends StatelessWidget {\nconst DdiroriTunerMeter({\n    super.key,\n    required this.status,\n    this.cents,\n    this.note = 'A4',\n  });\n  final DdiroriTunerStatus status;\n  final double? cents;\n  final String note;\n}",
       "fields": [

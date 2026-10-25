@@ -1,0 +1,548 @@
+{
+  "atUtc": "2026-10-25T13:22:28.638635+00:00",
+  "head": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "scope": "Read-only repository capability audit; no native integration/device proof",
+  "files": {
+    "README.md": {
+      "sha256": "4ea4792f8d4b66e8eb5f2dfa34ed22c1736465933a2e2cb7d3a44f1177fd33c8",
+      "anchors": [
+        {
+          "text": "cross-app data sharing",
+          "lines": [
+            21
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/README.md": {
+      "sha256": "1c7f4fd8b6a8a8b4dd903016fe2a785b652f697c8d4874aacbacf66ddeda8155",
+      "anchors": [
+        {
+          "text": "로컬",
+          "lines": [
+            3,
+            85,
+            97,
+            134,
+            147
+          ]
+        },
+        {
+          "text": "import",
+          "lines": [
+            51,
+            342,
+            349,
+            358,
+            367
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/main.dart": {
+      "sha256": "e7518f8ebd0ccaa81a9402f67d6539682277d1582fdc6bbd34a7d814a85fef11",
+      "anchors": [
+        {
+          "text": "ENABLE_DEMO_LIBRARY",
+          "lines": [
+            54
+          ]
+        },
+        {
+          "text": "Future<void> _importAudioFiles",
+          "lines": [
+            997
+          ]
+        },
+        {
+          "text": "Future<void> _openCatalogRegistration",
+          "lines": [
+            1195
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/folder_picker.dart": {
+      "sha256": "76313bd4d70712f2d3e1b0b48deda9cd10c549f49ac93bac50796fb640da2f1d",
+      "anchors": [
+        {
+          "text": "class PlatformAudioFilePicker",
+          "lines": [
+            18
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/local_audio_import.dart": {
+      "sha256": "a8d95d9455462dd98e5d727a5ecfedfabc0d3028086ab11d0a357348cb02ad67",
+      "anchors": [
+        {
+          "text": "class LocalAudioImportPolicy",
+          "lines": [
+            212
+          ]
+        },
+        {
+          "text": "Future<LocalAudioImportBatchResult> _importFiles",
+          "lines": [
+            325
+          ]
+        },
+        {
+          "text": "Future<ManagedAudioExportFile> exportFileFor",
+          "lines": [
+            159,
+            511
+          ]
+        },
+        {
+          "text": "Future<LocalAudioImportItemResult> _copySelection",
+          "lines": [
+            555
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/local_audio_export.dart": {
+      "sha256": "0a51554d1a9759c2eb351ac85b59be6df7a511e9482c1006019e0e0de7319564",
+      "anchors": [
+        {
+          "text": "class SharePlusManagedAudioExporter",
+          "lines": [
+            28
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/local_audio_scanner.dart": {
+      "sha256": "a031623c0c4c990cdf63e0d4a2d36639bc457bd76423c8aad36de4b89a0ae7b9",
+      "anchors": [
+        {
+          "text": "audioExtensionForPath",
+          "lines": [
+            43,
+            80
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/catalog_registration_screen.dart": {
+      "sha256": "e361377c04dc43b868187d9f80f5794d5da1a3b775369ff80fa1ee49bd325830",
+      "anchors": [
+        {
+          "text": "String? _required",
+          "lines": [
+            208
+          ]
+        },
+        {
+          "text": "'라이브러리에 저장'",
+          "lines": [
+            315
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/library_management.dart": {
+      "sha256": "614ceaab56e8c272ddeb3610f5a1e854b91f9268b4e41f6556ce118305f7292a",
+      "anchors": [
+        {
+          "text": "Future<void> _exportManagedFile",
+          "lines": [
+            610
+          ]
+        },
+        {
+          "text": "Future<void> _editLink",
+          "lines": [
+            457
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/imslp.dart": {
+      "sha256": "5d9aa7b4ae6495b4ce55f143a71918611fa0d6073f73c3bbfae6ecd17b14a72a",
+      "anchors": [
+        {
+          "text": "enum ImslpResourceKind",
+          "lines": [
+            7
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/lib/imslp_download.dart": {
+      "sha256": "6d8c56b17f797c3b4874752bfb7699b1ff644c982ae7c65d0ace4b39ad9973bb",
+      "anchors": [
+        {
+          "text": "_isSupportedExtension",
+          "lines": [
+            98,
+            218
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/ios/Runner/Info.plist": {
+      "sha256": "6294a917948399df837d2493f0132f8cd22702621a60d4253662ecf0693db5d1",
+      "anchors": [
+        {
+          "text": "CFBundleDisplayName",
+          "lines": [
+            9
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/android/app/src/main/AndroidManifest.xml": {
+      "sha256": "1bc415068870a459e883d9a2949b6b80caed10869b0403e371fcbd82e3c042df",
+      "anchors": [
+        {
+          "text": "android.intent.action.MAIN",
+          "lines": [
+            28
+          ]
+        }
+      ]
+    },
+    "apps/classical_local_library/pubspec.yaml": {
+      "sha256": "e320d08edb64ac1efeb28d8a26fb47acc18599b1f8370d6ee693f34f75c388d6",
+      "anchors": [
+        {
+          "text": "url_launcher",
+          "lines": [
+            48
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/README.md": {
+      "sha256": "86ecb32d7e209a9a1ede2cd4b63f0a37685e34223ee6a11de70af76031e24dc1",
+      "anchors": [
+        {
+          "text": "Known limitations",
+          "lines": [
+            36
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/lib/main.dart": {
+      "sha256": "4ab3a0805ef049a90ffdecbd856ace7d1428c1f0f1c61f5e0fa574292bcac0eb",
+      "anchors": [
+        {
+          "text": "_sharedImportChannel =",
+          "lines": [
+            43
+          ]
+        },
+        {
+          "text": "Future<void> _importSharedFiles",
+          "lines": [
+            468
+          ]
+        },
+        {
+          "text": "Future<void> _showPracticeTools",
+          "lines": [
+            8075
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/lib/sheet_library_controller.dart": {
+      "sha256": "8711a535fd6562ac4c00c3a17e1af440ab747c1fc55ae0e66cac44d1250e38d6",
+      "anchors": [
+        {
+          "text": "Future<SheetScore?> importPdf",
+          "lines": [
+            187
+          ]
+        },
+        {
+          "text": "Future<List<SheetScore>> importSharedPdfFiles",
+          "lines": [
+            247
+          ]
+        },
+        {
+          "text": "Future<SheetLinkedFile?> addLinkedFile",
+          "lines": [
+            578
+          ]
+        },
+        {
+          "text": "Future<void> _replace(",
+          "lines": [
+            2119
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/lib/sheet_library_store.dart": {
+      "sha256": "8098ea49d7b124ce23da66ce3cd0ef0d420f5e8d9ebaf38c3ca1697f0bdbdc36",
+      "anchors": [
+        {
+          "text": "Future<SheetScore?> importPdf",
+          "lines": [
+            647
+          ]
+        },
+        {
+          "text": "Future<SheetLinkedFile?> pickLinkedFile",
+          "lines": [
+            768
+          ]
+        },
+        {
+          "text": "Future<SheetLinkedFile> importLinkedFileBytes",
+          "lines": [
+            795
+          ]
+        },
+        {
+          "text": "Future<String> _writeImportedPdf",
+          "lines": [
+            1406
+          ]
+        },
+        {
+          "text": "Future<String> _writeLinkedFile",
+          "lines": [
+            1423
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/lib/sheet_file_import.dart": {
+      "sha256": "cdeca1c91a2807cdc1e52e65a2e75f94136dd8a022e1972f5dfeb00f7c9d1948",
+      "anchors": [
+        {
+          "text": "class SheetFileImportPolicy",
+          "lines": [
+            18
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/lib/sheet_audio_player.dart": {
+      "sha256": "66874eb72f995d3ef95c32a8144f4d558b2ac22c86edff22e17a0ade6ea128b0",
+      "anchors": [
+        {
+          "text": "class",
+          "lines": [
+            3,
+            33
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/ios/Runner/Info.plist": {
+      "sha256": "c54b0ba356e03d9c22b149ce0da3f9707bd5f5ae55871335c26e8e3e1a141be8",
+      "anchors": [
+        {
+          "text": "CFBundleDocumentTypes",
+          "lines": [
+            21
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/ios/Runner/ClefSharedImportBridge.swift": {
+      "sha256": "e63aa7f22760f51ab6f7a1ce2bc3d5d4a00f729113a8119c0a4c83f2db75372b",
+      "anchors": [
+        {
+          "text": "private func copySharedPdfToCache",
+          "lines": [
+            52
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/android/app/src/main/AndroidManifest.xml": {
+      "sha256": "6d9c74212e3f3d45522368ac3f66f54628d7b89a22b67a6712660a5a62ec978e",
+      "anchors": [
+        {
+          "text": "android.intent.action.VIEW",
+          "lines": [
+            31
+          ]
+        },
+        {
+          "text": "android.intent.action.SEND",
+          "lines": [
+            38,
+            43
+          ]
+        }
+      ]
+    },
+    "apps/in_c_sheet/android/app/src/main/kotlin/com/mannlab/clef/MainActivity.kt": {
+      "sha256": "7eaf797e8ddfb6c52dc69a76612634d2dfc5db022a919b873006a7e8cacea3c5",
+      "anchors": [
+        {
+          "text": "private fun copySharedPdfToCache",
+          "lines": [
+            174
+          ]
+        }
+      ]
+    },
+    "src/renderer/src/App.tsx": {
+      "sha256": "2b25c5021fb6cd93260898bbec6eb226ea0133b06df5be797291ffb5650e8cce",
+      "anchors": [
+        {
+          "text": "const openNewScoreWizard",
+          "lines": [
+            1826
+          ]
+        },
+        {
+          "text": "const submitNewScoreWizard",
+          "lines": [
+            1845
+          ]
+        },
+        {
+          "text": "const saveNativeProject",
+          "lines": [
+            4401
+          ]
+        },
+        {
+          "text": "const savePdf",
+          "lines": [
+            4769
+          ]
+        },
+        {
+          "text": "function createDefaultNewScoreDraft",
+          "lines": [
+            8164
+          ]
+        }
+      ]
+    },
+    "src/renderer/src/editor/new-score.ts": {
+      "sha256": "d6d0fde3529f4d045c62cc0c74381ea7cffba126eba530ae5fb0d5b7f92fe24f",
+      "anchors": [
+        {
+          "text": "export",
+          "lines": [
+            14,
+            20,
+            32,
+            109,
+            136
+          ]
+        }
+      ]
+    },
+    "src/renderer/src/editor/file-lifecycle.ts": {
+      "sha256": "8df8ba99ba47f96398d83965ac724a3588aa3f3e207e218273b6d458a1d1f54b",
+      "anchors": [
+        {
+          "text": "export",
+          "lines": [
+            1,
+            4,
+            8,
+            12,
+            16
+          ]
+        }
+      ]
+    },
+    "src/main/index.ts": {
+      "sha256": "9c686b4248eebf3a6436ead4311d1a223aba34b11492d9932c94db24082c2c42",
+      "anchors": [
+        {
+          "text": "const savePdfChannel =",
+          "lines": [
+            16
+          ]
+        },
+        {
+          "text": "printToPDF",
+          "lines": [
+            292
+          ]
+        }
+      ]
+    },
+    "src/preload/index.ts": {
+      "sha256": "61ddbd3b43afd3bbf967bfaca2f165d1275d56421018eeb0f449573800a0a76e",
+      "anchors": [
+        {
+          "text": "pdf:",
+          "lines": [
+            8,
+            62
+          ]
+        },
+        {
+          "text": "project:",
+          "lines": [
+            28,
+            29,
+            30,
+            31,
+            33
+          ]
+        }
+      ]
+    },
+    "package.json": {
+      "sha256": "eb5d30888d75301d3671b099f75b649117ec08b305d52eb50b832560f1d4073e",
+      "anchors": [
+        {
+          "text": "\"build\":",
+          "lines": [
+            18,
+            82
+          ]
+        },
+        {
+          "text": "\"productName\":",
+          "lines": [
+            3,
+            84
+          ]
+        }
+      ]
+    },
+    "packages/ddirori_web/src/index.tsx": {
+      "sha256": "dc4f192c1088ae1286696039fe86867e1a8aba65220c134c9738b84343967db7",
+      "anchors": [
+        {
+          "text": "export function ServiceLink",
+          "lines": [
+            255
+          ]
+        }
+      ]
+    },
+    "packages/ddirori_ui/lib/src/brand_family.dart": {
+      "sha256": "763dea5b980089e5e2e23db5028c1c3b753b4d6118c917f4e202147a250e523b",
+      "anchors": [
+        {
+          "text": "class DdiroriServiceLink",
+          "lines": [
+            226
+          ]
+        }
+      ]
+    },
+    "docs/brand/ddirori-design-system/specifications/patterns.md": {
+      "sha256": "be80c192574927702d670b4d7e63a228b6869d212758fb9cbfe9ba351b74d239",
+      "anchors": [
+        {
+          "text": "PAT-LINK",
+          "lines": [
+            15
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "initialHead": "6bb5f027cfa5df3a78094a97699c6c5a84c9f0c1",
+  "finalHead": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "currentWorktrees": "worktree /Users/jaemankim/Desktop/privates/coding/in-c\nHEAD 827ad18203e673b1e923d00cbcf0fd7f3af755d7\nbranch refs/heads/feature/chromatics-expanded-v1-checkpoint-20260913\n\nworktree /private/tmp/chromatics-ddirori-verify-20261023\nHEAD 7fb8178a2522fcbf1d19645afa01c3871ed18743\ndetached\n\nworktree /Users/jaemankim/Desktop/privates/coding/worktrees/chromatics-topbar-ia-alpha32-20261020\nHEAD 3dc9047dfd7c91575b1cc6d5f0b461f341690342\nbranch refs/heads/feature/chromatics-topbar-ia-alpha32-20261020\n\n",
+  "historicalR1NonReturnFilesChecked": 85,
+  "historicalR1NonReturnDifferences": [],
+  "ownedChanges": [
+    "docs/brand/ddirori-design-system/product-design-r2/**",
+    "packages/ddirori_web/catalog/product-r2.{html,tsx,css}",
+    "packages/ddirori_web/product-r2.config.ts",
+    "docs/brand/ddirori-design-system/README.md: R2 link only"
+  ],
+  "note": "Product and R1 return changes were concurrently committed by service work. No product/shared API/metadata edits, staging, commit or worktree removal performed by this task."
+}

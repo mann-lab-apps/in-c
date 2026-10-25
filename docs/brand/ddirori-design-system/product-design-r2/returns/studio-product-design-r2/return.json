@@ -1,0 +1,817 @@
+{
+  "service": "studio",
+  "designRevision": "product-design-r2",
+  "implementationCommit": "uncommitted",
+  "baseProductCommit": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "currentHead": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "designManifestSha256": "af56b0a3ca6e25b9928835645562f5056cfa16553f2881bdb9750df37636f416",
+  "status": "implemented-awaiting-review",
+  "backlog": [
+    "T04",
+    "T02",
+    "T03",
+    "T01"
+  ],
+  "actualProduct": {
+    "fixture": "release-test",
+    "kind": "Electron-built renderer, actual serializers, isolated OS-I/O bridge",
+    "runtime": {
+      "node": "24.16.0",
+      "acorn": "8.16.0",
+      "ada": "3.4.4",
+      "amaro": "1.1.9",
+      "ares": "1.34.6",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.2",
+      "llhttp": "9.4.1",
+      "merve": "1.2.2",
+      "modules": "146",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.68.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "0.0.0",
+      "simdjson": "4.6.1",
+      "simdutf": "7.7.0",
+      "sqlite": "3.53.0",
+      "tz": "2025c",
+      "undici": "7.25.0",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "14.8.178.31-electron.0",
+      "zlib": "1.3.2.1-motley",
+      "zstd": "1.6.0",
+      "electron": "42.4.1",
+      "chrome": "148.0.7778.265"
+    },
+    "screens": [
+      {
+        "file": "span-light-207.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 207,
+        "theme": "light",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(255, 255, 255)"
+      },
+      {
+        "file": "span-light-280.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 280,
+        "theme": "light",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(255, 255, 255)"
+      },
+      {
+        "file": "span-light-360.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 360,
+        "theme": "light",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(255, 255, 255)"
+      },
+      {
+        "file": "span-dark-207.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 207,
+        "theme": "dark",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(34, 34, 34)"
+      },
+      {
+        "file": "span-dark-280.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 280,
+        "theme": "dark",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(34, 34, 34)"
+      },
+      {
+        "file": "span-dark-360.png",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "dpr": 2,
+        "dock": 360,
+        "theme": "dark",
+        "overflow": false,
+        "documentOverflow": false,
+        "inputHeight": 32,
+        "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+        "background": "rgb(34, 34, 34)"
+      }
+    ],
+    "workspaceMatrix": [
+      {
+        "size": 207,
+        "mode": "fit-width",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          804,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 585.4765625,
+          "bottom": 746.4765625,
+          "left": 995.2219848632812,
+          "right": 1007.0266723632812
+        },
+        "canvasScroll": 0,
+        "windowScroll": 309.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1226.1015625,
+          "y": 234.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 234.4765625,
+          "right": 1291.4609375,
+          "bottom": 267.4765625,
+          "left": 1226.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 280,
+        "mode": "fit-width",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          680,
+          620
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 752.4765625,
+          "bottom": 913.4765625,
+          "left": 518.1199951171875,
+          "right": 529.9246826171875
+        },
+        "canvasScroll": 0,
+        "windowScroll": 309.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1153.1015625,
+          "y": 234.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 234.4765625,
+          "right": 1218.4609375,
+          "bottom": 267.4765625,
+          "left": 1153.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 360,
+        "mode": "fit-width",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          560,
+          633
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 598.4765625,
+          "bottom": 759.4765625,
+          "left": 598.1199951171875,
+          "right": 609.9246826171875
+        },
+        "canvasScroll": 0,
+        "windowScroll": 463.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1073.1015625,
+          "y": 80.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 80.4765625,
+          "right": 1138.4609375,
+          "bottom": 113.4765625,
+          "left": 1073.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 207,
+        "mode": "fit-width",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          880,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 893.4765625,
+          "bottom": 1054.4765625,
+          "left": 686.75,
+          "right": 698.5546875
+        },
+        "canvasScroll": 0,
+        "windowScroll": 515.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 182.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 182.4765625,
+          "right": 98.4609375,
+          "bottom": 215.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 280,
+        "mode": "fit-width",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          880,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1309.4765625,
+          "bottom": 1470.4765625,
+          "left": 686.75,
+          "right": 698.5546875
+        },
+        "canvasScroll": 0,
+        "windowScroll": 99.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 598.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 598.4765625,
+          "right": 98.4609375,
+          "bottom": 631.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 360,
+        "mode": "fit-width",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          880,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1309.4765625,
+          "bottom": 1470.4765625,
+          "left": 686.75,
+          "right": 698.5546875
+        },
+        "canvasScroll": 0,
+        "windowScroll": 99.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 598.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 598.4765625,
+          "right": 98.4609375,
+          "bottom": 631.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 207,
+        "mode": "fixed",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1080.4765625,
+          "bottom": 1321.4765625,
+          "left": 1272.5655517578125,
+          "right": 1290.2686767578125
+        },
+        "canvasScroll": 0,
+        "windowScroll": 0,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1226.1015625,
+          "y": 543.9765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 543.9765625,
+          "right": 1291.4609375,
+          "bottom": 576.9765625,
+          "left": 1226.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 280,
+        "mode": "fixed",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1019.9765625,
+          "bottom": 1260.9765625,
+          "left": 1247.5655517578125,
+          "right": 1265.2686767578125
+        },
+        "canvasScroll": 98,
+        "windowScroll": 60.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1153.1015625,
+          "y": 483.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 483.4765625,
+          "right": 1218.4609375,
+          "bottom": 516.4765625,
+          "left": 1153.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 360,
+        "mode": "fixed",
+        "viewport": [
+          1400,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1019.9765625,
+          "bottom": 1260.9765625,
+          "left": 1181.5655517578125,
+          "right": 1199.2686767578125
+        },
+        "canvasScroll": 244,
+        "windowScroll": 60.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 1073.1015625,
+          "y": 483.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 483.4765625,
+          "right": 1138.4609375,
+          "bottom": 516.4765625,
+          "left": 1073.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 207,
+        "mode": "fixed",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1510.9765625,
+          "bottom": 1751.9765625,
+          "left": 661.5655517578125,
+          "right": 679.2686767578125
+        },
+        "canvasScroll": 404,
+        "windowScroll": 99.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 598.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 598.4765625,
+          "right": 98.4609375,
+          "bottom": 631.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 280,
+        "mode": "fixed",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1510.9765625,
+          "bottom": 1751.9765625,
+          "left": 661.5655517578125,
+          "right": 679.2686767578125
+        },
+        "canvasScroll": 404,
+        "windowScroll": 99.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 598.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 598.4765625,
+          "right": 98.4609375,
+          "bottom": 631.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      },
+      {
+        "size": 360,
+        "mode": "fixed",
+        "viewport": [
+          960,
+          1000
+        ],
+        "svg": [
+          900,
+          466
+        ],
+        "selected": "m4-f-natural-2",
+        "address": [
+          "part-1",
+          "staff-1",
+          "measure-4",
+          "voice-1"
+        ],
+        "anchor": {
+          "top": 1510.9765625,
+          "bottom": 1751.9765625,
+          "left": 661.5655517578125,
+          "right": 679.2686767578125
+        },
+        "canvasScroll": 404,
+        "windowScroll": 99.5,
+        "focusedControl": "속성 도크 폭",
+        "focusedControlBox": {
+          "x": 33.1015625,
+          "y": 598.4765625,
+          "width": 65.359375,
+          "height": 33,
+          "top": 598.4765625,
+          "right": 98.4609375,
+          "bottom": 631.4765625,
+          "left": 33.1015625
+        },
+        "input": "4분음표 · 점 0 · 임시표 자동",
+        "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+        "inputActive": "false",
+        "overflow": false
+      }
+    ],
+    "additionalScreens": [
+      {
+        "file": "artifacts/renderer/no-span-selection.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/invalid-geometry.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/save-pending.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/save-failure.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/save-retry-success.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/file-light-1400.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/file-text-2.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/r2-next-input-960.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      },
+      {
+        "file": "artifacts/renderer/r2-next-input-text-2.png",
+        "condition": "See handoff and renderer metrics; existing accent, measured chrome text scaling only"
+      }
+    ],
+    "touch": {
+      "coarse": true,
+      "inputHeight": 48,
+      "closeHeight": 48
+    },
+    "nativeScoreUnchanged": true,
+    "musicXmlUnchanged": true
+  },
+  "tests": [
+    {
+      "command": "npm test -- --dir src --reporter=dot",
+      "result": "pass",
+      "counts": {
+        "filesPassed": 48,
+        "testsPassed": 611,
+        "testsSkipped": 1
+      },
+      "log": "logs/product-tests-final.log"
+    },
+    {
+      "command": "npm test -- --reporter=dot",
+      "result": "fail",
+      "counts": {
+        "filesFailed": 7,
+        "testsFailed": 12,
+        "testsPassed": 619,
+        "testsSkipped": 23
+      },
+      "log": "logs/root-tests.log"
+    },
+    {
+      "command": "npm --prefix packages/ddirori_web test",
+      "result": "pass",
+      "counts": {
+        "filesPassed": 6,
+        "testsPassed": 56
+      },
+      "log": "logs/shared-tests.log"
+    },
+    {
+      "command": "node --test docs/brand/ddirori-design-system/tools/api-portability.test.mjs docs/brand/ddirori-design-system/tools/token-model.test.mjs",
+      "result": "pass",
+      "counts": {
+        "testsPassed": 4
+      },
+      "log": "logs/node-tests.log"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/typecheck.log"
+    },
+    {
+      "command": "npm run build",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/final-build.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE DDIRORI_STUDIO_QA_OUT=out/ddirori/studio-r2-final-renderer npx electron scripts/verify-ddirori-studio.cjs --r2",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/final-renderer.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE DDIRORI_STUDIO_EVENT_OUT=out/ddirori/studio-r2-final-events npx electron scripts/verify-studio-input-events.cjs --focus-control",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/final-events.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-notation-snapshots.cjs --fixed-canvas",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/fixed-canvas.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-notation-snapshots.cjs",
+      "result": "fail",
+      "counts": {},
+      "log": "logs/responsive-baseline.log"
+    },
+    {
+      "command": "python3 docs/brand/ddirori-design-system/product-design-r2/revision.py",
+      "result": "changed",
+      "counts": {},
+      "log": "logs/manifest-check.log"
+    },
+    {
+      "command": "npm run verify:chromatics-musescore-parity-roadmap",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/roadmap.log"
+    },
+    {
+      "command": "npm run verify:chromatics-v1-work-queue",
+      "result": "pass",
+      "counts": {},
+      "log": "logs/work-queue.log"
+    }
+  ],
+  "t04": {
+    "backgroundNegativeControls": 12,
+    "foregroundSynthetic": 12,
+    "foregroundKeyboardInsertion": 12,
+    "failedForeground": 0,
+    "physicalIME": false
+  },
+  "differences": [
+    "All seven actual command categories retained",
+    "Native endpoint Select and app GeometryInput retained",
+    "Narrow R1 stacked dock policy retained",
+    "Screen-only fixed view is workspace state, not PDF geometry"
+  ],
+  "sharedProposals": [],
+  "metadataCheck": "not-applicable: desktop-only task; no iOS metadata edited by this task",
+  "unverified": [
+    "physical Korean IME",
+    "actual OS file dialogs and menu",
+    "screen reader",
+    "real touch hardware",
+    "representative user score and external-app interchange",
+    "independent insertion caret glyph unavailable"
+  ],
+  "knownFailures": [
+    "Root Vitest collection/configuration: missing DOM and Node test files",
+    "Legacy responsive baseline at both960/1400; unchanged baseline retained"
+  ],
+  "preview": "http://127.0.0.1:5178/?fixture=release-test"
+}

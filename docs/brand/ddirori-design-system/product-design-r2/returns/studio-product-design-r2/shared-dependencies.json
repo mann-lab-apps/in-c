@@ -1,0 +1,65 @@
+[
+  {
+    "path": "packages/ddirori_web/src/adoption.test.tsx",
+    "designSha256": "b8cf4b4aedcb491f775f20e971111a92496613ac440f40d0055111f9502b8c0a",
+    "currentSha256": "b8cf4b4aedcb491f775f20e971111a92496613ac440f40d0055111f9502b8c0a",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/basic.test.tsx",
+    "designSha256": "9d69d61c1585798546eb0dfd3f0c86e9f9c59ae3a196454fa3d4a884291aa3ed",
+    "currentSha256": "9d69d61c1585798546eb0dfd3f0c86e9f9c59ae3a196454fa3d4a884291aa3ed",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/basic.tsx",
+    "designSha256": "44c9182aad7add0631b2a82a4a27d40c771eaee72aeba6189f6f7a4ad0880a37",
+    "currentSha256": "44c9182aad7add0631b2a82a4a27d40c771eaee72aeba6189f6f7a4ad0880a37",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/components.test.tsx",
+    "designSha256": "fa0f5b8cd27ba2b4cef867c5e27e4dcd6298524cfe953b70dc41c3afa42df474",
+    "currentSha256": "fa0f5b8cd27ba2b4cef867c5e27e4dcd6298524cfe953b70dc41c3afa42df474",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/index.tsx",
+    "designSha256": "dc4f192c1088ae1286696039fe86867e1a8aba65220c134c9738b84343967db7",
+    "currentSha256": "dc4f192c1088ae1286696039fe86867e1a8aba65220c134c9738b84343967db7",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/item.test.tsx",
+    "designSha256": "0c71a6880e5ae82c14aff6ff70d4ba550fa62b3cb9821408cf9017e002c10313",
+    "currentSha256": "0c71a6880e5ae82c14aff6ff70d4ba550fa62b3cb9821408cf9017e002c10313",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/starter.test.tsx",
+    "designSha256": "df2dd1b91b79524225a923bf0ea795d827094ca5fa4c79cf91751428c07c5da7",
+    "currentSha256": "df2dd1b91b79524225a923bf0ea795d827094ca5fa4c79cf91751428c07c5da7",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/studio.test.tsx",
+    "designSha256": "b105cc859d9341a4170238ce24e4427d66d586e6f45524871dbc40f4288a9a5a",
+    "currentSha256": "b105cc859d9341a4170238ce24e4427d66d586e6f45524871dbc40f4288a9a5a",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  },
+  {
+    "path": "packages/ddirori_web/src/styles.css",
+    "designSha256": "286c6ae0d1f43aa046bf1732968521911ab46b09abf3ee5c7a85d79329a7b675",
+    "currentSha256": "286c6ae0d1f43aa046bf1732968521911ab46b09abf3ee5c7a85d79329a7b675",
+    "unchangedFromDesign": true,
+    "editedByStudioTask": false
+  }
+]

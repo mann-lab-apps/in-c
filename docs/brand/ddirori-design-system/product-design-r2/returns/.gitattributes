@@ -1,0 +1,3 @@
+# Archived unified patches keep blank context lines (a single prefix space)
+# byte-for-byte so their recorded SHA-256 evidence remains valid.
+*.diff -whitespace

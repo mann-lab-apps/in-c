@@ -1,5 +1,7 @@
 # Ddirori React UI
 
+서비스 전용 컴포넌트를 만들 때: [테마 확장 기준](../../docs/brand/ddirori-design-system/service-theme-contract.md) · [로컬 조합 소스](catalog/theme-recipes.tsx). `npx vite --config theme-reference.config.ts` 후 `http://127.0.0.1:8100/catalog/theme-reference.html`에서 공통 컴포넌트로 구성한 기준 예제를 확인한다. 서비스 화면 구조를 강제하는 카탈로그가 아니다.
+
 같은 의미 토큰을 쓰는 React 참조 구현이다. 공개 소스는 `src/index.tsx`, scoped 스타일은 `src/styles.css`다. 루트의 file dependency로 실제 Studio에서도 해석한다. 루트에서 `npm ci` 후 [공유 도입 절차](../../docs/brand/ddirori-design-system/shared-baseline.md)를 따른다. `?starter`는 최소 비동기 도입 예제다.
 
 호스트를 `<div className="ddirori" data-theme="light" data-density="comfortable">`로 감싼다. 독립적으로 중첩하는 호스트에는 theme와 density를 명시한다. 스타일은 .ddirori 밖에 적용되지 않는다.

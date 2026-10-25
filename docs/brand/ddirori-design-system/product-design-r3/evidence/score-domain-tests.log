@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_file_import_test.dart
+00:00 +0: recognizes import file types
+00:00 +1: explains known unsupported image types
+00:00 +2: cleans scanner-like filenames into readable titles
+00:00 +3: creates safe PDF export filenames
+00:00 +4: converts multiple PNG images to one PDF document
+00:00 +5: rejects unsupported image conversion input
+00:00 +6: All tests passed!

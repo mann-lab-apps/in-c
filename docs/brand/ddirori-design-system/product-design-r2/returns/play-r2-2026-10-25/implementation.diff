@@ -1,0 +1,2529 @@
+diff --git a/apps/classical_local_library/CHANGELOG.md b/apps/classical_local_library/CHANGELOG.md
+index 0d1d48db..a8615b73 100644
+--- a/apps/classical_local_library/CHANGELOG.md
++++ b/apps/classical_local_library/CHANGELOG.md
+@@ -1,5 +1,13 @@
+ # Changes
+ 
++## Product Design R2 - 2026-10-25
++
++- 같은 작품/녹음의 큐 설명을 묶고 악장 순서·현재 항목·음원 정보에 집중한다.
++- 다른 작품/녹음 탐색 중에도 옆 재생 영역 또는 하단 축약 조작과 재생 상세를 제공한다.
++- 엔진 snapshot과 탐색 route를 분리하고 큐·position·ID·retry 정책을 보존한다.
++- seek 중 엔진 update와 곡 변경/pause/error, 확정 명령 중복, 키보드 시간 조작을 검증한다.
++- 공통 API·오디오 엔진·schema·버전은 유지한다. iOS YAML과 촬영 동선을 갱신한다.
++
+ ## Uncommitted - Product Design R1 - 2026-10-25
+ 
+ - 라이브러리/현재 재생/관리/감상 보기로 기존 기능의 진입 경로를 정리한다.
+diff --git a/apps/classical_local_library/README.md b/apps/classical_local_library/README.md
+index 712f79af..f8eeddae 100644
+--- a/apps/classical_local_library/README.md
++++ b/apps/classical_local_library/README.md
+@@ -4,6 +4,22 @@ Flutter 기반 클래식 로컬 음악앱의 개발 마일스톤이다.
+ 
+ 현재 개발 체크포인트 요약은 [Changes](CHANGELOG.md)를 참고한다.
+ 
++## Product Design R2 (2026-10-25)
++
++- 작품/녹음을 탐색하는 route와 실제 엔진의 큐·현재 악장은 별개로 유지한다.
++  재생 큐가 있으면 Home과 작품/녹음 상세에서 재생 조작에 접근할 수 있다.
++- 가용 폭 800px 이상에서는 폭340의 별도 재생 영역을, 좁은 화면에서는 목록과
++  겹치지 않는 하단 축약 조작과 `재생 상세 열기`를 제공한다. 큰 글자에서 높이는 내용에 맞춘다.
++- 같은 작품/녹음 큐는 맥락을 상단에 한 번 표시하고 혼합 큐는 연속 구간마다 구분한다.
++  악장 순서/현재 표시를 유지하며 `음원 정보 N`에서 파일명·출처를,
++  `녹음 정보 열기`에서 기존 상세 metadata를 확인한다.
++- 검색·탐색·테마 변경은 재생 명령을 실행하지 않는다. 비동기 명령 중 중복 확정을 막고,
++  seek draft는 엔진 tick과 분리하며 곡 변경·pause·오류에서 폐기한다.
++- retry는 보존된 큐를 다시 로드해 첫 악장부터 시작한다. 새 큐 편집·streaming·권한·schema
++  변경은 없다. 공통 `ddirori_ui` API는 그대로 사용한다.
++- [R2 반환 자료](../../docs/brand/ddirori-design-system/product-design-r2/returns/play-r2-2026-10-25/README.md)에
++  실제 화면·소스 해시·검증 명령·시안 차이와 기기 미검수 범위를 기록한다.
++
+ ## Product Design R1 (2026-10-25)
+ 
+ - 라이브러리는 검색, 작품 필터/정렬, 평평한 작품·녹음 행을 먼저 보여준다.
+diff --git a/apps/classical_local_library/integration_test/capture_fixture.dart b/apps/classical_local_library/integration_test/capture_fixture.dart
+index 08abcfcf..d63cd039 100644
+--- a/apps/classical_local_library/integration_test/capture_fixture.dart
++++ b/apps/classical_local_library/integration_test/capture_fixture.dart
+@@ -10,7 +10,9 @@ import 'package:classical_local_library/scan_locations.dart';
+ import 'package:classical_local_library/scanned_audio_store.dart';
+ import 'package:flutter/material.dart';
+ 
+-Future<void> launchCaptureFixtureApp() async {
++Future<void> launchCaptureFixtureApp({
++  FakeLocalPlayer? playbackController,
++}) async {
+   final links = [
+     for (final track in sampleClassicalLibrary.tracks)
+       AudioFileTrackLink(
+@@ -25,7 +27,7 @@ Future<void> launchCaptureFixtureApp() async {
+       initialLibrary: sampleClassicalLibrary,
+       enableDemoFeatures: false,
+       supportsFolderScan: false,
+-      playbackController: FakeLocalPlayer(),
++      playbackController: playbackController ?? FakeLocalPlayer(),
+       scanRepository: ScannedAudioRepository(
+         MemoryScannedAudioStore(sampleClassicalLibrary.files),
+       ),
+diff --git a/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart b/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart
+index a00b611e..0cbece68 100644
+--- a/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart
++++ b/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import 'package:classical_local_library/local_playback.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:integration_test/integration_test.dart';
+ 
+@@ -7,10 +8,10 @@ import 'capture_fixture.dart';
+ void main() {
+   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+ 
+-  Future<void> restart(WidgetTester tester) async {
++  Future<void> restart(WidgetTester tester, {FakeLocalPlayer? player}) async {
+     await tester.pumpWidget(const SizedBox.shrink());
+     await tester.pumpAndSettle();
+-    await launchCaptureFixtureApp();
++    await launchCaptureFixtureApp(playbackController: player);
+     await tester.pumpAndSettle();
+   }
+ 
+@@ -76,4 +77,43 @@ void main() {
+     await tester.pumpWidget(const SizedBox.shrink());
+     await tester.pumpAndSettle();
+   });
++
++  testWidgets(
++    'R2 browsing scene preserves A playback while inspecting B on iOS',
++    (tester) async {
++      final player = FakeLocalPlayer();
++      await restart(tester, player: player);
++      await scrollTo(tester, '교향곡 5번 다단조');
++      await tester.tap(find.text('교향곡 5번 다단조').first.hitTestable());
++      await tester.pumpAndSettle();
++      await scrollTo(tester, '클라이버 / 빈 필하모닉 연주 녹음');
++      await tester.tap(find.text('클라이버 / 빈 필하모닉 연주 녹음').first.hitTestable());
++      await tester.pumpAndSettle();
++      await tester.tap(find.text('녹음 전체 재생'));
++      await tester.pumpAndSettle();
++      await player.updatePosition(const Duration(seconds: 42));
++      await tester.pumpAndSettle();
++      final before = player.playbackState;
++      await tester.pageBack();
++      await tester.pumpAndSettle();
++      await tester.pageBack();
++      await tester.pumpAndSettle();
++      await scrollTo(tester, '브렌델 피아노 연주 녹음');
++      await tester.tap(find.text('브렌델 피아노 연주 녹음').first.hitTestable());
++      await tester.pumpAndSettle();
++      expect(find.text('브렌델 피아노 연주 녹음'), findsOneWidget);
++      expect(player.playbackState, same(before));
++      expect(player.currentItem?.recordingId, 'recording.beethoven5.kleiber');
++      final pause = find.byTooltip('축약 일시정지').evaluate().isNotEmpty
++          ? find.byTooltip('축약 일시정지')
++          : find.byTooltip('일시정지');
++      await tester.ensureVisible(pause);
++      await tester.tap(pause);
++      await tester.pumpAndSettle();
++      expect(player.state, LocalPlayerState.paused);
++      expect(player.playbackState.position, const Duration(seconds: 42));
++      await tester.pumpWidget(const SizedBox.shrink());
++      await tester.pumpAndSettle();
++    },
++  );
+ }
+diff --git a/apps/classical_local_library/lib/library_detail_screen.dart b/apps/classical_local_library/lib/library_detail_screen.dart
+index 20f536a4..1972e712 100644
+--- a/apps/classical_local_library/lib/library_detail_screen.dart
++++ b/apps/classical_local_library/lib/library_detail_screen.dart
+@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
+ import 'library_details.dart';
+ import 'local_playback.dart';
+ import 'presentation/play_library_components.dart';
++import 'presentation/play_playback_layout.dart';
+ 
+ class WorkDetailScreen extends StatelessWidget {
+   const WorkDetailScreen({
+@@ -28,115 +29,117 @@ class WorkDetailScreen extends StatelessWidget {
+     return Scaffold(
+       appBar: AppBar(title: const Text('작품')),
+       body: SafeArea(
+-        child: ListView(
+-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+-          children: [
+-            Semantics(
+-              header: true,
+-              child: Text(
+-                data.displayTitle,
+-                style: Theme.of(context).textTheme.headlineSmall,
++        child: PlayPlaybackLayout(
++          child: ListView(
++            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
++            children: [
++              Semantics(
++                header: true,
++                child: Text(
++                  data.displayTitle,
++                  style: Theme.of(context).textTheme.headlineSmall,
++                ),
+               ),
+-            ),
+-            const SizedBox(height: 4),
+-            Text(
+-              [
+-                data.displayComposerName,
+-                ?data.displayCatalogNumber,
+-                ?work.periodLabel,
+-              ].join(' · '),
+-            ),
+-            if (work.title.original != null) ...[
+               const SizedBox(height: 4),
+-              Text(work.title.original!),
+-            ],
+-            const SizedBox(height: 16),
+-            if (data.recordings.length > 1)
+-              const DdiroriBanner(
+-                message: '아래에서 듣고 싶은 녹음을 선택하세요.',
+-                kind: DdiroriNoticeKind.info,
+-              )
+-            else if (playableRecordings.length == 1)
+-              Align(
+-                alignment: Alignment.centerLeft,
+-                child: DdiroriButton(
+-                  label: '작품 재생',
+-                  icon: Icons.play_arrow_outlined,
+-                  onPressed: () =>
+-                      onPlayRecording(playableRecordings.single.recording.id),
++              Text(
++                [
++                  data.displayComposerName,
++                  ?data.displayCatalogNumber,
++                  ?work.periodLabel,
++                ].join(' · '),
++              ),
++              if (work.title.original != null) ...[
++                const SizedBox(height: 4),
++                Text(work.title.original!),
++              ],
++              const SizedBox(height: 16),
++              if (data.recordings.length > 1)
++                const DdiroriBanner(
++                  message: '아래에서 듣고 싶은 녹음을 선택하세요.',
++                  kind: DdiroriNoticeKind.info,
++                )
++              else if (playableRecordings.length == 1)
++                Align(
++                  alignment: Alignment.centerLeft,
++                  child: DdiroriButton(
++                    label: '작품 재생',
++                    icon: Icons.play_arrow_outlined,
++                    onPressed: () =>
++                        onPlayRecording(playableRecordings.single.recording.id),
++                  ),
++                )
++              else
++                const DdiroriBanner(
++                  message: '연결된 로컬 파일이 없어 이 작품을 재생할 수 없습니다.',
++                  kind: DdiroriNoticeKind.warning,
+                 ),
+-              )
+-            else
+-              const DdiroriBanner(
+-                message: '연결된 로컬 파일이 없어 이 작품을 재생할 수 없습니다.',
+-                kind: DdiroriNoticeKind.warning,
++              const SizedBox(height: 16),
++              DdiroriSection(
++                title: '악장',
++                subtitle: data.parts.isEmpty
++                    ? '등록된 악장 정보가 없습니다.'
++                    : '${data.parts.length}개 악장',
++                children: data.parts.isEmpty
++                    ? const [
++                        DdiroriStatePanel(
++                          title: '악장 정보가 없습니다',
++                          message: '파일 정리에서 악장 순서를 확인할 수 있습니다.',
++                        ),
++                      ]
++                    : [
++                        for (final detail in data.parts)
++                          PlayMovementRow(
++                            sequenceNumber: detail.part.sequenceNumber,
++                            title: detail.part.title.ko,
++                            originalTitle: detail.part.title.original,
++                            hasLocalFile: detail.hasLocalFile,
++                          ),
++                      ],
+               ),
+-            const SizedBox(height: 16),
+-            DdiroriSection(
+-              title: '악장',
+-              subtitle: data.parts.isEmpty
+-                  ? '등록된 악장 정보가 없습니다.'
+-                  : '${data.parts.length}개 악장',
+-              children: data.parts.isEmpty
+-                  ? const [
+-                      DdiroriStatePanel(
+-                        title: '악장 정보가 없습니다',
+-                        message: '파일 정리에서 악장 순서를 확인할 수 있습니다.',
+-                      ),
+-                    ]
+-                  : [
+-                      for (final detail in data.parts)
+-                        PlayMovementRow(
+-                          sequenceNumber: detail.part.sequenceNumber,
+-                          title: detail.part.title.ko,
+-                          originalTitle: detail.part.title.original,
+-                          hasLocalFile: detail.hasLocalFile,
++              const SizedBox(height: 16),
++              DdiroriSection(
++                title: '녹음',
++                subtitle: data.recordings.isEmpty
++                    ? '등록된 녹음이 없습니다.'
++                    : '${data.recordings.length}개 녹음',
++                children: data.recordings.isEmpty
++                    ? const [
++                        DdiroriStatePanel(
++                          title: '녹음이 없습니다',
++                          message: '로컬 음원을 작품과 녹음으로 정리하면 여기에 표시됩니다.',
+                         ),
+-                    ],
+-            ),
+-            const SizedBox(height: 16),
+-            DdiroriSection(
+-              title: '녹음',
+-              subtitle: data.recordings.isEmpty
+-                  ? '등록된 녹음이 없습니다.'
+-                  : '${data.recordings.length}개 녹음',
+-              children: data.recordings.isEmpty
+-                  ? const [
+-                      DdiroriStatePanel(
+-                        title: '녹음이 없습니다',
+-                        message: '로컬 음원을 작품과 녹음으로 정리하면 여기에 표시됩니다.',
+-                      ),
+-                    ]
+-                  : [
+-                      for (final detail in data.recordings)
+-                        PlayRecordingRow(
+-                          recording: detail.recording,
+-                          workTitle: detail.participantLabel,
+-                          onTap: () => onOpenRecording(detail.recording.id),
+-                          actions: [
+-                            DdiroriIconButton(
+-                              label: '${detail.recording.title.ko} 재생',
+-                              icon: Icons.play_arrow_outlined,
+-                              onPressed: detail.canPlay
+-                                  ? () => unawaited(
+-                                      onPlayRecording(detail.recording.id),
+-                                    )
+-                                  : null,
+-                            ),
+-                            Padding(
+-                              padding: const EdgeInsets.symmetric(
+-                                horizontal: 8,
+-                                vertical: 6,
++                      ]
++                    : [
++                        for (final detail in data.recordings)
++                          PlayRecordingRow(
++                            recording: detail.recording,
++                            workTitle: detail.participantLabel,
++                            onTap: () => onOpenRecording(detail.recording.id),
++                            actions: [
++                              DdiroriIconButton(
++                                label: '${detail.recording.title.ko} 재생',
++                                icon: Icons.play_arrow_outlined,
++                                onPressed: detail.canPlay
++                                    ? () => unawaited(
++                                        onPlayRecording(detail.recording.id),
++                                      )
++                                    : null,
+                               ),
+-                              child: Text(
+-                                '${detail.availableTrackCount}/${detail.trackCount} 재생 가능',
++                              Padding(
++                                padding: const EdgeInsets.symmetric(
++                                  horizontal: 8,
++                                  vertical: 6,
++                                ),
++                                child: Text(
++                                  '${detail.availableTrackCount}/${detail.trackCount} 재생 가능',
++                                ),
+                               ),
+-                            ),
+-                          ],
+-                        ),
+-                    ],
+-            ),
+-          ],
++                            ],
++                          ),
++                      ],
++              ),
++            ],
++          ),
+         ),
+       ),
+     );
+@@ -161,19 +164,16 @@ class RecordingDetailScreen extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return StreamBuilder<LocalPlaybackState>(
+-      stream: playbackStates,
+-      initialData: initialPlaybackState,
+-      builder: (context, snapshot) {
+-        final playback = snapshot.data ?? initialPlaybackState;
+-        final currentTrackId =
+-            playback.currentItem?.recordingId == data.recording.id
+-            ? playback.currentItem?.trackId
+-            : null;
+-        final busy = playback.isBusy;
+-        return Scaffold(
+-          appBar: AppBar(title: const Text('녹음')),
+-          body: SafeArea(
++    Widget content(LocalPlaybackState playback, {bool commandRunning = false}) {
++      final currentTrackId =
++          playback.currentItem?.recordingId == data.recording.id
++          ? playback.currentItem?.trackId
++          : null;
++      final busy = playback.isBusy || commandRunning;
++      return Scaffold(
++        appBar: AppBar(title: const Text('녹음')),
++        body: SafeArea(
++          child: PlayPlaybackLayout(
+             child: ListView(
+               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+               children: [
+@@ -280,8 +280,23 @@ class RecordingDetailScreen extends StatelessWidget {
+               ],
+             ),
+           ),
+-        );
+-      },
++        ),
++      );
++    }
++
++    final scope = PlayPlaybackScope.maybeOf(context);
++    if (scope != null) {
++      return ValueListenableBuilder<PlayPlaybackSnapshot>(
++        valueListenable: scope.snapshot,
++        builder: (context, value, _) =>
++            content(value.state, commandRunning: value.commandRunning),
++      );
++    }
++    return StreamBuilder<LocalPlaybackState>(
++      stream: playbackStates,
++      initialData: initialPlaybackState,
++      builder: (context, snapshot) =>
++          content(snapshot.data ?? initialPlaybackState),
+     );
+   }
+ }
+diff --git a/apps/classical_local_library/lib/main.dart b/apps/classical_local_library/lib/main.dart
+index 11e711e1..884715f8 100644
+--- a/apps/classical_local_library/lib/main.dart
++++ b/apps/classical_local_library/lib/main.dart
+@@ -42,6 +42,7 @@ import 'playback_planner.dart';
+ import 'presentation/play_library_components.dart';
+ import 'presentation/play_activity_components.dart';
+ import 'presentation/play_playback_components.dart';
++import 'presentation/play_playback_layout.dart';
+ import 'sample_classical_library.dart';
+ import 'scan_locations.dart';
+ import 'scanned_audio_store.dart';
+@@ -268,6 +269,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+   late final PlaybackHistoryCoordinator playbackHistoryCoordinator;
+   late final PlaybackQueuePersistenceCoordinator playbackQueueCoordinator;
+   LocalPlaybackState playbackState = const LocalPlaybackState.idle();
++  late final ValueNotifier<PlayPlaybackSnapshot> playbackView;
+   ScannedAudioRepository? scanRepository;
+   ScanLocationRepository? scanLocationRepository;
+   MetadataCandidateRepository? metadataCandidateRepository;
+@@ -394,6 +396,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+       repository: playbackHistoryRepository,
+     );
+     playbackState = localPlayer.playbackState;
++    playbackView = ValueNotifier(PlayPlaybackSnapshot(playbackState));
+     playbackSubscription = localPlayer.states.listen((state) {
+       unawaited(playbackHistoryCoordinator.observe(state));
+       unawaited(playbackQueueCoordinator.observe(state));
+@@ -403,6 +406,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+       setState(() {
+         playbackState = state;
+       });
++      _syncPlaybackView();
+     });
+     playbackHistorySubscription = playbackHistoryCoordinator.changes.listen((
+       _,
+@@ -418,6 +422,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+     localImportCancellation?.cancel();
+     searchDebounce?.cancel();
+     unawaited(playbackSubscription.cancel());
++    playbackView.dispose();
+     unawaited(playbackHistorySubscription.cancel());
+     unawaited(_disposePlayback());
+     super.dispose();
+@@ -1300,28 +1305,42 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+     final data = _detailBuilder().buildWork(workId);
+     await Navigator.of(context).push<void>(
+       MaterialPageRoute(
+-        builder: (context) => WorkDetailScreen(
+-          data: data,
+-          onOpenRecording: (recordingId) {
+-            unawaited(_openRecordingDetail(recordingId));
+-          },
+-          onPlayRecording: _playRecordingFromDetail,
++        builder: (context) => _withPlaybackScope(
++          WorkDetailScreen(
++            data: data,
++            onOpenRecording: (recordingId) {
++              unawaited(_openRecordingDetail(recordingId));
++            },
++            onPlayRecording: _playRecordingFromDetail,
++          ),
+         ),
+       ),
+     );
+   }
+ 
+   Future<void> _openRecordingDetail(String recordingId) async {
+-    final data = _detailBuilder().buildRecording(recordingId);
++    final canonicalId = LibraryAliasIndex(libraryMerges)
++        .resolve(LibraryEntityType.recording, recordingId);
++    if (!library.recordings.any((recording) => recording.id == canonicalId)) {
++      ScaffoldMessenger.of(
++        context,
++      ).showSnackBar(const SnackBar(content: Text('현재 라이브러리에 녹음 정보가 없습니다.')));
++      return;
++    }
++    final data = _detailBuilder().buildRecording(canonicalId);
+     await Navigator.of(context).push<void>(
+       MaterialPageRoute(
+-        builder: (context) => RecordingDetailScreen(
+-          data: data,
+-          initialPlaybackState: localPlayer.playbackState,
+-          playbackStates: localPlayer.states,
+-          onPlayAll: () => _playRecordingFromDetail(data.recording.id),
+-          onPlayFromTrack: (trackId) =>
+-              _playRecordingFromDetail(data.recording.id, fromTrackId: trackId),
++        builder: (context) => _withPlaybackScope(
++          RecordingDetailScreen(
++            data: data,
++            initialPlaybackState: localPlayer.playbackState,
++            playbackStates: localPlayer.states,
++            onPlayAll: () => _playRecordingFromDetail(data.recording.id),
++            onPlayFromTrack: (trackId) => _playRecordingFromDetail(
++              data.recording.id,
++              fromTrackId: trackId,
++            ),
++          ),
+         ),
+       ),
+     );
+@@ -1350,6 +1369,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+     String recordingId, {
+     String? fromTrackId,
+   }) async {
++    if (isPlaybackCommandRunning) return;
+     final activePlanner = planner;
+     if (activePlanner == null) return;
+     final aliases = LibraryAliasIndex(libraryMerges);
+@@ -1765,6 +1785,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+     setState(() {
+       isPlaybackCommandRunning = true;
+     });
++    _syncPlaybackView();
+     try {
+       await command();
+     } finally {
+@@ -1772,6 +1793,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+         setState(() {
+           isPlaybackCommandRunning = false;
+         });
++        _syncPlaybackView();
+       }
+     }
+   }
+@@ -1791,6 +1813,22 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+     }
+   }
+ 
++  void _syncPlaybackView() {
++    playbackView.value = PlayPlaybackSnapshot(
++      playbackState,
++      commandRunning: isPlaybackCommandRunning,
++    );
++  }
++
++  Widget _withPlaybackScope(Widget child) => PlayPlaybackScope(
++    snapshot: playbackView,
++    onPlayPause: _togglePlayback,
++    onNext: _nextPlaybackItem,
++    onStop: _stopPlayback,
++    onSeek: _seekPlayback,
++    child: child,
++  );
++
+   @override
+   Widget build(BuildContext context) {
+     final colorScheme = Theme.of(context).colorScheme;
+@@ -1808,329 +1846,345 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
+       query: searchQuery,
+     );
+ 
+-    return Scaffold(
+-      appBar: AppBar(
+-        title: Text(switch (homeView) {
+-          _LibraryView.library => '라이브러리',
+-          _LibraryView.playback => '현재 재생',
+-          _LibraryView.management => '가져오기 및 관리',
+-          _LibraryView.listening => '감상 기록',
+-        }),
+-        backgroundColor: colorScheme.surface,
+-        actions: [
+-          if (!useCompactTools)
+-            IconButton(
+-              onPressed: activePlan == null ? null : _openDiscovery,
+-              icon: const Icon(Icons.explore_outlined),
+-              tooltip: '음악 발견',
+-            ),
+-          if (useCompactTools)
+-            PopupMenuButton<_HomeToolAction>(
+-              tooltip: '도구 더보기',
+-              onSelected: _openHomeTool,
+-              itemBuilder: (context) => [
+-                PopupMenuItem(
+-                  value: _HomeToolAction.discovery,
+-                  enabled: activePlan != null,
+-                  child: const ListTile(
+-                    contentPadding: EdgeInsets.zero,
+-                    leading: Icon(Icons.explore_outlined),
+-                    title: Text('음악 발견'),
++    return _withPlaybackScope(
++      Scaffold(
++        appBar: AppBar(
++          title: Text(switch (homeView) {
++            _LibraryView.library => '라이브러리',
++            _LibraryView.playback => '현재 재생',
++            _LibraryView.management => '가져오기 및 관리',
++            _LibraryView.listening => '감상 기록',
++          }),
++          backgroundColor: colorScheme.surface,
++          actions: [
++            if (!useCompactTools)
++              IconButton(
++                onPressed: activePlan == null ? null : _openDiscovery,
++                icon: const Icon(Icons.explore_outlined),
++                tooltip: '음악 발견',
++              ),
++            if (useCompactTools)
++              PopupMenuButton<_HomeToolAction>(
++                tooltip: '도구 더보기',
++                onSelected: _openHomeTool,
++                itemBuilder: (context) => [
++                  PopupMenuItem(
++                    value: _HomeToolAction.discovery,
++                    enabled: activePlan != null,
++                    child: const ListTile(
++                      contentPadding: EdgeInsets.zero,
++                      leading: Icon(Icons.explore_outlined),
++                      title: Text('음악 발견'),
++                    ),
+                   ),
+-                ),
+-                PopupMenuItem(
+-                  value: _HomeToolAction.imslp,
+-                  enabled: imslpStore != null && !isImportingFiles,
+-                  child: const ListTile(
+-                    contentPadding: EdgeInsets.zero,
+-                    leading: Icon(Icons.public_outlined),
+-                    title: Text('IMSLP 자료'),
++                  PopupMenuItem(
++                    value: _HomeToolAction.imslp,
++                    enabled: imslpStore != null && !isImportingFiles,
++                    child: const ListTile(
++                      contentPadding: EdgeInsets.zero,
++                      leading: Icon(Icons.public_outlined),
++                      title: Text('IMSLP 자료'),
++                    ),
+                   ),
+-                ),
+-                PopupMenuItem(
+-                  value: _HomeToolAction.libraryManagement,
+-                  enabled: scanRepository != null && !isImportingFiles,
+-                  child: const ListTile(
+-                    contentPadding: EdgeInsets.zero,
+-                    leading: Icon(Icons.rule_folder_outlined),
+-                    title: Text('파일 정리'),
++                  PopupMenuItem(
++                    value: _HomeToolAction.libraryManagement,
++                    enabled: scanRepository != null && !isImportingFiles,
++                    child: const ListTile(
++                      contentPadding: EdgeInsets.zero,
++                      leading: Icon(Icons.rule_folder_outlined),
++                      title: Text('파일 정리'),
++                    ),
+                   ),
+-                ),
+-                const PopupMenuItem(
+-                  value: _HomeToolAction.playbackDiagnostic,
+-                  child: ListTile(
+-                    contentPadding: EdgeInsets.zero,
+-                    leading: Icon(Icons.fact_check_outlined),
+-                    title: Text('재생 진단'),
++                  const PopupMenuItem(
++                    value: _HomeToolAction.playbackDiagnostic,
++                    child: ListTile(
++                      contentPadding: EdgeInsets.zero,
++                      leading: Icon(Icons.fact_check_outlined),
++                      title: Text('재생 진단'),
++                    ),
+                   ),
+-                ),
+-                PopupMenuItem(
+-                  value: _HomeToolAction.settings,
+-                  enabled: localDataControlService != null,
+-                  child: const ListTile(
+-                    contentPadding: EdgeInsets.zero,
+-                    leading: Icon(Icons.settings_outlined),
+-                    title: Text('앱 정보 및 데이터'),
++                  PopupMenuItem(
++                    value: _HomeToolAction.settings,
++                    enabled: localDataControlService != null,
++                    child: const ListTile(
++                      contentPadding: EdgeInsets.zero,
++                      leading: Icon(Icons.settings_outlined),
++                      title: Text('앱 정보 및 데이터'),
++                    ),
+                   ),
+-                ),
+-              ],
+-            )
+-          else ...[
+-            IconButton(
+-              onPressed: imslpStore == null || isImportingFiles
+-                  ? null
+-                  : _openImslpLibrary,
+-              icon: const Icon(Icons.public_outlined),
+-              tooltip: 'IMSLP 자료',
+-            ),
+-            IconButton(
+-              onPressed: scanRepository == null || isImportingFiles
+-                  ? null
+-                  : _openLibraryManagement,
+-              icon: const Icon(Icons.rule_folder_outlined),
+-              tooltip: '파일 정리',
+-            ),
+-            IconButton(
+-              onPressed: _openPlaybackDiagnostic,
+-              icon: const Icon(Icons.fact_check_outlined),
+-              tooltip: '재생 진단',
+-            ),
+-            IconButton(
+-              onPressed: localDataControlService == null ? null : _openSettings,
+-              icon: const Icon(Icons.settings_outlined),
+-              tooltip: '앱 정보 및 데이터',
+-            ),
++                ],
++              )
++            else ...[
++              IconButton(
++                onPressed: imslpStore == null || isImportingFiles
++                    ? null
++                    : _openImslpLibrary,
++                icon: const Icon(Icons.public_outlined),
++                tooltip: 'IMSLP 자료',
++              ),
++              IconButton(
++                onPressed: scanRepository == null || isImportingFiles
++                    ? null
++                    : _openLibraryManagement,
++                icon: const Icon(Icons.rule_folder_outlined),
++                tooltip: '파일 정리',
++              ),
++              IconButton(
++                onPressed: _openPlaybackDiagnostic,
++                icon: const Icon(Icons.fact_check_outlined),
++                tooltip: '재생 진단',
++              ),
++              IconButton(
++                onPressed: localDataControlService == null
++                    ? null
++                    : _openSettings,
++                icon: const Icon(Icons.settings_outlined),
++                tooltip: '앱 정보 및 데이터',
++              ),
++            ],
+           ],
+-        ],
+-      ),
+-      bottomNavigationBar: SafeArea(
+-        top: false,
+-        child: _LibraryNavigation(
+-          selected: homeView,
+-          onChanged: (value) => setState(() => homeView = value),
+         ),
+-      ),
+-      body: SafeArea(
+-        child: ListView(
+-          key: PageStorageKey('home-${homeView.name}'),
+-          padding: EdgeInsets.fromLTRB(
+-            MediaQuery.sizeOf(context).width >= 1024
+-                ? 32
+-                : MediaQuery.sizeOf(context).width >= 600
+-                ? 24
+-                : 16,
+-            12,
+-            MediaQuery.sizeOf(context).width >= 1024
+-                ? 32
+-                : MediaQuery.sizeOf(context).width >= 600
+-                ? 24
+-                : 16,
+-            24,
++        bottomNavigationBar: SafeArea(
++          top: false,
++          child: _LibraryNavigation(
++            selected: homeView,
++            onChanged: (value) => setState(() => homeView = value),
+           ),
+-          children: [
+-            if (homeView == _LibraryView.library) ...[
+-              const DdiroriProductSignature(
+-                product: DdiroriProduct.play,
+-                name: '띠로리 플레이',
++        ),
++        body: PlayPlaybackLayout(
++          fullPlayerInBody: homeView == _LibraryView.playback,
++          child: SafeArea(
++            child: ListView(
++              key: PageStorageKey('home-${homeView.name}'),
++              padding: EdgeInsets.fromLTRB(
++                MediaQuery.sizeOf(context).width >= 1024
++                    ? 32
++                    : MediaQuery.sizeOf(context).width >= 600
++                    ? 24
++                    : 16,
++                12,
++                MediaQuery.sizeOf(context).width >= 1024
++                    ? 32
++                    : MediaQuery.sizeOf(context).width >= 600
++                    ? 24
++                    : 16,
++                24,
+               ),
+-              const SizedBox(height: 24),
+-              DdiroriToolbar(
+-                label: '라이브러리 작업',
+-                children: [
+-                  DdiroriButton(
+-                    label: '파일 가져오기',
+-                    icon: Icons.file_open_outlined,
+-                    busy: isImportingFiles,
+-                    onPressed: localAudioImportCoordinator == null || isScanning
+-                        ? null
+-                        : () async {
+-                            setState(() => homeView = _LibraryView.management);
+-                            await _importAudioFiles();
+-                          },
+-                  ),
+-                  DdiroriIconButton(
+-                    label: '가져오기 및 관리',
+-                    icon: Icons.folder_outlined,
+-                    onPressed: () =>
+-                        setState(() => homeView = _LibraryView.management),
++              children: [
++                if (homeView == _LibraryView.library) ...[
++                  const DdiroriProductSignature(
++                    product: DdiroriProduct.play,
++                    name: '띠로리 플레이',
+                   ),
+-                ],
+-              ),
+-              const SizedBox(height: 16),
+-              if (hasStorageInitializationError)
+-                DdiroriBanner(
+-                  message: scanStatus,
+-                  kind: DdiroriNoticeKind.error,
+-                  action: DdiroriButton(
+-                    label: '보관함 다시 불러오기',
+-                    onPressed: isPreparingStorage ? null : _prepareStorage,
++                  const SizedBox(height: 24),
++                  DdiroriToolbar(
++                    label: '라이브러리 작업',
++                    children: [
++                      DdiroriButton(
++                        label: '파일 가져오기',
++                        icon: Icons.file_open_outlined,
++                        busy: isImportingFiles,
++                        onPressed:
++                            localAudioImportCoordinator == null || isScanning
++                            ? null
++                            : () async {
++                                setState(
++                                  () => homeView = _LibraryView.management,
++                                );
++                                await _importAudioFiles();
++                              },
++                      ),
++                      DdiroriIconButton(
++                        label: '가져오기 및 관리',
++                        icon: Icons.folder_outlined,
++                        onPressed: () =>
++                            setState(() => homeView = _LibraryView.management),
++                      ),
++                    ],
+                   ),
+-                )
+-              else if (_needsReviewCount(scannedFiles) > 0 ||
+-                  scannedFiles.any(
+-                    (file) => file.importStatus == AudioImportStatus.missing,
+-                  ))
+-                DdiroriBanner(
+-                  message:
+-                      '정리 필요 ${_needsReviewCount(scannedFiles)}개 · 누락 ${scannedFiles.where((file) => file.importStatus == AudioImportStatus.missing).length}개',
+-                  kind: DdiroriNoticeKind.warning,
+-                  action: DdiroriIconButton(
+-                    label: '파일 상태 확인',
+-                    icon: Icons.rule_folder_outlined,
+-                    onPressed: () =>
+-                        setState(() => homeView = _LibraryView.management),
++                  const SizedBox(height: 16),
++                  if (hasStorageInitializationError)
++                    DdiroriBanner(
++                      message: scanStatus,
++                      kind: DdiroriNoticeKind.error,
++                      action: DdiroriButton(
++                        label: '보관함 다시 불러오기',
++                        onPressed: isPreparingStorage ? null : _prepareStorage,
++                      ),
++                    )
++                  else if (_needsReviewCount(scannedFiles) > 0 ||
++                      scannedFiles.any(
++                        (file) =>
++                            file.importStatus == AudioImportStatus.missing,
++                      ))
++                    DdiroriBanner(
++                      message:
++                          '정리 필요 ${_needsReviewCount(scannedFiles)}개 · 누락 ${scannedFiles.where((file) => file.importStatus == AudioImportStatus.missing).length}개',
++                      kind: DdiroriNoticeKind.warning,
++                      action: DdiroriIconButton(
++                        label: '파일 상태 확인',
++                        icon: Icons.rule_folder_outlined,
++                        onPressed: () =>
++                            setState(() => homeView = _LibraryView.management),
++                      ),
++                    ),
++                  _SearchPanel(
++                    query: searchQuery,
++                    results: searchResults,
++                    onQueryChanged: _setSearchQuery,
++                    onResultSelected: _openSearchResult,
+                   ),
+-                ),
+-              _SearchPanel(
+-                query: searchQuery,
+-                results: searchResults,
+-                onQueryChanged: _setSearchQuery,
+-                onResultSelected: _openSearchResult,
+-              ),
+-              const SizedBox(height: 16),
+-              if (searchQuery.trim().isEmpty) ...[
+-                if (library.works.isEmpty)
+-                  _EmptyCatalogPanel(
+-                    hasFiles: scannedFiles.isNotEmpty,
+-                    onRegister:
+-                        scannedFiles
+-                            .where(
+-                              (file) =>
+-                                  file.importStatus ==
+-                                  AudioImportStatus.needsReview,
+-                            )
+-                            .isEmpty
+-                        ? null
+-                        : () => _openCatalogRegistration(
++                  const SizedBox(height: 16),
++                  if (searchQuery.trim().isEmpty) ...[
++                    if (library.works.isEmpty)
++                      _EmptyCatalogPanel(
++                        hasFiles: scannedFiles.isNotEmpty,
++                        onRegister:
+                             scannedFiles
+                                 .where(
+                                   (file) =>
+                                       file.importStatus ==
+                                       AudioImportStatus.needsReview,
+                                 )
+-                                .toList(),
+-                          ),
+-                  )
+-                else ...[
+-                  _WorksPanel(
+-                    library: library,
+-                    onlyRecorded: onlyRecordedWorks,
+-                    sortByComposer: sortWorksByComposer,
+-                    onFilterChanged: (value) =>
+-                        setState(() => onlyRecordedWorks = value),
+-                    onSortChanged: (value) =>
+-                        setState(() => sortWorksByComposer = value),
+-                    onWorkSelected: (id) => unawaited(_openWorkDetail(id)),
++                                .isEmpty
++                            ? null
++                            : () => _openCatalogRegistration(
++                                scannedFiles
++                                    .where(
++                                      (file) =>
++                                          file.importStatus ==
++                                          AudioImportStatus.needsReview,
++                                    )
++                                    .toList(),
++                              ),
++                      )
++                    else ...[
++                      _WorksPanel(
++                        library: library,
++                        onlyRecorded: onlyRecordedWorks,
++                        sortByComposer: sortWorksByComposer,
++                        onFilterChanged: (value) =>
++                            setState(() => onlyRecordedWorks = value),
++                        onSortChanged: (value) =>
++                            setState(() => sortWorksByComposer = value),
++                        onWorkSelected: (id) => unawaited(_openWorkDetail(id)),
++                      ),
++                      const SizedBox(height: 24),
++                      _RecordingsPanel(
++                        library: library,
++                        onRecordingSelected: (recordingId) =>
++                            unawaited(_openRecordingDetail(recordingId)),
++                      ),
++                    ],
++                  ],
++                ],
++                if (homeView == _LibraryView.management) ...[
++                  Align(
++                    alignment: AlignmentDirectional.centerEnd,
++                    child: DdiroriIconButton(
++                      label: '파일 정리 열기',
++                      icon: Icons.rule_folder_outlined,
++                      onPressed: scanRepository == null || isImportingFiles
++                          ? null
++                          : _openLibraryManagement,
++                    ),
++                  ),
++                  _ScanPanel(
++                    files: scannedFiles,
++                    candidates: metadataCandidates,
++                    links: fileTrackLinks,
++                    locations: scanLocations,
++                    status: scanStatus,
++                    isScanning: isScanning,
++                    isPickingFolder: isPickingFolder,
++                    isImportingFiles: isImportingFiles,
++                    isCatalogSaving: isCatalogSaving,
++                    supportsFolderScan: supportsFolderScan,
++                    showDemoActions: widget.enableDemoFeatures,
++                    onRetryStoragePressed: hasStorageInitializationError
++                        ? _prepareStorage
++                        : null,
++                    onImportFilesPressed: localAudioImportCoordinator == null
++                        ? null
++                        : _importAudioFiles,
++                    onAddFolderPressed: scanLocationRepository == null
++                        ? null
++                        : _addFolder,
++                    onSampleScanPressed: scanRepository == null
++                        ? null
++                        : _runSampleScan,
++                    onRegisterFiles: _openCatalogRegistration,
++                    onRescanLocation: _rescanLocation,
++                    onSetLocationActive: _setLocationActive,
+                   ),
+                   const SizedBox(height: 24),
+-                  _RecordingsPanel(
++                  _LibrarySummary(
+                     library: library,
+-                    onRecordingSelected: (recordingId) =>
+-                        unawaited(_openRecordingDetail(recordingId)),
++                    scannedCount: scannedFiles.length,
++                    needsReviewCount: _needsReviewCount(scannedFiles),
++                  ),
++                ],
++                if (homeView == _LibraryView.playback) ...[
++                  if (activePlan != null) ...[
++                    _QueuePanel(
++                      plan: activePlan,
++                      scannedFiles: scannedFiles,
++                      links: fileTrackLinks,
++                      playbackState: playbackState,
++                      isCommandRunning: isPlaybackCommandRunning,
++                      onPlayPausePressed: _togglePlayback,
++                      onNextPressed: _nextPlaybackItem,
++                      onStopPressed: _stopPlayback,
++                      onSeek: _seekPlayback,
++                      showControls:
++                          !playbackState.hasQueue ||
++                          !PlayPlaybackLayout.isWide(context),
++                      onOpenRecording: (id) =>
++                          unawaited(_openRecordingDetail(id)),
++                    ),
++                    const SizedBox(height: 24),
++                    _PlaybackModePanel(
++                      mode: mode,
++                      plan: activePlan,
++                      missingPolicy: queueMissingPolicy,
++                      onModeChanged: _setMode,
++                      onMissingPolicyChanged: (policy) {
++                        setState(() => queueMissingPolicy = policy);
++                      },
++                    ),
++                  ] else
++                    PlayNowPlayingControls(
++                      state: playbackState,
++                      canUseQueue: playbackState.hasQueue,
++                      commandRunning: isPlaybackCommandRunning,
++                      onPlayPause: _togglePlayback,
++                      onNext: _nextPlaybackItem,
++                      onStop: _stopPlayback,
++                      onSeek: _seekPlayback,
++                    ),
++                ],
++                if (homeView == _LibraryView.listening) ...[
++                  _RecentListeningPanel(
++                    entries: recentPlaybackHistory,
++                    continuationFor: _continuationFor,
++                    retentionPolicy: retentionPolicy,
++                    isCommandRunning:
++                        isPlaybackCommandRunning || isHistoryManagementRunning,
++                    onContinue: _continueListening,
++                    onDelete: _deleteHistoryEntry,
++                    onClearAll: _clearPlaybackHistory,
++                    onRetentionPolicyChanged: _changeRetentionPolicy,
++                  ),
++                  const SizedBox(height: 16),
++                  _ListeningStatisticsPanel(
++                    statistics: playbackHistoryStatistics,
++                    period: statisticsPeriod,
++                    onPeriodChanged: _setStatisticsPeriod,
+                   ),
+                 ],
+               ],
+-            ],
+-            if (homeView == _LibraryView.management) ...[
+-              Align(
+-                alignment: AlignmentDirectional.centerEnd,
+-                child: DdiroriIconButton(
+-                  label: '파일 정리 열기',
+-                  icon: Icons.rule_folder_outlined,
+-                  onPressed: scanRepository == null || isImportingFiles
+-                      ? null
+-                      : _openLibraryManagement,
+-                ),
+-              ),
+-              _ScanPanel(
+-                files: scannedFiles,
+-                candidates: metadataCandidates,
+-                links: fileTrackLinks,
+-                locations: scanLocations,
+-                status: scanStatus,
+-                isScanning: isScanning,
+-                isPickingFolder: isPickingFolder,
+-                isImportingFiles: isImportingFiles,
+-                isCatalogSaving: isCatalogSaving,
+-                supportsFolderScan: supportsFolderScan,
+-                showDemoActions: widget.enableDemoFeatures,
+-                onRetryStoragePressed: hasStorageInitializationError
+-                    ? _prepareStorage
+-                    : null,
+-                onImportFilesPressed: localAudioImportCoordinator == null
+-                    ? null
+-                    : _importAudioFiles,
+-                onAddFolderPressed: scanLocationRepository == null
+-                    ? null
+-                    : _addFolder,
+-                onSampleScanPressed: scanRepository == null
+-                    ? null
+-                    : _runSampleScan,
+-                onRegisterFiles: _openCatalogRegistration,
+-                onRescanLocation: _rescanLocation,
+-                onSetLocationActive: _setLocationActive,
+-              ),
+-              const SizedBox(height: 24),
+-              _LibrarySummary(
+-                library: library,
+-                scannedCount: scannedFiles.length,
+-                needsReviewCount: _needsReviewCount(scannedFiles),
+-              ),
+-            ],
+-            if (homeView == _LibraryView.playback) ...[
+-              if (activePlan != null) ...[
+-                _QueuePanel(
+-                  plan: activePlan,
+-                  scannedFiles: scannedFiles,
+-                  links: fileTrackLinks,
+-                  playbackState: playbackState,
+-                  isCommandRunning: isPlaybackCommandRunning,
+-                  onPlayPausePressed: _togglePlayback,
+-                  onNextPressed: _nextPlaybackItem,
+-                  onStopPressed: _stopPlayback,
+-                  onSeek: _seekPlayback,
+-                ),
+-                const SizedBox(height: 24),
+-                _PlaybackModePanel(
+-                  mode: mode,
+-                  plan: activePlan,
+-                  missingPolicy: queueMissingPolicy,
+-                  onModeChanged: _setMode,
+-                  onMissingPolicyChanged: (policy) {
+-                    setState(() => queueMissingPolicy = policy);
+-                  },
+-                ),
+-              ] else
+-                PlayNowPlayingControls(
+-                  state: playbackState,
+-                  canUseQueue: playbackState.hasQueue,
+-                  commandRunning: isPlaybackCommandRunning,
+-                  onPlayPause: _togglePlayback,
+-                  onNext: _nextPlaybackItem,
+-                  onStop: _stopPlayback,
+-                  onSeek: _seekPlayback,
+-                ),
+-            ],
+-            if (homeView == _LibraryView.listening) ...[
+-              _RecentListeningPanel(
+-                entries: recentPlaybackHistory,
+-                continuationFor: _continuationFor,
+-                retentionPolicy: retentionPolicy,
+-                isCommandRunning:
+-                    isPlaybackCommandRunning || isHistoryManagementRunning,
+-                onContinue: _continueListening,
+-                onDelete: _deleteHistoryEntry,
+-                onClearAll: _clearPlaybackHistory,
+-                onRetentionPolicyChanged: _changeRetentionPolicy,
+-              ),
+-              const SizedBox(height: 16),
+-              _ListeningStatisticsPanel(
+-                statistics: playbackHistoryStatistics,
+-                period: statisticsPeriod,
+-                onPeriodChanged: _setStatisticsPeriod,
+-              ),
+-            ],
+-          ],
++            ),
++          ),
+         ),
+       ),
+     );
+diff --git a/apps/classical_local_library/lib/presentation/library_home_components.dart b/apps/classical_local_library/lib/presentation/library_home_components.dart
+index ae2ce877..ac93d169 100644
+--- a/apps/classical_local_library/lib/presentation/library_home_components.dart
++++ b/apps/classical_local_library/lib/presentation/library_home_components.dart
+@@ -443,6 +443,8 @@ class _QueuePanel extends StatelessWidget {
+     required this.onNextPressed,
+     required this.onStopPressed,
+     required this.onSeek,
++    required this.showControls,
++    required this.onOpenRecording,
+   });
+ 
+   final PlaybackPlan plan;
+@@ -454,6 +456,8 @@ class _QueuePanel extends StatelessWidget {
+   final VoidCallback onNextPressed;
+   final VoidCallback onStopPressed;
+   final ValueChanged<Duration> onSeek;
++  final bool showControls;
++  final ValueChanged<String> onOpenRecording;
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -469,6 +473,13 @@ class _QueuePanel extends StatelessWidget {
+     );
+     final showsActiveQueue = playbackState.hasQueue;
+     final localQueue = showsActiveQueue ? playbackState.queue : plannedQueue;
++    final singleContext =
++        localQueue.isNotEmpty &&
++        localQueue.every(
++          (item) =>
++              item.workId == localQueue.first.workId &&
++              item.recordingId == localQueue.first.recordingId,
++        );
+ 
+     return KeyedSubtree(
+       key: const ValueKey('queue-panel'),
+@@ -481,15 +492,22 @@ class _QueuePanel extends StatelessWidget {
+               : DdiroriStatusTone.neutral,
+         ),
+         children: [
+-          PlayNowPlayingControls(
+-            state: playbackState,
+-            canUseQueue: localQueue.isNotEmpty || plannedQueue.isNotEmpty,
+-            commandRunning: isCommandRunning,
+-            onPlayPause: onPlayPausePressed,
+-            onNext: onNextPressed,
+-            onStop: onStopPressed,
+-            onSeek: onSeek,
+-          ),
++          if (singleContext)
++            PlayQueueContext(
++              item: localQueue.first,
++              onOpenRecording: onOpenRecording,
++            ),
++          if (showControls)
++            PlayNowPlayingControls(
++              showContext: !singleContext,
++              state: playbackState,
++              canUseQueue: localQueue.isNotEmpty || plannedQueue.isNotEmpty,
++              commandRunning: isCommandRunning,
++              onPlayPause: onPlayPausePressed,
++              onNext: onNextPressed,
++              onStop: onStopPressed,
++              onSeek: onSeek,
++            ),
+           const SizedBox(height: 8),
+           if (!showsActiveQueue && availability.missingCount > 0)
+             ListTile(
+@@ -498,12 +516,23 @@ class _QueuePanel extends StatelessWidget {
+               title: Text('연결되지 않은 악장 ${availability.missingCount}개'),
+               subtitle: Text(availability.missingTitles.join(' · ')),
+             ),
+-          for (var index = 0; index < localQueue.length; index += 1)
++          for (var index = 0; index < localQueue.length; index += 1) ...[
++            if (!singleContext &&
++                (index == 0 ||
++                    localQueue[index - 1].workId != localQueue[index].workId ||
++                    localQueue[index - 1].recordingId !=
++                        localQueue[index].recordingId))
++              PlayQueueContext(
++                item: localQueue[index],
++                onOpenRecording: onOpenRecording,
++              ),
+             PlayQueueRow(
++              showContext: false,
+               index: index,
+               item: localQueue[index],
+               current: showsActiveQueue && playbackState.currentIndex == index,
+             ),
++          ],
+         ],
+       ),
+     );
+diff --git a/apps/classical_local_library/lib/presentation/play_library_components.dart b/apps/classical_local_library/lib/presentation/play_library_components.dart
+index ba2ea238..0e66bb7a 100644
+--- a/apps/classical_local_library/lib/presentation/play_library_components.dart
++++ b/apps/classical_local_library/lib/presentation/play_library_components.dart
+@@ -109,8 +109,9 @@ class PlayMovementRow extends StatelessWidget {
+       label:
+           '$sequenceNumber번, $title, '
+           '${hasLocalFile ? '재생 가능' : '재생 불가'}'
+-          '${current ? ', 현재 재생 중' : ''}',
++          '${current ? ', 현재 악장' : ''}',
+       button: onTap != null,
++      onTap: hasLocalFile ? onTap : null,
+       child: ExcludeSemantics(
+         child: DdiroriItem(
+           flat: true,
+@@ -120,8 +121,8 @@ class PlayMovementRow extends StatelessWidget {
+           actions: [
+             current
+                 ? const DdiroriStatusBadge(
+-                    label: '재생 중',
+-                    tone: DdiroriStatusTone.success,
++                    label: '현재 악장',
++                    tone: DdiroriStatusTone.info,
+                   )
+                 : DdiroriStatusBadge(
+                     label: hasLocalFile ? '재생 가능' : '파일 없음',
+@@ -129,6 +130,12 @@ class PlayMovementRow extends StatelessWidget {
+                         ? DdiroriStatusTone.success
+                         : DdiroriStatusTone.warning,
+                   ),
++            if (onTap != null)
++              DdiroriIconButton(
++                label: '$title 재생',
++                icon: Icons.play_arrow,
++                onPressed: hasLocalFile ? onTap : null,
++              ),
+           ],
+           selected: current,
+           enabled: hasLocalFile || onTap == null,
+@@ -170,39 +177,99 @@ class PlayQueueRow extends StatelessWidget {
+     required this.index,
+     required this.item,
+     this.current = false,
++    this.showContext = true,
+   });
+ 
+   final int index;
+   final LocalPlaybackQueueItem item;
+   final bool current;
++  final bool showContext;
+ 
+   @override
+   Widget build(BuildContext context) => Semantics(
+     container: true,
+     label:
+-        '큐 ${index + 1}번, ${item.displayTitle}, ${item.workTitle}, '
+-        '${item.recordingTitle}, ${item.fileSourceLabel}'
++        '큐 ${index + 1}번, ${item.displayTitle}, '
++        '${showContext ? '${item.workTitle}, ${item.recordingTitle}, ' : ''}${item.fileSourceLabel}'
+         '${current ? ', 현재 악장' : ''}',
+     selected: current,
+     child: DdiroriItem(
+       flat: true,
+       title: item.displayTitle,
+-      subtitle:
+-          '${item.workTitle} · ${item.recordingTitle}\n'
+-          '${item.fileSourceLabel} · ${_fileName(item.path)}',
+-      leading: CircleAvatar(child: Text('${index + 1}')),
++      subtitle: showContext
++          ? '${item.workTitle} · ${item.recordingTitle}\n${item.fileSourceLabel} · ${_fileName(item.path)}'
++          : item.usesLinkedFile
++          ? null
++          : '실제 파일 연결 필요',
++      leading: SizedBox(width: 24, child: Text('${index + 1}')),
+       actions: [
+         if (current)
+           const DdiroriStatusBadge(
+             label: '현재 악장',
+             tone: DdiroriStatusTone.info,
+           ),
++        DdiroriIconButton(
++          label: '음원 정보 ${index + 1}',
++          icon: Icons.info_outline,
++          onPressed: () => showDialog<void>(
++            context: context,
++            builder: (context) => AlertDialog(
++              title: const Text('음원 정보'),
++              content: SingleChildScrollView(
++                child: Text(
++                  '${item.displayTitle}\n'
++                  '${item.workTitle.isEmpty ? '작품 정보 없음' : item.workTitle}\n'
++                  '${item.recordingTitle.isEmpty ? '녹음 정보 없음' : item.recordingTitle}\n'
++                  '${item.fileSourceLabel} · ${_fileName(item.path)}',
++                ),
++              ),
++              actions: [
++                DdiroriButton(
++                  label: '닫기',
++                  onPressed: () => Navigator.pop(context),
++                ),
++              ],
++            ),
++          ),
++        ),
+       ],
+       selected: current,
+     ),
+   );
+ }
+ 
++class PlayQueueContext extends StatelessWidget {
++  const PlayQueueContext({super.key, required this.item, this.onOpenRecording});
++
++  final LocalPlaybackQueueItem item;
++  final ValueChanged<String>? onOpenRecording;
++
++  @override
++  Widget build(BuildContext context) => Column(
++    crossAxisAlignment: CrossAxisAlignment.stretch,
++    children: [
++      Semantics(
++        header: true,
++        child: Text(
++          item.workTitle.isEmpty ? '작품 정보 없음' : item.workTitle,
++          style: Theme.of(context).textTheme.titleLarge,
++        ),
++      ),
++      Text(item.recordingTitle.isEmpty ? '녹음 정보 없음' : item.recordingTitle),
++      if (onOpenRecording != null)
++        Align(
++          alignment: AlignmentDirectional.centerEnd,
++          child: DdiroriIconButton(
++            label: '녹음 정보 열기',
++            icon: Icons.album_outlined,
++            onPressed: () => onOpenRecording!(item.recordingId),
++          ),
++        ),
++      const SizedBox(height: 8),
++    ],
++  );
++}
++
+ class PlayAudioFileRow extends StatelessWidget {
+   const PlayAudioFileRow({
+     super.key,
+diff --git a/apps/classical_local_library/lib/presentation/play_playback_components.dart b/apps/classical_local_library/lib/presentation/play_playback_components.dart
+index 15405d2b..dc9a5484 100644
+--- a/apps/classical_local_library/lib/presentation/play_playback_components.dart
++++ b/apps/classical_local_library/lib/presentation/play_playback_components.dart
+@@ -13,6 +13,7 @@ class PlayNowPlayingControls extends StatelessWidget {
+     required this.onNext,
+     required this.onStop,
+     required this.onSeek,
++    this.showContext = true,
+   });
+ 
+   final LocalPlaybackState state;
+@@ -22,6 +23,7 @@ class PlayNowPlayingControls extends StatelessWidget {
+   final VoidCallback onNext;
+   final VoidCallback onStop;
+   final ValueChanged<Duration> onSeek;
++  final bool showContext;
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -39,6 +41,10 @@ class PlayNowPlayingControls extends StatelessWidget {
+         : state.processingState == LocalPlaybackProcessingState.buffering
+         ? '버퍼링 중'
+         : null;
++    final contextLabel = showContext && currentItem != null
++        ? '\n${currentItem.workTitle.isEmpty ? '작품 정보 없음' : currentItem.workTitle} · '
++              '${currentItem.recordingTitle.isEmpty ? '녹음 정보 없음' : currentItem.recordingTitle}'
++        : '';
+ 
+     return Semantics(
+       container: true,
+@@ -63,11 +69,8 @@ class PlayNowPlayingControls extends StatelessWidget {
+                   Text(
+                     currentItem == null
+                         ? '재생할 음원을 선택하세요.'
+-                        : '${_playerStateLabel(state.playerState)} · '
+-                              '${state.currentIndex + 1}/${state.queue.length}\n'
+-                              '${currentItem.workTitle} · '
+-                              '${currentItem.recordingTitle} · '
+-                              '${currentItem.fileSourceLabel}',
++                        : '${playPlayerStateLabel(state.playerState)} · '
++                              '${state.currentIndex + 1}/${state.queue.length}$contextLabel',
+                     style: Theme.of(context).textTheme.bodyMedium,
+                   ),
+                 ],
+@@ -77,7 +80,7 @@ class PlayNowPlayingControls extends StatelessWidget {
+                 DdiroriProgress(size: 24, label: statusLabel ?? '불러오는 중')
+               else
+                 DdiroriStatusBadge(
+-                  label: _playerStateLabel(state.playerState),
++                  label: playPlayerStateLabel(state.playerState),
+                   tone: _playerStateTone(state.playerState),
+                 ),
+             ],
+@@ -120,7 +123,12 @@ class PlayNowPlayingControls extends StatelessWidget {
+           ),
+           const SizedBox(height: 4),
+           DdiroriPlaybackProgress(
+-            key: ValueKey(currentItem?.trackId),
++            key: ValueKey((
++              currentItem?.trackId,
++              currentItem?.path,
++              state.failure?.kind,
++              state.playerState == LocalPlayerState.paused,
++            )),
+             sliderKey: const ValueKey('playback-progress'),
+             position: state.normalizedPosition,
+             duration: duration,
+@@ -141,7 +149,7 @@ class PlayNowPlayingControls extends StatelessWidget {
+   }
+ }
+ 
+-String _playerStateLabel(LocalPlayerState state) => switch (state) {
++String playPlayerStateLabel(LocalPlayerState state) => switch (state) {
+   LocalPlayerState.idle => '대기',
+   LocalPlayerState.loading => '불러오는 중',
+   LocalPlayerState.ready => '준비됨',
+diff --git a/apps/classical_local_library/test/home_screen_test.dart b/apps/classical_local_library/test/home_screen_test.dart
+index be073a1a..aed06a91 100644
+--- a/apps/classical_local_library/test/home_screen_test.dart
++++ b/apps/classical_local_library/test/home_screen_test.dart
+@@ -218,7 +218,16 @@ void main() {
+     await _scrollToQueue(tester);
+     expect(find.text('현재 재생 큐'), findsOneWidget);
+     expect(find.textContaining('교향곡 5번 다단조'), findsWidgets);
+-    expect(find.textContaining('샘플 파일'), findsWidgets);
++    await tester.scrollUntilVisible(
++      find.byTooltip('음원 정보 1'),
++      250,
++      scrollable: find.byType(Scrollable).first,
++    );
++    await tester.tap(find.byTooltip('음원 정보 1'));
++    await tester.pumpAndSettle();
++    expect(find.textContaining('샘플 파일'), findsOneWidget);
++    await tester.tap(find.text('닫기'));
++    await tester.pumpAndSettle();
+   });
+ 
+   testWidgets('음악 발견 화면에서 추천 이유를 보고 기존 큐를 선택한다', (tester) async {
+@@ -932,9 +941,16 @@ void main() {
+     expect(player.playbackState.playerState, LocalPlayerState.playing);
+     expect(player.playbackState.queue, hasLength(4));
+ 
+-    await tester.scrollUntilVisible(find.text('2악장 Andante con moto'), 300);
++    await tester.scrollUntilVisible(
++      find.text('2악장 Andante con moto'),
++      300,
++      scrollable: find.byType(Scrollable).first,
++    );
+     await tester.ensureVisible(find.text('2악장 Andante con moto'));
+-    await tester.drag(find.byType(ListView).last, const Offset(0, -240));
++    await Scrollable.ensureVisible(
++      tester.element(find.text('2악장 Andante con moto')),
++      alignment: 0.5,
++    );
+     await tester.pumpAndSettle();
+     await tester.tap(find.text('2악장 Andante con moto'));
+     await tester.pumpAndSettle();
+diff --git a/apps/classical_local_library/test/play_playback_components_test.dart b/apps/classical_local_library/test/play_playback_components_test.dart
+index 5c46055a..853f7a5b 100644
+--- a/apps/classical_local_library/test/play_playback_components_test.dart
++++ b/apps/classical_local_library/test/play_playback_components_test.dart
+@@ -5,6 +5,66 @@ import 'package:flutter/material.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ 
+ void main() {
++  testWidgets(
++    'draft resets on track change, pause and failure without seeking',
++    (t) async {
++      var state = _playingState();
++      final seeks = <Duration>[];
++      Future<void> render() => t.pumpWidget(
++        MaterialApp(
++          home: Scaffold(
++            body: PlayNowPlayingControls(
++              state: state,
++              canUseQueue: true,
++              commandRunning: false,
++              onPlayPause: _noop,
++              onNext: _noop,
++              onStop: _noop,
++              onSeek: seeks.add,
++            ),
++          ),
++        ),
++      );
++      await render();
++      for (final change in ['track', 'pause', 'error']) {
++        t.widget<Slider>(find.byType(Slider)).onChanged!(90000);
++        await t.pump();
++        expect(t.widget<Slider>(find.byType(Slider)).value, 90000);
++        state = state.copyWith(
++          position: const Duration(seconds: 5),
++          playerState: change == 'pause'
++              ? LocalPlayerState.paused
++              : change == 'error'
++              ? LocalPlayerState.error
++              : LocalPlayerState.playing,
++          failure: change == 'error'
++              ? const LocalPlaybackFailure(
++                  kind: LocalPlaybackFailureKind.loadFailed,
++                  userMessage: '오디오를 불러오지 못했습니다.',
++                )
++              : null,
++          queue: change == 'track'
++              ? const [
++                  LocalPlaybackQueueItem(
++                    trackId: 'track-2',
++                    recordingId: 'recording-1',
++                    workId: 'work-1',
++                    displayTitle: '다음 악장',
++                    path: '/fixture/next.flac',
++                    usesLinkedFile: true,
++                    workTitle: '작품',
++                    recordingTitle: '녹음',
++                  ),
++                ]
++              : state.queue,
++        );
++        await render();
++        expect(t.widget<Slider>(find.byType(Slider)).value, 5000);
++        expect(seeks, isEmpty);
++      }
++    },
++  );
++
+   testWidgets(
+     'seek draft survives engine ticks but never changes engine position',
+     (t) async {
+diff --git a/apps/classical_local_library/test/product_design_r1_test.dart b/apps/classical_local_library/test/product_design_r1_test.dart
+index f465c382..d07acb29 100644
+--- a/apps/classical_local_library/test/product_design_r1_test.dart
++++ b/apps/classical_local_library/test/product_design_r1_test.dart
+@@ -228,6 +228,11 @@ void main() {
+               200,
+               scrollable: find.byType(Scrollable).first,
+             );
++            await Scrollable.ensureVisible(
++              t.element(find.text('녹음 있는 작품')),
++              alignment: 0.5,
++            );
++            await t.pumpAndSettle();
+             await t.tap(find.text('녹음 있는 작품'));
+             await t.pumpAndSettle();
+             await Scrollable.ensureVisible(
+diff --git a/deployment/apps/classical-local-library/ios-metadata.yaml b/deployment/apps/classical-local-library/ios-metadata.yaml
+index 4f0a6776..3d0c4797 100644
+--- a/deployment/apps/classical-local-library/ios-metadata.yaml
++++ b/deployment/apps/classical-local-library/ios-metadata.yaml
+@@ -42,6 +42,8 @@ content:
+         • 작품, 녹음 또는 악장 단위의 랜덤 재생
+         • 분리된 악장을 순서대로 묶은 재생 큐
+         • 녹음 전체 또는 선택한 악장부터 남은 악장을 순서대로 재생
++        • 다른 작품과 녹음을 살펴보는 동안 현재 재생 조작에 접근
++        • 큐의 작품·녹음 맥락을 묶어 보고 개별 악장과 음원 정보 확인
+         • 재생 위치 저장과 이어 듣기
+         • 최근 감상 기록과 작품·녹음별 감상 통계
+         • 음원과 원래 폴더 경로를 제외한 라이브러리 백업·복원
+@@ -62,6 +64,8 @@ content:
+       marketing_url:
+       privacy_url:
+       release_notes: |-
++        녹음 탐색 중에도 현재 재생을 조작할 수 있습니다. 넓은 화면은 별도 재생 영역을, 좁은 화면은 하단 축약 조작과 재생 상세를 제공합니다.
++        큐의 반복 작품·녹음 설명을 줄이고 악장 순서와 현재 항목을 명확히 표시했습니다. 음원 정보와 녹음 상세는 계속 확인할 수 있습니다.
+         공통 보조 버튼의 중립색과 선택 표현을 정리하고, 입력 확정 및 선택 항목의 접근성 이름을 보완했습니다.
+         내부 메타데이터 저장이 실패하면 입력을 유지하고 다시 시도할 수 있습니다. 저장 중 중복 실행을 막고 완료 후 목록으로 돌아갑니다.
+ declarations:
+@@ -82,6 +86,11 @@ review:
+     register the file as a work/recording/movement, open the work and recording detail screens,
+     and play the complete recording or start from a selected movement.
+ 
++    While playback is active, browsing another work or recording does not replace the playing
++    queue. Use the side playback area on wide layouts, or the bottom compact controls and
++    "재생 상세 열기" on narrow layouts. File details are available via "음원 정보 N" in the queue.
++    Retrying a playback failure reloads the retained queue and starts from its first item.
++
+     For metadata editing, open "파일 정리", then the file's "파일 작업" menu and
+     "내부 메타데이터 편집". Cancel leaves existing values unchanged. Save stays in the
+     dialog until persistence succeeds; a failure preserves the draft for retry.
+@@ -109,6 +118,8 @@ testflight:
+   build_id:
+   description: 로컬 클래식 음원을 작품·녹음·악장으로 정리하고, 악장 순서를 유지한 재생과 감상 기록을 테스트합니다.
+   test_notes: |-
++    R2: A 녹음 재생 중 검색으로 B 녹음을 열어도 A의 큐·악장·위치가 유지되는지 확인해 주세요. 넓은 화면 옆 재생 영역과 좁은 화면 하단 조작/재생 상세를 확인해 주세요.
++    같은 녹음의 큐는 작품·녹음 맥락을 한 번 표시하며 혼합 큐는 구간별로 구분합니다. 음원 정보 N에서 파일명·출처를, 녹음 정보 열기에서 상세를 확인해 주세요. 재시도는 기존 큐 첫 악장부터 시작합니다.
+     R1: 라이브러리의 검색·작품 필터·정렬, 현재 재생·관리·감상 보기를 확인해 주세요. 보기·필터·테마 변경만으로 큐나 재생 위치가 초기화되면 안 됩니다.
+     관리 보기에서 가져오기·폴더·파일 정리와 요약을, 감상 보기에서 이력·통계를 확인해 주세요. 현재 재생의 오류 재시도와 길이 미확정 상태를 구분해 주세요.
+     공통 quiet/secondary 버튼의 중립색과 선택 상태, 목록 선택 이름, 검색 입력과 기존 재생·queue 동선이 유지되는지 확인해 주세요.
+@@ -228,12 +239,12 @@ screenshots:
+       value: 디자인 시스템 기준
+       present: false
+   - id: movement_queue
+-    purpose: 여러 파일로 나뉜 악장을 작품 순서대로 묶은 재생 큐를 보여준다 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
++    purpose: 상위 작품·녹음 맥락을 묶고 악장 순서와 현재 표시 중심으로 정리한 읽기 전용 재생 큐를 보여준다. 음원 정보와 상세 접근을 유지한다.
+     route: 라이브러리 → 현재 재생 보기 → 현재 재생 큐
+     fixture: 자체 제작 베토벤 교향곡 샘플 카탈로그와 악장 4개
+     must_show:
+     - 작품·녹음 이름과 순서가 표시된 악장 큐
+-    - 작품·녹음·파일 출처를 전용 큐 행에서 계층적으로 표시한 상태
++    - 작품·녹음 맥락을 구간 상단에 모으고 큐 행에는 악장 순번·현재 표시·음원 정보 행동을 표시
+     - 재생·다음·정지 도구, 진행률과 fixture의 실제 상태 배지. 화면만으로 가청 출력을 입증하지 않음
+     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
+     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
+@@ -259,6 +270,7 @@ screenshots:
+     - by: text
+       value: 1악장 Allegro con brio
+       present: true
++    - {by: tooltip, value: '음원 정보 1', present: true}
+     - by: text
+       value: 띠로리 색상 작업실
+       present: false
+@@ -321,6 +333,7 @@ screenshots:
+     must_show:
+     - 작품·작곡가·녹음명과 연도, 앙상블, 지휘자
+     - 녹음 전체 재생 명령과 재생 가능한 트랙 수
++    - 실제 재생 큐가 있으면 탐색 중 녹음과 구분되는 옆 재생 영역 또는 하단 축약 조작. 큐가 없는 fixture에서는 표시하지 않음
+     - 원래 순서를 유지한 악장 목록과 파일명만 표시하는 가용성 상태
+     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
+     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
+@@ -367,6 +380,34 @@ screenshots:
+     - by: text
+       value: 디자인 시스템 기준
+       present: false
++  - id: browsing_playback
++    purpose: 다른 녹음 탐색 중에도 실제 controller 상태를 읽는 재생 영역과 조작에 접근함을 보여준다. 가청 출력 검증과 구분한다.
++    route: 라이브러리 → 교향곡 5번 → 클라이버 녹음 재생 → 라이브러리 복귀 → 브렌델 녹음 탐색
++    fixture: 자체 제작 카탈로그의 교향곡 5번 큐와 브렌델 피아노 녹음. 촬영 fixture controller 사용 여부를 산출물에 구분하며 실제 사용자 음원은 사용하지 않음.
++    must_show:
++    - 탐색 중인 브렌델 녹음 정보와 재생 중인 클라이버 큐의 1악장
++    - 넓은 화면의 옆 재생 영역 또는 좁은 화면의 하단 축약 조작과 재생 상세 진입
++    - 선택 녹음 변경만으로 기존 큐를 교체하지 않은 상태
++    exclude:
++    - 저작권 미확인 음원·개인 파일 경로와 메타데이터
++    - fake snapshot을 물리 출력·백그라운드 재생 증거로 표현한 상태
++    steps:
++    - {action: scroll_to, by: text, value: 교향곡 5번 다단조, delta: 250}
++    - {action: tap, by: text, value: 교향곡 5번 다단조}
++    - {action: scroll_to, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음, delta: 250}
++    - {action: tap, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음}
++    - {action: tap, by: text, value: 녹음 전체 재생}
++    - {action: back}
++    - {action: back}
++    - {action: scroll_to, by: text, value: 브렌델 피아노 연주 녹음, delta: 250}
++    - {action: tap, by: text, value: 브렌델 피아노 연주 녹음}
++    - {action: wait, milliseconds: 400}
++    assertions:
++    - {by: text, value: 브렌델 피아노 연주 녹음, present: true}
++    - {by: text, value: 1악장 Allegro con brio, present: true}
++    - {by: tooltip, value: 재생 상세 열기, present: true}
++    - {by: widget_type, value: PlayPlaybackLayout, present: true}
++    - {by: widget_type, value: ErrorWidget, present: false}
+ videos:
+   app_preview:
+     required: false
+@@ -390,6 +431,7 @@ manual:
+   accessibility:
+     status: pending
+     evidence: >-
++      2026-10-25 R2 옆 재생 영역/하단 축약 조작, 현재 악장과 탐색 녹음 분리, 음원 정보 dialog·키보드 seek 변경. 320/390/1024 및 200% 자동 검사와 별개로 실기기 VoiceOver 읽기 순서·focus 복귀 검수 pending.
+       2026-10-25 product-design-r1의 네 보기·작품 필터/정렬·평평한 행·현재 재생 오류 재시도 적용. 새 화면의 실기기 VoiceOver·읽기 순서 재검수는 pending. returns/play-r1-2026-10-25에 자동 검증과 미검수 범위를 분리 기록한다.
+       2026-10-25 내부 메타데이터 dialog 저장 중 readOnly·취소/Back 차단·실패 draft 보존 변경. VoiceOver·큰 글자·키보드·오류 읽기 순서 재검수 필요. shared-baseline.md 및 support-matrix.md 참고. 실기기 검수와 새 scene 촬영 미실행.
+       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
+@@ -412,6 +454,7 @@ manual:
+   review_device_qa:
+     status: pending
+     evidence: >-
++      2026-10-25 R2: A 재생 중 B 탐색과 목록 끝 조작, 재생 상세/seek, 오류 후 첫 악장 재시작을 실제 파일·권한·가청 출력 환경에서 재검수해야 함. fake snapshot/합성 테스트를 물리 증거로 대체하지 않음.
+       2026-10-25 R1 경로 변경: 관리 보기→파일 정리 열기, 현재 재생 보기→큐, 감상 보기→이력/통계. 보기·필터·테마 전환 시 실제 재생 연속성과 Files 권한·interruption 복구를 실기기로 재검수해야 함.
+       2026-10-25 파일 정리→파일 작업→내부 메타데이터 편집에서 저장/실패 재시도/취소 후 목록 복귀와 재생 위치 보존을 실기기로 재검수해야 함. repository double의 widget test는 실제 저장장치·재생 증거가 아님.
+       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
+@@ -424,6 +467,7 @@ manual:
+   build_selection:
+     status: pending
+     evidence: >2-
++       2026-10-25 R2 제품 적용 변경으로 source pending/content reviewed false 유지. 새 소스의 스토어 촬영·서명·후보 선택은 미완료. 버전/build/future commit pin 없음.
+        2026-10-25 product-design-r1 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영과 후보 빌드 선택은 미완료. 버전·build·commit pin은 변경하지 않음.
+        2026-10-23 라임 대표색·올리브 행동색 및 새 런처 적용 후 후보 빌드와 실기기 검수 필요. 위젯 렌더링은 스토어 촬영 승인 근거가 아님. 2026-10-23 후속 중립색 시스템: 흰색·무채색 표면과 선택색을 분리하고 Material 표면 틴트를 제거함. 임시 라임 강조색은
+       유지. 새 소스의 실기기·VoiceOver·스토어 촬영 검수는 pending이며 공통 위젯 렌더링은 해당 증거를 대신하지 않음. 2026-10-23 조작부 형태·타이포·간격 변경 후 큰 글씨·선택·포커스·터치 영역의 후보 빌드와 실기기 재검수 필요. 위젯/웹 캡처는 스토어 검수
+diff --git a/apps/classical_local_library/lib/presentation/play_playback_layout.dart b/apps/classical_local_library/lib/presentation/play_playback_layout.dart
+new file mode 100644
+index 00000000..ebf9f159
+--- /dev/null
++++ b/apps/classical_local_library/lib/presentation/play_playback_layout.dart
+@@ -0,0 +1,250 @@
++import 'package:ddirori_ui/ddirori_ui.dart';
++import 'package:flutter/foundation.dart';
++import 'package:flutter/material.dart';
++
++import '../local_playback.dart';
++import 'play_playback_components.dart';
++
++class PlayPlaybackSnapshot {
++  const PlayPlaybackSnapshot(this.state, {this.commandRunning = false});
++
++  final LocalPlaybackState state;
++  final bool commandRunning;
++}
++
++class PlayPlaybackScope extends InheritedWidget {
++  const PlayPlaybackScope({
++    super.key,
++    required this.snapshot,
++    required this.onPlayPause,
++    required this.onNext,
++    required this.onStop,
++    required this.onSeek,
++    required super.child,
++  });
++
++  final ValueListenable<PlayPlaybackSnapshot> snapshot;
++  final Future<void> Function() onPlayPause;
++  final Future<void> Function() onNext;
++  final Future<void> Function() onStop;
++  final Future<void> Function(Duration) onSeek;
++
++  static PlayPlaybackScope? maybeOf(BuildContext context) =>
++      context.dependOnInheritedWidgetOfExactType<PlayPlaybackScope>();
++
++  @override
++  bool updateShouldNotify(PlayPlaybackScope oldWidget) =>
++      snapshot != oldWidget.snapshot;
++
++  Widget controls(PlayPlaybackSnapshot value, {bool showContext = true}) =>
++      PlayNowPlayingControls(
++        state: value.state,
++        canUseQueue: value.state.hasQueue,
++        commandRunning: value.commandRunning,
++        showContext: showContext,
++        onPlayPause: onPlayPause,
++        onNext: onNext,
++        onStop: onStop,
++        onSeek: onSeek,
++      );
++
++  Future<void> openDetails(BuildContext context) =>
++      Navigator.of(context).push<void>(
++        MaterialPageRoute(
++          builder: (context) => Scaffold(
++            appBar: AppBar(title: const Text('재생 상세')),
++            body: SafeArea(
++              child: ValueListenableBuilder<PlayPlaybackSnapshot>(
++                valueListenable: snapshot,
++                builder: (context, value, _) => SingleChildScrollView(
++                  padding: const EdgeInsets.all(16),
++                  child: Column(
++                    crossAxisAlignment: CrossAxisAlignment.stretch,
++                    children: [
++                      controls(value),
++                      if (value.state.failure != null) ...[
++                        const SizedBox(height: 12),
++                        const Text('다시 시도하면 현재 큐의 첫 악장부터 재생합니다.'),
++                      ],
++                    ],
++                  ),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++}
++
++class PlayPlaybackLayout extends StatelessWidget {
++  const PlayPlaybackLayout({
++    super.key,
++    required this.child,
++    this.fullPlayerInBody = false,
++  });
++
++  final Widget child;
++  final bool fullPlayerInBody;
++
++  static bool isWide(BuildContext context) =>
++      MediaQuery.sizeOf(context).width >= 800;
++
++  @override
++  Widget build(BuildContext context) {
++    final scope = PlayPlaybackScope.maybeOf(context);
++    if (scope == null) return child;
++    return ValueListenableBuilder<PlayPlaybackSnapshot>(
++      valueListenable: scope.snapshot,
++      child: child,
++      builder: (context, value, body) {
++        if (!value.state.hasQueue) return body!;
++        return LayoutBuilder(
++          builder: (context, constraints) {
++            if (constraints.maxWidth >= 800) {
++              return Row(
++                crossAxisAlignment: CrossAxisAlignment.stretch,
++                children: [
++                  Expanded(child: body!),
++                  const VerticalDivider(width: 1),
++                  SizedBox(
++                    width: 340,
++                    child: SafeArea(
++                      top: false,
++                      left: false,
++                      child: SingleChildScrollView(
++                        key: const ValueKey('persistent-playback-panel'),
++                        padding: const EdgeInsets.all(16),
++                        child: Column(
++                          crossAxisAlignment: CrossAxisAlignment.stretch,
++                          children: [
++                            scope.controls(
++                              value,
++                              showContext:
++                                  !fullPlayerInBody ||
++                                  value.state.queue.any(
++                                    (item) =>
++                                        item.workId !=
++                                            value.state.queue.first.workId ||
++                                        item.recordingId !=
++                                            value.state.queue.first.recordingId,
++                                  ),
++                            ),
++                            Align(
++                              alignment: AlignmentDirectional.centerEnd,
++                              child: DdiroriIconButton(
++                                label: '재생 상세 열기',
++                                icon: Icons.open_in_full,
++                                onPressed: () => scope.openDetails(context),
++                              ),
++                            ),
++                          ],
++                        ),
++                      ),
++                    ),
++                  ),
++                ],
++              );
++            }
++            return Column(
++              children: [
++                Expanded(child: body!),
++                _PlaybackStrip(
++                  value: value,
++                  scope: scope,
++                  showTitle: !fullPlayerInBody,
++                ),
++              ],
++            );
++          },
++        );
++      },
++    );
++  }
++}
++
++class _PlaybackStrip extends StatelessWidget {
++  const _PlaybackStrip({
++    required this.value,
++    required this.scope,
++    required this.showTitle,
++  });
++
++  final PlayPlaybackSnapshot value;
++  final PlayPlaybackScope scope;
++  final bool showTitle;
++
++  @override
++  Widget build(BuildContext context) {
++    final state = value.state;
++    final item = state.currentItem;
++    final busy = value.commandRunning || state.isBusy;
++    final playing = state.playerState == LocalPlayerState.playing;
++    return Material(
++      key: const ValueKey('persistent-playback-strip'),
++      color: Theme.of(context).colorScheme.surface,
++      child: SafeArea(
++        top: false,
++        child: Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              const Divider(height: 1),
++              if (showTitle && item != null)
++                Semantics(
++                  label:
++                      '현재 재생 악장: ${item.displayTitle}, 녹음: ${item.recordingTitle}, ${state.summary}',
++                  child: ExcludeSemantics(
++                    child: Text(
++                      item.displayTitle,
++                      maxLines: 2,
++                      overflow: TextOverflow.ellipsis,
++                      style: Theme.of(context).textTheme.bodyMedium,
++                    ),
++                  ),
++                ),
++              if (showTitle)
++                Text(
++                  '${state.isSeeking
++                      ? '탐색 중'
++                      : busy
++                      ? '처리 중'
++                      : playPlayerStateLabel(state.playerState)}'
++                  '${item == null ? '' : ' · ${item.recordingTitle.isEmpty ? '녹음 정보 없음' : item.recordingTitle}'}',
++                  maxLines: 2,
++                  overflow: TextOverflow.ellipsis,
++                  style: Theme.of(context).textTheme.labelSmall,
++                ),
++              Wrap(
++                spacing: 4,
++                children: [
++                  DdiroriIconButton(
++                    label: playing ? '축약 일시정지' : '축약 재생',
++                    icon: playing ? Icons.pause : Icons.play_arrow,
++                    onPressed: busy ? null : scope.onPlayPause,
++                  ),
++                  DdiroriIconButton(
++                    label: '축약 다음',
++                    icon: Icons.skip_next,
++                    onPressed: busy ? null : scope.onNext,
++                  ),
++                  DdiroriIconButton(
++                    label: '축약 정지',
++                    icon: Icons.stop,
++                    onPressed: busy ? null : scope.onStop,
++                  ),
++                  DdiroriIconButton(
++                    label: '재생 상세 열기',
++                    icon: Icons.open_in_full,
++                    onPressed: () => scope.openDetails(context),
++                  ),
++                ],
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++}
+diff --git a/apps/classical_local_library/test/product_design_r2_test.dart b/apps/classical_local_library/test/product_design_r2_test.dart
+new file mode 100644
+index 00000000..f61b2b37
+--- /dev/null
++++ b/apps/classical_local_library/test/product_design_r2_test.dart
+@@ -0,0 +1,474 @@
++import 'dart:async';
++import 'dart:io';
++import 'dart:ui' as ui;
++
++import 'package:classical_local_library/file_links.dart';
++import 'package:classical_local_library/library_detail_screen.dart';
++import 'package:classical_local_library/local_playback.dart';
++import 'package:classical_local_library/main.dart';
++import 'package:classical_local_library/metadata_candidates.dart';
++import 'package:classical_local_library/presentation/play_library_components.dart';
++import 'package:classical_local_library/sample_classical_library.dart';
++import 'package:classical_local_library/scan_locations.dart';
++import 'package:classical_local_library/scanned_audio_store.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter/rendering.dart';
++import 'package:flutter/services.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++const _captureKey = ValueKey('r2-capture');
++final _queueA = [
++  for (final track in sampleClassicalLibrary.tracksForRecording(
++    'recording.beethoven5.kleiber',
++  ))
++    LocalPlaybackQueueItem(
++      trackId: track.id,
++      recordingId: track.recordingId,
++      workId: 'work.beethoven.symphony5',
++      displayTitle: sampleClassicalLibrary
++          .partsForWork('work.beethoven.symphony5')[track.sequenceNumber - 1]
++          .title
++          .ko,
++      path: '/private/fixture/${track.id}.flac',
++      usesLinkedFile: true,
++      workTitle: '교향곡 5번 다단조, 긴 원어 Symphony No. 5 in C minor',
++      recordingTitle: '클라이버 / 빈 필하모닉 연주 녹음',
++    ),
++];
++
++Widget _app(FakeLocalPlayer player) => RepaintBoundary(
++  key: _captureKey,
++  child: ClassicalLocalLibraryApp(
++    fontFamily: 'DdiroriR2Capture',
++    initialLibrary: sampleClassicalLibrary,
++    enableDemoFeatures: false,
++    playbackController: player,
++    scanRepository: ScannedAudioRepository(
++      MemoryScannedAudioStore(sampleClassicalLibrary.files),
++    ),
++    scanLocationRepository: ScanLocationRepository(MemoryScanLocationStore()),
++    metadataCandidateRepository: MetadataCandidateRepository(
++      MemoryMetadataCandidateStore(),
++    ),
++    fileTrackLinkRepository: AudioFileTrackLinkRepository(
++      MemoryAudioFileTrackLinkStore([
++        for (final track in sampleClassicalLibrary.tracks)
++          AudioFileTrackLink(
++            fileId: track.fileId,
++            trackId: track.id,
++            linkedAtMillis: 1,
++          ),
++      ]),
++    ),
++  ),
++);
++
++Future<void> _environment(
++  WidgetTester t,
++  double width,
++  double scale,
++  Brightness brightness,
++) async {
++  t.view.physicalSize = Size(width, 1000);
++  t.view.devicePixelRatio = 1;
++  t.view.padding = const FakeViewPadding(bottom: 24);
++  t.platformDispatcher.textScaleFactorTestValue = scale;
++  t.platformDispatcher.platformBrightnessTestValue = brightness;
++  t.platformDispatcher.accessibilityFeaturesTestValue =
++      FakeAccessibilityFeatures(disableAnimations: scale == 2);
++  addTearDown(t.view.resetPhysicalSize);
++  addTearDown(t.view.resetDevicePixelRatio);
++  addTearDown(t.view.resetPadding);
++  addTearDown(t.platformDispatcher.clearAllTestValues);
++  final font = Platform.environment['DDIRORI_BRAND_FONT'];
++  if (font != null) {
++    await t.runAsync(() async {
++      final data = ByteData.sublistView(await File(font).readAsBytes());
++      for (final family in ['DdiroriR2Capture', 'Roboto']) {
++        await (FontLoader(family)..addFont(Future.value(data))).load();
++      }
++      final icons = Platform.environment['DDIRORI_MATERIAL_FONT'];
++      if (icons != null) {
++        await (FontLoader('MaterialIcons')..addFont(
++              Future.value(
++                ByteData.sublistView(await File(icons).readAsBytes()),
++              ),
++            ))
++            .load();
++      }
++    });
++  }
++}
++
++Future<void> _capture(WidgetTester t, String name) async {
++  final directory = Platform.environment['DDIRORI_R2_CAPTURE_OUTPUT'];
++  if (directory == null) return;
++  final boundary = t.renderObject<RenderRepaintBoundary>(
++    find.byKey(_captureKey),
++  );
++  await t.runAsync(() async {
++    final image = await boundary.toImage(pixelRatio: 1);
++    final data = await image.toByteData(format: ui.ImageByteFormat.png);
++    final file = File('$directory/$name.png');
++    await file.parent.create(recursive: true);
++    await file.writeAsBytes(data!.buffer.asUint8List());
++    image.dispose();
++  });
++}
++
++Future<void> _center(WidgetTester t, Finder finder) async {
++  await Scrollable.ensureVisible(t.element(finder), alignment: 0.5);
++  await t.pumpAndSettle();
++}
++
++void main() {
++  testWidgets(
++    'retry reloads all retained movements and starts from first, not browsing plan',
++    (t) async {
++      await _environment(t, 390, 1, Brightness.light);
++      final player = _RecoveringPlayer();
++      await t.pumpWidget(_app(player));
++      await t.pumpAndSettle();
++      expect(player.playbackState.currentIndex, 2);
++      await t.tap(find.byTooltip('재생 상세 열기'));
++      await t.pumpAndSettle();
++      expect(find.textContaining('첫 악장부터'), findsOneWidget);
++      await _capture(t, 'retry-error-390-1-light');
++      await _center(t, find.byTooltip('재생 다시 시도'));
++      await t.tap(find.byTooltip('재생 다시 시도'));
++      await t.pumpAndSettle();
++      expect(
++        player.queue.map((item) => item.trackId),
++        _queueA.map((item) => item.trackId),
++      );
++      expect(player.currentIndex, 0);
++      expect(player.state, LocalPlayerState.playing);
++      expect(player.playbackState.failure, isNull);
++      await _capture(t, 'retry-success-390-1-light');
++      await t.pumpWidget(const SizedBox());
++    },
++  );
++
++  testWidgets('wide playback controls respect side and bottom safe areas', (
++    t,
++  ) async {
++    await _environment(t, 1024, 2, Brightness.dark);
++    t.view.padding = const FakeViewPadding(left: 32, right: 44, bottom: 24);
++    final player = _CountingPlayer();
++    await t.pumpWidget(_app(player));
++    await t.pumpAndSettle();
++    await player.loadQueue(_queueA);
++    await player.play();
++    await t.pumpAndSettle();
++    final details = find.byTooltip('재생 상세 열기');
++    await _center(t, details);
++    expect(t.getRect(details).right, lessThanOrEqualTo(980));
++    expect(t.getRect(details).bottom, lessThanOrEqualTo(976));
++    expect(t.takeException(), isNull);
++    await _capture(t, 'safe-area-1024-2-dark');
++    await t.pumpWidget(const SizedBox());
++  });
++
++  testWidgets('keyboard seek commits once and uses engine time semantics', (
++    t,
++  ) async {
++    await _environment(t, 390, 1, Brightness.light);
++    final player = _CountingPlayer();
++    await t.pumpWidget(_app(player));
++    await t.pumpAndSettle();
++    await player.loadQueue(_queueA);
++    await player.play();
++    await t.pumpAndSettle();
++    await t.tap(find.byTooltip('재생 상세 열기'));
++    await t.pumpAndSettle();
++    final slider = find.byType(Slider);
++    await _center(t, slider);
++    await t.tap(slider);
++    await t.pumpAndSettle();
++    player.commands.clear();
++    final before = player.playbackState.position;
++    final sliderFocus = t
++        .widget<FocusableActionDetector>(
++          find.descendant(
++            of: slider,
++            matching: find.byType(FocusableActionDetector),
++          ),
++        )
++        .focusNode!;
++    sliderFocus.requestFocus();
++    await t.pumpAndSettle();
++    expect(sliderFocus.hasFocus, isTrue);
++    await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
++    await t.pumpAndSettle();
++    expect(player.commands, ['seek']);
++    expect(player.playbackState.position, greaterThan(before));
++    expect(find.bySemanticsLabel(RegExp('재생 위치')), findsWidgets);
++    await _capture(t, 'seek-success-390-1-light');
++    await t.pumpWidget(const SizedBox());
++  });
++
++  for (final width in [320.0, 390.0, 1024.0]) {
++    for (final scale in [1.0, 2.0]) {
++      for (final brightness in Brightness.values) {
++        testWidgets(
++          'P03 A playing while B browses $width/$scale/${brightness.name}',
++          (t) async {
++            await _environment(t, width, scale, brightness);
++            final player = _CountingPlayer();
++            await t.pumpWidget(_app(player));
++            await t.pumpAndSettle();
++            await player.loadQueue(_queueA);
++            await player.play();
++            await player.updatePosition(const Duration(seconds: 42));
++            await t.pumpAndSettle();
++            player.commands.clear();
++            final before = player.playbackState;
++            await t.enterText(find.byType(TextField), '브렌델');
++            await t.pumpAndSettle();
++            final result = find.text('브렌델 피아노 연주 녹음');
++            await _center(t, result);
++            await t.tap(result);
++            await t.pumpAndSettle();
++            expect(find.byType(RecordingDetailScreen), findsOneWidget);
++            expect(player.playbackState, same(before));
++            expect(player.commands, isEmpty);
++            expect(
++              find
++                  .byType(PlayMovementRow)
++                  .evaluate()
++                  .every((e) => !(e.widget as PlayMovementRow).current),
++              isTrue,
++            );
++            final name = '${width.toInt()}-${scale.toInt()}-${brightness.name}';
++            await _capture(t, 'browse-b-$name');
++            await t.scrollUntilVisible(
++              find.text('3악장 Presto agitato'),
++              250,
++              scrollable: find
++                  .descendant(
++                    of: find.byType(ListView),
++                    matching: find.byType(Scrollable),
++                  )
++                  .first,
++            );
++            await _center(t, find.text('3악장 Presto agitato'));
++            final pause = find.byTooltip(width >= 800 ? '일시정지' : '축약 일시정지');
++            await _center(t, pause);
++            expect(t.getSize(pause).width, greaterThanOrEqualTo(48));
++            expect(t.getSize(pause).height, greaterThanOrEqualTo(48));
++            expect(pause.hitTestable(), findsOneWidget);
++            if (width < 800) {
++              expect(
++                t.getRect(find.byType(ListView)).bottom,
++                lessThanOrEqualTo(
++                  t
++                      .getRect(
++                        find.byKey(const ValueKey('persistent-playback-strip')),
++                      )
++                      .top,
++                ),
++              );
++            }
++            await _capture(t, 'browse-end-$name');
++            t.platformDispatcher.platformBrightnessTestValue =
++                brightness == Brightness.light
++                ? Brightness.dark
++                : Brightness.light;
++            await t.pumpAndSettle();
++            expect(player.playbackState, same(before));
++            expect(player.commands, isEmpty);
++            await t.tap(pause);
++            await t.pumpAndSettle();
++            expect(player.state, LocalPlayerState.paused);
++            expect(player.commands, ['pause']);
++            expect(
++              player.queue.map((item) => item.trackId),
++              _queueA.map((item) => item.trackId),
++            );
++            expect(player.playbackState.position, const Duration(seconds: 42));
++            expect(t.takeException(), isNull);
++            await t.pageBack();
++            await t.pumpAndSettle();
++            t.platformDispatcher.platformBrightnessTestValue = brightness;
++            await t.tap(find.byTooltip('현재 재생 보기'));
++            await t.pumpAndSettle();
++            await _capture(t, 'queue-$name');
++            await t.pumpWidget(const SizedBox());
++            await t.pumpAndSettle();
++          },
++        );
++      }
++    }
++  }
++
++  testWidgets(
++    'P02 shared context once, mixed groups and private file details',
++    (t) async {
++      await _environment(t, 390, 1, Brightness.light);
++      final player = _CountingPlayer();
++      await t.pumpWidget(_app(player));
++      await t.pumpAndSettle();
++      await player.loadQueue(_queueA);
++      await player.play();
++      await t.tap(find.byTooltip('현재 재생 보기'));
++      await t.pumpAndSettle();
++      expect(find.byType(PlayQueueContext), findsOneWidget);
++      expect(find.text(_queueA.first.workTitle), findsOneWidget);
++      expect(find.text(_queueA.first.recordingTitle), findsOneWidget);
++      expect(find.byType(PlayQueueRow), findsNWidgets(4));
++      await _capture(t, 'queue-context-390-1-light');
++      await t.scrollUntilVisible(
++        find.byTooltip('음원 정보 1'),
++        250,
++        scrollable: find.byType(Scrollable).first,
++      );
++      await _center(t, find.byTooltip('음원 정보 1'));
++      await t.tap(find.byTooltip('음원 정보 1'));
++      await t.pumpAndSettle();
++      expect(
++        find.textContaining('${_queueA.first.trackId}.flac'),
++        findsOneWidget,
++      );
++      expect(find.textContaining('/private/fixture'), findsNothing);
++      await _capture(t, 'file-info-390-1-light');
++      await t.tap(find.text('닫기'));
++      final other = LocalPlaybackQueueItem(
++        trackId: 'other',
++        recordingId: 'other',
++        workId: 'other',
++        displayTitle: '다른 작품 악장',
++        path: '/fixture/other.wav',
++        usesLinkedFile: false,
++        workTitle: '',
++        recordingTitle: '',
++      );
++      await player.loadQueue([_queueA.first, other, _queueA[1]]);
++      await t.pumpAndSettle();
++      expect(find.byType(PlayQueueContext), findsNWidgets(3));
++      expect(find.text('작품 정보 없음'), findsOneWidget);
++      expect(find.text('녹음 정보 없음'), findsOneWidget);
++      expect(player.queue.map((item) => item.trackId), [
++        _queueA.first.trackId,
++        'other',
++        _queueA[1].trackId,
++      ]);
++      await _capture(t, 'mixed-queue-390-1-light');
++      await t.pumpWidget(const SizedBox());
++    },
++  );
++
++  testWidgets(
++    'seek command is submitted once while pending, details use actual state',
++    (t) async {
++      await _environment(t, 390, 1, Brightness.light);
++      final player = _HeldSeekPlayer();
++      await t.pumpWidget(_app(player));
++      await t.pumpAndSettle();
++      await player.loadQueue(_queueA);
++      await player.play();
++      await t.pumpAndSettle();
++      await t.tap(find.byTooltip('재생 상세 열기'));
++      await t.pumpAndSettle();
++      final slider = find.byType(Slider);
++      await _center(t, slider);
++      final submit = t.widget<Slider>(slider).onChangeEnd!;
++      submit(40000);
++      submit(50000);
++      await t.pump();
++      expect(player.seekCalls, 1);
++      expect(t.widget<Slider>(slider).onChanged, isNull);
++      await player.updatePosition(const Duration(seconds: 3));
++      await t.pump();
++      expect(player.playbackState.position, const Duration(seconds: 3));
++      player.seekDone.complete();
++      await t.pumpAndSettle();
++      expect(player.playbackState.position, const Duration(seconds: 40));
++      expect(t.widget<Slider>(slider).value, 40000);
++      await t.pumpWidget(const SizedBox());
++    },
++  );
++}
++
++class _CountingPlayer extends FakeLocalPlayer {
++  _CountingPlayer()
++    : super(
++        trackDurations: {
++          for (final item in _queueA) item.trackId: const Duration(minutes: 3),
++        },
++      );
++  final commands = <String>[];
++  @override
++  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
++    commands.add('load');
++    return super.loadQueue(queue);
++  }
++
++  @override
++  Future<void> play() {
++    commands.add('play');
++    return super.play();
++  }
++
++  @override
++  Future<void> pause() {
++    commands.add('pause');
++    return super.pause();
++  }
++
++  @override
++  Future<void> resume() {
++    commands.add('resume');
++    return super.resume();
++  }
++
++  @override
++  Future<void> next() {
++    commands.add('next');
++    return super.next();
++  }
++
++  @override
++  Future<void> stop() {
++    commands.add('stop');
++    return super.stop();
++  }
++
++  @override
++  Future<void> seek(Duration position) {
++    commands.add('seek');
++    return super.seek(position);
++  }
++}
++
++class _HeldSeekPlayer extends _CountingPlayer {
++  final seekDone = Completer<void>();
++  var seekCalls = 0;
++  @override
++  Future<void> seek(Duration position) async {
++    seekCalls++;
++    await seekDone.future;
++    await super.seek(position);
++  }
++}
++
++class _RecoveringPlayer extends _CountingPlayer {
++  bool _failed = true;
++  @override
++  LocalPlaybackState get playbackState => _failed
++      ? LocalPlaybackState(
++          playerState: LocalPlayerState.error,
++          queue: _queueA,
++          currentIndex: 2,
++          position: const Duration(seconds: 42),
++          failure: const LocalPlaybackFailure(
++            kind: LocalPlaybackFailureKind.loadFailed,
++            userMessage: '오디오를 불러오지 못했습니다.',
++          ),
++        )
++      : super.playbackState;
++  @override
++  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
++    _failed = false;
++    return super.loadQueue(queue);
++  }
++}

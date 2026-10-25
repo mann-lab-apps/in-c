@@ -1,0 +1,79 @@
+service: play
+implementation_commit: uncommitted
+baseline_product_commit: 827ad18203e673b1e923d00cbcf0fd7f3af755d7
+design_revision: product-design-r2
+design_manifest_sha256: af56b0a3ca6e25b9928835645562f5056cfa16553f2881bdb9750df37636f416
+status: implemented-awaiting-review
+backlog:
+  P01: preserved
+  P02: implemented
+  P03: implemented
+screens:
+  index: evidence.json
+  count: 50
+  kind: actual-product-and-adapter-widget-renderer
+  viewport_widths: [320, 390, 1024]
+  viewport_height: 1000
+  dpr: 1
+  text_scale: [1, 2]
+  themes: [light, dark]
+  fixture: existing catalog IDs; A Kleiber queue / B Brendel browse; explicit error and missing metadata fixtures
+tests:
+  - command: dart run tool/run_local_qa.dart --simulator 38B3F034-2212-4566-B09B-AC5DFEEB1187
+    cwd: apps/classical_local_library
+    result: pass
+    checks: 14
+    log: qa/report.json
+  - command: flutter test
+    result: pass
+    count: 365
+    log: qa/test.log
+  - command: flutter analyze
+    result: pass
+    log: qa/analyze.log
+  - command: iOS simulator build and six integration test files
+    result: pass
+    integration_tests: 9
+    simulator: iPhone 17 Pro / iOS 26.5
+    database_schema: 14
+  - command: flutter test test/product_design_r2_test.dart
+    result: pass
+    count: 17
+    log: capture.log
+  - command: flutter test test/product_design_r1_test.dart --name 'R1 (transport|first empty)'
+    result: pass
+    count: 6
+    log: state-capture.log
+  - command: bundle exec fastlane prepare_ios_metadata manifest:apps/classical-local-library/ios-metadata.yaml mode:check
+    cwd: deployment
+    result: pass
+    log: metadata-check.log
+  - command: python3 docs/brand/ddirori-design-system/product-design-r2/revision.py
+    result: pass-at-start
+    note: 590 hashes matched; post-implementation differences recorded without regeneration
+baseline_comparison:
+  file: baseline-comparison.json
+  design_dependencies_artifacts: unchanged
+  implemented_play_changes: 6
+  concurrent_score_studio_changes: 8
+preserved:
+  - Work / Recording / Movement IDs, queue ordering and file availability
+  - No playback command on browse, search, filter or theme change
+  - Seek draft separate from engine position; one pending command at a time
+  - Retry reloads retained queue and starts from its first item
+  - Metadata await / busy / draft / failure / success-close contract
+  - Library / management / listening / random playback routes
+differences:
+  - Native four-view home and existing detail routes retained
+  - Mobile bottom controls and detail route replace the review upper full player
+  - Mixed queues retain actual playing context plus per-group headings
+shared_api_changes: []
+shared_proposals: []
+metadata_check: valid; pending; content reviewed false
+unverified:
+  - Physical VoiceOver and hardware keyboard usability
+  - Real Files/iCloud permissions and provider UI
+  - Physical MP3/FLAC/M4A sound, output routes and OS interruptions
+  - Native iPad execution in this run
+  - Human design and usability approval
+  - Store capture, pinning, signing and release

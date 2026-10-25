@@ -1,0 +1,67 @@
+[
+  {
+    "service": "play",
+    "testsPassed": 17,
+    "command": [
+      "flutter",
+      "test",
+      "test/local_audio_import_test.dart"
+    ],
+    "cwd": "apps/classical_local_library",
+    "exitCode": 0,
+    "sourceHashes": {
+      "apps/classical_local_library/test/local_audio_import_test.dart": "9678a0f181e6d4daf11b297b7237a86ce74a607e5a9dd01f748c43b03dd1c98b",
+      "apps/classical_local_library/lib/local_audio_import.dart": "a8d95d9455462dd98e5d727a5ecfedfabc0d3028086ab11d0a357348cb02ad67"
+    },
+    "matchingInitialBaseline": [
+      "apps/classical_local_library/test/local_audio_import_test.dart",
+      "apps/classical_local_library/lib/local_audio_import.dart"
+    ],
+    "scope": "Existing policy/domain tests, not new product implementation or native device certification"
+  },
+  {
+    "service": "score",
+    "testsPassed": 6,
+    "command": [
+      "flutter",
+      "test",
+      "test/sheet_file_import_test.dart"
+    ],
+    "cwd": "apps/in_c_sheet",
+    "exitCode": 0,
+    "sourceHashes": {
+      "apps/in_c_sheet/test/sheet_file_import_test.dart": "1042fc9fa28c7b73c3320a52524ce4e664a2a485787cb9dd696179b7f1353354",
+      "apps/in_c_sheet/lib/sheet_file_import.dart": "cdeca1c91a2807cdc1e52e65a2e75f94136dd8a022e1972f5dfeb00f7c9d1948"
+    },
+    "matchingInitialBaseline": [
+      "apps/in_c_sheet/test/sheet_file_import_test.dart",
+      "apps/in_c_sheet/lib/sheet_file_import.dart"
+    ],
+    "scope": "Existing policy/domain tests, not new product implementation or native device certification"
+  },
+  {
+    "service": "studio",
+    "testsPassed": 7,
+    "command": [
+      "node_modules/.bin/vitest",
+      "run",
+      "src/renderer/src/editor/new-score.test.ts",
+      "src/renderer/src/editor/file-lifecycle.test.ts"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "sourceHashes": {
+      "src/renderer/src/editor/new-score.test.ts": "c26aedbe3231635492c9dae13a644380c78ad43e8c02f0a955868fdb4df626ac",
+      "src/renderer/src/editor/file-lifecycle.test.ts": "05b0294cdde24a6a8814be8f933be32a5c8c19ba1ca27022db58f82626758644",
+      "src/renderer/src/editor/new-score.ts": "d6d0fde3529f4d045c62cc0c74381ea7cffba126eba530ae5fb0d5b7f92fe24f",
+      "src/renderer/src/editor/file-lifecycle.ts": "8df8ba99ba47f96398d83965ac724a3588aa3f3e207e218273b6d458a1d1f54b"
+    },
+    "matchingInitialBaseline": [
+      "src/renderer/src/editor/new-score.test.ts",
+      "src/renderer/src/editor/file-lifecycle.test.ts",
+      "src/renderer/src/editor/new-score.ts",
+      "src/renderer/src/editor/file-lifecycle.ts"
+    ],
+    "scope": "Existing policy/domain tests, not new product implementation or native device certification"
+  }
+]

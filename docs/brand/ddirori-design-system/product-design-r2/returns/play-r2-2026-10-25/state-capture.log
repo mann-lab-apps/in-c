@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/product_design_r1_test.dart
+00:00 +0: R1 first empty and search empty have distinct recovery actions
+00:01 +1: R1 transport loading, 320px dark 200%
+00:01 +2: R1 transport missing, 320px dark 200%
+00:01 +3: R1 transport failed, 320px dark 200%
+00:01 +4: R1 transport unknown, 320px dark 200%
+00:02 +5: R1 transport disabled, 320px dark 200%
+00:02 +6: All tests passed!

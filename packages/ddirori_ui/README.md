@@ -1,5 +1,7 @@
 # Ddirori Flutter UI
 
+서비스 전용 컴포넌트를 만들 때: [테마 확장 기준](../../docs/brand/ddirori-design-system/service-theme-contract.md) · [로컬 조합 소스](example/lib/theme_recipes.dart). 예제 폴더에서 `flutter run -d chrome -t lib/theme_reference_main.dart`로 독립 기준 예제를 연다. 실제 제품 화면·파일·오디오 기능을 사용하지 않는다.
+
 앱의 파일·오디오·저장소에 의존하지 않는 Flutter 공통 UI다. 공개 진입점은 `package:ddirori_ui/ddirori_ui.dart`다.
 
 앱의 pubspec에 `ddirori_ui: {path: ../../packages/ddirori_ui}`를 추가하고 MaterialApp의 theme에 `ddiroriTheme()`를 연결한다. 앱에 등록한 TTF/OTF는 fontFamily로 지정할 수 있다. 기본은 플랫폼 글꼴이다.

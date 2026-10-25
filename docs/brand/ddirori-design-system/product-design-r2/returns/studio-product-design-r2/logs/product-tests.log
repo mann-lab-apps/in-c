@@ -1,0 +1,300 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run --dir src --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+·························································································································································································································································································································································································stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"G","line":2}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"F","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":3}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+··························································································-···············································································x································································
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > ui.properties-panel summarizes the selected event and measure context
+TestingLibraryElementError: Unable to find an element with the text: 속성. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<section[39m
+  [33maria-label[39m=[32m"선택 요약"[39m
+  [33mclass[39m=[32m"selection-properties"[39m
+  [33mdata-selection-kind[39m=[32m"event"[39m
+[36m>[39m
+  [36m<h3[39m
+    [33mclass[39m=[32m"dd-text dd-text--section-title "[39m
+  [36m>[39m
+    [0m선택한 표기[0m
+  [36m</h3>[39m
+  [36m<dl>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m대상[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0m음표[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m위치[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0mMelody[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m마디[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0m1[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m성부[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0m1[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m틱[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0m0[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m음가[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0m4분음표[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"selection-properties__row"[39m
+    [36m>[39m
+      [36m<dt>[39m
+        [0m음높이[0m
+      [36m</dt>[39m
+      [36m<dd>[39m
+        [0mC4[0m
+      [36m</dd>[39m
+    [36m</div>[39m
+  [36m</dl>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m셈여림[0m
+    [36m</span>[39m
+    [36m<select[39m
+      [33maria-label[39m=[32m"선택 요약 셈여림"[39m
+    [36m>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m""[39m
+      [36m>[39m
+        [0m없음[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"ppp"[39m
+      [36m>[39m
+        [0mppp[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"pp"[39m
+      [36m>[39m
+        [0mpp[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"p"[39m
+      [36m>[39m
+        [0mp[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"mp"[39m
+      [36m>[39m
+        [0mmp[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"mf"[39m
+      [36m>[39m
+        [0mmf[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"f"[39m
+      [36m>[39m
+        [0mf[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"ff"[39m
+      [36m>[39m
+        [0mff[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"fff"[39m
+      [36m>[39m
+        [0mfff[0m
+      [36m</option>[39m
+      [36m<option[39m
+        [33mvalue[39m=[32m"sfz"[39m
+      [36m>[39m
+        [0msfz[0m
+      [36m</option>[39m
+    [36m</select>[39m
+  [36m</label>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m코드[0m
+    [36m</span>[39m
+    [36m<input[39m
+      [33maria-label[39m=[32m"선택 요약 코드"[39m
+      [33mmaxlength[39m=[32m"120"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m""[39m
+    [36m/>[39m
+  [36m</label>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m연습표[0m
+    [36m</span>[39m
+    [36m<input[39m
+      [33maria-label[39m=[32m"선택 요약 연습표"[39m
+      [33mmaxlength[39m=[32m"120"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m"A"[39m
+    [36m/>[39m
+  [36m</label>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m보표 글자[0m
+    [36m</span>[39m
+    [36m<input[39m
+      [33maria-label[39m=[32m"선택 요약 보표 글자"[39m
+      [33mmaxlength[39m=[32m"120"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m"dolce"[39m
+    [36m/>[39m
+  [36m</label>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m시스템 텍스트[0m
+    [36m</span>[39m
+    [36m<input[39m
+      [33maria-label[39m=[32m"선택 요약 시스템 텍스트"[39m
+      [33mmaxlength[39m=[32m"120"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m""[39m
+    [36m/>[39m
+  [36m</label>[39m
+  [36m<label[39m
+    [33mclass[39m=[32m"selection-properties__edit"[39m
+  [36m>[39m
+    [36m<span>[39m
+      [0m표현 텍스트[0m
+    [36m</span>[39m
+    [36m<input[39m
+      [33maria-label[39m=[32m"선택 요약 표현 텍스트"[39m
+      [33mmaxlength[39m=[32m"120"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m""[39m
+    [36m/>[39m
+  [36m</label>[39m
+[36m</section>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/renderer/src/App.test.tsx:3581:31
+    3579|     const properties = screen.getByRole('region', { name: '선택 요약' })
+    3580|     expect(properties).toHaveAttribute('data-selection-kind', 'event')
+    3581|     expect(within(properties).getByText('속성')).toBeInTheDocument()
+       |                               ^
+    3582|     expect(within(properties).getByText('대상')).toBeInTheDocument()
+    3583|     expect(within(properties).getByText('음표')).toBeInTheDocument()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 47 passed | 1 skipped (49)
+      Tests  1 failed | 610 passed | 1 skipped (612)
+   Start at  22:16:14
+   Duration  78.21s (transform 2.95s, setup 0ms, import 6.40s, tests 79.49s, environment 2.07s)
+

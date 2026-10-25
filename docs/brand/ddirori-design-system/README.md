@@ -1,6 +1,10 @@
 # 띠로리 공통 디자인 시스템
 
-[공유 기준·도입 절차](shared-baseline.md) → [구현 계약 정본](specifications/README.md) → [지원 환경·수동 검수](support-matrix.md).
+**서비스 담당자 진입점:** [서비스 전용 컴포넌트와 테마 확장 기준](service-theme-contract.md) → [실제 컴포넌트 조합 화면](theme-reference/preview/catalog/theme-reference.html) → [공통 API·구현 계약](specifications/README.md).
+
+중앙 시스템은 브랜드의 시각 언어와 공통 조작을 소유한다. 서비스별 UX 레퍼런스·정보 구조·화면·전용 컴포넌트는 각 서비스에서 설계한다. 공통 시스템은 같은 화면 템플릿을 강제하지 않는다. [이번 고도화의 범위·실행·검증](theme-reference/README.md).
+
+[공유 기준·도입 절차](shared-baseline.md) · [지원 환경·수동 검수](support-matrix.md).
 
 현재 같은 저장소의 React·Flutter 소비를 지원한다. Play 메타데이터 편집과 Studio 실제 속성 패널이 공통 UI를 사용하며, 제품 전체 이행이나 Figma 라이브러리 완료를 뜻하지 않는다. 기준 커밋과 새 검증은 [이번 기록](evidence/shared-baseline-2026-10-25/README.md), 과거 작업 진입점은 [이력](history.md)을 따른다.
 
@@ -29,6 +33,8 @@ Flutter는 `packages/ddirori_ui/example`에서 `flutter pub get`, `flutter run -
 
 | 문서 | 목적 |
 | --- | --- |
+| [서비스 테마 확장 기준](service-theme-contract.md) | 고정할 시각 문법·서비스의 자유·전용 컴포넌트 작성법·검수 기준 |
+| [조합 기준 화면과 코드](theme-reference/README.md) | 실제 React·Flutter 공통 컴포넌트를 사용한 로컬 조합 예제 |
 | [기존 컴포넌트 조사](inventory.md) | 실제 악보앱 심벌, 의존성, 유지할 동작과 새 UI 대응 |
 | [공통 컴포넌트 감사](component-audit-2026-10-22.md) | 디자인과 Flutter API의 차이, 공통·제품 전용 판단과 실제 채택 |
 | [플레이 전용 컴포넌트 감사](play-component-audit-2026-10-22.md) | 작품·녹음·파일·큐·감상 UI의 앱 내부 경계와 검증 |
@@ -38,6 +44,10 @@ Flutter는 `packages/ddirori_ui/example`에서 `flutter pub get`, `flutter run -
 | [제품 도입](adoption.md) | 기존 소스에 연결할 지점과 회귀·복구 |
 | [Figma 대응](handoff.md) | 변수·모드·컴포넌트 속성 대응 |
 | [검증](validation.md) | 실행 결과, 증거, 기기 검증 경계 |
+
+## 서비스 화면 탐색 이력
+
+[R1](product-design-r1/README.md) · [R2](product-design-r2/README.md) · [R3](product-design-r3/README.md)는 당시의 실행 시안·검토·일부 구현 인계 기록이다. 이후 모든 서비스가 따라야 하는 화면 구조의 정본으로 사용하지 않는다. 각 서비스는 실제 제품 상태와 서비스 UX 레퍼런스로 재설계하며, 이미 반영된 동작의 변경은 해당 앱에서 검증한다.
 
 ## 원본과 생성물
 

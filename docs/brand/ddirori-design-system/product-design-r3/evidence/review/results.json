@@ -1,0 +1,215 @@
+{
+  "at": "2026-10-25T13:23:51.222Z",
+  "url": "http://127.0.0.1:8097/docs/brand/ddirori-design-system/product-design-r3/preview/catalog/product-r3.html",
+  "browser": "156.0.8078.47",
+  "checks": [
+    "picker cancel and focus return",
+    "local form draft cancel",
+    "required validation and first invalid focus",
+    "registration failure/retry",
+    "source-owned completion after app switch",
+    "import preserved on viewer open failure",
+    "page and annotation draft retained after failed save",
+    "existing-user bypass and resume",
+    "external PDF after confirmed import",
+    "Studio Enter/first note/cancel/failure/retry",
+    "old async result invalidated on scenario reset",
+    "partial import result",
+    "manual PDF handoff",
+    "guide dialog focus return",
+    "not installed and unknown are distinct",
+    "arrival failure retains source",
+    "completed transfer replay is idempotent in mock only",
+    "unsupported audio selection",
+    "transfer cancel adds nothing",
+    "source playback position retained",
+    "36 layout combinations",
+    "reduced motion",
+    "CSS zoom200 stress",
+    "no media engine or private file access"
+  ],
+  "layouts": [
+    {
+      "scenario": "map",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Play",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Score",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Studio",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "pdf",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "audio",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "scenario": "map",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Play",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Score",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Studio",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "pdf",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "audio",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "scenario": "map",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Play",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Score",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Studio",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "pdf",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "audio",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "map",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Play",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Score",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "Studio",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "pdf",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "audio",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "scenario": "map",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Play",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Score",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "Studio",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "pdf",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "audio",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "scenario": "map",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Play",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Score",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "Studio",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "pdf",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "scenario": "audio",
+      "theme": "어두운 화면",
+      "width": 1440
+    }
+  ],
+  "errors": [],
+  "limits": "Design-memory examples only. No native chooser, OS transfer, PDF renderer, audio, physical IME or assistive technology certification."
+}

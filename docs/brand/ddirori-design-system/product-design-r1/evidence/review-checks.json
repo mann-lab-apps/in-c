@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-25T11:36:03.759Z",
+  "browser": "156.0.8078.47",
+  "url": "http://127.0.0.1:8091/?products",
+  "checks": [
+    "same layout palette/light/dark",
+    "local failed save + retry + draft retention",
+    "busy Escape blocked",
+    "cancel focus restoration",
+    "search/reset",
+    "static viewer",
+    "Studio layout",
+    "reduced motion",
+    "icons named/blind/mono/grayscale",
+    "840/390/320 overflow",
+    "200% CSS zoom stress (viewport capture)"
+  ],
+  "pageErrors": [],
+  "limitations": [
+    "no human recognition participants",
+    "no screen-reader or physical hardware QA",
+    "mock data and engines disconnected",
+    "CSS zoom does not replace browser page zoom or OS text scaling"
+  ]
+}

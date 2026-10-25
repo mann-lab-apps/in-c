@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           17.2s
+00:00 +0: store screenshot scenes follow independent current UI routes
+00:06 +1: R2 browsing scene preserves A playback while inspecting B on iOS
+00:11 +2: (tearDownAll)
+00:12 +2: All tests passed!

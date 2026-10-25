@@ -1,0 +1,15 @@
+
+> @ddirori/ui@0.1.0 build
+> tsc --noEmit && vite build --outDir ../../docs/brand/ddirori-design-system/product-design-r1/preview
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 1802 modules transformed.
+rendering chunks...
+computing gzip size...
+../../docs/brand/ddirori-design-system/product-design-r1/preview/index.html                                    0.52 kB │ gzip:  0.38 kB
+../../docs/brand/ddirori-design-system/product-design-r1/preview/assets/icon-current-LgXl3Lwp.svg              0.96 kB │ gzip:  0.45 kB
+../../docs/brand/ddirori-design-system/product-design-r1/preview/assets/PretendardVariable-CJuje-Rk.woff2  2,057.69 kB
+../../docs/brand/ddirori-design-system/product-design-r1/preview/assets/index-BnW6zYJa.css                    50.03 kB │ gzip:  8.96 kB
+../../docs/brand/ddirori-design-system/product-design-r1/preview/assets/index-DbGulOcI.js                    311.26 kB │ gzip: 97.61 kB
+✓ built in 969ms

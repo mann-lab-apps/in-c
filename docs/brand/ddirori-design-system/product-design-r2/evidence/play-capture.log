@@ -1,0 +1,22 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/product_design_r1_test.dart
+00:00 +0: R1 retry reloads the failed engine queue, not a new random plan
+00:00 +1: R1 metadata pending, failure, retry and success evidence
+00:01 +2: R1 navigation preserves engine state 320.0/1.0/dark
+00:01 +3: R1 navigation preserves engine state 320.0/1.0/light
+00:02 +4: R1 navigation preserves engine state 320.0/2.0/dark
+00:02 +5: R1 navigation preserves engine state 320.0/2.0/light
+00:03 +6: R1 navigation preserves engine state 390.0/1.0/dark
+00:03 +7: R1 navigation preserves engine state 390.0/1.0/light
+00:04 +8: R1 navigation preserves engine state 390.0/2.0/dark
+00:04 +9: R1 navigation preserves engine state 390.0/2.0/light
+00:04 +10: R1 navigation preserves engine state 1024.0/1.0/dark
+00:05 +11: R1 navigation preserves engine state 1024.0/1.0/light
+00:05 +12: R1 navigation preserves engine state 1024.0/2.0/dark
+00:06 +13: R1 navigation preserves engine state 1024.0/2.0/light
+00:06 +14: R1 first empty and search empty have distinct recovery actions
+00:06 +15: R1 transport loading, 320px dark 200%
+00:06 +16: R1 transport missing, 320px dark 200%
+00:06 +17: R1 transport failed, 320px dark 200%
+00:06 +18: R1 transport unknown, 320px dark 200%
+00:06 +19: R1 transport disabled, 320px dark 200%
+00:06 +20: All tests passed!

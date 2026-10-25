@@ -1,0 +1,22 @@
+Studio Electron shared panel and single undo passed {
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 255,
+  overflow: false
+}
+R1 dock/theme/text/save/native/XML matrix passed
+AssertionError [ERR_ASSERTION]: Input context must have a full readable row, not a compressed vertical strip
+    at verifyR2 (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:430:10)
+    at async /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:62:13 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

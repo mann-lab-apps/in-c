@@ -1,0 +1,1333 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r2
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+ ❯ src/renderer/src/App.test.tsx (136 tests | 2 failed | 134 skipped) 941ms
+     × studio.r2 separates next input from selected event edits without adding undo commands 712ms
+     × studio.r2 endpoint keyboard navigation stays local and preserves span selection 227ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r2 separates next input from selected event edits without adding undo commands
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "음표 입력 전환, 단축키 N"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main[39m
+    [33mclass[39m=[32m"app-shell"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "문서 상태":
+  [36m<section[39m
+    [33maria-label[39m=[32m"문서 상태"[39m
+    [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+  [36m/>[39m
+
+  Name "현재 작업 컨텍스트":
+  [36m<section[39m
+    [33maria-label[39m=[32m"현재 작업 컨텍스트"[39m
+    [33mclass[39m=[32m"editor-context-strip studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+  [36m/>[39m
+
+  Name "음표 편집":
+  [36m<section[39m
+    [33maria-label[39m=[32m"음표 편집"[39m
+    [33mclass[39m=[32m"selection-toolbar studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+  [36m/>[39m
+
+  Name "성부":
+  [36m<section[39m
+    [33maria-label[39m=[32m"성부"[39m
+    [33mclass[39m=[32m"inspector-properties"[39m
+  [36m/>[39m
+
+  Name "선택 속성":
+  [36m<section[39m
+    [33maria-label[39m=[32m"선택 속성"[39m
+    [33mclass[39m=[32m"inspector-properties"[39m
+  [36m/>[39m
+
+  Name "악보 편집기":
+  [36m<section[39m
+    [33maria-label[39m=[32m"악보 편집기"[39m
+    [33mclass[39m=[32m"workspace"[39m
+  [36m/>[39m
+
+  Name "선택 요약":
+  [36m<section[39m
+    [33maria-label[39m=[32m"선택 요약"[39m
+    [33mclass[39m=[32m"selection-properties"[39m
+    [33mdata-selection-kind[39m=[32m"event"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  Name "":
+  [36m<strong />[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<span[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  Name "선택 이벤트 점 개수":
+  [36m<output[39m
+    [33maria-label[39m=[32m"선택 이벤트 점 개수"[39m
+  [36m/>[39m
+
+  Name "점 개수":
+  [36m<output[39m
+    [33maria-label[39m=[32m"점 개수"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  navigation:
+
+  Name "편집 도구 카테고리":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+    [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "파일":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "악보":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "음표":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "표기 객체":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "가사":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "내보내기":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "재생":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "팔레트 표시":
+  [36m<button[39m
+    [33maria-controls[39m=[32m"studio-palette"[39m
+    [33maria-label[39m=[32m"팔레트 표시"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mtitle[39m=[32m"팔레트 표시"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "속성 표시":
+  [36m<button[39m
+    [33maria-controls[39m=[32m"studio-properties"[39m
+    [33maria-label[39m=[32m"속성 표시"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mtitle[39m=[32m"속성 표시"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "1성부":
+  [36m<button[39m
+    [33maria-label[39m=[32m"1성부"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtitle[39m=[32m"성부 1 전환 (Cmd/Ctrl+Alt+1)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "2성부":
+  [36m<button[39m
+    [33maria-label[39m=[32m"2성부"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"성부 2 전환 (Cmd/Ctrl+Alt+2)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "3성부":
+  [36m<button[39m
+    [33maria-label[39m=[32m"3성부"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"성부 3 전환 (Cmd/Ctrl+Alt+3)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "4성부":
+  [36m<button[39m
+    [33maria-label[39m=[32m"4성부"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"성부 4 전환 (Cmd/Ctrl+Alt+4)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "-":
+  [36m<button[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "+":
+  [36m<button[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "플랫":
+  [36m<button[39m
+    [33maria-label[39m=[32m"플랫"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "제자리표":
+  [36m<button[39m
+    [33maria-label[39m=[32m"제자리표"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "샤프":
+  [36m<button[39m
+    [33maria-label[39m=[32m"샤프"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "쉼표로 변환":
+  [36m<button[39m
+    [33mclass[39m=[32m"inspector-properties__command"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "페르마타":
+  [36m<button[39m
+    [33maria-label[39m=[32m"페르마타"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "숨표":
+  [36m<button[39m
+    [33maria-label[39m=[32m"숨표"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "중지표":
+  [36m<button[39m
+    [33maria-label[39m=[32m"중지표"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "스타카토":
+  [36m<button[39m
+    [33maria-label[39m=[32m"스타카토"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "악센트":
+  [36m<button[39m
+    [33maria-label[39m=[32m"악센트"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "테누토":
+  [36m<button[39m
+    [33maria-label[39m=[32m"테누토"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "마르카토":
+  [36m<button[39m
+    [33maria-label[39m=[32m"마르카토"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "3도 추가":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "5도 추가":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "없음":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "1줄":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "2줄":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "3줄":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "tr":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "mord.":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "turn":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "grace":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "플랫":
+  [36m<button[39m
+    [33maria-label[39m=[32m"플랫"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"플랫"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "제자리표":
+  [36m<button[39m
+    [33maria-label[39m=[32m"제자리표"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"제자리표"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "샤프":
+  [36m<button[39m
+    [33maria-label[39m=[32m"샤프"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"샤프"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "음높이 한 칸 내리기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"음높이 한 칸 내리기"[39m
+    [33mclass[39m=[32m"icon-button"[39m
+    [33mtitle[39m=[32m"음높이 한 칸 내리기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "음높이 한 칸 올리기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"음높이 한 칸 올리기"[39m
+    [33mclass[39m=[32m"icon-button"[39m
+    [33mtitle[39m=[32m"음높이 한 칸 올리기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "한 옥타브 내리기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"한 옥타브 내리기"[39m
+    [33mclass[39m=[32m"icon-button"[39m
+    [33mtitle[39m=[32m"한 옥타브 내리기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "한 옥타브 올리기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"한 옥타브 올리기"[39m
+    [33mclass[39m=[32m"icon-button"[39m
+    [33mtitle[39m=[32m"한 옥타브 올리기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "이명동음으로 바꾸기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"이명동음으로 바꾸기"[39m
+    [33mclass[39m=[32m"icon-button"[39m
+    [33mtitle[39m=[32m"이명동음으로 바꾸기, 단축키 J"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "64분음표, 단축키 1":
+  [36m<button[39m
+    [33maria-label[39m=[32m"64분음표, 단축키 1"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"64분음표, 단축키 1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "32분음표, 단축키 2":
+  [36m<button[39m
+    [33maria-label[39m=[32m"32분음표, 단축키 2"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"32분음표, 단축키 2"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "16분음표, 단축키 3":
+  [36m<button[39m
+    [33maria-label[39m=[32m"16분음표, 단축키 3"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"16분음표, 단축키 3"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "8분음표, 단축키 4":
+  [36m<button[39m
+    [33maria-label[39m=[32m"8분음표, 단축키 4"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"8분음표, 단축키 4"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "4분음표, 단축키 5":
+  [36m<button[39m
+    [33maria-label[39m=[32m"4분음표, 단축키 5"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtitle[39m=[32m"4분음표, 단축키 5"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "2분음표, 단축키 6":
+  [36m<button[39m
+    [33maria-label[39m=[32m"2분음표, 단축키 6"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"2분음표, 단축키 6"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "온음표, 단축키 7":
+  [36m<button[39m
+    [33maria-label[39m=[32m"온음표, 단축키 7"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtitle[39m=[32m"온음표, 단축키 7"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "점 줄이기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"점 줄이기"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"점 줄이기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "점 추가":
+  [36m<button[39m
+    [33maria-label[39m=[32m"점 추가"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"점 추가"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "타이 추가, 단축키 T":
+  [36m<button[39m
+    [33maria-label[39m=[32m"타이 추가, 단축키 T"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"tie-button"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"타이 추가 (T)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "셋잇단음표 적용 또는 입력 준비, 단축키 ⌘/Ctrl+3":
+  [36m<button[39m
+    [33maria-label[39m=[32m"셋잇단음표 적용 또는 입력 준비, 단축키 ⌘/Ctrl+3"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"tuplet-button"[39m
+    [33mtitle[39m=[32m"셋잇단음표 적용 또는 입력 준비 (⌘/Ctrl+3)"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "팔레트 도크 닫기":
+  [36m<button[39m
+    [33maria-busy[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"팔레트 도크 닫기"[39m
+    [33mclass[39m=[32m"dd-button dd-button--quiet dd-icon-button "[39m
+    [33mtitle[39m=[32m"팔레트 도크 닫기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "파일 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"파일 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "악보 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"악보 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "음표 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"음표 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"is-active"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "표기 객체 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"표기 객체 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "가사 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"가사 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "내보내기 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"내보내기 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "재생 팔레트 열기":
+  [36m<button[39m
+    [33maria-label[39m=[32m"재생 팔레트 열기"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "악보 제목 수정":
+  [36m<button[39m
+    [33maria-label[39m=[32m"악보 제목 수정"[39m
+    [33mclass[39m=[32m"metadata-display metadata-display--title"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "작곡가 수정":
+  [36m<button[39m
+    [33maria-label[39m=[32m"작곡가 수정"[39m
+    [33mclass[39m=[32m"metadata-display metadata-display--composer"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "1마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"1마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "2마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"2마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "3마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"3마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "4마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"4마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "5마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"5마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "6마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"6마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "7마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"7마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "8마디 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"8마디 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m1-c4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m1-c4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m1-d4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m1-d4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m1-e4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m1-e4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m1-f-sharp-4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m1-f-sharp-4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-1 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-1 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-2 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-2 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-3 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-3 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-6 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-6 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-7 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-7 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m2-8 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m2-8 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m3-d5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m3-d5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m3-e5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m3-e5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m3-half-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m3-half-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m4-f-natural-1 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m4-f-natural-1 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m4-f-natural-2 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m4-f-natural-2 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m4-g4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m4-g4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m4-a4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m4-a4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m5-half-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m5-half-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m5-g4 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m5-g4 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m5-c5-tie-start 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m5-c5-tie-start 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m6-c5-tie-stop 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m6-c5-tie-stop 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m6-d5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m6-d5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m6-e5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m6-e5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m6-quarter-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m6-quarter-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m7-triplet-c5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m7-triplet-c5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m7-triplet-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m7-triplet-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m7-triplet-e5 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m7-triplet-e5 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m7-dotted-half-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m7-dotted-half-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m8-g4-double-dotted 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m8-g4-double-dotted 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m8-a4-16th 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m8-a4-16th 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "m8-half-rest 선택":
+  [36m<button[39m
+    [33maria-label[39m=[32m"m8-half-rest 선택"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "속성 도크 닫기":
+  [36m<button[39m
+    [33maria-busy[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"속성 도크 닫기"[39m
+    [33mclass[39m=[32m"dd-button dd-button--quiet dd-icon-button "[39m
+    [33mtitle[39m=[32m"속성 도크 닫기"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "성부":
+  [36m<h3 />[39m
+
+  Name "속성":
+  [36m<h3 />[39m
+
+  Name "팔레트":
+  [36m<h3 />[39m
+
+  Name "속성":
+  [36m<h3 />[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "입력 보표":
+  [36m<select[39m
+    [33maria-label[39m=[32m"입력 보표"[39m
+    [33mdisabled[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "선택 요약 셈여림":
+  [36m<select[39m
+    [33maria-label[39m=[32m"선택 요약 셈여림"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  option:
+
+  Name "Melody":
+  [36m<option[39m
+    [33mvalue[39m=[32m"part-1:staff-1"[39m
+  [36m/>[39m
+
+  Name "없음":
+  [36m<option[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "ppp":
+  [36m<option[39m
+    [33mvalue[39m=[32m"ppp"[39m
+  [36m/>[39m
+
+  Name "pp":
+  [36m<option[39m
+    [33mvalue[39m=[32m"pp"[39m
+  [36m/>[39m
+
+  Name "p":
+  [36m<option[39m
+    [33mvalue[39m=[32m"p"[39m
+  [36m/>[39m
+
+  Name "mp":
+  [36m<option[39m
+    [33mvalue[39m=[32m"mp"[39m
+  [36m/>[39m
+
+  Name "mf":
+  [36m<option[39m
+    [33mvalue[39m=[32m"mf"[39m
+  [36m/>[39m
+
+  Name "f":
+  [36m<option[39m
+    [33mvalue[39m=[32m"f"[39m
+  [36m/>[39m
+
+  Name "ff":
+  [36m<option[39m
+    [33mvalue[39m=[32m"ff"[39m
+  [36m/>[39m
+
+  Name "fff":
+  [36m<option[39m
+    [33mvalue[39m=[32m"fff"[39m
+  [36m/>[39m
+
+  Name "sfz":
+  [36m<option[39m
+    [33mvalue[39m=[32m"sfz"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"toolbar studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  complementary:
+
+  Name "고정 팔레트":
+  [36m<aside[39m
+    [33maria-label[39m=[32m"고정 팔레트"[39m
+    [33mclass[39m=[32m"docked-palette studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+    [33mid[39m=[32m"studio-palette"[39m
+  [36m/>[39m
+
+  Name "속성 도크":
+  [36m<aside[39m
+    [33maria-label[39m=[32m"속성 도크"[39m
+    [33mclass[39m=[32m"docked-properties studio-chrome ddirori"[39m
+    [33mdata-density[39m=[32m"compact"[39m
+    [33mdata-theme[39m=[32m"light"[39m
+    [33mid[39m=[32m"studio-properties"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  spinbutton:
+
+  Name "팔레트 도크 폭":
+  [36m<input[39m
+    [33maria-label[39m=[32m"팔레트 도크 폭"[39m
+    [33mmax[39m=[32m"360"[39m
+    [33mmin[39m=[32m"200"[39m
+    [33mstep[39m=[32m"1"[39m
+    [33mtype[39m=[32m"number"[39m
+    [33mvalue[39m=[32m"280"[39m
+  [36m/>[39m
+
+  Name "속성 도크 폭":
+  [36m<input[39m
+    [33maria-label[39m=[32m"속성 도크 폭"[39m
+    [33mmax[39m=[32m"360"[39m
+    [33mmin[39m=[32m"200"[39m
+    [33mstep[39m=[32m"1"[39m
+    [33mtype[39m=[32m"number"[39m
+    [33mvalue[39m=[32m"280"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  term:
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  Name "":
+  [36m<dt />[39m
+
+  --------------------------------------------------
+  definition:
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  Name "":
+  [36m<dd />[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "선택 요약 코드":
+  [36m<input[39m
+    [33maria-label[39m=[32m"선택 요약 코드"[39m
+    [33mmaxlength[39m=[32m"120"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "선택 요약 연습표":
+  [36m<input[39m
+    [33maria-label[39m=[32m"선택 요약 연습표"[39m
+    [33mmaxlength[39m=[32m"120"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"A"[39m
+  [36m/>[39m
+
+  Name "선택 요약 보표 글자":
+  [36m<input[39m
+    [33maria-label[39m=[32m"선택 요약 보표 글자"[39m
+    [33mmaxlength[39m=[32m"120"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"dolce"[39m
+  [36m/>[39m
+
+  Name "선택 요약 시스템 텍스트":
+  [36m<input[39m
+    [33maria-label[39m=[32m"선택 요약 시스템 텍스트"[39m
+    [33mmaxlength[39m=[32m"120"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "선택 요약 표현 텍스트":
+  [36m<input[39m
+    [33maria-label[39m=[32m"선택 요약 표현 텍스트"[39m
+    [33mmaxlength[39m=[32m"120"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"문서 상태"[39m
+        [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<strong>[39m
+          [0m문서: release-test[0m
+        [36m</strong>[39m
+        [36m<span[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [0m변경 없음[0m
+        [36m</span>[39m
+      [36m</section>[39m
+      [36m<nav[39m
+        [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+        [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m파일[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m악보[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"is-active"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m음표[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m표기 객체[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m가사[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m내보내기[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m재생[0m
+        [36m</button>[39m
+      [36m</nav>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"현재 작업 컨텍스트"[39m
+        [33mclass[39m=[32m"editor-context-strip studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-controls[39m=[32m"studio-palette"[39m
+          [33maria-label[39m=[32m"팔레트 표시"[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mtitle[39m=[32m"팔레트 표시"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-panel-left"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"18"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"18"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<rect[39m
+              [33mheight[39m=[32m"18"[39m
+              [33mrx[39m=[32m"2"[39m
+              [33mwidth[39m=[32m"18"[39m
+              [33mx[39m=[32m"3"[39m
+              [33my[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M9 3v18"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-controls[39m=[32m"studio-properties"[39m
+          [33maria-label[39m=[32m"속성 표시"[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mtitle[39m=[32m"속성 표시"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-panel-right"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"18"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"18"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<rect[39m
+              [33mheight[39m=[32m"18"[39m
+              [33mrx[39m=[32m"2"[39m
+              [33mwidth[39m=[32m"18"[39m
+              [33mx[39m=[32m"3"[39m
+              [33my[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M15 3v18"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+        [36m</button>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m작업[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0m음표[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m입력[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0m선택[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m대상[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0mMelody · 보표 1 · 성부 1[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m음가[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0m4분음표[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m재생[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0m정지[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<span>[39m
+            [0m필터[0m
+          [36m</span>[39m
+          [36m<strong>[39m
+            [0m전체[0m
+          [36m</strong>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"음표 편집"[39m
+        [33mclass[39m=[32m"selection-toolbar studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"성부"[39m
+          [33mclass[39m=[32m"inspector-properties"[39m
+        [36m>[39m
+          [36m<h3>[39m
+  ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/renderer/src/App.test.tsx:3752:28
+    3750|     const preview = screen.getByTestId('notation-preview')
+    3751|     const original = preview.getAttribute('data-event-durations')
+    3752|     fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'…
+       |                            ^
+    3753|     const next = screen.getByRole('region', {name:'다음 입력'})
+    3754|     expect(next).toHaveAttribute('data-input-active','true')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r2 endpoint keyboard navigation stays local and preserves span selection
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/renderer/src/App.test.tsx:3782:36
+    3780|     const event=new KeyboardEvent('keydown',{key:'ArrowDown',code:'Arr…
+    3781|     fireEvent(end,event)
+    3782|     expect(event.defaultPrevented).toBe(false)
+       |                                    ^
+    3783|     fireEvent.keyDown(end,{key:'Escape',bubbles:true})
+    3784|     expect(objects).toHaveValue(reference)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 134 skipped (136)
+   Start at  21:48:45
+   Duration  1.78s (transform 595ms, setup 0ms, import 436ms, tests 941ms, environment 320ms)
+

@@ -1,4 +1,5 @@
 import { useState, type ReactNode, type CSSProperties } from "react";
+import { Info } from "lucide-react";
 import * as UI from "../src";
 import palettes from "../../../docs/brand/ddirori-design-system/palette-candidates.json";
 import source from "../../../docs/brand/ddirori-design-system/tokens.json";
@@ -355,13 +356,14 @@ export function BasicSet() {
       category: "정보 표시",
       description:
         "목록은 평면으로 연결하고 독립 묶음만 카드로 구분합니다. 제목과 보조 행동은 별도 조작입니다.",
-      code: '<List label="악보"><Item title={title} onOpen={open} actions={<IconButton .../>}/></List>',
+      code: '<List label="악보"><Item title={title} flat onOpen={open} trailing={<IconButton .../>}/></List>',
       children: (
         <UI.Section title="최근 연습">
           <UI.List label="최근 악보">
             {fixtures.slice(0, 2).map((f) => (
               <UI.Item
                 key={f.id}
+                flat
                 title={f.title}
                 subtitle={f.composer}
                 leading={<UI.Mark size={24} />}
@@ -369,12 +371,12 @@ export function BasicSet() {
                 selecting
                 selected={checked}
                 onSelected={setChecked}
-                actions={
+                trailing={
                   <UI.IconButton
                     label={f.title + " 정보"}
                     onClick={() => setNotice("작품 정보")}
                   >
-                    ⓘ
+                    <Info size={20} aria-hidden="true" />
                   </UI.IconButton>
                 }
               />

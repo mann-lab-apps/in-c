@@ -1,0 +1,882 @@
+diff --git a/scripts/verify-ddirori-studio.cjs b/scripts/verify-ddirori-studio.cjs
+index 53e8a34f..fe4c24ad 100644
+--- a/scripts/verify-ddirori-studio.cjs
++++ b/scripts/verify-ddirori-studio.cjs
+@@ -8,11 +8,23 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddirori-electron-'))
+ app.setPath('userData', profile)
+ // Software compositing also supports capturePage under Linux Xvfb runners.
+ app.disableHardwareAcceleration()
+-const out = path.resolve(__dirname, '../out/ddirori/product-design-r1')
++const r2 = process.argv.includes('--r2')
++const out = path.resolve(process.env.DDIRORI_STUDIO_QA_OUT || path.resolve(__dirname, r2 ? '../out/ddirori/studio-r2-renderer' : '../out/ddirori/product-design-r1'))
++async function focusWindow(win) {
++  app.focus({steal:true})
++  win.focus()
++  await win.webContents.executeJavaScript(`new Promise((resolve, reject) => {
++    if (document.hasFocus()) return resolve();
++    const done = () => { clearTimeout(timeout); window.removeEventListener('focus', done); resolve(); };
++    const timeout = setTimeout(() => { window.removeEventListener('focus', done); reject(new Error('Studio QA window focus precondition failed')); }, 2000);
++    window.addEventListener('focus', done);
++  })`)
++}
+ app.whenReady().then(async () => {
+   const win = new BrowserWindow({width:1200,height:1000,show:true,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}})
+   try {
+     await win.loadFile(path.resolve(__dirname, '../out/renderer/index.html'), {query:{fixture:'release-test'}})
++    await focusWindow(win)
+     const result = await win.webContents.executeJavaScript(`(async () => {
+       const pause = () => new Promise(r => setTimeout(r, 100));
+       const button = label => [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent.trim()) === label);
+@@ -47,6 +59,7 @@ app.whenReady().then(async () => {
+     fs.writeFileSync(path.join(out,'studio-electron.json'),JSON.stringify({at:new Date().toISOString(),versions:process.versions,result,scope:'Built product renderer; fixture, isolated userData, no file/audio bridge. Native history and shared CSS verified; no physical IME or OS accessibility claims.'},null,2))
+     console.log('Studio Electron shared panel and single undo passed',result)
+     await verifyR1(win)
++    if (r2) await verifyR2(win)
+   } finally {
+     win.destroy()
+     app.quit()
+@@ -54,7 +67,10 @@ app.whenReady().then(async () => {
+ }).catch(error => {console.error(error);app.exit(1)})
+ 
+ async function verifyR1(win) {
+-  const run = (fn, arg) => win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
++  const run = async (fn, arg) => {
++    await focusWindow(win)
++    return win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
++  }
+   const pause = () => new Promise(resolve => setTimeout(resolve, 150))
+   const click = async label => {
+     await run(label => {
+@@ -68,6 +84,7 @@ async function verifyR1(win) {
+     await run(({label, value}) => {
+       const el = document.querySelector(`[aria-label="${label}"]`)
+       if (!el || !el.checkVisibility() || el.disabled) throw new Error(`Unavailable field: ${label}`)
++      el.focus()
+       const prototype = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+       Object.getOwnPropertyDescriptor(prototype, 'value').set.call(el, value)
+       el.dispatchEvent(new Event('input', {bubbles:true}))
+@@ -77,7 +94,9 @@ async function verifyR1(win) {
+   }
+   const capture = async name => {
+     await run(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(resolve))))
+-    fs.writeFileSync(path.join(out, `${name}.png`), (await win.webContents.capturePage()).toPNG())
++    const frame=await win.webContents.capturePage()
++    fs.writeFileSync(path.join(out, `${name}.png`), frame.toPNG())
++    return frame
+   }
+   // Bridge fixture records real serializer output. It does not simulate an OS dialog.
+   await run(() => {
+@@ -142,7 +161,27 @@ async function verifyR1(win) {
+   nativeTheme.themeSource = 'light'
+   await click('파일')
+   await run(() => window.scrollTo(0,0))
+-  await capture('file-light-1400')
++  const fileMetrics=await run(()=>{
++    const toolbar=document.querySelector('header.toolbar')
++    const read=node=>({rect:node.getBoundingClientRect().toJSON(),display:getComputedStyle(node).display,
++      color:getComputedStyle(node).color,background:getComputedStyle(node).backgroundColor,
++      scrollLeft:node.scrollLeft,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth})
++    return {toolbar:read(toolbar),group:read(toolbar.querySelector('.toolbar__group')),file:read(toolbar.querySelector('.file-actions')),
++      button:read(document.querySelector('[aria-label="프로젝트 저장"]'))}
++  })
++  const fileFrame=await capture('file-light-1400')
++  const pixels=fileFrame.toBitmap()
++  const scale=Math.sqrt(pixels.length/4/(1400*1000))
++  const stride=Math.round(1400*scale)
++  const box=fileMetrics.file.rect
++  let ink=0
++  for(let y=Math.ceil(box.top*scale);y<Math.floor(box.bottom*scale);y++)
++    for(let x=Math.ceil(box.left*scale);x<Math.floor(box.right*scale);x++) {
++      const offset=(y*stride+x)*4
++      if(pixels[offset]<140 && pixels[offset+1]<140 && pixels[offset+2]<140) ink++
++    }
++  fs.writeFileSync(path.join(out,'file-toolbar-metrics.json'),JSON.stringify({...fileMetrics,ink},null,2))
++  assert.ok(ink>200,'Visible file controls must paint pixels, not just have DOM boxes')
+   await click('프로젝트 저장')
+   await click('MusicXML로 저장')
+   const unchanged = await run(() => ({native:window.studioQA.native.at(-1),xml:window.studioQA.xml.at(-1)}))
+@@ -253,3 +292,172 @@ async function verifyR1(win) {
+     nativeScoreUnchanged:true,musicXmlUnchanged:true,scope:'Synthetic DOM/bridge fixture. No OS dialogs, physical IME, or screen reader certification.'},null,2))
+   console.log('R1 dock/theme/text/save/native/XML matrix passed')
+ }
++
++async function verifyR2(win) {
++  const run = async (fn,arg) => {
++    await focusWindow(win)
++    return win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
++  }
++  const settle = () => run(() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
++  const click = async label => {
++    await run(label=>{
++      const button=[...document.querySelectorAll('button')].find(b=>(b.getAttribute('aria-label')||b.textContent.trim())===label)
++      if (!button || button.disabled || !button.checkVisibility()) throw Error(`R2 command unavailable: ${label}`)
++      button.click()
++    },label)
++    await settle()
++  }
++  const width = async value => {
++    await run(value=>{
++      for (const label of ['팔레트 도크 폭','속성 도크 폭']) {
++        const input=document.querySelector(`[aria-label="${label}"]`)
++        input.focus()
++        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,String(value))
++        input.dispatchEvent(new Event('input',{bubbles:true}))
++        input.dispatchEvent(new Event('change',{bubbles:true}))
++      }
++    },value)
++    await settle()
++  }
++  const capture=async name=>fs.writeFileSync(path.join(out,`${name}.png`),(await win.webContents.capturePage()).toPNG())
++  const metrics=()=>run(()=>{
++    const svg=document.querySelector('.notation-preview svg'), node=document.querySelector('.notation-event.is-selected')
++    const rect=node?.getBoundingClientRect()
++    const canvas=document.querySelector('.score-canvas')
++    return {mode:canvas.dataset.notationSizing,viewport:[innerWidth,innerHeight],
++      svg:[Number(svg.getAttribute('width')),Number(svg.getAttribute('height'))],
++      selected:node?.dataset.eventId,address:node?[node.dataset.partId,node.dataset.staffId,node.dataset.measureId,node.dataset.voiceId]:null,
++      anchor:rect?{top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right}:null,
++      canvasScroll:canvas.scrollLeft,windowScroll:scrollY,focused:document.activeElement?.dataset.eventId,
++      focusedControl:document.activeElement?.getAttribute('aria-label'),
++      focusedControlBox:document.activeElement?.getBoundingClientRect().toJSON(),
++      input:document.querySelector('[aria-label="다음 입력 설정"]')?.textContent,
++      inputAddress:document.querySelector('.studio-edit-context output')?.textContent,
++      inputActive:document.querySelector('[aria-label="다음 입력"]')?.dataset.inputActive,
++      overflow:document.documentElement.scrollWidth>innerWidth+1}
++  })
++  await win.loadFile(path.resolve(__dirname,'../out/renderer/index.html'),{query:{fixture:'release-test'}})
++  await settle()
++  await run(()=>{
++    window.r2QA={native:[],xml:[]}
++    const result=extension=>({filePath:`/fixture/r2.${extension}`,fileName:`r2.${extension}`})
++    window.inC={project:{
++      save:async request=>{window.r2QA.native.push(request.contents);return result('chromatics')},
++      open:async()=>({...result('chromatics'),contents:window.r2QA.native.at(-1)})},
++      musicXml:{save:async request=>{window.r2QA.xml.push(request.contents);return result('musicxml')}},
++      recentMusicXml:{add:async()=>[],list:async()=>[]},autosave:{clear:async()=>{},write:async()=>{},read:async()=>undefined},
++      pdf:{save:request=>new Promise(resolve=>{window.r2QA.pdf=request;window.r2QA.finishPdf=resolve})}}
++  })
++  await click('파일'); await click('프로젝트 저장'); await click('MusicXML로 저장')
++  const original=await run(()=>({native:window.r2QA.native.at(-1),xml:window.r2QA.xml.at(-1)}))
++  const exportPdf=async name=>{
++    await click('내보내기'); await click('PDF 변환')
++    await run(()=>new Promise((resolve,reject)=>{
++      const start=performance.now()
++      const check=()=>window.r2QA.pdf && document.querySelector('[data-print-scale]') ? resolve() : performance.now()-start>4000 ? reject(Error('PDF export scene did not render')) : requestAnimationFrame(check)
++      check()
++    }))
++    await settle()
++    fs.writeFileSync(path.join(out,`${name}.pdf`),await win.webContents.printToPDF({preferCSSPageSize:true,printBackground:true}))
++    await run(()=>{window.r2QA.pdf=undefined;window.r2QA.finishPdf({fileName:'r2.pdf'})})
++    await settle()
++  }
++  await exportPdf('r2-export-before')
++  await click('음표')
++  await click('폭 맞춤')
++  win.setContentSize(1400,1000); await settle()
++  const selectedId=await run(()=>{
++    const events=[...document.querySelectorAll('.notation-event[role="button"]')]
++    const node=events[Math.floor(events.length/2)]
++    node.scrollIntoView({block:'center'}); node.focus(); return node.dataset.eventId
++  })
++  win.webContents.sendInputEvent({type:'keyDown',keyCode:'Enter'})
++  win.webContents.sendInputEvent({type:'keyUp',keyCode:'Enter'})
++  await settle()
++  const before=await metrics()
++  assert.equal(before.selected,selectedId)
++  assert.equal(before.focused,selectedId,'Keyboard-selected SVG note must retain focus after redraw')
++  win.setContentSize(960,1000); await settle()
++  const reflow=await metrics()
++  assert.equal(reflow.focused,selectedId,'Canvas keyboard focus must survive responsive reflow')
++  assert.ok(reflow.anchor.top>=0 && reflow.anchor.bottom<=1000,'Focused score anchor must remain in the viewport')
++  win.setContentSize(1400,1000); await settle()
++  const records=[]
++  for (const mode of ['fit-width','fixed']) {
++    await click(mode==='fixed'?'고정 배율':'폭 맞춤')
++    if (mode==='fixed') {
++      await run(()=>document.querySelector('[role="combobox"]').click())
++      await settle()
++      await run(()=>[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.trim()==='150%').click())
++      await settle()
++    }
++    for (const viewport of [1400,960]) {
++      win.setContentSize(viewport,1000); await settle()
++      for (const size of [207,280,360]) {
++        await width(size)
++        const state=await metrics()
++        records.push({size,...state})
++        assert.equal(state.selected,selectedId)
++        assert.deepEqual(state.address,before.address)
++        assert.equal(state.overflow,false)
++        assert.equal(state.focusedControl,'속성 도크 폭')
++        assert.ok(state.focusedControlBox.top>=0 && state.focusedControlBox.bottom<=1000,'Dock field must stay visible while it owns focus')
++        await run(()=>document.querySelector('.notation-event.is-selected').scrollIntoView({block:'center',inline:'nearest'}))
++        await capture(`r2-${mode}-${viewport}-${size}`)
++      }
++    }
++  }
++  const fixed=records.filter(record=>record.mode==='fixed')
++  for(const record of fixed) assert.deepEqual(record.svg,fixed[0].svg,'Fixed zoom must not reflow when dock or viewport changes')
++  const fit=records.filter(record=>record.mode==='fit-width')
++  assert.ok(new Set(fit.map(record=>record.svg[0])).size>1,'Fit-width must follow actual available width')
++  await click('음표 입력 전환, 단축키 N')
++  await click('8분음표, 단축키 4')
++  await click('점 추가')
++  const inputBefore=await metrics()
++  assert.match(inputBefore.input,/8분음표.*점 1/)
++  await settle()
++  await run(()=>window.scrollTo(0,0))
++  await settle()
++  assert.equal(await run(()=>document.querySelector('.studio-input-context').getBoundingClientRect().top>=0),true,'Next-input capture must show the actual input controls')
++  await capture('r2-next-input-960')
++  const inputLayout=await run(()=>{
++    const toolbar=document.querySelector('[aria-label="음표 편집"]')
++    const context=toolbar.querySelector('.studio-edit-context')
++    return {toolbarWidth:toolbar.clientWidth,contextWidth:context.getBoundingClientRect().width,
++      toolbarScrollWidth:toolbar.scrollWidth}
++  })
++  fs.writeFileSync(path.join(out,'r2-input-layout.json'),JSON.stringify(inputLayout,null,2))
++  assert.ok(inputLayout.contextWidth>=inputLayout.toolbarWidth*0.8,'Input context must have a full readable row, not a compressed vertical strip')
++  assert.ok(inputLayout.toolbarScrollWidth<=inputLayout.toolbarWidth+1,'Input toolbar groups must wrap within the viewport')
++  await width(207); win.setContentSize(1400,1000); await settle()
++  const inputAfter=await metrics()
++  assert.equal(inputAfter.input,inputBefore.input)
++  assert.equal(inputAfter.inputAddress,inputBefore.inputAddress)
++  assert.equal(inputAfter.inputActive,'true')
++  win.setContentSize(960,1000); await settle()
++  await run(()=>{
++    const nodes=[...document.querySelectorAll('.studio-chrome, .studio-chrome *')]
++    const sizes=nodes.map(node=>parseFloat(getComputedStyle(node).fontSize))
++    nodes.forEach((node,index)=>{node.style.fontSize=`${sizes[index]*2}px`})
++  })
++  await settle()
++  await run(()=>window.scrollTo(0,0)); await settle()
++  await capture('r2-next-input-text-2')
++  assert.equal(await run(()=>{
++    const toolbar=document.querySelector('[aria-label="음표 편집"]')
++    return toolbar.scrollWidth<=toolbar.clientWidth+1 && document.documentElement.scrollWidth<=innerWidth+1
++  }),true,'Next-input groups must remain contained at 200% text size')
++  await run(()=>document.querySelectorAll('.studio-chrome, .studio-chrome *').forEach(node=>node.style.removeProperty('font-size')))
++  await settle()
++  await click('음표 입력 전환, 단축키 N')
++  await click('파일'); await click('프로젝트 저장'); await click('MusicXML로 저장')
++  const after=await run(()=>({native:window.r2QA.native.at(-1),xml:window.r2QA.xml.at(-1)}))
++  assert.equal(after.xml,original.xml)
++  assert.deepEqual(JSON.parse(after.native).score,JSON.parse(original.native).score)
++  await click('프로젝트 열기')
++  await exportPdf('r2-export-after')
++  fs.writeFileSync(path.join(out,'r2-workspace.json'),JSON.stringify({versions:process.versions,before,reflow,records,inputBefore,inputAfter,
++    nativeScoreUnchanged:true,musicXmlUnchanged:true,pdf:'Actual App export scene and Chromium printToPDF; bridge fixture, no OS dialog'},null,2))
++  console.log('R2 command context and responsive/fixed workspace matrix passed')
++}
+diff --git a/src/renderer/src/App.test.tsx b/src/renderer/src/App.test.tsx
+index ae045449..89b89d86 100644
+--- a/src/renderer/src/App.test.tsx
++++ b/src/renderer/src/App.test.tsx
+@@ -675,6 +675,9 @@ describe('App component shell', () => {
+   })
+ 
+   beforeEach(() => {
++    // jsdom has no Popover API; real popup placement is checked in Electron.
++    Object.defineProperty(HTMLElement.prototype,'showPopover',{configurable:true,value(this:HTMLElement){this.style.display='block'}})
++    Object.defineProperty(HTMLElement.prototype,'hidePopover',{configurable:true,value(){}})
+     vi.resetModules()
+     playbackMockState.value = {
+       activeEvent: undefined,
+@@ -3575,7 +3578,7 @@ describe('App component shell', () => {
+ 
+     const properties = screen.getByRole('region', { name: '선택 요약' })
+     expect(properties).toHaveAttribute('data-selection-kind', 'event')
+-    expect(within(properties).getByText('속성')).toBeInTheDocument()
++    expect(within(properties).getByRole('heading', { name: '선택한 표기' })).toBeInTheDocument()
+     expect(within(properties).getByText('대상')).toBeInTheDocument()
+     expect(within(properties).getByText('음표')).toBeInTheDocument()
+     expect(within(properties).getByText('음가')).toBeInTheDocument()
+@@ -3743,6 +3746,72 @@ describe('App component shell', () => {
+     expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
+   })
+ 
++  it('studio.r2 separates next input from selected event edits without adding undo commands', async () => {
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    const { App } = await import('./App')
++    render(<App />)
++    const preview = screen.getByTestId('notation-preview')
++    const original = preview.getAttribute('data-event-durations')
++    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
++    const next = screen.getByRole('region', {name:'다음 입력'})
++    expect(next).toHaveAttribute('data-input-active','true')
++    fireEvent.click(screen.getByRole('button', {name:'8분음표, 단축키 4'}))
++    fireEvent.click(screen.getByRole('button', {name:'점 추가'}))
++    expect(screen.getByLabelText('다음 입력 점 개수')).toHaveTextContent('1')
++    expect(next).toHaveTextContent('8분음표')
++    expect(preview).toHaveAttribute('data-event-durations', original)
++    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
++    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
++    expect(next).toHaveAttribute('data-input-active','false')
++    expect(screen.getByRole('region', {name:'음표 편집 대상'})).toHaveTextContent('선택한 음표·쉼표')
++    fireEvent.click(screen.getByRole('button', {name:'8분음표, 단축키 4'}))
++    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
++    fireEvent.keyDown(window,{code:'KeyZ',ctrlKey:true})
++    expect(preview).toHaveAttribute('data-event-durations',original)
++  })
++
++  it('studio.r2 endpoint keyboard navigation stays local and preserves span selection', async () => {
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.click(screen.getByRole('button',{name:'표기 객체'}))
++    const objects=screen.getByLabelText('표기 객체 선택') as HTMLSelectElement
++    const reference=[...objects.options].find(option=>option.value.startsWith('hairpin:'))!.value
++    fireEvent.change(objects,{target:{value:reference}})
++    const end=screen.getByLabelText('표기 끝점')
++    end.focus()
++    const event=new KeyboardEvent('keydown',{key:'ArrowDown',code:'ArrowDown',bubbles:true,cancelable:true})
++    fireEvent(end,event)
++    expect(event.defaultPrevented).toBe(false)
++    fireEvent.keyDown(end,{key:'Escape',bubbles:true})
++    expect(objects).toHaveValue(reference)
++    expect(screen.getByRole('region',{name:'범위 표기 속성'})).toHaveTextContent('선택한 표기')
++    expect(screen.getByLabelText('선택 표기 ID')).toHaveTextContent(reference.split(':')[1])
++  })
++
++  it('studio.r2 stores fit/fixed view independently of score history and exported XML', async () => {
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    const { App } = await import('./App')
++    const app=render(<App />)
++    fireEvent.click(screen.getByRole('button',{name:'파일'}))
++    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
++    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1))
++    const before=vi.mocked(window.inC.musicXml.save).mock.calls[0][0].contents
++    fireEvent.click(screen.getByRole('button',{name:'고정 배율'}))
++    const zoom=screen.getByRole('combobox',{name:'고정 확대율'})
++    fireEvent.click(zoom)
++    fireEvent.click(screen.getByRole('option',{name:'150%'}))
++    expect(screen.getByLabelText('악보 캔버스')).toHaveAttribute('data-notation-sizing','fixed')
++    expect(screen.getByLabelText('악보 캔버스')).toHaveStyle({'--studio-notation-zoom':'1.5'})
++    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
++    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
++    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2))
++    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0].contents).toBe(before)
++    app.unmount(); render(<App />)
++    expect(screen.getByLabelText('악보 캔버스')).toHaveAttribute('data-notation-sizing','fixed')
++    expect(screen.getByRole('combobox',{name:'고정 확대율'})).toHaveTextContent('150%')
++  })
++
+   it('studio.r1 exposes document state and preserves stored dock widths and focus', async () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     localStorage.setItem('chromatics.dock-widths.v1', JSON.stringify({palette: 207, properties: 360}))
+diff --git a/src/renderer/src/App.tsx b/src/renderer/src/App.tsx
+index 8159f26e..5b790cc3 100644
+--- a/src/renderer/src/App.tsx
++++ b/src/renderer/src/App.tsx
+@@ -10,7 +10,7 @@ import {
+ import { createRoot } from 'react-dom/client'
+ import { NativeBackupsDialog } from './NativeBackupsDialog'
+ import { SpanProperties } from './SpanProperties'
+-import { Button, IconButton } from '@ddirori/ui'
++import { Button, Choices, IconButton, Select, Text } from '@ddirori/ui'
+ import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
+ import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
+ import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
+@@ -32,6 +32,7 @@ import {
+   FilePlus2,
+   FileUp,
+   FileVolume,
++  Pencil,
+   Keyboard,
+   Link2,
+   Minus,
+@@ -108,6 +109,7 @@ import {
+ } from '../../testing/single-voice-mvp-fixture'
+ import './styles.css'
+ import './studio-r1.css'
++import './studio-r2.css'
+ import {
+   buildDeleteCommand,
+   buildDotCommand,
+@@ -553,6 +555,16 @@ const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
+ const partMixerStorageKey = 'chromatics.part-mixer.v1'
+ const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+ const dockWidthsStorageKey = 'chromatics.dock-widths.v1'
++const notationViewStorageKey = 'chromatics.notation-view.v1'
++const notationZoomOptions = ['75', '100', '125', '150', '200'].map(value => ({value, label:`${value}%`}))
++
++function readNotationView(): {mode:'fit-width' | 'fixed'; zoom:number} {
++  try {
++    const stored=JSON.parse(localStorage.getItem(notationViewStorageKey) ?? '{}')
++    return {mode:stored?.mode === 'fixed' ? 'fixed' : 'fit-width',
++      zoom:notationZoomOptions.some(option=>Number(option.value) === stored?.zoom) ? stored.zoom : 100}
++  } catch { return {mode:'fit-width', zoom:100} }
++}
+ 
+ function readDockWidths() {
+   try {
+@@ -573,6 +585,10 @@ export const App = () => {
+     return () => media?.removeEventListener('change', update)
+   }, [])
+   const [dockWidths, setDockWidths] = useState(readDockWidths)
++  const [notationView, setNotationView] = useState(readNotationView)
++  useEffect(() => {
++    try { localStorage.setItem(notationViewStorageKey,JSON.stringify(notationView)) } catch { /* Keep the session preference. */ }
++  },[notationView])
+   const paletteToggle = useRef<HTMLButtonElement>(null)
+   const propertiesToggle = useRef<HTMLButtonElement>(null)
+   useEffect(() => {
+@@ -5508,6 +5524,12 @@ export const App = () => {
+       <section className="studio-document studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="문서 상태">
+         <strong>{`문서: ${score.title || '제목 없음'}`}</strong>
+         <span role="status">{savingNative || savingMusicXml ? '저장 중' : autosaveRevision > 0 ? '저장하지 않은 변경' : '변경 없음'}</span>
++        <div className="studio-view-controls">
++          <Choices label="악보 보기 방식" options={[{value:'fit-width',label:'폭 맞춤'},{value:'fixed',label:'고정 배율'}]}
++            selected={[notationView.mode]} onChange={values => { if (values[0]) setNotationView(previous=>({...previous,mode:values[0] as 'fit-width'|'fixed'})) }} />
++          <Select label="고정 확대율" options={notationZoomOptions} value={String(notationView.zoom)} disabled={notationView.mode !== 'fixed'}
++            onChange={value=>setNotationView(previous=>({...previous,zoom:Number(value)}))} />
++        </div>
+       </section>
+       <nav className="toolbar-tabs studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="편집 도구 카테고리">
+         {toolbarCategories.map((category) => (
+@@ -5523,6 +5545,21 @@ export const App = () => {
+         ))}
+       </nav>
+ 
++      <section className="studio-input-context studio-chrome ddirori" data-theme={studioTheme} data-density="compact"
++        aria-label="다음 입력" data-input-active={Boolean(noteInputState)}>
++        <Text as="h2" variant="sectionTitle">다음 입력</Text>
++        <IconButton label="음표 입력 전환, 단축키 N" selected={Boolean(noteInputState)}
++          onClick={() => { setSpanSelection(undefined); setToolbarCategory('note'); toggleNoteInputMode() }}>
++          <Pencil size={18} aria-hidden="true" />
++        </IconButton>
++        <output aria-label="다음 입력 설정">
++          {durationLabels[noteInputState?.duration.value ?? durationValue]} · 점 {noteInputState?.duration.dots ?? 0}
++          {noteInputState?.accidental !== undefined ? ` · ${noteInputState.accidental === -1 ? '플랫' : noteInputState.accidental === 1 ? '샤프' : '제자리표'}` : ' · 임시표 자동'}
++        </output>
++        <span className="studio-input-context__state">{noteInputState ? inputModeLabel : '대기'}</span>
++        {noteInputState ? <Button kind="quiet" onClick={enterRest}>쉼표 넣기</Button> : null}
++      </section>
++
+       <section
+         className="editor-context-strip studio-chrome ddirori"
+         data-theme={studioTheme}
+@@ -5595,6 +5632,10 @@ export const App = () => {
+         aria-label="음표 편집"
+         hidden={toolbarCategory !== 'note'}
+       >
++        <section className="studio-edit-context" aria-label="음표 편집 대상">
++          <Text as="h3" variant="sectionTitle">{noteInputState ? '다음 입력 설정' : selection.type === 'event' ? '선택한 음표·쉼표' : selection.type === 'range' ? '선택 범위' : '입력 준비'}</Text>
++          <output>{activeScopeLabel}{noteInputState ? ` · ${noteInputState.tick}틱` : eventLocation ? ` · ${eventLocation.event.id}` : ''}</output>
++        </section>
+         <section className="inspector-properties" aria-label="성부">
+           <h3>성부</h3>
+           <label className="inspector-properties__row">
+@@ -5634,8 +5675,8 @@ export const App = () => {
+           </div>
+         </section>
+ 
+-          <section className="inspector-properties" aria-label="선택 속성">
+-            <h3>속성</h3>
++          <section className="inspector-properties" aria-label={noteInputState ? '다음 입력 속성' : '선택 속성'}>
++            <h3>{noteInputState ? '다음 입력 설정' : '선택한 음표·쉼표'}</h3>
+             {eventLocation ? (
+               <div className="inspector-properties__grid">
+                 <div className="inspector-properties__row">
+@@ -5648,8 +5689,8 @@ export const App = () => {
+                     >
+                       -
+                     </button>
+-                    <output aria-label="선택 이벤트 점 개수">
+-                      {eventLocation.event.duration.dots}
++                    <output aria-label={noteInputState ? '다음 입력 점 개수' : '선택 이벤트 점 개수'}>
++                      {activeDots}
+                     </output>
+                     <button
+                       disabled={!canAddDot}
+@@ -5671,11 +5712,11 @@ export const App = () => {
+                     ] as const).map(([alter, symbol, label]) => (
+                       <button
+                         aria-label={label}
+-                        aria-pressed={selectedPitchAlter === alter}
++                        aria-pressed={(noteInputState ? noteInputState.accidental : selectedPitchAlter) === alter}
+                         className={
+-                          selectedPitchAlter === alter ? 'is-active' : undefined
++                          (noteInputState ? noteInputState.accidental : selectedPitchAlter) === alter ? 'is-active' : undefined
+                         }
+-                        disabled={!canEditPitch}
++                        disabled={!accidentalEnabled}
+                         key={alter}
+                         onClick={() => changeAccidental(alter)}
+                         type="button"
+@@ -5686,6 +5727,7 @@ export const App = () => {
+                   </div>
+                 </div>
+ 
++                {noteInputState ? <h4 className="studio-selected-tools-title">선택한 표기 · {eventLocation.event.id}</h4> : null}
+                 <button
+                   className="inspector-properties__command"
+                   disabled={eventLocation.event.type !== 'note'}
+@@ -7428,7 +7470,8 @@ export const App = () => {
+             ) : null}
+           </aside>
+ 
+-          <div className="score-canvas" aria-label="악보 캔버스">
++          <div className="score-canvas" aria-label="악보 캔버스" data-notation-sizing={notationView.mode}
++            style={{'--studio-notation-zoom':notationView.zoom / 100} as CSSProperties}>
+ 
+         <div
+           className="score-page"
+@@ -7614,7 +7657,7 @@ export const App = () => {
+               className="selection-properties"
+               data-selection-kind={selectedProperties.kind}
+             >
+-              <h3>속성</h3>
++              <Text as="h3" variant="sectionTitle">선택한 표기</Text>
+               <dl>
+                 {selectedProperties.rows.map(([label, value]) => (
+                   <div className="selection-properties__row" key={label}>
+diff --git a/src/renderer/src/SpanProperties.test.tsx b/src/renderer/src/SpanProperties.test.tsx
+index 9e8029d8..8a51e080 100644
+--- a/src/renderer/src/SpanProperties.test.tsx
++++ b/src/renderer/src/SpanProperties.test.tsx
+@@ -36,6 +36,25 @@ it('composition Enter keeps focus and does not commit or reach editor shortcuts'
+   fireEvent.keyDown(input, {key:'Enter'})
+   expect(commit).toHaveBeenCalledExactlyOnceWith({height:2})
+ })
++
++it('T04 composition cancellation followed by invalid blur preserves automatic value and selection', () => {
++  const {input,commit,globalKey,props} = setup()
++  fireEvent.change(input,{target:{value:'3'}})
++  fireEvent.compositionStart(input,{data:'한'})
++  fireEvent.keyDown(input,{key:'Enter',isComposing:true,keyCode:229})
++  fireEvent.compositionEnd(input,{data:'한'})
++  fireEvent.keyDown(input,{key:'Escape'})
++  expect(input).toHaveValue(null)
++  input.focus()
++  fireEvent.change(input,{target:{value:'99'}})
++  fireEvent.blur(input)
++  expect(input).toHaveValue(null)
++  expect(input).toHaveAttribute('aria-invalid','true')
++  expect(input).toHaveAccessibleDescription(/0.5~8 sp/)
++  expect(commit).not.toHaveBeenCalled()
++  expect(props.onSelect).not.toHaveBeenCalled()
++  expect(globalKey).not.toHaveBeenCalled()
++})
+ it('Escape cancels only the field; invalid values and untouched automatic values do not commit', () => {
+   const {input,commit,globalKey} = setup()
+   fireEvent.change(input,{target:{value:'3'}})
+diff --git a/src/renderer/src/SpanProperties.tsx b/src/renderer/src/SpanProperties.tsx
+index 756d179e..86a22fef 100644
+--- a/src/renderer/src/SpanProperties.tsx
++++ b/src/renderer/src/SpanProperties.tsx
+@@ -25,7 +25,7 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
+   const options = selected ? spanEndpointOptions(score, selected) : []
+   return (
+     <section className="selection-properties span-properties studio-chrome ddirori" data-density="compact" data-theme={theme} aria-label="범위 표기 속성">
+-      <Text as="h3" variant="sectionTitle">범위 표기</Text>
++      <Text as="h3" variant="sectionTitle">선택한 표기</Text>
+       <label className="selection-properties__edit">
+         <span>객체</span>
+         <select aria-label="표기 객체 선택" value={span && selected ? `${selected.kind}:${selected.id}` : ''}
+@@ -43,6 +43,7 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
+       </label>
+       {span && selected ? <>
+         <dl>
++          <div className="selection-properties__row"><dt>대상 ID</dt><dd><output aria-label="선택 표기 ID">{selected.id}</output></dd></div>
+           <div className="selection-properties__row"><dt>종류</dt><dd>{selected.kind === 'slur' ? '슬러' : '헤어핀'}</dd></div>
+           <div className="selection-properties__row"><dt>파트</dt><dd>{owner?.name ?? '?'}</dd></div>
+           <div className="selection-properties__row"><dt>보표</dt><dd>{owner ? owner.staves.findIndex(staff => staff.id === start?.address.staffId) + 1 : '?'}</dd></div>
+@@ -60,6 +61,12 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
+         </label>)}
+         <details className="span-properties__geometry">
+           <summary>배치 · 형상</summary>
++          <output className="span-properties__automatic" aria-label="표기 배치 요약">
++            {span.engraving?.placement === 'above' ? '보표 위' : span.engraving?.placement === 'below' ? '보표 아래' : '배치 자동'}
++            {(['offsetX', 'offsetY', 'height'] as const).map(field => <span key={field}>
++              {` · ${field === 'offsetX' ? '가로' : field === 'offsetY' ? '세로' : '높이'} ${span.engraving?.[field] === undefined ? '자동' : `${span.engraving[field]} sp`}`}
++            </span>)}
++          </output>
+           <label className="selection-properties__edit"><span>배치</span>
+             <select aria-label="표기 배치" value={span.engraving?.placement ?? 'auto'} onChange={event => onEngravingChange({ ...span.engraving, placement: event.target.value === 'auto' ? undefined : event.target.value as 'above' | 'below' })}>
+               <option value="auto">자동</option><option value="above">보표 위</option><option value="below">보표 아래</option>
+diff --git a/src/renderer/src/editor/keyboard-input.test.ts b/src/renderer/src/editor/keyboard-input.test.ts
+index 5a80e89e..51f1570b 100644
+--- a/src/renderer/src/editor/keyboard-input.test.ts
++++ b/src/renderer/src/editor/keyboard-input.test.ts
+@@ -136,6 +136,7 @@ describe('keyboard input routing', () => {
+   it('recognizes text editing targets', () => {
+     expect(isTextEditingTarget({ tagName: 'INPUT' } as HTMLElement)).toBe(true)
+     expect(isTextEditingTarget({ tagName: 'textarea' } as HTMLElement)).toBe(true)
++    expect(isTextEditingTarget({ tagName: 'SELECT' } as HTMLElement)).toBe(true)
+     expect(
+       isTextEditingTarget({ tagName: 'DIV', isContentEditable: true } as HTMLElement)
+     ).toBe(true)
+diff --git a/src/renderer/src/editor/keyboard-input.ts b/src/renderer/src/editor/keyboard-input.ts
+index 265b9064..59ef5a2f 100644
+--- a/src/renderer/src/editor/keyboard-input.ts
++++ b/src/renderer/src/editor/keyboard-input.ts
+@@ -50,8 +50,9 @@ export function isTextEditingTarget(target: EventTarget | null): boolean {
+     if (
+       tagName === 'INPUT' ||
+       tagName === 'TEXTAREA' ||
++      tagName === 'SELECT' ||
+       element.isContentEditable ||
+-      element.getAttribute?.('role') === 'textbox'
++      ['textbox', 'combobox', 'listbox'].includes(element.getAttribute?.('role') ?? '')
+     ) {
+       return true
+     }
+diff --git a/src/renderer/src/notation/NotationPreview.tsx b/src/renderer/src/notation/NotationPreview.tsx
+index d960369e..794fc103 100644
+--- a/src/renderer/src/notation/NotationPreview.tsx
++++ b/src/renderer/src/notation/NotationPreview.tsx
+@@ -252,6 +252,10 @@ export function NotationPreview({
+       return
+     }
+ 
++    const previousFocus = document.activeElement
++    const focusedEventId = container.contains(previousFocus) ? previousFocus?.getAttribute('data-event-id') : undefined
++    const focusedSpanId = container.contains(previousFocus) ? previousFocus?.getAttribute('data-span-id') : undefined
++    const focusBox = focusedEventId || focusedSpanId ? previousFocus?.getBoundingClientRect() : undefined
+     container.replaceChildren()
+ 
+     const renderedStaffTargets = createRenderedStaffTargets(score)
+@@ -789,6 +793,12 @@ export function NotationPreview({
+           if (!isPreviewEventId(eventId)) {
+             svgElement.setAttribute('role', 'button')
+             svgElement.setAttribute('tabindex', '0')
++            svgElement.addEventListener('keydown', event => {
++              if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229 || event.altKey || event.ctrlKey || event.metaKey) return
++              event.preventDefault()
++              event.stopPropagation()
++              onSelectEvent(eventId, event.shiftKey, eventAddress)
++            })
+             svgElement.addEventListener('click', (event) => {
+               event.stopPropagation()
+               onSelectEvent(eventId, event.shiftKey, eventAddress)
+@@ -1147,6 +1157,29 @@ export function NotationPreview({
+       overlayGroup.append(playhead)
+     }
+ 
++    // SVG redraw must not drop a keyboard user's logical target or scroll anchor.
++    if (!printLayout && focusBox) {
++      const target = selectedSpan
++        ? [...container.querySelectorAll<SVGElement>('.notation-span-target')].find(node =>
++          node.dataset.spanId === selectedSpan.id && node.dataset.spanKind === selectedSpan.kind)
++        : [...container.querySelectorAll<SVGElement>('.notation-event')].find(node =>
++          node.dataset.eventId === (selectedEventId ?? focusedEventId) && (!selectedEventAddress ||
++            node.dataset.partId === selectedEventAddress.partId && node.dataset.staffId === selectedEventAddress.staffId &&
++            node.dataset.measureId === selectedEventAddress.measureId && node.dataset.voiceId === selectedEventAddress.voiceId))
++      if (target) {
++        target.focus({preventScroll:true})
++        const box = target.getBoundingClientRect()
++        const top = Math.max(16, Math.min(focusBox.top, window.innerHeight - box.height - 16))
++        window.scrollBy(0, box.top - top)
++        const canvas = container.closest<HTMLElement>('.score-canvas')
++        if (canvas) {
++          const bounds = canvas.getBoundingClientRect()
++          const left = Math.max(bounds.left + 16, Math.min(focusBox.left, bounds.right - box.width - 16))
++          canvas.scrollLeft += box.left - left
++        }
++      }
++    }
++
+     return () => {
+       window.removeEventListener('mouseup', clearDragAnchor)
+       container.removeEventListener(
+@@ -1852,6 +1885,12 @@ function drawPassiveStaffMeasure(
+ 
+       svgElement.setAttribute('role', 'button')
+       svgElement.setAttribute('tabindex', '0')
++      svgElement.addEventListener('keydown', keyEvent => {
++        if (keyEvent.key !== 'Enter' || keyEvent.isComposing || keyEvent.keyCode === 229 || keyEvent.altKey || keyEvent.ctrlKey || keyEvent.metaKey) return
++        keyEvent.preventDefault()
++        keyEvent.stopPropagation()
++        interaction.onSelectEvent(event.id, keyEvent.shiftKey, eventAddress)
++      })
+       svgElement.addEventListener('click', (mouseEvent) => {
+         mouseEvent.stopPropagation()
+         interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
+diff --git a/src/renderer/src/studio-r2.css b/src/renderer/src/studio-r2.css
+new file mode 100644
+index 00000000..9cbf78db
+--- /dev/null
++++ b/src/renderer/src/studio-r2.css
+@@ -0,0 +1,33 @@
++/* R2 composition only; R1 tokens and notation typography remain independent. */
++.studio-document > strong { font-size: 1.5rem; }
++.studio-chrome.toolbar { backdrop-filter: none; }
++.studio-selected-tools-title { flex: 0 0 100%; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--dd-border); font-size: 0.875rem; overflow-wrap: anywhere; }
++.studio-input-context {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: 8px 16px;
++  padding: 8px 24px;
++  border-bottom: 1px solid var(--dd-border);
++}
++.studio-input-context h2 { margin: 0; font-size: 1rem; }
++.studio-input-context output { min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
++.studio-input-context__state { color: var(--dd-muted); font-size: 0.875rem; }
++.studio-view-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 16px; margin-left: auto; min-width: 0; }
++.studio-view-controls > .dd-field { min-width: 0; width: 8rem; }
++.studio-chrome.selection-toolbar { flex-wrap: wrap; row-gap: 12px; overflow: visible; }
++.studio-chrome.selection-toolbar .inspector-properties { flex-wrap: wrap; gap: 8px 16px; max-width: 100%; padding: 0; border-right: 0; white-space: normal; }
++.studio-chrome.selection-toolbar .inspector-properties__grid { flex: 1 1 100%; flex-wrap: wrap; }
++.studio-edit-context { flex: 0 0 100%; min-width: 0; }
++.studio-edit-context h3 { margin: 0; font-size: 0.875rem; }
++.studio-edit-context output { color: var(--dd-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
++.studio-chrome .span-properties__automatic { display: block; margin: 12px 0; color: var(--dd-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
++@media screen {
++  .score-canvas[data-notation-sizing='fixed'] .score-page {
++    width: 996px;
++    min-width: 996px;
++    padding: 56px 48px;
++    zoom: var(--studio-notation-zoom);
++  }
++}
++@media print { .studio-input-context { display: none; } }
+diff --git a/scripts/verify-studio-input-events.cjs b/scripts/verify-studio-input-events.cjs
+new file mode 100644
+index 00000000..c9439690
+--- /dev/null
++++ b/scripts/verify-studio-input-events.cjs
+@@ -0,0 +1,142 @@
++// T04 diagnostics against the built product, with isolated data and event traces.
++const {app, BrowserWindow} = require('electron')
++const fs = require('node:fs')
++const os = require('node:os')
++const path = require('node:path')
++const assert = require('node:assert/strict')
++const out = path.resolve(process.env.DDIRORI_STUDIO_EVENT_OUT || 'out/ddirori/studio-r2-t04-baseline')
++const focusControl = process.argv.includes('--focus-control')
++app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'studio-input-events-')))
++app.disableHardwareAcceleration()
++
++app.whenReady().then(async () => {
++  const win = new BrowserWindow({width:1400, height:1000, show:true,
++    webPreferences:{sandbox:true, contextIsolation:true, backgroundThrottling:false}})
++  const run = (fn, arg) => win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
++  const settled = () => run(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
++  const records = []
++  const sink = new BrowserWindow({width:240,height:120,show:false,webPreferences:{sandbox:true,contextIsolation:true}})
++  try {
++    await sink.loadURL('data:text/html,<title>T04 focus control</title><p>Isolated QA window</p>')
++    await win.loadFile(path.resolve(process.env.DDIRORI_STUDIO_EVENT_HTML || path.resolve(__dirname, '../out/renderer/index.html')), {query:{fixture:'release-test'}})
++    await run(() => document.fonts.ready)
++    await run(() => {
++      window.inputTrace = []
++      window.readInput = stage => {
++        const input = document.querySelector('[aria-label="표기 세로 이동"]')
++        return {stage, time:performance.now(), value:input?.value, attribute:input?.getAttribute('value'),
++          tracker:input?._valueTracker?.getValue(), valid:input?.validity.valid,
++          invalid:input?.getAttribute('aria-invalid'), focused:document.activeElement === input,
++          documentFocused:document.hasFocus(), selection:document.querySelector('[aria-label="표기 객체 선택"]')?.value,
++          history:document.querySelector('.editor-status')?.textContent,
++          error:input?.getAttribute('aria-describedby') ? document.getElementById(input.getAttribute('aria-describedby'))?.textContent : null}
++      }
++      for (const event of ['focus', 'blur', 'focusin', 'focusout', 'compositionstart', 'compositionend', 'input', 'change', 'keydown']) {
++        document.addEventListener(event, e => {
++          if (e.target.getAttribute?.('aria-label') === '표기 세로 이동')
++            window.inputTrace.push({...window.readInput(event), key:e.key, composing:e.isComposing, phase:'capture'})
++        }, true)
++      }
++      window.changeInput = value => {
++        const input = document.querySelector('[aria-label="표기 세로 이동"]')
++        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value)
++        input.dispatchEvent(new Event('input',{bubbles:true}))
++        input.dispatchEvent(new Event('change',{bubbles:true}))
++      }
++      const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '표기 객체')
++      button.click()
++    })
++    await settled()
++    for (const mode of focusControl ? ['background-control', 'focused', 'keyboard'] : ['same-task', 'legacy', 'focused', 'keyboard']) {
++      for (let attempt = 0; attempt < 12; attempt++) {
++        if (focusControl) {
++          app.focus({steal:true})
++          win.focus()
++          await run(() => new Promise((resolve, reject) => {
++            const start = performance.now()
++            const check = () => document.hasFocus() ? resolve() : performance.now()-start > 2000 ? reject(new Error('T04 focus precondition failed')) : requestAnimationFrame(check)
++            check()
++          }))
++        }
++        await run(() => {
++          const select = document.querySelector('[aria-label="표기 객체 선택"]')
++          Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'')
++          select.dispatchEvent(new Event('change',{bubbles:true}))
++        })
++        await settled()
++        await run(() => {
++          const select = document.querySelector('[aria-label="표기 객체 선택"]')
++          Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,
++            [...select.options].find(option => option.value.startsWith('hairpin:')).value)
++          select.dispatchEvent(new Event('change',{bubbles:true}))
++        })
++        await settled()
++        await run(() => {
++          window.inputTrace = []
++          document.querySelector('.span-properties__geometry summary').click()
++          document.querySelector('[aria-label="표기 세로 이동"]').focus()
++          window.changeInput('3')
++        })
++        await settled()
++        const stages = [await run(() => window.readInput('draft-3'))]
++        await run(() => {
++          const input = document.querySelector('[aria-label="표기 세로 이동"]')
++          input.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true,data:'한'}))
++          input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',isComposing:true,keyCode:229,bubbles:true}))
++        })
++        stages.push(await run(() => window.readInput('composition-enter')))
++        await run(mode => {
++          const input = document.querySelector('[aria-label="표기 세로 이동"]')
++          input.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'한'}))
++          input.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))
++          if (mode === 'same-task') {
++            window.changeInput('99')
++            input.focus(); input.blur()
++          }
++        }, mode)
++        await settled()
++        stages.push(await run(() => window.readInput('escape')))
++        if (mode === 'background-control') {
++          sink.show(); sink.focus()
++          await run(() => new Promise((resolve,reject) => {
++            const start=performance.now()
++            const check=()=> !document.hasFocus() ? resolve() : performance.now()-start>2000 ? reject(new Error('Background focus precondition failed')) : setTimeout(check,16)
++            check()
++          }))
++          assert.equal(await run(() => document.hasFocus()), false, 'Background control must really lose OS focus')
++          await run(() => window.changeInput('99'))
++        } else if (mode === 'same-task') {
++          // Deliberately stress an impossible same-task keyboard sequence.
++        } else if (mode === 'keyboard') {
++          await run(() => document.querySelector('[aria-label="표기 세로 이동"]').focus())
++          await win.webContents.insertText('99')
++        } else {
++          await run(mode => {
++            if (mode === 'focused') document.querySelector('[aria-label="표기 세로 이동"]').focus()
++            window.changeInput('99')
++          }, mode)
++        }
++        await settled()
++        stages.push(await run(() => window.readInput('invalid-draft')))
++        await run(() => {
++          const input = document.querySelector('[aria-label="표기 세로 이동"]')
++          input.focus(); input.blur()
++        })
++        await settled()
++        const final = await run(() => window.readInput('blur'))
++        stages.push(final)
++        const backgroundReproduced = mode === 'background-control' && final.invalid === 'false' && final.value === '99' && !final.documentFocused &&
++          !(await run(() => window.inputTrace)).some(event => event.stage === 'focusout' && event.value === '99')
++        const preserved = /0회 수정/.test(final.history) && stages[1].focused && final.selection === stages[0].selection
++        const passed = preserved && (mode === 'background-control' ? backgroundReproduced && stages[2].value === '' :
++          final.invalid === 'true' && final.value === '' && /sp/.test(final.error || '') && (mode === 'same-task' || stages[2].value === ''))
++        records.push({mode,attempt,passed,backgroundReproduced,stages,events:await run(() => window.inputTrace)})
++      }
++    }
++    fs.mkdirSync(out,{recursive:true})
++    fs.writeFileSync(path.join(out,'event-traces.json'), JSON.stringify({versions:process.versions,records},null,2))
++    const failed = records.filter(record => !record.passed)
++    console.log(JSON.stringify({runs:records.length,failed:failed.map(({mode,attempt,stages})=>({mode,attempt,final:stages.at(-1)})),out},null,2))
++    assert.equal(failed.length,0,'T04 event sequence must preserve validation, selection and command0')
++  } finally {sink.destroy(); win.destroy(); app.quit()}
++}).catch(error => {console.error(error); app.exit(1)})

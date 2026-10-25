@@ -1,0 +1,6 @@
+{
+  "source": "apps/in_c_sheet/test/adoption_pilot_test.dart",
+  "sourceSha256": "35ecaabc64dcddba9e5ae5a9bea5717c56e860a66884a5d8608676be1c888f88",
+  "adaptation": "Only fixture import path and screenshot destination changed; package app sources unchanged.",
+  "exitCode": 0
+}

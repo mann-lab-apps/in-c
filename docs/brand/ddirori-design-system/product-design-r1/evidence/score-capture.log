@@ -1,0 +1,25 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/product-design-r1/score_capture_test.dart
+00:00 +0: row opens existing viewer and unavailable file guidance
+00:01 +1: actual score palette violet dark=false
+00:01 +2: actual score palette violet dark=true
+00:01 +3: actual score palette blue dark=false
+00:01 +4: actual score palette blue dark=true
+00:01 +5: actual score palette teal dark=false
+00:01 +6: actual score palette teal dark=true
+00:02 +7: actual score palette coral dark=false
+00:02 +8: actual score palette coral dark=true
+00:02 +9: actual score palette yellow dark=false
+00:02 +10: actual score palette yellow dark=true
+00:02 +11: actual score palette lime dark=false
+00:02 +12: actual score palette lime dark=true
+00:03 +13: search sort filter selection and bulk edit preserve stable IDs
+00:03 +14: row actions do not open a score; quick access is explicit
+00:03 +15: bulk pending blocks back and failure preserves draft for retry
+00:04 +16: actual score state empty
+00:04 +17: actual score state loading
+00:04 +18: actual score state error
+00:04 +19: actual score state filtered
+00:04 +20: actual score state large
+00:04 +21: actual score state wide
+00:04 +22: import cancellation preserves data and import failure is recoverable
+00:04 +23: All tests passed!

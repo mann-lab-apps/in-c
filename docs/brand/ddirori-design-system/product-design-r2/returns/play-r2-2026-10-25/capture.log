@@ -1,0 +1,19 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/product_design_r2_test.dart
+00:00 +0: retry reloads all retained movements and starts from first, not browsing plan
+00:01 +1: wide playback controls respect side and bottom safe areas
+00:01 +2: keyboard seek commits once and uses engine time semantics
+00:02 +3: P03 A playing while B browses 320.0/1.0/dark
+00:03 +4: P03 A playing while B browses 320.0/1.0/light
+00:04 +5: P03 A playing while B browses 320.0/2.0/dark
+00:05 +6: P03 A playing while B browses 320.0/2.0/light
+00:06 +7: P03 A playing while B browses 390.0/1.0/dark
+00:07 +8: P03 A playing while B browses 390.0/1.0/light
+00:08 +9: P03 A playing while B browses 390.0/2.0/dark
+00:08 +10: P03 A playing while B browses 390.0/2.0/light
+00:09 +11: P03 A playing while B browses 1024.0/1.0/dark
+00:10 +12: P03 A playing while B browses 1024.0/1.0/light
+00:11 +13: P03 A playing while B browses 1024.0/2.0/dark
+00:11 +14: P03 A playing while B browses 1024.0/2.0/light
+00:12 +15: P02 shared context once, mixed groups and private file details
+00:13 +16: seek command is submitted once while pending, details use actual state
+00:13 +17: All tests passed!

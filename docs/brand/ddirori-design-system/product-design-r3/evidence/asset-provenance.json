@@ -1,0 +1,17 @@
+{
+  "docs/brand/ddirori-design-system/product-design-r3/assets/score-page-1.png": {
+    "source": "docs/brand/ddirori-design-system/product-design-r2/evidence/score-page-1.png",
+    "sha256": "fbdc6427d94b9320181f4dba764c79016699d4815e508cff53b6172003dbdc74",
+    "kind": "Existing R2 Poppler raster of local short-score.pdf; static design content, not current product runtime capture."
+  },
+  "docs/brand/ddirori-design-system/product-design-r3/assets/score-page-2.png": {
+    "source": "docs/brand/ddirori-design-system/product-design-r2/evidence/score-page-2.png",
+    "sha256": "cefa1b74cb90e2c16b8d8478c68a861b2c65c6df81c36dc8fe4787696096a949",
+    "kind": "Existing R2 Poppler raster of local short-score.pdf; static design content, not current product runtime capture."
+  },
+  "docs/brand/ddirori-design-system/product-design-r3/assets/score-page-3.png": {
+    "source": "docs/brand/ddirori-design-system/product-design-r2/evidence/score-page-3.png",
+    "sha256": "8061bcf12ce9b6ce1a6aeaf70699f07214290631894389a5cedf9f1bcbc55e0f",
+    "kind": "Existing R2 Poppler raster of local short-score.pdf; static design content, not current product runtime capture."
+  }
+}

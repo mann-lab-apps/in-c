@@ -798,7 +798,7 @@ const DdiroriPlaybackProgress({
 <a id="DdiroriTransport"></a>
 ## DdiroriTransport
 
-소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 267행.
+소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 288행.
 
 ```dart
 class DdiroriTransport extends StatelessWidget {
@@ -831,7 +831,7 @@ const DdiroriTransport({
 <a id="DdiroriBeatIndicator"></a>
 ## DdiroriBeatIndicator
 
-소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 330행.
+소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 351행.
 
 ```dart
 class DdiroriBeatIndicator extends StatelessWidget {
@@ -851,7 +851,7 @@ const DdiroriBeatIndicator({
 <a id="DdiroriTunerStatus"></a>
 ## DdiroriTunerStatus
 
-소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 380행.
+소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 401행.
 
 ```dart
 enum DdiroriTunerStatus { flat, centered, sharp, noSignal, lowConfidence }
@@ -860,7 +860,7 @@ enum DdiroriTunerStatus { flat, centered, sharp, noSignal, lowConfidence }
 <a id="DdiroriTunerMeter"></a>
 ## DdiroriTunerMeter
 
-소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 382행.
+소스: [packages/ddirori_ui/lib/src/music.dart](../../../../packages/ddirori_ui/lib/src/music.dart) · 조사 당시 403행.
 
 ```dart
 class DdiroriTunerMeter extends StatelessWidget {

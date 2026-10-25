@@ -238,11 +238,13 @@ export function Toolbar({ children, label = '도구' }: {
 소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 109행.
 
 ```tsx
-export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
+export function Item({ title, subtitle, leading, trailing, actions, flat = false, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
     title: string;
     subtitle?: string;
     leading?: ReactNode;
+    trailing?: ReactNode;
     actions?: ReactNode;
+    flat?: boolean;
     selected?: boolean;
     selecting?: boolean;
     disabled?: boolean;
@@ -256,7 +258,9 @@ export function Item({ title, subtitle, leading, actions, selected = false, sele
 | title | string | 예 | — |
 | subtitle | string &#124; undefined | 아니오 | — |
 | leading | ReactNode | 아니오 | — |
+| trailing | ReactNode | 아니오 | — |
 | actions | ReactNode | 아니오 | — |
+| flat | boolean &#124; undefined | 아니오 | false |
 | selected | boolean &#124; undefined | 아니오 | false |
 | selecting | boolean &#124; undefined | 아니오 | false |
 | disabled | boolean &#124; undefined | 아니오 | false |
@@ -266,7 +270,7 @@ export function Item({ title, subtitle, leading, actions, selected = false, sele
 <a id="Banner"></a>
 ## Banner
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 122행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 131행.
 
 ```tsx
 export function Banner({ children, kind = 'info', action }: {
@@ -285,7 +289,7 @@ export function Banner({ children, kind = 'info', action }: {
 <a id="StatePanel"></a>
 ## StatePanel
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 130행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 139행.
 
 ```tsx
 export function StatePanel({ title, message, error = false, bachFace = false, action, diagnostic }: {
@@ -310,7 +314,7 @@ export function StatePanel({ title, message, error = false, bachFace = false, ac
 <a id="Progress"></a>
 ## Progress
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 140행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 149행.
 
 ```tsx
 export function Progress({ value, label = '불러오는 중' }: {
@@ -327,7 +331,7 @@ export function Progress({ value, label = '불러오는 중' }: {
 <a id="SettingsRow"></a>
 ## SettingsRow
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 144행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 153행.
 
 ```tsx
 export function SettingsRow({ label, description, children }: {
@@ -346,7 +350,7 @@ export function SettingsRow({ label, description, children }: {
 <a id="Dialog"></a>
 ## Dialog
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 149행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 158행.
 
 ```tsx
 export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {
@@ -373,7 +377,7 @@ export function Dialog({ open, title, children, onClose, actions, sheet = false,
 <a id="NumberControl"></a>
 ## NumberControl
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 176행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 185행.
 
 ```tsx
 export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {
@@ -402,7 +406,7 @@ export function NumberControl({ label, value, onChange, min, max, step = 1, unit
 <a id="PageControls"></a>
 ## PageControls
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 212행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 221행.
 
 ```tsx
 export function PageControls({ page, count, onChange, performance = false }: {
@@ -423,7 +427,7 @@ export function PageControls({ page, count, onChange, performance = false }: {
 <a id="Transport"></a>
 ## Transport
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 218행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 227행.
 
 ```tsx
 export function Transport({ playing, onToggle, position = 0, duration, onSeek, onPrevious, onNext }: {
@@ -450,7 +454,7 @@ export function Transport({ playing, onToggle, position = 0, duration, onSeek, o
 <a id="TunerStatus"></a>
 ## TunerStatus
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 227행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 236행.
 
 ```tsx
 export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfidence';
@@ -459,7 +463,7 @@ export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfi
 <a id="TunerMeter"></a>
 ## TunerMeter
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 228행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 237행.
 
 ```tsx
 export function TunerMeter({ status, cents, note = 'A4' }: {
@@ -478,7 +482,7 @@ export function TunerMeter({ status, cents, note = 'A4' }: {
 <a id="BeatIndicator"></a>
 ## BeatIndicator
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 236행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 245행.
 
 ```tsx
 export function BeatIndicator({ beats, currentBeat, running }: {
@@ -497,7 +501,7 @@ export function BeatIndicator({ beats, currentBeat, running }: {
 <a id="ServiceAvailability"></a>
 ## ServiceAvailability
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 244행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 253행.
 
 ```tsx
 export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';
@@ -506,7 +510,7 @@ export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavai
 <a id="ServiceLink"></a>
 ## ServiceLink
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 246행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 255행.
 
 ```tsx
 export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void})

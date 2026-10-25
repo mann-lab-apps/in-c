@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/integration_test/large_library_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.8s
+00:00 +0: 5000-track native SQLite startup, search, scroll and queue
+{"evidence":"largeLibraryDebugIntegration","tracks":5000,"timingsMicros":{"sqliteLoadMicros":74872,"widgetStartupMicros":2528810,"searchIncludingDebounceMicros":1514201,"detailScrollMicros":1075537,"queueActionMicros":397540},"rssBeforeBytes":602619904,"rssAfterBytes":748355584,"processMaxRssBytes":949174272,"physicalDevicePerformanceVerified":false}
+00:08 +1: (tearDownAll)
+00:09 +1: All tests passed!

@@ -134,6 +134,11 @@
 .ddirori .dd-list{list-style:none;margin:0;padding:0}.ddirori .dd-list>li+li{border-top:1px solid var(--dd-border)}
 .ddirori .dd-list .dd-item{border:0;border-radius:0;padding:var(--dd-layout-row-padding)}
 .ddirori .dd-list .dd-item.is-selected{background:var(--dd-selection)}
+.ddirori .dd-item--flat,.ddirori .dd-item--flat.is-selected{border:0;border-radius:0;padding:var(--dd-layout-row-padding)}
+.ddirori .dd-item--flat[aria-disabled="true"]{opacity:.56}
+.ddirori .dd-item--with-trailing .dd-item-main{flex-wrap:wrap}
+.ddirori .dd-item--with-trailing .dd-item-content{flex:1 1 10rem;overflow-wrap:anywhere}
+.ddirori .dd-item-main>.dd-item-trailing{flex:0 1 auto;max-width:100%;margin-inline-start:auto;display:flex;flex-wrap:wrap;align-items:center;gap:var(--dd-spacing-sm);overflow-wrap:anywhere}
 .ddirori .dd-card{border:1px solid var(--dd-border);border-radius:var(--dd-radius-card);padding:var(--dd-spacing-lg);background:var(--dd-surface)}
 .ddirori .dd-accordion{border-bottom:1px solid var(--dd-border)}.ddirori .dd-accordion>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--dd-spacing-md);text-align:start;font:inherit;color:var(--dd-text);background:transparent;border:0;padding:var(--dd-spacing-md) 0;min-height:var(--dd-control);cursor:pointer}
 .ddirori .dd-accordion>div{padding:0 0 var(--dd-spacing-lg)}

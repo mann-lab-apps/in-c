@@ -1,0 +1,27 @@
+Studio Electron shared panel and single undo passed {
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 255,
+  overflow: false
+}
+R1 dock/theme/text/save/native/XML matrix passed
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'm1-c4'
+- 'm4-f-natural-2'
+
+    at verifyR2 (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:353:10)
+    at async /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs:62:13 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'm1-c4',
+  expected: 'm4-f-natural-2',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

@@ -1,0 +1,18 @@
+{
+  "scope": "Actual App PDF export scene; isolated file bridge, no OS dialog",
+  "renderer": "pdftoppm -png -scale-to 1200 -singlefile",
+  "pdfs": [
+    {
+      "file": "artifacts/renderer/r2-export-before.pdf",
+      "sha256": "e339a12fd736e1713fcba36927c0d78554d20f7f75d6f378cbdd25dbcf15d5a4",
+      "pdfinfo": "Title:           in-C\nCreator:         Chromium\nProducer:        Skia/PDF m148\nCreationDate:    Sun Oct 25 22:18:53 2026 KST\nModDate:         Sun Oct 25 22:18:53 2026 KST\nCustom Metadata: no\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           1\nEncrypted:       no\nPage size:       594.96 x 841.92 pts (A4)\nPage rot:        0\nFile size:       81963 bytes\nOptimized:       no\nPDF version:     1.4\n"
+    },
+    {
+      "file": "artifacts/renderer/r2-export-after.pdf",
+      "sha256": "6998a8b7fd58363c5156637de87b7cdd181c6bf9cef727db7bc22cfb4e739af0",
+      "pdfinfo": "Title:           in-C\nCreator:         Chromium\nProducer:        Skia/PDF m148\nCreationDate:    Sun Oct 25 22:18:55 2026 KST\nModDate:         Sun Oct 25 22:18:55 2026 KST\nCustom Metadata: no\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           1\nEncrypted:       no\nPage size:       594.96 x 841.92 pts (A4)\nPage rot:        0\nFile size:       81963 bytes\nOptimized:       no\nPDF version:     1.4\n"
+    }
+  ],
+  "rasterSha256": "54205aa0c952ac3b4a2cf84fcffe1743c5fa0a783280fea27581dafd22a7a3b4",
+  "rasterIdentical": true
+}

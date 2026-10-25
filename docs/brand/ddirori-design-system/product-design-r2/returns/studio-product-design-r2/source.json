@@ -1,0 +1,46 @@
+{
+  "head": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "implementation": "uncommitted",
+  "files": [
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "2b25c5021fb6cd93260898bbec6eb226ea0133b06df5be797291ffb5650e8cce"
+    },
+    {
+      "path": "src/renderer/src/App.test.tsx",
+      "sha256": "59bef0594daee85abc24b78873fecb377ea4f2871e81e6107dbd01e593d9b329"
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.tsx",
+      "sha256": "1ec0311985d81350b95b5ba657b7db79a5d5fde39f852e05c16b5abebe4f988c"
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.test.tsx",
+      "sha256": "fd3a326c2f8da8515a950ac2ff57a01562604bdedd6860028a21df0a351eabe4"
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.ts",
+      "sha256": "cd8ea5fe4094e7e8f906312ef6bf71ce72567d4c814287a38005abc5be94aeda"
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.test.ts",
+      "sha256": "5e07980f477a8224d3c03d5e022298c65e5cd9d4558128b78a6962364b99687f"
+    },
+    {
+      "path": "src/renderer/src/notation/NotationPreview.tsx",
+      "sha256": "0f2a40c977fea0f68e753c969e10d1944b71038f256f31d3958bc9efa5921f02"
+    },
+    {
+      "path": "src/renderer/src/studio-r2.css",
+      "sha256": "19655fb675080802a65b06b555a9f8daaac5fe09c5e5eea5fe929df27bff5b23"
+    },
+    {
+      "path": "scripts/verify-ddirori-studio.cjs",
+      "sha256": "bda1167f32a7b1ba2711c3c4c3954cdd0fc013e5c85a1124d629cc32ecd557ac"
+    },
+    {
+      "path": "scripts/verify-studio-input-events.cjs",
+      "sha256": "3be9a83edbc444a056def4a90abeddf4d675561b497e9e59ce3bdb82838a4672"
+    }
+  ]
+}

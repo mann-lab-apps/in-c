@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/product-design-r2/score_capture_test.dart
+00:00 +0: R1 row secondary actions never open at 320.0
+00:01 +1: R1 row secondary actions never open at 600.0
+00:01 +2: R1 row secondary actions never open at 840.0
+00:01 +3: R1 viewer title and Back stay above scrollable tools 320.0
+00:01 +4: R1 viewer title and Back stay above scrollable tools 840.0
+00:02 +5: bulk edits publish only after successful persistence
+00:02 +6: R1 profile switching and import cancel or failure keep the library usable
+00:03 +7: R1 library identity precedes search and hidden selection stays explicit
+00:03 +8: R1 layout 320.0 text=1.0 dark=false
+00:03 +9: R1 layout 320.0 text=1.0 dark=true
+00:04 +10: R1 layout 320.0 text=2.0 dark=false
+00:04 +11: R1 layout 320.0 text=2.0 dark=true
+00:04 +12: R1 layout 390.0 text=1.0 dark=false
+00:04 +13: R1 layout 390.0 text=1.0 dark=true
+00:04 +14: R1 layout 390.0 text=2.0 dark=false
+00:04 +15: R1 layout 390.0 text=2.0 dark=true
+00:04 +16: R1 layout 840.0 text=1.0 dark=false
+00:05 +17: R1 layout 840.0 text=1.0 dark=true
+00:05 +18: R1 layout 840.0 text=2.0 dark=false
+00:05 +19: R1 layout 840.0 text=2.0 dark=true
+00:05 +20: R1 pending failure retry success 320.0
+00:05 +21: R1 pending failure retry success 390.0
+00:06 +22: R1 pending failure retry success 840.0
+00:06 +23: R1 state empty
+00:06 +24: R1 state search-empty
+00:06 +25: R1 state loading
+00:06 +26: R1 state error
+00:06 +27: R1 state disabled
+00:06 +28: All tests passed!

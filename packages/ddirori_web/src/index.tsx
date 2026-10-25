@@ -106,18 +106,27 @@ export function Toolbar({ children, label = '도구' }: {
     children: ReactNode;
     label?: string;
 }) { return <div className="dd-toolbar" role="group" aria-label={label}>{children}</div>; }
-export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
+export function Item({ title, subtitle, leading, trailing, actions, flat = false, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
     title: string;
     subtitle?: string;
     leading?: ReactNode;
+    trailing?: ReactNode;
     actions?: ReactNode;
+    flat?: boolean;
     selected?: boolean;
     selecting?: boolean;
     disabled?: boolean;
     onSelected?: (v: boolean) => void;
     onOpen?: () => void;
 }) {
-    return <article aria-disabled={disabled || undefined} className={`dd-item ${selected ? 'is-selected' : ''}`}><div className="dd-item-main">{selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} disabled={disabled} onChange={e => onSelected?.(e.target.checked)}/> : leading ? <span inert={disabled}>{leading}</span> : null}<div>{onOpen && !disabled ? <button type="button" className="dd-item-title dd-text--item-title" onClick={onOpen}>{title}</button> : <Text as="strong" variant="itemTitle">{title}</Text>}{subtitle ? <p>{subtitle}</p> : null}</div></div>{actions ? <div className="dd-item-actions" inert={disabled}>{actions}</div> : null}</article>;
+    return <article aria-disabled={disabled || undefined} className={`dd-item ${flat ? 'dd-item--flat' : ''} ${trailing ? 'dd-item--with-trailing' : ''} ${selected ? 'is-selected' : ''}`}>
+        <div className="dd-item-main">
+            {selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} disabled={disabled} onChange={e => onSelected?.(e.target.checked)}/> : leading ? <span inert={disabled}>{leading}</span> : null}
+            <div className="dd-item-content">{onOpen && !disabled ? <button type="button" className="dd-item-title dd-text--item-title" onClick={onOpen}>{title}</button> : <Text as="strong" variant="itemTitle">{title}</Text>}{subtitle ? <p>{subtitle}</p> : null}</div>
+            {trailing ? <div className="dd-item-trailing" inert={disabled}>{trailing}</div> : null}
+        </div>
+        {actions ? <div className="dd-item-actions" inert={disabled}>{actions}</div> : null}
+    </article>;
 }
 export function Banner({ children, kind = 'info', action }: {
     children: ReactNode;

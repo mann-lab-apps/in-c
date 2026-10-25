@@ -1,0 +1,8 @@
+/* Scoped, service-owned styles. Shared component internals stay untouched. */
+.ddirori .theme-excerpt { border-block-end: var(--dd-control-border-width) solid var(--dd-border); }
+.ddirori .theme-properties { display: grid; gap: var(--dd-spacing-lg); padding: var(--dd-layout-row-padding); border: var(--dd-control-border-width) solid var(--dd-border); border-radius: var(--dd-radius-card); background: var(--dd-surface); }
+.ddirori .theme-properties > .dd-text { margin: 0; }
+.ddirori .theme-muted { color: var(--dd-muted); }
+.ddirori .theme-field-group { display: grid; gap: var(--dd-layout-label-gap); min-width: 0; }
+.ddirori .theme-field-group > .dd-text { margin: 0; }
+.ddirori .theme-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--dd-spacing-sm); }

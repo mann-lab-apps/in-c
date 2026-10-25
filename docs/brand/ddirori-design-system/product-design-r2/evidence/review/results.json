@@ -1,0 +1,116 @@
+{
+  "at": "2026-10-25T12:34:25.463Z",
+  "browser": "156.0.8078.47",
+  "matrix": [
+    {
+      "app": "Play",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "app": "Play",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "app": "Play",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "app": "Play",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "app": "Play",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "app": "Play",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "app": "Score",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "app": "Score",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "app": "Score",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "app": "Score",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "app": "Score",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "app": "Score",
+      "theme": "어두운 화면",
+      "width": 1440
+    },
+    {
+      "app": "Studio",
+      "theme": "밝은 화면",
+      "width": 320
+    },
+    {
+      "app": "Studio",
+      "theme": "밝은 화면",
+      "width": 840
+    },
+    {
+      "app": "Studio",
+      "theme": "밝은 화면",
+      "width": 1440
+    },
+    {
+      "app": "Studio",
+      "theme": "어두운 화면",
+      "width": 320
+    },
+    {
+      "app": "Studio",
+      "theme": "어두운 화면",
+      "width": 840
+    },
+    {
+      "app": "Studio",
+      "theme": "어두운 화면",
+      "width": 1440
+    }
+  ],
+  "checks": [
+    "search/no results/reset with playback retained",
+    "browse/current recording separation",
+    "queue state retention",
+    "seek draft commit",
+    "palette retains state",
+    "actual PDF raster page switching",
+    "annotation/practice/performance controls",
+    "dialog focus restore",
+    "Studio 0/undefined/invalid/Escape/synthetic IME/undo",
+    "fake save failure/retry",
+    "dock focus return",
+    "actual capture image loading",
+    "18 layout combinations",
+    "18 state stress combinations",
+    "reduced motion",
+    "CSS zoom stress"
+  ],
+  "errors": [],
+  "limits": "Proposal only; no engine/native device claims. Actual evidence has separate source hashes and logs."
+}

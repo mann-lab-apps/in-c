@@ -1,0 +1,8 @@
+{
+  "localLinks": 48,
+  "missing": [],
+  "httpResponses": {
+    "http://127.0.0.1:8095/docs/brand/ddirori-design-system/product-design-r2/preview/catalog/product-r2.html": 200,
+    "http://127.0.0.1:8095/docs/brand/ddirori-design-system/product-design-r1/preview/index.html?products": 200
+  }
+}

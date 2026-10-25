@@ -1,0 +1,39 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r2 stores
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+ ❯ src/renderer/src/App.test.tsx (137 tests | 1 failed | 136 skipped) 829ms
+     × studio.r2 stores fit/fixed view independently of score history and exported XML 828ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r2 stores fit/fixed view independently of score history and exported XML
+TypeError: el.showPopover is not a function
+ ❯ packages/ddirori_web/src/basic.tsx:325:8
+    323|       if ((event as ToggleEvent).newState === "closed") setOpen(false);
+    324|     };
+    325|     el.showPopover();
+       |        ^
+    326|     position();
+    327|     el.addEventListener("toggle", dismiss);
+ ❯ Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25989:20
+ ❯ runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+ ❯ commitHookEffectListMount node_modules/react-dom/cjs/react-dom-client.development.js:13249:29
+ ❯ commitHookPassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:13336:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15484:13
+ ❯ recursivelyTraversePassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:15439:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15718:11
+ ❯ recursivelyTraversePassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:15439:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15718:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 136 skipped (137)
+   Start at  21:52:42
+   Duration  1.79s (transform 646ms, setup 0ms, import 473ms, tests 829ms, environment 337ms)
+
