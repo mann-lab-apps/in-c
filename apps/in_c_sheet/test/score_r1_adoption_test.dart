@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/presentation/score_library_components.dart';
+import 'package:in_c_sheet/presentation/score_viewer_components.dart';
 
 import 'adoption_pilot_test.dart' as pilot;
 import 'brand_pilot_test.dart' show FailedStore;
@@ -151,18 +152,21 @@ void main() {
         }
         await t.pumpAndSettle();
         expect(find.text('PDF 파일을 찾지 못했습니다.'), findsOneWidget);
-        final toolbar = find.descendant(
-          of: find.byType(AppBar),
-          matching: find.byType(SingleChildScrollView),
-        );
+        final toolbar = find.byType(ScoreViewerChrome);
         final back = find.byTooltip('뒤로');
         final backPosition = t.getTopLeft(back);
         expect(
           t.getTopLeft(find.text('평균율 연습곡')).dy,
           lessThan(t.getTopLeft(toolbar).dy),
         );
-        await t.drag(toolbar, const Offset(-1500, 0));
-        await t.pumpAndSettle();
+        final scrolling = find.descendant(
+          of: toolbar,
+          matching: find.byType(SingleChildScrollView),
+        );
+        if (scrolling.evaluate().isNotEmpty) {
+          await t.drag(scrolling.first, const Offset(-1500, 0));
+          await t.pumpAndSettle();
+        }
         expect(t.getTopLeft(back), backPosition);
         expect(t.takeException(), isNull);
         await capture(

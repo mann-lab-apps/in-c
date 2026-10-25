@@ -60,8 +60,11 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        악보함의 제목과 라이브러리 전환을 간결하게 정리해 검색과 목록에 더 빨리 접근할 수 있습니다.
+        악보 보기에서 읽기·주석 입력 모드, 연습 도구와 공연 제한을 구분했습니다. 주석 도구의 색·굵기·스탬프·텍스트는 옵션 창에서 선택하며, 도구를 숨겨도 페이지 이동과 복원 버튼을 사용할 수 있습니다.
+        주석 저장 중 중복 입력을 방지하고 실패한 변경은 다시 저장할 수 있습니다. 저장에 성공한 뒤에만 주석 모델을 갱신하며, 이전 문서의 늦은 페이지 응답을 무시합니다.
         악보함을 라이브러리·검색·정렬/필터·접힌 빠른 접근 순서로 정리했습니다. 선택한 악보가 필터 밖에 있어도 개수를 표시하며, 일괄 편집은 저장에 성공한 뒤에만 원본에 반영합니다.
-        큰 글씨에서 일괄 편집 선택 항목이 줄바꿈되며, 좁은 뷰어에서는 제목·뒤로 가기와 스크롤 도구 줄을 분리했습니다.
+        큰 글씨에서 일괄 편집 선택 항목이 줄바꿈되며, 뷰어에서는 제목·뒤로 가기와 읽기·주석·연습 도구를 분리했습니다.
         악보함 검색·정렬·필터와 선택 목록을 공통 컴포넌트로 정리했습니다. 큰 글씨에서 제목이 줄바꿈되며, 일괄 편집 실패 시 입력을 유지하고 재시도할 수 있습니다.
         앱 표시명을 띠로리 스코어로 정리하고 공통 테마와 새 아이콘을 적용했습니다.
         악보함 검색, 빈 화면, 불러오기와 오류 안내를 공통 디자인으로 정리했습니다.
@@ -98,7 +101,9 @@ review:
     The active library precedes search. Quick access and category browsing are collapsed initially.
     Select scores, change filters, then open the bottom bulk-edit action; hidden selected scores remain included.
     Cancel returns focus to the action. Save failure retains the draft and original data; retry publishes changes only after persistence succeeds.
-    The narrow viewer keeps its title and Back button above the scrolling tool row; PDF and annotation commands are unchanged.
+    The viewer separates reading/annotation input, the practice launcher, and performance restrictions. Annotation options retain all existing tools and palettes in a sheet; the page footer and Restore Tools remain reachable when chrome is hidden.
+    Open an owned PDF, select Annotation, open pen options, draw, undo/redo, open and cancel Practice, enter/exit Performance, then hide and restore tools. Existing PDF coordinates, crop and page mapping are preserved.
+    While an annotation write is pending, Back and duplicate drawing are blocked. Failed writes retain the published layer and expose Retry; a successful retry updates the layer. Older document callbacks must not change a replacement document.
     Existing version/build fields describe the earlier candidate; reconcile with the exact product checkpoint before pinning.
     Verify these instructions against the exact iOS release build before marking them reviewed.
 
@@ -124,8 +129,10 @@ testflight:
   build_id:
   description: 띠로리 스코어(이전 Clef & Staff)의 PDF 악보 가져오기, 라이브러리 정리, 악보 보기와 주석, 세트리스트를 테스트합니다.
   test_notes: |-
+    R2 확인: 실제 PDF 열기 → 주석 → 펜 옵션 → 필기/undo/redo → 연습 도구 열기/닫기 → 공연 진입/종료 → 도구 숨김/복원 → 페이지 이동. 도구 옵션은 기존 색·굵기·스탬프·텍스트를 유지합니다. 3쪽 PDF와 긴 스캔형 PDF, 가로화면/200% 글자에서 확인해 주세요.
+    주석 저장 중 중복 입력/Back 차단, 실패 안내/다시 저장과 원본 PDF 보존을 확인해 주세요. 자동 PDFium 위젯 검증은 실제 iOS 기기·펜·페달·VoiceOver 또는 스토어 촬영 검수가 아닙니다.
     R1 확인: 라이브러리 전환 → 검색 → 정렬/필터 → 접힌 빠른 접근 순서를 확인해 주세요. 선택 후 필터를 바꾸면 필터 밖 선택 개수와 하단 일괄 편집 버튼이 유지됩니다. 저장 중 Back·중복 적용 차단, 실패 시 원본/입력/선택 보존, 취소/성공 후 포커스 복귀를 확인해 주세요.
-    320/390/840px 및 200% 글자의 자동 위젯 검사는 실기기 검수와 구분합니다. 뷰어는 제목/뒤로 가기가 고정되고 도구 줄만 가로 스크롤되는지 확인해 주세요.
+    320/390/840px 및 200% 글자의 자동 위젯 검사는 실기기 검수와 구분합니다. 뷰어는 제목/뒤로 가기와 작업 도구가 분리되고, 낮은 가로화면/큰 글자에서 작업 도구가 가로 스크롤되는지 확인해 주세요.
     악보함: 정렬·즐겨찾기는 바로 사용하고 태그/컬렉션/그룹/별점은 필터 버튼으로 진입합니다. 빠른 접근은 펼쳐 사용합니다. 선택 모드에서 제목/checkbox로 선택하고 일괄 편집의 취소·실패·재시도와 처리 중 닫기 차단을 확인해 주세요.
     새 이름과 아이콘, 악보함의 중립 바탕과 임시 강조색·검색·빈 화면·로딩·오류 표시를 확인해 주세요.
     iPhone/iPad와 큰 글씨·다크 모드에서 제목과 카드가 잘리지 않는지 확인해 주세요.
@@ -164,7 +171,7 @@ screenshots:
     route: 현재 라이브러리 → 검색 → 정렬/즐겨찾기/필터 → 기본 목록 (분류별 찾기와 빠른 접근 접힘, 선택 모드 해제)
     fixture: 자가 제작 악보 3개 이상, 컬렉션과 즐겨찾기 포함
     must_show:
-    - 검색 위의 현재 라이브러리와 전환 버튼, 접힌 분류별 찾기 (분류가 있을 때)
+    - 검색 위의 간결한 현재 라이브러리 전환 버튼과 곡 수, 접힌 분류별 찾기 (분류가 있을 때)
     - 띠로리 스코어 제품명과 제품 심벌, 흰색/무채색 바탕과 임시 강조색
     - 공통 검색, 정렬·즐겨찾기·필터 진입, 기본 라이브러리와 곡 수
     - 기본 접힘 상태의 빠른 접근과 평면 목록, 넓은 화면의 2열 구성
@@ -289,12 +296,13 @@ screenshots:
       value: ErrorWidget
       present: false
   - id: annotation
-    purpose: 오디오 패널과 엔진 점검 안내 없이 실제 PDF 렌더러에서 저장된 형광펜/펜 필기를 표시 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
-    route: 라이브러리 → 자가 제작 악보 열기 → 미리 저장한 주석 표시 (연결 오디오 패널은 닫힌 상태)
+    purpose: 실제 PDF 렌더러의 저장된 주석과 R2 입력 모드/현재 도구/옵션/페이지 footer를 표시. 실기기 품질 검증 장면이 아님.
+    route: 라이브러리 → 자가 제작 악보 열기 → 주석 모드 → 미리 저장한 주석 표시 (옵션/연습 패널 닫힘)
     fixture: 직접 만든 악보와 짧은 연습 표시. 오디오 품질 증거용 장면이 아님
     must_show:
     - 읽을 수 있는 악보와 adapter가 실제로 저장한 형광펜·펜 주석
-    - 좁은 화면에서 고정된 제목·뒤로 가기와 별도 가로 스크롤 도구 줄
+    - 제목·뒤로 가기, 읽기/주석 입력 모드와 별도 연습/공연 진입
+    - 현재 펜 옵션과 undo/redo, 지면을 가리지 않는 하단 페이지 이동
     - 연결 오디오 패널이 가리지 않는 PDF
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
@@ -311,11 +319,23 @@ screenshots:
       value: Prelude
     - action: wait
       milliseconds: 5000
+    - action: tap
+      by: text
+      value: 주석
     - action: wait
       milliseconds: 400
     assertions:
     - by: widget_type
       value: PdfViewer
+      present: true
+    - by: widget_type
+      value: ScoreAnnotationSummary
+      present: true
+    - by: text
+      value: 연습
+      present: true
+    - by: tooltip
+      value: 다음 페이지
       present: true
     - by: text
       value: A-B 반복
@@ -392,6 +412,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-25 R2: 입력 모드/연습/공연, 주석 옵션 sheet와 저장 중·재시도, 도구 복원 및 하단 페이지 이동을 재검수해야 한다. product-design-r2/returns/score-r2-20261025의 실제 PDFium 위젯 검증과 물리 기기/VoiceOver/IME 검수는 구분한다.
       2026-10-25 R1 악보함/선택/일괄 편집과 좁은 뷰어 배치 변경. product-design-r1/returns/score-20261025의 위젯 캡처·자동 회귀와 실제 VoiceOver/IME/기기 검수를 구분한다. 새 후보 빌드 검수는 pending.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 시범 적용 후 이름·제품 심벌·검색·빈 화면·로딩·오류 안내, 밝은/어두운 화면과 큰 글씨를 재확인해야 함. Flutter 위젯 렌더링은 별도 브랜드 evidence이며 스토어 촬영·실기기 VoiceOver 증거가 아님. 재생 명령 대기 중 비활성 컨트롤과 엔진 확인 사용
@@ -412,6 +433,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-25 R2 실제 PDF 엔진 위젯 검증 대상: 3쪽/90쪽 PDF, 주석 좌표·저장·undo/redo·원본 보존, 도구 숨김/복원과 공연 정책. iOS 후보 빌드, 실제 터치/펜/페달/오디오, VoiceOver와 스토어 촬영은 pending. 이전 R1의 미실행 PDF 성공 경로 기록을 소급 수정하지 않는다.
       2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 적용 후 실제 후보 빌드의 이름·아이콘·기존 가져오기/검색/필기 동선을 재검증해야 함. 1.0.3+30 소스의 Android 에뮬레이터/iOS 시뮬레이터 native 오디오 통합 테스트 각 2개와 일반 앱 실행 확인. 무음 fixture이며 실기기 청감·출력 경로는 미확인.

@@ -1,0 +1,65 @@
+service: score
+implementation_commit: uncommitted
+baseline_product_commit: 827ad18203e673b1e923d00cbcf0fd7f3af755d7
+design_revision: product-design-r2
+design_manifest_sha256: af56b0a3ca6e25b9928835645562f5056cfa16553f2881bdb9750df37636f416
+status: implemented-awaiting-review
+backlog:
+  S01: implemented
+  S02: preserved-r1-contract
+  S03: implemented
+screens:
+  directory: screens
+  kind: actual-InCSheetApp-pdfrx-PDFium-native-engine-widget-renderer
+  fixtures:
+    - test-fixtures/pdfs/short-score.pdf
+    - test-fixtures/pdfs/long-scan-like-score.pdf
+  viewport_widths: [390, 840]
+  viewport_heights: [390, 1000]
+  dpr: 1
+  text_scale: [1, 2]
+  themes: [light, dark]
+  actual_pdf_ink_gate: true
+tests:
+  - command: python3 docs/brand/ddirori-design-system/product-design-r2/revision.py
+    result: pass-at-start
+    note: 590 reference hashes matched before product edits; manifest was not regenerated.
+  - command: flutter test test/score_r2_viewer_test.dart
+    result: pass
+    count: 8
+    coverage: native PDFium 3/90-page PDF, source ownership, annotation retry, responsive modes
+  - command: dart format lib test tool
+    result: pass
+  - command: flutter analyze
+    result: pass
+    note: no issues
+  - command: flutter test
+    result: pass
+    count: 544
+  - command: dart run tool/rc_release_check.dart
+    result: pass
+  - command: bundle exec fastlane prepare_ios_metadata manifest:apps/clef/ios-metadata.yaml mode:check
+    cwd: deployment
+    result: pass
+source_hashes:
+  apps/in_c_sheet/lib/main.dart: 1635ecfb8304e85f8f9f05b070364e868b9de73ddb79baac6ce2333bb6883f8b
+  apps/in_c_sheet/lib/sheet_library_controller.dart: 8711a535fd6562ac4c00c3a17e1af440ab747c1fc55ae0e66cac44d1250e38d6
+  apps/in_c_sheet/lib/presentation/score_viewer_components.dart: d364b04f266ddfbedd2a01ab26d2f3e084c9dbf2c3d89a7cffc5f4d60cae9f46
+  apps/in_c_sheet/test/score_r2_viewer_test.dart: 76a8745f605603d3aaa5d8c34e6df913bb1a32f1503454499f2a8ba0b4fede42
+  apps/in_c_sheet/test/score_annotation_save_contract_test.dart: b8763bc5a8e46e3880ddf01df7ab4f1097f2bffd1804a3fa9eeb0ab837d53ebd
+  deployment/apps/clef/ios-metadata.yaml: 0a3ceec60482a1b91eb582bb8e4f8d0077ea313953890cd1b65a6de6536b8c1b
+post_implementation_revision_check:
+  result: expected-difference
+  note: Historical R2 manifest was not regenerated. Its check reports the intended Score product changes alongside preserved concurrent Play/Studio changes.
+preserved:
+  - PDF coordinates, crop, source page mapping, display mode, zoom and original files
+  - annotation geometry, undo/redo, layer/stamp/text options and persistence semantics
+  - performance menu/annotation/link policies and allowed quick actions
+  - library selection, async save/retry and navigation state
+shared_api_changes: []
+shared_proposals: []
+manual_pending:
+  - physical iPhone/iPad PDF rendering and safe area
+  - VoiceOver, Korean IME, Apple Pencil/S Pen and keyboard/pedal hardware
+  - actual audio/microphone/output routes and long-session memory behavior
+  - Files/iCloud provider recovery, store capture, signing and release

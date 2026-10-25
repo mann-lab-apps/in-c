@@ -31,6 +31,7 @@ import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
+import 'presentation/score_viewer_components.dart';
 import 'sheet_setlist.dart';
 import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
@@ -1225,9 +1226,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                             const DdiroriProductSignature(
                               product: DdiroriProduct.score,
                               name: '띠로리 스코어',
-                              subtitle: '연습부터 공연까지, 내 악보함',
                             ),
-                            SizedBox(height: DdiroriTokens.layout['itemGap']),
+                            SizedBox(height: DdiroriTokens.spacing['sm']),
                             Focus(
                               focusNode: _libraryHeadingFocus,
                               child: _LibraryProfileBar(
@@ -1238,7 +1238,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                                 onPressed: _showLibrarySwitcher,
                               ),
                             ),
-                            SizedBox(height: DdiroriTokens.spacing['xl']),
+                            SizedBox(height: DdiroriTokens.spacing['sm']),
                             _SearchField(
                               query: controller.query,
                               onChanged: controller.updateQuery,
@@ -1418,21 +1418,22 @@ class _LibraryProfileBar extends StatelessWidget {
     final subtitle = visibleCount == totalCount
         ? '$totalCount곡'
         : '$visibleCount곡 표시 · 전체 $totalCount곡';
-    return DdiroriItem(
-      flat: true,
-      leading: Icon(
-        title == SheetLibraryProfile.defaultName
-            ? Icons.library_music_outlined
-            : Icons.collections_bookmark,
-      ),
-      title: title,
-      subtitle: subtitle,
-      trailing: DdiroriIconButton(
-        label: '라이브러리 전환',
-        icon: Icons.expand_more,
-        onPressed: onPressed,
-      ),
-      onTap: onPressed,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: DdiroriTokens.spacing['sm']!,
+      runSpacing: DdiroriTokens.spacing['sm']!,
+      children: [
+        Tooltip(
+          message: '라이브러리 전환',
+          child: DdiroriButton(
+            label: title,
+            icon: Icons.expand_more,
+            kind: DdiroriButtonKind.quiet,
+            onPressed: onPressed,
+          ),
+        ),
+        Text(subtitle, style: ddiroriTextStyle(DdiroriTextRole.description)),
+      ],
     );
   }
 }
@@ -4453,6 +4454,18 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
       const <SheetAnnotationPoint>[];
   bool _didResolveResponsiveDisplayMode = false;
   bool _showPageControls = true;
+  bool _viewerChromeVisible = true;
+  bool _annotationSaving = false;
+  Future<bool> Function()? _retryAnnotationWrite;
+  String? _activePdfSource;
+  String? _readyPdfSource;
+  String? _viewerBuildIdentity;
+  int _viewerDocumentEpoch = 0;
+  final _viewerToolsFocus = FocusNode(debugLabel: 'Score viewer tools');
+  final _annotationOptionsFocus = FocusNode(
+    debugLabel: 'Score annotation options',
+  );
+  final _restoreToolsFocus = FocusNode(debugLabel: 'Score restore tools');
   Timer? _pageControlsTimer;
   Timer? _autoScrollTimer;
   Timer? _autoScrollCueTimer;
@@ -4463,6 +4476,12 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   Future<SheetViewerFileStatus>? _viewerFileStatusFuture;
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
+
+  bool get _documentReady =>
+      _pdfController.isReady &&
+      _viewerFileStatusPath == score.filePath &&
+      _activePdfSource != null &&
+      _readyPdfSource == _activePdfSource;
 
   SheetViewerSettings get _effectiveViewerSettings {
     return widget.controller.viewerSettingsForScore(
@@ -4678,6 +4697,9 @@ setlist=$setlistLabel
     }
     _pdfController.removeListener(_handleViewerChanged);
     _keyboardFocusNode.dispose();
+    _viewerToolsFocus.dispose();
+    _annotationOptionsFocus.dispose();
+    _restoreToolsFocus.dispose();
     super.dispose();
   }
 
@@ -4710,6 +4732,13 @@ setlist=$setlistLabel
 
   Future<SheetViewerFileStatus> _viewerFileStatusFor(String path) {
     if (_viewerFileStatusPath != path || _viewerFileStatusFuture == null) {
+      _activePdfSource = null;
+      _readyPdfSource = null;
+      _viewerBuildIdentity = null;
+      _draftAnnotationPageNumber = null;
+      _draftAnnotationPoints = const [];
+      _annotationSaving = false;
+      _retryAnnotationWrite = null;
       _viewerFileStatusPath = path;
       _viewerFileStatusFuture = SheetViewerFileStatus.inspect(path);
     }
@@ -4717,7 +4746,7 @@ setlist=$setlistLabel
   }
 
   void _handleViewerChanged() {
-    if (!_pdfController.isReady || !mounted) {
+    if (!_documentReady || !mounted) {
       return;
     }
 
@@ -4764,7 +4793,10 @@ setlist=$setlistLabel
     }
   }
 
-  Future<void> _loadPdfOutlineBookmarks(PdfDocument document) async {
+  Future<void> _loadPdfOutlineBookmarks(
+    PdfDocument document,
+    String source,
+  ) async {
     if (_didLoadPdfOutline) {
       return;
     }
@@ -4790,13 +4822,13 @@ setlist=$setlistLabel
       }
 
       visit(outline);
-      if (mounted) {
+      if (mounted && _activePdfSource == source) {
         setState(() {
           _pdfOutlineBookmarks = List<SheetBookmark>.unmodifiable(bookmarks);
         });
       }
     } catch (_) {
-      if (mounted) {
+      if (mounted && _activePdfSource == source) {
         setState(() {
           _pdfOutlineBookmarks = const <SheetBookmark>[];
         });
@@ -4997,11 +5029,13 @@ setlist=$setlistLabel
     if (delta == 0) {
       return false;
     }
-    final pageCount = _pageCount;
+    final pageCount = _pdfController.isReady
+        ? _pdfController.pageCount
+        : _pageCount;
     if (pageCount == null || pageCount < 1) {
       return false;
     }
-    final current = _pageNumber ?? score.lastPage;
+    final current = _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
     final orderedTarget = score.pageSettings.nextPageOrderTarget(
       currentPage: current,
       currentIndex: _pageOrderCursor,
@@ -7946,6 +7980,7 @@ setlist=$setlistLabel
   }
 
   void _toggleAnnotationMode() {
+    if (!_documentReady && !_isAnnotationMode) return;
     if (_isPerformanceMode &&
         !_effectiveViewerSettings.allowPerformanceAnnotations) {
       _showSnackBar('공연 모드에서는 필기 도구를 숨깁니다.');
@@ -7965,46 +8000,271 @@ setlist=$setlistLabel
     }
   }
 
+  void _setViewerChromeVisible(bool visible) {
+    setState(() {
+      _viewerChromeVisible = visible;
+      _showPageControls = true;
+    });
+    _schedulePageControlsAutoHide();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _viewerChromeVisible == visible) {
+        (visible ? _viewerToolsFocus : _restoreToolsFocus).requestFocus();
+      }
+    });
+  }
+
+  _AnnotationToolbar _annotationOptions({VoidCallback? onChanged}) {
+    final source = _activePdfSource;
+    void update(VoidCallback change) {
+      if (!mounted || source != _activePdfSource || !_documentReady) return;
+      setState(change);
+      onChanged?.call();
+    }
+
+    return _AnnotationToolbar(
+      selectedTool: _annotationTool,
+      selectedStamp: _annotationStamp,
+      selectedColor: _annotationColor,
+      selectedWidth: _annotationWidth,
+      hasFavoritePreset: _favoriteAnnotationPreset != null,
+      isLayerVisible: score.annotationLayer.isDefaultLayerVisible,
+      includeLayerInExport: score.annotationLayer.includeDefaultLayerInExport,
+      isCompact: false,
+      onToolSelected: (tool) => update(() => _annotationTool = tool),
+      onStampSelected: (stamp) => update(() => _annotationStamp = stamp),
+      onColorSelected: (color) => update(() => _annotationColor = color),
+      onWidthChanged: (width) => update(() => _annotationWidth = width),
+      onUndo: _undoCurrentPageAnnotation,
+      onRedo: _redoCurrentPageAnnotation,
+      onSaveFavorite: () {
+        _saveFavoriteAnnotationPreset();
+        onChanged?.call();
+      },
+      onApplyFavorite: () {
+        _applyFavoriteAnnotationPreset();
+        onChanged?.call();
+      },
+      onToggleLayerVisibility: _toggleAnnotationLayerVisibility,
+      onToggleLayerExport: _toggleAnnotationLayerExport,
+    );
+  }
+
+  Future<void> _showAnnotationOptions() async {
+    if (!_documentReady || !_isAnnotationMode) return;
+    await showDdiroriSheet<void>(
+      context: context,
+      title: '주석 옵션',
+      child: StatefulBuilder(
+        builder: (context, refresh) =>
+            _annotationOptions(onChanged: () => refresh(() {})),
+      ),
+      actions: [
+        DdiroriButton(
+          label: '닫기',
+          icon: Icons.check,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+    if (mounted) {
+      (_isAnnotationMode && _viewerChromeVisible
+              ? _annotationOptionsFocus
+              : _keyboardFocusNode)
+          .requestFocus();
+    }
+  }
+
+  Future<void> _showPracticeTools() async {
+    final id = widget.scoreId;
+    final path = score.filePath;
+    final action = await showDdiroriSheet<String>(
+      context: context,
+      title: '연습 도구',
+      child: DdiroriStack(
+        children: [
+          for (final entry in [
+            ('메트로놈', Icons.speed),
+            ('튜너', Icons.tune),
+            if (!_isPerformanceMode) ('연결 음원', Icons.audio_file_outlined),
+            ('자동 스크롤', Icons.vertical_align_center),
+          ])
+            DdiroriButton(
+              label: entry.$1,
+              icon: entry.$2,
+              kind: DdiroriButtonKind.quiet,
+              onPressed: entry.$1 == '자동 스크롤' && !_documentReady
+                  ? null
+                  : () => Navigator.of(context).pop(entry.$1),
+            ),
+        ],
+      ),
+    );
+    if (!mounted || widget.scoreId != id || score.filePath != path) return;
+    switch (action) {
+      case '메트로놈':
+        await _showMetronome();
+      case '튜너':
+        await _showTuner();
+      case '자동 스크롤':
+        await _showAutoScroll();
+      case '연결 음원':
+        final tracks = score.linkedFiles
+            .where(_isSupportedLinkedAudio)
+            .toList();
+        if (tracks.isEmpty) {
+          await showDdiroriDialog<void>(
+            context: context,
+            title: '연결된 음원이 없습니다.',
+            child: const Text('악보 정보에서 연습할 음원을 연결할 수 있어요.'),
+          );
+        } else {
+          final track = await showDdiroriSheet<SheetLinkedFile>(
+            context: context,
+            title: '연결 음원',
+            child: DdiroriStack(
+              children: [
+                for (final file in tracks)
+                  DdiroriButton(
+                    label: file.label,
+                    icon: Icons.audio_file_outlined,
+                    kind: DdiroriButtonKind.quiet,
+                    onPressed: () => Navigator.of(context).pop(file),
+                  ),
+              ],
+            ),
+          );
+          if (mounted &&
+              widget.scoreId == id &&
+              score.filePath == path &&
+              track != null) {
+            await _showLinkedAudioPlayer(track);
+          }
+        }
+      case null:
+        break;
+    }
+    if (mounted) _viewerToolsFocus.requestFocus();
+  }
+
+  bool _menuNeedsDocument(_ViewerMenuAction action) => switch (action) {
+    _ViewerMenuAction.scoreParts ||
+    _ViewerMenuAction.scoreNotes ||
+    _ViewerMenuAction.metronome ||
+    _ViewerMenuAction.tuner ||
+    _ViewerMenuAction.performanceSettings ||
+    _ViewerMenuAction.inputDiagnostic ||
+    _ViewerMenuAction.pedalMapping ||
+    _ViewerMenuAction.renderProfile ||
+    _ViewerMenuAction.pageTurnAnimation ||
+    _ViewerMenuAction.displayEffect ||
+    _ViewerMenuAction.displayMode ||
+    _ViewerMenuAction.pageScale => false,
+    _ => true,
+  };
+
+  Future<void> _showAllViewerTools(List<Widget> actions) async {
+    final path = score.filePath;
+    final id = widget.scoreId;
+    bool current() => mounted && widget.scoreId == id && score.filePath == path;
+    await showDdiroriSheet<void>(
+      context: context,
+      title: '악보 도구',
+      child: DdiroriStack(
+        children: [
+          for (final action in actions)
+            if (action is IconButton)
+              DdiroriButton(
+                label: action.tooltip ?? '도구',
+                icon: action.icon is Icon ? (action.icon as Icon).icon : null,
+                kind: DdiroriButtonKind.quiet,
+                onPressed: action.onPressed == null
+                    ? null
+                    : () {
+                        Navigator.of(context).pop();
+                        if (current()) action.onPressed!();
+                      },
+              )
+            else if (action is PopupMenuButton<_ViewerMenuAction>)
+              ListTile(
+                title: Text(action.tooltip ?? '도구 메뉴'),
+                trailing: DdiroriMenuButton<_ViewerMenuAction>(
+                  label: action.tooltip ?? '도구 메뉴',
+                  itemBuilder: (context) => action.itemBuilder(context).map((
+                    item,
+                  ) {
+                    if (item is! PopupMenuItem<_ViewerMenuAction>) return item;
+                    return PopupMenuItem<_ViewerMenuAction>(
+                      value: item.value,
+                      enabled:
+                          item.enabled &&
+                          (item.value == null ||
+                              !_menuNeedsDocument(item.value!) ||
+                              _documentReady),
+                      child: item.child,
+                    );
+                  }).toList(),
+                  onSelected: (value) {
+                    Navigator.of(context).pop();
+                    if (current()) action.onSelected?.call(value);
+                  },
+                ),
+              ),
+        ],
+      ),
+    );
+    if (mounted && _viewerChromeVisible) _viewerToolsFocus.requestFocus();
+  }
+
   Future<void> _undoCurrentPageAnnotation() async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
+    final target = score;
     final pageNumber =
         _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
     final didUndo = await _saveAnnotationChange(
-      () => widget.controller.undoLastAnnotation(score, pageNumber),
+      () => widget.controller.undoLastAnnotation(target, pageNumber),
     );
+    if (_retryAnnotationWrite != null || !mounted) return;
     _showSnackBar(didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.');
   }
 
   Future<void> _redoCurrentPageAnnotation() async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
+    final target = score;
     final pageNumber =
         _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
     final didRedo = await _saveAnnotationChange(
-      () => widget.controller.redoLastAnnotation(score, pageNumber),
+      () => widget.controller.redoLastAnnotation(target, pageNumber),
     );
+    if (_retryAnnotationWrite != null || !mounted) return;
     _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');
   }
 
   Future<void> _toggleAnnotationLayerVisibility() async {
+    final target = score;
     final nextValue = !score.annotationLayer.isDefaultLayerVisible;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      isVisible: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        target,
+        isVisible: nextValue,
+      );
+      return true;
+    });
+    if (!saved || !mounted) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기 layer를 표시합니다.' : '필기 layer를 숨깁니다.');
   }
 
   Future<void> _toggleAnnotationLayerExport() async {
+    final target = score;
     final nextValue = !score.annotationLayer.includeDefaultLayerInExport;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      includeInExport: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        target,
+        includeInExport: nextValue,
+      );
+      return true;
+    });
+    if (!saved || !mounted) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
   }
@@ -8046,6 +8306,7 @@ setlist=$setlistLabel
     int pageNumber,
     double pressure,
   ) async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
     final point = geometry.pointFromPageLocal(
       details.localPosition,
       pressure: pressure,
@@ -8073,6 +8334,7 @@ setlist=$setlistLabel
     int pageNumber,
     double pressure,
   ) async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
     final point = geometry.pointFromPageLocal(
       details.localPosition,
       pressure: pressure,
@@ -8109,6 +8371,7 @@ setlist=$setlistLabel
   }
 
   Future<void> _handleAnnotationPanEnd() async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
     final points = _draftAnnotationPoints;
     final pageNumber = _draftAnnotationPageNumber;
     setState(() {
@@ -8129,11 +8392,11 @@ setlist=$setlistLabel
       points: List<SheetAnnotationPoint>.unmodifiable(points),
       createdAt: now,
     );
-    try {
-      await widget.controller.addAnnotationStroke(score, stroke);
-    } catch (_) {
-      _showSnackBar('필기를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
-    }
+    final target = score;
+    await _saveAnnotationChange(() async {
+      await widget.controller.addAnnotationStroke(target, stroke);
+      return true;
+    });
   }
 
   Future<void> _handleAnnotationTapUp(
@@ -8141,6 +8404,7 @@ setlist=$setlistLabel
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
   ) async {
+    if (_annotationSaving || _retryAnnotationWrite != null) return;
     if (_annotationTool != _AnnotationToolbarTool.text &&
         _annotationTool != _AnnotationToolbarTool.stamp) {
       return;
@@ -8161,10 +8425,11 @@ setlist=$setlistLabel
     }
 
     if (_annotationTool == _AnnotationToolbarTool.stamp) {
+      final target = score;
       final now = DateTime.now();
-      try {
+      await _saveAnnotationChange(() async {
         await widget.controller.addTextAnnotation(
-          score,
+          target,
           SheetTextAnnotation(
             id: '${now.microsecondsSinceEpoch}-stamp-$pageNumber',
             pageNumber: pageNumber,
@@ -8175,12 +8440,13 @@ setlist=$setlistLabel
             createdAt: now,
           ),
         );
-      } catch (_) {
-        _showSnackBar('스탬프를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
-      }
+        return true;
+      });
       return;
     }
 
+    final target = score;
+    final source = _activePdfSource;
     final value = await _showTextEntryDialog(
       context: context,
       title: '텍스트 주석',
@@ -8188,14 +8454,17 @@ setlist=$setlistLabel
       initialValue: '',
     );
     final text = value?.trim();
-    if (text == null || text.isEmpty) {
+    if (!mounted ||
+        source != _activePdfSource ||
+        text == null ||
+        text.isEmpty) {
       return;
     }
 
     final now = DateTime.now();
-    try {
+    await _saveAnnotationChange(() async {
       await widget.controller.addTextAnnotation(
-        score,
+        target,
         SheetTextAnnotation(
           id: '${now.microsecondsSinceEpoch}-text-$pageNumber',
           pageNumber: pageNumber,
@@ -8206,9 +8475,8 @@ setlist=$setlistLabel
           createdAt: now,
         ),
       );
-    } catch (_) {
-      _showSnackBar('텍스트 주석을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
-    }
+      return true;
+    });
   }
 
   Future<void> _showTextAnnotationActions(
@@ -8294,11 +8562,22 @@ setlist=$setlistLabel
   }
 
   Future<bool> _saveAnnotationChange(Future<bool> Function() save) async {
+    if (_annotationSaving) return false;
+    final source = _activePdfSource;
+    final path = score.filePath;
+    bool current() =>
+        mounted && _activePdfSource == source && score.filePath == path;
+    setState(() {
+      _annotationSaving = true;
+      _retryAnnotationWrite = null;
+    });
     try {
       return await save();
     } catch (_) {
-      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+      if (current()) setState(() => _retryAnnotationWrite = save);
       return false;
+    } finally {
+      if (current()) setState(() => _annotationSaving = false);
     }
   }
 
@@ -8689,6 +8968,7 @@ setlist=$setlistLabel
   }
 
   Object? _handleViewerInputIntent(_ViewerInputIntent intent) {
+    if (_annotationSaving || !_documentReady) return null;
     final delta = switch (intent.action) {
       SheetViewerInputAction.previousPage => -1,
       SheetViewerInputAction.nextPage => 1,
@@ -8717,6 +8997,7 @@ setlist=$setlistLabel
     int delta, {
     bool allowHalfPageTurn = true,
   }) async {
+    if (_annotationSaving || !_documentReady) return;
     await _pageTurnGuard.run(() async {
       if (!_pdfController.isReady ||
           !_pedalMapping.movesAcrossSetlistBoundary ||
@@ -9115,7 +9396,6 @@ setlist=$setlistLabel
           );
     final viewerWidth = MediaQuery.sizeOf(context).width;
     final isCompactViewer = viewerWidth < 720;
-    final usesScrollableViewerToolbar = viewerWidth < 1100;
     final viewerMargin = switch (_pageScale) {
       _SheetViewerPageScale.fitPage => 14.0,
       _SheetViewerPageScale.fitWidth => 6.0,
@@ -9841,458 +10121,684 @@ setlist=$setlistLabel
       ),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: appBarTitle,
-        toolbarHeight: math.max(
-          kToolbarHeight,
-          MediaQuery.textScalerOf(context)
-                  .scale(setlistContext == null ? 28 : 40) +
-              16,
-        ),
-        leading: IconButton(
-          tooltip: '뒤로',
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const BackButtonIcon(),
-        ),
-        actions: usesScrollableViewerToolbar ? null : appBarActions,
-        bottom: usesScrollableViewerToolbar
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(kToolbarHeight),
-                child: _ScrollableAppBarActions(children: appBarActions),
-              )
-            : null,
-      ),
-      body: Focus(
-        focusNode: _keyboardFocusNode,
-        autofocus: true,
+    return PopScope(
+      canPop: !_annotationSaving,
+      child: Focus(
         onKeyEvent: _handleViewerKeyEvent,
-        child: Shortcuts(
-          shortcuts: _viewerKeyboardShortcutsFor(
-            _pedalMapping.settingValue,
-            _effectiveViewerSettings.customPedalMapping,
-          ),
-          child: Actions(
-            actions: <Type, Action<Intent>>{
-              _ViewerInputIntent: CallbackAction<_ViewerInputIntent>(
-                onInvoke: _handleViewerInputIntent,
+        child: Scaffold(
+          appBar: !_viewerChromeVisible
+              ? null
+              : AppBar(
+                  title: appBarTitle,
+                  toolbarHeight: math.max(
+                    kToolbarHeight,
+                    MediaQuery.textScalerOf(context)
+                            .scale(setlistContext == null ? 28 : 40) +
+                        16,
+                  ),
+                  leading: IconButton(
+                    tooltip: '뒤로',
+                    onPressed: _annotationSaving
+                        ? null
+                        : () => Navigator.of(context).maybePop(),
+                    icon: const BackButtonIcon(),
+                  ),
+                  actions: [
+                    DdiroriIconButton(
+                      label: '도구 숨기기',
+                      icon: Icons.visibility_off_outlined,
+                      onPressed: _annotationSaving
+                          ? null
+                          : () => _setViewerChromeVisible(false),
+                    ),
+                  ],
+                ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: DdiroriTokens.spacing['lg']!,
+                vertical: DdiroriTokens.spacing['sm']!,
               ),
-            },
-            child: SafeArea(
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) {
-                  _keyboardFocusNode.requestFocus();
-                  _showPageControlsTemporarily();
-                },
-                child: Stack(
-                  children: [
-                    FutureBuilder<SheetViewerFileStatus>(
-                      future: _viewerFileStatusFor(currentScore.filePath),
-                      builder: (context, snapshot) {
-                        final status = snapshot.data;
-                        if (status == null) {
-                          return const _ViewerLoadingBanner(
-                            message: 'PDF 파일 확인 중',
-                          );
-                        }
-                        if (!status.canOpen) {
-                          return _ViewerFileStatusBanner(status: status);
-                        }
-                        return _ViewerDisplayEffectWrapper(
-                          effect: _displayEffect,
-                          child: PdfViewer.custom(
-                            fileSize: status.sizeBytes,
-                            sourceName:
-                                '${currentScore.filePath}-${status.sizeBytes}',
-                            read: (buffer, position, size) => _readPdfFileRange(
-                              currentScore.filePath,
-                              buffer,
-                              position,
-                              size,
-                            ),
-                            key: ValueKey(
-                              '${currentScore.filePath}-${_displayMode.name}-'
-                              '${_displayEffect.name}-${_pageScale.name}-'
-                              '${_renderProfile.name}-${status.sizeBytes}',
-                            ),
-                            controller: _pdfController,
-                            initialPageNumber: _initialViewerPage,
-                            params: PdfViewerParams(
-                              margin: viewerMargin,
-                              backgroundColor: _viewerBackgroundColor,
-                              limitRenderingCache:
-                                  _renderProfile.limitsRenderCache,
-                              maxImageBytesCachedOnMemory:
-                                  _renderProfile.maxImageBytesCachedOnMemory,
-                              pagePaintCallbacks: [_paintTextSearchMatches],
-                              // ignore: deprecated_member_use
-                              onePassRenderingScaleThreshold:
-                                  _renderProfile.onePassRenderingScaleThreshold,
-                              // ignore: deprecated_member_use
-                              calculateInitialZoom:
-                                  (document, controller, fitZoom, coverZoom) {
-                                    return switch (_pageScale) {
-                                      _SheetViewerPageScale.fitPage => fitZoom,
-                                      _SheetViewerPageScale.fitWidth =>
-                                        _initialFitWidthZoom(
-                                          pages: document.pages,
-                                          viewSize: controller.viewSize,
-                                          pageNumber: currentScore.lastPage,
-                                          margin: viewerMargin,
-                                          fallbackZoom: coverZoom,
-                                        ),
-                                      _SheetViewerPageScale.fullscreen =>
-                                        coverZoom,
-                                    };
-                                  },
-                              layoutPages: switch (_displayMode) {
-                                _SheetViewerDisplayMode.singlePage =>
-                                  _layoutPagesHorizontally,
-                                _SheetViewerDisplayMode.twoPage =>
-                                  _layoutPagesAsSpreads,
-                                _SheetViewerDisplayMode.continuousVertical =>
-                                  null,
-                              },
-                              scrollHorizontallyByMouseWheel:
-                                  _displayMode !=
-                                  _SheetViewerDisplayMode.continuousVertical,
-                              textSelectionParams: _isPerformanceMode
-                                  ? const PdfTextSelectionParams(enabled: false)
-                                  : null,
-                              linkHandlerParams: PdfLinkHandlerParams(
-                                onLinkTap: _handlePdfLinkTap,
-                                linkColor: _showPdfLinks
-                                    ? const Color(0xff2f8c8f)
-                                          .withValues(alpha: 0.26)
-                                    : Colors.transparent,
-                                enableAutoLinkDetection: false,
-                              ),
-                              loadingBannerBuilder:
-                                  (context, bytesDownloaded, totalBytes) {
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 120),
+                opacity:
+                    !_viewerChromeVisible ||
+                        _isPerformanceMode ||
+                        _showPageControls
+                    ? 1
+                    : 0,
+                child: ExcludeFocus(
+                  excluding:
+                      _viewerChromeVisible &&
+                      !_isPerformanceMode &&
+                      !_showPageControls,
+                  child: IgnorePointer(
+                    ignoring:
+                        _viewerChromeVisible &&
+                        !_isPerformanceMode &&
+                        !_showPageControls,
+                    child: _ViewerControls(
+                      pageNumber: _pageNumber ?? currentScore.lastPage,
+                      pageCount: _pageCount,
+                      canGoPrevious:
+                          !_annotationSaving &&
+                          _documentReady &&
+                          _canTurnPageOrSetlist(-1),
+                      canGoNext:
+                          !_annotationSaving &&
+                          _documentReady &&
+                          _canTurnPageOrSetlist(1),
+                      onPrevious: () => _handlePedalPageTurn(-1),
+                      onNext: () => _handlePedalPageTurn(1),
+                      isPerformanceMode: _isPerformanceMode,
+                      modeLabel: _viewerControlModeLabel,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          body: Column(
+            children: [
+              if (_viewerChromeVisible)
+                Focus(
+                  focusNode: _viewerToolsFocus,
+                  child: ScoreViewerChrome(
+                    annotating: _isAnnotationMode,
+                    saving: _annotationSaving,
+                    documentReady: _documentReady,
+                    canAnnotate:
+                        !_isPerformanceMode ||
+                        _effectiveViewerSettings.allowPerformanceAnnotations,
+                    performance: _isPerformanceMode,
+                    allowMenus:
+                        !_isPerformanceMode ||
+                        _effectiveViewerSettings.allowPerformanceMenus,
+                    onRead: () {
+                      if (_isAnnotationMode) _toggleAnnotationMode();
+                    },
+                    onAnnotate: () {
+                      if (!_isAnnotationMode) _toggleAnnotationMode();
+                    },
+                    onPractice: _showPracticeTools,
+                    onPerformance: () =>
+                        _setPerformanceMode(!_isPerformanceMode),
+                    onTools: () => _showAllViewerTools(appBarActions),
+                  ),
+                ),
+              if (_viewerChromeVisible && _isAnnotationMode && _documentReady)
+                ScoreAnnotationSummary(
+                  toolLabel: _annotationTool.label,
+                  toolIcon: _annotationTool.icon,
+                  color: _annotationColor,
+                  width: _annotationWidth,
+                  optionsFocus: _annotationOptionsFocus,
+                  onOptions: _annotationSaving ? null : _showAnnotationOptions,
+                  onUndo: _annotationSaving || _retryAnnotationWrite != null
+                      ? null
+                      : _undoCurrentPageAnnotation,
+                  onRedo: _annotationSaving || _retryAnnotationWrite != null
+                      ? null
+                      : _redoCurrentPageAnnotation,
+                ),
+              if (_annotationSaving)
+                const DdiroriInlineMessage(message: '주석 저장 중'),
+              if (_retryAnnotationWrite != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      const DdiroriInlineMessage(
+                        message: '주석을 저장하지 못했습니다. 기존 주석은 유지됩니다.',
+                        error: true,
+                      ),
+                      DdiroriButton(
+                        label: '주석 다시 저장',
+                        icon: Icons.refresh,
+                        onPressed: () =>
+                            _saveAnnotationChange(_retryAnnotationWrite!),
+                      ),
+                      DdiroriButton(
+                        label: '변경 취소',
+                        icon: Icons.close,
+                        kind: DdiroriButtonKind.quiet,
+                        onPressed: () =>
+                            setState(() => _retryAnnotationWrite = null),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: Focus(
+                  focusNode: _keyboardFocusNode,
+                  autofocus: true,
+                  child: Shortcuts(
+                    shortcuts: _viewerKeyboardShortcutsFor(
+                      _pedalMapping.settingValue,
+                      _effectiveViewerSettings.customPedalMapping,
+                    ),
+                    child: Actions(
+                      actions: <Type, Action<Intent>>{
+                        _ViewerInputIntent: CallbackAction<_ViewerInputIntent>(
+                          onInvoke: _handleViewerInputIntent,
+                        ),
+                      },
+                      child: SafeArea(
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: (_) {
+                            _keyboardFocusNode.requestFocus();
+                            _showPageControlsTemporarily();
+                          },
+                          child: Stack(
+                            children: [
+                              FutureBuilder<SheetViewerFileStatus>(
+                                future: _viewerFileStatusFor(
+                                  currentScore.filePath,
+                                ),
+                                builder: (context, snapshot) {
+                                  final status = snapshot.data;
+                                  if (status == null ||
+                                      snapshot.connectionState !=
+                                          ConnectionState.done ||
+                                      status.path != currentScore.filePath) {
                                     return const _ViewerLoadingBanner(
-                                      message: 'PDF를 여는 중',
+                                      message: 'PDF 파일 확인 중',
                                     );
-                                  },
-                              errorBannerBuilder:
-                                  (context, error, stackTrace, documentRef) =>
-                                      _ViewerErrorBanner(
-                                        filePath: currentScore.filePath,
-                                        error: error,
+                                  }
+                                  if (!status.canOpen) {
+                                    return _ViewerFileStatusBanner(
+                                      status: status,
+                                    );
+                                  }
+                                  final identity =
+                                      '${currentScore.id}-${currentScore.filePath}-'
+                                      '${_displayMode.name}-${_displayEffect.name}-${_pageScale.name}-'
+                                      '${_renderProfile.name}-${status.sizeBytes}';
+                                  if (_viewerBuildIdentity != identity) {
+                                    _viewerBuildIdentity = identity;
+                                    _activePdfSource =
+                                        '${++_viewerDocumentEpoch}:$identity';
+                                    _readyPdfSource = null;
+                                    _didLoadPdfOutline = false;
+                                    _pdfOutlineBookmarks = const [];
+                                  }
+                                  final source = _activePdfSource!;
+                                  bool ownsDocument() =>
+                                      mounted &&
+                                      _activePdfSource == source &&
+                                      widget.scoreId == currentScore.id &&
+                                      score.filePath == currentScore.filePath;
+                                  return _ViewerDisplayEffectWrapper(
+                                    effect: _displayEffect,
+                                    child: PdfViewer.custom(
+                                      fileSize: status.sizeBytes,
+                                      sourceName:
+                                          '${currentScore.filePath}-${status.sizeBytes}',
+                                      read: (buffer, position, size) =>
+                                          _readPdfFileRange(
+                                            currentScore.filePath,
+                                            buffer,
+                                            position,
+                                            size,
+                                          ),
+                                      key: ValueKey(
+                                        '${currentScore.filePath}-${_displayMode.name}-'
+                                        '${_displayEffect.name}-${_pageScale.name}-'
+                                        '${_renderProfile.name}-${status.sizeBytes}',
                                       ),
-                              onViewerReady: (document, _) {
-                                _ensureTextSearcher();
-                                final initialPage =
-                                    _pageNumber ?? currentScore.lastPage;
-                                _scheduleCropToFit(
-                                  initialPage,
-                                  orderIndex: _effectiveOrderIndexForPage(
-                                    currentScore,
-                                    initialPage,
-                                  ),
-                                  force: true,
-                                );
-                                unawaited(_loadPdfOutlineBookmarks(document));
-                                _maybeAutoStartScroll();
-                              },
-                              pageOverlaysBuilder: (context, pageRect, page) {
-                                final pageNumber = page.pageNumber;
-                                final orderIndex = _effectiveOrderIndexForPage(
-                                  currentScore,
-                                  pageNumber,
-                                );
-                                final rotation = currentScore.pageSettings
-                                    .rotationForPage(
-                                      pageNumber,
-                                      orderIndex: orderIndex,
-                                    );
-                                final jumpPoints = currentScore.pageSettings
-                                    .jumpPointsFromPage(pageNumber);
-                                final pageCrop = currentScore.pageSettings
-                                    .cropForPage(
-                                      pageNumber,
-                                      orderIndex: orderIndex,
-                                    );
-                                final rehearsalMarks =
-                                    currentScore.pageSettings.rehearsalMarks;
-                                final bookmarks = currentScore.bookmarks;
-                                return <Widget>[
-                                  Positioned.fill(
-                                    child: _AnnotationPageOverlay(
-                                      isEnabled: _isAnnotationMode,
-                                      pageNumber: pageNumber,
-                                      strokes: currentScore.annotationLayer
-                                          .visibleStrokesForPage(pageNumber),
-                                      texts: currentScore.annotationLayer
-                                          .visibleTextsForPage(pageNumber),
-                                      draftPoints:
-                                          _draftAnnotationPageNumber ==
-                                              pageNumber
-                                          ? _draftAnnotationPoints
-                                          : const <SheetAnnotationPoint>[],
-                                      draftTool: _annotationTool,
-                                      draftColor: _annotationColor,
-                                      draftWidth: _annotationWidth,
-                                      onPanStart: _handleAnnotationPanStart,
-                                      onPanUpdate: _handleAnnotationPanUpdate,
-                                      onPanEnd: _handleAnnotationPanEnd,
-                                      onTapUp: _handleAnnotationTapUp,
+                                      controller: _pdfController,
+                                      initialPageNumber: _initialViewerPage,
+                                      params: PdfViewerParams(
+                                        margin: viewerMargin,
+                                        backgroundColor: _viewerBackgroundColor,
+                                        limitRenderingCache:
+                                            _renderProfile.limitsRenderCache,
+                                        maxImageBytesCachedOnMemory:
+                                            _renderProfile
+                                                .maxImageBytesCachedOnMemory,
+                                        pagePaintCallbacks: [
+                                          _paintTextSearchMatches,
+                                        ],
+                                        // ignore: deprecated_member_use
+                                        onePassRenderingScaleThreshold:
+                                            _renderProfile
+                                                .onePassRenderingScaleThreshold,
+                                        // ignore: deprecated_member_use
+                                        calculateInitialZoom:
+                                            (
+                                              document,
+                                              controller,
+                                              fitZoom,
+                                              coverZoom,
+                                            ) {
+                                              return switch (_pageScale) {
+                                                _SheetViewerPageScale.fitPage =>
+                                                  fitZoom,
+                                                _SheetViewerPageScale
+                                                    .fitWidth =>
+                                                  _initialFitWidthZoom(
+                                                    pages: document.pages,
+                                                    viewSize:
+                                                        controller.viewSize,
+                                                    pageNumber:
+                                                        currentScore.lastPage,
+                                                    margin: viewerMargin,
+                                                    fallbackZoom: coverZoom,
+                                                  ),
+                                                _SheetViewerPageScale
+                                                    .fullscreen =>
+                                                  coverZoom,
+                                              };
+                                            },
+                                        layoutPages: switch (_displayMode) {
+                                          _SheetViewerDisplayMode.singlePage =>
+                                            _layoutPagesHorizontally,
+                                          _SheetViewerDisplayMode.twoPage =>
+                                            _layoutPagesAsSpreads,
+                                          _SheetViewerDisplayMode
+                                              .continuousVertical =>
+                                            null,
+                                        },
+                                        scrollHorizontallyByMouseWheel:
+                                            _displayMode !=
+                                            _SheetViewerDisplayMode
+                                                .continuousVertical,
+                                        textSelectionParams: _isPerformanceMode
+                                            ? const PdfTextSelectionParams(
+                                                enabled: false,
+                                              )
+                                            : null,
+                                        linkHandlerParams: PdfLinkHandlerParams(
+                                          onLinkTap: _handlePdfLinkTap,
+                                          linkColor: _showPdfLinks
+                                              ? const Color(0xff2f8c8f)
+                                                    .withValues(alpha: 0.26)
+                                              : Colors.transparent,
+                                          enableAutoLinkDetection: false,
+                                        ),
+                                        loadingBannerBuilder:
+                                            (
+                                              context,
+                                              bytesDownloaded,
+                                              totalBytes,
+                                            ) {
+                                              return const _ViewerLoadingBanner(
+                                                message: 'PDF를 여는 중',
+                                              );
+                                            },
+                                        errorBannerBuilder:
+                                            (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                              documentRef,
+                                            ) => _ViewerErrorBanner(
+                                              filePath: currentScore.filePath,
+                                              error: error,
+                                            ),
+                                        onViewerReady: (document, _) {
+                                          if (!ownsDocument()) return;
+                                          setState(
+                                            () => _readyPdfSource = source,
+                                          );
+                                          _handleViewerChanged();
+                                          _ensureTextSearcher();
+                                          final initialPage =
+                                              _pageNumber ??
+                                              currentScore.lastPage;
+                                          _scheduleCropToFit(
+                                            initialPage,
+                                            orderIndex:
+                                                _effectiveOrderIndexForPage(
+                                                  currentScore,
+                                                  initialPage,
+                                                ),
+                                            force: true,
+                                          );
+                                          unawaited(
+                                            _loadPdfOutlineBookmarks(
+                                              document,
+                                              source,
+                                            ),
+                                          );
+                                          _maybeAutoStartScroll();
+                                        },
+                                        pageOverlaysBuilder: (context, pageRect, page) {
+                                          if (!ownsDocument()) {
+                                            return const <Widget>[];
+                                          }
+                                          final pageNumber = page.pageNumber;
+                                          final orderIndex =
+                                              _effectiveOrderIndexForPage(
+                                                currentScore,
+                                                pageNumber,
+                                              );
+                                          final rotation = currentScore
+                                              .pageSettings
+                                              .rotationForPage(
+                                                pageNumber,
+                                                orderIndex: orderIndex,
+                                              );
+                                          final jumpPoints = currentScore
+                                              .pageSettings
+                                              .jumpPointsFromPage(pageNumber);
+                                          final pageCrop = currentScore
+                                              .pageSettings
+                                              .cropForPage(
+                                                pageNumber,
+                                                orderIndex: orderIndex,
+                                              );
+                                          final rehearsalMarks = currentScore
+                                              .pageSettings
+                                              .rehearsalMarks;
+                                          final bookmarks =
+                                              currentScore.bookmarks;
+                                          return <Widget>[
+                                            Positioned.fill(
+                                              child: _AnnotationPageOverlay(
+                                                isEnabled: _isAnnotationMode,
+                                                pageNumber: pageNumber,
+                                                strokes: currentScore
+                                                    .annotationLayer
+                                                    .visibleStrokesForPage(
+                                                      pageNumber,
+                                                    ),
+                                                texts: currentScore
+                                                    .annotationLayer
+                                                    .visibleTextsForPage(
+                                                      pageNumber,
+                                                    ),
+                                                draftPoints:
+                                                    _draftAnnotationPageNumber ==
+                                                        pageNumber
+                                                    ? _draftAnnotationPoints
+                                                    : const <
+                                                        SheetAnnotationPoint
+                                                      >[],
+                                                draftTool: _annotationTool,
+                                                draftColor: _annotationColor,
+                                                draftWidth: _annotationWidth,
+                                                onPanStart:
+                                                    (
+                                                      details,
+                                                      geometry,
+                                                      page,
+                                                      pressure,
+                                                    ) async {
+                                                      if (ownsDocument()) {
+                                                        await _handleAnnotationPanStart(
+                                                          details,
+                                                          geometry,
+                                                          page,
+                                                          pressure,
+                                                        );
+                                                      }
+                                                    },
+                                                onPanUpdate:
+                                                    (
+                                                      details,
+                                                      geometry,
+                                                      page,
+                                                      pressure,
+                                                    ) async {
+                                                      if (ownsDocument()) {
+                                                        await _handleAnnotationPanUpdate(
+                                                          details,
+                                                          geometry,
+                                                          page,
+                                                          pressure,
+                                                        );
+                                                      }
+                                                    },
+                                                onPanEnd: () async {
+                                                  if (ownsDocument()) {
+                                                    await _handleAnnotationPanEnd();
+                                                  }
+                                                },
+                                                onTapUp: (details, geometry, page) async {
+                                                  if (ownsDocument()) {
+                                                    await _handleAnnotationTapUp(
+                                                      details,
+                                                      geometry,
+                                                      page,
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                            if (pageCrop.hasCrop)
+                                              Positioned.fill(
+                                                child: IgnorePointer(
+                                                  child: CustomPaint(
+                                                    painter: _CropMaskPainter(
+                                                      crop: pageCrop,
+                                                      color:
+                                                          _viewerBackgroundColor
+                                                              .withValues(
+                                                                alpha: 0.9,
+                                                              ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            if (!_isAnnotationMode &&
+                                                (jumpPoints.isNotEmpty ||
+                                                    rehearsalMarks.isNotEmpty ||
+                                                    bookmarks.isNotEmpty))
+                                              Positioned(
+                                                right: 8,
+                                                bottom: 8,
+                                                child: _QuickJumpButtons(
+                                                  jumpPoints: jumpPoints,
+                                                  onJump: _goToJumpPoint,
+                                                  rehearsalMarks:
+                                                      rehearsalMarks,
+                                                  bookmarks: bookmarks,
+                                                  onPageSelected:
+                                                      _goToSheetPage,
+                                                ),
+                                              ),
+                                            if (rotation != 0)
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: IgnorePointer(
+                                                  child: _PageMetadataBadge(
+                                                    label: '회전 $rotation도',
+                                                  ),
+                                                ),
+                                              ),
+                                          ];
+                                        },
+                                        onPageChanged: (pageNumber) {
+                                          if (pageNumber == null ||
+                                              !ownsDocument()) {
+                                            return;
+                                          }
+                                          if ((_isAutoScrolling ||
+                                                  _autoScrollCueRemainingSeconds !=
+                                                      null) &&
+                                              !_isAutoScrollTicking) {
+                                            _stopAutoScroll(showMessage: true);
+                                          }
+                                          final currentPageSettings =
+                                              score.pageSettings;
+                                          if (currentPageSettings.isHidden(
+                                                pageNumber,
+                                              ) &&
+                                              _pdfController.isReady) {
+                                            final visiblePage =
+                                                currentPageSettings
+                                                    .closestVisiblePage(
+                                                      fromPage: pageNumber,
+                                                      pageCount: _pdfController
+                                                          .pageCount,
+                                                    );
+                                            if (visiblePage != pageNumber) {
+                                              _pdfController.goToPage(
+                                                pageNumber: visiblePage,
+                                                duration: _pageTurnDuration,
+                                              );
+                                              return;
+                                            }
+                                          }
+                                          widget.controller.updateLastPage(
+                                            currentScore,
+                                            pageNumber,
+                                          );
+                                          _syncPageOrderCursor(
+                                            pageNumber,
+                                            _pdfController.pageCount,
+                                          );
+                                          setState(() {
+                                            _pageNumber = pageNumber;
+                                          });
+                                          _scheduleCropToFit(
+                                            pageNumber,
+                                            orderIndex:
+                                                _effectiveOrderIndexForPage(
+                                                  currentScore,
+                                                  pageNumber,
+                                                ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (!_viewerChromeVisible)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Material(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surface,
+                                    child: Focus(
+                                      focusNode: _restoreToolsFocus,
+                                      child: DdiroriIconButton(
+                                        label: '도구 다시 표시',
+                                        icon: Icons.visibility_outlined,
+                                        onPressed: () =>
+                                            _setViewerChromeVisible(true),
+                                      ),
                                     ),
                                   ),
-                                  if (pageCrop.hasCrop)
-                                    Positioned.fill(
-                                      child: IgnorePointer(
-                                        child: CustomPaint(
-                                          painter: _CropMaskPainter(
-                                            crop: pageCrop,
-                                            color: _viewerBackgroundColor
-                                                .withValues(alpha: 0.9),
+                                ),
+                              if (_isSanitizingPdfLinks)
+                                Positioned.fill(
+                                  child: ColoredBox(
+                                    color: Colors.black.withValues(alpha: 0.24),
+                                    child: Center(
+                                      child: Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              CircularProgressIndicator(),
+                                              SizedBox(height: 14),
+                                              Text('PDF 링크 제거 사본 생성 중'),
+                                            ],
                                           ),
                                         ),
                                       ),
                                     ),
-                                  if (!_isAnnotationMode &&
-                                      (jumpPoints.isNotEmpty ||
-                                          rehearsalMarks.isNotEmpty ||
-                                          bookmarks.isNotEmpty))
-                                    Positioned(
-                                      right: 8,
-                                      bottom: 8,
-                                      child: _QuickJumpButtons(
-                                        jumpPoints: jumpPoints,
-                                        onJump: _goToJumpPoint,
-                                        rehearsalMarks: rehearsalMarks,
-                                        bookmarks: bookmarks,
-                                        onPageSelected: _goToSheetPage,
-                                      ),
-                                    ),
-                                  if (rotation != 0)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: IgnorePointer(
-                                        child: _PageMetadataBadge(
-                                          label: '회전 $rotation도',
+                                  ),
+                                ),
+                              if (_isApplyingPageTransform)
+                                Positioned.fill(
+                                  child: ColoredBox(
+                                    color: Colors.black.withValues(alpha: 0.24),
+                                    child: Center(
+                                      child: Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              CircularProgressIndicator(),
+                                              SizedBox(height: 14),
+                                              Text('페이지 적용 사본 생성 중'),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                ];
-                              },
-                              onPageChanged: (pageNumber) {
-                                if (pageNumber == null) {
-                                  return;
-                                }
-                                if ((_isAutoScrolling ||
-                                        _autoScrollCueRemainingSeconds !=
-                                            null) &&
-                                    !_isAutoScrollTicking) {
-                                  _stopAutoScroll(showMessage: true);
-                                }
-                                final currentPageSettings = score.pageSettings;
-                                if (currentPageSettings.isHidden(pageNumber) &&
-                                    _pdfController.isReady) {
-                                  final visiblePage = currentPageSettings
-                                      .closestVisiblePage(
-                                        fromPage: pageNumber,
-                                        pageCount: _pdfController.pageCount,
-                                      );
-                                  if (visiblePage != pageNumber) {
-                                    _pdfController.goToPage(
-                                      pageNumber: visiblePage,
-                                      duration: _pageTurnDuration,
-                                    );
-                                    return;
-                                  }
-                                }
-                                widget.controller.updateLastPage(
-                                  currentScore,
-                                  pageNumber,
-                                );
-                                _syncPageOrderCursor(
-                                  pageNumber,
-                                  _pdfController.pageCount,
-                                );
-                                setState(() {
-                                  _pageNumber = pageNumber;
-                                });
-                                _scheduleCropToFit(
-                                  pageNumber,
-                                  orderIndex: _effectiveOrderIndexForPage(
-                                    currentScore,
-                                    pageNumber,
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    if (_isAnnotationMode)
-                      Positioned(
-                        left: isCompactViewer ? 8 : 20,
-                        right: isCompactViewer ? 8 : 20,
-                        top: 12,
-                        child: _AnnotationToolbar(
-                          selectedTool: _annotationTool,
-                          selectedStamp: _annotationStamp,
-                          selectedColor: _annotationColor,
-                          selectedWidth: _annotationWidth,
-                          hasFavoritePreset: _favoriteAnnotationPreset != null,
-                          isLayerVisible: currentScore
-                              .annotationLayer
-                              .isDefaultLayerVisible,
-                          includeLayerInExport: currentScore
-                              .annotationLayer
-                              .includeDefaultLayerInExport,
-                          isCompact: isCompactViewer,
-                          onToolSelected: (tool) {
-                            setState(() {
-                              _annotationTool = tool;
-                            });
-                          },
-                          onStampSelected: (stamp) {
-                            setState(() {
-                              _annotationStamp = stamp;
-                            });
-                          },
-                          onColorSelected: (color) {
-                            setState(() {
-                              _annotationColor = color;
-                            });
-                          },
-                          onWidthChanged: (width) {
-                            setState(() {
-                              _annotationWidth = width;
-                            });
-                          },
-                          onUndo: _undoCurrentPageAnnotation,
-                          onRedo: _redoCurrentPageAnnotation,
-                          onSaveFavorite: _saveFavoriteAnnotationPreset,
-                          onApplyFavorite: _applyFavoriteAnnotationPreset,
-                          onToggleLayerVisibility:
-                              _toggleAnnotationLayerVisibility,
-                          onToggleLayerExport: _toggleAnnotationLayerExport,
-                        ),
-                      ),
-                    if (_isSanitizingPdfLinks)
-                      Positioned.fill(
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.24),
-                          child: Center(
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    CircularProgressIndicator(),
-                                    SizedBox(height: 14),
-                                    Text('PDF 링크 제거 사본 생성 중'),
-                                  ],
                                 ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (_isApplyingPageTransform)
-                      Positioned.fill(
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.24),
-                          child: Center(
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    CircularProgressIndicator(),
-                                    SizedBox(height: 14),
-                                    Text('페이지 적용 사본 생성 중'),
-                                  ],
+                              if (currentScore
+                                      .pageSettings
+                                      .pageRotations
+                                      .isNotEmpty &&
+                                  !_isPerformanceMode &&
+                                  !_isAnnotationMode &&
+                                  !_isApplyingPageTransform)
+                                Positioned(
+                                  top: 12,
+                                  right: isCompactViewer ? 8 : 20,
+                                  child: _PendingPageRotationBanner(
+                                    rotationCount: currentScore
+                                        .pageSettings
+                                        .pageRotations
+                                        .length,
+                                    onApply: _createPageRotationAppliedCopy,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (currentScore.pageSettings.pageRotations.isNotEmpty &&
-                        !_isPerformanceMode &&
-                        !_isAnnotationMode &&
-                        !_isApplyingPageTransform)
-                      Positioned(
-                        top: 12,
-                        right: isCompactViewer ? 8 : 20,
-                        child: _PendingPageRotationBanner(
-                          rotationCount:
-                              currentScore.pageSettings.pageRotations.length,
-                          onApply: _createPageRotationAppliedCopy,
-                        ),
-                      ),
-                    if (_autoScrollCueRemainingSeconds != null)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: _AutoScrollCueOverlay(
-                            remainingSeconds: _autoScrollCueRemainingSeconds!,
-                          ),
-                        ),
-                      ),
-                    if (_isPerformanceMode)
-                      Positioned(
-                        left: isCompactViewer ? 8 : 16,
-                        top: 12,
-                        child: _PerformanceQuickActions(
-                          isBookmarked: isBookmarked,
-                          hasSetlistContext: hasSetlistContext,
-                          isAutoScrolling: _isAutoScrolling,
-                          isAutoScrollPaused: _isAutoScrollPaused,
-                          isAutoScrollCueActive: isAutoScrollCueActive,
-                          allowMenus:
-                              _effectiveViewerSettings.allowPerformanceMenus,
-                          onBookmark: _toggleCurrentBookmark,
-                          onAutoScroll: isAutoScrollCueActive
-                              ? () => _stopAutoScroll(showMessage: true)
-                              : _isAutoScrolling
-                              ? _isAutoScrollPaused
-                                    ? _resumeAutoScroll
-                                    : _pauseAutoScroll
-                              : _showAutoScroll,
-                          onMetronome: _showMetronome,
-                          onTuner: _showTuner,
-                          onSettings: _showPerformanceSettings,
-                          onPreviousScore: () => _goToAdjacentSetlistScore(-1),
-                          onNextScore: () => _goToAdjacentSetlistScore(1),
-                        ),
-                      ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: _isPerformanceMode ? 16 : 24,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 220),
-                        opacity: _isPerformanceMode || _showPageControls
-                            ? 1
-                            : 0,
-                        child: IgnorePointer(
-                          ignoring: !_isPerformanceMode && !_showPageControls,
-                          child: _ViewerControls(
-                            pageNumber: _pageNumber ?? currentScore.lastPage,
-                            pageCount: _pageCount,
-                            canGoPrevious: _canTurnPageOrSetlist(-1),
-                            canGoNext: _canTurnPageOrSetlist(1),
-                            onPrevious: () => _handlePedalPageTurn(-1),
-                            onNext: () => _handlePedalPageTurn(1),
-                            isPerformanceMode: _isPerformanceMode,
-                            modeLabel: _viewerControlModeLabel,
+                              if (_autoScrollCueRemainingSeconds != null)
+                                Positioned.fill(
+                                  child: IgnorePointer(
+                                    child: _AutoScrollCueOverlay(
+                                      remainingSeconds:
+                                          _autoScrollCueRemainingSeconds!,
+                                    ),
+                                  ),
+                                ),
+                              if (_isPerformanceMode)
+                                Positioned(
+                                  left: isCompactViewer ? 8 : 16,
+                                  top: 12,
+                                  child: _PerformanceQuickActions(
+                                    isBookmarked: isBookmarked,
+                                    hasSetlistContext: hasSetlistContext,
+                                    isAutoScrolling: _isAutoScrolling,
+                                    isAutoScrollPaused: _isAutoScrollPaused,
+                                    isAutoScrollCueActive:
+                                        isAutoScrollCueActive,
+                                    allowMenus: _effectiveViewerSettings
+                                        .allowPerformanceMenus,
+                                    onBookmark: _toggleCurrentBookmark,
+                                    onAutoScroll: isAutoScrollCueActive
+                                        ? () =>
+                                              _stopAutoScroll(showMessage: true)
+                                        : _isAutoScrolling
+                                        ? _isAutoScrollPaused
+                                              ? _resumeAutoScroll
+                                              : _pauseAutoScroll
+                                        : _showAutoScroll,
+                                    onMetronome: _showMetronome,
+                                    onTuner: _showTuner,
+                                    onSettings: _showPerformanceSettings,
+                                    onPreviousScore: () =>
+                                        _goToAdjacentSetlistScore(-1),
+                                    onNextScore: () =>
+                                        _goToAdjacentSetlistScore(1),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -10339,72 +10845,6 @@ class _ViewerDisplayEffectWrapper extends StatelessWidget {
       ),
       _ => child,
     };
-  }
-}
-
-class _ScrollableAppBarActions extends StatefulWidget {
-  const _ScrollableAppBarActions({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  State<_ScrollableAppBarActions> createState() =>
-      _ScrollableAppBarActionsState();
-}
-
-class _ScrollableAppBarActionsState extends State<_ScrollableAppBarActions> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final availableWidth = math.max(
-      0.0,
-      MediaQuery.sizeOf(context).width -
-          MediaQuery.paddingOf(context).horizontal,
-    );
-    return SizedBox(
-      width: availableWidth,
-      height: kToolbarHeight,
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: false,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final child in widget.children)
-                _AppBarActionSlot(child: child),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AppBarActionSlot extends StatelessWidget {
-  const _AppBarActionSlot({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final minWidth = child is Center ? 72.0 : kToolbarHeight;
-    return ConstrainedBox(
-      constraints: BoxConstraints(minWidth: minWidth),
-      child: SizedBox(
-        height: kToolbarHeight,
-        child: Center(child: child),
-      ),
-    );
   }
 }
 
@@ -10831,34 +11271,10 @@ class _ViewerLoadingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
-      child: Card(
-        margin: const EdgeInsets.all(24),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '큰 PDF나 클라우드에서 가져온 파일은 첫 렌더링에 시간이 걸릴 수 있습니다.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(DdiroriTokens.spacing['lg']!),
+        child: DdiroriProgress(label: message),
       ),
     );
   }
@@ -11733,24 +12149,14 @@ class _AnnotationToolbar extends StatelessWidget {
       spacing: isCompact ? 6 : 10,
       runSpacing: 8,
       children: [
-        SegmentedButton<_AnnotationToolbarTool>(
-          showSelectedIcon: false,
-          segments: _AnnotationToolbarTool.values
-              .map(
-                (tool) => ButtonSegment<_AnnotationToolbarTool>(
-                  value: tool,
-                  icon: Tooltip(
-                    message: tool.label,
-                    child: Icon(tool.icon, size: 19),
-                  ),
-                ),
-              )
-              .toList(growable: false),
-          selected: <_AnnotationToolbarTool>{selectedTool},
-          onSelectionChanged: (selection) {
-            onToolSelected(selection.single);
-          },
-        ),
+        for (final tool in _AnnotationToolbarTool.values)
+          DdiroriButton(
+            label: tool.label,
+            icon: tool.icon,
+            kind: DdiroriButtonKind.quiet,
+            selected: selectedTool == tool,
+            onPressed: () => onToolSelected(tool),
+          ),
         if (selectedTool == _AnnotationToolbarTool.stamp)
           PopupMenuButton<_AnnotationStamp>(
             tooltip: '스탬프 선택',
@@ -11772,21 +12178,30 @@ class _AnnotationToolbar extends StatelessWidget {
         for (final color in _colors)
           Tooltip(
             message: _colorLabel(color),
-            child: InkResponse(
-              onTap: () => onColorSelected(color),
-              radius: 18,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(color),
-                  border: Border.all(
-                    color: selectedColor == color
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outlineVariant,
-                    width: selectedColor == color ? 3 : 1,
+            child: Semantics(
+              button: true,
+              selected: selectedColor == color,
+              child: InkResponse(
+                onTap: () => onColorSelected(color),
+                radius: 18,
+                child: SizedBox.square(
+                  dimension: 48,
+                  child: Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(color),
+                        border: Border.all(
+                          color: selectedColor == color
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant,
+                          width: selectedColor == color ? 3 : 1,
+                        ),
+                      ),
+                      child: const SizedBox(width: 24, height: 24),
+                    ),
                   ),
                 ),
-                child: const SizedBox(width: 24, height: 24),
               ),
             ),
           ),
@@ -11809,8 +12224,8 @@ class _AnnotationToolbar extends StatelessWidget {
                   ),
                 ),
                 child: SizedBox(
-                  width: 34,
-                  height: 30,
+                  width: 48,
+                  height: 48,
                   child: Center(
                     child: Container(
                       width: 18,
@@ -11870,23 +12285,7 @@ class _AnnotationToolbar extends StatelessWidget {
         ),
       ],
     );
-    return Material(
-      elevation: 4,
-      color: theme.colorScheme.surface.withValues(alpha: 0.94),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: isCompact ? 8 : 12,
-          vertical: 8,
-        ),
-        child: isCompact
-            ? SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: toolbarContent,
-              )
-            : toolbarContent,
-      ),
-    );
+    return toolbarContent;
   }
 
   String _colorLabel(int color) {
@@ -11924,6 +12323,7 @@ class _ViewerControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
+      heightFactor: 1,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.72),
@@ -11939,7 +12339,8 @@ class _ViewerControls extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: '이전 페이지',
-                onPressed: onPrevious,
+                onPressed: canGoPrevious ? onPrevious : null,
+                disabledColor: Colors.white38,
                 color: canGoPrevious ? Colors.white : Colors.white38,
                 iconSize: isPerformanceMode ? 34 : 24,
                 icon: const Icon(Icons.chevron_left),
@@ -11976,7 +12377,8 @@ class _ViewerControls extends StatelessWidget {
               ),
               IconButton(
                 tooltip: '다음 페이지',
-                onPressed: onNext,
+                onPressed: canGoNext ? onNext : null,
+                disabledColor: Colors.white38,
                 color: canGoNext ? Colors.white : Colors.white38,
                 iconSize: isPerformanceMode ? 34 : 24,
                 icon: const Icon(Icons.chevron_right),
@@ -12027,7 +12429,10 @@ class _PerformanceQuickActions extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.all(4),
-        child: Column(
+        child: Flex(
+          direction: MediaQuery.sizeOf(context).height < 520
+              ? Axis.horizontal
+              : Axis.vertical,
           mainAxisSize: MainAxisSize.min,
           children: [
             _PerformanceQuickActionButton(
@@ -12112,7 +12517,7 @@ class _PerformanceQuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 44,
+      dimension: 48,
       child: IconButton(
         tooltip: tooltip,
         color: isActive ? const Color(0xffffd54f) : Colors.white,

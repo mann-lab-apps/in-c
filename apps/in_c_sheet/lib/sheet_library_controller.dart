@@ -2117,10 +2117,11 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> _replace(SheetScore updated) async {
-    _scores = _scores
+    final updatedScores = _scores
         .map((score) => score.id == updated.id ? updated : score)
         .toList(growable: false);
-    await store.saveScores(_scores);
+    await store.saveScores(updatedScores);
+    _scores = updatedScores;
     notifyListeners();
   }
 
