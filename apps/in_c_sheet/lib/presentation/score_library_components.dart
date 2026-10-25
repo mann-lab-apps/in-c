@@ -35,47 +35,56 @@ class ScoreLibraryRow extends StatelessWidget {
   final VoidCallback onOpen, onSelect, onFavorite, onPin;
   final ValueChanged<ScoreLibraryAction> onAction;
   @override
-  Widget build(BuildContext context) => DdiroriItem(
-    title: entry.title,
-    subtitle: [
-      entry.subtitle,
-      entry.details,
-    ].where((s) => s.isNotEmpty).join('\n'),
-    flat: true,
-    selected: selected,
-    selecting: selecting,
-    leading: const Icon(Icons.description_outlined, size: 24),
-    // Preserve the product's selection-mode behavior; normal mode opens.
-    onTap: selecting ? onSelect : onOpen,
-    onSelected: (_) => onSelect(),
-    actions: selecting
-        ? const []
-        : [
-            DdiroriIconButton(
-              label: entry.favorite ? '즐겨찾기 해제' : '즐겨찾기',
-              icon: entry.favorite ? Icons.star : Icons.star_border,
-              onPressed: onFavorite,
-            ),
-            DdiroriIconButton(
-              label: entry.pinned ? '고정 해제' : '고정',
-              icon: entry.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-              onPressed: onPin,
-            ),
-            DdiroriMenuButton<ScoreLibraryAction>(
-              label: '더보기',
-              onSelected: onAction,
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: ScoreLibraryAction.edit,
-                  child: Text('악보 정보 편집'),
-                ),
-                PopupMenuItem(
-                  value: ScoreLibraryAction.share,
-                  child: Text('PDF 공유'),
-                ),
-              ],
-            ),
-          ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final actions = selecting
+          ? <Widget>[]
+          : <Widget>[
+              DdiroriIconButton(
+                label: entry.favorite ? '즐겨찾기 해제' : '즐겨찾기',
+                icon: entry.favorite ? Icons.star : Icons.star_border,
+                onPressed: onFavorite,
+              ),
+              DdiroriIconButton(
+                label: entry.pinned ? '고정 해제' : '고정',
+                icon: entry.pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                onPressed: onPin,
+              ),
+              DdiroriMenuButton<ScoreLibraryAction>(
+                label: '더보기',
+                onSelected: onAction,
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: ScoreLibraryAction.edit,
+                    child: Text('악보 정보 편집'),
+                  ),
+                  PopupMenuItem(
+                    value: ScoreLibraryAction.share,
+                    child: Text('PDF 공유'),
+                  ),
+                ],
+              ),
+            ];
+      final inline =
+          constraints.maxWidth >= 480 &&
+          MediaQuery.textScalerOf(context).scale(16) <= 20;
+      return DdiroriItem(
+        title: entry.title,
+        subtitle: [
+          entry.subtitle,
+          entry.details,
+        ].where((s) => s.isNotEmpty).join('\n'),
+        flat: true,
+        selected: selected,
+        selecting: selecting,
+        leading: const Icon(Icons.description_outlined, size: 24),
+        // Preserve the product's selection-mode behavior; normal mode opens.
+        onTap: selecting ? onSelect : onOpen,
+        onSelected: (_) => onSelect(),
+        trailing: inline && actions.isNotEmpty ? Wrap(children: actions) : null,
+        actions: inline ? const [] : actions,
+      );
+    },
   );
 }
 

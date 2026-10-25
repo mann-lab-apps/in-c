@@ -60,6 +60,8 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        악보함을 라이브러리·검색·정렬/필터·접힌 빠른 접근 순서로 정리했습니다. 선택한 악보가 필터 밖에 있어도 개수를 표시하며, 일괄 편집은 저장에 성공한 뒤에만 원본에 반영합니다.
+        큰 글씨에서 일괄 편집 선택 항목이 줄바꿈되며, 좁은 뷰어에서는 제목·뒤로 가기와 스크롤 도구 줄을 분리했습니다.
         악보함 검색·정렬·필터와 선택 목록을 공통 컴포넌트로 정리했습니다. 큰 글씨에서 제목이 줄바꿈되며, 일괄 편집 실패 시 입력을 유지하고 재시도할 수 있습니다.
         앱 표시명을 띠로리 스코어로 정리하고 공통 테마와 새 아이콘을 적용했습니다.
         악보함 검색, 빈 화면, 불러오기와 오류 안내를 공통 디자인으로 정리했습니다.
@@ -93,6 +95,10 @@ review:
     Ddirori Score (띠로리 스코어, formerly Clef & Staff) is a sheet-music library and reader.
     The local display name and icon have changed; account, bundle ID and backup keys are unchanged.
     Check the new library header, search, empty/loading/error states in light and dark mode.
+    The active library precedes search. Quick access and category browsing are collapsed initially.
+    Select scores, change filters, then open the bottom bulk-edit action; hidden selected scores remain included.
+    Cancel returns focus to the action. Save failure retains the draft and original data; retry publishes changes only after persistence succeeds.
+    The narrow viewer keeps its title and Back button above the scrolling tool row; PDF and annotation commands are unchanged.
     Existing version/build fields describe the earlier candidate; reconcile with the exact product checkpoint before pinning.
     Verify these instructions against the exact iOS release build before marking them reviewed.
 
@@ -118,6 +124,8 @@ testflight:
   build_id:
   description: 띠로리 스코어(이전 Clef & Staff)의 PDF 악보 가져오기, 라이브러리 정리, 악보 보기와 주석, 세트리스트를 테스트합니다.
   test_notes: |-
+    R1 확인: 라이브러리 전환 → 검색 → 정렬/필터 → 접힌 빠른 접근 순서를 확인해 주세요. 선택 후 필터를 바꾸면 필터 밖 선택 개수와 하단 일괄 편집 버튼이 유지됩니다. 저장 중 Back·중복 적용 차단, 실패 시 원본/입력/선택 보존, 취소/성공 후 포커스 복귀를 확인해 주세요.
+    320/390/840px 및 200% 글자의 자동 위젯 검사는 실기기 검수와 구분합니다. 뷰어는 제목/뒤로 가기가 고정되고 도구 줄만 가로 스크롤되는지 확인해 주세요.
     악보함: 정렬·즐겨찾기는 바로 사용하고 태그/컬렉션/그룹/별점은 필터 버튼으로 진입합니다. 빠른 접근은 펼쳐 사용합니다. 선택 모드에서 제목/checkbox로 선택하고 일괄 편집의 취소·실패·재시도와 처리 중 닫기 차단을 확인해 주세요.
     새 이름과 아이콘, 악보함의 중립 바탕과 임시 강조색·검색·빈 화면·로딩·오류 표시를 확인해 주세요.
     iPhone/iPad와 큰 글씨·다크 모드에서 제목과 카드가 잘리지 않는지 확인해 주세요.
@@ -153,9 +161,10 @@ screenshots:
   scenes:
   - id: library
     purpose: 띠로리 스코어 이름과 펼친 악보 심벌, 공통 검색이 보이는 악보 3개의 라이브러리. 큰 글씨는 별도 QA (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인 · 역할별 타이포와 실제 목록 여백 검증
-    route: 라이브러리 → 검색/정렬/필터 → 기본 목록 (빠른 접근 접힘, 선택 모드 해제)
+    route: 현재 라이브러리 → 검색 → 정렬/즐겨찾기/필터 → 기본 목록 (분류별 찾기와 빠른 접근 접힘, 선택 모드 해제)
     fixture: 자가 제작 악보 3개 이상, 컬렉션과 즐겨찾기 포함
     must_show:
+    - 검색 위의 현재 라이브러리와 전환 버튼, 접힌 분류별 찾기 (분류가 있을 때)
     - 띠로리 스코어 제품명과 제품 심벌, 흰색/무채색 바탕과 임시 강조색
     - 공통 검색, 정렬·즐겨찾기·필터 진입, 기본 라이브러리와 곡 수
     - 기본 접힘 상태의 빠른 접근과 평면 목록, 넓은 화면의 2열 구성
@@ -171,6 +180,9 @@ screenshots:
     - action: wait
       milliseconds: 500
     assertions:
+    - by: tooltip
+      value: 라이브러리 전환
+      present: true
     - by: widget_type
       value: ScoreLibraryControls
       present: true
@@ -205,11 +217,12 @@ screenshots:
       value: 디자인 시스템 기준
       present: false
   - id: library-selection
-    purpose: 선택 개수·선택 면/checkbox와 일괄 편집 진입을 확인하는 실제 악보함
+    purpose: 선택 개수·선택 면/checkbox와 목록을 가리지 않는 하단 일괄 편집 진입을 확인하는 실제 악보함
     route: 라이브러리 → 여러 악보 선택 → Prelude 선택
     fixture: library와 같은 자가 제작 악보 3개, 초기 선택 없음
     must_show:
     - 1개 선택, 체크 표시와 선택 면, 일괄 편집 버튼
+    - 하단 safe area 안의 일괄 편집 버튼 (숨은 선택은 별도 QA에서 필터 밖 개수 확인)
     - 긴 제목의 줄바꿈과 화면 안에 들어오는 조작 요소
     exclude:
     - 개인정보, 오류 배너, 웹 카탈로그, 실기기 검증 완료를 주장하는 문구
@@ -238,12 +251,50 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: library-bulk-edit
+    purpose: 선택한 실제 악보의 일괄 편집 draft와 적용/취소 진입 확인. 저장 완료나 실패를 연출하지 않음.
+    route: 라이브러리 → 여러 악보 선택 → Prelude → 하단 일괄 편집
+    fixture: library와 같은 자가 제작 악보 3개, 초기 선택 없음. 입력 없는 draft이며 원본 변경 없음.
+    must_show:
+    - 추가/제거 태그, 컬렉션/그룹, 별점과 즐겨찾기/고정의 변경 없음 선택
+    - 일괄 편집 제목과 실제 입력 필드. 작은 화면의 하단 적용/취소는 스크롤로 접근
+    exclude:
+    - 가짜 성공 안내, 의도적인 저장 오류, 개인정보, 웹 리뷰 예제
+    steps:
+    - action: wait
+      milliseconds: 500
+    - action: tap
+      by: tooltip
+      value: 여러 악보 선택
+    - action: scroll_to
+      by: text
+      value: Prelude
+      delta: 300
+    - action: tap
+      by: text
+      value: Prelude
+    - action: tap
+      by: text
+      value: 일괄 편집
+    - action: wait
+      milliseconds: 400
+    assertions:
+    - by: text
+      value: 추가할 태그
+      present: true
+    - by: text
+      value: 제거할 태그
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: annotation
     purpose: 오디오 패널과 엔진 점검 안내 없이 실제 PDF 렌더러에서 저장된 형광펜/펜 필기를 표시 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 라이브러리 → 자가 제작 악보 열기 → 미리 저장한 주석 표시 (연결 오디오 패널은 닫힌 상태)
     fixture: 직접 만든 악보와 짧은 연습 표시. 오디오 품질 증거용 장면이 아님
     must_show:
     - 읽을 수 있는 악보와 adapter가 실제로 저장한 형광펜·펜 주석
+    - 좁은 화면에서 고정된 제목·뒤로 가기와 별도 가로 스크롤 도구 줄
     - 연결 오디오 패널이 가리지 않는 PDF
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
@@ -341,6 +392,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-25 R1 악보함/선택/일괄 편집과 좁은 뷰어 배치 변경. product-design-r1/returns/score-20261025의 위젯 캡처·자동 회귀와 실제 VoiceOver/IME/기기 검수를 구분한다. 새 후보 빌드 검수는 pending.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 시범 적용 후 이름·제품 심벌·검색·빈 화면·로딩·오류 안내, 밝은/어두운 화면과 큰 글씨를 재확인해야 함. Flutter 위젯 렌더링은 별도 브랜드 evidence이며 스토어 촬영·실기기 VoiceOver 증거가 아님. 재생 명령 대기 중 비활성 컨트롤과 엔진 확인 사용
       중 경고의 iOS 접근성 확인 필요. 본문·뷰어 상태·라이브러리 검색/필터·악보 카드·세트리스트 미리보기·페이지 탐색·필기 layer 메뉴·사용자 스탬프 목록·진단 상태·튜너/시각 박자 표시 분리 후 포커스·선택·텍스트 크기·오류 상세 접근성 재확인 필요. 홈 큰 글씨 카드 높이
@@ -360,6 +412,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 적용 후 실제 후보 빌드의 이름·아이콘·기존 가져오기/검색/필기 동선을 재검증해야 함. 1.0.3+30 소스의 Android 에뮬레이터/iOS 시뮬레이터 native 오디오 통합 테스트 각 2개와 일반 앱 실행 확인. 무음 fixture이며 실기기 청감·출력 경로는 미확인.
       2026-10-23 라임 대표색·올리브 행동색 및 새 런처 적용 후 후보 빌드와 실기기 검수 필요. 위젯 렌더링은 스토어 촬영 승인 근거가 아님. 2026-10-23 후속 중립색 시스템: 흰색·무채색 표면과 선택색을 분리하고 Material 표면 틴트를 제거함. 임시 라임 강조색은
@@ -369,6 +422,8 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      현재 작업트리 pubspec/main은 1.0.0+14, Android applicationId는 com.mannlab.inc, iOS Runner bundle은 com.mannlab.inc.clef다. YAML의 1.0.3+30 및 com.mannlab.inc.clefandstaff와 다르므로 이 UI 검증 결과로 출시 소스/식별자 일치를 주장하지 않는다. 값은 임의 변경하지 않았으며 출시 전 정확한 제품 checkpoint 대조가 필요하다.
+      2026-10-25 R1 제품 변경은 미커밋 초안이며 기존 1.0.3+30 촬영/빌드 근거를 재사용하지 않는다. 버전 증가·새 빌드·업로드는 수행하지 않음.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 적용으로 기존 로컬 빌드 검증을 새 소스의 근거로 사용하지 않음. 새 checkpoint 확정과 버전/build 대조 전 pending. 60b5ad4 소스의 1.0.3+30 AAB/IPA 서명·식별자·버전·해시와 기존 배포 속성 비교 PASS. 로컬 후보만 생성, 업로드/스토어
       빌드 선택/심사 제출 미실행. 2026-10-23 라임 대표색·올리브 행동색 및 새 런처 적용 후 후보 빌드와 실기기 검수 필요. 위젯 렌더링은 스토어 촬영 승인 근거가 아님. 2026-10-23 후속 중립색 시스템: 흰색·무채색 표면과 선택색을 분리하고 Material 표면 틴트를

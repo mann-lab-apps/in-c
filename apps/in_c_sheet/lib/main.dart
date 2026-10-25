@@ -82,7 +82,13 @@ Future<int> _readPdfFileRange(
 }
 
 class InCSheetApp extends StatelessWidget {
-  const InCSheetApp({required this.controller, this.fontFamily, this.accent, this.themeMode = ThemeMode.system, super.key});
+  const InCSheetApp({
+    required this.controller,
+    this.fontFamily,
+    this.accent,
+    this.themeMode = ThemeMode.system,
+    super.key,
+  });
 
   final SheetLibraryController controller;
   final String? fontFamily;
@@ -118,7 +124,10 @@ class SheetLibraryScreen extends StatefulWidget {
 class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   final Set<String> _handledSharedImportPaths = <String>{};
   final Set<String> _bulkSelectedScoreIds = <String>{};
+  final _libraryHeadingFocus = FocusNode(debugLabel: 'Score library heading');
+  final _bulkEditFocus = FocusNode(debugLabel: 'Score bulk edit');
   bool _isBulkSelecting = false;
+  bool _showFacets = false;
 
   SheetLibraryController get controller => widget.controller;
 
@@ -136,6 +145,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   void dispose() {
     _sharedImportChannel.setMethodCallHandler(null);
     controller.removeListener(_handleControllerChanged);
+    _libraryHeadingFocus.dispose();
+    _bulkEditFocus.dispose();
     super.dispose();
   }
 
@@ -170,19 +181,35 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     }
     final ids = Set<String>.of(_bulkSelectedScoreIds);
     final changedCount = await showModalBottomSheet<int>(
-      context: context, isScrollControlled: true, useSafeArea: true,
-      isDismissible: false, enableDrag: false, showDragHandle: false,
-      builder: (context) => _BulkEditSheet(onApply: (input) => controller.bulkEditScores(
-        ids, addTags: input.addTags, removeTags: input.removeTags,
-        collection: input.collection, group: input.group, rating: input.rating,
-        isFavorite: input.isFavorite, isPinned: input.isPinned,
-      )),
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: false,
+      enableDrag: false,
+      showDragHandle: false,
+      builder: (context) => _BulkEditSheet(
+        onApply: (input) => controller.bulkEditScores(
+          ids,
+          addTags: input.addTags,
+          removeTags: input.removeTags,
+          collection: input.collection,
+          group: input.group,
+          rating: input.rating,
+          isFavorite: input.isFavorite,
+          isPinned: input.isPinned,
+        ),
+      ),
     );
-    if (!mounted || changedCount == null) return;
+    if (!mounted) return;
+    if (changedCount == null) {
+      _bulkEditFocus.requestFocus();
+      return;
+    }
     setState(() {
       _isBulkSelecting = false;
       _bulkSelectedScoreIds.clear();
     });
+    _libraryHeadingFocus.requestFocus();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$changedCount개 악보 metadata를 일괄 편집했습니다.')),
     );
@@ -1034,6 +1061,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final scores = controller.filteredScores;
+    final visibleIds = scores.map((score) => score.id).toSet();
+    final hiddenSelectionCount = _bulkSelectedScoreIds
+        .difference(visibleIds)
+        .length;
 
     return Scaffold(
       appBar: AppBar(
@@ -1049,102 +1080,120 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ),
           ),
           if (!_isBulkSelecting) ...[
-          IconButton(
-            tooltip: '세트리스트',
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (context) =>
-                      SheetSetlistsScreen(controller: controller),
+            IconButton(
+              tooltip: '세트리스트',
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        SheetSetlistsScreen(controller: controller),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.queue_music),
+            ),
+            IconButton(
+              tooltip: '테스트 정보',
+              onPressed: _showTesterInfo,
+              icon: const Icon(Icons.info_outline),
+            ),
+            IconButton(
+              tooltip: '전역 보기/입력 기본값',
+              onPressed: _showGlobalViewerDefaults,
+              icon: const Icon(Icons.settings_applications_outlined),
+            ),
+            PopupMenuButton<_LibraryBackupAction>(
+              tooltip: '백업/복원',
+              icon: const Icon(Icons.inventory_2_outlined),
+              onSelected: (action) {
+                switch (action) {
+                  case _LibraryBackupAction.exportMetadata:
+                    _exportBackup();
+                  case _LibraryBackupAction.importMetadata:
+                    _importBackup();
+                  case _LibraryBackupAction.restoreAutomaticMetadata:
+                    _restoreAutomaticBackup();
+                  case _LibraryBackupAction.exportFull:
+                    _exportFullBackup();
+                  case _LibraryBackupAction.importFull:
+                    _importFullBackup();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.ios_share),
+                    title: Text('metadata 백업'),
+                  ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.queue_music),
-          ),
-          IconButton(
-            tooltip: '테스트 정보',
-            onPressed: _showTesterInfo,
-            icon: const Icon(Icons.info_outline),
-          ),
-          IconButton(
-            tooltip: '전역 보기/입력 기본값',
-            onPressed: _showGlobalViewerDefaults,
-            icon: const Icon(Icons.settings_applications_outlined),
-          ),
-          PopupMenuButton<_LibraryBackupAction>(
-            tooltip: '백업/복원',
-            icon: const Icon(Icons.inventory_2_outlined),
-            onSelected: (action) {
-              switch (action) {
-                case _LibraryBackupAction.exportMetadata:
-                  _exportBackup();
-                case _LibraryBackupAction.importMetadata:
-                  _importBackup();
-                case _LibraryBackupAction.restoreAutomaticMetadata:
-                  _restoreAutomaticBackup();
-                case _LibraryBackupAction.exportFull:
-                  _exportFullBackup();
-                case _LibraryBackupAction.importFull:
-                  _importFullBackup();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.ios_share),
-                  title: Text('metadata 백업'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.restore),
+                    title: Text('metadata 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.restore),
-                  title: Text('metadata 복원'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.restoreAutomaticMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.history),
+                    title: Text('자동 metadata 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.restoreAutomaticMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text('자동 metadata 복원'),
+                PopupMenuDivider(),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportFull,
+                  child: ListTile(
+                    leading: Icon(Icons.archive_outlined),
+                    title: Text('PDF 포함 전체 백업'),
+                  ),
                 ),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportFull,
-                child: ListTile(
-                  leading: Icon(Icons.archive_outlined),
-                  title: Text('PDF 포함 전체 백업'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importFull,
+                  child: ListTile(
+                    leading: Icon(Icons.unarchive_outlined),
+                    title: Text('전체 백업 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importFull,
-                child: ListTile(
-                  leading: Icon(Icons.unarchive_outlined),
-                  title: Text('전체 백업 복원'),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            tooltip: '악보 추가',
-            onPressed: controller.isImporting ? null : _showImportOptions,
-            icon: controller.isImporting
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: DdiroriMark(size: 20, pulse: true),
-                  )
-                : const Icon(Icons.add_to_photos_outlined),
-          ),
+              ],
+            ),
+            IconButton(
+              tooltip: '악보 추가',
+              onPressed: controller.isImporting ? null : _showImportOptions,
+              icon: controller.isImporting
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: DdiroriMark(size: 20, pulse: true),
+                    )
+                  : const Icon(Icons.add_to_photos_outlined),
+            ),
           ],
         ],
       ),
-      floatingActionButton: _isBulkSelecting
-          ? DdiroriButton(
-              onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
-              icon: Icons.edit_note,
-              label: '일괄 편집',
+      bottomNavigationBar: _isBulkSelecting
+          ? SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(DdiroriTokens.spacing['lg']!),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (hiddenSelectionCount > 0)
+                      Text('필터 밖 $hiddenSelectionCount개 포함'),
+                    Focus(
+                      focusNode: _bulkEditFocus,
+                      child: DdiroriButton(
+                        onPressed: _bulkSelectedScoreIds.isEmpty
+                            ? null
+                            : _showBulkEdit,
+                        icon: Icons.edit_note,
+                        label: '일괄 편집',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             )
           : null,
       body: SafeArea(
@@ -1165,7 +1214,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide
                         ? DdiroriTokens.layout['pageGutterWide']!
                         : DdiroriTokens.layout['pageGutter']!,
-                    96,
+                    DdiroriTokens.spacing['lg']!,
                   ),
                   child: NestedScrollView(
                     headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -1178,18 +1227,21 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               name: '띠로리 스코어',
                               subtitle: '연습부터 공연까지, 내 악보함',
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: DdiroriTokens.layout['itemGap']),
+                            Focus(
+                              focusNode: _libraryHeadingFocus,
+                              child: _LibraryProfileBar(
+                                activeLibrary:
+                                    controller.activeLibraryProfile.name,
+                                visibleCount: scores.length,
+                                totalCount: controller.scores.length,
+                                onPressed: _showLibrarySwitcher,
+                              ),
+                            ),
+                            SizedBox(height: DdiroriTokens.spacing['xl']),
                             _SearchField(
                               query: controller.query,
                               onChanged: controller.updateQuery,
-                            ),
-                            SizedBox(height: DdiroriTokens.layout['itemGap']),
-                            _LibraryProfileBar(
-                              activeLibrary:
-                                  controller.activeLibraryProfile.name,
-                              visibleCount: scores.length,
-                              totalCount: controller.scores.length,
-                              onPressed: _showLibrarySwitcher,
                             ),
                             SizedBox(height: DdiroriTokens.layout['itemGap']),
                             _LibraryViewBar(
@@ -1203,23 +1255,33 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               onRatingPressed: _selectRatingFilter,
                             ),
                             SizedBox(height: DdiroriTokens.layout['itemGap']),
-                            _LibraryFacetExplorer(
-                              collectionFacets: controller.collectionFacets,
-                              groupFacets: controller.groupFacets,
-                              ratingFacets: controller.ratingFacets,
-                              selectedCollection: controller
-                                  .libraryViewSettings
-                                  .collectionQuery,
-                              selectedGroup:
-                                  controller.libraryViewSettings.groupQuery,
-                              selectedMinimumRating:
-                                  controller.libraryViewSettings.minimumRating,
-                              onCollectionSelected:
-                                  controller.updateCollectionFilter,
-                              onGroupSelected: controller.updateGroupFilter,
-                              onRatingSelected:
-                                  controller.updateMinimumRatingFilter,
-                            ),
+                            if (controller.collectionFacets.isNotEmpty ||
+                                controller.groupFacets.isNotEmpty ||
+                                controller.ratingFacets.isNotEmpty)
+                              DdiroriAccordion(
+                                title: '분류별 찾기',
+                                open: _showFacets,
+                                onChanged: (value) =>
+                                    setState(() => _showFacets = value),
+                                child: _LibraryFacetExplorer(
+                                  collectionFacets: controller.collectionFacets,
+                                  groupFacets: controller.groupFacets,
+                                  ratingFacets: controller.ratingFacets,
+                                  selectedCollection: controller
+                                      .libraryViewSettings
+                                      .collectionQuery,
+                                  selectedGroup:
+                                      controller.libraryViewSettings.groupQuery,
+                                  selectedMinimumRating: controller
+                                      .libraryViewSettings
+                                      .minimumRating,
+                                  onCollectionSelected:
+                                      controller.updateCollectionFilter,
+                                  onGroupSelected: controller.updateGroupFilter,
+                                  onRatingSelected:
+                                      controller.updateMinimumRatingFilter,
+                                ),
+                              ),
                             SizedBox(height: DdiroriTokens.spacing['lg']),
                             if (controller.errorMessage != null)
                               _NoticeBanner(message: controller.errorMessage!),
@@ -1356,26 +1418,21 @@ class _LibraryProfileBar extends StatelessWidget {
     final subtitle = visibleCount == totalCount
         ? '$totalCount곡'
         : '$visibleCount곡 표시 · 전체 $totalCount곡';
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        leading: Icon(
-          title == SheetLibraryProfile.defaultName
-              ? Icons.library_music_outlined
-              : Icons.collections_bookmark,
-        ),
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.expand_more),
-        onTap: onPressed,
+    return DdiroriItem(
+      flat: true,
+      leading: Icon(
+        title == SheetLibraryProfile.defaultName
+            ? Icons.library_music_outlined
+            : Icons.collections_bookmark,
       ),
+      title: title,
+      subtitle: subtitle,
+      trailing: DdiroriIconButton(
+        label: '라이브러리 전환',
+        icon: Icons.expand_more,
+        onPressed: onPressed,
+      ),
+      onTap: onPressed,
     );
   }
 }
@@ -1495,13 +1552,39 @@ class _LibraryViewBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ScoreLibraryControls(
-    sortLabel: _librarySortLabel(settings.sortMode), favoriteOnly: settings.favoriteOnly,
-    onSort: onSortPressed, onFavorite: onFavoriteChanged,
+    sortLabel: _librarySortLabel(settings.sortMode),
+    favoriteOnly: settings.favoriteOnly,
+    onSort: onSortPressed,
+    onFavorite: onFavoriteChanged,
     filters: [
-      (label: settings.tagQuery.isEmpty ? '태그: 전체' : '태그: ${settings.tagQuery}', active: settings.tagQuery.isNotEmpty, onPressed: onTagPressed),
-      (label: settings.collectionQuery.isEmpty ? '컬렉션: 전체' : '컬렉션: ${settings.collectionQuery}', active: settings.collectionQuery.isNotEmpty, onPressed: onCollectionPressed),
-      (label: settings.groupQuery.isEmpty ? '그룹: 전체' : '그룹: ${settings.groupQuery}', active: settings.groupQuery.isNotEmpty, onPressed: onGroupPressed),
-      (label: settings.minimumRating == 0 ? '별점: 전체' : '별점: ${settings.minimumRating}+', active: settings.minimumRating > 0, onPressed: onRatingPressed),
+      (
+        label: settings.tagQuery.isEmpty
+            ? '태그: 전체'
+            : '태그: ${settings.tagQuery}',
+        active: settings.tagQuery.isNotEmpty,
+        onPressed: onTagPressed,
+      ),
+      (
+        label: settings.collectionQuery.isEmpty
+            ? '컬렉션: 전체'
+            : '컬렉션: ${settings.collectionQuery}',
+        active: settings.collectionQuery.isNotEmpty,
+        onPressed: onCollectionPressed,
+      ),
+      (
+        label: settings.groupQuery.isEmpty
+            ? '그룹: 전체'
+            : '그룹: ${settings.groupQuery}',
+        active: settings.groupQuery.isNotEmpty,
+        onPressed: onGroupPressed,
+      ),
+      (
+        label: settings.minimumRating == 0
+            ? '별점: 전체'
+            : '별점: ${settings.minimumRating}+',
+        active: settings.minimumRating > 0,
+        onPressed: onRatingPressed,
+      ),
     ],
   );
 }
@@ -2695,24 +2778,38 @@ class _QuickAccessBand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scores = {for (final s in [...pinnedScores, ...favoriteScores, ...recentScores]) s.id: s};
-    return ScoreQuickAccess(groups: [
-      (label: '고정', entries: pinnedScores.map(_scoreEntry).toList()),
-      (label: '즐겨찾기', entries: favoriteScores.map(_scoreEntry).toList()),
-      (label: '최근', entries: recentScores.map(_scoreEntry).toList()),
-    ], onOpen: (id) { final score = scores[id]; if (score != null) onOpen(score); });
+    final scores = {
+      for (final s in [...pinnedScores, ...favoriteScores, ...recentScores])
+        s.id: s,
+    };
+    return ScoreQuickAccess(
+      groups: [
+        (label: '고정', entries: pinnedScores.map(_scoreEntry).toList()),
+        (label: '즐겨찾기', entries: favoriteScores.map(_scoreEntry).toList()),
+        (label: '최근', entries: recentScores.map(_scoreEntry).toList()),
+      ],
+      onOpen: (id) {
+        final score = scores[id];
+        if (score != null) onOpen(score);
+      },
+    );
   }
 }
 
 ScoreLibraryEntry _scoreEntry(SheetScore score) => ScoreLibraryEntry(
-  id: score.id, title: score.title, subtitle: _scoreIdentitySubtitle(score),
-  favorite: score.isFavorite, pinned: score.isPinned,
+  id: score.id,
+  title: score.title,
+  subtitle: _scoreIdentitySubtitle(score),
+  favorite: score.isFavorite,
+  pinned: score.isPinned,
   details: [
     if (score.collection.isNotEmpty) score.collection,
     if (score.group.isNotEmpty) score.group,
     if (score.rating > 0) '${score.rating}점',
     if (score.tags.isNotEmpty) score.tags.join(', '),
-    score.lastOpenedAt == null ? '아직 열지 않음' : '최근 ${_formatShortDate(score.lastOpenedAt!)}',
+    score.lastOpenedAt == null
+        ? '아직 열지 않음'
+        : '최근 ${_formatShortDate(score.lastOpenedAt!)}',
     '마지막 ${score.lastPage}쪽',
   ].join(' · '),
 );
@@ -2780,15 +2877,27 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
 
   Future<void> _apply() async {
     if (_busy) return;
-    setState(() { _busy = true; _error = null; });
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      final changed = await widget.onApply(_BulkEditInput(
-        addTags: _splitTags(_addTagsController.text), removeTags: _splitTags(_removeTagsController.text),
-        collection: _blankToNull(_collectionController.text), group: _blankToNull(_groupController.text),
-        rating: _rating, isFavorite: _favorite, isPinned: _pinned));
+      final changed = await widget.onApply(
+        _BulkEditInput(
+          addTags: _splitTags(_addTagsController.text),
+          removeTags: _splitTags(_removeTagsController.text),
+          collection: _blankToNull(_collectionController.text),
+          group: _blankToNull(_groupController.text),
+          rating: _rating,
+          isFavorite: _favorite,
+          isPinned: _pinned,
+        ),
+      );
       if (mounted) Navigator.of(context).pop(changed);
     } catch (_) {
-      if (mounted) setState(() => _error = '변경 사항을 저장하지 못했어요. 입력을 유지했으니 다시 시도해 주세요.');
+      if (mounted) {
+        setState(() => _error = '변경 사항을 저장하지 못했어요. 입력을 유지했으니 다시 시도해 주세요.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -2799,78 +2908,104 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
     return PopScope(
       canPop: !_busy,
       child: SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-        ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              '일괄 편집',
-              style: ddiroriTextStyle(DdiroriTextRole.sectionTitle),
-            ),
-            const SizedBox(height: 12),
-            AbsorbPointer(absorbing: _busy, child: ExcludeFocus(excluding: _busy, child: DdiroriStack(children: [
-            TextField(
-              controller: _addTagsController,
-              decoration: const InputDecoration(
-                labelText: '추가할 태그',
-                hintText: 'comma, separated',
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Text(
+                '일괄 편집',
+                style: ddiroriTextStyle(DdiroriTextRole.sectionTitle),
               ),
-            ),
-            TextField(
-              controller: _removeTagsController,
-              decoration: const InputDecoration(labelText: '제거할 태그'),
-            ),
-            TextField(
-              controller: _collectionController,
-              decoration: const InputDecoration(labelText: '컬렉션 변경'),
-            ),
-            TextField(
-              controller: _groupController,
-              decoration: const InputDecoration(labelText: '그룹 변경'),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int?>(
-              initialValue: _rating,
-              decoration: const InputDecoration(labelText: '별점 변경'),
-              items: const [
-                DropdownMenuItem<int?>(value: null, child: Text('변경 없음')),
-                DropdownMenuItem<int?>(value: 0, child: Text('0점')),
-                DropdownMenuItem<int?>(value: 1, child: Text('1점')),
-                DropdownMenuItem<int?>(value: 2, child: Text('2점')),
-                DropdownMenuItem<int?>(value: 3, child: Text('3점')),
-                DropdownMenuItem<int?>(value: 4, child: Text('4점')),
-                DropdownMenuItem<int?>(value: 5, child: Text('5점')),
-              ],
-              onChanged: (value) => setState(() => _rating = value),
-            ),
-            const SizedBox(height: 10),
-            _NullableBoolControl(
-              label: '즐겨찾기',
-              value: _favorite,
-              onChanged: (value) => setState(() => _favorite = value),
-            ),
-            _NullableBoolControl(
-              label: '고정',
-              value: _pinned,
-              onChanged: (value) => setState(() => _pinned = value),
-            ),
-            ]))),
-            const SizedBox(height: 16),
-            if (_error != null) DdiroriInlineMessage(message: _error!, error: true),
-            DdiroriAdaptiveActions(children: [
-              DdiroriButton(label: '취소', kind: DdiroriButtonKind.quiet,
-                onPressed: _busy ? null : () => Navigator.of(context).pop()),
-              DdiroriButton(label: '적용', icon: Icons.check, busy: _busy, onPressed: _apply),
-            ]),
-          ],
+              const SizedBox(height: 12),
+              AbsorbPointer(
+                absorbing: _busy,
+                child: ExcludeFocus(
+                  excluding: _busy,
+                  child: DdiroriStack(
+                    children: [
+                      TextField(
+                        controller: _addTagsController,
+                        readOnly: _busy,
+                        decoration: const InputDecoration(
+                          labelText: '추가할 태그',
+                          hintText: 'comma, separated',
+                        ),
+                      ),
+                      TextField(
+                        controller: _removeTagsController,
+                        readOnly: _busy,
+                        decoration: const InputDecoration(labelText: '제거할 태그'),
+                      ),
+                      TextField(
+                        controller: _collectionController,
+                        readOnly: _busy,
+                        decoration: const InputDecoration(labelText: '컬렉션 변경'),
+                      ),
+                      TextField(
+                        controller: _groupController,
+                        readOnly: _busy,
+                        decoration: const InputDecoration(labelText: '그룹 변경'),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<int?>(
+                        initialValue: _rating,
+                        decoration: const InputDecoration(labelText: '별점 변경'),
+                        items: const [
+                          DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('변경 없음'),
+                          ),
+                          DropdownMenuItem<int?>(value: 0, child: Text('0점')),
+                          DropdownMenuItem<int?>(value: 1, child: Text('1점')),
+                          DropdownMenuItem<int?>(value: 2, child: Text('2점')),
+                          DropdownMenuItem<int?>(value: 3, child: Text('3점')),
+                          DropdownMenuItem<int?>(value: 4, child: Text('4점')),
+                          DropdownMenuItem<int?>(value: 5, child: Text('5점')),
+                        ],
+                        onChanged: (value) => setState(() => _rating = value),
+                      ),
+                      const SizedBox(height: 10),
+                      _NullableBoolControl(
+                        label: '즐겨찾기',
+                        value: _favorite,
+                        onChanged: (value) => setState(() => _favorite = value),
+                      ),
+                      _NullableBoolControl(
+                        label: '고정',
+                        value: _pinned,
+                        onChanged: (value) => setState(() => _pinned = value),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                DdiroriInlineMessage(message: _error!, error: true),
+              DdiroriAdaptiveActions(
+                children: [
+                  DdiroriButton(
+                    label: '취소',
+                    kind: DdiroriButtonKind.quiet,
+                    onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                  ),
+                  DdiroriButton(
+                    label: '적용',
+                    icon: Icons.check,
+                    busy: _busy,
+                    onPressed: _apply,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -2907,32 +3042,30 @@ class _NullableBoolControl extends StatelessWidget {
         : value!
         ? _NullableBoolChoice.enabled
         : _NullableBoolChoice.disabled;
-    return SegmentedButton<_NullableBoolChoice>(
-      segments: [
-        ButtonSegment<_NullableBoolChoice>(
-          value: _NullableBoolChoice.unchanged,
-          label: Text('$label 변경 없음'),
-        ),
-        const ButtonSegment<_NullableBoolChoice>(
-          value: _NullableBoolChoice.enabled,
-          label: Text('켜기'),
-        ),
-        const ButtonSegment<_NullableBoolChoice>(
-          value: _NullableBoolChoice.disabled,
-          label: Text('끄기'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        SizedBox(height: DdiroriTokens.spacing['sm']),
+        DdiroriChoices<_NullableBoolChoice>(
+          options: const {
+            _NullableBoolChoice.unchanged: '변경 없음',
+            _NullableBoolChoice.enabled: '켜기',
+            _NullableBoolChoice.disabled: '끄기',
+          },
+          selected: {selected},
+          onChanged: (selection) {
+            switch (selection.singleOrNull ?? _NullableBoolChoice.unchanged) {
+              case _NullableBoolChoice.unchanged:
+                onChanged(null);
+              case _NullableBoolChoice.enabled:
+                onChanged(true);
+              case _NullableBoolChoice.disabled:
+                onChanged(false);
+            }
+          },
         ),
       ],
-      selected: <_NullableBoolChoice>{selected},
-      onSelectionChanged: (selection) {
-        switch (selection.single) {
-          case _NullableBoolChoice.unchanged:
-            onChanged(null);
-          case _NullableBoolChoice.enabled:
-            onChanged(true);
-          case _NullableBoolChoice.disabled:
-            onChanged(false);
-        }
-      },
     );
   }
 }
@@ -2968,13 +3101,22 @@ class _ScoreGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final byId = {for (final s in scores) s.id: s};
     void forward(String id, ValueChanged<SheetScore> callback) {
-      final score = byId[id]; if (score != null) callback(score);
+      final score = byId[id];
+      if (score != null) callback(score);
     }
-    return ScoreLibraryCollection(entries: scores.map(_scoreEntry).toList(growable: false),
-      wide: isWide, selecting: isSelecting, selectedIds: selectedIds,
-      onOpen: (id) => forward(id, onOpen), onSelect: (id) => forward(id, onSelectionChanged),
-      onFavorite: (id) => forward(id, onFavorite), onPin: (id) => forward(id, onPin),
-      onAction: (id, action) => forward(id, action == ScoreLibraryAction.edit ? onEdit : onShare));
+
+    return ScoreLibraryCollection(
+      entries: scores.map(_scoreEntry).toList(growable: false),
+      wide: isWide,
+      selecting: isSelecting,
+      selectedIds: selectedIds,
+      onOpen: (id) => forward(id, onOpen),
+      onSelect: (id) => forward(id, onSelectionChanged),
+      onFavorite: (id) => forward(id, onFavorite),
+      onPin: (id) => forward(id, onPin),
+      onAction: (id, action) =>
+          forward(id, action == ScoreLibraryAction.edit ? onEdit : onShare),
+    );
   }
 }
 
@@ -8983,7 +9125,7 @@ setlist=$setlistLabel
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(currentScore.title, overflow: TextOverflow.ellipsis),
+        Text(currentScore.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         if (setlistContext != null)
           Text(
             _setlistContextSubtitle(setlistContext),
@@ -9701,24 +9843,25 @@ setlist=$setlistLabel
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: !usesScrollableViewerToolbar,
-        title: usesScrollableViewerToolbar ? null : appBarTitle,
-        actions: usesScrollableViewerToolbar
-            ? <Widget>[
-                _ScrollableAppBarActions(
-                  children: [
-                    IconButton(
-                      tooltip: '뒤로',
-                      onPressed: () {
-                        Navigator.of(context).maybePop();
-                      },
-                      icon: const BackButtonIcon(),
-                    ),
-                    ...appBarActions,
-                  ],
-                ),
-              ]
-            : appBarActions,
+        title: appBarTitle,
+        toolbarHeight: math.max(
+          kToolbarHeight,
+          MediaQuery.textScalerOf(context)
+                  .scale(setlistContext == null ? 28 : 40) +
+              16,
+        ),
+        leading: IconButton(
+          tooltip: '뒤로',
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const BackButtonIcon(),
+        ),
+        actions: usesScrollableViewerToolbar ? null : appBarActions,
+        bottom: usesScrollableViewerToolbar
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(kToolbarHeight),
+                child: _ScrollableAppBarActions(children: appBarActions),
+              )
+            : null,
       ),
       body: Focus(
         focusNode: _keyboardFocusNode,
@@ -10222,7 +10365,8 @@ class _ScrollableAppBarActionsState extends State<_ScrollableAppBarActions> {
   Widget build(BuildContext context) {
     final availableWidth = math.max(
       0.0,
-      MediaQuery.sizeOf(context).width - kToolbarHeight - 8,
+      MediaQuery.sizeOf(context).width -
+          MediaQuery.paddingOf(context).horizontal,
     );
     return SizedBox(
       width: availableWidth,
@@ -10254,10 +10398,12 @@ class _AppBarActionSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final minWidth = child is Center ? 72.0 : kToolbarHeight;
-    return SizedBox(
-      width: minWidth,
-      height: kToolbarHeight,
-      child: Center(child: child),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: minWidth),
+      child: SizedBox(
+        height: kToolbarHeight,
+        child: Center(child: child),
+      ),
     );
   }
 }
@@ -10771,35 +10917,35 @@ class _ViewerProblemBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Card(
-        margin: const EdgeInsets.all(24),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 42, color: theme.colorScheme.error),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
+      child: SingleChildScrollView(
+        child: Card(
+          margin: const EdgeInsets.all(24),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 42, color: theme.colorScheme.error),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: ddiroriTextStyle(DdiroriTextRole.sectionTitle),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                SelectableText(
-                  detail,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 8),
+                  Text(message, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    detail,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -11798,30 +11944,34 @@ class _ViewerControls extends StatelessWidget {
                 iconSize: isPerformanceMode ? 34 : 24,
                 icon: const Icon(Icons.chevron_left),
               ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isPerformanceMode ? 18 : 12,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$pageNumber / ${pageCount ?? '-'}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isPerformanceMode ? 18 : null,
-                        fontWeight: FontWeight.w900,
+              Flexible(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isPerformanceMode ? 18 : 12,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$pageNumber / ${pageCount ?? '-'}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isPerformanceMode ? 18 : null,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    Text(
-                      modeLabel,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: isPerformanceMode ? 12 : 10,
-                        fontWeight: FontWeight.w700,
+                      Text(
+                        modeLabel,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: isPerformanceMode ? 12 : 10,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               IconButton(
