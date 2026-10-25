@@ -1,0 +1,69 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run --dir src --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+·······································································································································································································································································stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"G","line":2}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"F","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":3}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+stderr | src/renderer/src/notation/vexflow-adapter.test.ts > VexFlow adapter > centers rest keys on the same staff line for clef {"sign":"C","line":4}
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+Element: No context for txtCanvas. Returning empty text metrics.
+
+············································································································································································································-············································································································································
+
+ Test Files  48 passed | 1 skipped (49)
+      Tests  607 passed | 1 skipped (608)
+   Start at  21:06:24
+   Duration  71.98s (transform 4.36s, setup 0ms, import 9.04s, tests 73.96s, environment 1.76s)

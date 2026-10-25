@@ -10,6 +10,7 @@ import {
 import { createRoot } from 'react-dom/client'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
 import { SpanProperties } from './SpanProperties'
+import { Button, IconButton } from '@ddirori/ui'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
@@ -43,7 +44,8 @@ import {
   RotateCw,
   SkipBack,
   Square,
-  Unlink2
+  Unlink2,
+  X
 } from 'lucide-react'
 
 import {
@@ -105,6 +107,7 @@ import {
   createSingleVoiceMvpScore
 } from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
+import './studio-r1.css'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -549,8 +552,32 @@ const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+const dockWidthsStorageKey = 'chromatics.dock-widths.v1'
+
+function readDockWidths() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(dockWidthsStorageKey) ?? '{}')
+    const width = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(360, Math.max(200, value)) : 280
+    return { palette: width(stored?.palette), properties: width(stored?.properties) }
+  } catch { return { palette: 280, properties: 280 } }
+}
 
 export const App = () => {
+  const [studioTheme, setStudioTheme] = useState<'light' | 'dark'>(() =>
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const update = () => setStudioTheme(media?.matches ? 'dark' : 'light')
+    media?.addEventListener('change', update)
+    return () => media?.removeEventListener('change', update)
+  }, [])
+  const [dockWidths, setDockWidths] = useState(readDockWidths)
+  const paletteToggle = useRef<HTMLButtonElement>(null)
+  const propertiesToggle = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    try { localStorage.setItem(dockWidthsStorageKey, JSON.stringify(dockWidths)) } catch { /* Session state remains usable. */ }
+  }, [dockWidths])
   const [score, setScore] = useState(createInitialScore)
   const [selection, setSelection] = useState<EditorSelection>(() =>
     createInitialSelection(score)
@@ -4798,7 +4825,7 @@ export const App = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const usesCommandKey = event.metaKey || event.ctrlKey
 
-      if (event.isComposing || event.key === 'Process') {
+      if (event.isComposing || event.key === 'Process' || event.keyCode === 229) {
         return
       }
 
@@ -5478,7 +5505,11 @@ export const App = () => {
         </section>
       ) : (
         <>
-      <nav className="toolbar-tabs" aria-label="편집 도구 카테고리">
+      <section className="studio-document studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="문서 상태">
+        <strong>{`문서: ${score.title || '제목 없음'}`}</strong>
+        <span role="status">{savingNative || savingMusicXml ? '저장 중' : autosaveRevision > 0 ? '저장하지 않은 변경' : '변경 없음'}</span>
+      </section>
+      <nav className="toolbar-tabs studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="편집 도구 카테고리">
         {toolbarCategories.map((category) => (
           <button
             aria-pressed={toolbarCategory === category.id}
@@ -5493,12 +5524,16 @@ export const App = () => {
       </nav>
 
       <section
-        className="editor-context-strip"
+        className="editor-context-strip studio-chrome ddirori"
+        data-theme={studioTheme}
+        data-density="compact"
         aria-label="현재 작업 컨텍스트"
       >
         <button
           aria-label="팔레트 표시"
           aria-pressed={dockVisibility.palette}
+          ref={paletteToggle}
+          aria-controls="studio-palette"
           title="팔레트 표시"
           type="button"
           onClick={() => setDockVisibility((value) => ({ ...value, palette: !value.palette }))}
@@ -5508,6 +5543,8 @@ export const App = () => {
         <button
           aria-label="속성 표시"
           aria-pressed={dockVisibility.properties}
+          ref={propertiesToggle}
+          aria-controls="studio-properties"
           title="속성 표시"
           type="button"
           onClick={() => setDockVisibility((value) => ({ ...value, properties: !value.properties }))}
@@ -5553,7 +5590,8 @@ export const App = () => {
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar studio-chrome ddirori"
+        data-theme={studioTheme} data-density="compact"
         aria-label="음표 편집"
         hidden={toolbarCategory !== 'note'}
       >
@@ -5812,7 +5850,8 @@ export const App = () => {
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar studio-chrome ddirori"
+        data-theme={studioTheme} data-density="compact"
         aria-label="표기 객체"
         hidden={toolbarCategory !== 'notation'}
       >
@@ -6118,7 +6157,8 @@ export const App = () => {
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar studio-chrome ddirori"
+        data-theme={studioTheme} data-density="compact"
         aria-label="가사 편집"
         hidden={toolbarCategory !== 'lyrics'}
       >
@@ -6236,7 +6276,8 @@ export const App = () => {
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar studio-chrome ddirori"
+        data-theme={studioTheme} data-density="compact"
         aria-label="악보 편집"
         hidden={toolbarCategory !== 'measure'}
       >
@@ -6544,7 +6585,8 @@ export const App = () => {
       </section>
 
       <section
-        className="selection-toolbar"
+        className="selection-toolbar studio-chrome ddirori"
+        data-theme={studioTheme} data-density="compact"
         aria-label="내보내기 설정"
         hidden={toolbarCategory !== 'export'}
       >
@@ -6685,34 +6727,34 @@ export const App = () => {
       </section>
 
       <section className="workspace" aria-label="악보 편집기">
-        <header className="toolbar" hidden={toolbarCategory === 'playback'}>
+        <header className="toolbar studio-chrome ddirori" data-theme={studioTheme} data-density="compact" hidden={toolbarCategory === 'playback'}>
           <div className="toolbar__group">
             <div
               className="file-actions"
               aria-label="파일 작업"
               hidden={toolbarCategory !== 'file'}
             >
-              <button
+              <Button kind="secondary"
                 aria-label="새 악보 만들기"
                 onClick={openNewScoreWizard}
                 type="button"
               >
                 <FilePlus2 aria-hidden="true" size={17} />
                 <span>새 악보</span>
-              </button>
-              <button aria-label="프로젝트 열기" title="Chromatics 프로젝트 열기" type="button" onClick={() => void openNativeProject()} disabled={!window.inC?.project}>
+              </Button>
+              <Button kind="secondary" aria-label="프로젝트 열기" title="Chromatics 프로젝트 열기" onClick={openNativeProject} disabled={!window.inC?.project}>
                 <FileUp aria-hidden="true" size={17} /><span>프로젝트 열기</span>
-              </button>
-              <button aria-label="프로젝트 백업" title="프로젝트 백업" type="button" onClick={() => setNativeBackupsOpen(true)} disabled={!window.inC?.project?.listBackups}>
+              </Button>
+              <Button kind="secondary" aria-label="프로젝트 백업" title="프로젝트 백업" onClick={() => setNativeBackupsOpen(true)} disabled={!window.inC?.project?.listBackups}>
                 <RotateCcw aria-hidden="true" size={17} /><span>백업</span>
-              </button>
-              <button aria-label="프로젝트 저장" title="Chromatics 프로젝트 저장" type="button" onClick={() => void saveNativeProject()} disabled={savingNative || savingMusicXml || !window.inC?.project}>
+              </Button>
+              <Button kind="secondary" aria-label="프로젝트 저장" title="Chromatics 프로젝트 저장" onClick={() => saveNativeProject()} busy={savingNative} disabled={savingNative || savingMusicXml || !window.inC?.project}>
                 <FileMusic aria-hidden="true" size={17} /><span>프로젝트 저장</span>
-              </button>
-              <button aria-label="프로젝트 다른 이름으로 저장" title="프로젝트 다른 이름으로 저장" type="button" onClick={() => void saveNativeProject(true)} disabled={savingNative || savingMusicXml || !window.inC?.project}>
+              </Button>
+              <IconButton label="프로젝트 다른 이름으로 저장" onClick={() => saveNativeProject(true)} disabled={savingNative || savingMusicXml || !window.inC?.project}>
                 <FileDown aria-hidden="true" size={17} />
-              </button>
-              <button
+              </IconButton>
+              <Button kind="secondary"
                 aria-label="MusicXML 가져오기"
                 onClick={importMusicXml}
                 title="MusicXML 가져오기"
@@ -6720,10 +6762,10 @@ export const App = () => {
               >
                 <FileUp aria-hidden="true" size={17} />
                 <span>MusicXML 가져오기</span>
-              </button>
-              <button
+              </Button>
+              <Button kind="secondary"
                 aria-label="MusicXML로 저장"
-                aria-busy={savingMusicXml}
+                busy={savingMusicXml}
                 disabled={savingMusicXml || savingNative}
                 onClick={saveMusicXml}
                 title="현재 악보를 MusicXML 파일로 저장"
@@ -6731,8 +6773,8 @@ export const App = () => {
               >
                 <FileMusic aria-hidden="true" size={17} />
                 <span>{savingMusicXml ? '저장 중' : '저장'}</span>
-              </button>
-              <button
+              </Button>
+              <Button kind="secondary"
                 aria-label="단축키 도움말"
                 onClick={() => setShortcutHelpOpen(true)}
                 title="핵심 입력과 편집 단축키 보기"
@@ -6740,7 +6782,7 @@ export const App = () => {
               >
                 <Keyboard aria-hidden="true" size={17} />
                 <span>단축키</span>
-              </button>
+              </Button>
             </div>
 
             <div
@@ -7293,7 +7335,7 @@ export const App = () => {
           </section>
         </div>
 
-        <div className="editor-status" aria-live="polite">
+        <div className="editor-status studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-live="polite">
           {noteInputState ? (
             <span>
               {noteInputState.tupletInput ? '셋잇단음표 입력' : '입력 중'}
@@ -7332,8 +7374,14 @@ export const App = () => {
 
         <MusicXmlReportPanel report={musicXmlReport} />
 
-        <div className="docked-workspace" aria-label="도킹 작업 영역" data-palette={dockVisibility.palette} data-properties={dockVisibility.properties}>
-          <aside className="docked-palette" aria-label="고정 팔레트" hidden={!dockVisibility.palette}>
+        <div className="docked-workspace studio-docks" aria-label="도킹 작업 영역" data-palette={dockVisibility.palette} data-properties={dockVisibility.properties}
+          style={{'--studio-palette-width': `${dockWidths.palette}px`, '--studio-properties-width': `${dockWidths.properties}px`} as CSSProperties}>
+          <aside id="studio-palette" className="docked-palette studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="고정 팔레트" hidden={!dockVisibility.palette}>
+            <div className="studio-dock-tools">
+              <label>폭 <input aria-label="팔레트 도크 폭" type="number" min={200} max={360} step={1} value={dockWidths.palette}
+                onChange={event => { if (event.currentTarget.validity.valid && event.target.value) { const width = event.target.valueAsNumber; setDockWidths(previous => ({...previous, palette: width})) } }} /></label>
+              <IconButton label="팔레트 도크 닫기" onClick={() => { setDockVisibility(previous => ({...previous, palette: false})); paletteToggle.current?.focus() }}><X size={18} aria-hidden="true" /></IconButton>
+            </div>
             <h3>팔레트</h3>
             <div className="docked-palette__actions">
               {toolbarCategories.map((category) => (
@@ -7549,8 +7597,14 @@ export const App = () => {
         </div>
           </div>
 
-          <aside className="docked-properties" aria-label="속성 도크" hidden={!dockVisibility.properties}>
-            {toolbarCategory === 'notation' ? <SpanProperties score={score}
+          <aside id="studio-properties" className="docked-properties studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="속성 도크" hidden={!dockVisibility.properties}>
+            <div className="studio-dock-tools">
+              <label>폭 <input aria-label="속성 도크 폭" type="number" min={200} max={360} step={1} value={dockWidths.properties}
+                onChange={event => { if (event.currentTarget.validity.valid && event.target.value) { const width = event.target.valueAsNumber; setDockWidths(previous => ({...previous, properties: width})) } }} /></label>
+              <IconButton label="속성 도크 닫기" onClick={() => { setDockVisibility(previous => ({...previous, properties: false})); propertiesToggle.current?.focus() }}><X size={18} aria-hidden="true" /></IconButton>
+            </div>
+            {toolbarCategory === 'notation' || activeSpanReference ? <SpanProperties score={score}
+              theme={studioTheme}
               partId={scoreViewMode === 'part' ? livePartViewPartId : undefined}
               selected={activeSpanReference} onSelect={selectSpan} onEngravingChange={updateSpanEngraving}
               onEndpointChange={updateSpanEndpoint} onDelete={deleteSpan} /> : null}

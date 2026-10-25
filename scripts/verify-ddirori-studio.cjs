@@ -1,5 +1,5 @@
 // Actual built renderer in isolated Electron; no product files or user profile.
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, nativeTheme } = require('electron')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
@@ -8,7 +8,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddirori-electron-'))
 app.setPath('userData', profile)
 // Software compositing also supports capturePage under Linux Xvfb runners.
 app.disableHardwareAcceleration()
-const out = path.resolve(__dirname, '../out/ddirori/shared-baseline')
+const out = path.resolve(__dirname, '../out/ddirori/product-design-r1')
 app.whenReady().then(async () => {
   const win = new BrowserWindow({width:1200,height:1000,show:true,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}})
   try {
@@ -21,7 +21,7 @@ app.whenReady().then(async () => {
       const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
       set.call(objects, [...objects.options].find(o => o.value.startsWith('hairpin:')).value);
       objects.dispatchEvent(new Event('change',{bubbles:true})); await pause();
-      document.querySelector('.span-properties__geometry').open = true;
+      document.querySelector('.span-properties__geometry summary').click();
       const input = document.querySelector('input[aria-label="표기 세로 이동"]');
       input.focus();
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'0');
@@ -46,8 +46,210 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(out,'studio-electron.png'),(await win.webContents.capturePage()).toPNG())
     fs.writeFileSync(path.join(out,'studio-electron.json'),JSON.stringify({at:new Date().toISOString(),versions:process.versions,result,scope:'Built product renderer; fixture, isolated userData, no file/audio bridge. Native history and shared CSS verified; no physical IME or OS accessibility claims.'},null,2))
     console.log('Studio Electron shared panel and single undo passed',result)
+    await verifyR1(win)
   } finally {
     win.destroy()
     app.quit()
   }
 }).catch(error => {console.error(error);app.exit(1)})
+
+async function verifyR1(win) {
+  const run = (fn, arg) => win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
+  const pause = () => new Promise(resolve => setTimeout(resolve, 150))
+  const click = async label => {
+    await run(label => {
+      const button = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent.trim()) === label)
+      if (!button || !button.checkVisibility() || button.disabled) throw new Error(`Unavailable command: ${label}`)
+      button.click()
+    }, label)
+    await pause()
+  }
+  const change = async (label, value) => {
+    await run(({label, value}) => {
+      const el = document.querySelector(`[aria-label="${label}"]`)
+      if (!el || !el.checkVisibility() || el.disabled) throw new Error(`Unavailable field: ${label}`)
+      const prototype = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+      Object.getOwnPropertyDescriptor(prototype, 'value').set.call(el, value)
+      el.dispatchEvent(new Event('input', {bubbles:true}))
+      el.dispatchEvent(new Event('change', {bubbles:true}))
+    }, {label, value})
+    await pause()
+  }
+  const capture = async name => {
+    await run(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(resolve))))
+    fs.writeFileSync(path.join(out, `${name}.png`), (await win.webContents.capturePage()).toPNG())
+  }
+  // Bridge fixture records real serializer output. It does not simulate an OS dialog.
+  await run(() => {
+    window.studioQA = {native:[], xml:[], fail:false}
+    const result = extension => ({filePath:`/fixture/studio.${extension}`, fileName:`studio.${extension}`})
+    window.inC = {
+      project: {
+        save: async request => {
+          window.studioQA.native.push(request.contents)
+          if (window.studioQA.hold) await new Promise(resolve => {window.studioQA.release = resolve})
+          if (window.studioQA.fail) throw new Error('R1 disk unavailable')
+          return result('chromatics')
+        },
+        open: async () => ({...result('chromatics'), contents:window.studioQA.native.at(-1)})
+      },
+      musicXml: {save:async request => {window.studioQA.xml.push(request.contents); return result('musicxml')}},
+      recentMusicXml: {add:async () => [], list:async () => []},
+      autosave: {clear:async () => {}, read:async () => undefined, write:async () => {}}
+    }
+  })
+  await click('파일')
+  await click('프로젝트 저장')
+  await click('MusicXML로 저장')
+  const original = await run(() => ({native:window.studioQA.native.at(-1), xml:window.studioQA.xml.at(-1)}))
+  fs.writeFileSync(path.join(out, 'initial.chromatics'), original.native)
+  fs.writeFileSync(path.join(out, 'initial.musicxml'), original.xml)
+  fs.writeFileSync(path.join(out, 'before-workspace.pdf'), await win.webContents.printToPDF({printBackground:true, pageSize:'A4'}))
+  const screens = []
+  for (const theme of ['light', 'dark']) {
+    nativeTheme.themeSource = theme
+    for (const width of [207, 280, 360]) {
+      win.setContentSize(1400, 1000)
+      await pause()
+      await change('팔레트 도크 폭', String(width))
+      await change('속성 도크 폭', String(width))
+      await click('표기 객체')
+      await change('표기 객체 선택', '')
+      const reference = await run(() => [...document.querySelector('[aria-label="표기 객체 선택"]').options].find(o => o.value.startsWith('hairpin:')).value)
+      await change('표기 객체 선택', reference)
+      await run(() => {
+        const details = document.querySelector('.span-properties__geometry')
+        if (!details.open) details.querySelector('summary').click()
+        window.scrollTo(0, document.querySelector('.docked-workspace').offsetTop - 16)
+      })
+      const metrics = await run(() => {
+        const dock = document.querySelector('.docked-properties'), panel = document.querySelector('.span-properties')
+        const box = dock.getBoundingClientRect()
+        return {viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,dock:box.width,theme:panel.dataset.theme,
+          overflow:panel.scrollWidth > panel.clientWidth+1,documentOverflow:document.documentElement.scrollWidth > innerWidth+1,
+          inputHeight:panel.querySelector('input').getBoundingClientRect().height,
+          paperFont:getComputedStyle(document.querySelector('.notation-preview')).fontFamily,
+          background:getComputedStyle(panel).backgroundColor}
+      })
+      assert.equal(metrics.dock, width)
+      assert.equal(metrics.theme, theme)
+      assert.equal(metrics.overflow, false)
+      assert.equal(metrics.documentOverflow, false)
+      await capture(`span-${theme}-${width}`)
+      screens.push({file:`span-${theme}-${width}.png`,...metrics})
+    }
+  }
+  nativeTheme.themeSource = 'light'
+  await click('파일')
+  await run(() => window.scrollTo(0,0))
+  await capture('file-light-1400')
+  await click('프로젝트 저장')
+  await click('MusicXML로 저장')
+  const unchanged = await run(() => ({native:window.studioQA.native.at(-1),xml:window.studioQA.xml.at(-1)}))
+  assert.equal(unchanged.xml, original.xml, 'Workspace must not change MusicXML')
+  // Native envelopes have save timestamps, compare their score payload instead.
+  assert.deepEqual(JSON.parse(unchanged.native).score, JSON.parse(original.native).score)
+  fs.writeFileSync(path.join(out, 'after-workspace.pdf'), await win.webContents.printToPDF({printBackground:true, pageSize:'A4'}))
+  await click('프로젝트 열기')
+  await click('표기 객체')
+  await change('표기 객체 선택', '')
+  await run(() => window.scrollTo(0, document.querySelector('.docked-workspace').offsetTop))
+  await capture('no-span-selection')
+  const reference = await run(() => [...document.querySelector('[aria-label="표기 객체 선택"]').options].find(o => o.value.startsWith('hairpin:')).value)
+  await change('표기 객체 선택', reference)
+  await run(() => {
+    const details = document.querySelector('.span-properties__geometry')
+    if (!details.open) details.querySelector('summary').click()
+    document.querySelector('[aria-label="표기 세로 이동"]').focus()
+  })
+  await change('표기 세로 이동', '3')
+  await run(() => {
+    const input = document.querySelector('[aria-label="표기 세로 이동"]')
+    input.dispatchEvent(new CompositionEvent('compositionstart', {bubbles:true, data:'한'}))
+    input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', code:'Enter', isComposing:true, keyCode:229, bubbles:true}))
+  })
+  assert.equal(await run(() => document.activeElement.getAttribute('aria-label')), '표기 세로 이동')
+  await run(() => {
+    const input = document.querySelector('[aria-label="표기 세로 이동"]')
+    input.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'한'}))
+    input.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))
+  })
+  await change('표기 세로 이동', '99')
+  await run(() => {
+    const input = document.querySelector('[aria-label="표기 세로 이동"]')
+    input.focus(); input.blur()
+  })
+  await pause()
+  assert.equal(await run(() => document.querySelector('[aria-label="표기 세로 이동"]').getAttribute('aria-invalid')), 'true')
+  await capture('invalid-geometry')
+  await run(() => document.querySelector('[aria-label="표기 세로 이동"]').focus())
+  await change('표기 세로 이동', '0')
+  await run(() => document.querySelector('[aria-label="표기 세로 이동"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})))
+  await pause()
+  await run(() => {window.studioQA.fail = true; window.studioQA.hold = true; window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyS',ctrlKey:true,bubbles:true}))})
+  await pause()
+  assert.equal(await run(() => document.querySelector('.studio-document [role="status"]').textContent), '저장 중')
+  assert.equal(await run(() => document.querySelector('[aria-label="MusicXML로 저장"]').disabled), true)
+  await run(() => window.scrollTo(0,0))
+  await capture('save-pending')
+  await run(() => {window.studioQA.hold = false; window.studioQA.release()})
+  await pause()
+  const failed = await run(() => ({value:document.querySelector('[aria-label="표기 세로 이동"]').value,
+    selected:document.querySelector('[aria-label="표기 객체 선택"]').value,
+    dirty:document.querySelector('.studio-document [role="status"]').textContent,
+    error:document.querySelector('.editor-status').textContent}))
+  assert.equal(failed.value, '0')
+  assert.equal(failed.selected, reference)
+  assert.equal(failed.dirty, '저장하지 않은 변경')
+  assert.match(failed.error, /R1 disk unavailable/)
+  await run(() => window.scrollTo(0,0))
+  await capture('save-failure')
+  await run(() => window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyZ',ctrlKey:true,bubbles:true})))
+  await pause()
+  assert.equal(await run(() => document.querySelector('[aria-label="표기 세로 이동"]').value), '')
+  await run(() => {window.studioQA.fail = false})
+  await click('파일')
+  await click('프로젝트 저장')
+  assert.equal(await run(() => document.querySelector('.studio-document [role="status"]').textContent), '변경 없음')
+  await capture('save-retry-success')
+  await click('표기 객체')
+  await click('속성 도크 닫기')
+  assert.equal(await run(() => document.activeElement.getAttribute('aria-label')), '속성 표시')
+  await click('속성 표시')
+  win.webContents.debugger.attach('1.3')
+  await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled', {enabled:true})
+  await pause()
+  const touch = await run(() => ({coarse:matchMedia('(pointer: coarse)').matches,
+    inputHeight:document.querySelector('[aria-label="표기 세로 이동"]').getBoundingClientRect().height,
+    closeHeight:document.querySelector('[aria-label="속성 도크 닫기"]').getBoundingClientRect().height}))
+  assert.equal(touch.coarse, true)
+  assert.ok(touch.inputHeight >= 48 && touch.closeHeight >= 48)
+  await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled', {enabled:false})
+  win.webContents.debugger.detach()
+  for (const scale of [1, 2]) {
+    win.setContentSize(960, 1000)
+    await pause()
+    if (scale === 2) await run(() => {
+      const nodes = [...document.querySelectorAll('.studio-chrome, .studio-chrome *')]
+      const sizes = nodes.map(node => parseFloat(getComputedStyle(node).fontSize))
+      nodes.forEach((node,index) => { node.style.fontSize = `${sizes[index]*2}px` })
+    })
+    await run(() => window.scrollTo(0,0))
+    await capture(`narrow-text-${scale}`)
+    assert.equal(await run(() => document.documentElement.scrollWidth > innerWidth+1), false)
+    if (scale === 2) {
+      await click('파일')
+      await capture('file-text-2')
+      assert.equal(await run(() => {
+        const group = document.querySelector('.file-actions'), box = group.getBoundingClientRect()
+        return [...group.querySelectorAll('button')].every(button => {
+          const b = button.getBoundingClientRect()
+          return b.left >= box.left-1 && b.right <= box.right+1 && b.bottom <= box.bottom+1
+        })
+      }), true)
+    }
+  }
+  fs.writeFileSync(path.join(out,'r1-results.json'),JSON.stringify({versions:process.versions,screens,failed,touch,
+    nativeScoreUnchanged:true,musicXmlUnchanged:true,scope:'Synthetic DOM/bridge fixture. No OS dialogs, physical IME, or screen reader certification.'},null,2))
+  console.log('R1 dock/theme/text/save/native/XML matrix passed')
+}

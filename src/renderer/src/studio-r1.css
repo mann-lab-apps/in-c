@@ -1,0 +1,117 @@
+/* Product adapter only: shared typography never wraps the notation canvas. */
+.app-shell:has(.studio-document) { background: transparent; }
+.app-shell:has(.studio-document) .score-canvas { background: Canvas; }
+@media (prefers-color-scheme: dark) {
+  .app-shell:has(.studio-document) .score-canvas { color-scheme: dark; }
+}
+.studio-chrome.ddirori {
+  --dd-action: var(--inc-color-accent);
+  --dd-focus: var(--inc-color-focus);
+  --dd-control: 48px;
+  --dd-control-font: 1rem;
+  letter-spacing: 0;
+  background: var(--dd-surface);
+  color: var(--dd-text);
+  border-color: var(--dd-border);
+}
+.studio-chrome.ddirori[data-theme='dark'] { --dd-focus: var(--dd-text); }
+
+@media (pointer: fine) {
+  .studio-chrome.ddirori[data-density='compact'] {
+    --dd-control: 32px;
+    --dd-control-font: 0.875rem;
+  }
+}
+
+.studio-document {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--dd-border);
+}
+.studio-document strong { font-size: 1rem; overflow-wrap: anywhere; min-width: 0; }
+.studio-document [role='status'] { color: var(--dd-muted); font-size: 0.875rem; }
+.studio-chrome :is(button, input, select, summary) {
+  min-height: var(--dd-control);
+  font-size: var(--dd-control-font);
+}
+.studio-chrome :is(button, input, select) {
+  color: var(--dd-text);
+  background: var(--dd-surface);
+  border-color: var(--dd-control-border);
+  border-radius: 6px;
+}
+.studio-chrome :is(button, input, select):disabled {
+  color: var(--dd-on-disabled);
+  background: var(--dd-disabled);
+}
+.studio-chrome :is(h3, h4, dt, dd, label, output, .selection-properties__row) { color: inherit; }
+.studio-chrome :is(button[aria-pressed='true'], button.is-active) {
+  color: var(--dd-text);
+  background: var(--dd-surface-muted);
+  box-shadow: inset 0 -2px var(--inc-color-accent);
+}
+.studio-chrome :is(button, input, select, summary):focus-visible {
+  outline: 2px solid var(--dd-focus);
+  outline-offset: 2px;
+}
+.studio-chrome.toolbar-tabs { padding: 8px 24px; gap: 8px; flex-wrap: wrap; }
+.studio-chrome.toolbar-tabs button, .studio-chrome .docked-palette__actions button { border-color: transparent; font-weight: 600; }
+.studio-chrome.editor-context-strip { background: var(--dd-surface-muted); flex-wrap: wrap; }
+.studio-chrome.editor-context-strip > div { background: transparent; color: var(--dd-text); border-color: var(--dd-border); }
+.studio-chrome.editor-context-strip > div > span { color: var(--dd-muted); }
+.studio-chrome.editor-context-strip > button { width: var(--dd-control); height: var(--dd-control); flex-basis: var(--dd-control); }
+.studio-chrome.toolbar { padding: 12px 24px; }
+.studio-chrome.toolbar .toolbar__group { flex-wrap: wrap; min-width: 0; max-width: 100%; gap: 8px 16px; }
+.studio-chrome.selection-toolbar { align-items: start; padding: 12px 24px; background: var(--dd-surface-muted); }
+.studio-chrome :is(.inspector-properties, .inspector-properties__row, .inspector-properties__empty) { color: var(--dd-muted); border-color: var(--dd-border); }
+.studio-chrome .inspector-properties { background: transparent; }
+.studio-chrome.editor-status { background: var(--dd-surface-muted); color: var(--dd-muted); }
+.studio-chrome .file-actions { flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 100%; }
+.studio-chrome .file-actions .dd-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--dd-control);
+  font-size: var(--dd-control-font);
+}
+.studio-chrome .file-actions svg { flex: 0 0 18px; width: 18px; height: 18px; }
+.studio-chrome.docked-palette, .studio-chrome.docked-properties { padding: 12px; gap: 12px; }
+.studio-dock-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.studio-dock-tools label { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 0.875rem; }
+.studio-dock-tools input { width: calc(4ch + 2rem); min-width: 0; padding: 4px 8px; }
+.studio-chrome .selection-properties { padding: 0; border: 0; background: var(--dd-surface); }
+.studio-chrome .selection-properties__edit { min-width: 0; }
+.studio-chrome .selection-properties__edit :is(input, select) { width: 100%; min-width: 0; }
+.studio-chrome .selection-properties__row { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.studio-chrome .span-properties__address, .studio-chrome .span-properties__empty { color: var(--dd-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+.studio-chrome .span-properties__geometry { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--dd-border); }
+.studio-chrome .span-properties__geometry summary { font-size: 0.875rem; cursor: pointer; }
+.studio-chrome .span-properties__geometry[open] .selection-properties__edit { margin-block: 12px; }
+.studio-chrome .dd-field > label { font-size: 0.875rem; color: var(--dd-muted); }
+.studio-chrome input::placeholder { color: var(--dd-muted); opacity: 1; }
+.studio-chrome .dd-error { color: var(--dd-error); }
+
+@media screen and (min-width: 1024px) {
+  .studio-docks { grid-template-columns: var(--studio-palette-width) minmax(0, 1fr) var(--studio-properties-width); }
+  .studio-docks > .docked-palette { grid-column: auto; grid-template-columns: minmax(0, 1fr); align-items: start; border-right: 1px solid var(--dd-border); }
+  .studio-docks .docked-palette__actions { grid-template-columns: minmax(0, 1fr); }
+  .studio-docks .docked-palette__section { grid-template-columns: minmax(0, 1fr); }
+  .studio-docks .docked-palette__symbol-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .studio-docks[data-palette='false'] { grid-template-columns: minmax(0, 1fr) var(--studio-properties-width); }
+  .studio-docks[data-properties='false'] { grid-template-columns: var(--studio-palette-width) minmax(0, 1fr); }
+  .studio-docks[data-palette='false'][data-properties='false'] { grid-template-columns: minmax(0, 1fr); }
+}
+@media screen and (max-width: 1023px) {
+  .studio-docks { display: flex; flex-direction: column; }
+  .studio-docks > .docked-properties { order: -1; }
+  .studio-docks > .docked-palette { order: -2; }
+  .studio-docks > aside { width: 100%; max-height: 25rem; overflow: auto; }
+}
+@media print {
+  .studio-document { display: none; }
+  .app-shell:has(.studio-document) .score-canvas { color-scheme: light; background: white; }
+}

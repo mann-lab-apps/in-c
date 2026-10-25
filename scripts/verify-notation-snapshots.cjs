@@ -5,12 +5,16 @@ module.paths.unshift(
 const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
+const os = require('node:os')
+
+app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'chromatics-notation-snapshots-')))
 
 const baselinePath = path.resolve(
   __dirname,
   '../docs/testing/notation-snapshot-baseline.json'
 )
 const shouldUpdate = process.argv.includes('--update')
+const fixedCanvas = process.argv.includes('--fixed-canvas')
 
 async function loadFixture(window, fixture) {
   await window.loadFile(
@@ -26,6 +30,11 @@ async function loadFixture(window, fixture) {
 
 async function readSnapshot(window, width) {
   window.setSize(width, 1000)
+  // Isolate engraving from intentional workspace/dock reflow, without changing baselines.
+  if (fixedCanvas) {
+    const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))[width]
+    await window.webContents.executeJavaScript(`document.querySelector('.notation-preview').style.width = ${JSON.stringify(`${baseline.svg.width}px`)}`)
+  }
   await new Promise((resolve) => setTimeout(resolve, 600))
 
   const screenshot = await window.webContents.capturePage()
@@ -134,6 +143,7 @@ async function main() {
     }
     const comparable = comparableNotationMetrics(snapshot)
 
+    if (shouldUpdate && fixedCanvas) throw new Error('Fixed-canvas verification cannot update baselines')
     if (shouldUpdate) {
       fs.mkdirSync(path.dirname(baselinePath), { recursive: true })
       fs.writeFileSync(baselinePath, `${JSON.stringify(comparable, null, 2)}\n`)

@@ -7,6 +7,7 @@ import { locateEvent } from './editor/editor-state'
 import { findSpan, listSpans, spanEndpointOptions, type SpanReference } from './editor/span-editing'
 
 interface Props {
+  theme?: 'light' | 'dark'
   score: Score
   partId?: string
   selected?: SpanReference
@@ -16,14 +17,14 @@ interface Props {
   onEngravingChange: (engraving?: SpanEngraving) => void
 }
 
-export function SpanProperties({ score, partId, selected, onSelect, onEndpointChange, onDelete, onEngravingChange }: Props) {
+export function SpanProperties({ theme = 'light', score, partId, selected, onSelect, onEndpointChange, onDelete, onEngravingChange }: Props) {
   const references = listSpans(score, partId)
   const span = selected && findSpan(score, selected)
   const start = span && locateEvent(score, span.startEventId)
   const owner = score.parts.find(part => part.id === start?.address.partId)
   const options = selected ? spanEndpointOptions(score, selected) : []
   return (
-    <section className="selection-properties span-properties ddirori" data-density="compact" data-theme="light" aria-label="범위 표기 속성">
+    <section className="selection-properties span-properties studio-chrome ddirori" data-density="compact" data-theme={theme} aria-label="범위 표기 속성">
       <Text as="h3" variant="sectionTitle">범위 표기</Text>
       <label className="selection-properties__edit">
         <span>객체</span>
@@ -67,7 +68,7 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
           {(['offsetX', 'offsetY', 'height'] as const).map(field => <div className="selection-properties__edit" key={field}>
             <GeometryInput key={`${selected.kind}:${selected.id}:${field}`} label={field === 'offsetX' ? '표기 가로 이동' : field === 'offsetY' ? '표기 세로 이동' : '표기 높이'}
               displayLabel={field === 'offsetX' ? '가로 이동 (sp)' : field === 'offsetY' ? '세로 이동 (sp)' : selected.kind === 'slur' ? '곡률 높이 (sp)' : '벌어짐 (sp)'}
-              min={field === 'height' ? 0.5 : -8} placeholder={field === 'height' ? '자동' : '0'}
+              min={field === 'height' ? 0.5 : -8} placeholder="자동"
               value={span.engraving?.[field]} onCommit={value => onEngravingChange({ ...span.engraving, [field]: value })} />
           </div>)}
           <IconButton label="표기 자동 배치 복원" disabled={!span.engraving} onClick={() => onEngravingChange(undefined)}><RotateCcw size={18} aria-hidden="true" /></IconButton>
@@ -76,7 +77,7 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
           <IconButton label="선택 표기 삭제" onClick={onDelete}><Trash2 size={18} aria-hidden="true" /></IconButton>
           <IconButton label="표기 선택 해제" onClick={() => onSelect(undefined)}><X size={18} aria-hidden="true" /></IconButton>
         </div>
-      </> : null}
+      </> : <p className="span-properties__empty">선택된 범위 표기 없음</p>}
     </section>
   )
 }
@@ -85,20 +86,26 @@ function GeometryInput({ label, displayLabel, min, placeholder, value, onCommit 
   label: string; displayLabel: string; min: number; placeholder: string; value?: number; onCommit: (value?: number) => void
 }) {
   const [draft, setDraft] = useState(value === undefined ? '' : String(value))
+  const [error, setError] = useState<string>()
   const dirty = useRef(false)
   const composing = useRef(false)
   useEffect(() => {
     dirty.current = false
+    setError(undefined)
     setDraft(value === undefined ? '' : String(value))
   }, [value])
-  return <Input label={displayLabel} aria-label={label} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
+  return <Input label={displayLabel} error={error} aria-label={label} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
     onCompositionStart={() => { composing.current = true }}
     onCompositionEnd={() => { composing.current = false }}
-    onChange={event => { dirty.current = true; setDraft(event.target.value) }}
+    onChange={event => { dirty.current = true; setError(undefined); setDraft(event.target.value) }}
     onBlur={event => {
       if (composing.current || !dirty.current) return
       dirty.current = false
-      if (!event.currentTarget.validity.valid) { setDraft(value === undefined ? '' : String(value)); return }
+      if (!event.currentTarget.validity.valid) {
+        setError(`${min}~8 sp, 0.25 sp 단위로 입력하세요.`)
+        setDraft(value === undefined ? '' : String(value))
+        return
+      }
       const next = event.currentTarget.value === '' ? undefined : event.currentTarget.valueAsNumber
       if (next !== value) onCommit(next)
     }}
@@ -112,6 +119,7 @@ function GeometryInput({ label, displayLabel, min, placeholder, value, onCommit 
         event.preventDefault()
         event.stopPropagation()
         dirty.current = false
+        setError(undefined)
         event.currentTarget.value = value === undefined ? '' : String(value)
         setDraft(event.currentTarget.value)
         event.currentTarget.blur()

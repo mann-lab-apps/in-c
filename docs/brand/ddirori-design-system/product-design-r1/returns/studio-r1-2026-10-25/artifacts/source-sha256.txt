@@ -1,0 +1,5 @@
+b741f43a5f71f8684e6b84281b0bbe58020ba8a77d0506998960e47c1cbaee78  src/renderer/src/App.tsx
+f27ed9721c6114ae353b39e221e58257c61db8b1d5c496caa827a76051f03841  src/renderer/src/SpanProperties.tsx
+4f2951dd65e359e679f6b996a282f95ba4a24c0179040b5d941e606ede18439c  src/renderer/src/studio-r1.css
+83ed8831cf62bfc9f8defdfb6b49fb12d145bd1c3bbd2f4ecfd452d4ca56c537  scripts/verify-ddirori-studio.cjs
+bcb443221bbafdc1eb4ee7557a2366fbd0ba9da34d8a08f25fbd08b499c5dd66  scripts/verify-notation-snapshots.cjs

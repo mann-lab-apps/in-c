@@ -1,0 +1,141 @@
+{
+  "versions": {
+    "node": "24.16.0",
+    "acorn": "8.16.0",
+    "ada": "3.4.4",
+    "amaro": "1.1.9",
+    "ares": "1.34.6",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.2",
+    "llhttp": "9.4.1",
+    "merve": "1.2.2",
+    "modules": "146",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.68.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "0.0.0",
+    "simdjson": "4.6.1",
+    "simdutf": "7.7.0",
+    "sqlite": "3.53.0",
+    "tz": "2025c",
+    "undici": "7.25.0",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "14.8.178.31-electron.0",
+    "zlib": "1.3.2.1-motley",
+    "zstd": "1.6.0",
+    "electron": "42.4.1",
+    "chrome": "148.0.7778.265"
+  },
+  "screens": [
+    {
+      "file": "span-light-207.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 207,
+      "theme": "light",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(255, 255, 255)"
+    },
+    {
+      "file": "span-light-280.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 280,
+      "theme": "light",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(255, 255, 255)"
+    },
+    {
+      "file": "span-light-360.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 360,
+      "theme": "light",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(255, 255, 255)"
+    },
+    {
+      "file": "span-dark-207.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 207,
+      "theme": "dark",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(34, 34, 34)"
+    },
+    {
+      "file": "span-dark-280.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 280,
+      "theme": "dark",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(34, 34, 34)"
+    },
+    {
+      "file": "span-dark-360.png",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "dock": 360,
+      "theme": "dark",
+      "overflow": false,
+      "documentOverflow": false,
+      "inputHeight": 32,
+      "paperFont": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+      "background": "rgb(34, 34, 34)"
+    }
+  ],
+  "failed": {
+    "value": "0",
+    "selected": "hairpin:release-hairpin",
+    "dirty": "저장하지 않은 변경",
+    "error": "4분음표총보1회 수정정지0.0 / 32.5박R1 disk unavailable"
+  },
+  "touch": {
+    "coarse": true,
+    "inputHeight": 48,
+    "closeHeight": 48
+  },
+  "nativeScoreUnchanged": true,
+  "musicXmlUnchanged": true,
+  "scope": "Synthetic DOM/bridge fixture. No OS dialogs, physical IME, or screen reader certification."
+}
