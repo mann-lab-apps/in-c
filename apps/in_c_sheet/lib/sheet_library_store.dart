@@ -704,6 +704,17 @@ class SheetLibraryStore {
     );
   }
 
+  /// Removes copies created for an import that did not reach metadata storage.
+  ///
+  /// Only files inside this app's managed import folders are eligible. This
+  /// deliberately never removes a user-selected source or an existing score.
+  Future<void> discardUncommittedImport(SheetScore score) async {
+    await _deleteManagedImportFile(score.filePath, _pdfFolderName);
+    for (final linkedFile in score.linkedFiles) {
+      await _deleteManagedImportFile(linkedFile.path, _linkedFilesFolderName);
+    }
+  }
+
   Future<SheetScore?> importImagesAsPdf() async {
     final files = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -1418,6 +1429,27 @@ class SheetLibraryStore {
     final file = File('${scoresDir.path}/$id-$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<void> _deleteManagedImportFile(String path, String folderName) async {
+    final normalizedPath = path.trim();
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+    try {
+      final documents = await getApplicationDocumentsDirectory();
+      final folderPath =
+          '${documents.path}/$folderName${Platform.pathSeparator}';
+      if (!normalizedPath.startsWith(folderPath)) {
+        return;
+      }
+      final file = File(normalizedPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Metadata failure must not obscure the import error if cleanup also fails.
+    }
   }
 
   Future<String> _writeLinkedFile({

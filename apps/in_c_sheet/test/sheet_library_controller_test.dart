@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
@@ -195,6 +197,61 @@ void main() {
         imported?.viewerSettings.pedalMapping,
         SheetViewerSettings.reversedPedalMapping,
       );
+    },
+  );
+
+  test(
+    'does not publish a PDF import before its metadata save succeeds',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-25T10:00:00.000');
+      final existing = _score(now, id: 'existing');
+      final imported = _score(now, id: 'imported');
+      final store = _FailingImportSaveStore(existing, imported);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final result = await controller.importPdf();
+
+      expect(result, isNull);
+      expect(controller.scores.map((score) => score.id), <String>['existing']);
+      expect(store.discardedImportIds, <String>['imported']);
+      expect(controller.errorMessage, isNotEmpty);
+    },
+  );
+
+  test(
+    'does not publish shared PDF imports when their metadata save fails',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-10-25T10:00:00.000');
+      final existing = _score(now, id: 'existing');
+      final first = _score(now, id: 'shared-1');
+      final second = _score(now, id: 'shared-2');
+      final store = _FailingSharedImportSaveStore(existing, <SheetScore>[
+        first,
+        second,
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final result = await controller.importSharedPdfFiles(
+        <SheetSharedImportFile>[
+          const SheetSharedImportFile(
+            path: '/tmp/shared-1.pdf',
+            name: 'shared-1.pdf',
+          ),
+          const SheetSharedImportFile(
+            path: '/tmp/shared-2.pdf',
+            name: 'shared-2.pdf',
+          ),
+        ],
+      );
+
+      expect(result, isEmpty);
+      expect(controller.scores.map((score) => score.id), <String>['existing']);
+      expect(store.discardedImportIds, <String>['shared-1', 'shared-2']);
+      expect(controller.errorMessage, isNotEmpty);
     },
   );
 
@@ -2090,6 +2147,43 @@ class _ImportScoreStore extends SheetLibraryStore {
   @override
   Future<SheetScore?> importPdf() async {
     return score;
+  }
+}
+
+class _FailingImportSaveStore extends SheetLibraryStore {
+  _FailingImportSaveStore(this.existing, this.imported);
+
+  final SheetScore existing;
+  final SheetScore imported;
+  final List<String> discardedImportIds = <String>[];
+
+  @override
+  Future<List<SheetScore>> loadScores() async => <SheetScore>[existing];
+
+  @override
+  Future<SheetScore?> importPdf() async => imported;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    throw StateError('metadata write failed');
+  }
+
+  @override
+  Future<void> discardUncommittedImport(SheetScore score) async {
+    discardedImportIds.add(score.id);
+  }
+}
+
+class _FailingSharedImportSaveStore extends _FailingImportSaveStore {
+  _FailingSharedImportSaveStore(SheetScore existing, this.sharedImports)
+    : super(existing, sharedImports.first);
+
+  final List<SheetScore> sharedImports;
+  var _nextImport = 0;
+
+  @override
+  Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
+    return sharedImports[_nextImport++];
   }
 }
 

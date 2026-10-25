@@ -255,7 +255,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ListTile(
               leading: const Icon(Icons.picture_as_pdf_outlined),
               title: const Text('PDF 가져오기'),
-              subtitle: const Text('파일 앱, 다운로드, 메신저 저장 PDF'),
+              subtitle: const Text('파일 앱, 다운로드 또는 Studio에서 내보낸 PDF'),
               onTap: () => Navigator.of(context).pop(_LibraryImportAction.pdf),
             ),
             ListTile(
@@ -2188,13 +2188,18 @@ class _LinkedFilesEditor extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Play에서 내보낸 음원은 이 악보를 직접 선택해 사본으로 연결합니다. '
+            'MP3, WAV, M4A, FLAC, OGG는 선택할 수 있지만 기기별 재생 호환성은 별도입니다.',
+          ),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.attach_file),
-              label: const Text('파일 추가'),
+              label: const Text('연결 파일 추가'),
             ),
           ),
           if (linkedFiles.isEmpty)
@@ -2413,7 +2418,7 @@ class _EmptyLibrary extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  DdiroriButton(label: '악보 추가', onPressed: onImportPressed),
+                  DdiroriButton(label: 'PDF 악보 추가', onPressed: onImportPressed),
                   DdiroriButton(
                     label: '테스트 항목',
                     onPressed: onTesterInfoPressed,

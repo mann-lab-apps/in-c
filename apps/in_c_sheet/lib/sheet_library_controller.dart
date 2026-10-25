@@ -193,8 +193,9 @@ class SheetLibraryController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importPdf();
+      importedScore = await store.importPdf();
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -202,10 +203,14 @@ class SheetLibraryController extends ChangeNotifier {
         return null;
       }
 
-      _scores = <SheetScore>[score, ..._scores];
-      await store.saveScores(_scores);
+      final nextScores = <SheetScore>[score, ..._scores];
+      await store.saveScores(nextScores);
+      _scores = nextScores;
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUncommittedImport(importedScore);
+      }
       _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       return null;
     } finally {
@@ -223,8 +228,9 @@ class SheetLibraryController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    SheetScore? importedScore;
     try {
-      final importedScore = await store.importImagesAsPdf();
+      importedScore = await store.importImagesAsPdf();
       final score = importedScore == null
           ? null
           : _withActiveCollection(importedScore);
@@ -232,10 +238,14 @@ class SheetLibraryController extends ChangeNotifier {
         return null;
       }
 
-      _scores = <SheetScore>[score, ..._scores];
-      await store.saveScores(_scores);
+      final nextScores = <SheetScore>[score, ..._scores];
+      await store.saveScores(nextScores);
+      _scores = nextScores;
       return score;
     } catch (error) {
+      if (importedScore != null) {
+        await store.discardUncommittedImport(importedScore);
+      }
       _errorMessage = _imageImportErrorMessage(error);
       return null;
     } finally {
@@ -255,8 +265,8 @@ class SheetLibraryController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final imported = <SheetScore>[];
     try {
-      final imported = <SheetScore>[];
       for (final sharedFile in files) {
         final score = _withActiveCollection(
           await store.importPdfFile(
@@ -269,10 +279,14 @@ class SheetLibraryController extends ChangeNotifier {
       if (imported.isEmpty) {
         return const <SheetScore>[];
       }
-      _scores = <SheetScore>[...imported.reversed, ..._scores];
-      await store.saveScores(_scores);
+      final nextScores = <SheetScore>[...imported.reversed, ..._scores];
+      await store.saveScores(nextScores);
+      _scores = nextScores;
       return List<SheetScore>.unmodifiable(imported);
     } catch (error) {
+      for (final score in imported) {
+        await store.discardUncommittedImport(score);
+      }
       _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.';
       return const <SheetScore>[];
     } finally {

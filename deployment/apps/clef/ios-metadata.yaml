@@ -60,6 +60,9 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        PDF, 이미지 PDF와 공유받은 PDF는 악보함 목록에 보이기 전에 라이브러리 저장을 완료합니다. 저장에 실패하면 성공으로 안내하지 않으며, 앱 내부에 만든 사본만 정리합니다.
+        빈 악보함의 첫 행동을 PDF 악보 추가로 명확히 하고, Studio에서 내보낸 PDF도 파일 앱에서 직접 가져올 수 있음을 안내합니다. Studio 프로젝트나 MusicXML을 PDF처럼 열지는 않습니다.
+        악보 정보의 연결 파일에서 Play 등에서 내보낸 음원을 현재 악보에 사본으로 연결할 수 있음을 안내합니다. 지원 파일 형식 선택과 실제 기기 재생 호환성은 구분합니다.
         악보함의 제목과 라이브러리 전환을 간결하게 정리해 검색과 목록에 더 빨리 접근할 수 있습니다.
         악보 보기에서 읽기·주석 입력 모드, 연습 도구와 공연 제한을 구분했습니다. 주석 도구의 색·굵기·스탬프·텍스트는 옵션 창에서 선택하며, 도구를 숨겨도 페이지 이동과 복원 버튼을 사용할 수 있습니다.
         주석 저장 중 중복 입력을 방지하고 실패한 변경은 다시 저장할 수 있습니다. 저장에 성공한 뒤에만 주석 모델을 갱신하며, 이전 문서의 늦은 페이지 응답을 무시합니다.
@@ -108,7 +111,8 @@ review:
     Verify these instructions against the exact iOS release build before marking them reviewed.
 
     Import the self-authored sample PDF using the add-score action and the system file picker.
-    Open the score, add a short annotation, return to the library, and add the score to a setlist.
+    Confirm the score appears only after metadata storage succeeds, then open it, add a short annotation, return to the library, and add the score to a setlist.
+    Studio projects and MusicXML are not PDF imports. For a Studio score, export a PDF and choose that file in Score. Attach an owned audio copy only after selecting the target score; file selection support does not prove codec playback on this device.
     Use the app's export/share action to inspect an exported copy or backup.
     No demo account is required for this local workflow.
 
@@ -412,6 +416,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-25 R3: 빈 악보함의 PDF 악보 추가, Studio PDF 수동 가져오기 안내와 연결 파일의 긴 오디오 형식 안내를 큰 글씨·VoiceOver에서 재검수해야 한다. import metadata 실패는 목록 성공으로 보이지 않고 앱 내부 사본만 정리하는 자동 controller 검사와 물리 iOS provider/VoiceOver 검수는 구분한다.
       2026-10-25 R2: 입력 모드/연습/공연, 주석 옵션 sheet와 저장 중·재시도, 도구 복원 및 하단 페이지 이동을 재검수해야 한다. product-design-r2/returns/score-r2-20261025의 실제 PDFium 위젯 검증과 물리 기기/VoiceOver/IME 검수는 구분한다.
       2026-10-25 R1 악보함/선택/일괄 편집과 좁은 뷰어 배치 변경. product-design-r1/returns/score-20261025의 위젯 캡처·자동 회귀와 실제 VoiceOver/IME/기기 검수를 구분한다. 새 후보 빌드 검수는 pending.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
@@ -433,6 +438,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-25 R3: PDF/이미지/공유 PDF import의 metadata 저장 실패가 목록을 갱신하지 않는 controller 회귀와 R2의 PDFium 위젯 검증은 통과했다. iOS document-open/share provider, 실제 Studio PDF 전달, 첫 실제 주석 저장, Play 관리 음원 사본의 codec/route와 VoiceOver는 pending이며 자동 검증이 이를 대신하지 않는다.
       2026-10-25 R2 실제 PDF 엔진 위젯 검증 대상: 3쪽/90쪽 PDF, 주석 좌표·저장·undo/redo·원본 보존, 도구 숨김/복원과 공연 정책. iOS 후보 빌드, 실제 터치/펜/페달/오디오, VoiceOver와 스토어 촬영은 pending. 이전 R1의 미실행 PDF 성공 경로 기록을 소급 수정하지 않는다.
       2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
