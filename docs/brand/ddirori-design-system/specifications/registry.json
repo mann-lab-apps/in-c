@@ -1,0 +1,884 @@
+{
+  "date": "2026-10-24",
+  "components": [
+    {
+      "id": "C01",
+      "name": "Button",
+      "react": [
+        "Button"
+      ],
+      "flutter": [
+        "DdiroriButton"
+      ],
+      "profile": "action",
+      "native": "",
+      "file": "components/c01.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart",
+        "packages/ddirori_web/src/adoption.test.tsx",
+        "packages/ddirori_ui/test/adoption_test.dart",
+        "apps/in_c_sheet/test/adoption_pilot_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C02",
+      "name": "IconButton",
+      "react": [
+        "IconButton"
+      ],
+      "flutter": [
+        "DdiroriIconButton"
+      ],
+      "profile": "action",
+      "native": "",
+      "file": "components/c02.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C03",
+      "name": "ToggleButton",
+      "react": [
+        "ToggleButton"
+      ],
+      "flutter": [
+        "DdiroriButton"
+      ],
+      "profile": "action",
+      "native": "",
+      "file": "components/c03.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C04",
+      "name": "Field / Input / Textarea / Search",
+      "react": [
+        "Field",
+        "Input",
+        "Textarea",
+        "Search"
+      ],
+      "flutter": [
+        "DdiroriInput",
+        "DdiroriSearch"
+      ],
+      "profile": "field",
+      "native": "",
+      "file": "components/c04.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/basic_test.dart",
+        "packages/ddirori_ui/test/components_test.dart",
+        "packages/ddirori_ui/test/adoption_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C05",
+      "name": "Checkbox",
+      "react": [
+        "Checkbox"
+      ],
+      "flutter": [],
+      "profile": "choice",
+      "native": "Checkbox/CheckboxListTile",
+      "file": "components/c05.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C06",
+      "name": "RadioGroup",
+      "react": [
+        "RadioGroup"
+      ],
+      "flutter": [],
+      "profile": "choice",
+      "native": "RadioGroup/RadioListTile",
+      "file": "components/c06.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C07",
+      "name": "Switch",
+      "react": [
+        "Switch"
+      ],
+      "flutter": [],
+      "profile": "choice",
+      "native": "Switch/SwitchListTile",
+      "file": "components/c07.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C08",
+      "name": "Select",
+      "react": [
+        "Select"
+      ],
+      "flutter": [],
+      "profile": "field",
+      "native": "InputDecorator/DropdownButton",
+      "file": "components/c08.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C09",
+      "name": "Number / Stepper",
+      "react": [
+        "NumberControl"
+      ],
+      "flutter": [
+        "DdiroriNumber"
+      ],
+      "profile": "music",
+      "native": "",
+      "file": "components/c09.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart",
+        "packages/ddirori_web/src/adoption.test.tsx",
+        "packages/ddirori_ui/test/adoption_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C10",
+      "name": "Slider",
+      "react": [
+        "Slider"
+      ],
+      "flutter": [],
+      "profile": "field",
+      "native": "Slider",
+      "file": "components/c10.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C11",
+      "name": "FilterChip / Choices",
+      "react": [
+        "Choices"
+      ],
+      "flutter": [
+        "DdiroriChoices"
+      ],
+      "profile": "choice",
+      "native": "",
+      "file": "components/c11.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C12",
+      "name": "Segmented",
+      "react": [
+        "SegmentedControl"
+      ],
+      "flutter": [
+        "DdiroriSegments"
+      ],
+      "profile": "choice",
+      "native": "",
+      "file": "components/c12.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C13",
+      "name": "Tabs / Panel",
+      "react": [
+        "Tabs"
+      ],
+      "flutter": [
+        "DdiroriTabs",
+        "DdiroriTab"
+      ],
+      "profile": "choice",
+      "native": "",
+      "file": "components/c13.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/basic_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C14",
+      "name": "Typography",
+      "react": [
+        "Text"
+      ],
+      "flutter": [
+        "ddiroriTextStyle"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c14.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/theme.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C15",
+      "name": "Icon",
+      "react": [
+        "Icon"
+      ],
+      "flutter": [],
+      "profile": "display",
+      "native": "Icon",
+      "file": "components/c15.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C16",
+      "name": "Avatar",
+      "react": [
+        "Avatar"
+      ],
+      "flutter": [
+        "DdiroriAvatar"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c16.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C17",
+      "name": "Badge / StatusBadge",
+      "react": [
+        "Badge",
+        "StatusBadge"
+      ],
+      "flutter": [
+        "DdiroriStatusBadge"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c17.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C18",
+      "name": "Divider",
+      "react": [
+        "Divider"
+      ],
+      "flutter": [],
+      "profile": "display",
+      "native": "Divider",
+      "file": "components/c18.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C19",
+      "name": "List / Item",
+      "react": [
+        "List",
+        "Item"
+      ],
+      "flutter": [
+        "DdiroriList",
+        "DdiroriItem"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c19.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/basic_test.dart",
+        "packages/ddirori_ui/test/components_test.dart",
+        "packages/ddirori_web/src/adoption.test.tsx",
+        "apps/in_c_sheet/test/adoption_pilot_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C20",
+      "name": "Card / Section",
+      "react": [
+        "Card",
+        "Section"
+      ],
+      "flutter": [
+        "DdiroriSection"
+      ],
+      "profile": "layout",
+      "native": "Card",
+      "file": "components/c20.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C21",
+      "name": "Accordion",
+      "react": [
+        "Accordion"
+      ],
+      "flutter": [
+        "DdiroriAccordion"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c21.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx",
+        "packages/ddirori_ui/test/basic_test.dart",
+        "packages/ddirori_web/src/adoption.test.tsx",
+        "apps/in_c_sheet/test/adoption_pilot_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C22",
+      "name": "Table",
+      "react": [
+        "Table"
+      ],
+      "flutter": [],
+      "profile": "display",
+      "native": "",
+      "file": "components/c22.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C23",
+      "name": "Banner / InlineMessage",
+      "react": [
+        "Banner",
+        "InlineMessage"
+      ],
+      "flutter": [
+        "DdiroriBanner",
+        "DdiroriInlineMessage"
+      ],
+      "profile": "feedback",
+      "native": "",
+      "file": "components/c23.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C24",
+      "name": "Empty / ErrorState",
+      "react": [
+        "StatePanel"
+      ],
+      "flutter": [
+        "DdiroriStatePanel"
+      ],
+      "profile": "feedback",
+      "native": "",
+      "file": "components/c24.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C25",
+      "name": "Toast / Snackbar",
+      "react": [
+        "Toast"
+      ],
+      "flutter": [
+        "showDdiroriToast"
+      ],
+      "profile": "feedback",
+      "native": "",
+      "file": "components/c25.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C26",
+      "name": "Progress / Skeleton",
+      "react": [
+        "Progress",
+        "Skeleton"
+      ],
+      "flutter": [
+        "DdiroriProgress",
+        "DdiroriSkeleton"
+      ],
+      "profile": "feedback",
+      "native": "",
+      "file": "components/c26.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/brand.dart",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C27",
+      "name": "Dialog / Confirm / Sheet",
+      "react": [
+        "Dialog",
+        "ConfirmDialog"
+      ],
+      "flutter": [
+        "showDdiroriDialog",
+        "showDdiroriConfirmDialog",
+        "showDdiroriSheet"
+      ],
+      "profile": "overlay",
+      "native": "",
+      "file": "components/c27.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart",
+        "packages/ddirori_web/src/adoption.test.tsx",
+        "apps/in_c_sheet/test/adoption_pilot_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C28",
+      "name": "Menu",
+      "react": [
+        "Menu"
+      ],
+      "flutter": [
+        "DdiroriMenuButton"
+      ],
+      "profile": "overlay",
+      "native": "",
+      "file": "components/c28.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C29",
+      "name": "Popover",
+      "react": [
+        "Popover"
+      ],
+      "flutter": [
+        "DdiroriPopover"
+      ],
+      "profile": "overlay",
+      "native": "",
+      "file": "components/c29.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/basic_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C30",
+      "name": "Tooltip",
+      "react": [
+        "Tooltip"
+      ],
+      "flutter": [],
+      "profile": "overlay",
+      "native": "Tooltip",
+      "file": "components/c30.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/basic.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C31",
+      "name": "Group / Stack / Container / Density",
+      "react": [
+        "Group",
+        "Stack",
+        "Container",
+        "Density"
+      ],
+      "flutter": [
+        "DdiroriStack",
+        "DdiroriContainer"
+      ],
+      "profile": "layout",
+      "native": "",
+      "file": "components/c31.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/basic.dart"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C32",
+      "name": "Toolbar / AdaptiveActions",
+      "react": [
+        "Toolbar"
+      ],
+      "flutter": [
+        "DdiroriToolbar",
+        "DdiroriAdaptiveActions"
+      ],
+      "profile": "layout",
+      "native": "",
+      "file": "components/c32.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C33",
+      "name": "Header / Navigation",
+      "react": [
+        "AppHeader",
+        "Navigation",
+        "NavigationItem"
+      ],
+      "flutter": [
+        "DdiroriPageHeader"
+      ],
+      "profile": "layout",
+      "native": "",
+      "file": "components/c33.md",
+      "sources": [
+        "packages/ddirori_web/src/basic.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C34",
+      "name": "Settings / Metrics",
+      "react": [
+        "SettingsRow"
+      ],
+      "flutter": [
+        "DdiroriSettingsRow",
+        "DdiroriMetric",
+        "DdiroriMetricGroup",
+        "DdiroriMetricData"
+      ],
+      "profile": "layout",
+      "native": "",
+      "file": "components/c34.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/components.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C35",
+      "name": "Brand / Product / ServiceLink",
+      "react": [
+        "Mark",
+        "Bach",
+        "ProductGlyph",
+        "ProductSignature",
+        "ServiceLink"
+      ],
+      "flutter": [
+        "DdiroriMark",
+        "DdiroriBach",
+        "DdiroriBachVector",
+        "DdiroriProductGlyph",
+        "DdiroriProductSignature",
+        "DdiroriServiceLink"
+      ],
+      "profile": "display",
+      "native": "",
+      "file": "components/c35.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/brand.dart",
+        "packages/ddirori_ui/lib/src/brand_family.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C36",
+      "name": "PageControls",
+      "react": [
+        "PageControls"
+      ],
+      "flutter": [
+        "DdiroriPageControls"
+      ],
+      "profile": "music",
+      "native": "",
+      "file": "components/c36.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/music.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx",
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C37",
+      "name": "AnnotationTools",
+      "react": [],
+      "flutter": [
+        "DdiroriAnnotationTools"
+      ],
+      "profile": "music",
+      "native": "",
+      "file": "components/c37.md",
+      "sources": [
+        "packages/ddirori_ui/lib/src/music.dart"
+      ],
+      "testSources": [],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C38",
+      "name": "Transport / PlaybackProgress",
+      "react": [
+        "Transport"
+      ],
+      "flutter": [
+        "DdiroriTransport",
+        "DdiroriPlaybackProgress",
+        "formatDdiroriDuration"
+      ],
+      "profile": "music",
+      "native": "",
+      "file": "components/c38.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/music.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_ui/test/components_test.dart"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    },
+    {
+      "id": "C39",
+      "name": "Beat / Tuner",
+      "react": [
+        "BeatIndicator",
+        "TunerMeter"
+      ],
+      "flutter": [
+        "DdiroriBeatIndicator",
+        "DdiroriTunerMeter"
+      ],
+      "profile": "music",
+      "native": "",
+      "file": "components/c39.md",
+      "sources": [
+        "packages/ddirori_web/src/index.tsx",
+        "packages/ddirori_ui/lib/src/music.dart"
+      ],
+      "testSources": [
+        "packages/ddirori_web/src/components.test.tsx"
+      ],
+      "testEvidence": "심벌 참조가 있는 기존 테스트 파일. 모든 수용 조건의 coverage 또는 이번 실행 통과를 뜻하지 않는다."
+    }
+  ],
+  "supportReact": {
+    "Option": "C08",
+    "TableColumn": "C22",
+    "ButtonProps": "C01",
+    "ProductId": "C35",
+    "ServiceAvailability": "C35",
+    "TunerStatus": "C39"
+  },
+  "supportFlutter": {
+    "DdiroriDensity": "F-01",
+    "DdiroriStyle": "F-01",
+    "ddiroriTheme": "F-01",
+    "DdiroriButtonKind": "C01",
+    "DdiroriNoticeKind": "C23",
+    "DdiroriStatusTone": "C17",
+    "DdiroriProduct": "C35",
+    "DdiroriBachExpression": "C35",
+    "DdiroriServiceAvailability": "C35",
+    "DdiroriTransportVariant": "C38",
+    "DdiroriTunerStatus": "C39"
+  },
+  "generatedExports": {
+    "DdiroriTextRole": "token-reference.md",
+    "ddiroriTokens": "token-reference.md",
+    "DdiroriTokens": "token-reference.md"
+  },
+  "notes": "Source presence is not verification. Exact API declarations live in api snapshots. Native composition is identified per component. Registry stores navigation/coverage metadata only; contract prose lives in Markdown."
+}

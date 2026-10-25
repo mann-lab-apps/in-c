@@ -1,0 +1,2609 @@
+{
+  "react": [
+    {
+      "name": "Text",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 6,
+      "signature": "export function Text({as: Element = 'span', variant = 'body', className = '', ...props}: HTMLAttributes<HTMLElement> & {\n  as?: 'span' | 'p' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'strong' | 'output' | 'kbd';\n  variant?: DdiroriTextRole;\n})",
+      "props": [
+        {
+          "name": "as",
+          "type": "\"span\" | \"p\" | \"div\" | \"h1\" | \"h2\" | \"h3\" | \"h4\" | \"strong\" | \"output\" | \"kbd\" | undefined",
+          "required": false,
+          "default": "'span'"
+        },
+        {
+          "name": "variant",
+          "type": "\"screenTitle\" | \"sectionTitle\" | \"itemTitle\" | \"body\" | \"description\" | \"label\" | \"action\" | \"caption\" | \"display\" | \"numeric\" | undefined",
+          "required": false,
+          "default": "'body'"
+        }
+      ]
+    },
+    {
+      "name": "Mark",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 18,
+      "signature": "export function Mark({ size = 48, pulse = false }: {\n    size?: number;\n    pulse?: boolean;\n})",
+      "props": [
+        {
+          "name": "size",
+          "type": "number | undefined",
+          "required": false,
+          "default": "48"
+        },
+        {
+          "name": "pulse",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Bach",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 30,
+      "signature": "export function Bach({ size = 64, expression = 'surprised' }: {\n    size?: number;\n    expression?: 'surprised' | 'calm' | 'happy';\n})",
+      "props": [
+        {
+          "name": "size",
+          "type": "number | undefined",
+          "required": false,
+          "default": "64"
+        },
+        {
+          "name": "expression",
+          "type": "\"surprised\" | \"calm\" | \"happy\" | undefined",
+          "required": false,
+          "default": "'surprised'"
+        }
+      ]
+    },
+    {
+      "name": "ProductId",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 34,
+      "signature": "export type ProductId = 'play' | 'score' | 'studio' | 'talk' | 'stage' | 'click' | 'chime';",
+      "props": []
+    },
+    {
+      "name": "ProductGlyph",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 35,
+      "signature": "export function ProductGlyph({product,size=32}:{product:ProductId;size?:number})",
+      "props": [
+        {
+          "name": "product",
+          "type": "ProductId",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "size",
+          "type": "number | undefined",
+          "required": false,
+          "default": "32"
+        }
+      ]
+    },
+    {
+      "name": "ProductSignature",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 39,
+      "signature": "export function ProductSignature({product,name,subtitle}:{product:ProductId;name:string;subtitle?:string})",
+      "props": [
+        {
+          "name": "product",
+          "type": "ProductId",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "subtitle",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "ButtonProps",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 42,
+      "signature": "export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & {\n    onClick?: () => void | Promise<void>;\n    kind?: 'primary' | 'secondary' | 'danger' | 'quiet';\n    busy?: boolean;\n    selected?: boolean;\n    onError?: (e: unknown) => void;\n};",
+      "props": []
+    },
+    {
+      "name": "Button",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 49,
+      "signature": "export function Button({ children, onClick, kind = 'primary', busy = false, selected, onError, disabled, ...props }: ButtonProps)",
+      "props": [
+        {
+          "name": "onError",
+          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onClick",
+          "type": "(() => void | Promise<void>) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "kind",
+          "type": "\"primary\" | \"secondary\" | \"danger\" | \"quiet\" | undefined",
+          "required": false,
+          "default": "'primary'"
+        },
+        {
+          "name": "busy",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "selected",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "IconButton",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 74,
+      "signature": "export function IconButton({ label, children, className = '', ...props }: ButtonProps & {\n    label: string;\n})",
+      "props": [
+        {
+          "name": "onError",
+          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onClick",
+          "type": "(() => void | Promise<void>) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "kind",
+          "type": "\"primary\" | \"secondary\" | \"danger\" | \"quiet\" | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "busy",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "selected",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Input",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 77,
+      "signature": "export function Input({ label, error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {\n    label: string;\n    error?: string;\n    help?: string;\n    clearable?: boolean;\n    onClear?: () => void;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "help",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "clearable",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "onClear",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 87,
+      "signature": "export function Search({ value, onChange, label = '검색' }: {\n    value: string;\n    onChange: (v: string) => void;\n    label?: string;\n})",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: string) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string | undefined",
+          "required": false,
+          "default": "'검색'"
+        }
+      ]
+    },
+    {
+      "name": "Choices",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 92,
+      "signature": "export function Choices<T extends string | number>({ label, options, selected, onChange, multiple = false, disabled = false }: {\n    label: string;\n    options: readonly {\n        value: T;\n        label: string;\n    }[];\n    selected: readonly T[];\n    onChange: (v: T[]) => void;\n    multiple?: boolean;\n    disabled?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "options",
+          "type": "readonly { value: T; label: string; }[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "selected",
+          "type": "readonly T[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: T[]) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "multiple",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Toolbar",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 105,
+      "signature": "export function Toolbar({ children, label = '도구' }: {\n    children: ReactNode;\n    label?: string;\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string | undefined",
+          "required": false,
+          "default": "'도구'"
+        }
+      ]
+    },
+    {
+      "name": "Item",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 109,
+      "signature": "export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {\n    title: string;\n    subtitle?: string;\n    leading?: ReactNode;\n    actions?: ReactNode;\n    selected?: boolean;\n    selecting?: boolean;\n    disabled?: boolean;\n    onSelected?: (v: boolean) => void;\n    onOpen?: () => void;\n})",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "subtitle",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "leading",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "selected",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "selecting",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "onSelected",
+          "type": "((v: boolean) => void) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onOpen",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Banner",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 122,
+      "signature": "export function Banner({ children, kind = 'info', action }: {\n    children: ReactNode;\n    kind?: 'info' | 'success' | 'warning' | 'error';\n    action?: ReactNode;\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "kind",
+          "type": "\"info\" | \"success\" | \"warning\" | \"error\" | undefined",
+          "required": false,
+          "default": "'info'"
+        },
+        {
+          "name": "action",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "StatePanel",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 130,
+      "signature": "export function StatePanel({ title, message, error = false, bachFace = false, action, diagnostic }: {\n    title: string;\n    message: string;\n    error?: boolean;\n    bachFace?: boolean;\n    action?: ReactNode;\n    diagnostic?: string;\n})",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "bachFace",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "action",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "diagnostic",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 140,
+      "signature": "export function Progress({ value, label = '불러오는 중' }: {\n    value?: number;\n    label?: string;\n})",
+      "props": [
+        {
+          "name": "value",
+          "type": "number | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string | undefined",
+          "required": false,
+          "default": "'불러오는 중'"
+        }
+      ]
+    },
+    {
+      "name": "SettingsRow",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 144,
+      "signature": "export function SettingsRow({ label, description, children }: {\n    label: string;\n    description?: string;\n    children: ReactNode;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "description",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Dialog",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 149,
+      "signature": "export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {\n    open: boolean;\n    title: string;\n    children: ReactNode;\n    onClose: () => void;\n    actions?: ReactNode;\n    sheet?: boolean;\n    busy?: boolean;\n})",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onClose",
+          "type": "() => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "sheet",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "busy",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "NumberControl",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 176,
+      "signature": "export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {\n    label: string;\n    value: number;\n    onChange: (v: number) => void;\n    min: number;\n    max: number;\n    step?: number;\n    unit?: string;\n    disabled?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: number) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "step",
+          "type": "number | undefined",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "unit",
+          "type": "string | undefined",
+          "required": false,
+          "default": "''"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "PageControls",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 212,
+      "signature": "export function PageControls({ page, count, onChange, performance = false }: {\n    page: number;\n    count?: number;\n    onChange: (v: number) => void;\n    performance?: boolean;\n})",
+      "props": [
+        {
+          "name": "page",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "count",
+          "type": "number | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: number) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "performance",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Transport",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 218,
+      "signature": "export function Transport({ playing, onToggle, position = 0, duration, onSeek, onPrevious, onNext }: {\n    playing: boolean;\n    onToggle?: () => void;\n    position?: number;\n    duration?: number;\n    onSeek?: (n: number) => void;\n    onPrevious?: () => void;\n    onNext?: () => void;\n})",
+      "props": [
+        {
+          "name": "playing",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onToggle",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "position",
+          "type": "number | undefined",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "duration",
+          "type": "number | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onSeek",
+          "type": "((n: number) => void) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onPrevious",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onNext",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "TunerStatus",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 227,
+      "signature": "export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfidence';",
+      "props": []
+    },
+    {
+      "name": "TunerMeter",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 228,
+      "signature": "export function TunerMeter({ status, cents, note = 'A4' }: {\n    status: TunerStatus;\n    cents?: number;\n    note?: string;\n})",
+      "props": [
+        {
+          "name": "status",
+          "type": "TunerStatus",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "cents",
+          "type": "number | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "note",
+          "type": "string | undefined",
+          "required": false,
+          "default": "'A4'"
+        }
+      ]
+    },
+    {
+      "name": "BeatIndicator",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 236,
+      "signature": "export function BeatIndicator({ beats, currentBeat, running }: {\n    beats: number;\n    currentBeat: number;\n    running: boolean;\n})",
+      "props": [
+        {
+          "name": "beats",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "currentBeat",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "running",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "ServiceAvailability",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 244,
+      "signature": "export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';",
+      "props": []
+    },
+    {
+      "name": "ServiceLink",
+      "file": "packages/ddirori_web/src/index.tsx",
+      "line": 246,
+      "signature": "export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void})",
+      "props": [
+        {
+          "name": "product",
+          "type": "ProductId",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "availability",
+          "type": "ServiceAvailability | undefined",
+          "required": false,
+          "default": "'available'"
+        },
+        {
+          "name": "onOpen",
+          "type": "(() => void) | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Option",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 19,
+      "signature": "export type Option<T extends string = string> = {\n  value: T;\n  label: string;\n  disabled?: boolean;\n};",
+      "props": []
+    },
+    {
+      "name": "Group",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 24,
+      "signature": "export function Group({\n  label,\n  children,\n}: {\n  label: string;\n  children: ReactNode;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "ToggleButton",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 37,
+      "signature": "export function ToggleButton({\n  selected,\n  onSelected,\n  ...props\n}: Omit<ButtonProps, \"onClick\" | \"selected\"> & {\n  selected: boolean;\n  onSelected: (value: boolean) => void;\n})",
+      "props": [
+        {
+          "name": "kind",
+          "type": "\"primary\" | \"secondary\" | \"danger\" | \"quiet\" | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "busy",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onSelected",
+          "type": "(value: boolean) => void",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Stack",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 53,
+      "signature": "export function Stack({\n  children,\n  gap = \"md\",\n  inline = false,\n  ...props\n}: HTMLAttributes<HTMLDivElement> & {\n  gap?: \"sm\" | \"md\" | \"lg\" | \"xl\";\n  inline?: boolean;\n})",
+      "props": [
+        {
+          "name": "gap",
+          "type": "\"sm\" | \"md\" | \"lg\" | \"xl\" | undefined",
+          "required": false,
+          "default": "\"md\""
+        },
+        {
+          "name": "inline",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Density",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 78,
+      "signature": "export function Density({\n  density,\n  children,\n  className = \"\",\n}: {\n  density: \"comfortable\" | \"compact\";\n  children: ReactNode;\n  className?: string;\n})",
+      "props": [
+        {
+          "name": "density",
+          "type": "\"comfortable\" | \"compact\"",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "className",
+          "type": "string | undefined",
+          "required": false,
+          "default": "\"\""
+        }
+      ]
+    },
+    {
+      "name": "Container",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 102,
+      "signature": "export function Container(props: HTMLAttributes<HTMLDivElement>)",
+      "props": []
+    },
+    {
+      "name": "Field",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 105,
+      "signature": "export function Field({\n  label,\n  help,\n  error,\n  required,\n  id,\n  children,\n}: {\n  label: string;\n  help?: string;\n  error?: string;\n  required?: boolean;\n  id: string;\n  children: (props: {\n    id: string;\n    \"aria-describedby\"?: string;\n    \"aria-invalid\": boolean;\n    \"aria-required\"?: boolean;\n  }) => ReactNode;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "help",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "required",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "(props: { id: string; \"aria-describedby\"?: string; \"aria-invalid\": boolean; \"aria-required\"?: boolean; }) => ReactNode",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Textarea",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 145,
+      "signature": "export function Textarea({\n  label,\n  help,\n  error,\n  ...props\n}: TextareaHTMLAttributes<HTMLTextAreaElement> & {\n  label: string;\n  help?: string;\n  error?: string;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "help",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Checkbox",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 175,
+      "signature": "export function Checkbox({\n  label,\n  indeterminate = false,\n  ...props\n}: Omit<InputHTMLAttributes<HTMLInputElement>, \"type\"> & {\n  label: string;\n  indeterminate?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "indeterminate",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Switch",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 194,
+      "signature": "export function Switch({\n  label,\n  ...props\n}: Omit<InputHTMLAttributes<HTMLInputElement>, \"type\" | \"role\"> & {\n  label: string;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "RadioGroup",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 207,
+      "signature": "export function RadioGroup<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  disabled = false,\n}: {\n  label: string;\n  options: readonly Option<T>[];\n  value: T;\n  onChange: (value: T) => void;\n  disabled?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "options",
+          "type": "readonly Option<T>[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "T",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(value: T) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Select",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 240,
+      "signature": "export function Select<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  disabled,\n  help,\n  error,\n  required,\n}: {\n  label: string;\n  options: readonly Option<T>[];\n  value: T;\n  onChange: (value: T) => void;\n  disabled?: boolean;\n  help?: string;\n  error?: string;\n  required?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "options",
+          "type": "readonly Option<T>[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "T",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(value: T) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "help",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "required",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Slider",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 550,
+      "signature": "export function Slider({\n  label,\n  value,\n  onChange,\n  min = 0,\n  max = 100,\n  step = 1,\n  disabled = false,\n  valueText,\n}: {\n  label: string;\n  value: number;\n  onChange: (v: number) => void;\n  min?: number;\n  max?: number;\n  step?: number;\n  disabled?: boolean;\n  valueText?: string;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: number) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "min",
+          "type": "number | undefined",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "max",
+          "type": "number | undefined",
+          "required": false,
+          "default": "100"
+        },
+        {
+          "name": "step",
+          "type": "number | undefined",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "valueText",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "SegmentedControl",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 599,
+      "signature": "export function SegmentedControl<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  disabled = false,\n}: {\n  label: string;\n  options: readonly Option<T>[];\n  value: T;\n  onChange: (value: T) => void;\n  disabled?: boolean;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "options",
+          "type": "readonly Option<T>[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "T",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(value: T) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Tabs",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 650,
+      "signature": "export function Tabs<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  activation = \"automatic\",\n}: {\n  label: string;\n  options: readonly (Option<T> & { content: ReactNode })[];\n  value: T;\n  onChange: (v: T) => void;\n  activation?: \"automatic\" | \"manual\";\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "options",
+          "type": "readonly (Option<T> & { content: ReactNode; })[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "value",
+          "type": "T",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onChange",
+          "type": "(v: T) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "activation",
+          "type": "\"automatic\" | \"manual\" | undefined",
+          "required": false,
+          "default": "\"automatic\""
+        }
+      ]
+    },
+    {
+      "name": "Icon",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 722,
+      "signature": "export function Icon({\n  children,\n  label,\n}: {\n  children: ReactNode;\n  label?: string;\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Avatar",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 740,
+      "signature": "export function Avatar({ name, src }: { name: string; src?: string })",
+      "props": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "src",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Badge",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 755,
+      "signature": "export function Badge({\n  children,\n  tone = \"neutral\",\n}: {\n  children: ReactNode;\n  tone?: \"neutral\" | \"success\" | \"warning\" | \"error\";\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "tone",
+          "type": "\"success\" | \"warning\" | \"error\" | \"neutral\" | undefined",
+          "required": false,
+          "default": "\"neutral\""
+        }
+      ]
+    },
+    {
+      "name": "StatusBadge",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 764,
+      "signature": "export function StatusBadge({\n  label,\n  tone = \"neutral\",\n}: {\n  label: string;\n  tone?: \"neutral\" | \"success\" | \"warning\" | \"error\";\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "tone",
+          "type": "\"success\" | \"warning\" | \"error\" | \"neutral\" | undefined",
+          "required": false,
+          "default": "\"neutral\""
+        }
+      ]
+    },
+    {
+      "name": "Divider",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 780,
+      "signature": "export function Divider()",
+      "props": []
+    },
+    {
+      "name": "List",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 783,
+      "signature": "export function List({\n  children,\n  label,\n}: {\n  children: ReactNode;\n  label: string;\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 796,
+      "signature": "export function Card({ children }: { children: ReactNode })",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Section",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 799,
+      "signature": "export function Section({\n  title,\n  children,\n  action,\n}: {\n  title: string;\n  children: ReactNode;\n  action?: ReactNode;\n})",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "action",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Accordion",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 820,
+      "signature": "export function Accordion({\n  title,\n  children,\n  open,\n  onOpenChange,\n}: {\n  title: string;\n  children: ReactNode;\n  open: boolean;\n  onOpenChange: (value: boolean) => void;\n})",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onOpenChange",
+          "type": "(value: boolean) => void",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "TableColumn",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 849,
+      "signature": "export type TableColumn = { key: string; label: string; sortable?: boolean };",
+      "props": []
+    },
+    {
+      "name": "Table",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 850,
+      "signature": "export function Table({\n  label,\n  columns,\n  rows,\n  sort,\n  onSort,\n  empty = \"표시할 항목이 없어요\",\n}: {\n  label: string;\n  columns: readonly TableColumn[];\n  rows: readonly { id: string; cells: Record<string, ReactNode> }[];\n  sort?: { key: string; direction: \"ascending\" | \"descending\" };\n  onSort?: (key: string) => void;\n  empty?: string;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "columns",
+          "type": "readonly TableColumn[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "rows",
+          "type": "readonly { id: string; cells: Record<string, ReactNode>; }[]",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "sort",
+          "type": "{ key: string; direction: \"ascending\" | \"descending\"; } | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "onSort",
+          "type": "((key: string) => void) | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "empty",
+          "type": "string | undefined",
+          "required": false,
+          "default": "\"표시할 항목이 없어요\""
+        }
+      ]
+    },
+    {
+      "name": "InlineMessage",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 920,
+      "signature": "export function InlineMessage({\n  children,\n  error = false,\n}: {\n  children: ReactNode;\n  error?: boolean;\n})",
+      "props": [
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "error",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Toast",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 937,
+      "signature": "export function Toast({\n  message,\n  onClose,\n  action,\n}: {\n  message: string;\n  onClose: () => void;\n  action?: ReactNode;\n})",
+      "props": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onClose",
+          "type": "() => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "action",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Skeleton",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 956,
+      "signature": "export function Skeleton({\n  label = \"불러오는 중\",\n  lines = 3,\n}: {\n  label?: string;\n  lines?: number;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | undefined",
+          "required": false,
+          "default": "\"불러오는 중\""
+        },
+        {
+          "name": "lines",
+          "type": "number | undefined",
+          "required": false,
+          "default": "3"
+        }
+      ]
+    },
+    {
+      "name": "ConfirmDialog",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 971,
+      "signature": "export function ConfirmDialog({\n  open,\n  title,\n  children,\n  onClose,\n  onConfirm,\n  busy = false,\n  error,\n}: {\n  open: boolean;\n  title: string;\n  children: ReactNode;\n  onClose: () => void;\n  onConfirm: () => void | Promise<void>;\n  busy?: boolean;\n  error?: string;\n})",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onClose",
+          "type": "() => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onConfirm",
+          "type": "() => void | Promise<void>",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "busy",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "error",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "AppHeader",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1019,
+      "signature": "export function AppHeader({\n  title,\n  subtitle,\n  leading,\n  actions,\n}: {\n  title: string;\n  subtitle?: string;\n  leading?: ReactNode;\n  actions?: ReactNode;\n})",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "subtitle",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "leading",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Navigation",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1047,
+      "signature": "export function Navigation({\n  label,\n  children,\n}: {\n  label: string;\n  children: ReactNode;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "NavigationItem",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1060,
+      "signature": "export function NavigationItem({\n  label,\n  href,\n  current = false,\n  icon,\n}: {\n  label: string;\n  href: string;\n  current?: boolean;\n  icon?: ReactNode;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "current",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "icon",
+          "type": "ReactNode",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Popover",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1084,
+      "signature": "export function Popover({\n  label,\n  triggerLabel,\n  open,\n  onOpenChange,\n  children,\n  menu = false,\n  onKeyDown,\n}: {\n  label: string;\n  triggerLabel?: string;\n  open: boolean;\n  onOpenChange: (v: boolean) => void;\n  children: ReactNode;\n  menu?: boolean;\n  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "triggerLabel",
+          "type": "string | undefined",
+          "required": false,
+          "default": "—"
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "onOpenChange",
+          "type": "(v: boolean) => void",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "menu",
+          "type": "boolean | undefined",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "onKeyDown",
+          "type": "((e: KeyboardEvent<HTMLDivElement>) => void) | undefined",
+          "required": false,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Menu",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1193,
+      "signature": "export function Menu({\n  label,\n  items,\n}: {\n  label: string;\n  items: readonly {\n    id: string;\n    label: string;\n    disabled?: boolean;\n    onSelect: () => void;\n  }[];\n})",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "items",
+          "type": "readonly { id: string; label: string; disabled?: boolean; onSelect: () => void; }[]",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    },
+    {
+      "name": "Tooltip",
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "line": 1267,
+      "signature": "export function Tooltip({\n  text,\n  children,\n}: {\n  text: string;\n  children: ReactElement<{ \"aria-describedby\"?: string }>;\n})",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "default": "—"
+        },
+        {
+          "name": "children",
+          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").JSXElementConstructor<any>>",
+          "required": true,
+          "default": "—"
+        }
+      ]
+    }
+  ],
+  "dart": [
+    {
+      "name": "DdiroriDensity",
+      "file": "packages/ddirori_ui/lib/src/theme.dart",
+      "line": 5,
+      "kind": "enum",
+      "signature": "enum DdiroriDensity { comfortable, compact }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriStyle",
+      "file": "packages/ddirori_ui/lib/src/theme.dart",
+      "line": 8,
+      "kind": "class",
+      "signature": "class DdiroriStyle extends ThemeExtension<DdiroriStyle> {\nconst DdiroriStyle({\n    required this.colors,\n    this.density = DdiroriDensity.comfortable,\n    this.touch = true,\n  });\n  final Map<String, int> colors;\n  final DdiroriDensity density;\n  final bool touch;\n  Color operator [](String role) => Color(colors[role]!);\n  double get control => density == DdiroriDensity.compact && !touch\n      ? DdiroriTokens.compactControl\n      : DdiroriTokens.comfortableControl;\n  double get gap => density == DdiroriDensity.compact\n      ? DdiroriTokens.compactGap\n      : DdiroriTokens.comfortableGap;\n  double get labelSize => density == DdiroriDensity.compact\n      ? DdiroriTokens.compactFont\n      : DdiroriTokens.comfortableFont;\n  static DdiroriStyle of(BuildContext context) {\n    final theme = Theme.of(context);\n    return theme.extension<DdiroriStyle>() ??\n        DdiroriStyle(\n          colors: theme.brightness == Brightness.dark\n              ? DdiroriTokens.dark\n              : DdiroriTokens.light,\n        );\n  }\n}",
+      "fields": [
+        "Map<String, int> colors",
+        "DdiroriDensity density",
+        "bool touch"
+      ],
+      "constructors": [
+        "const DdiroriStyle({\n    required this.colors,\n    this.density = DdiroriDensity.comfortable,\n    this.touch = true,\n  });",
+        "DdiroriStyle(\n          colors: theme.brightness == Brightness.dark\n              ? DdiroriTokens.dark\n              : DdiroriTokens.light,\n        );",
+        "DdiroriStyle(\n    colors: colors ?? this.colors,\n    density: density ?? this.density,\n    touch: touch ?? this.touch,\n  );",
+        "DdiroriStyle(\n          colors: {\n            for (final k in colors.keys)\n              k: Color.lerp(this[k], other[k], t)!.toARGB32(),\n          },\n          density: t < .5 ? density : other.density,\n          touch: t < .5 ? touch : other.touch,\n        );"
+      ]
+    },
+    {
+      "name": "ddiroriTextStyle",
+      "file": "packages/ddirori_ui/lib/src/theme.dart",
+      "line": 61,
+      "kind": "function",
+      "signature": "TextStyle ddiroriTextStyle(DdiroriTextRole role, {String? fontFamily})",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "ddiroriTheme",
+      "file": "packages/ddirori_ui/lib/src/theme.dart",
+      "line": 75,
+      "kind": "function",
+      "signature": "ThemeData ddiroriTheme({\n  Brightness brightness = Brightness.light,\n  DdiroriDensity density = DdiroriDensity.comfortable,\n  bool touch = true,\n  String? fontFamily,\n  String? accent,\n})",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriMark",
+      "file": "packages/ddirori_ui/lib/src/brand.dart",
+      "line": 10,
+      "kind": "class",
+      "signature": "class DdiroriMark extends StatelessWidget {\nconst DdiroriMark({\n    super.key,\n    this.size = 48,\n    this.color,\n    this.phase = 0,\n    this.pulse = false,\n  });\n  final double size;\n  final Color? color;\n  final double phase;\n  final bool pulse;\n}",
+      "fields": [
+        "double size",
+        "Color? color",
+        "double phase",
+        "bool pulse"
+      ],
+      "constructors": [
+        "const DdiroriMark({\n    super.key,\n    this.size = 48,\n    this.color,\n    this.phase = 0,\n    this.pulse = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriBach",
+      "file": "packages/ddirori_ui/lib/src/brand.dart",
+      "line": 106,
+      "kind": "class",
+      "signature": "class DdiroriBach extends StatelessWidget {\nconst DdiroriBach({super.key, this.size = 64, this.label = '놀란 바흐'});\n  final double size;\n  final String label;\n}",
+      "fields": [
+        "double size",
+        "String label"
+      ],
+      "constructors": [
+        "const DdiroriBach({super.key, this.size = 64, this.label = '놀란 바흐'});"
+      ]
+    },
+    {
+      "name": "DdiroriProgress",
+      "file": "packages/ddirori_ui/lib/src/brand.dart",
+      "line": 115,
+      "kind": "class",
+      "signature": "class DdiroriProgress extends StatefulWidget {\nconst DdiroriProgress({\n    super.key,\n    this.value,\n    this.label = '불러오는 중',\n    this.size = 40,\n  });\n  final double? value;\n  final String label;\n  final double size;\n}",
+      "fields": [
+        "double? value",
+        "String label",
+        "double size"
+      ],
+      "constructors": [
+        "const DdiroriProgress({\n    super.key,\n    this.value,\n    this.label = '불러오는 중',\n    this.size = 40,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriButtonKind",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 9,
+      "kind": "enum",
+      "signature": "enum DdiroriButtonKind { primary, secondary, danger, quiet }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriButton",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 11,
+      "kind": "class",
+      "signature": "class DdiroriButton extends StatefulWidget {\nconst DdiroriButton({\n    super.key,\n    required this.label,\n    this.onPressed,\n    this.icon,\n    this.kind = DdiroriButtonKind.primary,\n    this.busy = false,\n    this.selected = false,\n    this.onError,\n  });\n  final String label;\n  final FutureOr<void> Function()? onPressed;\n  final IconData? icon;\n  final DdiroriButtonKind kind;\n  final bool busy, selected;\n  final void Function(Object, StackTrace)? onError;\n}",
+      "fields": [
+        "String label",
+        "FutureOr<void> Function()? onPressed",
+        "IconData? icon",
+        "DdiroriButtonKind kind",
+        "bool busy, selected",
+        "void Function(Object, StackTrace)? onError"
+      ],
+      "constructors": [
+        "const DdiroriButton({\n    super.key,\n    required this.label,\n    this.onPressed,\n    this.icon,\n    this.kind = DdiroriButtonKind.primary,\n    this.busy = false,\n    this.selected = false,\n    this.onError,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriIconButton",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 134,
+      "kind": "class",
+      "signature": "class DdiroriIconButton extends StatelessWidget {\nconst DdiroriIconButton({\n    super.key,\n    required this.label,\n    required this.icon,\n    this.onPressed,\n    this.selected = false,\n    this.glyph,\n  });\n  final String label;\n  final IconData icon;\n  final Widget? glyph;\n  final VoidCallback? onPressed;\n  final bool selected;\n}",
+      "fields": [
+        "String label",
+        "IconData icon",
+        "Widget? glyph",
+        "VoidCallback? onPressed",
+        "bool selected"
+      ],
+      "constructors": [
+        "const DdiroriIconButton({\n    super.key,\n    required this.label,\n    required this.icon,\n    this.onPressed,\n    this.selected = false,\n    this.glyph,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriInput",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 159,
+      "kind": "class",
+      "signature": "class DdiroriInput extends StatefulWidget {\nconst DdiroriInput({\n    super.key,\n    required this.value,\n    required this.onChanged,\n    required this.label,\n    this.hint,\n    this.error,\n    this.help,\n    this.clearable = false,\n    this.enabled = true,\n    this.search = false,\n    this.readOnly = false,\n    this.required = false,\n    this.maxLines = 1,\n    this.onSubmitted,\n    this.keyboardType,\n  });\n  final String value, label;\n  final String? hint, error, help;\n  final ValueChanged<String> onChanged;\n  final ValueChanged<String>? onSubmitted;\n  final bool clearable, enabled, search, readOnly, required;\n  final int maxLines;\n  final TextInputType? keyboardType;\n}",
+      "fields": [
+        "String value, label",
+        "String? hint, error, help",
+        "ValueChanged<String> onChanged",
+        "ValueChanged<String>? onSubmitted",
+        "bool clearable, enabled, search, readOnly, required",
+        "int maxLines",
+        "TextInputType? keyboardType"
+      ],
+      "constructors": [
+        "const DdiroriInput({\n    super.key,\n    required this.value,\n    required this.onChanged,\n    required this.label,\n    this.hint,\n    this.error,\n    this.help,\n    this.clearable = false,\n    this.enabled = true,\n    this.search = false,\n    this.readOnly = false,\n    this.required = false,\n    this.maxLines = 1,\n    this.onSubmitted,\n    this.keyboardType,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriSearch",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 256,
+      "kind": "class",
+      "signature": "class DdiroriSearch extends StatelessWidget {\nconst DdiroriSearch({\n    super.key,\n    required this.value,\n    required this.onChanged,\n    this.label = '검색',\n  });\n  final String value, label;\n  final ValueChanged<String> onChanged;\n}",
+      "fields": [
+        "String value, label",
+        "ValueChanged<String> onChanged"
+      ],
+      "constructors": [
+        "const DdiroriSearch({\n    super.key,\n    required this.value,\n    required this.onChanged,\n    this.label = '검색',\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriChoices",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 275,
+      "kind": "class",
+      "signature": "class DdiroriChoices<T> extends StatelessWidget {\nconst DdiroriChoices({\n    super.key,\n    required this.options,\n    required this.selected,\n    required this.onChanged,\n    this.multiple = false,\n  });\n  final Map<T, String> options;\n  final Set<T> selected;\n  final ValueChanged<Set<T>>? onChanged;\n  final bool multiple;\n}",
+      "fields": [
+        "Map<T, String> options",
+        "Set<T> selected",
+        "ValueChanged<Set<T>>? onChanged",
+        "bool multiple"
+      ],
+      "constructors": [
+        "const DdiroriChoices({\n    super.key,\n    required this.options,\n    required this.selected,\n    required this.onChanged,\n    this.multiple = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriSegments",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 315,
+      "kind": "class",
+      "signature": "class DdiroriSegments<T> extends StatelessWidget {\nconst DdiroriSegments({\n    super.key,\n    required this.options,\n    required this.selected,\n    required this.onChanged,\n    this.allowEmpty = false,\n    this.icons = const {},\n    this.showSelectedIcon = false,\n  });\n  final Map<T, String> options;\n  final Set<T> selected;\n  final ValueChanged<Set<T>>? onChanged;\n  final bool allowEmpty;\n  final Map<T, IconData> icons;\n  final bool showSelectedIcon;\n}",
+      "fields": [
+        "Map<T, String> options",
+        "Set<T> selected",
+        "ValueChanged<Set<T>>? onChanged",
+        "bool allowEmpty",
+        "Map<T, IconData> icons",
+        "bool showSelectedIcon"
+      ],
+      "constructors": [
+        "const DdiroriSegments({\n    super.key,\n    required this.options,\n    required this.selected,\n    required this.onChanged,\n    this.allowEmpty = false,\n    this.icons = const {},\n    this.showSelectedIcon = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriPageHeader",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 352,
+      "kind": "class",
+      "signature": "class DdiroriPageHeader extends StatelessWidget {\nconst DdiroriPageHeader({\n    super.key,\n    required this.title,\n    this.subtitle,\n    this.leading,\n    this.actions = const [],\n  });\n\n  final String title;\n  final String? subtitle;\n  final Widget? leading;\n  final List<Widget> actions;\n}",
+      "fields": [
+        "String title",
+        "String? subtitle",
+        "Widget? leading",
+        "List<Widget> actions"
+      ],
+      "constructors": [
+        "const DdiroriPageHeader({\n    super.key,\n    required this.title,\n    this.subtitle,\n    this.leading,\n    this.actions = const [],\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriAdaptiveActions",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 427,
+      "kind": "class",
+      "signature": "class DdiroriAdaptiveActions extends StatelessWidget {\nconst DdiroriAdaptiveActions({\n    super.key,\n    required this.children,\n    this.label = '작업',\n    this.breakpoint = 420,\n  });\n\n  final List<Widget> children;\n  final String label;\n  final double breakpoint;\n}",
+      "fields": [
+        "List<Widget> children",
+        "String label",
+        "double breakpoint"
+      ],
+      "constructors": [
+        "const DdiroriAdaptiveActions({\n    super.key,\n    required this.children,\n    this.label = '작업',\n    this.breakpoint = 420,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriSection",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 468,
+      "kind": "class",
+      "signature": "class DdiroriSection extends StatelessWidget {\nconst DdiroriSection({\n    super.key,\n    required this.title,\n    required this.children,\n    this.subtitle,\n    this.trailing,\n    this.spacing = 8,\n  });\n\n  final String title;\n  final String? subtitle;\n  final Widget? trailing;\n  final List<Widget> children;\n  final double spacing;\n}",
+      "fields": [
+        "String title",
+        "String? subtitle",
+        "Widget? trailing",
+        "List<Widget> children",
+        "double spacing"
+      ],
+      "constructors": [
+        "const DdiroriSection({\n    super.key,\n    required this.title,\n    required this.children,\n    this.subtitle,\n    this.trailing,\n    this.spacing = 8,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriMetric",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 541,
+      "kind": "class",
+      "signature": "class DdiroriMetric extends StatelessWidget {\nconst DdiroriMetric({\n    super.key,\n    required this.label,\n    required this.value,\n    this.icon,\n  });\n\n  final String label;\n  final String value;\n  final IconData? icon;\n}",
+      "fields": [
+        "String label",
+        "String value",
+        "IconData? icon"
+      ],
+      "constructors": [
+        "const DdiroriMetric({\n    super.key,\n    required this.label,\n    required this.value,\n    this.icon,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriMetricData",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 585,
+      "kind": "class",
+      "signature": "class DdiroriMetricData {\nconst DdiroriMetricData({\n    required this.label,\n    required this.value,\n    this.icon,\n  });\n\n  final String label;\n  final String value;\n  final IconData? icon;\n}",
+      "fields": [
+        "String label",
+        "String value",
+        "IconData? icon"
+      ],
+      "constructors": [
+        "const DdiroriMetricData({\n    required this.label,\n    required this.value,\n    this.icon,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriMetricGroup",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 597,
+      "kind": "class",
+      "signature": "class DdiroriMetricGroup extends StatelessWidget {\nconst DdiroriMetricGroup({\n    super.key,\n    required this.metrics,\n    this.label = '요약',\n    this.minItemWidth = 132,\n  });\n\n  final List<DdiroriMetricData> metrics;\n  final String label;\n  final double minItemWidth;\n}",
+      "fields": [
+        "List<DdiroriMetricData> metrics",
+        "String label",
+        "double minItemWidth"
+      ],
+      "constructors": [
+        "const DdiroriMetricGroup({\n    super.key,\n    required this.metrics,\n    this.label = '요약',\n    this.minItemWidth = 132,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriToolbar",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 650,
+      "kind": "class",
+      "signature": "class DdiroriToolbar extends StatelessWidget {\nconst DdiroriToolbar({\n    super.key,\n    required this.children,\n    this.label = '도구',\n    this.scroll = false,\n  });\n  final List<Widget> children;\n  final String label;\n  final bool scroll;\n}",
+      "fields": [
+        "List<Widget> children",
+        "String label",
+        "bool scroll"
+      ],
+      "constructors": [
+        "const DdiroriToolbar({\n    super.key,\n    required this.children,\n    this.label = '도구',\n    this.scroll = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriItem",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 691,
+      "kind": "class",
+      "signature": "class DdiroriItem extends StatelessWidget {\nconst DdiroriItem({\n    super.key,\n    required this.title,\n    this.subtitle,\n    this.leading,\n    this.trailing,\n    this.actions = const [],\n    this.selected = false,\n    this.selecting = false,\n    this.enabled = true,\n    this.flat = false,\n    this.onTap,\n    this.onSelected,\n  });\n  final String title;\n  final String? subtitle;\n  final Widget? leading;\n  final Widget? trailing;\n  final List<Widget> actions;\n  final bool selected, selecting, enabled, flat;\n  final VoidCallback? onTap;\n  final ValueChanged<bool>? onSelected;\n}",
+      "fields": [
+        "String title",
+        "String? subtitle",
+        "Widget? leading",
+        "Widget? trailing",
+        "List<Widget> actions",
+        "bool selected, selecting, enabled, flat",
+        "VoidCallback? onTap",
+        "ValueChanged<bool>? onSelected"
+      ],
+      "constructors": [
+        "const DdiroriItem({\n    super.key,\n    required this.title,\n    this.subtitle,\n    this.leading,\n    this.trailing,\n    this.actions = const [],\n    this.selected = false,\n    this.selecting = false,\n    this.enabled = true,\n    this.flat = false,\n    this.onTap,\n    this.onSelected,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriNoticeKind",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 816,
+      "kind": "enum",
+      "signature": "enum DdiroriNoticeKind { info, success, warning, error }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriStatusTone",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 818,
+      "kind": "enum",
+      "signature": "enum DdiroriStatusTone { neutral, info, success, warning, error }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriStatusBadge",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 820,
+      "kind": "class",
+      "signature": "class DdiroriStatusBadge extends StatelessWidget {\nconst DdiroriStatusBadge({\n    super.key,\n    required this.label,\n    this.tone = DdiroriStatusTone.neutral,\n    this.icon,\n    this.semanticLabel,\n  });\n\n  final String label;\n  final DdiroriStatusTone tone;\n  final IconData? icon;\n  final String? semanticLabel;\n}",
+      "fields": [
+        "String label",
+        "DdiroriStatusTone tone",
+        "IconData? icon",
+        "String? semanticLabel"
+      ],
+      "constructors": [
+        "const DdiroriStatusBadge({\n    super.key,\n    required this.label,\n    this.tone = DdiroriStatusTone.neutral,\n    this.icon,\n    this.semanticLabel,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriMenuButton",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 882,
+      "kind": "class",
+      "signature": "class DdiroriMenuButton<T> extends StatelessWidget {\nconst DdiroriMenuButton({\n    super.key,\n    required this.label,\n    required this.itemBuilder,\n    this.onSelected,\n    this.icon = Icons.more_vert,\n    this.enabled = true,\n  });\n\n  final String label;\n  final PopupMenuItemBuilder<T> itemBuilder;\n  final PopupMenuItemSelected<T>? onSelected;\n  final IconData icon;\n  final bool enabled;\n}",
+      "fields": [
+        "String label",
+        "PopupMenuItemBuilder<T> itemBuilder",
+        "PopupMenuItemSelected<T>? onSelected",
+        "IconData icon",
+        "bool enabled"
+      ],
+      "constructors": [
+        "const DdiroriMenuButton({\n    super.key,\n    required this.label,\n    required this.itemBuilder,\n    this.onSelected,\n    this.icon = Icons.more_vert,\n    this.enabled = true,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriBanner",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 908,
+      "kind": "class",
+      "signature": "class DdiroriBanner extends StatelessWidget {\nconst DdiroriBanner({\n    super.key,\n    required this.message,\n    this.kind = DdiroriNoticeKind.info,\n    this.action,\n  });\n  final String message;\n  final DdiroriNoticeKind kind;\n  final Widget? action;\n}",
+      "fields": [
+        "String message",
+        "DdiroriNoticeKind kind",
+        "Widget? action"
+      ],
+      "constructors": [
+        "const DdiroriBanner({\n    super.key,\n    required this.message,\n    this.kind = DdiroriNoticeKind.info,\n    this.action,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriStatePanel",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 957,
+      "kind": "class",
+      "signature": "class DdiroriStatePanel extends StatelessWidget {\nconst DdiroriStatePanel({\n    super.key,\n    required this.title,\n    required this.message,\n    this.action,\n    this.diagnostic,\n    this.error = false,\n    this.bach = false,\n  });\n  final String title, message;\n  final Widget? action;\n  final String? diagnostic;\n  final bool error, bach;\n}",
+      "fields": [
+        "String title, message",
+        "Widget? action",
+        "String? diagnostic",
+        "bool error, bach"
+      ],
+      "constructors": [
+        "const DdiroriStatePanel({\n    super.key,\n    required this.title,\n    required this.message,\n    this.action,\n    this.diagnostic,\n    this.error = false,\n    this.bach = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriSettingsRow",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 1011,
+      "kind": "class",
+      "signature": "class DdiroriSettingsRow extends StatelessWidget {\nconst DdiroriSettingsRow({\n    super.key,\n    required this.title,\n    required this.control,\n    this.description,\n  });\n  final String title;\n  final String? description;\n  final Widget control;\n}",
+      "fields": [
+        "String title",
+        "String? description",
+        "Widget control"
+      ],
+      "constructors": [
+        "const DdiroriSettingsRow({\n    super.key,\n    required this.title,\n    required this.control,\n    this.description,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriNumber",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 1130,
+      "kind": "class",
+      "signature": "class DdiroriNumber extends StatefulWidget {\nconst DdiroriNumber({\n    super.key,\n    required this.label,\n    required this.value,\n    required this.min,\n    required this.max,\n    required this.onChanged,\n    this.step = 1,\n    this.unit = '',\n    this.enabled = true,\n  }) : assert(min < max),\n       assert(step > 0);\n  final String label, unit;\n  final double value, min, max, step;\n  final ValueChanged<double> onChanged;\n  final bool enabled;\n}",
+      "fields": [
+        "String label, unit",
+        "double value, min, max, step",
+        "ValueChanged<double> onChanged",
+        "bool enabled"
+      ],
+      "constructors": [
+        "const DdiroriNumber({\n    super.key,\n    required this.label,\n    required this.value,\n    required this.min,\n    required this.max,\n    required this.onChanged,\n    this.step = 1,\n    this.unit = '',\n    this.enabled = true,\n  }) : assert(min < max),\n       assert(step > 0);"
+      ]
+    },
+    {
+      "name": "showDdiroriSheet",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 1050,
+      "kind": "function",
+      "signature": "Future<T?> showDdiroriSheet<T>({\n  required BuildContext context,\n  required String title,\n  required Widget child,\n  List<Widget> actions = const [],\n})",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "showDdiroriDialog",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 1088,
+      "kind": "function",
+      "signature": "Future<T?> showDdiroriDialog<T>({\n  required BuildContext context,\n  required String title,\n  required Widget child,\n  List<Widget> actions = const [],\n})",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "showDdiroriConfirmDialog",
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "line": 1103,
+      "kind": "function",
+      "signature": "Future<bool> showDdiroriConfirmDialog({\n  required BuildContext context,\n  required String title,\n  required String message,\n  required String confirmLabel,\n  String cancelLabel = '취소',\n  bool danger = false,\n})",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriPageControls",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 7,
+      "kind": "class",
+      "signature": "class DdiroriPageControls extends StatelessWidget {\nconst DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n  });\n  final int page;\n  final int? pageCount;\n  final VoidCallback? onPrevious, onNext;\n  final bool performance;\n}",
+      "fields": [
+        "int page",
+        "int? pageCount",
+        "VoidCallback? onPrevious, onNext",
+        "bool performance"
+      ],
+      "constructors": [
+        "const DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriAnnotationTools",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 63,
+      "kind": "class",
+      "signature": "class DdiroriAnnotationTools extends StatelessWidget {\nconst DdiroriAnnotationTools({\n    super.key,\n    required this.tool,\n    required this.onToolChanged,\n    required this.color,\n    required this.onColorChanged,\n    required this.width,\n    required this.onWidthChanged,\n    this.onUndo,\n    this.onRedo,\n  });\n  final String tool;\n  final ValueChanged<String> onToolChanged;\n  final Color color;\n  final ValueChanged<Color> onColorChanged;\n  final double width;\n  final ValueChanged<double> onWidthChanged;\n  final VoidCallback? onUndo, onRedo;\n}",
+      "fields": [
+        "String tool",
+        "ValueChanged<String> onToolChanged",
+        "Color color",
+        "ValueChanged<Color> onColorChanged",
+        "double width",
+        "ValueChanged<double> onWidthChanged",
+        "VoidCallback? onUndo, onRedo"
+      ],
+      "constructors": [
+        "const DdiroriAnnotationTools({\n    super.key,\n    required this.tool,\n    required this.onToolChanged,\n    required this.color,\n    required this.onColorChanged,\n    required this.width,\n    required this.onWidthChanged,\n    this.onUndo,\n    this.onRedo,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriTransportVariant",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 142,
+      "kind": "enum",
+      "signature": "enum DdiroriTransportVariant { full, compact }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriPlaybackProgress",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 156,
+      "kind": "class",
+      "signature": "class DdiroriPlaybackProgress extends StatefulWidget {\nconst DdiroriPlaybackProgress({\n    super.key,\n    required this.position,\n    this.duration,\n    this.bufferedPosition,\n    this.onSeek,\n    this.enabled = true,\n    this.statusLabel,\n    this.sliderKey,\n  });\n\n  final Duration position;\n  final Duration? duration;\n  final Duration? bufferedPosition;\n  final ValueChanged<Duration>? onSeek;\n  final bool enabled;\n  final String? statusLabel;\n  final Key? sliderKey;\n}",
+      "fields": [
+        "Duration position",
+        "Duration? duration",
+        "Duration? bufferedPosition",
+        "ValueChanged<Duration>? onSeek",
+        "bool enabled",
+        "String? statusLabel",
+        "Key? sliderKey"
+      ],
+      "constructors": [
+        "const DdiroriPlaybackProgress({\n    super.key,\n    required this.position,\n    this.duration,\n    this.bufferedPosition,\n    this.onSeek,\n    this.enabled = true,\n    this.statusLabel,\n    this.sliderKey,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriTransport",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 267,
+      "kind": "class",
+      "signature": "class DdiroriTransport extends StatelessWidget {\nconst DdiroriTransport({\n    super.key,\n    required this.playing,\n    required this.onToggle,\n    this.position = Duration.zero,\n    this.duration,\n    this.onSeek,\n    this.onPrevious,\n    this.onNext,\n    this.bufferedPosition,\n    this.statusLabel,\n    this.variant = DdiroriTransportVariant.full,\n  });\n  final bool playing;\n  final VoidCallback? onToggle, onPrevious, onNext;\n  final Duration position;\n  final Duration? duration;\n  final Duration? bufferedPosition;\n  final String? statusLabel;\n  final DdiroriTransportVariant variant;\n  final ValueChanged<Duration>? onSeek;\n}",
+      "fields": [
+        "bool playing",
+        "VoidCallback? onToggle, onPrevious, onNext",
+        "Duration position",
+        "Duration? duration",
+        "Duration? bufferedPosition",
+        "String? statusLabel",
+        "DdiroriTransportVariant variant",
+        "ValueChanged<Duration>? onSeek"
+      ],
+      "constructors": [
+        "const DdiroriTransport({\n    super.key,\n    required this.playing,\n    required this.onToggle,\n    this.position = Duration.zero,\n    this.duration,\n    this.onSeek,\n    this.onPrevious,\n    this.onNext,\n    this.bufferedPosition,\n    this.statusLabel,\n    this.variant = DdiroriTransportVariant.full,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriBeatIndicator",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 330,
+      "kind": "class",
+      "signature": "class DdiroriBeatIndicator extends StatelessWidget {\nconst DdiroriBeatIndicator({\n    super.key,\n    required this.beats,\n    required this.currentBeat,\n    this.running = false,\n  }) : assert(beats > 0);\n  final int beats, currentBeat;\n  final bool running;\n}",
+      "fields": [
+        "int beats, currentBeat",
+        "bool running"
+      ],
+      "constructors": [
+        "const DdiroriBeatIndicator({\n    super.key,\n    required this.beats,\n    required this.currentBeat,\n    this.running = false,\n  }) : assert(beats > 0);"
+      ]
+    },
+    {
+      "name": "DdiroriTunerStatus",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 380,
+      "kind": "enum",
+      "signature": "enum DdiroriTunerStatus { flat, centered, sharp, noSignal, lowConfidence }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriTunerMeter",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 382,
+      "kind": "class",
+      "signature": "class DdiroriTunerMeter extends StatelessWidget {\nconst DdiroriTunerMeter({\n    super.key,\n    required this.status,\n    this.cents,\n    this.note = 'A4',\n  });\n  final DdiroriTunerStatus status;\n  final double? cents;\n  final String note;\n}",
+      "fields": [
+        "DdiroriTunerStatus status",
+        "double? cents",
+        "String note"
+      ],
+      "constructors": [
+        "const DdiroriTunerMeter({\n    super.key,\n    required this.status,\n    this.cents,\n    this.note = 'A4',\n  });"
+      ]
+    },
+    {
+      "name": "formatDdiroriDuration",
+      "file": "packages/ddirori_ui/lib/src/music.dart",
+      "line": 144,
+      "kind": "function",
+      "signature": "String formatDdiroriDuration(Duration duration)",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriProduct",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 7,
+      "kind": "enum",
+      "signature": "enum DdiroriProduct { play, score, studio, talk, stage, click, chime }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriBachExpression",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 9,
+      "kind": "enum",
+      "signature": "enum DdiroriBachExpression { surprised, calm, happy }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriProductGlyph",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 11,
+      "kind": "class",
+      "signature": "class DdiroriProductGlyph extends StatelessWidget {\nconst DdiroriProductGlyph({\n    super.key,\n    required this.product,\n    this.size = 32,\n    this.color,\n  });\n  final DdiroriProduct product;\n  final double size;\n  final Color? color;\n}",
+      "fields": [
+        "DdiroriProduct product",
+        "double size",
+        "Color? color"
+      ],
+      "constructors": [
+        "const DdiroriProductGlyph({\n    super.key,\n    required this.product,\n    this.size = 32,\n    this.color,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriProductSignature",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 90,
+      "kind": "class",
+      "signature": "class DdiroriProductSignature extends StatelessWidget {\nconst DdiroriProductSignature({\n    super.key,\n    required this.product,\n    required this.name,\n    this.subtitle,\n  });\n  final DdiroriProduct product;\n  final String name;\n  final String? subtitle;\n}",
+      "fields": [
+        "DdiroriProduct product",
+        "String name",
+        "String? subtitle"
+      ],
+      "constructors": [
+        "const DdiroriProductSignature({\n    super.key,\n    required this.product,\n    required this.name,\n    this.subtitle,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriBachVector",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 149,
+      "kind": "class",
+      "signature": "class DdiroriBachVector extends StatelessWidget {\nconst DdiroriBachVector({\n    super.key,\n    this.size = 64,\n    this.expression = DdiroriBachExpression.surprised,\n    this.label,\n  });\n  final double size;\n  final DdiroriBachExpression expression;\n  final String? label;\n}",
+      "fields": [
+        "double size",
+        "DdiroriBachExpression expression",
+        "String? label"
+      ],
+      "constructors": [
+        "const DdiroriBachVector({\n    super.key,\n    this.size = 64,\n    this.expression = DdiroriBachExpression.surprised,\n    this.label,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriServiceAvailability",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 224,
+      "kind": "enum",
+      "signature": "enum DdiroriServiceAvailability { available, external, install, unavailable }",
+      "fields": [],
+      "constructors": []
+    },
+    {
+      "name": "DdiroriServiceLink",
+      "file": "packages/ddirori_ui/lib/src/brand_family.dart",
+      "line": 226,
+      "kind": "class",
+      "signature": "class DdiroriServiceLink extends StatelessWidget {\nconst DdiroriServiceLink({\n    super.key,\n    required this.product,\n    required this.name,\n    required this.description,\n    this.availability = DdiroriServiceAvailability.available,\n    this.onOpen,\n  });\n  final DdiroriProduct product;\n  final String name;\n  final String description;\n  final DdiroriServiceAvailability availability;\n  final VoidCallback? onOpen;\n}",
+      "fields": [
+        "DdiroriProduct product",
+        "String name",
+        "String description",
+        "DdiroriServiceAvailability availability",
+        "VoidCallback? onOpen"
+      ],
+      "constructors": [
+        "const DdiroriServiceLink({\n    super.key,\n    required this.product,\n    required this.name,\n    required this.description,\n    this.availability = DdiroriServiceAvailability.available,\n    this.onOpen,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriStack",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 10,
+      "kind": "class",
+      "signature": "class DdiroriStack extends StatelessWidget {\nconst DdiroriStack({\n    super.key,\n    required this.children,\n    this.gap = 12,\n    this.inline = false,\n  });\n  final List<Widget> children;\n  final double gap;\n  final bool inline;\n}",
+      "fields": [
+        "List<Widget> children",
+        "double gap",
+        "bool inline"
+      ],
+      "constructors": [
+        "const DdiroriStack({\n    super.key,\n    required this.children,\n    this.gap = 12,\n    this.inline = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriContainer",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 39,
+      "kind": "class",
+      "signature": "class DdiroriContainer extends StatelessWidget {\nconst DdiroriContainer({super.key, required this.child});\n  final Widget child;\n}",
+      "fields": [
+        "Widget child"
+      ],
+      "constructors": [
+        "const DdiroriContainer({super.key, required this.child});"
+      ]
+    },
+    {
+      "name": "DdiroriAvatar",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 57,
+      "kind": "class",
+      "signature": "class DdiroriAvatar extends StatelessWidget {\nconst DdiroriAvatar({super.key, required this.name, this.image});\n  final String name;\n  final ImageProvider? image;\n}",
+      "fields": [
+        "String name",
+        "ImageProvider? image"
+      ],
+      "constructors": [
+        "const DdiroriAvatar({super.key, required this.name, this.image});"
+      ]
+    },
+    {
+      "name": "DdiroriList",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 95,
+      "kind": "class",
+      "signature": "class DdiroriList extends StatelessWidget {\nconst DdiroriList({super.key, required this.children, required this.label});\n  final List<Widget> children;\n  final String label;\n}",
+      "fields": [
+        "List<Widget> children",
+        "String label"
+      ],
+      "constructors": [
+        "const DdiroriList({super.key, required this.children, required this.label});"
+      ]
+    },
+    {
+      "name": "DdiroriAccordion",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 115,
+      "kind": "class",
+      "signature": "class DdiroriAccordion extends StatelessWidget {\nconst DdiroriAccordion({\n    super.key,\n    required this.title,\n    required this.open,\n    required this.onChanged,\n    required this.child,\n  });\n  final String title;\n  final bool open;\n  final ValueChanged<bool> onChanged;\n  final Widget child;\n}",
+      "fields": [
+        "String title",
+        "bool open",
+        "ValueChanged<bool> onChanged",
+        "Widget child"
+      ],
+      "constructors": [
+        "const DdiroriAccordion({\n    super.key,\n    required this.title,\n    required this.open,\n    required this.onChanged,\n    required this.child,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriTab",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 149,
+      "kind": "class",
+      "signature": "class DdiroriTab {\nconst DdiroriTab({\n    required this.id,\n    required this.label,\n    required this.child,\n    this.enabled = true,\n  });\n  final String id, label;\n  final Widget child;\n  final bool enabled;\n}",
+      "fields": [
+        "String id, label",
+        "Widget child",
+        "bool enabled"
+      ],
+      "constructors": [
+        "const DdiroriTab({\n    required this.id,\n    required this.label,\n    required this.child,\n    this.enabled = true,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriTabs",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 162,
+      "kind": "class",
+      "signature": "class DdiroriTabs extends StatefulWidget {\nconst DdiroriTabs({\n    super.key,\n    required this.label,\n    required this.tabs,\n    required this.value,\n    required this.onChanged,\n  });\n  final String label, value;\n  final List<DdiroriTab> tabs;\n  final ValueChanged<String> onChanged;\n}",
+      "fields": [
+        "String label, value",
+        "List<DdiroriTab> tabs",
+        "ValueChanged<String> onChanged"
+      ],
+      "constructors": [
+        "const DdiroriTabs({\n    super.key,\n    required this.label,\n    required this.tabs,\n    required this.value,\n    required this.onChanged,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriSkeleton",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 271,
+      "kind": "class",
+      "signature": "class DdiroriSkeleton extends StatelessWidget {\nconst DdiroriSkeleton({super.key, this.label = '불러오는 중', this.lines = 3});\n  final String label;\n  final int lines;\n}",
+      "fields": [
+        "String label",
+        "int lines"
+      ],
+      "constructors": [
+        "const DdiroriSkeleton({super.key, this.label = '불러오는 중', this.lines = 3});"
+      ]
+    },
+    {
+      "name": "DdiroriInlineMessage",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 301,
+      "kind": "class",
+      "signature": "class DdiroriInlineMessage extends StatelessWidget {\nconst DdiroriInlineMessage({\n    super.key,\n    required this.message,\n    this.error = false,\n  });\n  final String message;\n  final bool error;\n}",
+      "fields": [
+        "String message",
+        "bool error"
+      ],
+      "constructors": [
+        "const DdiroriInlineMessage({\n    super.key,\n    required this.message,\n    this.error = false,\n  });"
+      ]
+    },
+    {
+      "name": "DdiroriPopover",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 346,
+      "kind": "class",
+      "signature": "class DdiroriPopover extends StatefulWidget {\nconst DdiroriPopover({super.key, required this.label, required this.builder});\n  final String label;\n  final WidgetBuilder builder;\n}",
+      "fields": [
+        "String label",
+        "WidgetBuilder builder"
+      ],
+      "constructors": [
+        "const DdiroriPopover({super.key, required this.label, required this.builder});"
+      ]
+    },
+    {
+      "name": "showDdiroriToast",
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "line": 322,
+      "kind": "function",
+      "signature": "void showDdiroriToast(\n  BuildContext context, {\n  required String message,\n  SnackBarAction? action,\n})",
+      "fields": [],
+      "constructors": []
+    }
+  ]
+}

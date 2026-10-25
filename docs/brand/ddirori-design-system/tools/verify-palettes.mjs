@@ -1,5 +1,7 @@
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import path from 'node:path';
 const base = new URL('../', import.meta.url);
 const candidates = JSON.parse(await readFile(new URL('palette-candidates.json', base)));
 const source = JSON.parse(await readFile(new URL('tokens.json', base)));
@@ -39,6 +41,7 @@ for (const [mode, colors] of Object.entries(resolved.content)) {
     check('content/'+name,mode,'stroke','fill',colors[name+'Stroke'],colors[fill],3);
   }
 }
-await mkdir(new URL('evidence/neutral/',base),{recursive:true});
-await writeFile(new URL('evidence/neutral/contrasts.json',base),JSON.stringify({checks,invariants,status:'passed'},null,2)+'\n');
+const out=process.env.DDIRORI_EVIDENCE_DIR ? pathToFileURL(path.resolve(process.env.DDIRORI_EVIDENCE_DIR) + '/') : new URL('evidence/neutral/',base);
+await mkdir(out,{recursive:true});
+await writeFile(new URL('contrasts.json',out),JSON.stringify({checks,invariants,status:'passed'},null,2)+'\n');
 console.log(checks.length+' contrast pairs; '+invariants.length+' neutral/selection/music invariants passed');

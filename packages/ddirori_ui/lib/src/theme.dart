@@ -77,11 +77,18 @@ ThemeData ddiroriTheme({
   DdiroriDensity density = DdiroriDensity.comfortable,
   bool touch = true,
   String? fontFamily,
+  String? accent,
 }) {
   final c = DdiroriStyle(
-    colors: brightness == Brightness.dark
-        ? DdiroriTokens.dark
-        : DdiroriTokens.light,
+    colors: accent == null
+        ? (brightness == Brightness.dark
+              ? DdiroriTokens.dark
+              : DdiroriTokens.light)
+        : (DdiroriTokens.accents[accent] ??
+              (throw ArgumentError.value(
+                accent,
+                'accent',
+              )))[brightness == Brightness.dark ? 'dark' : 'light']!,
     density: density,
     touch: touch,
   );

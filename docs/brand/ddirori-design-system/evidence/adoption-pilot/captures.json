@@ -1,0 +1,262 @@
+{
+  "recordedAt": "2026-10-24T11:10:09.032890+00:00",
+  "score": {
+    "command": "DDIRORI_PILOT_CAPTURE=true DDIRORI_BRAND_FONT=/tmp/ddirori-brand-tools/Pretendard.ttf DDIRORI_MATERIAL_FONT=/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf flutter test --no-pub test/adoption_pilot_test.dart --reporter expanded",
+    "cwd": "apps/in_c_sheet",
+    "log": "score-capture.log",
+    "testsPassed": 23,
+    "kind": "actual InCSheetApp widget rendering; deterministic sample data; nonexistent PDF paths; native PDF render/device permissions not covered"
+  },
+  "studio": {
+    "command": "node docs/brand/ddirori-design-system/tools/verify-adoption-browser.mjs",
+    "report": "browser-pilot.json",
+    "kind": "React shared-component composition fixture, not Electron product"
+  },
+  "sourceHashes": {
+    "apps/in_c_sheet/lib/main.dart": "0a23833e2c0d8ef5df5f60db57507762495d0fbdbb7c62a801920a9a0ccffa9b",
+    "apps/in_c_sheet/lib/presentation/score_library_components.dart": "98970884064cd6152eaf47b51c7736d24948084182333c577c2a0c83eef97796",
+    "apps/in_c_sheet/test/adoption_pilot_test.dart": "35ecaabc64dcddba9e5ae5a9bea5717c56e860a66884a5d8608676be1c888f88",
+    "packages/ddirori_ui/lib/src/components.dart": "e03100ce8755104e03ab50a90d7d50c587e8ad9bfcede93b46339f79936ad3e4",
+    "packages/ddirori_ui/lib/src/basic.dart": "9d23e01c422f29c1da5764e94a767ef6e2184963208f8198d47ab219164a4cbc",
+    "packages/ddirori_web/src/index.tsx": "25282646958135aa421d35b708b18890c4449bcd4a6ee7b30b01bf98bb54015b",
+    "packages/ddirori_web/src/basic.tsx": "44c9182aad7add0631b2a82a4a27d40c771eaee72aeba6189f6f7a4ad0880a37",
+    "packages/ddirori_web/src/styles.css": "d7ca213e96eb2c1aff9b18d342daba9910d9e59cc115202793299916380567a6"
+  },
+  "fonts": {
+    "/tmp/ddirori-brand-tools/Pretendard.ttf": "09fc9443a0a6a3d44a8eb4cccfe9daf4b25e0c03d4de25fa293c8cbe13df1cc4",
+    "/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+  },
+  "captures": [
+    {
+      "file": "score-blue-dark.png",
+      "sha256": "fe888d58778c900ba3f2e8d189e09d7e86f6aaf8b0522426fd3227d650dafed1",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-blue-light.png",
+      "sha256": "7d206354818bff87a65c13567f1774040e1ae4d079982635a16b1f05c04980e3",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-blue-selected-dark.png",
+      "sha256": "bb7990d28b755a8fe3545cb48ef1593b5eb1c8cb20dd03c2e14aad2afaaddc34",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-blue-selected-light.png",
+      "sha256": "6183d9fed81643195d7358f469d43fd1c64e333df879d01275737745b0c1c5a3",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-bulk-error.png",
+      "sha256": "a89b697f4763df1859cf5a6b338708b778668c93de61bfdff0744844b8ee6123",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-coral-dark.png",
+      "sha256": "ba91f09082547f3a5478e383480606996dd7d14d0e6ca28996c886ab1165ee7d",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-coral-light.png",
+      "sha256": "d3bc3026d9163997faf935d2d56310d85cb6eace9843540cbf9bae65f61a9e12",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-coral-selected-dark.png",
+      "sha256": "648f0c8e3b0bbba45256366e4f47943cdb71c8c73f34e2f9d510383c0e4ce27b",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-coral-selected-light.png",
+      "sha256": "6cfab4f2fe8ba94bea1f3753a25fe7f5a11ab6621307eb1244e75877950c0f78",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-file-unavailable.png",
+      "sha256": "f3b8ea51c3d168d7b9f27e6f1a8b9670043e012861ba264d7cd39a5329bae568",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-lime-dark.png",
+      "sha256": "0b31902b99fde92bf5be214ed5a0c9496c4d14a9f6c0f4668993b8ee14c07deb",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-lime-light.png",
+      "sha256": "38222ae2ff1b23725390faa4b19c8c73241a66fa07b706a86d0df6a1ea369a8a",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-lime-selected-dark.png",
+      "sha256": "034b04491a52639b836aabdf72ff830376ea6c4a07f2061fca3be3dbed9969b2",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-lime-selected-light.png",
+      "sha256": "c9346fc81e7ed6e039ab536afd2ceea41ce8728fb479a7a4f81b613327b09947",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-state-empty.png",
+      "sha256": "aabb14f575ab480e43ff13ddde7ccfd818838e753bfa5ce6503c50cc0def4a2e",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-state-error.png",
+      "sha256": "cf59af3a31ce90b0d3cfdbc26c1f936eba2a30ba29807bb201c1536bbf9f5b79",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-state-filtered.png",
+      "sha256": "ab56404d5149ed9f5dee538f1471cb57ae3c25ea44cea8658af406e4823b0bd9",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-state-large.png",
+      "sha256": "d80e0653cf1e6d1f1be5c8709ea7b6a1cb2a7baf0b4ae4ca2ed0a4cd8d9df8fa",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-state-loading.png",
+      "sha256": "1f01e867248b6ea5b42c94a6dc88b93a9dd2da33dc8e4f3ed8175dc3b15f3994",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-state-wide.png",
+      "sha256": "3eff6994d35d2f7835a8be17350d0a104701b43b752f66970cf9b83937e8206b",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-teal-dark.png",
+      "sha256": "e737a688a18728d1649738dececf797b663bcffcc01524a3c3e7fdef835343d3",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-teal-light.png",
+      "sha256": "6b8dab46235b36f1327d77454e421af5cd7933f32fd7007d9de22edd6c201c72",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-teal-selected-dark.png",
+      "sha256": "9d87f194419f37d90d47d7bf692426914147b7f91ef3893aabc4846def5ff8f9",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-teal-selected-light.png",
+      "sha256": "5f5c8a14b5bb51a9b983cea32c1237ce47ce2896e2c5c97980b931cba6af686c",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-violet-dark.png",
+      "sha256": "c38293112e337d1a7dfd6f0a1bc45db091eb71c9076c36580c5c3a59e720f877",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-violet-light.png",
+      "sha256": "ecdba8e028cafc4967328d1ce3eeb9752145aec102d58d7720d7c1ea168ae3e4",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-violet-selected-dark.png",
+      "sha256": "c64819c37a62d4e088f04b87981f7cd9de25ed8d25d24325f268dfd66a152f59",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-violet-selected-light.png",
+      "sha256": "1b1df6b693dc4a9454992f12a3f8cc1e6d44ef8852ff96c6501d54ae8f47daa6",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "score-yellow-dark.png",
+      "sha256": "8359ccdb2442b2b614c2418f7eb0ff39c22d6c5c7fe078dd1e1c1a8a5b53133a",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-yellow-light.png",
+      "sha256": "c6c382380a632f61ba79945d13cbfbb467ece3bc524935d19c69555ddc19d583",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-yellow-selected-dark.png",
+      "sha256": "94283b58c004967a2a777e6bb85916e6630ccaa28ae57b95864a27fea96a76e9",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "score-yellow-selected-light.png",
+      "sha256": "ab0553531531c4742dd3870663a8614d050628025ca1ad773f673e1ce3e1b269",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-blue-dark.png",
+      "sha256": "4fc10e14fcc169b2b83ec0d6503fea7be583e60b8e5904dceb3d7b75e3f9b434",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-blue-light.png",
+      "sha256": "d4979763cd6d53b88438adad2ff5b13b0eae90bbed61d39152aa122990de620b",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-coral-dark.png",
+      "sha256": "01844e9eaecf3aabc5697ffd09cff0aa53bd984973b9af5221af155b5c80e7bf",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-coral-light.png",
+      "sha256": "d8c9ffbf63c69c74d36373e1257b4a4e9bbe3977248fa2281f4ed677c3c92e43",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-large-dark.png",
+      "sha256": "db27c07a18856b18c8763a9527257912af794dd8c49a19a48e5f6fce32ffcac8",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-lime-dark.png",
+      "sha256": "8a656113096ced3915c0bb5008ae9efa4fbb8039349bc17cc88e9ed9cdaf4db6",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-lime-light.png",
+      "sha256": "299675c483fc9504f9065809c4bf631ea7c5afe7b6e9ad59e41c0021618ce692",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-teal-dark.png",
+      "sha256": "a8c2d5d9795669f17240d6cf6133ecd87b78bf1ba6b34b1335053ae30567d0ba",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "studio-teal-light.png",
+      "sha256": "e90923c1975e47733e0fa18b5880a7b38f52ddd5c7f3e1431cc0153a50e4352e",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-violet-dark.png",
+      "sha256": "94b5de695b92788af6cf9d51a009bdc7457d468f46b47d79fd022578c732af2d",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-violet-light.png",
+      "sha256": "108d04ab440ffce8f6d9f020afd88955089d3b410460b07ba9e5baa36e53a46f",
+      "visualInspection": "representative inspected: readable hierarchy, no clipped key action or double outline"
+    },
+    {
+      "file": "studio-yellow-dark.png",
+      "sha256": "178dab51491ac3a543fcf8e1d3589e0b8aea21e979611ef43bd407ef0388bc62",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    },
+    {
+      "file": "studio-yellow-light.png",
+      "sha256": "bf9e0594569c6165ca8772a61e2e380aa7be7137853fb6b0136c38bca26679c2",
+      "visualInspection": "generated and automated assertions only; not individually visually approved"
+    }
+  ],
+  "limits": [
+    "Not store screenshots or real device approval",
+    "VoiceOver/TalkBack, real IME, Safari/Firefox and native keyboard overlays remain manual",
+    "All palette roles passed contrast calculation; perception and preference require user review",
+    "Existing viewer missing-file panel retained; viewer redesign out of scope"
+  ]
+}

@@ -15,3 +15,7 @@
 색과 좌표를 고칠 때는 이 패키지의 generated/를 직접 수정하지 않고 저장소 루트에서 `node docs/brand/ddirori-design-system/tools/build.mjs`를 실행한다.
 
 [전체 API와 상태 계약](../../docs/brand/ddirori-design-system/components.md) · [제품 도입](../../docs/brand/ddirori-design-system/adoption.md).
+
+## 기본 세트
+
+예제를 `?components`로 열면 새 기본 세트와 악보함·작품/녹음·설정·사보 패널을 확인한다. `ddiroriTheme(accent: 'violet')`는 여섯 후보 중 하나를 사용하며 생략하면 기존 테마를 유지한다. Input의 readOnly/required/maxLines와 Item의 flat은 opt-in이다. 체크·라디오·스위치·슬라이더·선택·표·탐색은 이 테마 아래에서 native Material 위젯으로 합성한다. [계약·사용법](../../docs/brand/ddirori-design-system/basic-set.md).

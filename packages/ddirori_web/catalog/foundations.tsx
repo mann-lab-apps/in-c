@@ -8,7 +8,7 @@ export function Foundations() {
   const [selected, setSelected] = useState(false), [open, setOpen] = useState(false);
   const [query, setQuery] = useState(''), [choice, setChoice] = useState(['score']);
   return <main className="ddirori foundations" data-theme={theme} data-density={density}>
-    <header><Text as="h1" variant="screenTitle">디자인 시스템 기준</Text><a href="./">컴포넌트</a><a href="?compare">팔레트 비교</a></header>
+    <header><Text as="h1" variant="screenTitle">디자인 시스템 기준</Text><a href="?components">기본 컴포넌트</a><a href="./">기존 예제</a><a href="?compare">팔레트 비교</a></header>
     <div className="foundation-controls"><label>테마<select aria-label="테마" value={theme} onChange={e=>setTheme(e.target.value)}><option>light</option><option>dark</option></select></label><label>밀도<select aria-label="밀도" value={density} onChange={e=>setDensity(e.target.value)}><option>comfortable</option><option>compact</option></select></label></div>
     <Text as="p" variant="description">공통 컴포넌트 계약을 확인하는 웹 예제입니다. 실제 악보앱·플레이 캡처는 문서에서 따로 확인합니다.</Text>
     <section aria-label="타이포 위계"><Text as="h2" variant="sectionTitle">글자의 역할</Text>

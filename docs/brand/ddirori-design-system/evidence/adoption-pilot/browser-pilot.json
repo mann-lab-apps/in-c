@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-10-24T10:54:57.371Z",
+  "browser": "156.0.8078.47",
+  "checks": [
+    "violet/light: selected hover preserves fill",
+    "violet/light: Escape restores focus",
+    "violet/light: range target >=48",
+    "blue/light: selected hover preserves fill",
+    "blue/light: Escape restores focus",
+    "blue/light: range target >=48",
+    "teal/light: selected hover preserves fill",
+    "teal/light: Escape restores focus",
+    "teal/light: range target >=48",
+    "coral/light: selected hover preserves fill",
+    "coral/light: Escape restores focus",
+    "coral/light: range target >=48",
+    "yellow/light: selected hover preserves fill",
+    "yellow/light: Escape restores focus",
+    "yellow/light: range target >=48",
+    "lime/light: selected hover preserves fill",
+    "lime/light: Escape restores focus",
+    "lime/light: range target >=48",
+    "violet/dark: selected hover preserves fill",
+    "violet/dark: Escape restores focus",
+    "violet/dark: range target >=48",
+    "blue/dark: selected hover preserves fill",
+    "blue/dark: Escape restores focus",
+    "blue/dark: range target >=48",
+    "teal/dark: selected hover preserves fill",
+    "teal/dark: Escape restores focus",
+    "teal/dark: range target >=48",
+    "coral/dark: selected hover preserves fill",
+    "coral/dark: Escape restores focus",
+    "coral/dark: range target >=48",
+    "yellow/dark: selected hover preserves fill",
+    "yellow/dark: Escape restores focus",
+    "yellow/dark: range target >=48",
+    "lime/dark: selected hover preserves fill",
+    "lime/dark: Escape restores focus",
+    "lime/dark: range target >=48",
+    "studio at 200% has no page horizontal overflow",
+    "no browser runtime errors"
+  ],
+  "captures": [
+    {
+      "file": "studio-violet-light.png",
+      "palette": "violet",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "108d04ab440ffce8f6d9f020afd88955089d3b410460b07ba9e5baa36e53a46f"
+    },
+    {
+      "file": "studio-blue-light.png",
+      "palette": "blue",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "d4979763cd6d53b88438adad2ff5b13b0eae90bbed61d39152aa122990de620b"
+    },
+    {
+      "file": "studio-teal-light.png",
+      "palette": "teal",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "e90923c1975e47733e0fa18b5880a7b38f52ddd5c7f3e1431cc0153a50e4352e"
+    },
+    {
+      "file": "studio-coral-light.png",
+      "palette": "coral",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "d8c9ffbf63c69c74d36373e1257b4a4e9bbe3977248fa2281f4ed677c3c92e43"
+    },
+    {
+      "file": "studio-yellow-light.png",
+      "palette": "yellow",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "bf9e0594569c6165ca8772a61e2e380aa7be7137853fb6b0136c38bca26679c2"
+    },
+    {
+      "file": "studio-lime-light.png",
+      "palette": "lime",
+      "theme": "light",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "299675c483fc9504f9065809c4bf631ea7c5afe7b6e9ad59e41c0021618ce692"
+    },
+    {
+      "file": "studio-violet-dark.png",
+      "palette": "violet",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "94b5de695b92788af6cf9d51a009bdc7457d468f46b47d79fd022578c732af2d"
+    },
+    {
+      "file": "studio-blue-dark.png",
+      "palette": "blue",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "4fc10e14fcc169b2b83ec0d6503fea7be583e60b8e5904dceb3d7b75e3f9b434"
+    },
+    {
+      "file": "studio-teal-dark.png",
+      "palette": "teal",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "a8c2d5d9795669f17240d6cf6133ecd87b78bf1ba6b34b1335053ae30567d0ba"
+    },
+    {
+      "file": "studio-coral-dark.png",
+      "palette": "coral",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "01844e9eaecf3aabc5697ffd09cff0aa53bd984973b9af5221af155b5c80e7bf"
+    },
+    {
+      "file": "studio-yellow-dark.png",
+      "palette": "yellow",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "178dab51491ac3a543fcf8e1d3589e0b8aea21e979611ef43bd407ef0388bc62"
+    },
+    {
+      "file": "studio-lime-dark.png",
+      "palette": "lime",
+      "theme": "dark",
+      "kind": "React shared-component studio composition; not Electron product",
+      "sha256": "8a656113096ced3915c0bb5008ae9efa4fbb8039349bc17cc88e9ed9cdaf4db6"
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

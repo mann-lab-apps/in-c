@@ -1,5 +1,12 @@
 # 검증과 실행 방법
 
+2026-10-25 현재 도입 기준: [공유 기준](shared-baseline.md) · [지원 환경](support-matrix.md) · [이번 검증](evidence/shared-baseline-2026-10-25/README.md). 아래 이전 기록은 날짜별 이력이며 현재 적용 범위는 위 링크를 우선한다.
+
+
+2026-10-24 실제 적용 후속: [공통 동작 보완·악보함 적용·검증 및 색 비교](adoption-pilot.md). 이전 날짜별 기록은 이력으로 유지한다.
+
+2026-10-24 상세 명세 검사: [범위와 수용 기준](specifications/verification.md) · [실행 결과](evidence/specifications/validation.json). API 원문·토큰 표·예제 타입·링크·원본 보존 검사다. 아래 UI/브라우저/제품 검사 기록을 이번 실행으로 재사용하지 않는다.
+
 ## 시스템 고도화 검증 · 2026-10-23
 
 현재 설계는 [foundations](foundations.md), 근거·적용 범위는 [시스템 감사](system-review.md), 구축 계약은 [component-contracts](component-contracts.md)를 따른다. [이번 실행 요약·소스/캡처 해시](evidence/system/summary.json). 아래 과거 검증은 당시 기록으로 보존한다.
@@ -124,3 +131,15 @@ Flutter 웹 빌드는 현재 SDK에서 사용하지 않는 Cupertino 아이콘 f
 
 
 초기 라임 반복의 검증은 [이전 실행 결과](refresh-2026-10-23.md)와 [당시 요약](evidence/refresh/summary.json)에 보존한다. 최신 검증은 이 문서 상단의 시스템 고도화 결과를 따른다.
+
+## 기본 컴포넌트 세트 · 2026-10-24
+
+현재 기본 세트와 플랫폼 대응은 [basic-set](basic-set.md)을 따른다. 이전 실행 결과는 이력으로 보존하고 이번 결과는 `evidence/basic-set/`에 분리했다.
+
+- `node docs/brand/ddirori-design-system/tools/verify-basic-core.mjs`: 생성물, 토큰, 대비, React 테스트/빌드, 독립 Studio 빌드, Flutter analyze/test/build, 실제 Score/Play 소비 지점 회귀. [실행 명령과 종료 코드](evidence/basic-set/core.json)에 기록한다. 마지막 인자로 check 이름을 넘기면 해당 검사만 갱신하고 기존 결과는 보존한다.
+- `node docs/brand/ddirori-design-system/tools/verify-basic-set.mjs`: 실행 중인 `http://127.0.0.1:8058/?components`의 공개 UI를 검증한다. [브라우저 기록](evidence/basic-set/browser.json)은 키보드·포커스·상태·테마·200%·390/840/1440 폭과 실제 캡처 해시를 포함한다.
+- 브라우저 검사는 `DDIRORI_QA_PACKAGE`로 Playwright가 설치된 별도 package.json, `DDIRORI_BROWSER_PATH`로 Chromium 실행 파일을 지정할 수 있다. 기본값은 기존 로컬 QA 설치다. 제품 의존성에 Playwright를 추가하지 않았다.
+- Flutter 캡처는 `packages/ddirori_ui/example`에서 `DDIRORI_BASIC_CAPTURE=true DDIRORI_BRAND_FONT=/tmp/ddirori-brand-tools/Pretendard.ttf DDIRORI_MATERIAL_FONT=/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf flutter test test/basic_set_test.dart`로 만든다. 폰트 경로는 환경에 맞춘다. 실제 위젯 렌더링이며 기기/스토어 캡처가 아니다.
+- 전체 결과와 소스·캡처 해시는 [이번 요약](evidence/basic-set/summary.json), 육안 확인과 수정 내역은 [시각 검토](evidence/basic-set/visual-review.md)에 기록한다.
+
+카탈로그는 `cd packages/ddirori_web && npm run dev` 후 `?components`로 연다. Flutter는 `cd packages/ddirori_ui/example && flutter run -d chrome` 후 같은 query를 사용한다. 독립 빌드는 두 플랫폼에서 확인했다. 실기기·VoiceOver·구형 브라우저 호환·Figma 라이브러리 제작은 검증 범위 밖이다.

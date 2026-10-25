@@ -1,5 +1,8 @@
 # 시스템 고도화: 감사·레퍼런스·적용 경계
 
+2026-10-25 현재 도입 기준: [공유 기준](shared-baseline.md) · [지원 환경](support-matrix.md) · [이번 검증](evidence/shared-baseline-2026-10-25/README.md). 아래 이전 기록은 날짜별 이력이며 현재 적용 범위는 위 링크를 우선한다.
+
+
 2026-10-24 최신 후보: [후보 08 · 모브랜드와 세 앱 고도화](../ddirori-brand-system/icon-family-v8/README.md). 음가 유지형 마스터로 모브랜드를 추가하고 세 앱의 외곽·여백을 다듬었다. 실제 제품·UI 토큰·런처는 유지한다.
 
 2026-10-24 이전 후보: [후보 07 · 음가 유지 / 브랜드 심벌 축약](../ddirori-brand-system/icon-family-v7/README.md). 같은 외곽에 두 음형을 비교 적용했다. 실제 제품·UI 토큰·런처는 유지한다.
@@ -13,6 +16,12 @@
 2026-10-24 이전 시각 후보: [음형 기반 앱 아이콘 A/B와 실제 크기 비교](../ddirori-brand-system/icon-family-v3/README.md). A 추천·사용자 승인 대기. 공통 컴포넌트·제품 UI·런처·메타데이터는 이번 아이콘 작업에서 변경하지 않았다.
 
 [2026-10-24 추가 감사·실제 처리: 최신 기준·Studio 입력·아이콘 패밀리](../ddirori-brand-system/icon-family-v2/audit.md). 기존 제품 런처와 대표색은 유지했다.
+
+2026-10-24 실제 적용 후속: [공통 동작 보완·악보함 적용·검증 및 색 비교](adoption-pilot.md). 이전 날짜별 기록은 이력으로 유지한다.
+
+2026-10-24 상세 조사: [현행 소스 감사](specifications/audit.md) · [14개 차이·결정](specifications/decisions.md) · [상세 명세](specifications/README.md). 해당 초기 상세 명세 작업은 문서·API·예제 검증이며 공통 구현이나 실제 제품 화면을 변경하지 않았다. 아래 날짜별 감사는 이력으로 보존한다.
+
+2026-10-24 후속: [기본 컴포넌트 세트](basic-set.md)에서 선택·탭·필드·평면 목록·메뉴/팝오버/툴팁 구현과 상태표를 갱신했다. 아래 감사와 후속 목록은 2026-10-23 기준 기록이다. 기본 세트 중 완료된 항목의 최신 상태는 새 상태표를 따른다. 실제 제품 이행은 별도다.
 
 2026-10-23 확인. MUI는 구조, 당근/SEED는 생활 UI, Excalidraw는 작업 도구, 카카오/네이버는 제품군 연결의 레퍼런스다. 현재 중립 면·가벼운 필터·타이포 크기를 유지하며 역할과 구현 계약을 보강한다. 대표색은 미결정이고 라임은 여섯 후보 중 임시 활성값이다.
 
@@ -71,3 +80,7 @@ Score 실제 소비 지점은 InCSheetApp 테마, _SearchField, _NoticeBanner, _
 6. **이후:** 뷰어·연습·서비스 전환. PDF 좌표·오디오 시계·도메인 모델은 공통 패키지 밖에 유지.
 
 기준 문서는 [foundations](foundations.md), 상세 구축 계약은 [component-contracts](component-contracts.md), 실행 결과는 [validation](validation.md)을 따른다.
+
+### Select 열린 목록 보완
+
+웹 공통 Select는 열린 옵션 목록까지 공통 색·타이포·밀도·모서리를 적용한다. 기존 OS 메뉴는 제거했다. 방향키 탐색과 값 확정 분리, Escape 취소, Tab 이동, 외부 클릭, required 폼 검증, 좁은 화면·200% 확대·터치를 검증한다. 상세 계약은 [기본 세트](basic-set.md), 실행 근거는 [시각 검토](evidence/basic-set/visual-review.md)를 따른다. Flutter의 native Dropdown은 이번 변경 대상이 아니다.

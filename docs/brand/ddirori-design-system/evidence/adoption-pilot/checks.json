@@ -1,0 +1,256 @@
+{
+  "recordedAt": "2026-10-24T11:09:58.072Z",
+  "results": [
+    {
+      "name": "ui-tests",
+      "cwd": "packages/ddirori_ui",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded"
+      ],
+      "startedAt": "2026-10-24T10:54:04.506Z",
+      "finishedAt": "2026-10-24T10:54:06.793Z",
+      "exitCode": 0,
+      "log": "ui-tests.log"
+    },
+    {
+      "name": "catalog-analyze",
+      "cwd": "packages/ddirori_ui/example",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "startedAt": "2026-10-24T10:54:06.794Z",
+      "finishedAt": "2026-10-24T10:54:08.295Z",
+      "exitCode": 0,
+      "log": "catalog-analyze.log"
+    },
+    {
+      "name": "catalog-tests",
+      "cwd": "packages/ddirori_ui/example",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded"
+      ],
+      "startedAt": "2026-10-24T10:54:08.295Z",
+      "finishedAt": "2026-10-24T10:54:12.223Z",
+      "exitCode": 0,
+      "log": "catalog-tests.log"
+    },
+    {
+      "name": "play-analyze",
+      "cwd": "apps/classical_local_library",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "startedAt": "2026-10-24T10:54:49.600Z",
+      "finishedAt": "2026-10-24T10:54:52.391Z",
+      "exitCode": 0,
+      "log": "play-analyze.log"
+    },
+    {
+      "name": "play-tests",
+      "cwd": "apps/classical_local_library",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/brand_pilot_test.dart",
+        "test/play_library_components_test.dart",
+        "test/play_playback_components_test.dart",
+        "test/play_activity_components_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "startedAt": "2026-10-24T10:54:52.391Z",
+      "finishedAt": "2026-10-24T10:54:55.492Z",
+      "exitCode": 0,
+      "log": "play-tests.log"
+    },
+    {
+      "name": "tokens",
+      "cwd": ".",
+      "command": [
+        "node",
+        "--test",
+        "docs/brand/ddirori-design-system/tools/token-model.test.mjs"
+      ],
+      "startedAt": "2026-10-24T10:54:55.492Z",
+      "finishedAt": "2026-10-24T10:54:55.556Z",
+      "exitCode": 0,
+      "log": "tokens.log"
+    },
+    {
+      "name": "contrast",
+      "cwd": ".",
+      "command": [
+        "node",
+        "docs/brand/ddirori-design-system/tools/verify-palettes.mjs"
+      ],
+      "startedAt": "2026-10-24T10:54:55.556Z",
+      "finishedAt": "2026-10-24T10:54:55.581Z",
+      "exitCode": 0,
+      "log": "contrast.log"
+    },
+    {
+      "name": "metadata-score",
+      "cwd": "deployment",
+      "command": [
+        "bundle",
+        "exec",
+        "fastlane",
+        "prepare_ios_metadata",
+        "manifest:apps/clef/ios-metadata.yaml",
+        "mode:check"
+      ],
+      "startedAt": "2026-10-24T10:54:55.581Z",
+      "finishedAt": "2026-10-24T10:54:56.345Z",
+      "exitCode": 0,
+      "log": "metadata-score.log"
+    },
+    {
+      "name": "metadata-play",
+      "cwd": "deployment",
+      "command": [
+        "bundle",
+        "exec",
+        "fastlane",
+        "prepare_ios_metadata",
+        "manifest:apps/classical-local-library/ios-metadata.yaml",
+        "mode:check"
+      ],
+      "startedAt": "2026-10-24T10:54:56.346Z",
+      "finishedAt": "2026-10-24T10:54:57.099Z",
+      "exitCode": 0,
+      "log": "metadata-play.log"
+    },
+    {
+      "name": "web-typecheck",
+      "cwd": "packages/ddirori_web",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-24T10:55:54.677Z",
+      "finishedAt": "2026-10-24T10:55:56.036Z",
+      "exitCode": 0,
+      "log": "web-typecheck.log"
+    },
+    {
+      "name": "web-tests",
+      "cwd": "packages/ddirori_web",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "startedAt": "2026-10-24T10:55:56.036Z",
+      "finishedAt": "2026-10-24T10:55:57.191Z",
+      "exitCode": 0,
+      "log": "web-tests.log"
+    },
+    {
+      "name": "ui-analyze",
+      "cwd": "packages/ddirori_ui",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "startedAt": "2026-10-24T10:55:57.191Z",
+      "finishedAt": "2026-10-24T10:55:59.002Z",
+      "exitCode": 0,
+      "log": "ui-analyze.log"
+    },
+    {
+      "name": "web-build",
+      "cwd": "packages/ddirori_web",
+      "command": [
+        "npm",
+        "run",
+        "build",
+        "--",
+        "--outDir",
+        "../../out/ddirori/adoption-catalog"
+      ],
+      "startedAt": "2026-10-24T11:06:36.580Z",
+      "finishedAt": "2026-10-24T11:06:38.514Z",
+      "exitCode": 0,
+      "log": "web-build.log"
+    },
+    {
+      "name": "specifications",
+      "cwd": ".",
+      "command": [
+        "node",
+        "docs/brand/ddirori-design-system/tools/verify-specifications.mjs"
+      ],
+      "startedAt": "2026-10-24T11:08:01.197Z",
+      "finishedAt": "2026-10-24T11:08:08.031Z",
+      "exitCode": 0,
+      "log": "specifications.log"
+    },
+    {
+      "name": "score-analyze",
+      "cwd": "apps/in_c_sheet",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "startedAt": "2026-10-24T11:09:20.482Z",
+      "finishedAt": "2026-10-24T11:09:23.557Z",
+      "exitCode": 0,
+      "log": "score-analyze.log"
+    },
+    {
+      "name": "score-tests",
+      "cwd": "apps/in_c_sheet",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded"
+      ],
+      "startedAt": "2026-10-24T11:09:23.558Z",
+      "finishedAt": "2026-10-24T11:09:57.875Z",
+      "exitCode": 0,
+      "log": "score-tests.log"
+    },
+    {
+      "name": "preservation",
+      "cwd": ".",
+      "command": [
+        "node",
+        "docs/brand/ddirori-design-system/tools/verify-adoption-preservation.mjs"
+      ],
+      "startedAt": "2026-10-24T11:09:57.876Z",
+      "finishedAt": "2026-10-24T11:09:58.054Z",
+      "exitCode": 0,
+      "log": "preservation.log"
+    },
+    {
+      "name": "diff",
+      "cwd": ".",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "startedAt": "2026-10-24T11:09:58.054Z",
+      "finishedAt": "2026-10-24T11:09:58.072Z",
+      "exitCode": 0,
+      "log": "diff.log"
+    }
+  ]
+}

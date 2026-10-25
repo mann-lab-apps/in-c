@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-10-24T11:10:10.068Z",
+  "browser": "156.0.8078.47",
+  "checks": [
+    "light/normal/shortlist: image decode and candidate count",
+    "light/normal/all: image decode and candidate count",
+    "light/selected/shortlist: image decode and candidate count",
+    "light/selected/all: image decode and candidate count",
+    "dark/normal/shortlist: image decode and candidate count",
+    "dark/normal/all: image decode and candidate count",
+    "dark/selected/shortlist: image decode and candidate count",
+    "dark/selected/all: image decode and candidate count",
+    "all expanded state images decode",
+    "390px gallery has no horizontal overflow",
+    "no runtime errors"
+  ],
+  "errors": [],
+  "status": "passed"
+}

@@ -1,5 +1,11 @@
 # 띠로리 공통 컴포넌트 API
 
+2026-10-24 실제 적용 후속: [공통 동작 보완·악보함 적용·검증 및 색 비교](adoption-pilot.md). 이전 날짜별 기록은 이력으로 유지한다.
+
+상세 구현의 현재 기준은 [컴포넌트 명세 색인](specifications/README.md)과 [React](specifications/api-react.md) / [Flutter](specifications/api-flutter.md) API 부록이다. 이 문서는 입문용 설명을 유지한다. 플랫폼 차이와 현행 갭은 [결정 목록](specifications/decisions.md)을 따른다.
+
+2026-10-24 전체 기본 세트의 공개 API·네이티브 합성·구현 상태는 [기본 세트](basic-set.md)가 최신 기준이다. 아래는 기존 핵심 API의 설명이다.
+
 현재 형태·간격·타이포의 기준과 토큰은 [컴포넌트 언어](component-language.md)를 따른다.
 
 상태·slot·키보드·플랫폼별 상세 계약은 [컴포넌트 구축 계약](component-contracts.md)에 있다. 현재 구현과 후속 계약을 구분한다.

@@ -1,0 +1,323 @@
+{
+  "recordedAt": "2026-10-24T11:09:58.019Z",
+  "baseline": "baseline.json",
+  "compared": 1932,
+  "unchanged": 1896,
+  "changed": [
+    {
+      "file": "deployment/apps/classical-local-library/ios-metadata.yaml",
+      "before": "494bc6f5fa27e346307b378f85ddfccb00bbb494e6511e5b5f1c11fe5ec36257",
+      "after": "a8c88d70480625a1ad1dc92f2e0f42d7e1c6f016a048d3117768012a458b1b5d",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/adoption.md",
+      "before": "cf86053dfcc36fc1120c99cbe0940adc6bf13ab69a61dc9730185d766c9c105b",
+      "after": "986883c01e7de2d4504c9f1fff3fda02532253ac3e833c2e75f73f44c743a5dd",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/system-review.md",
+      "before": "9772566fb581a7edfeb3e09b1a96ae25b1e4d8f538afea703c9fb0801c5e74ac",
+      "after": "14726961fb7a055338cffec193043de3d5ace4845c4aa20891975735d6be2a4c",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/audit.md",
+      "before": "9377304da73df26379cb3161dfdc9ee8c5bc2d2c8fb4e158a7cad4692b3aa2d7",
+      "after": "87a5d6ebf2b1765bb1c974cb67b1e96e80c4baf757ac1e506154fedb940978a8",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/api-flutter.md",
+      "before": "64852f66d167207148c147b08c10ce58cffc4e0f1ee7ba7f5494ddac76c3a942",
+      "after": "f8bb646239fbe7726e2dd8664029108678cb41b81ef7f743d46fe4d75de6eba9",
+      "allowed": true
+    },
+    {
+      "file": "packages/ddirori_web/src/styles.css",
+      "before": "e1949ca32afd27d2b95d3a729dc19ec7932646a3d8ca51eacf33026494527a60",
+      "after": "d7ca213e96eb2c1aff9b18d342daba9910d9e59cc115202793299916380567a6",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c08.md",
+      "before": "7bc5d7970f21d40c3b193074bec3f2fde021ac6f32e5d139f0238711dc5ef53e",
+      "after": "5607b5871729ea89cec9bb58e13f357a4e6c8abb928e249fe170c018a2a77514",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/README.md",
+      "before": "68e8f0a75b1c606b537240a9616f72b6ca32dae83a1c1ebbc989f1f643f9666b",
+      "after": "607fb1a574a603146a0c1caff4a55f73e9385b72166289dd64afb88d689a4f01",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/decisions.md",
+      "before": "7b8599ed72093c24b103808d2f691684e5076fe3e240bf9404fbfb2d7c8cb4b4",
+      "after": "749dadf9a3e093430b5caea910e53cb5e02e1e2572c3a84f39a0b542a81a751d",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/tools/verify-basic-set.mjs",
+      "before": "1693d60c73c708f22f58ee334caa9d619a478d68eac8d71dbc49575d5c3d6511",
+      "after": "8d97d13d8b0bde54848a8ec852a9345f35a49d1fb8b191c5b2864ccb8aa6cc64",
+      "allowed": true
+    },
+    {
+      "file": "packages/ddirori_ui/lib/src/basic.dart",
+      "before": "df5ac184e030c19689d1c66d4a1ce09dd4e1cd0706f1986a08927bf85f7a9853",
+      "after": "9d23e01c422f29c1da5764e94a767ef6e2184963208f8198d47ab219164a4cbc",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/work-packages.md",
+      "before": "db7f86b8a3f4512083cdf02ed5fe36d53db6cadd8703c9a2ee3ea36ff75de9eb",
+      "after": "7074055f585a85f61069649b866104774520c6c790dfb6c4be0b2b2cd02a7de6",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/components.md",
+      "before": "aaf36fc150c7d6bc569b6619ab68aaadfcecb3ca39ed6a9ea6fddaed9e199cb3",
+      "after": "2d9f8794f32899e2c146bfd77f1543c3eb9653f410a31a99945a31c5fea245ae",
+      "allowed": true
+    },
+    {
+      "file": "packages/ddirori_web/src/index.tsx",
+      "before": "cb2c92cf581813e9f20bf13ab05428361f7ff5ecb8ef5413035dfb5be01f9fcc",
+      "after": "25282646958135aa421d35b708b18890c4449bcd4a6ee7b30b01bf98bb54015b",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/tools/verify-palettes.mjs",
+      "before": "36e1270dd5209597951e1b2292be1b61adc167ffebe549a9986fdae7cd3abc18",
+      "after": "8824778430ae4a87985725088c8a239a2630e1d3abcb4423ac1ef0a6def0d6b1",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/README.md",
+      "before": "9802e4ca0eb1e5ff7aa0dd535d330e050ae24eb0264e13678dd3aa5ff623f7e9",
+      "after": "2b7acd43511853e3eec47e7f729f330f74dd197b03024e1d2c49b24cd6d6d45f",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c21.md",
+      "before": "59ddc19016833e127e7653295bc51817f01d0529b830dbd5b8da8c6f3a1fdf1e",
+      "after": "d73c8593ec19c93d50f45a14e6e7ebc054fb0853b9c5f93c46ae1d3e7b6c1c8d",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c04.md",
+      "before": "e69a1b77dfd5824461445d0a7003635ff37ff78fd17d7b0a7f5a50bc99439040",
+      "after": "0a428d5e69d3c998d4b45325b786ff32d12e178d0a9c6c1f45d64afce7feea22",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/api-react.md",
+      "before": "002bffc0384832a0055b7904fb388a8c0fa014e9551ae4ef624f4d77e8d1eaa8",
+      "after": "5a175d88f04fd731e7d03331e5d25c64877985810c472d066eee209d346f0af2",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c01.md",
+      "before": "7f3d6a6eb11064762e9582650f4196a89078d37aeea0ab4e97465ff790837470",
+      "after": "4e936bb5ed4fcc947dd2c280cb5f92bc0f212e26327eb936d9093ea2cfb7ef4d",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/component-rules.md",
+      "before": "f3c147321a9bc05e3c2c94ba9bdd671f95ebd7b6ca0df6d9fd2c8dfa174bcde8",
+      "after": "8e5642a9bf332033a75cf77d2b0453bf836b50df2d593db3015398ee2168129d",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c10.md",
+      "before": "797cb8c555827c488d1614b53039b45496b86ba120e24fde1e30910307ec7f4b",
+      "after": "07118fc2820c37d11671e412641d73a1d0e995d232a6b0c6bf56fe9fc0c7ca8c",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/tools/verify-specifications.mjs",
+      "before": "d5e32008eb2377e5662fdd8305f90a0a0250b855ffd2199c7a30a80c34353d5b",
+      "after": "0e12253f918453b864f7749b2149a03154c00f39bdadcace3ae8bb168b3800c4",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/validation.md",
+      "before": "ca061aef03c030107fa28743d9a71673b3b2608b841b715b3e2b386f47564fa8",
+      "after": "20aa4afde3d55421aa743ac180501b49313160116c2b18cd429f8bd5c1ee25d9",
+      "allowed": true
+    },
+    {
+      "file": "packages/ddirori_ui/lib/src/components.dart",
+      "before": "f7d2d7bde31b8e41cc990329ece132344e5aaf42d08a5d79863cf76044abeca0",
+      "after": "e03100ce8755104e03ab50a90d7d50c587e8ad9bfcede93b46339f79936ad3e4",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/verification.md",
+      "before": "7632cd97b61d78e94d672ea4936ef2313338d4d1460a5cf85f8aede8484444bb",
+      "after": "f414157f5e2fe20e178425a20e0c14547be7ac33f40a1f9cf82a3c0d5778d276",
+      "allowed": true
+    },
+    {
+      "file": "apps/in_c_sheet/lib/main.dart",
+      "before": "f8f5f102ad075c194d8275a223c8842c58353ae7bd19d3be6b3fad33e0fe80d9",
+      "after": "0a23833e2c0d8ef5df5f60db57507762495d0fbdbb7c62a801920a9a0ccffa9b",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/basic-set.md",
+      "before": "620c751793a4b467e647ea1de7e46e7ff40230075d3b6b5688f182d5f4c5ade2",
+      "after": "7ca8d98b3aa5b45bba2eb030ace8f9b9300cbc7dcb12b14aba483d2ca63b0a95",
+      "allowed": true
+    },
+    {
+      "file": "deployment/apps/clef/ios-metadata.yaml",
+      "before": "ed6f1077fc65d95811a7cb0436c2538effff868d7eb5cb4da69646e914278b06",
+      "after": "745a3e250ef9df1ce43386755577d962352d08978d74e003f5800f04f5ef97fd",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/evidence/specifications/api.json",
+      "before": "f900f4b9eafc920d9484b8619803a064fc0255ad4b0ad90294e36eebcc3fffcf",
+      "after": "73080bc1068b5cd164faf2b92f7c21e3e65143b12ad68875096cdb1a682acd96",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c09.md",
+      "before": "e32f5756ec00d01e2f1f38814919d3df89bd8ac358e5706852a66e9069f01fb4",
+      "after": "c669fbdc751bdf26f748186880748df800f5eea52880b91d96b5b7ad010f362c",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/registry.json",
+      "before": "5c7964079cb476b7b7de1d25358207e4302a3327978149bac4fc2cd6916407ad",
+      "after": "a86142d1f1c258561a9ab3c0a305e2ea3f0501c1b89d5a0393728ffea3222582",
+      "allowed": true
+    },
+    {
+      "file": "packages/ddirori_web/src/basic.tsx",
+      "before": "00b6011be2962537e824438c0dd790008914f0d264f81d465cacee66db6ba0ba",
+      "after": "44c9182aad7add0631b2a82a4a27d40c771eaee72aeba6189f6f7a4ad0880a37",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c19.md",
+      "before": "c9678aa7ee9490d127fc4e44e22168300faa25f4cd84c200794adee985a49b1d",
+      "after": "17aa2bfd580729e485dcbba34dfdd465f2b43bf6033903da9fc43fa634123c0e",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/services/score.md",
+      "before": "8de7ce83588166c54a5e692bc1b4dfafb809dcbb890ed3d7f0651ce82ca396e2",
+      "after": "20310ba3aa1e2e5292e3bad2134c8287421e2b1f35985b1ae8420f172d6212fa",
+      "allowed": true
+    },
+    {
+      "file": "docs/brand/ddirori-design-system/specifications/components/c27.md",
+      "before": "49120c22787840f80a4368db24c0c9722b3f81338c877d83b6cda844571f7827",
+      "after": "04f5d198fb743ef9184c1958224dc6c2972319802f0cc8e32945837bd491c898",
+      "allowed": true
+    }
+  ],
+  "unexpected": [],
+  "added": [
+    ".github/workflows/design-system.yml",
+    "apps/in_c_sheet/lib/presentation/score_library_components.dart",
+    "apps/in_c_sheet/test/adoption_pilot_test.dart",
+    "docs/brand/ddirori-design-system/adoption-pilot.html",
+    "docs/brand/ddirori-design-system/adoption-pilot.md",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/api-before.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/baseline.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/browser-pilot.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/captures.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/checks.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/contrasts.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/gallery.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/preservation.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-blue-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-blue-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-blue-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-blue-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-bulk-error.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-coral-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-coral-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-coral-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-coral-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-file-unavailable.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-lime-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-lime-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-lime-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-lime-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-empty.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-error.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-filtered.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-large.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-loading.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-state-wide.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-teal-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-teal-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-teal-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-teal-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-violet-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-violet-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-violet-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-violet-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-yellow-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-yellow-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-yellow-selected-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/score-yellow-selected-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/specifications.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-blue-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-blue-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-coral-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-coral-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-large-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-lime-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-lime-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-teal-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-teal-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-violet-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-violet-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-yellow-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/studio-yellow-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/browser.json",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/catalog-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-0-1440-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-0-1440-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-0-390-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-0-390-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-1-1440-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-1-1440-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-1-390-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-1-390-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-2-1440-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-2-1440-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-2-390-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-2-390-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-3-1440-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-3-1440-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-3-390-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/composition-3-390-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/popover-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/popover-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/select-dark.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/select-light.png",
+    "docs/brand/ddirori-design-system/evidence/adoption-pilot/web/select-mobile-200.png",
+    "docs/brand/ddirori-design-system/tools/build-adoption-gallery.mjs",
+    "docs/brand/ddirori-design-system/tools/verify-adoption-browser.mjs",
+    "docs/brand/ddirori-design-system/tools/verify-adoption-gallery.mjs",
+    "docs/brand/ddirori-design-system/tools/verify-adoption-pilot.mjs",
+    "docs/brand/ddirori-design-system/tools/verify-adoption-preservation.mjs",
+    "packages/ddirori_ui/test/adoption_test.dart",
+    "packages/ddirori_web/src/adoption.test.tsx",
+    "docs/brand/ddirori-design-system/preview/assets/index-BGl7eGWp.js",
+    "docs/brand/ddirori-design-system/preview/assets/index-C6ENLkd9.css"
+  ],
+  "headUnchanged": true,
+  "branchUnchanged": true,
+  "scope": "Baseline files outside the explicit UI/documentation/metadata allowlist must remain byte-identical. Existing dirty files inside the allowlist were edited by scoped patches. Other worktrees are not mutated or claimed clean.",
+  "worktrees": "worktree /Users/jaemankim/Desktop/privates/coding/in-c\nHEAD 42d69b14241003d5b57e779252c4de283f0fa7ce\nbranch refs/heads/feature/chromatics-expanded-v1-checkpoint-20260913\n\nworktree /private/tmp/chromatics-ddirori-verify-20261023\nHEAD 7fb8178a2522fcbf1d19645afa01c3871ed18743\ndetached\n\nworktree /Users/jaemankim/Desktop/privates/coding/worktrees/chromatics-topbar-ia-alpha32-20261020\nHEAD 3dc9047dfd7c91575b1cc6d5f0b461f341690342\nbranch refs/heads/feature/chromatics-topbar-ia-alpha32-20261020",
+  "status": "passed"
+}

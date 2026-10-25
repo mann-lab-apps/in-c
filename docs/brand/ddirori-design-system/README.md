@@ -1,8 +1,8 @@
 # 띠로리 공통 디자인 시스템
 
-현재 기준은 [기초 규칙](foundations.md)과 [컴포넌트 구축 계약](component-contracts.md)이다. [시스템 감사·항목별 레퍼런스 비교](system-review.md)에 MUI·SEED·Excalidraw의 채택/제외 근거와 적용 범위를 기록했다. [형태·간격 요약](component-language.md)은 빠른 입문용이다.
+[공유 기준·도입 절차](shared-baseline.md) → [구현 계약 정본](specifications/README.md) → [지원 환경·수동 검수](support-matrix.md).
 
-[시스템 기준 화면](http://127.0.0.1:8058/?foundations) · [독립 사보 검증 예제](http://127.0.0.1:8062/studio.html). 두 화면은 실제 앱과 구분한다.
+현재 같은 저장소의 React·Flutter 소비를 지원한다. Play 메타데이터 편집과 Studio 실제 속성 패널이 공통 UI를 사용하며, 제품 전체 이행이나 Figma 라이브러리 완료를 뜻하지 않는다. 기준 커밋과 새 검증은 [이번 기록](evidence/shared-baseline-2026-10-25/README.md), 과거 작업 진입점은 [이력](history.md)을 따른다.
 
 > 현재 기준: [중립 바탕·여섯 강조색·콘텐츠 12색](color-system.md). 이전 라임·올리브 배경 시안은 승인된 방향이 아니다. 라임은 임시 강조색으로만 유지하며 대표색은 검토 중이다.
 

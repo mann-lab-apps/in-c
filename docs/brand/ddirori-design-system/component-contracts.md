@@ -1,6 +1,8 @@
 # 컴포넌트 구축 계약
 
-2026-10-23. [기초 규칙](foundations.md)이 값의 기준, 이 문서가 구축 계약, [공개 API](components.md)가 현재 구현 목록이다. ‘후속’으로 표시한 API는 아직 존재하지 않는다. 컴포넌트가 파일·악보·녹음 모델을 import하지 않고 표시값·slot·callback을 받는 경계를 유지한다.
+2026-10-24: 아래 기초 계약 중 후속으로 표시했던 Segmented/Tabs, Field/Textarea, 평면 List, Menu/Popover/Tooltip은 [기본 세트](basic-set.md)의 공개 구현으로 제공한다. 해당 상태표와 추가 계약이 우선한다. Toolbar의 roving focus 등 별도 후속 항목은 그대로 남는다.
+
+2026-10-23. [기초 규칙](foundations.md)이 값의 기준, 이 문서가 구축 계약, [공개 API](components.md)가 현재 구현 목록이다. 현재 구현 상태는 기본 세트 상태표와 함께 확인한다. 컴포넌트가 파일·악보·녹음 모델을 import하지 않고 표시값·slot·callback을 받는 경계를 유지한다.
 
 ## 공통 계약
 
@@ -36,9 +38,9 @@
 | 유형 | anatomy / 기본값 | 제어·키보드 | 구현 상태 |
 | --- | --- | --- | --- |
 | 필터 Chip | group, check slot, label. pill/14·500, 36/compact32/touch48 | 배열/Set + onChange, 다중은 다른 값 보존. Tab→Space/Enter | React Choices, Flutter DdiroriChoices |
-| 단일 값 선택 | option label/icon, selected 표시, 반드시 하나면 empty 금지 | 값 집합과 정책. 현재 웹 Choices의 빈 집합은 host가 무시 | Flutter DdiroriSegments는 emptySelectionAllowed 정책. 웹 radio형 Segmented 후속 |
-| Segmented 후속 웹 | radiogroup/radio, 모서리8, 고정 동료 집합 | roving tabindex, 좌우/Home/End, disabled 건너뜀, 필요시 수동확정 | 계약만 정의; 현재 Choices는 role=group/pressed 버튼임 |
-| Tab 후속 | tablist/tab/tabpanel, active와 focus 구분 | 방향키·Home/End, aria-controls/selected, 지연 로딩은 수동 activation | 공통 API 없음. 필터로 대체 금지 |
+| 단일 값 선택 | option label/icon, selected 표시, 반드시 하나면 empty 금지 | 값 집합과 정책. 현재 웹 Choices의 빈 집합은 host가 무시 | Flutter DdiroriSegments는 emptySelectionAllowed 정책. 웹 SegmentedControl 구현 |
+| SegmentedControl 웹 | radiogroup/radio, 모서리8, 고정 동료 집합 | roving tabindex, 좌우/Home/End, disabled 건너뜀, 필요시 수동확정 | 별도 API 구현; Choices는 기존 group/pressed 버튼 유지 |
+| Tabs | tablist/tab/tabpanel, active와 focus 구분 | 방향키·Home/End, aria-controls/selected, 지연 로딩은 수동 activation | React Tabs / Flutter DdiroriTabs 구현. 필터로 대체 금지 |
 
 선택 fill/check, disabled 의미 유지, focus 별도. 긴 label은 줄바꿈하고 그룹도 wrap한다. 모바일 필터가 많으면 앱이 우선 조건과 ‘더 보기’를 정한다. 음가/성부 mixed 값은 Studio adapter에서 처리하고 공통 null에 임의 의미를 부여하지 않는다. Flutter SegmentedButton은 native 키보드 동작을 사용하며 웹 radio와 완전 동일하다고 주장하지 않는다.
 
@@ -49,16 +51,16 @@
 - Anatomy: field wrapper, label, input, clear/action slot, help/error. 반경10, 식별 border1, focus/error2, label gap6, 내부14(Flutter)/기존 웹12. 이 플랫폼 차이는 현재 유지한다.
 - 본문16, label14/500, help14/400. surface/text/controlBorder/error/muted 사용. error는 help보다 우선하며 오류와 연결된 설명 ID/semantics를 제공한다.
 - value/onChange 또는 value/onChanged 제어. clear는 빈 문자열을 요청. 입력 조합 중 host가 값 정규화·재정렬을 하지 않도록 한다. 숫자 확정/범위 검증은 별도 Number 계약.
-- native textbox/searchbox, label association, aria-invalid, 설명 연결. 읽기전용은 읽을 수 있으나 disabled는 변경 불가. readOnly 스타일 variant는 후속.
-- Flutter TextEditingController 수명·외부 값 동기화는 공통 위젯, query/filter는 앱. 한국어 IME 실기기 검수는 별도. multiline 편집기는 새로운 Textarea 계약으로 추가한다.
+- native textbox/searchbox, label association, aria-invalid, 설명 연결. 읽기전용은 읽을 수 있으나 disabled는 변경 불가. readOnly는 native 속성으로 제공하며 지우기를 차단한다.
+- Flutter TextEditingController 수명·외부 값 동기화는 공통 위젯, query/filter는 앱. 한국어 IME 실기기 검수는 별도. multiline은 React Textarea / Flutter Input(maxLines)로 제공한다.
 
 ## ListItem / 악보·작품·녹음 행
 
 **문제:** 식별 정보와 독립 행동. 모든 정보에 중첩 카드를 만들지 않는다.
 
-- Anatomy: leading/checkbox, title, description, trailing, actions. itemTitle16/600, description14/400, padding16, 내부12, card radius12. 평면 목록 구분 variant는 후속; 현재 비교 화면의 flat 스타일은 카탈로그 전용이다.
+- Anatomy: leading/checkbox, title, description, trailing, actions. itemTitle16/600, description14/400, padding16, 내부12, card radius12. 평면형은 React List + Item, Flutter DdiroriList + Item(flat:true)로 제공한다.
 - selected는 면+경계, selecting은 별도 checkbox. 제목 열기와 즐겨찾기·정보를 독립시킨다. actions를 행 전체 클릭 안에 중첩하지 않는다.
-- onOpen/onTap와 onSelected 분리. Flutter enabled=false는 IgnorePointer와 ExcludeFocus로 자식 행동까지 차단. React Item에는 disabled prop이 아직 없으므로 disabled 행은 후속 API 확장 때 의미·키보드를 함께 구현한다.
+- onOpen/onTap와 onSelected 분리. Flutter enabled=false는 IgnorePointer와 ExcludeFocus로 자식 행동까지 차단. React Item.disabled는 열기·선택을 차단하며 보조 행동은 inert 처리한다.
 - 긴 제목은 wrap; metadata는 description 역할. 핵심 작품 번호가 말줄임 뒤에 숨지 않는지 확인한다. 선택만 가능한 행에는 접근성 상태와 이름이 필요하다.
 - Score는 페이지 수/thumbnail/즐겨찾기, Play는 작품/연주자/녹음/파일 상태를 문자열과 slot으로 변환한다. 권리·파일 읽기·큐 편집은 adapter 책임.
 
@@ -79,8 +81,8 @@
 - Anatomy: trigger, anchored surface, title(optional), items/content, dismiss. panel 반경16, 내부12, 항목 label14·min32/touch48, floating depth4, layer popover20/tooltip50.
 - Menu는 항목 목록과 선택 callback, Popover는 임의 내용, Tooltip은 보조 텍스트다. active/open 상태는 제어 방식 하나로 일관되게 제공한다. 닫으면 trigger로 복귀하고 삭제된 trigger는 안전한 다음 항목으로 host가 연결한다.
 - Menu: Arrow/Home/End, Escape, disabled 건너뜀, 이름 검색. Popover 내부 form은 menuitem으로 꾸미지 않는다. Tooltip은 focus와 hover, Escape로 닫고 pointer 이동을 방해하지 않으며 essential label을 대신하지 않는다.
-- Flutter DdiroriMenuButton은 native PopupMenuButton, Tooltip은 native. 웹 공통 Menu/Popover/Tooltip API는 **후속**; 현재 IconButton.title은 완성된 Tooltip 구현이 아니다.
-- portal을 만들면 색/밀도/글꼴 scope를 새 root에 전달한다. DOM 조상 밖으로 빠진 CSS 변수 상속을 가정하지 않는다. 긴 항목 wrap, 화면 끝 위치 보정과 확대 시 스크롤 검사 필요.
+- Flutter DdiroriMenuButton은 native PopupMenuButton, Tooltip은 native. 웹 공통 Menu/Popover/Tooltip API를 제공한다. IconButton.title만 사용하는 곳은 Tooltip 적용 완료로 보지 않는다.
+- 현재 웹은 DOM 조상을 유지하는 native Popover API를 쓴다. 향후 portal을 만들면 색/밀도/글꼴 scope를 새 root에 전달한다. DOM 조상 밖으로 빠진 CSS 변수 상속을 가정하지 않는다. 긴 항목 wrap, 화면 끝 위치 보정과 확대 시 스크롤 검사 필요.
 
 ## Dialog / Sheet
 

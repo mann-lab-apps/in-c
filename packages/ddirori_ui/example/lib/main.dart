@@ -1,12 +1,24 @@
+import 'basic_set.dart';
+import 'starter.dart';
+
 import 'package:flutter/material.dart';
 import 'package:ddirori_ui/ddirori_ui.dart';
 
 void main() => runApp(
-  DdiroriCatalog(
-    initialView: (int.tryParse(Uri.base.queryParameters['page'] ?? '') ?? 0)
-        .clamp(0, 5),
-    initialDark: Uri.base.queryParameters['theme'] == 'dark',
-  ),
+  Uri.base.queryParameters.containsKey('starter')
+      ? const DdiroriStarter()
+      : Uri.base.queryParameters.containsKey('components')
+      ? DdiroriBasicSet(
+          initialDark: Uri.base.queryParameters['theme'] == 'dark',
+        )
+      : DdiroriCatalog(
+          initialView:
+              (int.tryParse(Uri.base.queryParameters['page'] ?? '') ?? 0).clamp(
+                0,
+                5,
+              ),
+          initialDark: Uri.base.queryParameters['theme'] == 'dark',
+        ),
 );
 
 class DdiroriCatalog extends StatefulWidget {

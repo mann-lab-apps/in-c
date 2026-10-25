@@ -1,5 +1,10 @@
 # Figma 변수와 컴포넌트 대응
 
+2026-10-25 현재 도입 기준: [공유 기준](shared-baseline.md) · [지원 환경](support-matrix.md) · [이번 검증](evidence/shared-baseline-2026-10-25/README.md). 아래 이전 기록은 날짜별 이력이며 현재 적용 범위는 위 링크를 우선한다.
+
+
+구현 전달은 [상세 명세](specifications/README.md)의 C/S ID·slot·실제 API·상태 계약과 함께 한다. [조합/Figma 대응](specifications/patterns.md)은 기존 collection/mode 구조를 유지한다. 명세 작성이 Figma 파일 제작·동기화를 뜻하지 않는다.
+
 현재 형태·간격·타이포의 기준과 토큰은 [컴포넌트 언어](component-language.md)를 따른다.
 
 > 현재 기준: [중립 바탕·여섯 강조색·콘텐츠 12색](color-system.md). 이전 라임·올리브 배경 시안은 승인된 방향이 아니다. 라임은 임시 강조색으로만 유지하며 대표색은 검토 중이다.
@@ -37,3 +42,9 @@ Auto layout은 기본 가변 높이와 줄바꿈을 사용한다. 긴 한국어�
 - Layout의 gutter/row/panel/dialog, Shape의 control/card/panel/pill, Motion의 duration/easing을 전달한다. layer/elevation은 플랫폼별 렌더 방식과 함께 개발 주석으로 남긴다.
 - Component properties는 kind/selected/disabled/busy/density, slot은 label/icon/content/action으로 제한한다. hover/focus/error는 조합을 검토할 state set으로 제공하고 모든 조합을 독립 variant로 폭발시키지 않는다.
 - 원본이 변경되면 build → --check → 대표 화면 캡처 후 갱신한다. 실제 Figma 변수나 라이브러리를 생성하지 않았다.
+
+## 기본 컴포넌트 매핑 (2026-10-24)
+
+[basic-set](basic-set.md)의 상태표를 component-set 목록으로 사용한다. 입력·실행·정보·피드백·오버레이·탐색으로 분류하고 Flutter 네이티브 합성과 React API를 개발 주석에 함께 기록한다. Checkbox mixed, radio single, Segmented single, Tabs panel navigation은 별도 set이다. Field는 label/help/error/required/readOnly, List는 flat/card와 leading/actions를 표현한다. Avatar fallback, Table empty/sorted, Dialog error/busy도 실제 제공하는 조합만 사용한다.
+
+light/dark와 여섯 강조색 후보는 색 변수로, comfortable/compact와 touch48은 밀도/입력 환경으로 구분한다. 중첩 밀도는 부모의 색을 재설정하지 않는다. hover/focus 고정 시안과 실제 상태를 구분한다. 이 항목은 대응 명세이며 Figma 파일을 생성하지 않았다.

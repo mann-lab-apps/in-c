@@ -1,0 +1,69 @@
+.set-root {
+  min-height: 100vh;
+}
+.set-root a {
+  color: var(--dd-action);
+}
+.set-root .dd-container {
+  padding-block: 32px 64px;
+}
+.set-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(180px, 1.4fr);
+  gap: 16px;
+}
+.set-spec {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--dd-border);
+  scroll-margin-top: 24px;
+}
+.set-spec-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.set-example {
+  padding: 8px 0;
+}
+.set-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.set-spec details {
+  font-size: 0.875rem;
+  color: var(--dd-muted);
+}
+.set-spec summary {
+  cursor: pointer;
+  min-height: 32px;
+}
+.set-spec pre {
+  background: var(--dd-surface-muted);
+  color: var(--dd-text);
+  padding: 16px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.set-tool-panel {
+  padding: 16px;
+  max-width: 540px;
+  border: 1px solid var(--dd-border);
+  border-radius: 12px;
+  background: var(--dd-surface);
+}
+@media (max-width: 700px) {
+  .set-controls,
+  .set-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .set-root .dd-container {
+    padding: 16px;
+  }
+  .set-spec {
+    padding: 24px 0;
+  }
+}
+.set-settings { max-width: var(--dd-layout-dialog-width); }

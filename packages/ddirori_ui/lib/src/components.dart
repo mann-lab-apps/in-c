@@ -91,14 +91,20 @@ class _DdiroriButtonState extends State<DdiroriButton> {
             ),
           )
         : null;
+    final neutralStyle = ButtonStyle(
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? c['onDisabled'] : c['text'],
+      ),
+    );
     final button = switch (widget.kind) {
       DdiroriButtonKind.secondary => OutlinedButton(
-        style: selectedStyle,
+        style: selectedStyle ?? neutralStyle,
         onPressed: action,
         child: child,
       ),
       DdiroriButtonKind.quiet => TextButton(
-        style: selectedStyle,
+        style: selectedStyle ?? neutralStyle,
         onPressed: action,
         child: child,
       ),
@@ -162,6 +168,9 @@ class DdiroriInput extends StatefulWidget {
     this.clearable = false,
     this.enabled = true,
     this.search = false,
+    this.readOnly = false,
+    this.required = false,
+    this.maxLines = 1,
     this.onSubmitted,
     this.keyboardType,
   });
@@ -169,7 +178,8 @@ class DdiroriInput extends StatefulWidget {
   final String? hint, error, help;
   final ValueChanged<String> onChanged;
   final ValueChanged<String>? onSubmitted;
-  final bool clearable, enabled, search;
+  final bool clearable, enabled, search, readOnly, required;
+  final int maxLines;
   final TextInputType? keyboardType;
   @override
   State<DdiroriInput> createState() => _DdiroriInputState();
@@ -202,14 +212,26 @@ class _DdiroriInputState extends State<DdiroriInput> {
   Widget build(BuildContext context) => TextField(
     controller: _controller,
     enabled: widget.enabled,
+    readOnly: widget.readOnly,
+    maxLines: widget.maxLines,
     keyboardType: widget.keyboardType,
-    onSubmitted: widget.onSubmitted,
+    onSubmitted: widget.onSubmitted == null
+        ? null
+        : (value) {
+            if (!widget.enabled ||
+                widget.readOnly ||
+                (_controller.value.composing.isValid &&
+                    !_controller.value.composing.isCollapsed)) {
+              return;
+            }
+            widget.onSubmitted!(value);
+          },
     onChanged: (v) {
       setState(() {});
       widget.onChanged(v);
     },
     decoration: InputDecoration(
-      labelText: widget.label,
+      labelText: widget.required ? '${widget.label} (필수)' : widget.label,
       hintText: widget.hint,
       errorText: widget.error,
       helperText: widget.help,
@@ -218,7 +240,7 @@ class _DdiroriInputState extends State<DdiroriInput> {
           ? IconButton(
               tooltip: '${widget.label} 지우기',
               icon: const Icon(Icons.close),
-              onPressed: widget.enabled
+              onPressed: widget.enabled && !widget.readOnly
                   ? () {
                       _controller.clear();
                       setState(() {});
@@ -677,6 +699,7 @@ class DdiroriItem extends StatelessWidget {
     this.selected = false,
     this.selecting = false,
     this.enabled = true,
+    this.flat = false,
     this.onTap,
     this.onSelected,
   });
@@ -685,7 +708,7 @@ class DdiroriItem extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final List<Widget> actions;
-  final bool selected, selecting, enabled;
+  final bool selected, selecting, enabled, flat;
   final VoidCallback? onTap;
   final ValueChanged<bool>? onSelected;
   @override
@@ -696,11 +719,16 @@ class DdiroriItem extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color: selected ? c['action'] : c['border'],
-          width: selected ? 2 : 1,
+          color: flat
+              ? Colors.transparent
+              : (selected ? c['action'] : c['border']),
+          width: flat ? 0 : (selected ? 2 : 1),
         ),
-        borderRadius: BorderRadius.circular(DdiroriTokens.radius['card']!),
+        borderRadius: BorderRadius.circular(
+          flat ? 0 : DdiroriTokens.radius['card']!,
+        ),
       ),
+      margin: flat ? EdgeInsets.zero : null,
       child: Padding(
         padding: EdgeInsets.all(DdiroriTokens.layout['rowPadding']!),
         child: Column(
@@ -711,6 +739,7 @@ class DdiroriItem extends StatelessWidget {
               children: [
                 if (selecting)
                   Checkbox(
+                    semanticLabel: '$title 선택',
                     value: selected,
                     onChanged: !enabled || onSelected == null
                         ? null
@@ -1122,6 +1151,7 @@ class DdiroriNumber extends StatefulWidget {
 class _DdiroriNumberState extends State<DdiroriNumber> {
   late String _draft = _format(widget.value);
   String? _error;
+  bool _dirty = false;
   String _format(double n) =>
       n == n.roundToDouble() ? n.round().toString() : n.toStringAsFixed(2);
   @override
@@ -1129,18 +1159,24 @@ class _DdiroriNumberState extends State<DdiroriNumber> {
     super.didUpdateWidget(old);
     if (old.value != widget.value) {
       _draft = _format(widget.value);
+      _dirty = false;
       _error = null;
     }
   }
 
   void _commit(String raw) {
+    if (!widget.enabled || !_dirty) return;
     final n = double.tryParse(raw);
     if (n == null || !n.isFinite || n < widget.min || n > widget.max) {
       setState(() => _error = '${widget.min}~${widget.max} 범위로 입력해주세요');
       return;
     }
-    setState(() => _error = null);
-    widget.onChanged(n);
+    setState(() {
+      _dirty = false;
+      _error = null;
+      _draft = _format(n);
+    });
+    if (n != widget.value) widget.onChanged(n);
   }
 
   @override
@@ -1169,7 +1205,10 @@ class _DdiroriNumberState extends State<DdiroriNumber> {
                 decimal: true,
                 signed: true,
               ),
-              onChanged: (v) => setState(() => _draft = v),
+              onChanged: (v) => setState(() {
+                _dirty = true;
+                _draft = v;
+              }),
               onSubmitted: _commit,
             ),
           ),

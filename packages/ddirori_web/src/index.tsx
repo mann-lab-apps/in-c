@@ -82,7 +82,7 @@ export function Input({ label, error, help, clearable = false, onClear, ...props
     onClear?: () => void;
 }) {
     const id = useId(), description = error || help;
-    return <div className="dd-field"><label htmlFor={id}>{label}</label><div className="dd-input-row"><input {...props} id={id} aria-invalid={!!error} aria-describedby={description ? id + '-help' : undefined}/>{clearable && String(props.value ?? '') !== '' ? <IconButton label={label + ' 지우기'} onClick={onClear} disabled={props.disabled}>×</IconButton> : null}</div>{description ? <p id={id + '-help'} className={error ? 'dd-error' : 'dd-help'}>{description}</p> : null}</div>;
+    return <div className="dd-field"><label htmlFor={id}>{label}</label><div className="dd-input-row"><input {...props} id={id} aria-invalid={!!error} aria-describedby={description ? id + '-help' : undefined}/>{clearable && String(props.value ?? '') !== '' ? <IconButton label={label + ' 지우기'} onClick={onClear} disabled={props.disabled || props.readOnly}>×</IconButton> : null}</div>{description ? <p id={id + '-help'} className={error ? 'dd-error' : 'dd-help'}>{description}</p> : null}</div>;
 }
 export function Search({ value, onChange, label = '검색' }: {
     value: string;
@@ -106,17 +106,18 @@ export function Toolbar({ children, label = '도구' }: {
     children: ReactNode;
     label?: string;
 }) { return <div className="dd-toolbar" role="group" aria-label={label}>{children}</div>; }
-export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, onSelected, onOpen }: {
+export function Item({ title, subtitle, leading, actions, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
     title: string;
     subtitle?: string;
     leading?: ReactNode;
     actions?: ReactNode;
     selected?: boolean;
     selecting?: boolean;
+    disabled?: boolean;
     onSelected?: (v: boolean) => void;
     onOpen?: () => void;
 }) {
-    return <article className={`dd-item ${selected ? 'is-selected' : ''}`}><div className="dd-item-main">{selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} onChange={e => onSelected?.(e.target.checked)}/> : leading}<div>{onOpen ? <button type="button" className="dd-item-title dd-text--item-title" onClick={onOpen}>{title}</button> : <Text as="strong" variant="itemTitle">{title}</Text>}{subtitle ? <p>{subtitle}</p> : null}</div></div>{actions ? <div className="dd-item-actions">{actions}</div> : null}</article>;
+    return <article aria-disabled={disabled || undefined} className={`dd-item ${selected ? 'is-selected' : ''}`}><div className="dd-item-main">{selecting ? <input type="checkbox" aria-label={title + ' 선택'} checked={selected} disabled={disabled} onChange={e => onSelected?.(e.target.checked)}/> : leading ? <span inert={disabled}>{leading}</span> : null}<div>{onOpen && !disabled ? <button type="button" className="dd-item-title dd-text--item-title" onClick={onOpen}>{title}</button> : <Text as="strong" variant="itemTitle">{title}</Text>}{subtitle ? <p>{subtitle}</p> : null}</div></div>{actions ? <div className="dd-item-actions" inert={disabled}>{actions}</div> : null}</article>;
 }
 export function Banner({ children, kind = 'info', action }: {
     children: ReactNode;
@@ -145,13 +146,14 @@ export function SettingsRow({ label, description, children }: {
     description?: string;
     children: ReactNode;
 }) { return <div className="dd-settings"><div><strong>{label}</strong>{description ? <p>{description}</p> : null}</div><div>{children}</div></div>; }
-export function Dialog({ open, title, children, onClose, actions, sheet = false }: {
+export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {
     open: boolean;
     title: string;
     children: ReactNode;
     onClose: () => void;
     actions?: ReactNode;
     sheet?: boolean;
+    busy?: boolean;
 }) {
     const ref = useRef<HTMLDialogElement>(null), titleId = useId();
     useEffect(() => { const el = ref.current; if (!el)
@@ -161,8 +163,15 @@ export function Dialog({ open, title, children, onClose, actions, sheet = false 
         el.close(); return () => { if (el.open)
         el.close(); if (open)
         previous?.focus(); }; }, [open]);
-    return <dialog ref={ref} className={`dd-dialog ${sheet ? 'dd-dialog--sheet' : ''}`} aria-labelledby={titleId} onCancel={e => { e.preventDefault(); onClose(); }} onClose={() => { if (open)
-        onClose(); }}><div className="dd-dialog-head"><Text as="h2" variant="sectionTitle" id={titleId}>{title}</Text><IconButton label="닫기" onClick={onClose}>×</IconButton></div><div className="dd-dialog-body">{children}</div><div className="dd-dialog-actions">{actions}</div></dialog>;
+    return <dialog ref={ref} className={`dd-dialog ${sheet ? 'dd-dialog--sheet' : ''}`} aria-labelledby={titleId} onKeyDown={e => {
+      if (e.key !== 'Tab') return;
+      const controls = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')).filter(n => n.getClientRects().length && !n.closest('[hidden],[inert]'));
+      const first = controls[0], last = controls.at(-1);
+      if (!first) { e.preventDefault(); e.currentTarget.focus(); }
+      else if (e.shiftKey && (document.activeElement === first || document.activeElement === e.currentTarget)) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }} onCancel={e => { e.preventDefault(); if (!busy) onClose(); }} onClose={() => { if (open && !busy)
+        onClose(); }}><div className="dd-dialog-head"><Text as="h2" variant="sectionTitle" id={titleId}>{title}</Text><IconButton label="닫기" disabled={busy} onClick={onClose}>×</IconButton></div><div className="dd-dialog-body">{children}</div><div className="dd-dialog-actions">{actions}</div></dialog>;
 }
 export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {
     label: string;
@@ -175,13 +184,30 @@ export function NumberControl({ label, value, onChange, min, max, step = 1, unit
     disabled?: boolean;
 }) {
     const [draft, setDraft] = useState(String(value)), [error, setError] = useState('');
-    useEffect(() => { setDraft(String(value)); setError(''); }, [value]);
-    const commit = () => { const n = draft.trim() === '' ? NaN : Number(draft); if (!Number.isFinite(n) || n < min || n > max) {
-        setError(`${min}~${max} 범위로 입력해주세요`);
-        return;
-    } setError(''); onChange(n); };
-    return <div className="dd-number"><div className="dd-number-row"><IconButton label={label + ' 낮추기'} disabled={disabled || value <= min} onClick={() => onChange(Math.max(min, value - step))}>−</IconButton><Input label={label + (unit ? ' ' + unit : '')} value={draft} disabled={disabled} error={error || undefined} inputMode="decimal" onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter')
-        commit(); }} onBlur={commit}/><IconButton label={label + ' 높이기'} disabled={disabled || value >= max} onClick={() => onChange(Math.min(max, value + step))}>＋</IconButton></div><input type="range" aria-label={label + ' 슬라이더'} disabled={disabled} value={Math.max(min, Math.min(max, value))} min={min} max={max} step={step} onChange={e => onChange(Number(e.target.value))}/></div>;
+    const dirty = useRef(false), composing = useRef(false);
+    useEffect(() => { dirty.current = false; setDraft(String(value)); setError(''); }, [value]);
+    const commit = () => {
+        if (disabled || composing.current || !dirty.current) return;
+        const n = draft.trim() === '' ? NaN : Number(draft);
+        if (!Number.isFinite(n) || n < min || n > max) {
+            setError(`${min}~${max} 범위로 입력해주세요`); return;
+        }
+        // Clear synchronously: Enter and blur can occur before the host echoes value.
+        dirty.current = false; setError(''); setDraft(String(n));
+        if (n !== value) onChange(n);
+    };
+    return <div className="dd-number"><div className="dd-number-row">
+        <IconButton label={label + ' 낮추기'} disabled={disabled || value <= min} onClick={() => onChange(Math.max(min, value - step))}>−</IconButton>
+        <Input label={label + (unit ? ' ' + unit : '')} value={draft} disabled={disabled} error={error || undefined} inputMode="decimal"
+            onChange={e => { dirty.current = true; setDraft(e.target.value); }}
+            onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}
+            onKeyDown={e => {
+                if (composing.current || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                if (e.key === 'Enter') { e.preventDefault(); commit(); }
+                if (e.key === 'Escape') { e.preventDefault(); dirty.current = false; setDraft(String(value)); setError(''); }
+            }} onBlur={commit}/>
+        <IconButton label={label + ' 높이기'} disabled={disabled || value >= max} onClick={() => onChange(Math.min(max, value + step))}>＋</IconButton>
+        </div><input type="range" aria-label={label + ' 슬라이더'} disabled={disabled} value={Math.max(min, Math.min(max, value))} min={min} max={max} step={step} onChange={e => onChange(Number(e.target.value))}/></div>;
 }
 export function PageControls({ page, count, onChange, performance = false }: {
     page: number;
@@ -221,3 +247,5 @@ export function ServiceLink({product,name,description,availability='available',o
  const label={available:'열기',external:'외부 서비스로 이동',install:'설치 안내 보기',unavailable:'연결 준비 중'}[availability];
  return <section className="dd-service-link"><ProductSignature product={product} name={name} subtitle={description}/><Button kind="secondary" disabled={availability==='unavailable'||!onOpen} onClick={onOpen} aria-label={`${name} · ${label}`}>{label}</Button></section>;
 }
+
+export * from './basic';

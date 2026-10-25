@@ -1,0 +1,200 @@
+{
+  "recordedAt": "2026-10-24T08:06:17.465102+00:00",
+  "baselineCommit": "42d69b14241003d5b57e779252c4de283f0fa7ce",
+  "scope": "Basic component set, public React/Flutter catalogs and consumer regression; not all-app adoption",
+  "results": {
+    "react-tests": 45,
+    "flutter-tests": 30,
+    "flutter-catalog-tests": 54,
+    "score-regression": 7,
+    "play-regression": 15
+  },
+  "browserChecks": 145,
+  "paletteValidation": "300 contrast pairs; 12 neutral/selection/music invariants passed",
+  "coreCommandsPassed": 13,
+  "sourceHashes": {
+    "packages/ddirori_web/src/index.tsx": "cb2c92cf581813e9f20bf13ab05428361f7ff5ecb8ef5413035dfb5be01f9fcc",
+    "packages/ddirori_web/src/basic.tsx": "00b6011be2962537e824438c0dd790008914f0d264f81d465cacee66db6ba0ba",
+    "packages/ddirori_web/src/styles.css": "e1949ca32afd27d2b95d3a729dc19ec7932646a3d8ca51eacf33026494527a60",
+    "packages/ddirori_web/catalog/basic-set.tsx": "61ef8009f5aab3de8dd853a0327b6955d6e50278b226d9a5388ad8f2c4cc32f3",
+    "packages/ddirori_web/catalog/basic-set.css": "fee901face71d4794a6aee03042ce6b86372f96fe61a2c2aa810d4f186b1b1a0",
+    "packages/ddirori_ui/lib/src/basic.dart": "df5ac184e030c19689d1c66d4a1ce09dd4e1cd0706f1986a08927bf85f7a9853",
+    "packages/ddirori_ui/lib/src/components.dart": "f7d2d7bde31b8e41cc990329ece132344e5aaf42d08a5d79863cf76044abeca0",
+    "packages/ddirori_ui/lib/src/theme.dart": "00524392b9a3907914e1396fd582569723ba48b980baa344e30b18bbce922c18",
+    "packages/ddirori_ui/example/lib/basic_set.dart": "3d71607ffbf91c2bf08d5f5cb0bed595b015a1f3f2c61e688b9a825f1ecb44cd",
+    "docs/brand/ddirori-design-system/tools/build.mjs": "6406733efaca166beefda9093855f757591c0c94de543111386afff658c8a285",
+    "packages/ddirori_web/src/basic.test.tsx": "9d69d61c1585798546eb0dfd3f0c86e9f9c59ae3a196454fa3d4a884291aa3ed",
+    "docs/brand/ddirori-design-system/tools/verify-basic-set.mjs": "1693d60c73c708f22f58ee334caa9d619a478d68eac8d71dbc49575d5c3d6511"
+  },
+  "captures": [
+    {
+      "file": "catalog-light.png",
+      "sha256": "f2bff868bd7cde62e7f4286a46042e5d4c1820b23cf729e91084490c54bd86d5"
+    },
+    {
+      "file": "composition-0-1440-dark.png",
+      "sha256": "3b210ddaf28d5ae98a3b00fda267d3506626da5c1613d914d8abbf3d06f3b5b6"
+    },
+    {
+      "file": "composition-0-1440-light.png",
+      "sha256": "aa768b7e61c675304a8f3b58fc00f47b02dfce1ce1a3887621a3ccd5717a2534"
+    },
+    {
+      "file": "composition-0-390-dark.png",
+      "sha256": "54f5ac1cdd6bec6c1f6809dd6e74ccd5480ad2d6e37dc38e5a6a033368fc72f7"
+    },
+    {
+      "file": "composition-0-390-light.png",
+      "sha256": "868ba4324209d817f1cef282fb2cf2236d5449dd52be73c1b21240d1ddc28537"
+    },
+    {
+      "file": "composition-1-1440-dark.png",
+      "sha256": "65caf9bd66e93dd8bb3ee35302029d1d60108dcde5cadd92bf24aa4526be8f58"
+    },
+    {
+      "file": "composition-1-1440-light.png",
+      "sha256": "72ae28ef9cebd318d64b22b20b57503ba95bf4e7afec43099234793b6e5a7e29"
+    },
+    {
+      "file": "composition-1-390-dark.png",
+      "sha256": "f08e561380db7878d4732b3fe58cf864105488f9c06f98e10465f27e8c3c42f1"
+    },
+    {
+      "file": "composition-1-390-light.png",
+      "sha256": "05b3c7340b1d330cefe68425c6435281feff3347b649e10e9485b9c509707123"
+    },
+    {
+      "file": "composition-2-1440-dark.png",
+      "sha256": "05bb857cf621ae422479e8a8e881c718e5ddf9151308b54603926e065118972c"
+    },
+    {
+      "file": "composition-2-1440-light.png",
+      "sha256": "16594404b7d54fbb68450c87e3930d12421f4bbbe7c29ad8fed495731fe543c4"
+    },
+    {
+      "file": "composition-2-390-dark.png",
+      "sha256": "8061f610970ae96d17cae029a26a67b60852dcc29c91228ed6b95dded9e0cdbf"
+    },
+    {
+      "file": "composition-2-390-light.png",
+      "sha256": "13524c34fcd6d9695f9721e7d8844aa6058647143d930b6efe033b741c7dd656"
+    },
+    {
+      "file": "composition-3-1440-dark.png",
+      "sha256": "d45c4684cea910841d260b8ea2f78525a63ff20b71c7240a5d9f893b9a79ae12"
+    },
+    {
+      "file": "composition-3-1440-light.png",
+      "sha256": "883cce5a1e49e02f58e3fe2e8895156aa5d3ca113979207b915ad2a1d84e3066"
+    },
+    {
+      "file": "composition-3-390-dark.png",
+      "sha256": "9de66e53085b3fd93849d09e52ccc18f757e396861eb82cf18d55a1d8220c4f7"
+    },
+    {
+      "file": "composition-3-390-light.png",
+      "sha256": "2fd1b8f59e87499152d8ce0aecf51d29b97c45b362b5720c6f769f384f3703f8"
+    },
+    {
+      "file": "flutter-0-1440-dark.png",
+      "sha256": "bdfd49335022be1355711597ad8b5010e6751d2062ff3ca86d8a9b44300d1650"
+    },
+    {
+      "file": "flutter-0-1440-light.png",
+      "sha256": "72d5a2603ebf978f8f505950bda478ea080d51eada45cc70b60cb59c70fea890"
+    },
+    {
+      "file": "flutter-0-390-dark.png",
+      "sha256": "03a35abc053121528e51b9262151e7016b0f67486f0e853da03e22421ca5c3bc"
+    },
+    {
+      "file": "flutter-0-390-light.png",
+      "sha256": "8c5eaa60ca98656dc179b081d52948a7b159b1cb016f4ffaaa3228f8063a82fb"
+    },
+    {
+      "file": "flutter-1-1440-dark.png",
+      "sha256": "fb0da2e52db2d5e631b902c78180e407ee8e3990f3460c5df18af092900238b8"
+    },
+    {
+      "file": "flutter-1-1440-light.png",
+      "sha256": "f55716a8dd365aaab3538d2bbd1afcc509e41c8f22b0f462773754a8fb53371d"
+    },
+    {
+      "file": "flutter-1-390-dark.png",
+      "sha256": "ea97c8052b0fd123de21f99ccfecf0bae4f7b864efdce82d475109b734026b0d"
+    },
+    {
+      "file": "flutter-1-390-light.png",
+      "sha256": "2fa20789c0cb5bae8c8feb14dc25a95b037d6b3195e8572a70479580bb8418c5"
+    },
+    {
+      "file": "flutter-2-1440-dark.png",
+      "sha256": "0445369bb9ab82853c230c9b7ff0c164f5df0ef7d23c3db056d5086a1afa6933"
+    },
+    {
+      "file": "flutter-2-1440-light.png",
+      "sha256": "69798a4e1d0be492fa06b9050d33fef2a5b58b9b0f95c15a73ddd74a882d9d4e"
+    },
+    {
+      "file": "flutter-2-390-dark.png",
+      "sha256": "6ada935a0cd19e4046f8ffa66392b2a149818f4fc27f02f0f0c1d22507d04740"
+    },
+    {
+      "file": "flutter-2-390-light.png",
+      "sha256": "b3cb059de3a9329ef1479f20949d814f2b396a5673e042902de36e1f3794d2c8"
+    },
+    {
+      "file": "flutter-3-1440-dark.png",
+      "sha256": "4bf804a576a28e5257fa8d27443fa6e22393d627f24c50eb4c1a4aa05c4a9b4a"
+    },
+    {
+      "file": "flutter-3-1440-light.png",
+      "sha256": "dc7c2601a8718af9112c48aab9fb45fbda9675fb0b28a41f790ba808131e0a24"
+    },
+    {
+      "file": "flutter-3-390-dark.png",
+      "sha256": "0f7458d83864994ae807ed6912b0f3ffa6859ac430fb991c62b2b176472b827c"
+    },
+    {
+      "file": "flutter-3-390-light.png",
+      "sha256": "fda17dfaabdc1ffa491198266f81c89538c9878609ff5f58e7efc9dc4a975ded"
+    },
+    {
+      "file": "popover-dark.png",
+      "sha256": "3f16f4b879277f400c1347090de35b06e583a6763298e67b12ec582225e8b351"
+    },
+    {
+      "file": "popover-light.png",
+      "sha256": "3f513bbde48c33dcb134a03e8dd1965ac97a0509334042c23f37c4a48dfb781e"
+    },
+    {
+      "file": "select-dark.png",
+      "sha256": "5fc47c8197e36b9998b6fe79142519d5e99f87ad18004188412dacd4da434d83"
+    },
+    {
+      "file": "select-light.png",
+      "sha256": "076e1dc2820b0c597d3cda91bf03d87687ab473b81e6deee23599a3deaacc1d0"
+    },
+    {
+      "file": "select-mobile-200.png",
+      "sha256": "b37822540cc9aa8360d074adef06c1c23c8b6c294db2455ac0c2c07bc551a93d"
+    }
+  ],
+  "limitations": [
+    "No physical device / VoiceOver / store approval",
+    "Native Flutter and web behaviors differ as documented",
+    "Primary accent remains provisional",
+    "No Figma library file created",
+    "Actual product migration and domain engines remain separate",
+    "Web overlays require native Popover API support"
+  ],
+  "selectFollowup": {
+    "scope": "React Select popup, keyboard/focus, required validation; Flutter and product apps unchanged",
+    "checksRef": "browser.json",
+    "coreChecksRerun": [
+      "react-tests",
+      "react-build"
+    ],
+    "previousChecks": "Other core/Flutter checks retain their original timestamps in core.json; not rerun for this web-only change."
+  }
+}

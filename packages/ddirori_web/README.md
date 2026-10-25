@@ -1,6 +1,6 @@
 # Ddirori React UI
 
-같은 의미 토큰을 쓰는 React 참조 구현이다. 공개 소스는 `src/index.tsx`, scoped 스타일은 `src/styles.css`다. 현재 저장소의 React·Vite·TypeScript 도구를 사용하며 루트 패키지를 변경하지 않는다.
+같은 의미 토큰을 쓰는 React 참조 구현이다. 공개 소스는 `src/index.tsx`, scoped 스타일은 `src/styles.css`다. 루트의 file dependency로 실제 Studio에서도 해석한다. 루트에서 `npm ci` 후 [공유 도입 절차](../../docs/brand/ddirori-design-system/shared-baseline.md)를 따른다. `?starter`는 최소 비동기 도입 예제다.
 
 호스트를 `<div className="ddirori" data-theme="light" data-density="comfortable">`로 감싼다. 독립적으로 중첩하는 호스트에는 theme와 density를 명시한다. 스타일은 .ddirori 밖에 적용되지 않는다.
 
@@ -19,3 +19,7 @@
 빌드는 현재 시스템의 preview/만 재생성한다. 토큰·로고·글꼴·바흐는 디자인 시스템 경로에서 읽어 번들에 포함한다. 다른 저장소로 배포할 때는 assets와 generated 경로를 함께 패키징하는 별도 배포 작업이 필요하다.
 
 [컴포넌트 API](../../docs/brand/ddirori-design-system/components.md) · [실제 카탈로그](../../docs/brand/ddirori-design-system/preview/index.html).
+
+## 기본 세트
+
+`npm run dev` 후 `http://127.0.0.1:8058/?components`에서 공개 API를 직접 사용하는 기본 세트와 네 가지 조합을 검토한다. [전체 API·플랫폼 대응](../../docs/brand/ddirori-design-system/basic-set.md). `Density`는 색을 유지하고 밀도만 바꾼다. Menu/Popover/Tooltip은 native Popover API 지원 브라우저가 대상이다. 원래 API와 기본값은 유지한다.

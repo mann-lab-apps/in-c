@@ -1,0 +1,167 @@
+{
+  "scope": "Local component and consumer regression checks; not device/store approval",
+  "results": [
+    {
+      "name": "generated",
+      "command": [
+        "node",
+        "docs/brand/ddirori-design-system/tools/build.mjs",
+        "--check"
+      ],
+      "cwd": ".",
+      "started": "2026-10-24T07:44:04.285Z",
+      "finished": "2026-10-24T07:44:06.249Z",
+      "exitCode": 0
+    },
+    {
+      "name": "token-model",
+      "command": [
+        "node",
+        "--test",
+        "docs/brand/ddirori-design-system/tools/token-model.test.mjs"
+      ],
+      "cwd": ".",
+      "started": "2026-10-24T07:44:06.249Z",
+      "finished": "2026-10-24T07:44:06.306Z",
+      "exitCode": 0
+    },
+    {
+      "name": "palette-contrast",
+      "command": [
+        "node",
+        "docs/brand/ddirori-design-system/tools/verify-palettes.mjs"
+      ],
+      "cwd": ".",
+      "started": "2026-10-24T07:44:06.306Z",
+      "finished": "2026-10-24T07:44:06.331Z",
+      "exitCode": 0
+    },
+    {
+      "name": "studio-build",
+      "command": [
+        "npm",
+        "run",
+        "build:studio"
+      ],
+      "cwd": "packages/ddirori_web",
+      "started": "2026-10-24T07:44:09.294Z",
+      "finished": "2026-10-24T07:44:11.625Z",
+      "exitCode": 0
+    },
+    {
+      "name": "flutter-analyze",
+      "command": [
+        "flutter",
+        "analyze"
+      ],
+      "cwd": "packages/ddirori_ui",
+      "started": "2026-10-24T07:44:11.625Z",
+      "finished": "2026-10-24T07:44:13.773Z",
+      "exitCode": 0
+    },
+    {
+      "name": "flutter-tests",
+      "command": [
+        "flutter",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "packages/ddirori_ui",
+      "started": "2026-10-24T07:44:13.773Z",
+      "finished": "2026-10-24T07:44:16.007Z",
+      "exitCode": 0
+    },
+    {
+      "name": "score-regression",
+      "command": [
+        "flutter",
+        "test",
+        "test/brand_pilot_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "apps/in_c_sheet",
+      "started": "2026-10-24T07:44:37.891Z",
+      "finished": "2026-10-24T07:44:41.065Z",
+      "exitCode": 0
+    },
+    {
+      "name": "play-regression",
+      "command": [
+        "flutter",
+        "test",
+        "test/brand_pilot_test.dart",
+        "test/play_library_components_test.dart",
+        "test/play_playback_components_test.dart",
+        "test/play_activity_components_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "apps/classical_local_library",
+      "started": "2026-10-24T07:44:41.066Z",
+      "finished": "2026-10-24T07:44:44.085Z",
+      "exitCode": 0
+    },
+    {
+      "name": "flutter-catalog-analyze",
+      "command": [
+        "flutter",
+        "analyze"
+      ],
+      "cwd": "packages/ddirori_ui/example",
+      "started": "2026-10-24T07:47:43.925Z",
+      "finished": "2026-10-24T07:47:46.793Z",
+      "exitCode": 0
+    },
+    {
+      "name": "flutter-catalog-tests",
+      "command": [
+        "flutter",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "packages/ddirori_ui/example",
+      "started": "2026-10-24T07:47:46.793Z",
+      "finished": "2026-10-24T07:47:51.709Z",
+      "exitCode": 0
+    },
+    {
+      "name": "flutter-catalog-build",
+      "command": [
+        "flutter",
+        "build",
+        "web",
+        "--no-web-resources-cdn"
+      ],
+      "cwd": "packages/ddirori_ui/example",
+      "started": "2026-10-24T07:47:51.710Z",
+      "finished": "2026-10-24T07:48:05.918Z",
+      "exitCode": 0
+    },
+    {
+      "name": "react-tests",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "packages/ddirori_web",
+      "started": "2026-10-24T08:05:29.909Z",
+      "finished": "2026-10-24T08:05:31.075Z",
+      "exitCode": 0
+    },
+    {
+      "name": "react-build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "packages/ddirori_web",
+      "started": "2026-10-24T08:05:31.076Z",
+      "finished": "2026-10-24T08:05:32.886Z",
+      "exitCode": 0
+    }
+  ]
+}
