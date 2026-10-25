@@ -1,0 +1,138 @@
+[
+  {
+    "id": "revision",
+    "cwd": ".",
+    "command": [
+      "python3",
+      "docs/brand/ddirori-design-system/product-design-r1/revision.py",
+      "--check"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/revision.log"
+  },
+  {
+    "id": "format",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "dart",
+      "format",
+      "--output=none",
+      "--set-exit-if-changed",
+      "lib/presentation/score_library_components.dart",
+      "lib/sheet_library_controller.dart",
+      "test/score_r1_adoption_test.dart"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/format.log"
+  },
+  {
+    "id": "analyze",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "flutter",
+      "analyze"
+    ],
+    "environment": {},
+    "exit_code": 1,
+    "signal": null,
+    "log": "logs/analyze.log"
+  },
+  {
+    "id": "focused-capture",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "flutter",
+      "test",
+      "test/score_r1_adoption_test.dart",
+      "test/adoption_pilot_test.dart",
+      "--reporter",
+      "expanded"
+    ],
+    "environment": {
+      "DDIRORI_SCORE_R1_CAPTURE": "true",
+      "DDIRORI_BRAND_FONT": "/tmp/ddirori-brand-tools/Pretendard.ttf",
+      "DDIRORI_MATERIAL_FONT": "/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf"
+    },
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/focused-capture.log"
+  },
+  {
+    "id": "common-item",
+    "cwd": "packages/ddirori_ui",
+    "command": [
+      "flutter",
+      "test",
+      "test/item_contract_test.dart",
+      "--reporter",
+      "expanded"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/common-item.log"
+  },
+  {
+    "id": "full-tests",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "flutter",
+      "test",
+      "--reporter",
+      "expanded"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/full-tests.log"
+  },
+  {
+    "id": "rc-check",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "dart",
+      "run",
+      "tool/rc_release_check.dart"
+    ],
+    "environment": {},
+    "exit_code": 1,
+    "signal": null,
+    "log": "logs/rc-check.log"
+  },
+  {
+    "id": "metadata",
+    "cwd": "deployment",
+    "command": [
+      "bundle",
+      "exec",
+      "fastlane",
+      "prepare_ios_metadata",
+      "manifest:apps/clef/ios-metadata.yaml",
+      "mode:check"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/metadata.log"
+  },
+  {
+    "id": "diff-check",
+    "cwd": ".",
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "apps/in_c_sheet",
+      "deployment/apps/clef/ios-metadata.yaml"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/diff-check.log"
+  }
+]

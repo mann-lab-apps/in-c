@@ -1,0 +1,714 @@
+
+==> App version consistency
+$ compare pubspec.yaml version with lib/main.dart _clefAppVersion
+PASS 1.0.0+14
+
+==> PDF fixture inspection
+$ dart run tool/inspect_pdf_fixtures.dart
+test-fixtures/pdfs/short-score.pdf: 3 pages
+test-fixtures/pdfs/long-scan-like-score.pdf: 90 pages
+test-fixtures/pdfs/link-annotation-score.pdf: 3 pages
+  page 1: 1 link(s)
+    url=https://camscanner.example.invalid/watermark-link rects=[PdfRect(left: 410.0, top: 62.0, right: 560.0, bottom: 34.0)]
+PASS
+
+==> Dart format check
+$ dart format --set-exit-if-changed lib test
+Formatted 80 files (0 changed) in 1.01 seconds.
+PASS
+
+==> Flutter analyze
+$ flutter analyze
+Resolving dependencies...
+Downloading packages...
+  android_file_picker 1.0.1 (2.1.1 available)
+  archive 4.0.9 (4.5.2 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+4 (0.4.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 12.0.0 (13.1.0 available)
+  file_picker_darwin 1.0.1 (2.3.3 available)
+  file_picker_linux 1.0.1 (2.0.2 available)
+  file_picker_platform_interface 3.0.1 (4.2.0 available)
+  file_picker_web 3.0.1 (4.2.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  image 4.9.2 (4.12.0 available)
+  jni 1.0.3 (1.1.0 available)
+  jni_flutter 1.0.2 (1.0.4+1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  mime 2.0.0 (2.1.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  pdf 3.13.0 (3.13.1 available)
+  pdf_cos 3.7.0 (10.0.0 available)
+  pdf_document 3.7.0 (10.0.0 available)
+  pdfium_dart 0.2.5 (0.4.0 available)
+  pdfium_flutter 0.2.3 (0.4.0 available)
+  pdfrx 2.4.7 (2.10.0 available)
+  pdfrx_engine 0.4.6 (0.8.0 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  process 5.0.5 (5.0.6 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  qr 3.0.2 (4.0.0 available)
+  record 7.1.1 (7.1.2 available)
+  record_android 2.1.2 (2.2.0 available)
+  record_linux 2.1.1 (2.1.3 available)
+  record_use 0.6.0 (1.1.1 available)
+  record_web 2.1.2 (2.1.3 available)
+  record_windows 2.2.3 (2.3.0 available)
+  share_plus 13.3.0 (13.3.1 available)
+  shared_preferences 2.5.5 (2.5.6 available)
+  shared_preferences_android 2.4.27 (2.5.3 available)
+  shared_preferences_foundation 2.5.6 (2.6.0 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  synchronized 3.4.1+2 (3.5.0 available)
+  test_api 0.7.12 (0.7.15 available)
+  url_launcher 6.3.2 (6.3.3 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.4.0 (2.4.3 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+  webdriver 3.1.0 (3.2.0 available)
+  windows_file_picker 1.0.1 (2.0.1 available)
+  xml 7.0.1 (7.1.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+58 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing in_c_sheet...                                         
+No issues found! (ran in 2.7s)
+PASS
+
+==> Flutter test
+$ flutter test
+Resolving dependencies...
+Downloading packages...
+  android_file_picker 1.0.1 (2.1.1 available)
+  archive 4.0.9 (4.5.2 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+4 (0.4.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 12.0.0 (13.1.0 available)
+  file_picker_darwin 1.0.1 (2.3.3 available)
+  file_picker_linux 1.0.1 (2.0.2 available)
+  file_picker_platform_interface 3.0.1 (4.2.0 available)
+  file_picker_web 3.0.1 (4.2.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  image 4.9.2 (4.12.0 available)
+  jni 1.0.3 (1.1.0 available)
+  jni_flutter 1.0.2 (1.0.4+1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  mime 2.0.0 (2.1.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  pdf 3.13.0 (3.13.1 available)
+  pdf_cos 3.7.0 (10.0.0 available)
+  pdf_document 3.7.0 (10.0.0 available)
+  pdfium_dart 0.2.5 (0.4.0 available)
+  pdfium_flutter 0.2.3 (0.4.0 available)
+  pdfrx 2.4.7 (2.10.0 available)
+  pdfrx_engine 0.4.6 (0.8.0 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  process 5.0.5 (5.0.6 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  qr 3.0.2 (4.0.0 available)
+  record 7.1.1 (7.1.2 available)
+  record_android 2.1.2 (2.2.0 available)
+  record_linux 2.1.1 (2.1.3 available)
+  record_use 0.6.0 (1.1.1 available)
+  record_web 2.1.2 (2.1.3 available)
+  record_windows 2.2.3 (2.3.0 available)
+  share_plus 13.3.0 (13.3.1 available)
+  shared_preferences 2.5.5 (2.5.6 available)
+  shared_preferences_android 2.4.27 (2.5.3 available)
+  shared_preferences_foundation 2.5.6 (2.6.0 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  synchronized 3.4.1+2 (3.5.0 available)
+  test_api 0.7.12 (0.7.15 available)
+  url_launcher 6.3.2 (6.3.3 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.4.0 (2.4.3 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+  webdriver 3.1.0 (3.2.0 available)
+  windows_file_picker 1.0.1 (2.0.1 available)
+  xml 7.0.1 (7.1.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+58 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_half_page_test.dart
+00:00 +0: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_half_page_test.dart: uses a smaller half-page step in landscape
+00:00 +1: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_half_page_test.dart: keeps half-page movement inside the current page
+00:00 +2: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation tool preset encodes, decodes, and clamps values
+00:00 +3: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation models normalize decimal JSON numbers
+00:00 +4: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: undo and redo annotation entries preserve operation order
+00:00 +5: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer compacts stale pages after PDF page count changes
+00:00 +6: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: new annotation clears redo stack
+00:00 +7: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer visibility and export flags round-trip safely
+00:00 +8: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: compacts redo stack without dropping annotations
+00:00 +9: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation summary includes storage and save status
+00:00 +10: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation stroke encodes and decodes normalized points
+00:00 +11: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation stroke supports arrow and rectangle tools
+00:00 +12: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer filters and sorts strokes by page
+00:00 +13: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer adds, removes, and undoes strokes
+00:00 +14: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: text annotation encodes and decodes normalized position
+00:00 +15: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer filters text annotations by page
+00:00 +16: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer decodes dynamic JSON maps from persisted storage
+00:00 +17: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer ignores non-list persisted fields
+00:00 +18: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer skips invalid nested records
+00:00 +19: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer updates and deletes text annotations
+00:00 +20: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: text annotation hit test finds the last matching text on a page
+00:00 +21: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation layer undoes latest stroke or text annotation
+00:00 +22: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation hit test erases stroke by normalized segment distance
+00:00 +23: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation erase can be undone and redone
+00:00 +24: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation erase removes text and stamp annotations
+00:00 +25: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: annotation erase undo stack round-trips safely
+00:00 +26: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: page geometry converts local offsets to normalized page points
+00:00 +27: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: page geometry carries stylus pressure into normalized points
+00:00 +28: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: page geometry rejects offsets outside the page box
+00:00 +29: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: page geometry converts normalized points to page-local offsets
+00:00 +30: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_test.dart: page geometry normalizes erase tolerance by page size
+00:00 +31: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads file-backed annotation layers
+00:00 +32: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads file-backed annotation layers
+00:00 +33: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: returns safe fallback for missing annotation files
+00:00 +34: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: returns safe fallback for checksum mismatch
+00:00 +35: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: returns safe fallback for corrupted annotation JSON
+00:00 +36: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +37: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +38: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +39: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +40: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +41: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +42: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +43: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +44: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +45: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +46: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +47: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +48: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +49: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +50: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +51: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +52: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: seed catalog is large enough for a real discovery surface
+00:00 +53: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: catalog backfill expands release size without entering first exposure
+00:00 +54: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: seed catalog marks a locked founder first exposure pool
+00:00 +55: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: seed catalog passes V1 consistency validation
+00:00 +56: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: seed data source exposes replaceable catalog snapshot
+00:00 +57: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: JSON catalog data source parses and validates sample catalog
+00:00 +58: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: search matches aliases and Korean composer names
+00:00 +59: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: search ranking handles punctuation and catalog numbers
+00:00 +60: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +61: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:01 +62: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:01 +63: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:01 +64: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +65: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +66: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +67: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +68: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +69: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +70: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +71: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +72: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +73: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +74: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +75: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +76: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +77: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +78: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +79: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +80: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +81: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +82: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +83: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_score_test.dart: page settings hide and unhide pages without hiding every page
+00:02 +84: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +85: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +86: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +87: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +88: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +89: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +90: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +91: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +92: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +93: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +94: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +95: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +96: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction keeps the next recommendations close to anchors
+00:02 +97: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: skipping onboarding still marks first run complete
+00:02 +98: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: today work prioritizes the founder first exposure pool
+00:02 +99: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily listening step gives a small founder pick on first use
+00:02 +100: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily listening step follows saved unopened works before broad browsing
+00:02 +101: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step reason uses taste intake evidence
+00:02 +102: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unmatched taste input still previews a useful first reward
+00:02 +103: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste translation turns input into a listening start point
+00:02 +104: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +105: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +106: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +107: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +108: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +109: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +110: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +111: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +112: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +113: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +114: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +115: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +116: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +117: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +118: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +119: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +120: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +121: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +122: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +123: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +124: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +125: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +126: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +127: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +128: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +129: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +130: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +131: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +132: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +133: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +134: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +135: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +136: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +137: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +138: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +139: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +140: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +141: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +142: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +143: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +144: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +145: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +146: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +147: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +148: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +149: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +150: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +151: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +152: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +153: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +154: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +155: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +156: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +157: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +158: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +159: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +160: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +161: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +162: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +163: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +164: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +165: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +166: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +167: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +168: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +169: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +170: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +171: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +172: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +173: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +174: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +175: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +176: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +177: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +178: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +179: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +180: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +181: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +182: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +183: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +184: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +185: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +186: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +187: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +188: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +189: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +190: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +191: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +192: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +193: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +194: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +195: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +196: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +197: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder calibration turns mixed favorite songs into melody-first discovery
+00:02 +198: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: long classical hints keep raw taste text without fake work matching
+00:02 +199: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder taste profile maps to melody and structure guardrails
+00:03 +200: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily pick stays stable within the same date and changes tomorrow
+00:03 +201: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily pick expands from a personal pool with at most one surprise per week
+00:04 +202: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +203: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +204: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +205: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +206: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +207: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +208: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +209: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +210: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +211: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +212: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +213: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +214: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +215: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:05 +216: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +217: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +218: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +219: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +220: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +221: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +222: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +223: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +224: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +225: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +226: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +227: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +228: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +229: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +230: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +231: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +232: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +233: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +234: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +235: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +236: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +237: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +238: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +239: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +240: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +241: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +242: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +243: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +244: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +245: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +246: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +247: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +248: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +249: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +250: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +251: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +252: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +253: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +254: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +255: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +256: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +257: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +258: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +259: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:06 +260: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:06 +261: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:06 +262: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:06 +263: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:06 +264: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +265: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +266: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +267: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +268: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +269: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +270: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +271: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +272: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +273: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +274: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unlink removes inferred axes and retry preserves explicit replacement
+00:06 +275: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +276: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +277: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +278: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +279: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +280: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +281: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +282: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +283: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +284: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +285: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +286: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +287: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:07 +288: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +289: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +290: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +291: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +292: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +293: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +294: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +295: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +296: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +297: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +298: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +299: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +300: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +301: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +302: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +303: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +304: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +305: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +306: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +307: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:07 +308: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:07 +309: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +310: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +311: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +312: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +313: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +314: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +315: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +316: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +317: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +318: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +319: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +320: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +321: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +322: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +323: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +324: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +325: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +326: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +327: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +328: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +329: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +330: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +331: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +332: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +333: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +334: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +335: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +336: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +337: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +338: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +339: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +340: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +341: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +342: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +343: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +344: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +345: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +346: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +347: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +348: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/sheet_app_smoke_test.dart: Clef home exposes RC actions without discovery surface
+00:08 +349: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:08 +350: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:08 +351: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:08 +352: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:08 +353: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:09 +354: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:09 +355: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:09 +356: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +357: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +358: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +359: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +360: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +361: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:09 +362: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 profile switching and import cancel or failure keep the library usable
+00:09 +363: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +364: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +365: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +366: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +367: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +368: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +369: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +370: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +371: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +372: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +373: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +374: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:09 +375: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +376: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +377: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +378: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +379: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +380: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +381: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +382: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +383: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +384: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +385: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +386: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +387: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +388: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +389: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:10 +390: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +391: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +392: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +393: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +394: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +395: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +396: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +397: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +398: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +399: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:10 +400: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:11 +401: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily step completion updates listening map progress
+00:11 +402: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 320.0
+00:11 +403: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unmatched intake preview does not claim a musical bridge
+00:11 +404: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +405: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +406: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +407: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +408: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +409: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +410: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +411: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +412: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +413: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +414: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +415: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +416: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +417: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:11 +418: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: reaction on a later day updates axis familiarity
+00:12 +419: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:12 +420: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction marks unfamiliar area without conquest
+00:12 +421: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:13 +422: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:14 +423: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +424: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +425: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +426: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +427: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +428: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +429: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +430: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +431: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:16 +432: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +433: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +434: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +435: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +436: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +437: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +438: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +439: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +440: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:17 +441: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +442: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +443: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +444: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +445: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +446: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +447: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +448: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +449: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +450: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +451: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +452: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: ops summary separates soft launch evidence from public V1 closeout
+00:19 +453: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: observations are not counted as complaint volume
+00:19 +454: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: ops summary treats repeated launch feedback as blockers
+00:19 +455: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:20 +456: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:20 +457: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:20 +458: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:20 +459: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:20 +460: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:20 +461: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:20 +462: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:20 +463: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +464: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +465: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +466: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +467: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +468: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +469: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +470: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +471: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +472: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +473: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +474: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +475: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +476: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +477: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:21 +478: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:22 +479: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: in C app shell renders the discovery root
+00:22 +480: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: in C app shell renders the discovery root
+00:22 +481: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: in C app shell renders the discovery root
+00:22 +482: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:22 +483: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:24 +484: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Founder Test Mode checklist
+00:25 +485: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: operator observation cannot be submitted with default answers
+00:27 +486: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:28 +487: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:28 +488: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:28 +489: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:28 +490: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unknown songs remain recorded without inventing taste or map evidence
+00:28 +491: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:30 +492: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:31 +493: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:31 +494: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:31 +495: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:31 +496: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: single-session clicks and reactions cannot claim revisited or personal repertoire
+00:32 +497: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Daily Pick quality snapshot
+00:32 +498: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Daily Pick quality snapshot
+00:32 +499: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Daily Pick quality snapshot
+00:34 +500: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unreviewed catalog backfill cannot become a daily recommendation
+00:35 +501: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unreviewed catalog backfill cannot become a daily recommendation
+00:36 +502: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unreviewed catalog backfill cannot become a daily recommendation
+00:37 +503: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unreviewed catalog backfill cannot become a daily recommendation
+00:37 +504: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding taste input shows first reward immediately
+00:37 +505: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding taste input shows first reward immediately
+00:37 +506: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:37 +507: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:38 +508: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:38 +509: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:38 +510: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:38 +511: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:39 +512: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: same-clock actions have independent IDs for sync deduplication
+00:39 +513: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: Daily listening card stays on its pinned work after another work reaction
+00:39 +514: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: corrupt persisted history is preserved and load failure stays visible
+00:39 +515: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: last valid backup restores saved works without claiming complete recovery
+00:39 +516: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: failed write preserves in-memory edits and retry persists them
+00:39 +517: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: backup survives absent or wrong-type primary: null
+00:39 +518: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: backup survives absent or wrong-type primary: 42
+00:39 +519: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unrecoverable backup is not silently treated as a first launch
+00:39 +520: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: invalid new snapshot cannot rotate or overwrite valid saved history
+00:39 +521: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: concurrent edits persist in order despite an older slow write
+00:39 +522: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:41 +523: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: reminder cancel wins after an earlier delayed permission request
+00:41 +524: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: reminder updates replace time and use a current-day route
+00:41 +525: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: permission lookup error does not break loading or local music
+00:41 +526: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: warm notification is consumed once and malformed payload is ignored
+00:41 +527: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: notification tap from My Music opens the current work detail
+00:43 +528: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: first intake pick is persisted before another action or restart
+00:43 +529: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saved unopened work cannot occupy every day of the week
+00:43 +530: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: founder first week has grounded bridges and recovers after surprise
+00:45 +531: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: piano first week has grounded bridges and recovers after surprise
+00:47 +532: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: strings first week has grounded bridges and recovers after surprise
+00:48 +533: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unsure recovery explores instead of repeating the same anchor
+00:49 +534: /private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet/test/classical_expanded_v1_test.dart: opening daily picks without listening does not unlock surprise
+00:49 +535: All tests passed!
+PASS
+
+==> Git whitespace check
+$ git diff --check
+PASS
+
+==> Trailing whitespace scan
+$ rg -n [[:blank:]]$ lib test ../../docs/qa/clef-v1-device-qa-runbook.md ../../docs/qa/clef-v1-rc-qa-plan.md ../../docs/qa/sheet-viewer-android-tablet-smoke-test.md ../../docs/qa/clef-share-import-export-qa.md ../../docs/qa/clef-tester-checklist.md ../../docs/qa/clef-beta-feedback-message.md ../../docs/product/clef-v1-1-spike-backlog.md ../../docs/product/sheet-viewer-feature-map.md ../../docs/product/sheet-viewer-mvp.md ../../docs/architecture/sheet-viewer-android-mvp.md README.md
+PASS
+
+==> Tab scan
+$ rg -n \t lib test ../../docs/qa/clef-v1-device-qa-runbook.md ../../docs/qa/clef-v1-rc-qa-plan.md ../../docs/qa/sheet-viewer-android-tablet-smoke-test.md ../../docs/qa/clef-share-import-export-qa.md ../../docs/qa/clef-tester-checklist.md ../../docs/qa/clef-beta-feedback-message.md ../../docs/product/clef-v1-1-spike-backlog.md ../../docs/product/sheet-viewer-feature-map.md ../../docs/product/sheet-viewer-mvp.md ../../docs/architecture/sheet-viewer-android-mvp.md README.md
+PASS
+
+==> Stale RC wording scan
+$ rg -n 현재 로컬 환경에서는|PATH에 없어|실행하지 못|command not found|아직 고도화 전|후속 V1|repo의 현재 버전은 `1\.0\.0\+[0-9]+`|실제 페이지 회전 live 렌더링과 per-instance crop/rotation override|cloud file import\. ../../docs/qa/clef-v1-device-qa-runbook.md ../../docs/qa/clef-v1-rc-qa-plan.md ../../docs/qa/sheet-viewer-android-tablet-smoke-test.md ../../docs/qa/clef-share-import-export-qa.md ../../docs/qa/clef-tester-checklist.md ../../docs/qa/clef-beta-feedback-message.md ../../docs/product/clef-v1-1-spike-backlog.md ../../docs/product/sheet-viewer-feature-map.md ../../docs/product/sheet-viewer-mvp.md ../../docs/architecture/sheet-viewer-android-mvp.md README.md
+PASS
+
+==> Debug print scan
+$ rg -n TODO|FIXME|debugPrint\(|print\( lib test
+PASS
+
+Clef RC release checklist passed.
+Running build hooks...Running build hooks...Running build hooks...Running build hooks...

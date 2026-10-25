@@ -1,0 +1,60 @@
+{
+  "source_commit": "c1ced3125055d9eaec930d4c76545fb8c086c371",
+  "verification_worktree": "/private/tmp/ddirori-score-r1-push-20261025",
+  "steps": [
+    {
+      "id": "push-pub-get",
+      "cwd": "/private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet",
+      "command": [
+        "flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "log": "logs/push-pub-get.log"
+    },
+    {
+      "id": "push-rc",
+      "cwd": "/private/tmp/ddirori-score-r1-push-20261025/apps/in_c_sheet",
+      "command": [
+        "dart",
+        "run",
+        "tool/rc_release_check.dart"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "log": "logs/push-rc.log"
+    },
+    {
+      "id": "push-metadata",
+      "cwd": "/Users/jaemankim/Desktop/privates/coding/in-c/deployment",
+      "command": [
+        "bundle",
+        "exec",
+        "fastlane",
+        "prepare_ios_metadata",
+        "manifest:apps/clef/ios-metadata.yaml",
+        "mode:check"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "log": "logs/push-metadata.log"
+    },
+    {
+      "id": "push-diff",
+      "cwd": "/Users/jaemankim/Desktop/privates/coding/in-c",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "deployment/apps/clef/ios-metadata.yaml"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "log": "logs/push-diff.log"
+    }
+  ]
+}

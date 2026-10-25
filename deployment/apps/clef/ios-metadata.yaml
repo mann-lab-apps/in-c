@@ -423,7 +423,7 @@ manual:
     status: pending
     evidence: >-
       현재 작업트리 pubspec/main은 1.0.0+14, Android applicationId는 com.mannlab.inc, iOS Runner bundle은 com.mannlab.inc.clef다. YAML의 1.0.3+30 및 com.mannlab.inc.clefandstaff와 다르므로 이 UI 검증 결과로 출시 소스/식별자 일치를 주장하지 않는다. 값은 임의 변경하지 않았으며 출시 전 정확한 제품 checkpoint 대조가 필요하다.
-      2026-10-25 R1 제품 변경은 미커밋 초안이며 기존 1.0.3+30 촬영/빌드 근거를 재사용하지 않는다. 버전 증가·새 빌드·업로드는 수행하지 않음.
+      2026-10-25 R1 제품 checkpoint는 c1ced3125055d9eaec930d4c76545fb8c086c371이다. 캡처 당시 미커밋 상태와 기존 검증 기록은 보존하며 기존 1.0.3+30 촬영/빌드 근거를 재사용하지 않는다. 버전 증가·새 빌드·업로드는 수행하지 않음. source는 출시 식별자 대조 전까지 pending으로 유지한다.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
       브랜드 적용으로 기존 로컬 빌드 검증을 새 소스의 근거로 사용하지 않음. 새 checkpoint 확정과 버전/build 대조 전 pending. 60b5ad4 소스의 1.0.3+30 AAB/IPA 서명·식별자·버전·해시와 기존 배포 속성 비교 PASS. 로컬 후보만 생성, 업로드/스토어
       빌드 선택/심사 제출 미실행. 2026-10-23 라임 대표색·올리브 행동색 및 새 런처 적용 후 후보 빌드와 실기기 검수 필요. 위젯 렌더링은 스토어 촬영 승인 근거가 아님. 2026-10-23 후속 중립색 시스템: 흰색·무채색 표면과 선택색을 분리하고 Material 표면 틴트를

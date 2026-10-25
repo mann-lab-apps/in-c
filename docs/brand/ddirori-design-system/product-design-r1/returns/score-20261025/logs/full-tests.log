@@ -1,0 +1,537 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_half_page_test.dart
+00:00 +0: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_half_page_test.dart: uses a smaller half-page step in landscape
+00:00 +1: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads file-backed annotation layers
+00:00 +2: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads file-backed annotation layers
+00:00 +3: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: classical link launcher keeps listening links in app when possible
+00:00 +4: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: classical link launcher keeps listening links in app when possible
+00:00 +5: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: returns safe fallback for checksum mismatch
+00:00 +6: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: classical link launcher sends non-http listening links externally
+00:00 +7: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: returns safe fallback for corrupted annotation JSON
+00:00 +8: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: release artifacts and signing secrets stay out of git policy
+00:00 +9: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +10: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +11: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +12: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +13: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +14: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +15: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +16: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +17: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +18: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +19: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +20: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +21: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +22: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +23: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +24: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +25: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +26: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +27: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +28: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +29: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +30: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +31: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +32: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +33: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +34: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +35: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +36: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +37: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +38: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +39: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +40: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +41: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +42: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +43: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +44: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +45: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +46: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +47: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +48: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +49: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +50: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +51: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +52: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +53: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +54: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +55: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +56: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +57: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +58: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +59: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_annotation_store_test.dart: saves and loads a 10k stroke stress-lite annotation layer
+00:00 +60: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:00 +61: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:00 +62: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:00 +63: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +64: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +65: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +66: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +67: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +68: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +69: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +70: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +71: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +72: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +73: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +74: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +75: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +76: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +77: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +78: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +79: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +80: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +81: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +82: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +83: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +84: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +85: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +86: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +87: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +88: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +89: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +90: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +91: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +92: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +93: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +94: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +95: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +96: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +97: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +98: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +99: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +100: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +101: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +102: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +103: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +104: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +105: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +106: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +107: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +108: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +109: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +110: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +111: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +112: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +113: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +114: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +115: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +116: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +117: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +118: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +119: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +120: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +121: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +122: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +123: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +124: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +125: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +126: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +127: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +128: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +129: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +130: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +131: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +132: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:01 +133: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +134: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +135: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +136: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +137: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +138: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +139: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +140: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +141: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +142: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +143: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +144: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +145: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +146: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +147: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +148: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +149: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +150: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +151: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +152: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +153: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +154: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +155: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +156: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +157: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +158: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +159: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +160: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +161: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +162: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +163: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +164: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +165: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +166: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +167: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +168: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +169: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +170: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +171: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +172: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +173: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: onboarding preferences encode, persist, and affect discover shelves
+00:02 +174: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/sheet_tuner_test.dart: keeps a stable reading for mildly noisy signal
+00:02 +175: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +176: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +177: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +178: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +179: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +180: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +181: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +182: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +183: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +184: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +185: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +186: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +187: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: taste intake creates listening coordinates from matched and free text
+00:02 +188: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +189: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +190: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +191: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +192: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +193: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +194: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +195: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +196: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +197: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: next three recommendations split immediate stretch and later lanes
+00:02 +198: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +199: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +200: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +201: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +202: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +203: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +204: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +205: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +206: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +207: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +208: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +209: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +210: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +211: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +212: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +213: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +214: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +215: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +216: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +217: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +218: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +219: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +220: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +221: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +222: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +223: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +224: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +225: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +226: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +227: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +228: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:03 +229: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +230: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +231: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +232: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +233: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +234: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +235: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +236: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +237: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +238: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +239: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +240: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +241: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +242: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +243: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +244: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:04 +245: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +246: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +247: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +248: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +249: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +250: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +251: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +252: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +253: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +254: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +255: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +256: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +257: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:05 +258: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:05 +259: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:05 +260: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +261: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +262: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +263: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +264: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +265: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +266: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +267: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +268: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +269: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +270: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +271: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +272: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +273: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +274: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +275: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +276: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +277: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +278: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +279: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +280: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +281: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_data_controls_test.dart: data controls export, cancel and confirm deletion fit small screens
+00:06 +282: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:06 +283: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:06 +284: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +285: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +286: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +287: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +288: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +289: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +290: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +291: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 320.0
+00:07 +292: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:07 +293: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +294: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +295: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +296: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +297: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +298: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +299: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +300: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +301: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +302: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +303: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +304: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +305: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: taste connections can select and unlink on a small screen
+00:08 +306: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +307: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +308: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/brand_pilot_test.dart: score brand library, 390.0px, text 1.0
+00:08 +309: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +310: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +311: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +312: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +313: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +314: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +315: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +316: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +317: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +318: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +319: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +320: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +321: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +322: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +323: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +324: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +325: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +326: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +327: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +328: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +329: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days preview keeps close starts and one surprise
+00:09 +330: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: composer plus title intake matches work but composer-only does not invent one
+00:10 +331: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: composer plus title intake matches work but composer-only does not invent one
+00:10 +332: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +333: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +334: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +335: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +336: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +337: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:10 +338: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +339: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +340: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +341: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +342: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +343: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +344: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +345: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +346: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +347: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +348: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +349: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +350: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +351: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +352: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +353: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +354: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +355: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:10 +356: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:11 +357: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:11 +358: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:11 +359: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder simulation reports rules separately from human approval
+00:12 +360: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +361: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +362: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +363: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +364: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +365: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +366: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +367: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:12 +368: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +369: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +370: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +371: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +372: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +373: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +374: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +375: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: withdrawn Daily has no stale card without candidates and recovers on notification
+00:13 +376: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +377: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +378: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +379: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +380: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +381: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +382: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +383: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +384: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:13 +385: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:14 +386: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder first seven days avoids cold mismatch works
+00:14 +387: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: empty and unreviewed catalogs preserve history and show an unavailable state
+00:14 +388: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: empty and unreviewed catalogs preserve history and show an unavailable state
+00:14 +389: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:14 +390: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:14 +391: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:14 +392: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:14 +393: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +394: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +395: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +396: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +397: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +398: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +399: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: unsure reaction disables surprise for the next daily pick
+00:15 +400: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 390.0
+00:15 +401: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: primary listening controls meet iOS tap and semantic label guidelines
+00:15 +402: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: daily pick reminder copy changes by user state
+00:15 +403: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:15 +404: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:15 +405: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:16 +406: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:16 +407: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:16 +408: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:16 +409: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:16 +410: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:16 +411: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:16 +412: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:16 +413: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:16 +414: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:17 +415: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: early recommendations retain an independent metadata bridge across contrasting tastes
+00:17 +416: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: ear-opening answer records a listening clue without score language
+00:17 +417: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +418: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:18 +419: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:20 +420: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:20 +421: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:21 +422: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:22 +423: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: per-day preview assessment requires a real choice and submits without completing listening
+00:23 +424: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: discover shelves dedupe by listening map path
+00:24 +425: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: discover shelves dedupe by listening map path
+00:24 +426: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +427: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +428: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +429: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +430: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +431: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +432: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +433: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +434: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +435: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +436: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +437: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +438: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +439: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +440: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +441: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +442: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:24 +443: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: privacy notice is available in My Music and fits small screen
+00:25 +444: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: instrument curiosity reaction creates a Discover shelf
+00:25 +445: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: instrument curiosity reaction creates a Discover shelf
+00:25 +446: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: instrument curiosity reaction creates a Discover shelf
+00:25 +447: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: instrument curiosity reaction creates a Discover shelf
+00:25 +448: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +449: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +450: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +451: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +452: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +453: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +454: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:25 +455: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:26 +456: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:26 +457: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:27 +458: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:27 +459: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: preview judgement is human input tied to its exact snapshot, not listening evidence
+00:27 +460: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:27 +461: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:27 +462: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: founder quality gate requires 5 testers and 3 comeback reasons
+00:28 +463: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:28 +464: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:28 +465: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:28 +466: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +467: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +468: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +469: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +470: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +471: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +472: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +473: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +474: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +475: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +476: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +477: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +478: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +479: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +480: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:29 +481: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: quality evidence counts identified latest observations, never simulations
+00:30 +482: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: in C app shell renders the discovery root
+00:30 +483: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: operator observation cannot be submitted with default answers
+00:31 +484: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: operator observation cannot be submitted with default answers
+00:33 +485: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Founder Test Mode checklist
+00:33 +486: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Founder Test Mode checklist
+00:33 +487: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Founder Test Mode checklist
+00:33 +488: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Founder Test Mode checklist
+00:34 +489: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unknown songs remain recorded without inventing taste or map evidence
+00:34 +490: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:35 +491: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:37 +492: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes First-Use Wow Gate checklist
+00:37 +493: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: community post composer stores a local listening note
+00:37 +494: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:37 +495: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:38 +496: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:38 +497: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:38 +498: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes first seven day recommendation preview
+00:40 +499: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unreviewed catalog backfill cannot become a daily recommendation
+00:43 +500: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Catalog Ops exposes Daily Pick quality snapshot
+00:43 +501: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: foreground midnight rotates the pinned pick without restart
+00:43 +502: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: My Music empty state shows listening map start copy
+00:44 +503: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:45 +504: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saving is not listening and correcting a reaction updates the map after reopen
+00:45 +505: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +506: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +507: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +508: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +509: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +510: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +511: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +512: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +513: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +514: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +515: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: Work Detail shows listening map role and next path
+00:46 +516: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:46 +517: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:47 +518: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:47 +519: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:47 +520: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: simulation neither approves the founder nor mutates real history
+00:47 +521: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: sponsored concert card opens concert detail from Today
+00:47 +522: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: sponsored concert card opens concert detail from Today
+00:47 +523: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: sponsored concert card opens concert detail from Today
+00:47 +524: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: sponsored concert card opens concert detail from Today
+00:47 +525: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_discovery_controller_test.dart: sponsored concert card opens concert detail from Today
+00:47 +526: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: notification tap from My Music opens the current work detail
+00:47 +527: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: notification tap from My Music opens the current work detail
+00:49 +528: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: first intake pick is persisted before another action or restart
+00:49 +529: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: saved unopened work cannot occupy every day of the week
+00:50 +530: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: founder first week has grounded bridges and recovers after surprise
+00:52 +531: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: piano first week has grounded bridges and recovers after surprise
+00:53 +532: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: strings first week has grounded bridges and recovers after surprise
+00:55 +533: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: unsure recovery explores instead of repeating the same anchor
+00:55 +534: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/classical_expanded_v1_test.dart: opening daily picks without listening does not unlock surprise
+00:56 +535: All tests passed!

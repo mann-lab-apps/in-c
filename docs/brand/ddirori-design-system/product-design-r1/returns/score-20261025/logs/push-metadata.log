@@ -1,0 +1,20 @@
+[21:16:01]: fastlane 2.241.1 (Ruby 4.0.6, bundler)
+[21:16:02]: ---------------------------
+[21:16:02]: --- Step: opt_out_usage ---
+[21:16:02]: ---------------------------
+[21:16:02]: Disabled upload of used actions
+[21:16:02]: ------------------------------------------------
+[21:16:02]: Name of the lane 'testflight' is already taken by the action named 'testflight'
+[21:16:02]: ------------------------------------------------
+[21:16:02]: Driving the lane 'prepare_ios_metadata' 🚀
+[21:16:02]: Metadata valid: clef (source pending)
+
++------------------------------------+
+|          fastlane summary          |
++------+---------------+-------------+
+| Step | Action        | Time (in s) |
++------+---------------+-------------+
+| 1    | opt_out_usage | 0           |
++------+---------------+-------------+
+
+[21:16:02]: fastlane.tools finished successfully 🎉

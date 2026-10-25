@@ -1,0 +1,37 @@
+service: score
+implementation_commit: c1ced3125055d9eaec930d4c76545fb8c086c371
+capture_commit_state: uncommitted at capture; retained in per-screen records
+design_baseline_snapshot: design-baseline/
+design_revision: product-design-r1
+design_manifest_sha256: 00d7e83fa897871ccb399c5ca2d8ca1dbb84632e7b630e2df15b84bd693d2efb
+base_product_commit: 6bb5f027cfa5df3a78094a97699c6c5a84c9f0c1
+status: implemented-awaiting-review
+runtime: Flutter 3.47.2 / Dart 3.13.2 test widget renderer
+screens_index: screens/*.json
+screen_kind: actual-product widget-renderer
+device_scale: 1
+viewport_widths: [320, 390, 840]
+viewport_height: 1000
+text_scales: [1, 2]
+themes: [light, dark]
+accent: existing lime trial, not a newly approved default
+fixture: pilot-0/1/2 synthetic metadata; intentionally missing PDF paths; deferred/failing test store
+tests: verification-final.json
+initial_tests_and_common_item: verification.json
+source_hashes: source-hashes-final.json
+differences:
+  - Native library switch and every existing bulk field retained instead of the review-only classification field.
+  - Existing wide two-column layout and 720px boundary retained; long text can use one column.
+  - Flutter flat Item keeps its native surface; dark rows differ from transparent web review rows.
+shared_proposals: []
+metadata_check: See metadata-final entry in verification-final.json; source identity mismatch still pending.
+unverified:
+  - Installed iOS/Android app, real PDF rendering and annotation export appearance.
+  - VoiceOver, TalkBack, hardware IME and OS file provider.
+  - Real audio, pedal, stylus and extended session quality.
+limitations:
+  - Product committed separately; captures retain their original uncommitted-at-capture status.
+  - No release build, version change, merge or store upload.
+  - Actual code version 1.0.0+14 differs from existing metadata 1.0.3+30.
+  - Actual Android com.mannlab.inc and iOS com.mannlab.inc.clef differ from deployment expectations.
+  - Injected persistence failure is not proof of crash-safe or OS-failure atomicity.

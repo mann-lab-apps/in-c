@@ -1,0 +1,53 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart
+00:00 +0: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:01 +1: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row opens existing viewer and unavailable file guidance
+00:01 +2: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 600.0
+00:01 +3: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette violet dark=false
+00:01 +4: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 840.0
+00:01 +5: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 row secondary actions never open at 840.0
+00:01 +6: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette blue dark=false
+00:02 +7: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 320.0
+00:02 +8: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 320.0
+00:02 +9: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette teal dark=false
+00:02 +10: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:02 +11: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:02 +12: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 viewer title and Back stay above scrollable tools 840.0
+00:02 +13: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette coral dark=true
+00:02 +14: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette coral dark=true
+00:02 +15: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 profile switching and import cancel or failure keep the library usable
+00:02 +16: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 profile switching and import cancel or failure keep the library usable
+00:03 +17: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 profile switching and import cancel or failure keep the library usable
+00:03 +18: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score palette lime dark=false
+00:03 +19: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 library identity precedes search and hidden selection stays explicit
+00:03 +20: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 library identity precedes search and hidden selection stays explicit
+00:03 +21: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:03 +22: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:03 +23: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: search sort filter selection and bulk edit preserve stable IDs
+00:04 +24: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 320.0 text=2.0 dark=false
+00:04 +25: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row actions do not open a score; quick access is explicit
+00:04 +26: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: row actions do not open a score; quick access is explicit
+00:04 +27: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 390.0 text=1.0 dark=false
+00:04 +28: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: bulk pending blocks back and failure preserves draft for retry
+00:04 +29: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: bulk pending blocks back and failure preserves draft for retry
+00:04 +30: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 390.0 text=2.0 dark=false
+00:04 +31: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 390.0 text=2.0 dark=false
+00:04 +32: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score state loading
+00:04 +33: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 390.0 text=2.0 dark=true
+00:04 +34: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 390.0 text=2.0 dark=true
+00:04 +35: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score state filtered
+00:04 +36: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=1.0 dark=false
+00:05 +37: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=1.0 dark=false
+00:05 +38: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/adoption_pilot_test.dart: actual score state wide
+00:05 +39: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=1.0 dark=true
+00:05 +40: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=1.0 dark=true
+00:05 +41: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=2.0 dark=false
+00:05 +42: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 layout 840.0 text=2.0 dark=true
+00:05 +43: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 320.0
+00:05 +44: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 390.0
+00:06 +45: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 pending failure retry success 840.0
+00:06 +46: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 state empty
+00:06 +47: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 state search-empty
+00:06 +48: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 state loading
+00:06 +49: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 state error
+00:06 +50: /Users/jaemankim/Desktop/privates/coding/in-c/apps/in_c_sheet/test/score_r1_adoption_test.dart: R1 state disabled
+00:06 +51: All tests passed!

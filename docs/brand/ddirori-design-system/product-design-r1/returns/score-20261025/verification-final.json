@@ -1,0 +1,80 @@
+[
+  {
+    "id": "revision-final",
+    "cwd": ".",
+    "command": [
+      "python3",
+      "docs/brand/ddirori-design-system/product-design-r1/revision.py",
+      "--check"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/revision-final.log"
+  },
+  {
+    "id": "focused-capture-final",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "flutter",
+      "test",
+      "test/score_r1_adoption_test.dart",
+      "test/adoption_pilot_test.dart",
+      "--reporter",
+      "expanded"
+    ],
+    "environment": {
+      "DDIRORI_SCORE_R1_CAPTURE": "true",
+      "DDIRORI_BRAND_FONT": "/tmp/ddirori-brand-tools/Pretendard.ttf",
+      "DDIRORI_MATERIAL_FONT": "/opt/homebrew/share/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf"
+    },
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/focused-capture-final.log"
+  },
+  {
+    "id": "rc-final",
+    "cwd": "apps/in_c_sheet",
+    "command": [
+      "dart",
+      "run",
+      "tool/rc_release_check.dart"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/rc-final.log"
+  },
+  {
+    "id": "metadata-final",
+    "cwd": "deployment",
+    "command": [
+      "bundle",
+      "exec",
+      "fastlane",
+      "prepare_ios_metadata",
+      "manifest:apps/clef/ios-metadata.yaml",
+      "mode:check"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/metadata-final.log"
+  },
+  {
+    "id": "diff-final",
+    "cwd": ".",
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "apps/in_c_sheet",
+      "deployment/apps/clef/ios-metadata.yaml"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "signal": null,
+    "log": "logs/diff-final.log"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "apps/in_c_sheet/lib/main.dart": "66331e10d40372bb0f087b9f27b4cb665868c7b3bd4a4eebb9e8700d865e3373",
+  "apps/in_c_sheet/lib/presentation/score_library_components.dart": "281f2c7ae120ae0119832d757fae0f1ebf0e342fe86253edf25e997a50401833",
+  "apps/in_c_sheet/lib/sheet_library_controller.dart": "aa8cceab69fb448ed198244478e115ad4fe4aa4a0b6022a39076008b57bac1f9",
+  "apps/in_c_sheet/test/score_r1_adoption_test.dart": "128a48b2b2bb73a9ee179d0a9ca077284e56066ab725e381a008290bdd64420e",
+  "packages/ddirori_ui/lib/src/components.dart": "e03100ce8755104e03ab50a90d7d50c587e8ad9bfcede93b46339f79936ad3e4",
+  "packages/ddirori_ui/lib/src/theme.dart": "00524392b9a3907914e1396fd582569723ba48b980baa344e30b18bbce922c18",
+  "deployment/apps/clef/ios-metadata.yaml": "9865c7812d1393c30bd4893b3249e9f30d6fe2c917f3f2bbe7e0aca442cd0964",
+  "docs/brand/ddirori-design-system/product-design-r1/revision.json": "00d7e83fa897871ccb399c5ca2d8ca1dbb84632e7b630e2df15b84bd693d2efb"
+}

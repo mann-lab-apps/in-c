@@ -1,0 +1,7 @@
+Analyzing in_c_sheet...                                         
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/main.dart:2840:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • test/score_r1_adoption_test.dart:282:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • test/score_r1_adoption_test.dart:293:13 • curly_braces_in_flow_control_structures
+
+3 issues found. (ran in 4.4s)
