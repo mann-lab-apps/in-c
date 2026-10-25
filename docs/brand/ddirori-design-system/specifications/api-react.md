@@ -1348,4 +1348,3 @@ export function Tooltip({
 | --- | --- | --- | --- |
 | text | string | 예 | — |
 | children | ReactElement<{ "aria-describedby"?: string; }, string &#124; import("/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index").JSXElementConstructor<any>> | 예 | — |
-

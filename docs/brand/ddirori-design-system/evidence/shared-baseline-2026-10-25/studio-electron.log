@@ -1,0 +1,22 @@
+{
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 207,
+  overflow: false
+}
+Studio Electron shared panel and single undo passed {
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 207,
+  overflow: false
+}

@@ -55,9 +55,9 @@ for(const [,rel]of entry.matchAll(/export '([^']+)';/g)){
 const escape=s=>String(s).replaceAll('|','&#124;').replaceAll('\n',' ');
 let md='# React API 원문과 직접 선언한 props\n\n현행 소스에서 추출한 계약이다. 구현 완료·브라우저 지원 보장이 아니다. 기본값 `—`는 함수 인자에서 기본값을 선언하지 않았다는 뜻이다. React 표준 HTML 속성은 원문에 표시한 상속 타입을 따른다. 생성된 tokens export는 [토큰 부록](token-reference.md)을 본다.\n\nImport: `import { … } from "@ddirori/ui"`; `import "@ddirori/ui/styles.css"`.\n\n';
 for(const e of react){md+=`<a id="${e.name}"></a>\n## ${e.name}\n\n소스: [${e.file}](../../../../${e.file}) · 조사 당시 ${e.line}행.\n\n\`\`\`tsx\n${e.signature}\n\`\`\`\n\n`;if(e.props.length)md+='| 인자 | 타입 | 필수 | 인자 기본값 |\n| --- | --- | --- | --- |\n'+e.props.map(p=>`| ${p.name} | ${escape(p.type)} | ${p.required?'예':'아니오'} | ${escape(p.default)} |`).join('\n')+'\n\n';}
-output(path.join(base,'specifications/api-react.md'),md);
+output(path.join(base,'specifications/api-react.md'),md.trimEnd()+'\n');
 md='# Flutter API 원문\n\n공개 export 파일의 실제 constructor·필드와 함수 서명이다. `required`, nullable 타입, constructor 기본값이 계약이다. Widget의 key는 Flutter 규칙을 따른다. 아래 선언은 구현을 복제하는 코드가 아닌 소스 조사 자료이며 타입별 동작은 컴포넌트 명세를 따른다.\n\nImport: `package:ddirori_ui/ddirori_ui.dart`; Material 합성은 `package:flutter/material.dart`. 생성 토큰은 [토큰 부록](token-reference.md).\n\n';
 for(const e of dart){md+=`<a id="${e.name}"></a>\n## ${e.name}\n\n소스: [${e.file}](../../../../${e.file}) · 조사 당시 ${e.line}행.\n\n\`\`\`dart\n${e.signature}\n\`\`\`\n\n`;if(e.fields.length)md+='필드 타입: '+e.fields.map(f=>'`'+f+'`').join(', ')+'.\n\n';}
-output(path.join(base,'specifications/api-flutter.md'),md);
+output(path.join(base,'specifications/api-flutter.md'),md.trimEnd()+'\n');
 output(path.join(base,'evidence/specifications/api.json'),JSON.stringify({react,dart},null,2)+'\n');
 console.log(`API snapshot: React ${react.length}, Flutter ${dart.length}`);

@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "checks": {
+    "reactDeclarations": 63,
+    "flutterDeclarations": 60,
+    "componentContracts": 39,
+    "serviceSpecs": 6,
+    "localLinks": 843,
+    "tokenRows": 194,
+    "reactExamples": {
+      "diagnostics": 0,
+      "typescript": "5.9.3",
+      "output": ""
+    },
+    "baseline": {
+      "status": "not requested",
+      "scope": "Current-task preservation is audited separately; historical evidence is not overwritten."
+    }
+  },
+  "errors": []
+}

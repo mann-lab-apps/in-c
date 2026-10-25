@@ -1,0 +1,8 @@
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+
+ Test Files  2 passed (2)
+      Tests  137 passed (137)
+   Start at  19:36:18
+   Duration  63.62s (transform 775ms, setup 0ms, import 1.01s, tests 62.90s, environment 766ms)

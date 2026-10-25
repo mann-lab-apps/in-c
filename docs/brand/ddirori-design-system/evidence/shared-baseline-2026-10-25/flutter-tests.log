@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart
+00:00 +0: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: readOnly clear is disabled; multiline and required propagate
+00:00 +1: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: readOnly clear is disabled; multiline and required propagate
+00:00 +2: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: readOnly clear is disabled; multiline and required propagate
+00:00 +3: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: readOnly clear is disabled; multiline and required propagate
+00:00 +4: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: readOnly clear is disabled; multiline and required propagate
+00:00 +5: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/adoption_test.dart: numeric submit emits once per edit and resets on external change
+00:00 +6: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/adoption_test.dart: numeric submit emits once per edit and resets on external change
+00:00 +7: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/adoption_test.dart: numeric submit emits once per edit and resets on external change
+00:00 +8: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: controlled search accepts external query and clear
+00:00 +9: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: controlled search accepts external query and clear
+00:00 +10: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: controlled search accepts external query and clear
+00:00 +11: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: controlled search accepts external query and clear
+00:00 +12: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: accordion removes collapsed content
+00:00 +13: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: invalid numeric entry does not emit, valid entry does
+00:00 +14: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/basic_test.dart: popover restores trigger focus and keeps inherited theme
+00:00 +15: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: multi-choice preserves other selections
+00:00 +16: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: multi-choice preserves other selections
+00:00 +17: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: segments expose icons and preserve the selected value
+00:01 +18: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: section and metric remain readable at a narrow width
+00:01 +19: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: page header and actions stack at 200 percent text
+00:01 +20: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: item preserves selection, slots, and secondary action
+00:01 +21: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: disabled item blocks its row and secondary actions
+00:01 +22: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: error banner is announced and state panel keeps recovery UI
+00:01 +23: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: transport exposes state controls and seek callback
+00:01 +24: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: playback progress exposes buffering and compact transport
+00:01 +25: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: page boundaries disable invalid navigation
+00:01 +26: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: reduced motion keeps indeterminate mark static
+00:01 +27: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: theme preserves selected primary and separate score ink
+00:01 +28: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: common surfaces render with the dark theme
+00:01 +29: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: components fall back safely during incremental adoption
+00:01 +30: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: sheet has an accessible closing action
+00:01 +31: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: confirmation dialog returns the selected result
+00:01 +32: /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_ui/test/components_test.dart: unavailable service cannot invoke navigation
+00:01 +33: All tests passed!

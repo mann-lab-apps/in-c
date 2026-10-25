@@ -1,0 +1,115 @@
+name: Design system contracts
+
+on:
+  pull_request:
+    paths:
+      - 'packages/ddirori_*/**'
+      - 'docs/brand/**'
+      - 'apps/in_c_sheet/**'
+      - 'apps/classical_local_library/**'
+      - 'src/**'
+      - 'scripts/verify-ddirori-studio.cjs'
+      - 'electron.vite.config.ts'
+      - 'tsconfig.json'
+      - 'deployment/apps/clef/ios-metadata.yaml'
+      - 'deployment/apps/classical-local-library/ios-metadata.yaml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/design-system.yml'
+  push:
+    paths:
+      - 'packages/ddirori_*/**'
+      - 'docs/brand/**'
+      - 'apps/in_c_sheet/**'
+      - 'apps/classical_local_library/**'
+      - 'src/**'
+      - 'scripts/verify-ddirori-studio.cjs'
+      - 'electron.vite.config.ts'
+      - 'tsconfig.json'
+      - 'deployment/apps/clef/ios-metadata.yaml'
+      - 'deployment/apps/classical-local-library/ios-metadata.yaml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/design-system.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix packages/ddirori_web run typecheck
+      - run: npm --prefix packages/ddirori_web test
+      - run: npm run typecheck
+      - run: npx vitest run src/renderer/src/SpanProperties.test.tsx src/renderer/src/App.test.tsx
+      - run: npm run build
+      - run: xvfb-run -a env -u ELECTRON_RUN_AS_NODE node_modules/.bin/electron --no-sandbox scripts/verify-ddirori-studio.cjs
+      - run: node docs/brand/ddirori-brand-system/icon-family-v2/tools/check-contract.mjs
+      - run: node docs/brand/ddirori-design-system/tools/verify-specifications.mjs --skip-flutter
+      - run: node --test docs/brand/ddirori-design-system/tools/token-model.test.mjs
+      - run: node docs/brand/ddirori-design-system/tools/verify-palettes.mjs
+        env:
+          DDIRORI_EVIDENCE_DIR: out/ddirori
+      - name: Build catalog without overwriting reviewed preview
+        run: npm --prefix packages/ddirori_web run build -- --outDir ../../out/ddirori/catalog
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ddirori-web-contracts
+          path: out/ddirori
+
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - run: npm ci
+      - name: Resolve existing Flutter consumers
+        run: |
+          for project in packages/ddirori_ui packages/ddirori_ui/example apps/in_c_sheet apps/classical_local_library; do
+            (cd "$project" && flutter pub get)
+          done
+      - run: node docs/brand/ddirori-design-system/tools/verify-specifications.mjs
+      - name: Analyze and test shared UI and catalogs
+        run: |
+          for project in packages/ddirori_ui packages/ddirori_ui/example; do
+            (cd "$project" && flutter analyze --no-pub && flutter test --no-pub)
+          done
+      - name: Score regression
+        working-directory: apps/in_c_sheet
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+      - name: Play shared consumer regression
+        working-directory: apps/classical_local_library
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub test/brand_pilot_test.dart test/play_library_components_test.dart test/play_playback_components_test.dart test/play_activity_components_test.dart test/library_management_test.dart test/metadata_edit_dialog_test.dart
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ddirori-flutter-contracts
+          path: out/ddirori
+
+  # Browser screenshots/real devices are separate QA: see adoption-pilot.md.
+  # A green job here is not VoiceOver/TalkBack, audio hardware or store approval.

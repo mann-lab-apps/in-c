@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/metadata_edit_dialog_test.dart
+00:00 +0: metadata form dark, narrow, large type, keyboard
+00:00 +1: metadata form light, narrow, large type, keyboard
+00:00 +2: late save completion after disposal does not access context
+00:00 +3: All tests passed!

@@ -1,0 +1,242 @@
+{
+  "recordedAt": "2026-10-25T10:32:43.999Z",
+  "scope": "Public React component catalog, fixture data, headless browser; not product/device approval",
+  "checks": [
+    "actual component catalog renders",
+    "light Select retains trigger focus",
+    "light Select popup width matches trigger",
+    "light Select inherits surface color",
+    "light Select exploration keeps committed value",
+    "light Select active descendant is visible",
+    "light Select Escape cancels",
+    "light Select Enter commits",
+    "light Select Tab commits without trapping",
+    "light Select outside dismiss",
+    "light Select outside input keeps focus",
+    "dark Select retains trigger focus",
+    "dark Select popup width matches trigger",
+    "dark Select inherits surface color",
+    "dark Select exploration keeps committed value",
+    "dark Select active descendant is visible",
+    "dark Select Escape cancels",
+    "dark Select Enter commits",
+    "dark Select Tab commits without trapping",
+    "dark Select outside dismiss",
+    "dark Select outside input keeps focus",
+    "Select 390px/200% stays inside viewport",
+    "Select 200% active option scrolls into view",
+    "Select touch commits and closes",
+    "light menu focuses first enabled action",
+    "light menu skips disabled",
+    "light menu Home",
+    "light menu action restores focus",
+    "light menu Escape restores focus",
+    "light popover inherits active theme",
+    "light popover closes and returns focus",
+    "light menu typeahead",
+    "light menu Tab leaves without trapping",
+    "light confirm is modal",
+    "light modal traps keyboard",
+    "light modal restores trigger",
+    "light tooltip appears on focus",
+    "light tooltip Escape",
+    "dark menu focuses first enabled action",
+    "dark menu skips disabled",
+    "dark menu Home",
+    "dark menu action restores focus",
+    "dark menu Escape restores focus",
+    "dark popover inherits active theme",
+    "dark popover closes and returns focus",
+    "dark menu typeahead",
+    "dark menu Tab leaves without trapping",
+    "dark confirm is modal",
+    "dark modal traps keyboard",
+    "dark modal restores trigger",
+    "dark tooltip appears on focus",
+    "dark tooltip Escape",
+    "390px 200% popover stays inside viewport",
+    "390px 200% tooltip stays inside viewport",
+    "tabs skip disabled and activate panel",
+    "catalog search filters examples",
+    "light/violet neutral surface",
+    "light/blue neutral surface",
+    "light/teal neutral surface",
+    "light/coral neutral surface",
+    "light/yellow neutral surface",
+    "light/lime neutral surface",
+    "dark/violet neutral surface",
+    "dark/blue neutral surface",
+    "dark/teal neutral surface",
+    "dark/coral neutral surface",
+    "dark/yellow neutral surface",
+    "dark/lime neutral surface",
+    "390/light/1 no page overflow",
+    "390/light/1/악보함 no overflow",
+    "390/light/1/작품·녹음 no overflow",
+    "390/light/1/설정 no overflow",
+    "390/light/1/사보 패널 no overflow",
+    "390/light/1 nested density preserves theme",
+    "390/light/2 no page overflow",
+    "390/light/2/악보함 no overflow",
+    "390/light/2/작품·녹음 no overflow",
+    "390/light/2/설정 no overflow",
+    "390/light/2/사보 패널 no overflow",
+    "390/light/2 nested density preserves theme",
+    "390/dark/1 no page overflow",
+    "390/dark/1/악보함 no overflow",
+    "390/dark/1/작품·녹음 no overflow",
+    "390/dark/1/설정 no overflow",
+    "390/dark/1/사보 패널 no overflow",
+    "390/dark/1 nested density preserves theme",
+    "390/dark/2 no page overflow",
+    "390/dark/2/악보함 no overflow",
+    "390/dark/2/작품·녹음 no overflow",
+    "390/dark/2/설정 no overflow",
+    "390/dark/2/사보 패널 no overflow",
+    "390/dark/2 nested density preserves theme",
+    "840/light/1 no page overflow",
+    "840/light/1/악보함 no overflow",
+    "840/light/1/작품·녹음 no overflow",
+    "840/light/1/설정 no overflow",
+    "840/light/1/사보 패널 no overflow",
+    "840/light/1 nested density preserves theme",
+    "840/light/2 no page overflow",
+    "840/light/2/악보함 no overflow",
+    "840/light/2/작품·녹음 no overflow",
+    "840/light/2/설정 no overflow",
+    "840/light/2/사보 패널 no overflow",
+    "840/light/2 nested density preserves theme",
+    "840/dark/1 no page overflow",
+    "840/dark/1/악보함 no overflow",
+    "840/dark/1/작품·녹음 no overflow",
+    "840/dark/1/설정 no overflow",
+    "840/dark/1/사보 패널 no overflow",
+    "840/dark/1 nested density preserves theme",
+    "840/dark/2 no page overflow",
+    "840/dark/2/악보함 no overflow",
+    "840/dark/2/작품·녹음 no overflow",
+    "840/dark/2/설정 no overflow",
+    "840/dark/2/사보 패널 no overflow",
+    "840/dark/2 nested density preserves theme",
+    "1440/light/1 no page overflow",
+    "1440/light/1/악보함 no overflow",
+    "1440/light/1/작품·녹음 no overflow",
+    "1440/light/1/설정 no overflow",
+    "1440/light/1/사보 패널 no overflow",
+    "1440/light/1 nested density preserves theme",
+    "1440/light/2 no page overflow",
+    "1440/light/2/악보함 no overflow",
+    "1440/light/2/작품·녹음 no overflow",
+    "1440/light/2/설정 no overflow",
+    "1440/light/2/사보 패널 no overflow",
+    "1440/light/2 nested density preserves theme",
+    "1440/dark/1 no page overflow",
+    "1440/dark/1/악보함 no overflow",
+    "1440/dark/1/작품·녹음 no overflow",
+    "1440/dark/1/설정 no overflow",
+    "1440/dark/1/사보 패널 no overflow",
+    "1440/dark/1 nested density preserves theme",
+    "1440/dark/2 no page overflow",
+    "1440/dark/2/악보함 no overflow",
+    "1440/dark/2/작품·녹음 no overflow",
+    "1440/dark/2/설정 no overflow",
+    "1440/dark/2/사보 패널 no overflow",
+    "1440/dark/2 nested density preserves theme",
+    "compact control height",
+    "reduced motion stops logo animation",
+    "settings rejects empty name",
+    "settings persists fixture and announces save",
+    "no browser runtime errors"
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "file": "select-light.png",
+      "sha256": "b88065bc94094bac1b911e46fa465e777c645d041a5806834833c47491f9d48d"
+    },
+    {
+      "file": "select-dark.png",
+      "sha256": "ac3653c590511204f38bf2a5c69306f9a54415860986ab5c52ad5de936037a82"
+    },
+    {
+      "file": "select-mobile-200.png",
+      "sha256": "b37822540cc9aa8360d074adef06c1c23c8b6c294db2455ac0c2c07bc551a93d"
+    },
+    {
+      "file": "popover-light.png",
+      "sha256": "82f5bf3e5ca3e50708e70627c23ab05067aee813696ebd405d30f472fa4d6e02"
+    },
+    {
+      "file": "popover-dark.png",
+      "sha256": "6ecf21980032da74056bee1b03c5de78309f0fd15f5d9354f0857c71f7d0b5eb"
+    },
+    {
+      "file": "composition-0-390-light.png",
+      "sha256": "868ba4324209d817f1cef282fb2cf2236d5449dd52be73c1b21240d1ddc28537"
+    },
+    {
+      "file": "composition-1-390-light.png",
+      "sha256": "05b3c7340b1d330cefe68425c6435281feff3347b649e10e9485b9c509707123"
+    },
+    {
+      "file": "composition-2-390-light.png",
+      "sha256": "f3c2b3dff60cbb353b54e3086bd186300098d2ffe7b3cc3be91f6da5a6e3a810"
+    },
+    {
+      "file": "composition-3-390-light.png",
+      "sha256": "9168af78d7f658d7ed1f598216bd2fb236cb2a0cab394bd2bdca65b0c88d988e"
+    },
+    {
+      "file": "composition-0-390-dark.png",
+      "sha256": "54f5ac1cdd6bec6c1f6809dd6e74ccd5480ad2d6e37dc38e5a6a033368fc72f7"
+    },
+    {
+      "file": "composition-1-390-dark.png",
+      "sha256": "f08e561380db7878d4732b3fe58cf864105488f9c06f98e10465f27e8c3c42f1"
+    },
+    {
+      "file": "composition-2-390-dark.png",
+      "sha256": "3499b4676d5cb49fd391b4a492c505a699cb982c5786fbb517ed491c3a3c3a11"
+    },
+    {
+      "file": "composition-3-390-dark.png",
+      "sha256": "da7a87afcb279319ee956a6b4c28e47b72040f66fdb329dc688d9b9017d1cbed"
+    },
+    {
+      "file": "composition-0-1440-light.png",
+      "sha256": "6077d31dcf13ef0477d6b8044312bd30de981895ef32fcc6dacdc522b2cf6094"
+    },
+    {
+      "file": "composition-1-1440-light.png",
+      "sha256": "cdc21d3ad3697010a0e8bc1f8d595e333812fe8cae408121df4cea752060ed8e"
+    },
+    {
+      "file": "composition-2-1440-light.png",
+      "sha256": "fccd29682850c7d3681021cae29b8b8607d4f098e7fff9cdc52926a0e3ae9159"
+    },
+    {
+      "file": "composition-3-1440-light.png",
+      "sha256": "44cc78d416184cc38bdee470fc0071077eaeca2b52ba6ecbd0360544fe6ab992"
+    },
+    {
+      "file": "composition-0-1440-dark.png",
+      "sha256": "031bfa7661a90a7cfae5035fd8f59579cab4860285a6568290b0d757a786a527"
+    },
+    {
+      "file": "composition-1-1440-dark.png",
+      "sha256": "dc98ef70c3b0a79c36e9d87e6b456868ea5715502ba3524f7ff4719989a40286"
+    },
+    {
+      "file": "composition-2-1440-dark.png",
+      "sha256": "79c9a50de34e88b5975b0c8c957cf321fa9305edacb212e0ce69b09164c50b57"
+    },
+    {
+      "file": "composition-3-1440-dark.png",
+      "sha256": "064e2966ca07d90bc1256de669cde3c5afa32867d8c77a9e9a885894867d762b"
+    },
+    {
+      "file": "catalog-light.png",
+      "sha256": "41e28b4544a7f3e81118cdac33e546e585a91a6ae347773fa8be68ad378c786b"
+    }
+  ]
+}
