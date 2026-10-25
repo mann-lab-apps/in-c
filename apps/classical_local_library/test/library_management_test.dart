@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:classical_local_library/classical_library_models.dart';
 import 'package:classical_local_library/file_links.dart';
 import 'package:classical_local_library/library_management.dart';
@@ -319,6 +321,77 @@ void main() {
     expect(find.textContaining('사용자 교정'), findsOneWidget);
   });
 
+  testWidgets('저장 실패는 draft를 보존하고 재시도 중 중복·닫기를 막는다', (tester) async {
+    final store = _ControlledOverrideStore();
+    final fixture = _Fixture(
+      files: [_file('review')],
+      enableMetadata: true,
+      overrideStore: store,
+    );
+    await tester.pumpWidget(fixture.app());
+    await tester.tap(find.byTooltip('파일 작업'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('내부 메타데이터 편집'));
+    await tester.pumpAndSettle();
+    final field = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText == '작곡가',
+    );
+    await tester.enterText(field, '긴 한국어 작곡가 이름 · Johann Sebastian Bach');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('입력은 유지됩니다'), findsOneWidget);
+    expect(find.text('메타데이터 교정을 저장했습니다.'), findsNothing);
+    expect(
+      (tester.widget<TextField>(field)).controller!.text,
+      contains('Bach'),
+    );
+    expect(await store.load(), isEmpty);
+    store.fail = false;
+    store.gate = Completer<void>();
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pump();
+    expect(store.calls, 2);
+    expect(tester.widget<TextField>(field).readOnly, isTrue);
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '저장 · 처리 중'),
+    );
+    expect(button.onPressed, isNull);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    store.gate!.complete();
+    await tester.pumpAndSettle();
+    expect(store.calls, 2);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(
+      (await store.load()).single.text(MetadataField.composer),
+      contains('Bach'),
+    );
+    expect(find.text('메타데이터 교정을 저장했습니다.'), findsOneWidget);
+    expect(find.byTooltip('파일 작업'), findsOneWidget);
+  });
+
+  testWidgets('편집 취소는 저장소를 변경하지 않는다', (tester) async {
+    final store = _ControlledOverrideStore();
+    await tester.pumpWidget(
+      _Fixture(
+        files: [_file('review')],
+        enableMetadata: true,
+        overrideStore: store,
+      ).app(),
+    );
+    await tester.tap(find.byTooltip('파일 작업'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('내부 메타데이터 편집'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '취소할 입력');
+    await tester.tap(find.text('취소'));
+    await tester.pumpAndSettle();
+    expect(store.calls, 0);
+    expect(await store.load(), isEmpty);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
   testWidgets('MusicBrainz 후보에서 선택한 필드를 승인한다', (tester) async {
     final fixture = _Fixture(
       files: [_file('review')],
@@ -446,7 +519,9 @@ class _Fixture {
     this.merges = const [],
     this.audioFilePicker,
     this.importController,
-  }) : initialFiles = [...files],
+    MetadataOverrideStore? overrideStore,
+  }) : overrideStore = overrideStore ?? MemoryMetadataOverrideStore(),
+       initialFiles = [...files],
        initialCandidates = [
          for (final file in files)
            MetadataCandidate(
@@ -491,8 +566,7 @@ class _Fixture {
   final List<LibraryEntityMerge> merges;
   final AudioFilePicker? audioFilePicker;
   final LocalAudioImportController? importController;
-  final MemoryMetadataOverrideStore overrideStore =
-      MemoryMetadataOverrideStore();
+  final MetadataOverrideStore overrideStore;
 
   Widget app() {
     return MaterialApp(
@@ -518,6 +592,19 @@ class _Fixture {
         localAudioImportController: importController,
       ),
     );
+  }
+}
+
+class _ControlledOverrideStore extends MemoryMetadataOverrideStore {
+  bool fail = true;
+  int calls = 0;
+  Completer<void>? gate;
+  @override
+  Future<void> upsert(MetadataOverride value) async {
+    calls++;
+    if (fail) throw StateError('test storage failure');
+    if (gate != null) await gate!.future;
+    await super.upsert(value);
   }
 }
 

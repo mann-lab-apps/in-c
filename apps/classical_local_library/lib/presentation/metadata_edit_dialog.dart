@@ -16,10 +16,12 @@ class MetadataEditDialog extends StatefulWidget {
     super.key,
     required this.existing,
     required this.effective,
+    required this.onSave,
   });
 
   final MetadataOverride? existing;
   final EffectiveFileMetadata effective;
+  final Future<void> Function(MetadataEditResult result) onSave;
 
   @override
   State<MetadataEditDialog> createState() => _MetadataEditDialogState();
@@ -33,59 +35,68 @@ class _MetadataEditDialogState extends State<MetadataEditDialog> {
           : '',
   };
   String? errorMessage;
+  bool saving = false;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    insetPadding: const EdgeInsets.all(16),
-    title: const Text('내부 메타데이터 편집'),
-    content: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final field in MetadataField.values) ...[
-              DdiroriInput(
-                value: drafts[field]!,
-                label: field.label,
-                help: _sourceDescription(field),
-                keyboardType:
-                    field == MetadataField.movementNumber ||
-                        field == MetadataField.year
-                    ? TextInputType.number
-                    : TextInputType.text,
-                onChanged: (value) => setState(() => drafts[field] = value),
-              ),
-              const SizedBox(height: 8),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !saving,
+    child: AlertDialog(
+      insetPadding: const EdgeInsets.all(16),
+      title: const Text('내부 메타데이터 편집'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final field in MetadataField.values) ...[
+                DdiroriInput(
+                  value: drafts[field]!,
+                  readOnly: saving,
+                  label: field.label,
+                  help: _sourceDescription(field),
+                  keyboardType:
+                      field == MetadataField.movementNumber ||
+                          field == MetadataField.year
+                      ? TextInputType.number
+                      : TextInputType.text,
+                  onChanged: (value) => setState(() => drafts[field] = value),
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (errorMessage != null)
+                DdiroriBanner(
+                  message: errorMessage!,
+                  kind: DdiroriNoticeKind.error,
+                ),
             ],
-            if (errorMessage != null)
-              DdiroriBanner(
-                message: errorMessage!,
-                kind: DdiroriNoticeKind.error,
-              ),
-          ],
+          ),
         ),
       ),
-    ),
-    actions: [
-      if (widget.existing?.sources.values.contains(MetadataValueSource.user) ??
-          false)
+      actions: [
+        if (widget.existing?.sources.values.contains(
+              MetadataValueSource.user,
+            ) ??
+            false)
+          DdiroriButton(
+            label: '교정 초기화',
+            kind: DdiroriButtonKind.quiet,
+            onPressed: saving
+                ? null
+                : () => _persist(const MetadataEditResult.reset()),
+          ),
         DdiroriButton(
-          label: '교정 초기화',
+          label: '취소',
           kind: DdiroriButtonKind.quiet,
-          onPressed: () =>
-              Navigator.pop(context, const MetadataEditResult.reset()),
+          onPressed: saving ? null : () => Navigator.pop(context),
         ),
-      DdiroriButton(
-        label: '취소',
-        kind: DdiroriButtonKind.quiet,
-        onPressed: () => Navigator.pop(context),
-      ),
-      DdiroriButton(label: '저장', onPressed: _save),
-    ],
+        DdiroriButton(label: '저장', busy: saving, onPressed: _save),
+      ],
+    ),
   );
 
-  void _save() {
+  Future<void> _save() async {
+    if (saving) return;
     try {
       final values = <MetadataField, Object>{};
       for (final entry in drafts.entries) {
@@ -103,9 +114,29 @@ class _MetadataEditDialogState extends State<MetadataEditDialog> {
         }
       }
       MetadataOverrideValidator.validate(values);
-      Navigator.pop(context, MetadataEditResult.save(values));
+      await _persist(MetadataEditResult.save(values));
     } on FormatException catch (error) {
       setState(() => errorMessage = error.message.toString());
+    }
+  }
+
+  Future<void> _persist(MetadataEditResult result) async {
+    if (saving) return;
+    setState(() {
+      saving = true;
+      errorMessage = null;
+    });
+    try {
+      await widget.onSave(result);
+      if (!mounted) return;
+      setState(() => saving = false);
+      Navigator.pop(context, result);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        saving = false;
+        errorMessage = '저장하지 못했습니다. 입력은 유지됩니다. 다시 시도해 주세요.';
+      });
     }
   }
 

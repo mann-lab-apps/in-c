@@ -1531,6 +1531,8 @@ h2 {
 .notation-span-target:focus-visible .notation-hairpin { stroke: #007a84; }
 .notation-span-target:focus-visible { outline: none; }
 .span-properties { min-width: 0; }
+.span-properties.ddirori .dd-input-row input { padding-block: 4px; font-size: var(--dd-control-font); }
+.span-properties.ddirori .dd-icon-button { min-width: var(--dd-control); min-height: var(--dd-control); }
 .span-properties .selection-properties__edit { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .span-properties__address { font-size: 0.74rem; font-weight: 400; overflow-wrap: anywhere; }
 .span-properties__geometry summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; }

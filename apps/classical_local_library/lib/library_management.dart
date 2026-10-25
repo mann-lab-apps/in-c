@@ -180,21 +180,31 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
 
   Future<void> _editMetadata(LocalAudioFile file) async {
     final repository = widget.metadataOverrideRepository;
-    if (repository == null) return;
+    if (repository == null || isSaving) return;
     final existing = _overrideFor(file.id);
     final effective = _effectiveFor(file);
     final result = await showDialog<MetadataEditResult>(
       context: context,
-      builder: (context) =>
-          MetadataEditDialog(existing: existing, effective: effective),
+      barrierDismissible: false,
+      builder: (context) => MetadataEditDialog(
+        existing: existing,
+        effective: effective,
+        onSave: (result) async {
+          setState(() => isSaving = true);
+          try {
+            final saved = result.reset
+                ? await repository.clearUserValues(file.id)
+                : await repository.saveUserValues(file.id, result.values);
+            if (!mounted) return;
+            setState(() => overrides = saved);
+            _notifyChanged();
+          } finally {
+            if (mounted) setState(() => isSaving = false);
+          }
+        },
+      ),
     );
-    if (result == null || !mounted) return;
-    await _runSave(() async {
-      overrides = result.reset
-          ? await repository.clearUserValues(file.id)
-          : await repository.saveUserValues(file.id, result.values);
-    });
-    if (mounted) {
+    if (result != null && mounted) {
       _showMessage(result.reset ? '사용자 교정을 초기화했습니다.' : '메타데이터 교정을 저장했습니다.');
     }
   }

@@ -1,5 +1,7 @@
 import { RotateCcw, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Input, IconButton, Text } from '@ddirori/ui'
+import '@ddirori/ui/styles.css'
+import { useEffect, useRef, useState } from 'react'
 import type { Score, SpanEngraving } from '../../score-core'
 import { locateEvent } from './editor/editor-state'
 import { findSpan, listSpans, spanEndpointOptions, type SpanReference } from './editor/span-editing'
@@ -21,8 +23,8 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
   const owner = score.parts.find(part => part.id === start?.address.partId)
   const options = selected ? spanEndpointOptions(score, selected) : []
   return (
-    <section className="selection-properties span-properties" aria-label="범위 표기 속성">
-      <h3>범위 표기</h3>
+    <section className="selection-properties span-properties ddirori" data-density="compact" data-theme="light" aria-label="범위 표기 속성">
+      <Text as="h3" variant="sectionTitle">범위 표기</Text>
       <label className="selection-properties__edit">
         <span>객체</span>
         <select aria-label="표기 객체 선택" value={span && selected ? `${selected.kind}:${selected.id}` : ''}
@@ -62,39 +64,54 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
               <option value="auto">자동</option><option value="above">보표 위</option><option value="below">보표 아래</option>
             </select>
           </label>
-          {(['offsetX', 'offsetY', 'height'] as const).map(field => <label className="selection-properties__edit" key={field}>
-            <span>{field === 'offsetX' ? '가로 이동 (sp)' : field === 'offsetY' ? '세로 이동 (sp)' : selected.kind === 'slur' ? '곡률 높이 (sp)' : '벌어짐 (sp)'}</span>
+          {(['offsetX', 'offsetY', 'height'] as const).map(field => <div className="selection-properties__edit" key={field}>
             <GeometryInput key={`${selected.kind}:${selected.id}:${field}`} label={field === 'offsetX' ? '표기 가로 이동' : field === 'offsetY' ? '표기 세로 이동' : '표기 높이'}
+              displayLabel={field === 'offsetX' ? '가로 이동 (sp)' : field === 'offsetY' ? '세로 이동 (sp)' : selected.kind === 'slur' ? '곡률 높이 (sp)' : '벌어짐 (sp)'}
               min={field === 'height' ? 0.5 : -8} placeholder={field === 'height' ? '자동' : '0'}
               value={span.engraving?.[field]} onCommit={value => onEngravingChange({ ...span.engraving, [field]: value })} />
-          </label>)}
-          <button type="button" className="icon-button" aria-label="표기 자동 배치 복원" title="표기 자동 배치 복원" disabled={!span.engraving} onClick={() => onEngravingChange(undefined)}><RotateCcw size={18} aria-hidden="true" /></button>
+          </div>)}
+          <IconButton label="표기 자동 배치 복원" disabled={!span.engraving} onClick={() => onEngravingChange(undefined)}><RotateCcw size={18} aria-hidden="true" /></IconButton>
         </details>
         <div className="span-properties__actions">
-          <button aria-label="선택 표기 삭제" title="선택 표기 삭제" onClick={onDelete} type="button"><Trash2 size={18} aria-hidden="true" /></button>
-          <button aria-label="표기 선택 해제" title="표기 선택 해제" onClick={() => onSelect(undefined)} type="button"><X size={18} aria-hidden="true" /></button>
+          <IconButton label="선택 표기 삭제" onClick={onDelete}><Trash2 size={18} aria-hidden="true" /></IconButton>
+          <IconButton label="표기 선택 해제" onClick={() => onSelect(undefined)}><X size={18} aria-hidden="true" /></IconButton>
         </div>
       </> : null}
     </section>
   )
 }
 
-function GeometryInput({ label, min, placeholder, value, onCommit }: {
-  label: string; min: number; placeholder: string; value?: number; onCommit: (value?: number) => void
+function GeometryInput({ label, displayLabel, min, placeholder, value, onCommit }: {
+  label: string; displayLabel: string; min: number; placeholder: string; value?: number; onCommit: (value?: number) => void
 }) {
   const [draft, setDraft] = useState(value === undefined ? '' : String(value))
-  useEffect(() => setDraft(value === undefined ? '' : String(value)), [value])
-  return <input aria-label={label} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
-    onChange={event => setDraft(event.target.value)}
+  const dirty = useRef(false)
+  const composing = useRef(false)
+  useEffect(() => {
+    dirty.current = false
+    setDraft(value === undefined ? '' : String(value))
+  }, [value])
+  return <Input label={displayLabel} aria-label={label} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
+    onCompositionStart={() => { composing.current = true }}
+    onCompositionEnd={() => { composing.current = false }}
+    onChange={event => { dirty.current = true; setDraft(event.target.value) }}
     onBlur={event => {
+      if (composing.current || !dirty.current) return
+      dirty.current = false
       if (!event.currentTarget.validity.valid) { setDraft(value === undefined ? '' : String(value)); return }
       const next = event.currentTarget.value === '' ? undefined : event.currentTarget.valueAsNumber
       if (next !== value) onCommit(next)
     }}
     onKeyDown={event => {
-      if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() }
+      if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) {
+        event.stopPropagation()
+        return
+      }
+      if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); event.currentTarget.blur() }
       if (event.key === 'Escape') {
         event.preventDefault()
+        event.stopPropagation()
+        dirty.current = false
         event.currentTarget.value = value === undefined ? '' : String(value)
         setDraft(event.currentTarget.value)
         event.currentTarget.blur()

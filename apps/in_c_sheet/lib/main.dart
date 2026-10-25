@@ -30,6 +30,7 @@ import 'sheet_metronome.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
+import 'presentation/score_library_components.dart';
 import 'sheet_setlist.dart';
 import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
@@ -81,22 +82,25 @@ Future<int> _readPdfFileRange(
 }
 
 class InCSheetApp extends StatelessWidget {
-  const InCSheetApp({required this.controller, this.fontFamily, super.key});
+  const InCSheetApp({required this.controller, this.fontFamily, this.accent, this.themeMode = ThemeMode.system, super.key});
 
   final SheetLibraryController controller;
   final String? fontFamily;
+  final String? accent;
+  final ThemeMode themeMode;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '띠로리 스코어',
       debugShowCheckedModeBanner: false,
-      theme: ddiroriTheme(fontFamily: fontFamily),
+      theme: ddiroriTheme(fontFamily: fontFamily, accent: accent),
       darkTheme: ddiroriTheme(
         brightness: Brightness.dark,
         fontFamily: fontFamily,
+        accent: accent,
       ),
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       home: SheetLibraryScreen(controller: controller),
     );
   }
@@ -164,28 +168,17 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           .showSnackBar(const SnackBar(content: Text('일괄 편집할 악보를 선택하세요.')));
       return;
     }
-    final input = await showModalBottomSheet<_BulkEditInput>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => const _BulkEditSheet(),
+    final ids = Set<String>.of(_bulkSelectedScoreIds);
+    final changedCount = await showModalBottomSheet<int>(
+      context: context, isScrollControlled: true, useSafeArea: true,
+      isDismissible: false, enableDrag: false, showDragHandle: false,
+      builder: (context) => _BulkEditSheet(onApply: (input) => controller.bulkEditScores(
+        ids, addTags: input.addTags, removeTags: input.removeTags,
+        collection: input.collection, group: input.group, rating: input.rating,
+        isFavorite: input.isFavorite, isPinned: input.isPinned,
+      )),
     );
-    if (!mounted || input == null) {
-      return;
-    }
-    final changedCount = await controller.bulkEditScores(
-      Set<String>.of(_bulkSelectedScoreIds),
-      addTags: input.addTags,
-      removeTags: input.removeTags,
-      collection: input.collection,
-      group: input.group,
-      rating: input.rating,
-      isFavorite: input.isFavorite,
-      isPinned: input.isPinned,
-    );
-    if (!mounted) {
-      return;
-    }
+    if (!mounted || changedCount == null) return;
     setState(() {
       _isBulkSelecting = false;
       _bulkSelectedScoreIds.clear();
@@ -1055,6 +1048,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               _isBulkSelecting ? Icons.close : Icons.checklist_rtl_outlined,
             ),
           ),
+          if (!_isBulkSelecting) ...[
           IconButton(
             tooltip: '세트리스트',
             onPressed: () {
@@ -1139,17 +1133,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             icon: controller.isImporting
                 ? const SizedBox.square(
                     dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                    child: DdiroriMark(size: 20, pulse: true),
                   )
                 : const Icon(Icons.add_to_photos_outlined),
           ),
+          ],
         ],
       ),
       floatingActionButton: _isBulkSelecting
-          ? FloatingActionButton.extended(
-              onPressed: _showBulkEdit,
-              icon: const Icon(Icons.edit_note),
-              label: const Text('일괄 편집'),
+          ? DdiroriButton(
+              onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
+              icon: Icons.edit_note,
+              label: '일괄 편집',
             )
           : null,
       body: SafeArea(
@@ -1499,60 +1494,16 @@ class _LibraryViewBar extends StatelessWidget {
   final VoidCallback onRatingPressed;
 
   @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        ActionChip(
-          avatar: Icon(_librarySortIcon(settings.sortMode), size: 18),
-          label: Text('정렬: ${_librarySortLabel(settings.sortMode)}'),
-          onPressed: onSortPressed,
-        ),
-        FilterChip(
-          avatar: const Icon(Icons.star_outline, size: 18),
-          label: const Text('즐겨찾기'),
-          selected: settings.favoriteOnly,
-          onSelected: onFavoriteChanged,
-        ),
-        ActionChip(
-          avatar: const Icon(Icons.sell_outlined, size: 18),
-          label: Text(
-            settings.tagQuery.isEmpty ? '태그: 전체' : '태그: ${settings.tagQuery}',
-          ),
-          onPressed: onTagPressed,
-        ),
-        ActionChip(
-          avatar: const Icon(Icons.collections_bookmark_outlined, size: 18),
-          label: Text(
-            settings.collectionQuery.isEmpty
-                ? '컬렉션: 전체'
-                : '컬렉션: ${settings.collectionQuery}',
-          ),
-          onPressed: onCollectionPressed,
-        ),
-        ActionChip(
-          avatar: const Icon(Icons.folder_outlined, size: 18),
-          label: Text(
-            settings.groupQuery.isEmpty
-                ? '그룹: 전체'
-                : '그룹: ${settings.groupQuery}',
-          ),
-          onPressed: onGroupPressed,
-        ),
-        ActionChip(
-          avatar: const Icon(Icons.star_rate_outlined, size: 18),
-          label: Text(
-            settings.minimumRating == 0
-                ? '별점: 전체'
-                : '별점: ${settings.minimumRating}+',
-          ),
-          onPressed: onRatingPressed,
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => ScoreLibraryControls(
+    sortLabel: _librarySortLabel(settings.sortMode), favoriteOnly: settings.favoriteOnly,
+    onSort: onSortPressed, onFavorite: onFavoriteChanged,
+    filters: [
+      (label: settings.tagQuery.isEmpty ? '태그: 전체' : '태그: ${settings.tagQuery}', active: settings.tagQuery.isNotEmpty, onPressed: onTagPressed),
+      (label: settings.collectionQuery.isEmpty ? '컬렉션: 전체' : '컬렉션: ${settings.collectionQuery}', active: settings.collectionQuery.isNotEmpty, onPressed: onCollectionPressed),
+      (label: settings.groupQuery.isEmpty ? '그룹: 전체' : '그룹: ${settings.groupQuery}', active: settings.groupQuery.isNotEmpty, onPressed: onGroupPressed),
+      (label: settings.minimumRating == 0 ? '별점: 전체' : '별점: ${settings.minimumRating}+', active: settings.minimumRating > 0, onPressed: onRatingPressed),
+    ],
+  );
 }
 
 class _LibraryFacetExplorer extends StatelessWidget {
@@ -1673,7 +1624,7 @@ class _LibraryFacetRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 76,
-          height: 32,
+          height: 48 * MediaQuery.textScalerOf(context).scale(1),
           child: Row(
             children: [
               Icon(icon, size: 18),
@@ -2744,126 +2695,27 @@ class _QuickAccessBand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final groups = <_QuickAccessGroup>[
-      _QuickAccessGroup(
-        label: '고정',
-        icon: Icons.push_pin,
-        scores: pinnedScores,
-      ),
-      _QuickAccessGroup(
-        label: '즐겨찾기',
-        icon: Icons.star,
-        scores: favoriteScores,
-      ),
-      _QuickAccessGroup(label: '최근', icon: Icons.history, scores: recentScores),
-    ].where((group) => group.scores.isNotEmpty).toList(growable: false);
-    if (groups.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final theme = Theme.of(context);
-    return SizedBox(
-      height: _quickAccessHeight(context),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, groupIndex) {
-          final group = groups[groupIndex];
-          return SizedBox(
-            width: 350,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.7,
-                  ),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(group.icon, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          group.label,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, scoreIndex) {
-                          final score = group.scores[scoreIndex];
-                          return _QuickAccessScoreChip(
-                            score: score,
-                            onOpen: onOpen,
-                          );
-                        },
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 8),
-                        itemCount: group.scores.length,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-        itemCount: groups.length,
-      ),
-    );
+    final scores = {for (final s in [...pinnedScores, ...favoriteScores, ...recentScores]) s.id: s};
+    return ScoreQuickAccess(groups: [
+      (label: '고정', entries: pinnedScores.map(_scoreEntry).toList()),
+      (label: '즐겨찾기', entries: favoriteScores.map(_scoreEntry).toList()),
+      (label: '최근', entries: recentScores.map(_scoreEntry).toList()),
+    ], onOpen: (id) { final score = scores[id]; if (score != null) onOpen(score); });
   }
 }
 
-// Reserve title, metadata and page rows using actual text metrics at the current scale.
-double _quickAccessHeight(BuildContext context) {
-  final text = Theme.of(context).textTheme;
-  double measure(TextStyle? style, {int lines = 1}) {
-    final painter = TextPainter(
-      text: TextSpan(text: List.filled(lines, '가').join('\n'), style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    final height = painter.height;
-    painter.dispose();
-    return height;
-  }
-
-  final header = measure(text.labelLarge).clamp(18.0, double.infinity);
-  final footer = measure(text.labelSmall).clamp(14.0, double.infinity);
-  return 20 +
-      header +
-      8 +
-      20 +
-      measure(text.bodyMedium, lines: 2) +
-      4 +
-      measure(text.bodySmall) +
-      8 +
-      footer;
-}
-
-class _QuickAccessGroup {
-  const _QuickAccessGroup({
-    required this.label,
-    required this.icon,
-    required this.scores,
-  });
-
-  final String label;
-  final IconData icon;
-  final List<SheetScore> scores;
-}
+ScoreLibraryEntry _scoreEntry(SheetScore score) => ScoreLibraryEntry(
+  id: score.id, title: score.title, subtitle: _scoreIdentitySubtitle(score),
+  favorite: score.isFavorite, pinned: score.isPinned,
+  details: [
+    if (score.collection.isNotEmpty) score.collection,
+    if (score.group.isNotEmpty) score.group,
+    if (score.rating > 0) '${score.rating}점',
+    if (score.tags.isNotEmpty) score.tags.join(', '),
+    score.lastOpenedAt == null ? '아직 열지 않음' : '최근 ${_formatShortDate(score.lastOpenedAt!)}',
+    '마지막 ${score.lastPage}쪽',
+  ].join(' · '),
+);
 
 String _scoreIdentitySubtitle(SheetScore score) {
   final sourceName = score.sourceFileDisplayName.trim();
@@ -2876,74 +2728,6 @@ String _scoreIdentitySubtitle(SheetScore score) {
     return '파일 · $sourceName';
   }
   return parts.isEmpty ? '파일 정보 없음' : parts.join(' · ');
-}
-
-class _QuickAccessScoreChip extends StatelessWidget {
-  const _QuickAccessScoreChip({required this.score, required this.onOpen});
-
-  final SheetScore score;
-  final ValueChanged<SheetScore> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final subtitle = _scoreIdentitySubtitle(score);
-    final openedLabel = score.lastOpenedAt == null
-        ? '마지막 ${score.lastPage}쪽'
-        : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
-    return SizedBox(
-      width: 176,
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => onOpen(score),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  score.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    if (score.isPinned)
-                      const Icon(Icons.push_pin, size: 14)
-                    else if (score.isFavorite)
-                      const Icon(Icons.star, size: 14)
-                    else
-                      const Icon(Icons.history, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        openedLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _BulkEditInput {
@@ -2967,7 +2751,8 @@ class _BulkEditInput {
 }
 
 class _BulkEditSheet extends StatefulWidget {
-  const _BulkEditSheet();
+  const _BulkEditSheet({required this.onApply});
+  final Future<int> Function(_BulkEditInput) onApply;
 
   @override
   State<_BulkEditSheet> createState() => _BulkEditSheetState();
@@ -2981,6 +2766,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
   int? _rating;
   bool? _favorite;
   bool? _pinned;
+  bool _busy = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -2991,13 +2778,32 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
     super.dispose();
   }
 
+  Future<void> _apply() async {
+    if (_busy) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      final changed = await widget.onApply(_BulkEditInput(
+        addTags: _splitTags(_addTagsController.text), removeTags: _splitTags(_removeTagsController.text),
+        collection: _blankToNull(_collectionController.text), group: _blankToNull(_groupController.text),
+        rating: _rating, isFavorite: _favorite, isPinned: _pinned));
+      if (mounted) Navigator.of(context).pop(changed);
+    } catch (_) {
+      if (mounted) setState(() => _error = '변경 사항을 저장하지 못했어요. 입력을 유지했으니 다시 시도해 주세요.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PopScope(
+      canPop: !_busy,
+      child: SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
           left: 20,
           right: 20,
+          top: 20,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
         ),
         child: ListView(
@@ -3005,10 +2811,10 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
           children: [
             Text(
               '일괄 편집',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: ddiroriTextStyle(DdiroriTextRole.sectionTitle),
             ),
             const SizedBox(height: 12),
+            AbsorbPointer(absorbing: _busy, child: ExcludeFocus(excluding: _busy, child: DdiroriStack(children: [
             TextField(
               controller: _addTagsController,
               decoration: const InputDecoration(
@@ -3054,29 +2860,17 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
               value: _pinned,
               onChanged: (value) => setState(() => _pinned = value),
             ),
+            ]))),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop(
-                    _BulkEditInput(
-                      addTags: _splitTags(_addTagsController.text),
-                      removeTags: _splitTags(_removeTagsController.text),
-                      collection: _blankToNull(_collectionController.text),
-                      group: _blankToNull(_groupController.text),
-                      rating: _rating,
-                      isFavorite: _favorite,
-                      isPinned: _pinned,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('적용'),
-              ),
-            ),
+            if (_error != null) DdiroriInlineMessage(message: _error!, error: true),
+            DdiroriAdaptiveActions(children: [
+              DdiroriButton(label: '취소', kind: DdiroriButtonKind.quiet,
+                onPressed: _busy ? null : () => Navigator.of(context).pop()),
+              DdiroriButton(label: '적용', icon: Icons.check, busy: _busy, onPressed: _apply),
+            ]),
           ],
         ),
+      ),
       ),
     );
   }
@@ -3172,222 +2966,17 @@ class _ScoreGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isWide) {
-      return ListView.separated(
-        itemBuilder: (context, index) => _ScoreTile(
-          score: scores[index],
-          onOpen: onOpen,
-          onFavorite: onFavorite,
-          onPin: onPin,
-          isSelecting: isSelecting,
-          isSelected: selectedIds.contains(scores[index].id),
-          onSelectionChanged: onSelectionChanged,
-          onEdit: onEdit,
-          onShare: onShare,
-        ),
-        separatorBuilder: (context, index) => const SizedBox(height: 10),
-        itemCount: scores.length,
-      );
+    final byId = {for (final s in scores) s.id: s};
+    void forward(String id, ValueChanged<SheetScore> callback) {
+      final score = byId[id]; if (score != null) callback(score);
     }
-
-    return GridView.builder(
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 340,
-        mainAxisExtent: 216 * MediaQuery.textScalerOf(context).scale(1),
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemBuilder: (context, index) => _ScoreTile(
-        score: scores[index],
-        onOpen: onOpen,
-        onFavorite: onFavorite,
-        onPin: onPin,
-        isSelecting: isSelecting,
-        isSelected: selectedIds.contains(scores[index].id),
-        onSelectionChanged: onSelectionChanged,
-        onEdit: onEdit,
-        onShare: onShare,
-      ),
-      itemCount: scores.length,
-    );
+    return ScoreLibraryCollection(entries: scores.map(_scoreEntry).toList(growable: false),
+      wide: isWide, selecting: isSelecting, selectedIds: selectedIds,
+      onOpen: (id) => forward(id, onOpen), onSelect: (id) => forward(id, onSelectionChanged),
+      onFavorite: (id) => forward(id, onFavorite), onPin: (id) => forward(id, onPin),
+      onAction: (id, action) => forward(id, action == ScoreLibraryAction.edit ? onEdit : onShare));
   }
 }
-
-class _ScoreTile extends StatelessWidget {
-  const _ScoreTile({
-    required this.score,
-    required this.onOpen,
-    required this.onFavorite,
-    required this.onPin,
-    required this.isSelecting,
-    required this.isSelected,
-    required this.onSelectionChanged,
-    required this.onEdit,
-    required this.onShare,
-  });
-
-  final SheetScore score;
-  final ValueChanged<SheetScore> onOpen;
-  final ValueChanged<SheetScore> onFavorite;
-  final ValueChanged<SheetScore> onPin;
-  final bool isSelecting;
-  final bool isSelected;
-  final ValueChanged<SheetScore> onSelectionChanged;
-  final ValueChanged<SheetScore> onEdit;
-  final ValueChanged<SheetScore> onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = _scoreIdentitySubtitle(score);
-    final organization = <String>[
-      if (score.collection.isNotEmpty) score.collection,
-      if (score.group.isNotEmpty) score.group,
-      if (score.rating > 0) '${score.rating}점',
-    ].join(' · ');
-    final lastOpened = score.lastOpenedAt == null
-        ? '아직 열지 않음'
-        : '최근 ${_formatShortDate(score.lastOpenedAt!)}';
-    final footerParts = <String>[
-      if (score.tags.isNotEmpty) score.tags.join(', '),
-      lastOpened,
-      '마지막 ${score.lastPage}쪽',
-    ];
-
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.description_outlined),
-                  if (isSelecting) ...[
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: (_) => onSelectionChanged(score),
-                    ),
-                  ],
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      score.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-              if (!isSelecting) ...[
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
-                        onPressed: () => onFavorite(score),
-                        constraints: const BoxConstraints.tightFor(
-                          width: 36,
-                          height: 36,
-                        ),
-                        iconSize: 21,
-                        icon: Icon(
-                          score.isFavorite ? Icons.star : Icons.star_border,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: score.isPinned ? '고정 해제' : '고정',
-                        onPressed: () => onPin(score),
-                        constraints: const BoxConstraints.tightFor(
-                          width: 36,
-                          height: 36,
-                        ),
-                        iconSize: 21,
-                        icon: Icon(
-                          score.isPinned
-                              ? Icons.push_pin
-                              : Icons.push_pin_outlined,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 36,
-                        height: 36,
-                        child: PopupMenuButton<_ScoreTileAction>(
-                          tooltip: '더보기',
-                          icon: const Icon(Icons.more_vert),
-                          iconSize: 21,
-                          padding: EdgeInsets.zero,
-                          onSelected: (action) {
-                            switch (action) {
-                              case _ScoreTileAction.edit:
-                                onEdit(score);
-                              case _ScoreTileAction.share:
-                                onShare(score);
-                            }
-                          },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem<_ScoreTileAction>(
-                              value: _ScoreTileAction.edit,
-                              child: ListTile(
-                                leading: Icon(Icons.edit_outlined),
-                                title: Text('악보 정보 편집'),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                            PopupMenuItem<_ScoreTileAction>(
-                              value: _ScoreTileAction.share,
-                              child: ListTile(
-                                leading: Icon(Icons.ios_share),
-                                title: Text('PDF 공유'),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (organization.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  organization,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                footerParts.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-enum _ScoreTileAction { edit, share }
 
 class SheetSetlistsScreen extends StatefulWidget {
   const SheetSetlistsScreen({required this.controller, super.key});
