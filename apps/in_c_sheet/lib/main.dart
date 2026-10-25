@@ -1775,38 +1775,61 @@ Future<String?> _showTextEntryDialog({
   required String title,
   required String label,
   required String initialValue,
-}) async {
-  final textController = TextEditingController(text: initialValue);
-  try {
-    return await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        void close(String? value) {
-          FocusScope.of(dialogContext).unfocus();
-          Navigator.of(dialogContext).pop(value);
-        }
+}) => showDialog<String>(
+  context: context,
+  builder: (_) =>
+      _TextEntryDialog(title: title, label: label, initialValue: initialValue),
+);
 
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            decoration: InputDecoration(labelText: label),
-            textInputAction: TextInputAction.done,
-            onSubmitted: close,
-          ),
-          actions: [
-            TextButton(onPressed: () => close(null), child: const Text('취소')),
-            FilledButton(
-              onPressed: () => close(textController.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
+class _TextEntryDialog extends StatefulWidget {
+  const _TextEntryDialog({
+    required this.title,
+    required this.label,
+    required this.initialValue,
+  });
+
+  final String title;
+  final String label;
+  final String initialValue;
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _textController = TextEditingController(
+    text: widget.initialValue,
+  );
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _close(String? value) {
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _textController,
+        autofocus: true,
+        decoration: InputDecoration(labelText: widget.label),
+        textInputAction: TextInputAction.done,
+        onSubmitted: _close,
+      ),
+      actions: [
+        TextButton(onPressed: () => _close(null), child: const Text('취소')),
+        FilledButton(
+          onPressed: () => _close(_textController.text),
+          child: const Text('저장'),
+        ),
+      ],
     );
-  } finally {
-    textController.dispose();
   }
 }
 

@@ -364,4 +364,45 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+  testWidgets(
+    'canceling setlist creation closes the text entry dialog cleanly',
+    (t) async {
+      final c = await library();
+      addTearDown(c.dispose);
+      await mount(t, c);
+
+      await t.tap(find.byTooltip('세트리스트'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('새 세트리스트'));
+      await t.pumpAndSettle();
+      expect(find.text('세트리스트 만들기'), findsOneWidget);
+
+      await t.tap(find.text('취소'));
+      await t.pumpAndSettle();
+
+      expect(find.text('세트리스트 만들기'), findsNothing);
+      expect(c.setlists, isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'saving setlist creation keeps text entry dialog ownership safe',
+    (t) async {
+      final c = await library();
+      addTearDown(c.dispose);
+      await mount(t, c);
+
+      await t.tap(find.byTooltip('세트리스트'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('새 세트리스트'));
+      await t.pumpAndSettle();
+      await t.enterText(find.byType(TextField), '공연 순서');
+      await t.tap(find.text('저장'));
+      await t.pumpAndSettle();
+
+      expect(c.setlists.single.title, '공연 순서');
+      expect(find.text('공연 순서'), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
 }
