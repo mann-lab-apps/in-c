@@ -1,0 +1,29 @@
+{
+  "name": "DDIRORI-Studio-R3-Score-20261026-37354",
+  "id": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+  "type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
+  "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+  "runtimeVersion": "26.5",
+  "state": "installed",
+  "appBundleId": "com.mannlab.inc.clef",
+  "appVersion": "1.0.0",
+  "appBuild": "14",
+  "sourceHead": "bcdcc40fca6656594b6bd0d5c0f7543180a41745",
+  "scope": "Dedicated newly created device and current simulator build; shared Play QA device is not modified",
+  "binarySha256": "42dc739ed3e8c38ca0bb9765c650c2fe7d8efcbe5f5de4a0ee82cc96c68fa9d6",
+  "kernelSha256": "9dd9338adee77b13d8bd231e25e9e9e10110bb97fde503a2409490f467153116",
+  "sourceFiles": [
+    {
+      "path": "apps/in_c_sheet/lib/main.dart",
+      "sha256": "6796926ae18640e3d6f988fd24e08c56880d76fcb6d5318a128fd27ae6dd41ad"
+    },
+    {
+      "path": "apps/in_c_sheet/lib/sheet_library_controller.dart",
+      "sha256": "ad630a70937b098e016612d90ab84ca00d62678c47a04ab18049378bfa4f7514"
+    },
+    {
+      "path": "apps/in_c_sheet/lib/sheet_library_store.dart",
+      "sha256": "dd32d50f4e095b92746ec5dbdb842651a5a165946001d1a12f3693c9c69cb713"
+    }
+  ]
+}

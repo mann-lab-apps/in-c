@@ -1,0 +1,15 @@
+Studio Electron shared panel and single undo passed {
+  committed: '0',
+  undone: '',
+  host: true,
+  font: '"Ddirori Pretendard", system-ui, sans-serif',
+  height: 32,
+  popover: true,
+  dialog: true,
+  panelWidth: 255,
+  overflow: false
+}
+R1 dock/theme/text/save/native/XML matrix passed
+R2 command context and responsive/fixed workspace matrix passed
+[61769:1026/015129.026186:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[61769:1026/015129.026235:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)

@@ -1,0 +1,10 @@
+AssertionError [ERR_ASSERTION]: UI condition timed out: ()=>Boolean(document.querySelector('[aria-label="첫 입력 안내"]'))
+    at wait (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:47:37)
+    at async /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:103:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

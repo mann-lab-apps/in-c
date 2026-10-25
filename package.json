@@ -18,6 +18,8 @@
     "build": "tsc --noEmit && electron-vite build",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview",
     "test": "vitest run",
+    "test:tools": "node --test \"docs/brand/ddirori-design-system/tools/*.test.mjs\"",
+    "test:all": "npm test && npm run test:tools",
     "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
     "verify:e2e": "npm run verify:mvp",

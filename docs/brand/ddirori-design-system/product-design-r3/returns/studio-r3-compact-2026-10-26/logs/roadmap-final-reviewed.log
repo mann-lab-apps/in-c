@@ -1,0 +1,56 @@
+
+> in-c@0.1.0-alpha.14 verify:chromatics-musescore-parity-roadmap
+> node scripts/verify-chromatics-musescore-parity-roadmap.mjs
+
+{
+  "checkedAt": "2026-10-25T16:52:23.305Z",
+  "status": "passed",
+  "roadmap": "docs/product/chromatics-musescore-parity-roadmap.md",
+  "rows": 23,
+  "areas": [
+    "Customization",
+    "File / Exchange",
+    "Layout / Engraving",
+    "Notation Objects",
+    "Note Input",
+    "Parts",
+    "Playback",
+    "Roadmap",
+    "Selection / Editing",
+    "UI / Workspace",
+    "UX"
+  ],
+  "statuses": [
+    "Done",
+    "External QA",
+    "Postpone",
+    "Research"
+  ],
+  "historicalParityAutomationQueueDrained": true,
+  "parityAutomationQueueDrained": false,
+  "nextAutomatableRows": [
+    "CV1-X-PART-XML",
+    "CV1-X-NATIVE-SCHEMA",
+    "CV1-X-NATIVE-LIFECYCLE",
+    "CV1-X-SPAN-PROPERTIES",
+    "CV1-X-OBJECT-FILTERS",
+    "CV1-X-OBJECT-CLIPBOARD",
+    "CV1-X-PART-LAYOUT",
+    "CV1-X-ENGRAVING",
+    "CV1-X-CONCERT-VIEW",
+    "CV1-X-MIDI-INPUT",
+    "CV1-X-PITCH-FIRST",
+    "CV1-X-TEMPLATES-STYLES",
+    "CV1-X-COMMANDS-SHORTCUTS",
+    "CV1-X-WORKSPACE",
+    "CV1-X-IMAGE-EXPORT",
+    "CV1-X-WORKFLOW-AUDIT",
+    "CV1-X-XML-OCTAVE-PITCH",
+    "CV1-X-SPAN-RHYTHMIC-ANCHORS",
+    "CV1-X-HAIRPIN-REPEAT-VELOCITY",
+    "CV1-X-HAIRPIN-DENSE-CLEARANCE",
+    "CV1-X-PART-LAYOUT-STRUCTURE",
+    "CV1-X-SCORE-MEASURE-STRUCTURE"
+  ],
+  "completeness": "Schema check only; expanded acceptance and manual gates are separate"
+}

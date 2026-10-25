@@ -1,0 +1,37 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+·························································x······························································································
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |studio| src/renderer/src/App.test.tsx > App component shell > playback.global-tempo lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <section
+  aria-label="음표 편집"
+  class="selection-toolbar studio-chrome ddirori"
+  data-density="compact"
+  data-theme="light"
+/>
+ ❯ src/renderer/src/App.test.tsx:2709:59
+    2707|
+    2708|     fireEvent.click(screen.getByRole('button', { name: 'm3-half-rest 선…
+    2709|     expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
+       |                                                           ^
+    2710|     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
+    2711|     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 151 passed (152)
+   Start at  01:08:28
+   Duration  44.97s (transform 486ms, setup 0ms, import 342ms, tests 44.32s, environment 246ms)
+

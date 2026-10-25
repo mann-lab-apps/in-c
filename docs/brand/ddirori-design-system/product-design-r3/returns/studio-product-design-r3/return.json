@@ -1,0 +1,305 @@
+{
+  "service": "studio",
+  "status": "implemented-awaiting-review",
+  "implementationCommit": "uncommitted",
+  "baseProductCommit": "827ad18203e673b1e923d00cbcf0fd7f3af755d7",
+  "currentHead": "bcdcc40fca6656594b6bd0d5c0f7543180a41745",
+  "designRevision": "product-design-r3",
+  "designManifestSha256": "a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36",
+  "backlog": [
+    "R3-T01",
+    "R3-J01"
+  ],
+  "actualExecution": {
+    "at": "2026-10-25T14:20:07.520Z",
+    "runtime": {
+      "node": "24.16.0",
+      "acorn": "8.16.0",
+      "ada": "3.4.4",
+      "amaro": "1.1.9",
+      "ares": "1.34.6",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.2",
+      "llhttp": "9.4.1",
+      "merve": "1.2.2",
+      "modules": "146",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.68.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "0.0.0",
+      "simdjson": "4.6.1",
+      "simdutf": "7.7.0",
+      "sqlite": "3.53.0",
+      "tz": "2025c",
+      "undici": "7.25.0",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "14.8.178.31-electron.0",
+      "zlib": "1.3.2.1-motley",
+      "zstd": "1.6.0",
+      "electron": "42.4.1",
+      "chrome": "148.0.7778.265"
+    },
+    "layout": [
+      {
+        "theme": "light",
+        "viewport": 1400,
+        "dpr": 2,
+        "dialogWidth": 850,
+        "overflow": false,
+        "inputHeight": 32
+      },
+      {
+        "theme": "light",
+        "viewport": 960,
+        "dpr": 2,
+        "dialogWidth": 850,
+        "overflow": false,
+        "inputHeight": 32
+      },
+      {
+        "theme": "dark",
+        "viewport": 1400,
+        "dpr": 2,
+        "dialogWidth": 850,
+        "overflow": false,
+        "inputHeight": 32
+      },
+      {
+        "theme": "dark",
+        "viewport": 960,
+        "dpr": 2,
+        "dialogWidth": 850,
+        "overflow": false,
+        "inputHeight": 32
+      }
+    ],
+    "coarse": {
+      "pointer": true,
+      "height": 48
+    },
+    "normalText": 14,
+    "enlargedText": 28,
+    "firstNote": {
+      "count": 1,
+      "pitch": {
+        "step": "C",
+        "alter": 0,
+        "octave": 4
+      }
+    },
+    "undoRedo": true,
+    "projectReopen": true,
+    "recoveryVerified": true,
+    "pdfKeepsProjectDirty": true,
+    "keyboardTrace": [
+      {
+        "type": "keydown",
+        "key": "Enter",
+        "target": "<input maxlength=\"120\" id=\"_r_9_\" aria-invalid=\"false\" value=\"R3 First Score\">",
+        "prevented": false
+      },
+      {
+        "type": "keypress",
+        "key": "Enter",
+        "target": "<input maxlength=\"120\" id=\"_r_9_\" aria-invalid=\"false\" value=\"R3 First Score\">",
+        "prevented": false
+      },
+      {
+        "type": "submit",
+        "target": "<form aria-label=\"새 악보 만들기\" class=\"new-score-dialog studio-new-score-form\"><section aria-label=\"내장 템플릿\" class=\"new-score-templates\"><h3>내장 템플릿</h3><div class=\"new-score-template-gr",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "Enter",
+        "target": "<body>\n    <div id=\"root\"><main class=\"app-shell\"><section class=\"studio-document studio-chrome ddirori\" data-theme=\"light\" data-density=\"compact\" aria-label=\"문서 상태\"><strong>문서: R3",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "n",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"false\" aria-busy=\"false\"><svg xmlns=\"htt",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "n",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "c",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "c",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "z",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "z",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "Z",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "Z",
+        "target": "<button type=\"button\" aria-label=\"음표 입력 전환, 단축키 N\" title=\"음표 입력 전환, 단축키 N\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-pressed=\"true\" aria-busy=\"false\"><svg xmlns=\"http",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "n",
+        "target": "<body>\n    <div id=\"root\"><main class=\"app-shell\"><section class=\"studio-document studio-chrome ddirori\" data-theme=\"light\" data-density=\"compact\" aria-label=\"문서 상태\"><strong>문서: R3",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "n",
+        "target": "<body>\n    <div id=\"root\"><main class=\"app-shell\"><section class=\"studio-document studio-chrome ddirori\" data-theme=\"light\" data-density=\"compact\" aria-label=\"문서 상태\"><strong>문서: R3",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "d",
+        "target": "<body>\n    <div id=\"root\"><main class=\"app-shell\"><section class=\"studio-document studio-chrome ddirori\" data-theme=\"light\" data-density=\"compact\" aria-label=\"문서 상태\"><strong>문서: R3",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "d",
+        "target": "<body>\n    <div id=\"root\"><main class=\"app-shell\"><section class=\"studio-document studio-chrome ddirori\" data-theme=\"light\" data-density=\"compact\" aria-label=\"문서 상태\"><strong>문서: R3",
+        "prevented": false
+      },
+      {
+        "type": "keydown",
+        "key": "Escape",
+        "target": "<button type=\"button\" aria-label=\"닫기\" title=\"닫기\" class=\"dd-button dd-button--quiet dd-icon-button \" aria-busy=\"false\">×</button>",
+        "prevented": false
+      },
+      {
+        "type": "keyup",
+        "key": "Escape",
+        "target": "<button type=\"button\" class=\"dd-button dd-button--secondary \" aria-busy=\"false\">가져오는 방법</button>",
+        "prevented": false
+      }
+    ],
+    "scope": "Production renderer/preload and real disk outputs; QA IPC replaces OS dialogs and I/O policy. No physical IME, mobile transfer or Score receipt.",
+    "scoreReceiptVerified": false
+  },
+  "checks": [
+    {
+      "command": "npm test -- --dir src --reporter=dot",
+      "result": "pass",
+      "log": "logs/product-tests-final.log",
+      "summary": "Test Files  48 passed | 1 skipped (49)\n      Tests  621 passed | 1 skipped (622)"
+    },
+    {
+      "command": "npm test -- src/renderer/src/App.test.tsx -t studio.r3",
+      "result": "pass",
+      "log": "logs/focused-final.log",
+      "summary": "Test Files  1 passed (1)\n      Tests  10 passed | 137 skipped (147)"
+    },
+    {
+      "command": "npm test -- --reporter=dot",
+      "result": "fail",
+      "log": "logs/root-tests.log",
+      "summary": "Test Files  7 failed | 51 passed | 1 skipped (59)\n      Tests  12 failed | 629 passed | 23 skipped (664)"
+    },
+    {
+      "command": "npm --prefix packages/ddirori_web test",
+      "result": "pass",
+      "log": "logs/shared-tests.log",
+      "summary": "Test Files  6 passed (6)\n      Tests  56 passed (56)"
+    },
+    {
+      "command": "node --test docs/brand/ddirori-design-system/tools/api-portability.test.mjs docs/brand/ddirori-design-system/tools/token-model.test.mjs",
+      "result": "pass",
+      "log": "logs/node-tests.log"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "pass",
+      "log": "logs/typecheck.log"
+    },
+    {
+      "command": "npm run build",
+      "result": "pass",
+      "log": "logs/build.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-studio-first-use.cjs",
+      "result": "pass",
+      "log": "logs/renderer.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE DDIRORI_STUDIO_QA_OUT=out/ddirori/studio-r3-r2-regression npx electron scripts/verify-ddirori-studio.cjs --r2",
+      "result": "pass",
+      "log": "logs/r2-regression.log"
+    },
+    {
+      "command": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-notation-snapshots.cjs --fixed-canvas",
+      "result": "pass",
+      "log": "logs/fixed-canvas.log"
+    },
+    {
+      "command": "python3 docs/brand/ddirori-design-system/product-design-r3/revision.py",
+      "result": "changed",
+      "log": "logs/revision-check.log"
+    }
+  ],
+  "pdf": {
+    "file": "artifacts/renderer/practice.pdf",
+    "sha256": "bf621ebb2641d634b5894675f0bea62c5703e16de0c63215a5fee3cae80b0f73",
+    "info": "Title:           in-C\nCreator:         Chromium\nProducer:        Skia/PDF m148\nCreationDate:    Sun Oct 25 23:20:06 2026 KST\nModDate:         Sun Oct 25 23:20:06 2026 KST\nCustom Metadata: no\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           1\nEncrypted:       no\nPage size:       594.96 x 841.92 pts (A4)\nPage rot:        0\nFile size:       48176 bytes\nOptimized:       no\nPDF version:     1.4\n",
+    "raster": "artifacts/renderer/practice.png",
+    "scope": "Actual App export scene and production preload with QA IPC disk destination; not an OS dialog or Score receipt"
+  },
+  "mapping": "handoff.md",
+  "sharedChanges": [],
+  "metadataCheck": "not-applicable: desktop-only; concurrent iOS changes not owned by this task",
+  "sourceVerified": [
+    "real native project file and reopen",
+    "actual score note and undo/redo",
+    "real recovery payload and reopen",
+    "real MusicXML serializer",
+    "actual App PDF scene and bytes"
+  ],
+  "receiverVerified": false,
+  "unverified": [
+    "mobile file transfer",
+    "Score internal copy and PDF ready",
+    "Score annotation/practice",
+    "physical Korean IME",
+    "OS file dialogs and menu",
+    "screen reader",
+    "physical touch hardware",
+    "representative user score and human usability"
+  ],
+  "knownFailures": [
+    "Root Vitest missing DOM/Node-native collection configuration",
+    "Pre-existing responsive baseline differences retained in R2; no baseline updated"
+  ]
+}

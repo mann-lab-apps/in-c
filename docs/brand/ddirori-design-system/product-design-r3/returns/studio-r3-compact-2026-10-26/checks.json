@@ -1,0 +1,149 @@
+{
+  "before": {
+    "src/renderer/src/App.tsx": "cf56c35287b6f7f2fd0bdd2ce11709843f729ea56e5861476a741ae4d1502d09",
+    "src/renderer/src/App.test.tsx": "80ee7086b556f97a136e8e3365b425f9718c4b3f1746fb7b8e17e17083d72676",
+    "src/renderer/src/studio-r3.css": "5d801adeb8e10c42e9afb80562351988a1833bfbb001c50215d066b3e174c1ff",
+    "scripts/verify-ddirori-studio.cjs": "2cb5c2cb9949b55b08f90cc09936ca725934582f7954d4097d36e605582d2874",
+    "scripts/verify-studio-compact-workspace.cjs": "e67a3539f099fc02fed8aeac07a056f636c4036d4fde73ad57e8099c81f87c15"
+  },
+  "receipts": [
+    {
+      "name": "typecheck-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-25T16:18:36.812Z",
+      "finishedAt": "2026-10-25T16:18:39.824Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/typecheck-final.log"
+    },
+    {
+      "name": "build-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-25T16:18:39.825Z",
+      "finishedAt": "2026-10-25T16:18:44.366Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/build-final.log"
+    },
+    {
+      "name": "compact-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-studio-compact-workspace.cjs"
+      ],
+      "overrides": {
+        "DDIRORI_COMPACT_QA_OUT": "out/ddirori/studio-r3-compact-final"
+      },
+      "startedAt": "2026-10-25T16:18:44.366Z",
+      "finishedAt": "2026-10-25T16:18:47.164Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/compact-final.log"
+    },
+    {
+      "name": "r2-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-ddirori-studio.cjs",
+        "--r2"
+      ],
+      "overrides": {
+        "DDIRORI_STUDIO_QA_OUT": "out/ddirori/studio-r3-compact-r2"
+      },
+      "startedAt": "2026-10-25T16:18:47.165Z",
+      "finishedAt": "2026-10-25T16:19:02.724Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/r2-final.log"
+    },
+    {
+      "name": "first-use-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-studio-first-use.cjs",
+        "--keyboard-retry"
+      ],
+      "overrides": {
+        "DDIRORI_STUDIO_FIRST_USE_OUT": "out/ddirori/studio-r3-compact-first-use"
+      },
+      "startedAt": "2026-10-25T16:19:02.725Z",
+      "finishedAt": "2026-10-25T16:19:06.382Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/first-use-final.log"
+    },
+    {
+      "name": "fixed-canvas-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-notation-snapshots.cjs",
+        "--fixed-canvas"
+      ],
+      "startedAt": "2026-10-25T16:19:06.383Z",
+      "finishedAt": "2026-10-25T16:19:08.839Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/fixed-canvas-final.log"
+    },
+    {
+      "name": "all-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "test:all"
+      ],
+      "startedAt": "2026-10-25T16:19:08.840Z",
+      "finishedAt": "2026-10-25T16:19:54.711Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/all-final.log"
+    },
+    {
+      "name": "roadmap-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "verify:chromatics-musescore-parity-roadmap"
+      ],
+      "startedAt": "2026-10-25T16:19:54.711Z",
+      "finishedAt": "2026-10-25T16:19:54.802Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/roadmap-final.log"
+    },
+    {
+      "name": "work-queue-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "verify:chromatics-v1-work-queue"
+      ],
+      "startedAt": "2026-10-25T16:19:54.802Z",
+      "finishedAt": "2026-10-25T16:19:54.896Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/work-queue-final.log"
+    },
+    {
+      "name": "diff-check-final",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "startedAt": "2026-10-25T16:19:54.897Z",
+      "finishedAt": "2026-10-25T16:19:54.931Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/diff-check-final.log"
+    }
+  ]
+}

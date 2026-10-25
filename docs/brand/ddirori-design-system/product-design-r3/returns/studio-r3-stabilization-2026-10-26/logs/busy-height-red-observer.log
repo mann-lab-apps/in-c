@@ -1,0 +1,13 @@
+Error occurred in handler for 'project:save': Error: R3 disk unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:21:31
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+AssertionError [ERR_ASSERTION]: Busy save must not expand its command row: 66.59375 -> 143.5
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:154:12 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

@@ -10,7 +10,7 @@ import {
 import { createRoot } from 'react-dom/client'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
 import { SpanProperties } from './SpanProperties'
-import { Button, IconButton } from '@ddirori/ui'
+import { Bach, Banner, Button, Choices, Dialog, IconButton, Input, ProductSignature, Progress, Select, Text } from '@ddirori/ui'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
@@ -32,6 +32,7 @@ import {
   FilePlus2,
   FileUp,
   FileVolume,
+  Pencil,
   Keyboard,
   Link2,
   Minus,
@@ -108,6 +109,8 @@ import {
 } from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
 import './studio-r1.css'
+import './studio-r2.css'
+import './studio-r3.css'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -553,6 +556,17 @@ const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
 const dockWidthsStorageKey = 'chromatics.dock-widths.v1'
+const notationViewStorageKey = 'chromatics.notation-view.v1'
+const noteDetailsStorageKey = 'chromatics.note-details.v1'
+const notationZoomOptions = ['75', '100', '125', '150', '200'].map(value => ({value, label:`${value}%`}))
+
+function readNotationView(): {mode:'fit-width' | 'fixed'; zoom:number} {
+  try {
+    const stored=JSON.parse(localStorage.getItem(notationViewStorageKey) ?? '{}')
+    return {mode:stored?.mode === 'fixed' ? 'fixed' : 'fit-width',
+      zoom:notationZoomOptions.some(option=>Number(option.value) === stored?.zoom) ? stored.zoom : 100}
+  } catch { return {mode:'fit-width', zoom:100} }
+}
 
 function readDockWidths() {
   try {
@@ -573,6 +587,16 @@ export const App = () => {
     return () => media?.removeEventListener('change', update)
   }, [])
   const [dockWidths, setDockWidths] = useState(readDockWidths)
+  const [notationView, setNotationView] = useState(readNotationView)
+  const [noteDetailsOpen, setNoteDetailsOpen] = useState(() => {
+    try { return localStorage.getItem(noteDetailsStorageKey) === 'true' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(noteDetailsStorageKey, String(noteDetailsOpen)) } catch { /* Keep the session preference. */ }
+  }, [noteDetailsOpen])
+  useEffect(() => {
+    try { localStorage.setItem(notationViewStorageKey,JSON.stringify(notationView)) } catch { /* Keep the session preference. */ }
+  },[notationView])
   const paletteToggle = useRef<HTMLButtonElement>(null)
   const propertiesToggle = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -644,6 +668,20 @@ export const App = () => {
     useState<MusicXmlReportPanelState>()
   const [autosaveRevision, setAutosaveRevision] = useState(0)
   const documentGeneration = useRef(0)
+  const firstSessionGeneration = useRef<number | undefined>(undefined)
+  const firstProjectSaved = useRef(false)
+  const [firstAchievement, setFirstAchievement] = useState<number>()
+  const [pdfResult, setPdfResult] = useState<{generation:number;fileName:string}>()
+  const [scoreGuideOpen, setScoreGuideOpen] = useState(false)
+  const pdfInFlight = useRef(false)
+  const wizardTrigger = useRef<HTMLElement | null>(null)
+  const wizardComposing = useRef(false)
+  useEffect(() => {
+    try { firstProjectSaved.current = localStorage.getItem('chromatics.studio-first-project.v1') === 'saved' } catch { /* Session-only feedback when storage is unavailable. */ }
+  }, [])
+  const firstSession = firstSessionGeneration.current === documentGeneration.current
+  const hasFirstNote = scoreHasNotes(score)
+  const currentPdfResult = pdfResult?.generation === documentGeneration.current ? pdfResult : undefined
   const [spanSelection, setSpanSelection] = useState<{
     reference: SpanReference
     baseSelection: EditorSelection
@@ -659,11 +697,31 @@ export const App = () => {
   const saveInFlight = useRef(false)
   const [savingMusicXml, setSavingMusicXml] = useState(false)
   const [savingNative, setSavingNative] = useState(false)
+  const [nativeSaveFocus, setNativeSaveFocus] = useState<{trigger: HTMLButtonElement; generation: number}>()
+  const nativeSaveDocumentGeneration = documentGeneration.current
+  useEffect(() => {
+    if (!nativeSaveFocus) return
+    const { trigger, generation } = nativeSaveFocus
+    // The shared Button's own promise lock can outlive the parent's busy state.
+    const restore = () => {
+      if (generation !== documentGeneration.current || !trigger.isConnected ||
+        (document.activeElement !== document.body && document.activeElement !== trigger)) {
+        observer.disconnect()
+      } else if (!trigger.disabled) {
+        observer.disconnect()
+        trigger.focus()
+      }
+    }
+    const observer = new MutationObserver(restore)
+    observer.observe(trigger, { attributes: true, attributeFilter: ['disabled'] })
+    restore()
+    return () => observer.disconnect()
+  }, [nativeSaveFocus, nativeSaveDocumentGeneration])
   const nativeFile = useRef<{ filePath: string; fileName: string } | undefined>(undefined)
   const nativeEnvelope = useRef<NativeProject | undefined>(undefined)
   const nativeOpenInFlight = useRef(false)
-  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision })
-  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision }
+  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision, noteInputState, livePartViewPartId: selectedScoreViewPartId })
+  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision, noteInputState, livePartViewPartId: selectedScoreViewPartId }
   const restoreDirtyRecoveryAfterClear = useCallback(async () => {
     const latest = currentNativeContext.current
     if (latest.autosaveRevision === 0) return
@@ -817,6 +875,7 @@ export const App = () => {
 
     return activeStructureTarget?.partId ?? score.parts[0]?.id
   }, [activeStructureTarget?.partId, score.parts, selectedScoreViewPartId])
+  currentNativeContext.current.livePartViewPartId = livePartViewPartId
   const livePartViewPart = score.parts.find(
     (part) => part.id === livePartViewPartId
   )
@@ -1819,11 +1878,14 @@ export const App = () => {
     }
 
     setMetadataEdit(undefined)
+    wizardTrigger.current = document.activeElement as HTMLElement | null
+    wizardComposing.current = false
     setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
   }, [autosaveRevision, playback.tempo])
 
   const cancelNewScoreWizard = useCallback(() => {
     setNewScoreDraft(undefined)
+    requestAnimationFrame(() => wizardTrigger.current?.isConnected && wizardTrigger.current.focus())
   }, [])
 
   const submitNewScoreWizard = useCallback(() => {
@@ -1851,6 +1913,7 @@ export const App = () => {
 
     playback.stop()
     documentGeneration.current += 1
+    firstSessionGeneration.current = documentGeneration.current
     nativeFile.current = undefined
     nativeEnvelope.current = undefined
     setScore(nextScore)
@@ -1874,6 +1937,7 @@ export const App = () => {
       tone: 'neutral',
       message: '새 악보를 만들었습니다.'
     })
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="음표 입력 전환, 단축키 N"]')?.focus())
   }, [newScoreDraft, playback])
 
   const changeScoreTempo = useCallback(
@@ -4387,16 +4451,17 @@ export const App = () => {
     saveInFlight.current = true
     setSavingNative(true)
     const generation = documentGeneration.current
+    const saveTrigger = document.activeElement instanceof HTMLButtonElement ? document.activeElement : null
     const context = currentNativeContext.current
     const sameDocument = () => generation === documentGeneration.current
-    const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision
+    const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision && (context.scoreViewMode !== 'part' || currentNativeContext.current.livePartViewPartId === context.livePartViewPartId)
     try {
-      if (noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
-      const project = createNativeSnapshot(score, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
+      if (context.noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
+      const project = createNativeSnapshot(context.score, nativeEnvelope.current, context.partPageSetupPreferences, context.scoreViewMode, context.livePartViewPartId)
       const contents = encodeNativeProject(project)
       const result = await window.inC.project.save({
         ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
-        suggestedName: `${toFileName(score.title)}.chromatics`, contents
+        suggestedName: `${toFileName(context.score.title)}.chromatics`, contents
       })
       if (!result || !sameDocument()) return
       nativeFile.current = result
@@ -4407,14 +4472,26 @@ export const App = () => {
       setRecentMusicXmlFiles(files)
       if (sameSnapshot()) {
         await window.inC.autosave.clear()
-        if (sameSnapshot()) setAutosaveRevision(0)
+        if (sameSnapshot()) {
+          setAutosaveRevision(0)
+          const containsNote = scoreHasNotes(context.score)
+          if (firstSessionGeneration.current === generation && containsNote && !firstProjectSaved.current) {
+            firstProjectSaved.current = true
+            setFirstAchievement(generation)
+            try { localStorage.setItem('chromatics.studio-first-project.v1', 'saved') } catch { /* Keep the session result. */ }
+          }
+        }
         else await restoreDirtyRecoveryAfterClear()
       }
       if (sameDocument()) setFileStatus({ tone: 'neutral', message: sameSnapshot() ? `${result.fileName}에 저장했습니다.` : `${result.fileName}에 저장했습니다. 저장 중 변경사항은 아직 저장되지 않았습니다.` })
     } catch (error) {
       if (sameDocument()) setFileStatus({ tone: 'error', message: getErrorMessage(error) })
-    } finally { saveInFlight.current = false; setSavingNative(false) }
-  }, [score, partPageSetupPreferences, scoreViewMode, livePartViewPartId, noteInputState?.tupletInput, restoreDirtyRecoveryAfterClear])
+    } finally {
+      saveInFlight.current = false
+      setSavingNative(false)
+      setNativeSaveFocus(saveTrigger ? { trigger: saveTrigger, generation } : undefined)
+    }
+  }, [restoreDirtyRecoveryAfterClear])
 
   const importMusicXml = useCallback(async () => {
     if (
@@ -4751,6 +4828,7 @@ export const App = () => {
   }, [score, scoreViewMode, livePartViewPartId, livePartLayout, noteInputState?.tupletInput])
 
   const savePdf = useCallback(async () => {
+    if (pdfInFlight.current) return
     if (!parsePdfTargetPages(pdfTargetPages)) {
       setFileStatus({
         tone: 'error',
@@ -4759,9 +4837,14 @@ export const App = () => {
       return
     }
 
+    const generation = documentGeneration.current
+    pdfInFlight.current = true
+    setPdfResult(undefined)
+    setScoreGuideOpen(false)
     try {
       setPdfExporting(true)
       await waitForNextPaint()
+      if (generation !== documentGeneration.current) return
 
       const result = await window.inC.pdf.save({
         suggestedName: `${toFileName(
@@ -4771,20 +4854,22 @@ export const App = () => {
         )}.pdf`
       })
 
-      if (!result) {
+      if (!result || generation !== documentGeneration.current) {
         return
       }
 
+      setPdfResult({generation,fileName:result.fileName})
       setFileStatus({
         tone: 'neutral',
         message: `${result.fileName}로 PDF를 만들었습니다.`
       })
     } catch (error) {
-      setFileStatus({
+      if (generation === documentGeneration.current) setFileStatus({
         tone: 'error',
         message: getErrorMessage(error)
       })
     } finally {
+      pdfInFlight.current = false
       setPdfExporting(false)
     }
   }, [livePartViewPart, livePartViewTitle, pdfTargetPages, score.title, scoreViewMode])
@@ -5391,25 +5476,21 @@ export const App = () => {
         </style>
       ) : null}
       {startScreenVisible ? (
-        <section className="start-screen" aria-labelledby="start-screen-title">
+        <section className="start-screen studio-start studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-labelledby="start-screen-title">
           <div className="start-screen__content">
-            <p className="eyebrow">in-C</p>
-            <h1 id="start-screen-title">무엇을 시작할까요?</h1>
-            <p>
-              새 악보를 만들거나 MusicXML 파일을 가져오세요. 자동저장 복구본이
-              있으면 이어서 열 수 있습니다.
-            </p>
+            <ProductSignature product="studio" name="Studio" />
+            <div className="studio-welcome">{recentMusicXmlFiles.length === 0 && !recoverySnapshot ? <Bach size={64} /> : null}<Text as="h1" variant="screenTitle" id="start-screen-title">새 악보를 만들어 볼까요?</Text></div>
 
             <div className="start-actions" aria-label="시작 작업">
-              <button
-                className="start-action"
+              <Button
+                className="start-action studio-start-primary"
+                aria-label="새 악보 만들기"
                 onClick={openNewScoreWizard}
-                type="button"
               >
                 <FilePlus2 aria-hidden="true" size={24} />
                 <span>새 악보 만들기</span>
                 <small>조표, 박자표, 마디 수를 정하고 시작합니다.</small>
-              </button>
+              </Button>
 
               <button
                 className="start-action"
@@ -5483,8 +5564,7 @@ export const App = () => {
                 </div>
               ) : (
                 <p className="recent-files__empty">
-                  아직 최근 파일이 없습니다. MusicXML을 가져오면 여기에
-                  표시됩니다.
+                  아직 최근 파일이 없습니다.
                 </p>
               )}
             </section>
@@ -5508,6 +5588,12 @@ export const App = () => {
       <section className="studio-document studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="문서 상태">
         <strong>{`문서: ${score.title || '제목 없음'}`}</strong>
         <span role="status">{savingNative || savingMusicXml ? '저장 중' : autosaveRevision > 0 ? '저장하지 않은 변경' : '변경 없음'}</span>
+        <div className="studio-view-controls">
+          <Choices label="악보 보기 방식" options={[{value:'fit-width',label:'폭 맞춤'},{value:'fixed',label:'고정 배율'}]}
+            selected={[notationView.mode]} onChange={values => { if (values[0]) setNotationView(previous=>({...previous,mode:values[0] as 'fit-width'|'fixed'})) }} />
+          <Select label="고정 확대율" options={notationZoomOptions} value={String(notationView.zoom)} disabled={notationView.mode !== 'fixed'}
+            onChange={value=>setNotationView(previous=>({...previous,zoom:Number(value)}))} />
+        </div>
       </section>
       <nav className="toolbar-tabs studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="편집 도구 카테고리">
         {toolbarCategories.map((category) => (
@@ -5522,6 +5608,39 @@ export const App = () => {
           </button>
         ))}
       </nav>
+
+      <section className="studio-input-context studio-chrome ddirori" data-theme={studioTheme} data-density="compact"
+        aria-label="다음 입력" data-input-active={Boolean(noteInputState)}>
+        <Text as="h2" variant="sectionTitle">다음 입력</Text>
+        <IconButton label="음표 입력 전환, 단축키 N" selected={Boolean(noteInputState)}
+          onClick={() => { setSpanSelection(undefined); setToolbarCategory('note'); toggleNoteInputMode() }}>
+          <Pencil size={18} aria-hidden="true" />
+        </IconButton>
+        <output aria-label="다음 입력 설정">
+          {durationLabels[noteInputState?.duration.value ?? durationValue]} · 점 {noteInputState?.duration.dots ?? 0}
+          {noteInputState?.accidental !== undefined ? ` · ${noteInputState.accidental === -1 ? '플랫' : noteInputState.accidental === 1 ? '샤프' : '제자리표'}` : ' · 임시표 자동'}
+        </output>
+        <span className="studio-input-context__state">{noteInputState ? inputModeLabel : '대기'}</span>
+        {noteInputState ? <Button kind="quiet" onClick={enterRest}>쉼표 넣기</Button> : null}
+        {firstSession && !hasFirstNote ? <p className="studio-first-input" role="note" aria-label="첫 입력 안내">
+          {noteInputState ? 'A–G로 음을 넣거나 쉼표 넣기를 선택하세요.' : 'N으로 음표 입력을 켜고 첫 음을 넣어 보세요.'}
+        </p> : null}
+      </section>
+
+      {firstSession && hasFirstNote && !firstProjectSaved.current ? <section className="studio-first-save studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="첫 프로젝트 저장">
+        <Text>편집 가능한 원본을 프로젝트 파일로 남겨 주세요.</Text>
+        <Button kind="secondary" aria-label="프로젝트 파일 저장" busy={savingNative} disabled={savingMusicXml || !window.inC?.project} onClick={() => saveNativeProject()}>프로젝트 파일 저장</Button>
+        {savingNative ? <Progress label="프로젝트 파일 저장 중" /> : null}
+      </section> : null}
+      {firstAchievement === documentGeneration.current ? <section className="studio-result studio-chrome ddirori" data-theme={studioTheme}>
+        <Banner kind="success" action={<IconButton label="첫 저장 알림 닫기" onClick={() => setFirstAchievement(undefined)}><X size={18} aria-hidden="true" /></IconButton>}><div className="studio-welcome"><Bach size={48} expression="happy" /><Text>첫 악보를 파일로 저장했어요.</Text></div></Banner>
+      </section> : null}
+      {currentPdfResult ? <section className="studio-result studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="PDF 출력 결과">
+        <Banner action={<><Button kind="secondary" onClick={() => setScoreGuideOpen(true)}>가져오는 방법</Button><IconButton label="PDF 출력 결과 닫기" onClick={() => {setPdfResult(undefined);setScoreGuideOpen(false)}}><X size={18} aria-hidden="true" /></IconButton></>}>
+          <Text as="h2" variant="sectionTitle">PDF로 연습 이어가기</Text>
+          <p>{currentPdfResult.fileName} · 프로젝트와 별도로 만든 PDF 사본입니다.</p>
+        </Banner>
+      </section> : null}
 
       <section
         className="editor-context-strip studio-chrome ddirori"
@@ -5589,12 +5708,20 @@ export const App = () => {
         </div>
       </section>
 
+      <details className="studio-note-details studio-chrome ddirori" data-theme={studioTheme} data-density="compact"
+        hidden={toolbarCategory !== 'note'} open={noteDetailsOpen}
+        onToggle={event => setNoteDetailsOpen(event.currentTarget.open)}>
+        <summary>음표 상세 설정</summary>
       <section
         className="selection-toolbar studio-chrome ddirori"
         data-theme={studioTheme} data-density="compact"
         aria-label="음표 편집"
         hidden={toolbarCategory !== 'note'}
       >
+        <section className="studio-edit-context" aria-label="음표 편집 대상">
+          <Text as="h3" variant="sectionTitle">{noteInputState ? '다음 입력 설정' : selection.type === 'event' ? '선택한 음표·쉼표' : selection.type === 'range' ? '선택 범위' : '입력 준비'}</Text>
+          <output>{activeScopeLabel}{noteInputState ? ` · ${noteInputState.tick}틱` : eventLocation ? ` · ${eventLocation.event.id}` : ''}</output>
+        </section>
         <section className="inspector-properties" aria-label="성부">
           <h3>성부</h3>
           <label className="inspector-properties__row">
@@ -5634,8 +5761,8 @@ export const App = () => {
           </div>
         </section>
 
-          <section className="inspector-properties" aria-label="선택 속성">
-            <h3>속성</h3>
+          <section className="inspector-properties" aria-label={noteInputState ? '다음 입력 속성' : '선택 속성'}>
+            <h3>{noteInputState ? '다음 입력 설정' : '선택한 음표·쉼표'}</h3>
             {eventLocation ? (
               <div className="inspector-properties__grid">
                 <div className="inspector-properties__row">
@@ -5648,8 +5775,8 @@ export const App = () => {
                     >
                       -
                     </button>
-                    <output aria-label="선택 이벤트 점 개수">
-                      {eventLocation.event.duration.dots}
+                    <output aria-label={noteInputState ? '다음 입력 점 개수' : '선택 이벤트 점 개수'}>
+                      {activeDots}
                     </output>
                     <button
                       disabled={!canAddDot}
@@ -5671,11 +5798,11 @@ export const App = () => {
                     ] as const).map(([alter, symbol, label]) => (
                       <button
                         aria-label={label}
-                        aria-pressed={selectedPitchAlter === alter}
+                        aria-pressed={(noteInputState ? noteInputState.accidental : selectedPitchAlter) === alter}
                         className={
-                          selectedPitchAlter === alter ? 'is-active' : undefined
+                          (noteInputState ? noteInputState.accidental : selectedPitchAlter) === alter ? 'is-active' : undefined
                         }
-                        disabled={!canEditPitch}
+                        disabled={!accidentalEnabled}
                         key={alter}
                         onClick={() => changeAccidental(alter)}
                         type="button"
@@ -5686,6 +5813,7 @@ export const App = () => {
                   </div>
                 </div>
 
+                {noteInputState ? <h4 className="studio-selected-tools-title">선택한 표기 · {eventLocation.event.id}</h4> : null}
                 <button
                   className="inspector-properties__command"
                   disabled={eventLocation.event.type !== 'note'}
@@ -5848,6 +5976,7 @@ export const App = () => {
           </section>
 
       </section>
+      </details>
 
       <section
         className="selection-toolbar studio-chrome ddirori"
@@ -7428,7 +7557,8 @@ export const App = () => {
             ) : null}
           </aside>
 
-          <div className="score-canvas" aria-label="악보 캔버스">
+          <div className="score-canvas" aria-label="악보 캔버스" data-notation-sizing={notationView.mode}
+            style={{'--studio-notation-zoom':notationView.zoom / 100} as CSSProperties}>
 
         <div
           className="score-page"
@@ -7614,7 +7744,7 @@ export const App = () => {
               className="selection-properties"
               data-selection-kind={selectedProperties.kind}
             >
-              <h3>속성</h3>
+              <Text as="h3" variant="sectionTitle">선택한 표기</Text>
               <dl>
                 {selectedProperties.rows.map(([label, value]) => (
                   <div className="selection-properties__row" key={label}>
@@ -7752,19 +7882,22 @@ export const App = () => {
       ) : null}
 
       {newScoreDraft ? (
-        <div className="modal-backdrop" role="presentation">
+        <div className="studio-first-use studio-chrome ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
+          <Dialog open title="새 악보 만들기" onClose={cancelNewScoreWizard}>
           <form
             aria-label="새 악보 만들기"
-            className="new-score-dialog"
+            className="new-score-dialog studio-new-score-form"
+            onCompositionStart={() => { wizardComposing.current = true }}
+            onCompositionEnd={() => { wizardComposing.current = false }}
+            onKeyDown={event => {
+              if (event.key !== 'Tab') event.stopPropagation()
+              if ((wizardComposing.current || event.nativeEvent.isComposing || event.keyCode === 229) && ['Enter','Escape'].includes(event.key)) event.preventDefault()
+            }}
             onSubmit={(event) => {
               event.preventDefault()
-              submitNewScoreWizard()
+              if (!wizardComposing.current) submitNewScoreWizard()
             }}
-            role="dialog"
           >
-            <header>
-              <h2>새 악보</h2>
-            </header>
 
             <section aria-label="내장 템플릿" className="new-score-templates">
               <h3>내장 템플릿</h3>
@@ -7801,9 +7934,7 @@ export const App = () => {
             </section>
 
             <div className="new-score-form">
-              <label>
-                <span>제목</span>
-                <input
+              <Input label="제목"
                   autoFocus
                   maxLength={metadataMaxLength.title}
                   onChange={(event) =>
@@ -7814,7 +7945,6 @@ export const App = () => {
                   }
                   value={newScoreDraft.title}
                 />
-              </label>
 
               <label>
                 <span>작곡가</span>
@@ -7950,8 +8080,24 @@ export const App = () => {
               </button>
             </footer>
           </form>
+          </Dialog>
         </div>
       ) : null}
+
+      {currentPdfResult && scoreGuideOpen ? <div className="studio-first-use studio-chrome ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
+        <Dialog open title="PDF로 연습 이어가기" onClose={() => setScoreGuideOpen(false)}>
+          <ProductSignature product="score" name="Score" />
+          <p>{currentPdfResult.fileName}</p>
+          <ol className="studio-transfer-steps">
+            <li>저장한 PDF를 원하는 파일 보관 방법으로 모바일 기기에 전달해 주세요.</li>
+            <li>모바일 기기의 Score에서 PDF 추가를 선택하고 전달한 파일을 가져오세요.</li>
+            <li>Score에서 파일 저장과 지면 열기를 확인한 뒤 주석이나 연습을 시작하세요.</li>
+          </ol>
+          <p>Studio 프로젝트, 내보낸 PDF, Score 내부 사본은 별개입니다. 이후 Studio 수정은 Score에 자동으로 반영되지 않습니다.</p>
+          <p>이 기기에서는 Score의 설치 여부나 가져오기 완료를 확인하지 않습니다.</p>
+          <Button kind="secondary" onClick={() => setScoreGuideOpen(false)}>확인</Button>
+        </Dialog>
+      </div> : null}
 
       {shortcutHelpOpen ? (
         <div className="modal-backdrop" role="presentation">
@@ -10415,6 +10561,12 @@ function waitForNextPaint(): Promise<void> {
 
     scheduleFrame(() => scheduleFrame(() => resolve()))
   })
+}
+
+function scoreHasNotes(score: Score): boolean {
+  return score.parts.some(part => part.staves.some(staff =>
+    staff.measures.some(measure => measure.voices.some(voice =>
+      voice.events.some(event => event.type === 'note')))))
 }
 
 function getErrorMessage(error: unknown): string {

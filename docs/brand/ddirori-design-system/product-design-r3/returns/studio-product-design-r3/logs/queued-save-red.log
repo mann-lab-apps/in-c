@@ -1,0 +1,50 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t queued pre-recovery
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+ ❯ src/renderer/src/App.test.tsx (147 tests | 1 failed | 146 skipped) 840ms
+     × studio.r3 a queued pre-recovery keyboard handler saves the current portable snapshot 838ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r3 a queued pre-recovery keyboard handler saves the current portable snapshot
+AssertionError: expected { format: 'chromatics-project', …(5) } to match object { view: { mode: 'part', …(1) }, …(1) }
+(10 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "partLayouts": [
+-     {
+-       "partId": "P2",
+-       "title": "Queued recovery piano",
+-     },
+-   ],
++   "partLayouts": [],
+    "view": {
+-     "mode": "part",
+-     "partId": "P2",
++     "mode": "score",
+    },
+  }
+
+ ❯ src/renderer/src/App.test.tsx:1651:19
+    1649|     await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalled…
+    1650|     const saved=decodeNativeProject(vi.mocked(window.inC.project.save)…
+    1651|     expect(saved).toMatchObject({view:project.view,partLayouts:[{partI…
+       |                   ^
+    1652|     expect(saved.score).toEqual(project.score)
+    1653|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 146 skipped (147)
+   Start at  23:14:07
+   Duration  1.68s (transform 598ms, setup 0ms, import 435ms, tests 840ms, environment 319ms)
+

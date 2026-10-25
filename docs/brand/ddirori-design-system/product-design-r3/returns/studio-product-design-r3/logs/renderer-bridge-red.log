@@ -1,0 +1,11 @@
+Error occurred in handler for 'project:save': Error: R3 disk unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:17:31
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+Error occurred in handler for 'pdf:save': Error: R3 PDF unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:38:30
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+Error: An object could not be cloned.
+    at IpcRendererInternal.send (node:electron/js2c/renderer_init:2:14835)
+    at IpcRendererInternal.<anonymous> (node:electron/js2c/renderer_init:2:14478)

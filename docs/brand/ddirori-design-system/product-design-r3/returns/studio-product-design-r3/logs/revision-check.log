@@ -1,0 +1,10 @@
+R3 inputs changed. Review causes; do not blindly re-freeze:
+apps/classical_local_library/README.md
+apps/classical_local_library/lib/catalog_registration_screen.dart
+apps/classical_local_library/lib/library_management.dart
+apps/classical_local_library/lib/main.dart
+apps/in_c_sheet/lib/main.dart
+apps/in_c_sheet/lib/sheet_library_controller.dart
+apps/in_c_sheet/lib/sheet_library_store.dart
+docs/brand/ddirori-design-system/product-design-r3/README.md
+src/renderer/src/App.tsx

@@ -1,0 +1,475 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3 keyboard retry --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+------------------------------------------------------------------------------------xx---------------------------------------------------------------
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |studio| src/renderer/src/App.test.tsx > App component shell > studio.r3 keyboard retry keeps focus after save cancel
+Error: expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-busy="false"
+  aria-label="프로젝트 파일 저장"
+  class="dd-button dd-button--secondary "
+  type="button"
+>
+  프로젝트 파일 저장
+</button>
+Received element with focus:
+  <button
+  aria-busy="false"
+  aria-label="음표 입력 전환, 단축키 N"
+  aria-pressed="true"
+  class="dd-button dd-button--quiet dd-icon-button "
+  title="음표 입력 전환, 단축키 N"
+  type="button"
+>
+  <svg
+    aria-hidden="true"
+    class="lucide lucide-pencil"
+    fill="none"
+    height="18"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="18"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+    />
+    <path
+      d="m15 5 4 4"
+    />
+  </svg>
+</button>
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main[39m
+        [33mclass[39m=[32m"app-shell"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"문서 상태"[39m
+          [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+          [33mdata-density[39m=[32m"compact"[39m
+          [33mdata-theme[39m=[32m"light"[39m
+        [36m>[39m
+          [36m<strong>[39m
+            [0m문서: 제목 없는 악보[0m
+          [36m</strong>[39m
+          [36m<span[39m
+            [33mrole[39m=[32m"status"[39m
+          [36m>[39m
+            [0m저장하지 않은 변경[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"studio-view-controls"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"악보 보기 방식"[39m
+              [33mclass[39m=[32m"dd-choices"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"dd-choice-check"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"14"[39m
+                    [33mviewBox[39m=[32m"0 0 14 14"[39m
+                    [33mwidth[39m=[32m"14"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.6"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m폭 맞춤[0m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"dd-choice-check"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"14"[39m
+                    [33mviewBox[39m=[32m"0 0 14 14"[39m
+                    [33mwidth[39m=[32m"14"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.6"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m고정 배율[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"dd-field"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"_r_2_"[39m
+              [36m>[39m
+                [0m고정 확대율[0m
+              [36m</label>[39m
+              [36m<button[39m
+                [33maria-disabled[39m=[32m"true"[39m
+                [33maria-expanded[39m=[32m"false"[39m
+                [33maria-haspopup[39m=[32m"listbox"[39m
+                [33maria-invalid[39m=[32m"false"[39m
+                [33mclass[39m=[32m"dd-select"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mid[39m=[32m"_r_2_"[39m
+                [33mrole[39m=[32m"combobox"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span>[39m
+                  [0m100%[0m
+                [36m</span>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mheight[39m=[32m"16"[39m
+                  [33mviewBox[39m=[32m"0 0 16 16"[39m
+                  [33mwidth[39m=[32m"16"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m4 6 4 4 4-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+          [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+          [33mdata-density[39m=[32m"compact"[39m
+          [33mdata-theme[39m=[32m"light"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m파일[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m악보[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"is-active"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m음표[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m표기 객체[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m가사[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m내보내기[0m
+          [36m</...
+ ❯ src/renderer/src/App.test.tsx:3862:39
+    3860|     await act(async () => outcome === 'cancel' ? finish(null) : fail(n…
+    3861|     const retry = await screen.findByRole('button', { name: '프로젝트 파일 저…
+    3862|     await waitFor(() => expect(retry).toHaveFocus())
+       |                                       ^
+    3863|     expect(retry).toBeEnabled()
+    3864|     expect(preview).toHaveAttribute('data-event-pitches', before)
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |studio| src/renderer/src/App.test.tsx > App component shell > studio.r3 keyboard retry keeps focus after save failure
+Error: expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-busy="false"
+  aria-label="프로젝트 파일 저장"
+  class="dd-button dd-button--secondary "
+  type="button"
+>
+  프로젝트 파일 저장
+</button>
+Received element with focus:
+  <button
+  aria-busy="false"
+  aria-label="음표 입력 전환, 단축키 N"
+  aria-pressed="true"
+  class="dd-button dd-button--quiet dd-icon-button "
+  title="음표 입력 전환, 단축키 N"
+  type="button"
+>
+  <svg
+    aria-hidden="true"
+    class="lucide lucide-pencil"
+    fill="none"
+    height="18"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="18"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+    />
+    <path
+      d="m15 5 4 4"
+    />
+  </svg>
+</button>
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main[39m
+        [33mclass[39m=[32m"app-shell"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"문서 상태"[39m
+          [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+          [33mdata-density[39m=[32m"compact"[39m
+          [33mdata-theme[39m=[32m"light"[39m
+        [36m>[39m
+          [36m<strong>[39m
+            [0m문서: 제목 없는 악보[0m
+          [36m</strong>[39m
+          [36m<span[39m
+            [33mrole[39m=[32m"status"[39m
+          [36m>[39m
+            [0m저장하지 않은 변경[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"studio-view-controls"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"악보 보기 방식"[39m
+              [33mclass[39m=[32m"dd-choices"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"dd-choice-check"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"14"[39m
+                    [33mviewBox[39m=[32m"0 0 14 14"[39m
+                    [33mwidth[39m=[32m"14"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.6"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m폭 맞춤[0m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"dd-choice-check"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"14"[39m
+                    [33mviewBox[39m=[32m"0 0 14 14"[39m
+                    [33mwidth[39m=[32m"14"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.6"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m고정 배율[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"dd-field"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"_r_5_"[39m
+              [36m>[39m
+                [0m고정 확대율[0m
+              [36m</label>[39m
+              [36m<button[39m
+                [33maria-disabled[39m=[32m"true"[39m
+                [33maria-expanded[39m=[32m"false"[39m
+                [33maria-haspopup[39m=[32m"listbox"[39m
+                [33maria-invalid[39m=[32m"false"[39m
+                [33mclass[39m=[32m"dd-select"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mid[39m=[32m"_r_5_"[39m
+                [33mrole[39m=[32m"combobox"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span>[39m
+                  [0m100%[0m
+                [36m</span>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mheight[39m=[32m"16"[39m
+                  [33mviewBox[39m=[32m"0 0 16 16"[39m
+                  [33mwidth[39m=[32m"16"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m4 6 4 4 4-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+          [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+          [33mdata-density[39m=[32m"compact"[39m
+          [33mdata-theme[39m=[32m"light"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m파일[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m악보[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"is-active"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m음표[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m표기 객체[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m가사[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m내보내기[0m
+          [36m</...
+ ❯ src/renderer/src/App.test.tsx:3862:39
+    3860|     await act(async () => outcome === 'cancel' ? finish(null) : fail(n…
+    3861|     const retry = await screen.findByRole('button', { name: '프로젝트 파일 저…
+    3862|     await waitFor(() => expect(retry).toHaveFocus())
+       |                                       ^
+    3863|     expect(retry).toBeEnabled()
+    3864|     expect(preview).toHaveAttribute('data-event-pitches', before)
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 147 skipped (149)
+   Start at  00:23:52
+   Duration  3.90s (transform 599ms, setup 0ms, import 442ms, tests 3.05s, environment 327ms)
+

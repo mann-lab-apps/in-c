@@ -1,0 +1,13 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed | 137 skipped (147)
+   Start at  23:16:24
+   Duration  7.36s (transform 669ms, setup 0ms, import 458ms, tests 6.51s, environment 319ms)
+

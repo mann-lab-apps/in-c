@@ -1,0 +1,410 @@
+[
+  {
+    "at": "2026-10-25T16:33:06.553Z",
+    "command": "tap",
+    "normalized": [
+      0.907,
+      0.735
+    ],
+    "desktopPoint": [
+      1028,
+      801
+    ],
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/03-safari-tip-dismissed.png"
+  },
+  {
+    "at": "2026-10-25T16:33:08.183Z",
+    "command": "tap",
+    "normalized": [
+      0.86,
+      0.935
+    ],
+    "desktopPoint": [
+      1009,
+      976
+    ],
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/04-safari-menu.png"
+  },
+  {
+    "at": "2026-10-25T16:33:25.204Z",
+    "command": "tap",
+    "normalized": [
+      0.53,
+      0.595
+    ],
+    "desktopPoint": [
+      876,
+      679
+    ],
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/05-share-sheet.png"
+  },
+  {
+    "at": "2026-10-25T16:34:06.374Z",
+    "command": "tap",
+    "normalized": [
+      0.48,
+      0.596
+    ],
+    "desktopPoint": [
+      856,
+      680
+    ],
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/06-share-open.png"
+  },
+  {
+    "at": "2026-10-25T16:34:07.237Z",
+    "command": "capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/07-share-settled.png"
+  },
+  {
+    "at": "2026-10-25T16:35:53.473Z",
+    "command": "tap",
+    "normalized": [
+      0.5,
+      0.596
+    ],
+    "desktopPoint": [
+      864,
+      680
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/08-share-cgevent.png"
+  },
+  {
+    "at": "2026-10-25T16:38:11.880Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/10-download-prompt.png"
+  },
+  {
+    "at": "2026-10-25T16:38:23.655Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/11-download-real-prompt.png"
+  },
+  {
+    "at": "2026-10-25T16:39:37.930Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/12-download-page.png"
+  },
+  {
+    "at": "2026-10-25T16:39:48.943Z",
+    "command": "tap",
+    "normalized": [
+      0.3,
+      0.216
+    ],
+    "desktopPoint": [
+      784,
+      348
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/13-download-link.png"
+  },
+  {
+    "at": "2026-10-25T16:40:27.184Z",
+    "command": "tap",
+    "normalized": [
+      0.14,
+      0.934
+    ],
+    "desktopPoint": [
+      719,
+      975
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/14-back-to-link.png"
+  },
+  {
+    "at": "2026-10-25T16:40:29.453Z",
+    "command": "hold",
+    "normalized": [
+      0.3,
+      0.216
+    ],
+    "desktopPoint": [
+      784,
+      348
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/15-link-context-menu.png"
+  },
+  {
+    "at": "2026-10-25T16:40:41.289Z",
+    "command": "tap",
+    "normalized": [
+      0.36,
+      0.902
+    ],
+    "desktopPoint": [
+      808,
+      947
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/16-download-linked-file.png"
+  },
+  {
+    "at": "2026-10-25T16:40:50.384Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/17-score-first-launch.png"
+  },
+  {
+    "at": "2026-10-25T16:41:00.028Z",
+    "command": "tap",
+    "normalized": [
+      0.35,
+      0.75
+    ],
+    "desktopPoint": [
+      804,
+      814
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/18-score-import-options.png"
+  },
+  {
+    "at": "2026-10-25T16:41:16.742Z",
+    "command": "tap",
+    "normalized": [
+      0.37,
+      0.83
+    ],
+    "desktopPoint": [
+      812,
+      884
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/19-native-picker.png"
+  },
+  {
+    "at": "2026-10-25T16:41:25.930Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/20-native-picker-ready.png"
+  },
+  {
+    "at": "2026-10-25T16:42:00.154Z",
+    "command": "tap",
+    "normalized": [
+      0.771,
+      0.126
+    ],
+    "desktopPoint": [
+      973,
+      269
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/21-picker-cancelled.png"
+  },
+  {
+    "at": "2026-10-25T16:42:01.464Z",
+    "command": "tap",
+    "normalized": [
+      0.35,
+      0.75
+    ],
+    "desktopPoint": [
+      804,
+      814
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/22-retry-import-options.png"
+  },
+  {
+    "at": "2026-10-25T16:42:02.714Z",
+    "command": "tap",
+    "normalized": [
+      0.37,
+      0.83
+    ],
+    "desktopPoint": [
+      812,
+      884
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/23-retry-picker.png"
+  },
+  {
+    "at": "2026-10-25T16:42:03.577Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/24-retry-picker-ready.png"
+  },
+  {
+    "at": "2026-10-25T16:42:14.620Z",
+    "command": "tap",
+    "normalized": [
+      0.18,
+      0.294
+    ],
+    "desktopPoint": [
+      735,
+      416
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/25-picker-select-pdf.png"
+  },
+  {
+    "at": "2026-10-25T16:42:15.486Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/26-score-page-ready.png"
+  },
+  {
+    "at": "2026-10-25T16:43:28.297Z",
+    "command": "tap",
+    "normalized": [
+      0.646,
+      0.917
+    ],
+    "desktopPoint": [
+      923,
+      960
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/27-score-page-two.png"
+  },
+  {
+    "at": "2026-10-25T16:45:18.648Z",
+    "command": "drag",
+    "normalized": [
+      0.72,
+      0.82
+    ],
+    "normalizedEnd": [
+      0.72,
+      0.31
+    ],
+    "desktopPoint": [
+      952,
+      876,
+      952,
+      430
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/28-score-scroll-page-two.png"
+  },
+  {
+    "at": "2026-10-25T16:45:32.710Z",
+    "command": "tap",
+    "normalized": [
+      0.4,
+      0.163
+    ],
+    "desktopPoint": [
+      824,
+      301,
+      824,
+      301
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/29-score-annotation-mode.png"
+  },
+  {
+    "at": "2026-10-25T16:46:02.211Z",
+    "command": "drag",
+    "normalized": [
+      0.35,
+      0.45
+    ],
+    "normalizedEnd": [
+      0.55,
+      0.46
+    ],
+    "desktopPoint": [
+      804,
+      552,
+      884,
+      561
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/30-score-annotation-stroke.png"
+  },
+  {
+    "at": "2026-10-25T16:46:03.567Z",
+    "command": "tap",
+    "normalized": [
+      0.18,
+      0.163
+    ],
+    "desktopPoint": [
+      735,
+      301,
+      735,
+      301
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/31-score-read-mode.png"
+  },
+  {
+    "at": "2026-10-25T16:46:04.876Z",
+    "command": "tap",
+    "normalized": [
+      0.07,
+      0.103
+    ],
+    "desktopPoint": [
+      691,
+      249,
+      691,
+      249
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/32-score-library-after-import.png"
+  },
+  {
+    "at": "2026-10-25T16:50:21.015Z",
+    "command": "capture",
+    "driver": "simctl capture",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/33-score-cold-library.png"
+  },
+  {
+    "at": "2026-10-25T16:50:26.752Z",
+    "command": "tap",
+    "normalized": [
+      0.4,
+      0.6
+    ],
+    "desktopPoint": [
+      824,
+      683,
+      824,
+      683
+    ],
+    "driver": "CGEvent with existing post-event access and own-window gate",
+    "device": "24AB9B6A-7B9B-4566-860F-FD50FA26A956",
+    "screenshot": "out/ddirori/studio-r3-score-transfer/34-score-cold-reopen.png"
+  }
+]

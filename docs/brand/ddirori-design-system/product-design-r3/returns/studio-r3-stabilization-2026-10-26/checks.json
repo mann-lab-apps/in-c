@@ -1,0 +1,175 @@
+{
+  "before": {
+    "vitest.config.ts": "8357d2259e52cb268abeb5e1af90d5cc2caf81585d2fdde43195dda9bc730802",
+    "package.json": "e9a20ffd05a9e2781664a4add5ed36dbda4fd58e007b72707776995685ce9be7",
+    "tsconfig.json": "d0fad14b5cb4e72016bc960a72f0974f229ca7cd7d1495c018d774337ccc08d1",
+    "README.md": "d79d1692adb236fe78f8b37d972b2c424d2e1b7a36458ac934fa08c65e1dbe4f",
+    ".github/workflows/ci.yml": "1a3b310982379c6c44922a731c8632f1717f173dc8d80017d794cb3990ca4c4e",
+    ".github/workflows/release.yml": "4ddc5bb77a1d0e4ccae9cb04e6601e6d10d4095560777628a054bb5e67e52536",
+    "src/renderer/src/App.tsx": "d0609b579d615532fdc2e3bc88a888a786a9616cd1be5a34a015dff2457944c5",
+    "src/renderer/src/App.test.tsx": "1709c83c874850b8e6fe3b65431af060176938523f530ad9cf6fd5058df44c87",
+    "src/renderer/src/studio-r3.css": "43a42e92c6e573bfcd0d1c26653e4730733d62d7cba70b3afb3b21e32f46b43f",
+    "scripts/verify-studio-first-use.cjs": "4c4245c699d53741c57cc6b9ca42183673bae687288e0741870d58a8f530aefd"
+  },
+  "receipts": [
+    {
+      "name": "focused-final",
+      "command": "npm",
+      "args": [
+        "test",
+        "--",
+        "src/renderer/src/App.test.tsx",
+        "src/renderer/src/SpanProperties.test.tsx",
+        "src/renderer/src/editor/keyboard-input.test.ts",
+        "-t",
+        "studio.r3|studio.r2|geometry|composition|keyboard",
+        "--reporter=dot"
+      ],
+      "startedAt": "2026-10-25T15:39:00.235Z",
+      "finishedAt": "2026-10-25T15:39:07.241Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/focused-final.log"
+    },
+    {
+      "name": "typecheck-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-25T15:39:07.242Z",
+      "finishedAt": "2026-10-25T15:39:10.388Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/typecheck-final.log"
+    },
+    {
+      "name": "all-final",
+      "command": "npm",
+      "args": [
+        "run",
+        "test:all"
+      ],
+      "startedAt": "2026-10-25T15:39:10.388Z",
+      "finishedAt": "2026-10-25T15:39:55.930Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/all-final.log"
+    },
+    {
+      "name": "build-verified",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-25T15:39:55.931Z",
+      "finishedAt": "2026-10-25T15:40:00.541Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/build-verified.log"
+    },
+    {
+      "name": "renderer-960-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-studio-first-use.cjs",
+        "--keyboard-retry"
+      ],
+      "overrides": {
+        "DDIRORI_STUDIO_FIRST_USE_OUT": "out/ddirori/studio-r3-stabilization-final-960"
+      },
+      "startedAt": "2026-10-25T15:40:00.541Z",
+      "finishedAt": "2026-10-25T15:40:04.245Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/renderer-960-final.log"
+    },
+    {
+      "name": "renderer-1400-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-studio-first-use.cjs",
+        "--keyboard-retry"
+      ],
+      "overrides": {
+        "DDIRORI_STUDIO_FIRST_USE_OUT": "out/ddirori/studio-r3-stabilization-final-1400",
+        "DDIRORI_STUDIO_FIRST_USE_WIDTH": "1400"
+      },
+      "startedAt": "2026-10-25T15:40:04.246Z",
+      "finishedAt": "2026-10-25T15:40:08.140Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/renderer-1400-final.log"
+    },
+    {
+      "name": "r2-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-ddirori-studio.cjs",
+        "--r2"
+      ],
+      "overrides": {
+        "DDIRORI_STUDIO_QA_OUT": "out/ddirori/studio-r3-stabilization-final-r2"
+      },
+      "startedAt": "2026-10-25T15:40:08.140Z",
+      "finishedAt": "2026-10-25T15:40:23.686Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/r2-final.log"
+    },
+    {
+      "name": "fixed-canvas-final",
+      "command": "node_modules/.bin/electron",
+      "args": [
+        "scripts/verify-notation-snapshots.cjs",
+        "--fixed-canvas"
+      ],
+      "startedAt": "2026-10-25T15:40:23.686Z",
+      "finishedAt": "2026-10-25T15:40:26.174Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/fixed-canvas-final.log"
+    },
+    {
+      "name": "roadmap",
+      "command": "npm",
+      "args": [
+        "run",
+        "verify:chromatics-musescore-parity-roadmap"
+      ],
+      "startedAt": "2026-10-25T15:40:26.175Z",
+      "finishedAt": "2026-10-25T15:40:26.268Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/roadmap.log"
+    },
+    {
+      "name": "work-queue",
+      "command": "npm",
+      "args": [
+        "run",
+        "verify:chromatics-v1-work-queue"
+      ],
+      "startedAt": "2026-10-25T15:40:26.269Z",
+      "finishedAt": "2026-10-25T15:40:26.361Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/work-queue.log"
+    },
+    {
+      "name": "diff-check",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "startedAt": "2026-10-25T15:40:26.361Z",
+      "finishedAt": "2026-10-25T15:40:26.388Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "logs/diff-check.log"
+    }
+  ]
+}

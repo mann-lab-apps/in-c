@@ -50,8 +50,9 @@ export function isTextEditingTarget(target: EventTarget | null): boolean {
     if (
       tagName === 'INPUT' ||
       tagName === 'TEXTAREA' ||
+      tagName === 'SELECT' ||
       element.isContentEditable ||
-      element.getAttribute?.('role') === 'textbox'
+      ['textbox', 'combobox', 'listbox'].includes(element.getAttribute?.('role') ?? '')
     ) {
       return true
     }

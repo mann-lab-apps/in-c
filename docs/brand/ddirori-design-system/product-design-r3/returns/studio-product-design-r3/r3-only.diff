@@ -1,0 +1,820 @@
+diff --git a/out/ddirori/studio-r3-baseline/src/renderer/src/App.tsx b/src/renderer/src/App.tsx
+index 5b790cc3..844c6324 100644
+--- a/out/ddirori/studio-r3-baseline/src/renderer/src/App.tsx
++++ b/src/renderer/src/App.tsx
+@@ -10,7 +10,7 @@ import {
+ import { createRoot } from 'react-dom/client'
+ import { NativeBackupsDialog } from './NativeBackupsDialog'
+ import { SpanProperties } from './SpanProperties'
+-import { Button, Choices, IconButton, Select, Text } from '@ddirori/ui'
++import { Bach, Banner, Button, Choices, Dialog, IconButton, Input, ProductSignature, Progress, Select, Text } from '@ddirori/ui'
+ import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
+ import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
+ import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
+@@ -110,6 +110,7 @@ import {
+ import './styles.css'
+ import './studio-r1.css'
+ import './studio-r2.css'
++import './studio-r3.css'
+ import {
+   buildDeleteCommand,
+   buildDotCommand,
+@@ -660,6 +661,20 @@ export const App = () => {
+     useState<MusicXmlReportPanelState>()
+   const [autosaveRevision, setAutosaveRevision] = useState(0)
+   const documentGeneration = useRef(0)
++  const firstSessionGeneration = useRef<number | undefined>(undefined)
++  const firstProjectSaved = useRef(false)
++  const [firstAchievement, setFirstAchievement] = useState<number>()
++  const [pdfResult, setPdfResult] = useState<{generation:number;fileName:string}>()
++  const [scoreGuideOpen, setScoreGuideOpen] = useState(false)
++  const pdfInFlight = useRef(false)
++  const wizardTrigger = useRef<HTMLElement | null>(null)
++  const wizardComposing = useRef(false)
++  useEffect(() => {
++    try { firstProjectSaved.current = localStorage.getItem('chromatics.studio-first-project.v1') === 'saved' } catch { /* Session-only feedback when storage is unavailable. */ }
++  }, [])
++  const firstSession = firstSessionGeneration.current === documentGeneration.current
++  const hasFirstNote = scoreHasNotes(score)
++  const currentPdfResult = pdfResult?.generation === documentGeneration.current ? pdfResult : undefined
+   const [spanSelection, setSpanSelection] = useState<{
+     reference: SpanReference
+     baseSelection: EditorSelection
+@@ -678,8 +693,8 @@ export const App = () => {
+   const nativeFile = useRef<{ filePath: string; fileName: string } | undefined>(undefined)
+   const nativeEnvelope = useRef<NativeProject | undefined>(undefined)
+   const nativeOpenInFlight = useRef(false)
+-  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision })
+-  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision }
++  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision, noteInputState, livePartViewPartId: selectedScoreViewPartId })
++  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision, noteInputState, livePartViewPartId: selectedScoreViewPartId }
+   const restoreDirtyRecoveryAfterClear = useCallback(async () => {
+     const latest = currentNativeContext.current
+     if (latest.autosaveRevision === 0) return
+@@ -833,6 +848,7 @@ export const App = () => {
+ 
+     return activeStructureTarget?.partId ?? score.parts[0]?.id
+   }, [activeStructureTarget?.partId, score.parts, selectedScoreViewPartId])
++  currentNativeContext.current.livePartViewPartId = livePartViewPartId
+   const livePartViewPart = score.parts.find(
+     (part) => part.id === livePartViewPartId
+   )
+@@ -1835,11 +1851,14 @@ export const App = () => {
+     }
+ 
+     setMetadataEdit(undefined)
++    wizardTrigger.current = document.activeElement as HTMLElement | null
++    wizardComposing.current = false
+     setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
+   }, [autosaveRevision, playback.tempo])
+ 
+   const cancelNewScoreWizard = useCallback(() => {
+     setNewScoreDraft(undefined)
++    requestAnimationFrame(() => wizardTrigger.current?.isConnected && wizardTrigger.current.focus())
+   }, [])
+ 
+   const submitNewScoreWizard = useCallback(() => {
+@@ -1867,6 +1886,7 @@ export const App = () => {
+ 
+     playback.stop()
+     documentGeneration.current += 1
++    firstSessionGeneration.current = documentGeneration.current
+     nativeFile.current = undefined
+     nativeEnvelope.current = undefined
+     setScore(nextScore)
+@@ -1890,6 +1910,7 @@ export const App = () => {
+       tone: 'neutral',
+       message: '새 악보를 만들었습니다.'
+     })
++    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="음표 입력 전환, 단축키 N"]')?.focus())
+   }, [newScoreDraft, playback])
+ 
+   const changeScoreTempo = useCallback(
+@@ -4405,14 +4426,14 @@ export const App = () => {
+     const generation = documentGeneration.current
+     const context = currentNativeContext.current
+     const sameDocument = () => generation === documentGeneration.current
+-    const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision
++    const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision && (context.scoreViewMode !== 'part' || currentNativeContext.current.livePartViewPartId === context.livePartViewPartId)
+     try {
+-      if (noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
+-      const project = createNativeSnapshot(score, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
++      if (context.noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
++      const project = createNativeSnapshot(context.score, nativeEnvelope.current, context.partPageSetupPreferences, context.scoreViewMode, context.livePartViewPartId)
+       const contents = encodeNativeProject(project)
+       const result = await window.inC.project.save({
+         ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
+-        suggestedName: `${toFileName(score.title)}.chromatics`, contents
++        suggestedName: `${toFileName(context.score.title)}.chromatics`, contents
+       })
+       if (!result || !sameDocument()) return
+       nativeFile.current = result
+@@ -4423,14 +4444,22 @@ export const App = () => {
+       setRecentMusicXmlFiles(files)
+       if (sameSnapshot()) {
+         await window.inC.autosave.clear()
+-        if (sameSnapshot()) setAutosaveRevision(0)
++        if (sameSnapshot()) {
++          setAutosaveRevision(0)
++          const containsNote = scoreHasNotes(context.score)
++          if (firstSessionGeneration.current === generation && containsNote && !firstProjectSaved.current) {
++            firstProjectSaved.current = true
++            setFirstAchievement(generation)
++            try { localStorage.setItem('chromatics.studio-first-project.v1', 'saved') } catch { /* Keep the session result. */ }
++          }
++        }
+         else await restoreDirtyRecoveryAfterClear()
+       }
+       if (sameDocument()) setFileStatus({ tone: 'neutral', message: sameSnapshot() ? `${result.fileName}에 저장했습니다.` : `${result.fileName}에 저장했습니다. 저장 중 변경사항은 아직 저장되지 않았습니다.` })
+     } catch (error) {
+       if (sameDocument()) setFileStatus({ tone: 'error', message: getErrorMessage(error) })
+     } finally { saveInFlight.current = false; setSavingNative(false) }
+-  }, [score, partPageSetupPreferences, scoreViewMode, livePartViewPartId, noteInputState?.tupletInput, restoreDirtyRecoveryAfterClear])
++  }, [restoreDirtyRecoveryAfterClear])
+ 
+   const importMusicXml = useCallback(async () => {
+     if (
+@@ -4767,6 +4796,7 @@ export const App = () => {
+   }, [score, scoreViewMode, livePartViewPartId, livePartLayout, noteInputState?.tupletInput])
+ 
+   const savePdf = useCallback(async () => {
++    if (pdfInFlight.current) return
+     if (!parsePdfTargetPages(pdfTargetPages)) {
+       setFileStatus({
+         tone: 'error',
+@@ -4775,9 +4805,14 @@ export const App = () => {
+       return
+     }
+ 
++    const generation = documentGeneration.current
++    pdfInFlight.current = true
++    setPdfResult(undefined)
++    setScoreGuideOpen(false)
+     try {
+       setPdfExporting(true)
+       await waitForNextPaint()
++      if (generation !== documentGeneration.current) return
+ 
+       const result = await window.inC.pdf.save({
+         suggestedName: `${toFileName(
+@@ -4787,20 +4822,22 @@ export const App = () => {
+         )}.pdf`
+       })
+ 
+-      if (!result) {
++      if (!result || generation !== documentGeneration.current) {
+         return
+       }
+ 
++      setPdfResult({generation,fileName:result.fileName})
+       setFileStatus({
+         tone: 'neutral',
+         message: `${result.fileName}로 PDF를 만들었습니다.`
+       })
+     } catch (error) {
+-      setFileStatus({
++      if (generation === documentGeneration.current) setFileStatus({
+         tone: 'error',
+         message: getErrorMessage(error)
+       })
+     } finally {
++      pdfInFlight.current = false
+       setPdfExporting(false)
+     }
+   }, [livePartViewPart, livePartViewTitle, pdfTargetPages, score.title, scoreViewMode])
+@@ -5407,25 +5444,21 @@ export const App = () => {
+         </style>
+       ) : null}
+       {startScreenVisible ? (
+-        <section className="start-screen" aria-labelledby="start-screen-title">
++        <section className="start-screen studio-start studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-labelledby="start-screen-title">
+           <div className="start-screen__content">
+-            <p className="eyebrow">in-C</p>
+-            <h1 id="start-screen-title">무엇을 시작할까요?</h1>
+-            <p>
+-              새 악보를 만들거나 MusicXML 파일을 가져오세요. 자동저장 복구본이
+-              있으면 이어서 열 수 있습니다.
+-            </p>
++            <ProductSignature product="studio" name="Studio" />
++            <div className="studio-welcome">{recentMusicXmlFiles.length === 0 && !recoverySnapshot ? <Bach size={64} /> : null}<Text as="h1" variant="screenTitle" id="start-screen-title">새 악보를 만들어 볼까요?</Text></div>
+ 
+             <div className="start-actions" aria-label="시작 작업">
+-              <button
+-                className="start-action"
++              <Button
++                className="start-action studio-start-primary"
++                aria-label="새 악보 만들기"
+                 onClick={openNewScoreWizard}
+-                type="button"
+               >
+                 <FilePlus2 aria-hidden="true" size={24} />
+                 <span>새 악보 만들기</span>
+                 <small>조표, 박자표, 마디 수를 정하고 시작합니다.</small>
+-              </button>
++              </Button>
+ 
+               <button
+                 className="start-action"
+@@ -5499,8 +5532,7 @@ export const App = () => {
+                 </div>
+               ) : (
+                 <p className="recent-files__empty">
+-                  아직 최근 파일이 없습니다. MusicXML을 가져오면 여기에
+-                  표시됩니다.
++                  아직 최근 파일이 없습니다.
+                 </p>
+               )}
+             </section>
+@@ -5558,8 +5590,27 @@ export const App = () => {
+         </output>
+         <span className="studio-input-context__state">{noteInputState ? inputModeLabel : '대기'}</span>
+         {noteInputState ? <Button kind="quiet" onClick={enterRest}>쉼표 넣기</Button> : null}
++        {firstSession && !hasFirstNote ? <p className="studio-first-input" role="note" aria-label="첫 입력 안내">
++          {noteInputState ? 'A–G로 음을 넣거나 쉼표 넣기를 선택하세요.' : 'N으로 음표 입력을 켜고 첫 음을 넣어 보세요.'}
++        </p> : null}
+       </section>
+ 
++      {firstSession && hasFirstNote && !firstProjectSaved.current ? <section className="studio-first-save studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="첫 프로젝트 저장">
++        {savingNative ? <Progress label="프로젝트 파일 저장 중" /> : <>
++          <Text>편집 가능한 원본을 프로젝트 파일로 남겨 주세요.</Text>
++          <Button kind="secondary" aria-label="프로젝트 파일 저장" disabled={savingMusicXml || !window.inC?.project} onClick={() => saveNativeProject()}>프로젝트 파일 저장</Button>
++        </>}
++      </section> : null}
++      {firstAchievement === documentGeneration.current ? <section className="studio-result studio-chrome ddirori" data-theme={studioTheme}>
++        <Banner kind="success" action={<IconButton label="첫 저장 알림 닫기" onClick={() => setFirstAchievement(undefined)}><X size={18} aria-hidden="true" /></IconButton>}><div className="studio-welcome"><Bach size={48} expression="happy" /><Text>첫 악보를 파일로 저장했어요.</Text></div></Banner>
++      </section> : null}
++      {currentPdfResult ? <section className="studio-result studio-chrome ddirori" data-theme={studioTheme} data-density="compact" aria-label="PDF 출력 결과">
++        <Banner action={<><Button kind="secondary" onClick={() => setScoreGuideOpen(true)}>가져오는 방법</Button><IconButton label="PDF 출력 결과 닫기" onClick={() => {setPdfResult(undefined);setScoreGuideOpen(false)}}><X size={18} aria-hidden="true" /></IconButton></>}>
++          <Text as="h2" variant="sectionTitle">PDF로 연습 이어가기</Text>
++          <p>{currentPdfResult.fileName} · 프로젝트와 별도로 만든 PDF 사본입니다.</p>
++        </Banner>
++      </section> : null}
++
+       <section
+         className="editor-context-strip studio-chrome ddirori"
+         data-theme={studioTheme}
+@@ -7795,19 +7846,22 @@ export const App = () => {
+       ) : null}
+ 
+       {newScoreDraft ? (
+-        <div className="modal-backdrop" role="presentation">
++        <div className="studio-first-use studio-chrome ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
++          <Dialog open title="새 악보 만들기" onClose={cancelNewScoreWizard}>
+           <form
+             aria-label="새 악보 만들기"
+-            className="new-score-dialog"
++            className="new-score-dialog studio-new-score-form"
++            onCompositionStart={() => { wizardComposing.current = true }}
++            onCompositionEnd={() => { wizardComposing.current = false }}
++            onKeyDown={event => {
++              if (event.key !== 'Tab') event.stopPropagation()
++              if ((wizardComposing.current || event.nativeEvent.isComposing || event.keyCode === 229) && ['Enter','Escape'].includes(event.key)) event.preventDefault()
++            }}
+             onSubmit={(event) => {
+               event.preventDefault()
+-              submitNewScoreWizard()
++              if (!wizardComposing.current) submitNewScoreWizard()
+             }}
+-            role="dialog"
+           >
+-            <header>
+-              <h2>새 악보</h2>
+-            </header>
+ 
+             <section aria-label="내장 템플릿" className="new-score-templates">
+               <h3>내장 템플릿</h3>
+@@ -7844,9 +7898,7 @@ export const App = () => {
+             </section>
+ 
+             <div className="new-score-form">
+-              <label>
+-                <span>제목</span>
+-                <input
++              <Input label="제목"
+                   autoFocus
+                   maxLength={metadataMaxLength.title}
+                   onChange={(event) =>
+@@ -7857,7 +7909,6 @@ export const App = () => {
+                   }
+                   value={newScoreDraft.title}
+                 />
+-              </label>
+ 
+               <label>
+                 <span>작곡가</span>
+@@ -7993,9 +8044,25 @@ export const App = () => {
+               </button>
+             </footer>
+           </form>
++          </Dialog>
+         </div>
+       ) : null}
+ 
++      {currentPdfResult && scoreGuideOpen ? <div className="studio-first-use studio-chrome ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
++        <Dialog open title="PDF로 연습 이어가기" onClose={() => setScoreGuideOpen(false)}>
++          <ProductSignature product="score" name="Score" />
++          <p>{currentPdfResult.fileName}</p>
++          <ol className="studio-transfer-steps">
++            <li>저장한 PDF를 원하는 파일 보관 방법으로 모바일 기기에 전달해 주세요.</li>
++            <li>모바일 기기의 Score에서 PDF 추가를 선택하고 전달한 파일을 가져오세요.</li>
++            <li>Score에서 파일 저장과 지면 열기를 확인한 뒤 주석이나 연습을 시작하세요.</li>
++          </ol>
++          <p>Studio 프로젝트, 내보낸 PDF, Score 내부 사본은 별개입니다. 이후 Studio 수정은 Score에 자동으로 반영되지 않습니다.</p>
++          <p>이 기기에서는 Score의 설치 여부나 가져오기 완료를 확인하지 않습니다.</p>
++          <Button kind="secondary" onClick={() => setScoreGuideOpen(false)}>확인</Button>
++        </Dialog>
++      </div> : null}
++
+       {shortcutHelpOpen ? (
+         <div className="modal-backdrop" role="presentation">
+           <section
+@@ -10460,6 +10527,12 @@ function waitForNextPaint(): Promise<void> {
+   })
+ }
+ 
++function scoreHasNotes(score: Score): boolean {
++  return score.parts.some(part => part.staves.some(staff =>
++    staff.measures.some(measure => measure.voices.some(voice =>
++      voice.events.some(event => event.type === 'note')))))
++}
++
+ function getErrorMessage(error: unknown): string {
+   return error instanceof Error ? error.message : String(error)
+ }
+diff --git a/out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx.snapshot b/src/renderer/src/App.test.tsx
+index 89b89d86..0b0f180d 100644
+--- a/out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx.snapshot
++++ b/src/renderer/src/App.test.tsx
+@@ -675,6 +675,8 @@ describe('App component shell', () => {
+   })
+ 
+   beforeEach(() => {
++    Object.defineProperty(HTMLDialogElement.prototype,'showModal',{configurable:true,value(this:HTMLDialogElement){this.setAttribute('open','')}})
++    Object.defineProperty(HTMLDialogElement.prototype,'close',{configurable:true,value(this:HTMLDialogElement){this.removeAttribute('open')}})
+     // jsdom has no Popover API; real popup placement is checked in Electron.
+     Object.defineProperty(HTMLElement.prototype,'showPopover',{configurable:true,value(this:HTMLElement){this.style.display='block'}})
+     Object.defineProperty(HTMLElement.prototype,'hidePopover',{configurable:true,value(){}})
+@@ -703,7 +705,7 @@ describe('App component shell', () => {
+     render(<App />)
+ 
+     expect(
+-      screen.getByRole('heading', { name: '무엇을 시작할까요?' })
++      screen.getByRole('heading', { name: '새 악보를 만들어 볼까요?' })
+     ).toBeInTheDocument()
+     expect(screen.getByRole('button', { name: /새 악보 만들기/ })).toBeInTheDocument()
+     expect(screen.getByRole('button', { name: /MusicXML 가져오기/ })).toBeInTheDocument()
+@@ -1627,6 +1629,29 @@ describe('App component shell', () => {
+     expect(window.inC.recentMusicXml.add).not.toHaveBeenCalled()
+   })
+ 
++  it('studio.r3 a queued pre-recovery keyboard handler saves the current portable snapshot', async () => {
++    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
++    const {createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../project/schema')
++    const project=createNativeProject(parseMusicXml(richPartExportMusicXml))
++    project.view={mode:'part',partId:'P2'}
++    project.partLayouts=[{partId:'P2',title:'Queued recovery piano',layout:{}}]
++    vi.mocked(window.inC.project.listBackups).mockResolvedValue([{id:'queued',fileName:'queued.chromatics',title:'Queued backup',updatedAt:''}])
++    vi.mocked(window.inC.project.readBackup).mockResolvedValue({contents:encodeNativeProject(project)})
++    const listeners=vi.spyOn(window,'addEventListener')
++    const {App}=await import('./App')
++    render(<App />)
++    const queued=listeners.mock.calls.find(([type])=>type==='keydown')![1] as EventListener
++    fireEvent.click(screen.getByRole('button',{name:'파일'}))
++    fireEvent.click(screen.getByRole('button',{name:'프로젝트 백업'}))
++    fireEvent.click(await screen.findByRole('button',{name:'Queued backup 복구'}))
++    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'프로젝트 백업'})).not.toBeInTheDocument())
++    act(()=>queued(new KeyboardEvent('keydown',{key:'s',code:'KeyS',ctrlKey:true,cancelable:true})))
++    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledOnce())
++    const saved=decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
++    expect(saved).toMatchObject({view:project.view,partLayouts:[{partId:'P2',title:'Queued recovery piano'}]})
++    expect(saved.score).toEqual(project.score)
++  })
++
+   it('closing backup selection cancels a pending restore without replacing the score', async () => {
+     window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+     vi.mocked(window.inC.project.listBackups).mockResolvedValue([{ id: 'backup', fileName: 'backup.chromatics', title: 'Old backup', updatedAt: '' }])
+@@ -3746,6 +3771,170 @@ describe('App component shell', () => {
+     expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
+   })
+ 
++  it('studio.r3 wizard keeps composition local and cancellation restores its trigger', async () => {
++    const { App } = await import('./App')
++    render(<App />)
++    const trigger=screen.getByRole('button',{name:'새 악보 만들기'})
++    trigger.focus(); fireEvent.click(trigger)
++    const dialog=screen.getByRole('dialog',{name:'새 악보 만들기'})
++    const title=within(dialog).getByRole('textbox',{name:'제목'})
++    fireEvent.compositionStart(title)
++    fireEvent.change(title,{target:{value:'한글'}})
++    fireEvent.keyDown(title,{key:'Enter',code:'Enter',isComposing:true})
++    fireEvent.submit(within(dialog).getByRole('form',{name:'새 악보 만들기'}))
++    expect(dialog).toBeInTheDocument()
++    fireEvent.compositionEnd(title)
++    fireEvent.keyDown(title,{key:'s',code:'KeyS',ctrlKey:true})
++    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
++    expect(window.inC.project.save).not.toHaveBeenCalled()
++    fireEvent.click(within(dialog).getByRole('button',{name:'취소'}))
++    await waitFor(()=>expect(trigger).toHaveFocus())
++    expect(screen.getByRole('heading',{name:'새 악보를 만들어 볼까요?'})).toBeInTheDocument()
++  })
++
++  it('studio.r3 dirty replacement and wizard draft cancellation preserve notes and undo', async () => {
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
++    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
++    fireEvent.click(screen.getByRole('button',{name:'음표 입력 전환, 단축키 N'}))
++    fireEvent.keyDown(window,{key:'c',code:'KeyC'})
++    const preview=screen.getByTestId('notation-preview')
++    const before=preview.getAttribute('data-event-durations')
++    fireEvent.click(screen.getByRole('button',{name:'파일'}))
++    vi.spyOn(window,'confirm').mockReturnValue(false)
++    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
++    expect(window.confirm).toHaveBeenCalledWith(unsavedScoreChangesMessage)
++    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
++    expect(preview).toHaveAttribute('data-event-durations',before)
++    vi.mocked(window.confirm).mockReturnValue(true)
++    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
++    const dialog=screen.getByRole('dialog',{name:'새 악보 만들기'})
++    fireEvent.change(within(dialog).getByRole('textbox',{name:'제목'}),{target:{value:'discard this draft'}})
++    fireEvent.click(within(dialog).getByRole('button',{name:'취소'}))
++    expect(preview).toHaveAttribute('data-event-durations',before)
++    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
++    fireEvent.keyDown(window,{key:'z',code:'KeyZ',ctrlKey:true})
++    expect(screen.getByRole('note',{name:'첫 입력 안내'})).toBeInTheDocument()
++    expect(window.inC.project.save).not.toHaveBeenCalled()
++  })
++
++  it('studio.r3 does not celebrate an empty project or a MusicXML copy', async () => {
++    vi.mocked(window.inC.project.save).mockResolvedValue({fileName:'empty.chromatics',filePath:'/fixture/empty.chromatics'})
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
++    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
++    fireEvent.click(screen.getByRole('button',{name:'파일'}))
++    fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
++    await waitFor(()=>expect(window.inC.autosave.clear).toHaveBeenCalled())
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++    fireEvent.click(screen.getByRole('button',{name:'음표 입력 전환, 단축키 N'}))
++    fireEvent.keyDown(window,{key:'c',code:'KeyC'})
++    fireEvent.click(screen.getByRole('button',{name:'파일'}))
++    vi.mocked(window.inC.musicXml.save).mockResolvedValue({fileName:'copy.musicxml',filePath:'/fixture/copy.musicxml'})
++    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
++    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalled())
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++  })
++
++  it('studio.r3 first session uses actual notes and only celebrates a current native save', async () => {
++    const { App } = await import('./App')
++    render(<App />)
++    expect(screen.getByRole('heading', {name:'새 악보를 만들어 볼까요?'})).toBeInTheDocument()
++    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
++    const dialog=screen.getByRole('dialog', {name:'새 악보 만들기'})
++    fireEvent.click(within(dialog).getByRole('button', {name:'만들기'}))
++    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toBeInTheDocument()
++    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
++    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toHaveTextContent('A–G')
++    fireEvent.keyDown(window, {code:'KeyC',key:'c'})
++    expect(screen.queryByRole('note', {name:'첫 입력 안내'})).not.toBeInTheDocument()
++    fireEvent.keyDown(window, {code:'KeyZ',key:'z',ctrlKey:true})
++    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toBeInTheDocument()
++    fireEvent.keyDown(window, {code:'KeyZ',key:'z',ctrlKey:true,shiftKey:true})
++    fireEvent.click(screen.getByRole('button', {name:'파일'}))
++    vi.mocked(window.inC.project.save).mockResolvedValueOnce(null)
++    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
++    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1))
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++    vi.mocked(window.inC.project.save).mockRejectedValueOnce(new Error('R3 disk unavailable'))
++    await waitFor(()=>expect(screen.getByRole('button', {name:'프로젝트 저장'})).toBeEnabled())
++    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
++    await screen.findByText('R3 disk unavailable')
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++    vi.mocked(window.inC.project.save).mockResolvedValueOnce({filePath:'/fixture/first.chromatics',fileName:'first.chromatics'})
++    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
++    await screen.findByText('첫 악보를 파일로 저장했어요.')
++    fireEvent.click(screen.getByRole('button',{name:'첫 저장 알림 닫기'}))
++    fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
++    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(4))
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++    const {decodeNativeProject}=await import('../../project/schema')
++    const saved=decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls.at(-1)![0].contents)
++    expect(saved.score.parts[0].staves[0].measures[0].voices[0].events.some(event=>event.type==='note')).toBe(true)
++    expect(document.querySelector('.studio-document')).toHaveTextContent('변경 없음')
++  })
++
++  it.each(['new-edit','new-document'] as const)('studio.r3 suppresses first achievement for a late native save after %s', async change => {
++    let finish!: (value:{filePath:string;fileName:string})=>void
++    vi.mocked(window.inC.project.save).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}))
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
++    fireEvent.click(within(screen.getByRole('dialog', {name:'새 악보 만들기'})).getByRole('button', {name:'만들기'}))
++    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
++    fireEvent.keyDown(window, {code:'KeyC',key:'c'})
++    fireEvent.click(screen.getByRole('button', {name:'파일'}))
++    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
++    await waitFor(()=>expect(finish).toBeTypeOf('function'))
++    if(change==='new-edit') fireEvent.keyDown(window, {code:'KeyD',key:'d'})
++    else {
++      vi.spyOn(window,'confirm').mockReturnValue(true)
++      fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
++      fireEvent.click(within(screen.getByRole('dialog', {name:'새 악보 만들기'})).getByRole('button', {name:'만들기'}))
++    }
++    await act(async()=>finish({filePath:'/fixture/first.chromatics',fileName:'first.chromatics'}))
++    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
++    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
++  })
++
++  it('studio.r3 PDF success exposes manual Score instructions without cleaning the project', async () => {
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    vi.mocked(window.inC.pdf.save).mockResolvedValueOnce({fileName:'practice.pdf'})
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.keyDown(window,{code:'KeyC',key:'c'})
++    fireEvent.click(screen.getByRole('button', {name:'내보내기'}))
++    fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
++    const guide=await screen.findByRole('button', {name:'가져오는 방법'})
++    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
++    fireEvent.click(guide)
++    const dialog=screen.getByRole('dialog',{name:'PDF로 연습 이어가기'})
++    expect(dialog).toHaveTextContent('모바일 기기')
++    expect(dialog).toHaveTextContent('자동으로 반영되지 않습니다')
++    expect(within(dialog).queryByRole('button',{name:'Score에서 열기'})).not.toBeInTheDocument()
++    expect(window.inC.project.save).not.toHaveBeenCalled()
++  })
++
++  it.each(['success','failure'] as const)('studio.r3 ignores late PDF %s after replacing the document', async outcome=>{
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    let finish!: (value:{fileName:string})=>void
++    let fail!: (error:Error)=>void
++    vi.mocked(window.inC.pdf.save).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
++    const { App } = await import('./App')
++    render(<App />)
++    fireEvent.click(screen.getByRole('button', {name:'내보내기'}))
++    fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
++    await waitFor(()=>expect(finish).toBeTypeOf('function'))
++    fireEvent.click(screen.getByRole('button', {name:'파일'}))
++    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
++    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
++    await act(async()=>outcome==='success'?finish({fileName:'old-r3.pdf'}):fail(new Error('old-r3-failure')))
++    expect(screen.queryByText(/old-r3/)).not.toBeInTheDocument()
++    expect(screen.queryByRole('button',{name:'가져오는 방법'})).not.toBeInTheDocument()
++  })
++
+   it('studio.r2 separates next input from selected event edits without adding undo commands', async () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+diff --git a/src/renderer/src/studio-r3.css b/src/renderer/src/studio-r3.css
+new file mode 100644
+index 00000000..1a6664bb
+--- /dev/null
++++ b/src/renderer/src/studio-r3.css
+@@ -0,0 +1,33 @@
++/* First-use composition; notation and print geometry stay independent. */
++.app-shell--start:has(.studio-start) { background: Canvas; color-scheme: light dark; }
++.studio-start { background: var(--dd-surface); }
++.studio-start .start-screen__content { width: min(1080px, 100%); }
++.studio-welcome { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
++.studio-start h1 { font-size: 1.5rem; }
++.studio-start :is(h1, h2) { color: var(--dd-text); }
++.studio-start .start-action svg, .studio-start .recent-files__header svg { color: currentColor; }
++.studio-start .start-actions { margin-top: 24px; }
++.studio-start .start-action { border-radius: 6px; color: var(--dd-text); background: var(--dd-surface); border-color: var(--dd-border); }
++.studio-start .start-action, .studio-start .start-action:hover { box-shadow: none; }
++.studio-start .studio-start-primary { border-color: var(--dd-action); box-shadow: inset 4px 0 var(--dd-action); }
++.studio-start .recent-files { background: var(--dd-surface); border: 0; border-radius: 0; padding-inline: 0; }
++.studio-start .recent-files__header, .studio-start .recent-file { color: var(--dd-text); }
++.studio-start .recent-file { background: var(--dd-surface); border-color: var(--dd-border); }
++.studio-start .recent-file small { color: var(--dd-muted); }
++.studio-start .start-action small, .studio-start .recent-files__empty { color: var(--dd-muted); }
++.studio-first-input { flex: 0 0 100%; margin: 0; color: var(--dd-muted); font-size: 0.875rem; }
++.studio-first-save { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--dd-border); }
++.studio-result { padding: 12px 24px; overflow-wrap: anywhere; }
++.studio-result h2 { font-size: 1rem; }
++.studio-result p { margin-block: 8px; }
++.studio-first-use .dd-dialog { max-height: calc(100dvh - 32px); }
++.studio-first-use .dd-dialog:has(.studio-new-score-form) { width: min(850px, calc(100vw - 32px)); }
++.studio-first-use .studio-new-score-form { width: 100%; max-height: none; overflow: visible; padding: 0; border: 0; box-shadow: none; background: var(--dd-surface); color: var(--dd-text); }
++.studio-first-use .new-score-form { min-width: 0; }
++.studio-first-use .new-score-form > * { min-width: 0; }
++.studio-first-use .new-score-form input { min-width: 0; max-width: 100%; }
++.studio-first-use .new-score-form :is(input, select) { min-height: var(--dd-control); padding: 4px 8px; }
++.studio-first-use .new-score-template-option :is(small, .new-score-template-option__category) { color: var(--dd-muted); }
++.studio-transfer-steps { padding-left: 24px; }
++.studio-transfer-steps li { margin-block: 12px; overflow-wrap: anywhere; }
++@media print { .studio-first-save, .studio-result, .studio-first-use { display: none; } }
+diff --git a/scripts/verify-studio-first-use.cjs b/scripts/verify-studio-first-use.cjs
+new file mode 100644
+index 00000000..a61c9ef0
+--- /dev/null
++++ b/scripts/verify-studio-first-use.cjs
+@@ -0,0 +1,209 @@
++// Production renderer/preload with isolated, disk-backed QA IPC destinations.
++const {app,BrowserWindow,ipcMain,nativeTheme} = require('electron')
++const fs = require('node:fs')
++const path = require('node:path')
++const os = require('node:os')
++const assert = require('node:assert/strict')
++const out=path.resolve('out/ddirori/studio-r3-renderer')
++const profile=fs.mkdtempSync(path.join(os.tmpdir(),'studio-r3-'))
++app.setPath('userData',profile)
++app.disableHardwareAcceleration()
++fs.mkdirSync(out,{recursive:true})
++fs.rmSync(path.join(out,'results.json'),{force:true})
++const projectPath=path.join(profile,'first.chromatics')
++let saveMode='success',pdfMode='success',recent=[],recovery=null,win,releaseSave
++const result=filePath=>({filePath,fileName:path.basename(filePath)})
++ipcMain.handle('project:save',async(_event,input)=>{
++  if(saveMode==='cancel') return null
++  if(saveMode==='fail') throw Error('R3 disk unavailable')
++  if(saveMode==='pending') await new Promise(resolve=>{releaseSave=resolve})
++  fs.writeFileSync(projectPath,input.contents)
++  return result(projectPath)
++})
++ipcMain.handle('project:open',()=>({...result(projectPath),contents:fs.readFileSync(projectPath,'utf8')}))
++ipcMain.handle('project:list-backups',()=>[])
++ipcMain.handle('recent-musicxml:list',()=>recent)
++ipcMain.handle('recent-musicxml:add',(_e,input)=>(recent=[{...input,openedAt:new Date().toISOString()}]))
++ipcMain.handle('autosave:read',()=>recovery)
++ipcMain.handle('autosave:write',(_e,input)=>{
++  recovery={...input,metadata:{title:input.title,updatedAt:new Date().toISOString(),version:'qa'}}
++  fs.writeFileSync(path.join(out,'recovery.json'),JSON.stringify(recovery,null,2))
++  return recovery.metadata
++})
++ipcMain.handle('autosave:clear',()=>{recovery=null})
++ipcMain.handle('musicxml:open',()=>null)
++for(const channel of ['musicxml:save','musicxml:export']) ipcMain.handle(channel,(_e,input)=>{
++  const file=path.join(out,'first.musicxml');fs.writeFileSync(file,input.contents);return result(file)
++})
++ipcMain.handle('pdf:save',async()=>{
++  if(pdfMode==='cancel') return null
++  if(pdfMode==='fail') throw Error('R3 PDF unavailable')
++  const file=path.join(out,'practice.pdf')
++  fs.writeFileSync(file,await win.webContents.printToPDF({preferCSSPageSize:true,printBackground:false}))
++  return result(file)
++})
++const run=(fn,arg)=>win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg)??''})`)
++const settle=()=>run(()=>document.fonts.ready.then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))))
++const wait=async(fn,arg)=>{
++  const start=Date.now()
++  while(!await run(fn,arg)) {assert.ok(Date.now()-start<5000,`UI condition timed out: ${fn}`);await settle()}
++}
++const click=async label=>{
++  await run(label=>{
++    const node=[...document.querySelectorAll('button')].find(node=>(node.getAttribute('aria-label')||node.textContent.trim())===label && node.checkVisibility())
++    if(!node||node.disabled) throw Error(`Unavailable: ${label}`)
++    node.focus();node.click()
++  },label)
++  await settle()
++}
++const key=async(keyCode,modifiers=[])=>{
++  win.webContents.sendInputEvent({type:'keyDown',keyCode,modifiers})
++  if(keyCode==='Enter') win.webContents.sendInputEvent({type:'char',keyCode:'\r',modifiers})
++  win.webContents.sendInputEvent({type:'keyUp',keyCode,modifiers})
++  await settle()
++}
++const change=async(selector,value)=>{
++  await run(({selector,value})=>{
++    const node=document.querySelector(selector)
++    if(!node||!node.checkVisibility()||node.disabled) throw Error(`Unavailable field: ${selector}`)
++    node.focus()
++    Object.getOwnPropertyDescriptor(node.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(node,value)
++    node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}))
++  },{selector,value})
++  await settle()
++}
++const capture=async name=>{
++  await settle()
++  fs.writeFileSync(path.join(out,`${name}.png`),(await win.webContents.capturePage()).toPNG())
++}
++app.whenReady().then(async()=>{
++  win=new BrowserWindow({width:1400,height:1000,show:true,webPreferences:{preload:path.resolve('out/preload/index.js'),contextIsolation:true,nodeIntegration:false,sandbox:false,backgroundThrottling:false}})
++  try {
++    await win.loadFile(path.resolve('out/renderer/index.html'))
++    app.focus({steal:true});win.focus();await wait(()=>document.hasFocus())
++    const layout=[]
++    for(const theme of ['light','dark']) for(const viewport of [1400,960]) {
++      nativeTheme.themeSource=theme;win.setContentSize(viewport,1000);await settle()
++      assert.equal(await run(()=>document.documentElement.scrollWidth>innerWidth+1),false)
++      assert.equal(await run(()=>getComputedStyle(document.querySelector('#start-screen-title')).color===getComputedStyle(document.querySelector('.studio-start')).color),true,'Welcome heading must use the actual theme foreground')
++      await capture(`start-${theme}-${viewport}`)
++      await click('새 악보 만들기')
++      assert.equal(await run(()=>document.querySelector('dialog').open),true)
++      await capture(`wizard-${theme}-${viewport}`)
++      layout.push(await run(({theme,viewport})=>{
++        const dialog=document.querySelector('dialog'),box=dialog.getBoundingClientRect()
++        return {theme,viewport,dpr:devicePixelRatio,dialogWidth:box.width,overflow:dialog.scrollWidth>dialog.clientWidth+1,
++          inputHeight:dialog.querySelector('input').getBoundingClientRect().height}
++      },{theme,viewport}))
++      assert.equal(layout.at(-1).overflow,false)
++      await run(()=>[...document.querySelectorAll('dialog button')].find(node=>node.textContent.trim()==='만들기').focus())
++      await key('Tab')
++      assert.equal(await run(()=>document.activeElement?.getAttribute('aria-label')),'닫기','Wizard Tab must wrap to its first control')
++      await key('Escape')
++      await wait(()=>!document.querySelector('dialog'))
++      assert.equal(await run(()=>document.activeElement?.getAttribute('aria-label')),'새 악보 만들기')
++    }
++    nativeTheme.themeSource='light';win.setContentSize(960,1000);await settle()
++    await click('새 악보 만들기')
++    await change('.studio-new-score-form input','R3 First Score')
++    await run(()=>{
++      window.r3KeyTrace=[]
++      for(const type of ['keydown','keypress','keyup','submit','invalid']) document.addEventListener(type,event=>window.r3KeyTrace.push({type,key:event.key,target:event.target.outerHTML?.slice(0,180),prevented:event.defaultPrevented}),true)
++    })
++    await key('Enter')
++    await wait(()=>Boolean(document.querySelector('[aria-label="첫 입력 안내"]')))
++    await capture('first-input')
++    await key('N');await key('C')
++    await wait(()=>!document.querySelector('[aria-label="첫 입력 안내"]'))
++    await key('Z',['control'])
++    await wait(()=>Boolean(document.querySelector('[aria-label="첫 입력 안내"]')))
++    await key('Z',['control','shift'])
++    await wait(()=>!document.querySelector('[aria-label="첫 입력 안내"]'))
++    saveMode='cancel'
++    await click('프로젝트 파일 저장')
++    await wait(()=>!document.body.textContent.includes('프로젝트 파일 저장 중'))
++    assert.equal(fs.existsSync(projectPath),false)
++    assert.equal(await run(()=>document.body.textContent.includes('첫 악보를 파일로 저장했어요.')),false)
++    await capture('save-cancel')
++    saveMode='fail';await click('프로젝트 파일 저장')
++    await wait(()=>document.body.textContent.includes('R3 disk unavailable'))
++    await capture('save-failure')
++    saveMode='pending';await click('프로젝트 파일 저장')
++    await wait(()=>document.body.textContent.includes('프로젝트 파일 저장 중'))
++    await capture('save-pending')
++    releaseSave()
++    await wait(()=>document.body.textContent.includes('첫 악보를 파일로 저장했어요.'))
++    await capture('first-save-success')
++    const saved=JSON.parse(fs.readFileSync(projectPath,'utf8'))
++    const notes=saved.score.parts.flatMap(p=>p.staves.flatMap(s=>s.measures.flatMap(m=>m.voices.flatMap(v=>v.events.filter(e=>e.type==='note')))))
++    assert.equal(notes.length,1)
++    assert.equal(notes[0].pitch.step,'C')
++    fs.copyFileSync(projectPath,path.join(out,'first.chromatics'))
++    await click('파일');await click('프로젝트 열기')
++    await wait(()=>document.querySelector('.studio-document')?.textContent.includes('변경 없음'))
++    await key('N');await key('D')
++    await click('내보내기')
++    pdfMode='cancel';await click('PDF 변환')
++    await wait(()=>!document.querySelector('.app-shell--pdf-export'))
++    assert.equal(await run(()=>Boolean(document.querySelector('[aria-label="PDF 출력 결과"]'))),false)
++    pdfMode='fail';await click('PDF 변환')
++    await wait(()=>document.body.textContent.includes('R3 PDF unavailable'))
++    await capture('pdf-failure')
++    pdfMode='success';await click('PDF 변환')
++    await wait(()=>Boolean(document.querySelector('[aria-label="PDF 출력 결과"]')))
++    assert.ok(await run(()=>document.querySelector('.studio-document').textContent.includes('저장하지 않은 변경')))
++    assert.deepEqual(JSON.parse(fs.readFileSync(projectPath,'utf8')).score,saved.score)
++    await capture('pdf-success-project-dirty')
++    await click('가져오는 방법')
++    await capture('score-manual-guide')
++    assert.equal(await run(()=>document.querySelector('dialog').textContent.includes('모바일 기기')),true)
++    await key('Escape')
++    assert.equal(await run(()=>document.activeElement?.textContent.trim()),'가져오는 방법')
++    const keyboardTrace=await run(()=>window.r3KeyTrace)
++    const recoveryStart=Date.now()
++    while(!recovery?.project) {assert.ok(Date.now()-recoveryStart<5000,'Dirty native recovery must be written');await settle()}
++    win.webContents.once('will-prevent-unload',event=>event.preventDefault())
++    await win.loadFile(path.resolve('out/renderer/index.html'))
++    await wait(()=>[...document.querySelectorAll('.start-actions button')].some(node=>node.textContent.includes('복구본 열기')))
++    await capture('returning-recovery')
++    await run(()=>{
++      const node=[...document.querySelectorAll('.start-actions button')].find(node=>node.textContent.includes('복구본 열기'))
++      node.focus();node.click()
++    })
++    await wait(()=>document.querySelector('.studio-document')?.textContent.includes('저장하지 않은 변경'))
++    assert.equal(await run(()=>document.body.textContent.includes('첫 악보를 파일로 저장했어요.')),false)
++    await capture('recovered-dirty')
++    await click('파일');await click('MusicXML로 저장')
++    assert.match(fs.readFileSync(path.join(out,'first.musicxml'),'utf8'),/<step>D<\/step>/)
++    await run(()=>{window.confirm=()=>true})
++    await click('새 악보 만들기')
++    const normalText=await run(()=>parseFloat(getComputedStyle(document.querySelector('.studio-new-score-form input')).fontSize))
++    await run(()=>{
++      const nodes=[...document.querySelectorAll('.studio-chrome,.studio-chrome *')]
++      const sizes=nodes.map(n=>parseFloat(getComputedStyle(n).fontSize))
++      nodes.forEach((n,i)=>{n.style.fontSize=`${sizes[i]*2}px`})
++    })
++    await capture('wizard-text-200')
++    const enlargedText=await run(()=>parseFloat(getComputedStyle(document.querySelector('.studio-new-score-form input')).fontSize))
++    assert.equal(enlargedText,normalText*2,'Text200 must double actual computed control font size')
++    assert.equal(await run(()=>document.querySelector('dialog').scrollWidth>document.querySelector('dialog').clientWidth+1),false)
++    await run(()=>document.querySelectorAll('.studio-chrome,.studio-chrome *').forEach(node=>node.style.removeProperty('font-size')))
++    await win.webContents.debugger.attach('1.3')
++    await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled',{enabled:true})
++    await settle()
++    const coarse=await run(()=>({pointer:matchMedia('(pointer:coarse)').matches,
++      height:document.querySelector('.studio-new-score-form input').getBoundingClientRect().height}))
++    assert.equal(coarse.pointer,true);assert.ok(coarse.height>=48)
++    win.webContents.debugger.detach()
++    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({at:new Date().toISOString(),runtime:process.versions,layout,coarse,normalText,enlargedText,
++      firstNote:{count:notes.length,pitch:notes[0].pitch},undoRedo:true,projectReopen:true,recoveryVerified:true,pdfKeepsProjectDirty:true,
++      keyboardTrace,
++      scope:'Production renderer/preload and real disk outputs; QA IPC replaces OS dialogs and I/O policy. No physical IME, mobile transfer or Score receipt.',scoreReceiptVerified:false},null,2))
++    console.log('R3 actual first-use, disk project, undo/reopen and PDF/manual guide passed')
++  } catch(error) {
++    await capture('failure-state')
++    fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify(await run(()=>({focus:document.activeElement?.outerHTML,
++      trace:window.r3KeyTrace,dialog:document.querySelector('dialog')?.outerHTML})),null,2))
++    throw error
++  } finally {win.destroy();app.quit()}
++}).catch(error=>{console.error(error);app.exit(1)})

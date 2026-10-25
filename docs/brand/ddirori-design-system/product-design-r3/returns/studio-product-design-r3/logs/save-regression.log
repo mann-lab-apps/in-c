@@ -1,0 +1,13 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3|native backup recovery|native save|native recovery|cleanup preserves
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+
+ Test Files  1 passed (1)
+      Tests  21 passed | 126 skipped (147)
+   Start at  23:15:05
+   Duration  16.22s (transform 632ms, setup 0ms, import 459ms, tests 15.36s, environment 322ms)
+

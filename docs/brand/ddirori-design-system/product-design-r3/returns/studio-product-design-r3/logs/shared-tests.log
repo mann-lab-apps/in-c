@@ -1,0 +1,13 @@
+
+> @ddirori/ui@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web
+
+
+ Test Files  6 passed (6)
+      Tests  56 passed (56)
+   Start at  23:28:19
+   Duration  2.01s (transform 901ms, setup 0ms, import 1.81s, tests 2.40s, environment 4.07s)
+

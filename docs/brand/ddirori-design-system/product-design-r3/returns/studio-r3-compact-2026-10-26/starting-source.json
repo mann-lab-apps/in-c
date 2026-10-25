@@ -1,0 +1,34 @@
+[
+  {
+    "path": "src/renderer/src/App.tsx",
+    "sha256": "d0609b579d615532fdc2e3bc88a888a786a9616cd1be5a34a015dff2457944c5"
+  },
+  {
+    "path": "src/renderer/src/App.test.tsx",
+    "sha256": "1709c83c874850b8e6fe3b65431af060176938523f530ad9cf6fd5058df44c87"
+  },
+  {
+    "path": "src/renderer/src/studio-r1.css",
+    "sha256": "4f2951dd65e359e679f6b996a282f95ba4a24c0179040b5d941e606ede18439c"
+  },
+  {
+    "path": "src/renderer/src/studio-r2.css",
+    "sha256": "19655fb675080802a65b06b555a9f8daaac5fe09c5e5eea5fe929df27bff5b23"
+  },
+  {
+    "path": "src/renderer/src/studio-r3.css",
+    "sha256": "43a42e92c6e573bfcd0d1c26653e4730733d62d7cba70b3afb3b21e32f46b43f"
+  },
+  {
+    "path": "scripts/verify-ddirori-studio.cjs",
+    "sha256": "bda1167f32a7b1ba2711c3c4c3954cdd0fc013e5c85a1124d629cc32ecd557ac"
+  },
+  {
+    "path": "scripts/verify-studio-first-use.cjs",
+    "sha256": "4c4245c699d53741c57cc6b9ca42183673bae687288e0741870d58a8f530aefd"
+  },
+  {
+    "path": "scripts/verify-notation-snapshots.cjs",
+    "sha256": "bcb443221bbafdc1eb4ee7557a2366fbd0ba9da34d8a08f25fbd08b499c5dd66"
+  }
+]

@@ -1,0 +1,13 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3|score-setup|native save|native recovery|report-pdf-result
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+
+ Test Files  1 passed (1)
+      Tests  21 passed | 122 skipped (143)
+   Start at  22:40:42
+   Duration  17.41s (transform 1.03s, setup 0ms, import 732ms, tests 16.01s, environment 561ms)
+

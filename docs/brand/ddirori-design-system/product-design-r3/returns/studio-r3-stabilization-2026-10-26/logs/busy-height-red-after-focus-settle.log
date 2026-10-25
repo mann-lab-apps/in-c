@@ -1,0 +1,10 @@
+AssertionError [ERR_ASSERTION]: UI condition timed out: ()=>document.activeElement?.getAttribute('aria-label')==='프로젝트 파일 저장' && !document.activeElement.disabled
+    at wait (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:52:37)
+    at async /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:143:23 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

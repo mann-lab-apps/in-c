@@ -1,0 +1,14 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t playback.global-tempo|studio.r2|studio.r3 compact|same-staff-voice|palette.measure-level|layout.fermata|inspector|ornaments|tremolo|extension controls --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+---------------------------------------------------------·------------------------------------····----------------·--··------------·-----------··--·····
+
+ Test Files  1 passed (1)
+      Tests  16 passed | 136 skipped (152)
+   Start at  01:11:54
+   Duration  4.76s (transform 435ms, setup 0ms, import 303ms, tests 4.18s, environment 219ms)
+

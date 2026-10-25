@@ -136,6 +136,7 @@ describe('keyboard input routing', () => {
   it('recognizes text editing targets', () => {
     expect(isTextEditingTarget({ tagName: 'INPUT' } as HTMLElement)).toBe(true)
     expect(isTextEditingTarget({ tagName: 'textarea' } as HTMLElement)).toBe(true)
+    expect(isTextEditingTarget({ tagName: 'SELECT' } as HTMLElement)).toBe(true)
     expect(
       isTextEditingTarget({ tagName: 'DIV', isContentEditable: true } as HTMLElement)
     ).toBe(true)

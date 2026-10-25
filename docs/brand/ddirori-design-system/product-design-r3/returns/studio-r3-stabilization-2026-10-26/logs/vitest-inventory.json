@@ -1,0 +1,230 @@
+[
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/adoption.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/basic.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/components.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/item.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/starter.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/packages/ddirori_web/src/studio.test.tsx",
+    "projectName": "ddirori-ui"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/scripts/summarize-validation-ops.test.mjs",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-feature-map-paths.test.mjs",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/container.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/direction-spans.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/layout-breaks.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/musescore-mxl.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/musicxml.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/octave-pitch.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/part-markings.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/musicxml/transposition.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/main/autosave-files.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/main/musicxml-files.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/main/project-backups.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/main/project-files.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/main/recent-files.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/project/part-layout.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/project/schema.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/testing/acceptance-traceability.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/testing/single-voice-mvp-regression.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/pitch.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/rhythm-editing.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/score-core.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/ties.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/timing.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/score-core/tuplets.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/App.test.tsx",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/SpanProperties.test.tsx",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/editor-state.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/file-lifecycle.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/instrument-transposition.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/keyboard-input.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/korean-music-terms.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/measure-management.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/new-score.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/note-input-state.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/pitch-editing.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/span-editing.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/editor/tuplet-feedback.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/midi/serialize-midi.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/annotation-lanes.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/beam-groups.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/hairpin-rendering.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/print-layout.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/range-selection-bands.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/span-viewport.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/system-layout.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/tuplet-spacing.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/vexflow-adapter.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/notation/visual-state.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/playback/timeline.test.ts",
+    "projectName": "studio"
+  },
+  {
+    "file": "/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/playback/useScorePlayback.test.ts",
+    "projectName": "studio"
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "expectedFiles": 57,
+  "collectedFiles": 57,
+  "duplicates": 0,
+  "projects": {
+    "ddirori-ui": 6,
+    "studio": 51
+  },
+  "nodeNativeFiles": [
+    "docs/brand/ddirori-design-system/tools/api-portability.test.mjs",
+    "docs/brand/ddirori-design-system/tools/token-model.test.mjs"
+  ]
+}

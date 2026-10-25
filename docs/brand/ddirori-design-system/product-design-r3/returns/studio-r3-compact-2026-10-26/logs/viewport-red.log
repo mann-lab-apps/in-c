@@ -1,0 +1,10 @@
+{"viewport":[960,1000],"dpr":2,"boxes":{"document":{"x":0,"y":0,"width":960,"height":91.5,"bottom":91.5},"categories":{"x":0,"y":91.5,"width":960,"height":49,"bottom":140.5},"input":{"x":0,"y":140.5,"width":960,"height":63,"bottom":203.5},"context":{"x":0,"y":203.5,"width":960,"height":45,"bottom":248.5},"noteDetails":{"x":0,"y":248.5,"width":960,"height":224.9765625,"bottom":473.4765625},"tools":{"x":0,"y":473.4765625,"width":960,"height":59,"bottom":532.4765625},"status":{"x":0,"y":532.4765625,"width":960,"height":32,"bottom":564.4765625},"workspace":{"x":0,"y":564.4765625,"width":960,"height":1219,"bottom":1783.4765625},"palette":{"x":0,"y":564.4765625,"width":960,"height":115,"bottom":679.4765625},"properties":{"x":0,"y":679.4765625,"width":960,"height":400,"bottom":1079.4765625},"canvas":{"x":0,"y":1079.4765625,"width":960,"height":704,"bottom":1783.4765625},"page":{"x":16,"y":1095.4765625,"width":928,"height":672,"bottom":1767.4765625},"svg":{"x":40,"y":1269.4765625,"width":880,"height":466,"bottom":1735.4765625},"staff":{"x":48,"y":1454.9765625,"width":178.4080047607422,"height":40,"bottom":1494.9765625},"note":{"x":173.60000610351562,"y":1423.9765625,"width":11.8046875,"height":161,"bottom":1584.9765625}},"overflow":false,"noteCount":33,"eventCount":33,"widths":{"palette":280,"properties":280},"selected":"m1-c4"}
+AssertionError [ERR_ASSERTION]: 960px first staff must fit in the initial viewport: {"x":48,"y":1454.9765625,"width":178.4080047607422,"height":40,"bottom":1494.9765625}
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-compact-workspace.cjs:55:14 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

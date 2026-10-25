@@ -1,0 +1,33 @@
+/* R2 composition only; R1 tokens and notation typography remain independent. */
+.studio-document > strong { font-size: 1.5rem; }
+.studio-chrome.toolbar { backdrop-filter: none; }
+.studio-selected-tools-title { flex: 0 0 100%; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--dd-border); font-size: 0.875rem; overflow-wrap: anywhere; }
+.studio-input-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--dd-border);
+}
+.studio-input-context h2 { margin: 0; font-size: 1rem; }
+.studio-input-context output { min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
+.studio-input-context__state { color: var(--dd-muted); font-size: 0.875rem; }
+.studio-view-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 16px; margin-left: auto; min-width: 0; }
+.studio-view-controls > .dd-field { min-width: 0; width: 8rem; }
+.studio-chrome.selection-toolbar { flex-wrap: wrap; row-gap: 12px; overflow: visible; }
+.studio-chrome.selection-toolbar .inspector-properties { flex-wrap: wrap; gap: 8px 16px; max-width: 100%; padding: 0; border-right: 0; white-space: normal; }
+.studio-chrome.selection-toolbar .inspector-properties__grid { flex: 1 1 100%; flex-wrap: wrap; }
+.studio-edit-context { flex: 0 0 100%; min-width: 0; }
+.studio-edit-context h3 { margin: 0; font-size: 0.875rem; }
+.studio-edit-context output { color: var(--dd-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+.studio-chrome .span-properties__automatic { display: block; margin: 12px 0; color: var(--dd-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+@media screen {
+  .score-canvas[data-notation-sizing='fixed'] .score-page {
+    width: 996px;
+    min-width: 996px;
+    padding: 56px 48px;
+    zoom: var(--studio-notation-zoom);
+  }
+}
+@media print { .studio-input-context { display: none; } }

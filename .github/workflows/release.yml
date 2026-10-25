@@ -79,7 +79,7 @@ jobs:
       - run: npm ci
       - if: github.event_name != 'pull_request'
         run: npm run verify:release-tag
-      - run: npm test
+      - run: npm run test:all
       - run: ${{ matrix.command }}
       - run: npm run verify:artifacts
 

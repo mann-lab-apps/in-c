@@ -1,0 +1,14 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx src/renderer/src/SpanProperties.test.tsx src/renderer/src/editor/keyboard-input.test.ts -t studio.r3|studio.r2|geometry|composition|keyboard --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+·······················--------------------------···--·-·------------------------------------------------------················------·----------------------···------·----·---·------
+
+ Test Files  3 passed (3)
+      Tests  51 passed | 130 skipped (181)
+   Start at  00:39:00
+   Duration  6.77s (transform 470ms, setup 0ms, import 617ms, tests 6.30s, environment 530ms)
+

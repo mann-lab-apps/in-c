@@ -1,0 +1,49 @@
+/* First-use composition; notation and print geometry stay independent. */
+.app-shell--start:has(.studio-start) { background: Canvas; color-scheme: light dark; }
+.studio-start { background: var(--dd-surface); }
+.studio-start .start-screen__content { width: min(1080px, 100%); }
+.studio-welcome { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+.studio-start h1 { font-size: 1.5rem; }
+.studio-start :is(h1, h2) { color: var(--dd-text); }
+.studio-start .start-action svg, .studio-start .recent-files__header svg { color: currentColor; }
+.studio-start .start-actions { margin-top: 24px; }
+.studio-start .start-action { border-radius: 6px; color: var(--dd-text); background: var(--dd-surface); border-color: var(--dd-border); }
+.studio-start .start-action, .studio-start .start-action:hover { box-shadow: none; }
+.studio-start .studio-start-primary { border-color: var(--dd-action); box-shadow: inset 4px 0 var(--dd-action); }
+.studio-start .recent-files { background: var(--dd-surface); border: 0; border-radius: 0; padding-inline: 0; }
+.studio-start .recent-files__header, .studio-start .recent-file { color: var(--dd-text); }
+.studio-start .recent-file { background: var(--dd-surface); border-color: var(--dd-border); }
+.studio-start .recent-file small { color: var(--dd-muted); }
+.studio-start .start-action small, .studio-start .recent-files__empty { color: var(--dd-muted); }
+.studio-first-input { flex: 0 0 100%; margin: 0; color: var(--dd-muted); font-size: 0.875rem; }
+.studio-first-save { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--dd-border); }
+.studio-first-save .dd-progress { display: flex; padding: 0; }
+.studio-first-save .dd-progress .dd-mark { width: 20px; height: 20px; }
+.studio-note-details { border-bottom: 1px solid var(--dd-border); }
+.studio-note-details > summary { padding: var(--dd-spacing-sm) var(--dd-spacing-xl); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+@media screen and (min-width: 761px) and (max-width: 1023px) {
+  .studio-docks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .studio-docks > aside { width: auto; max-height: 10rem; overflow: auto; scroll-padding-block: var(--dd-spacing-sm); }
+  .studio-docks > aside :focus-visible { scroll-margin-block: var(--dd-spacing-xs); }
+  .studio-docks > .docked-palette { grid-column: 1; grid-row: 1; grid-template-columns: minmax(0, 1fr); }
+  .studio-docks > .docked-properties { grid-column: 2; grid-row: 1; }
+  .studio-docks[data-palette='false'] > .docked-properties,
+  .studio-docks[data-properties='false'] > .docked-palette { grid-column: 1 / -1; }
+  .studio-docks > .score-canvas { grid-column: 1 / -1; grid-row: 2; }
+  .studio-docks .docked-palette__actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 5rem), 1fr)); }
+  .studio-docks .docked-palette__symbol-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 3rem), 1fr)); }
+}
+.studio-result { padding: 12px 24px; overflow-wrap: anywhere; }
+.studio-result h2 { font-size: 1rem; }
+.studio-result p { margin-block: 8px; }
+.studio-first-use .dd-dialog { max-height: calc(100dvh - 32px); }
+.studio-first-use .dd-dialog:has(.studio-new-score-form) { width: min(850px, calc(100vw - 32px)); }
+.studio-first-use .studio-new-score-form { width: 100%; max-height: none; overflow: visible; padding: 0; border: 0; box-shadow: none; background: var(--dd-surface); color: var(--dd-text); }
+.studio-first-use .new-score-form { min-width: 0; }
+.studio-first-use .new-score-form > * { min-width: 0; }
+.studio-first-use .new-score-form input { min-width: 0; max-width: 100%; }
+.studio-first-use .new-score-form :is(input, select) { min-height: var(--dd-control); padding: 4px 8px; }
+.studio-first-use .new-score-template-option :is(small, .new-score-template-option__category) { color: var(--dd-muted); }
+.studio-transfer-steps { padding-left: 24px; }
+.studio-transfer-steps li { margin-block: 12px; overflow-wrap: anywhere; }
+@media print { .studio-first-save, .studio-result, .studio-first-use, .studio-note-details { display: none; } }

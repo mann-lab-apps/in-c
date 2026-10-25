@@ -252,6 +252,10 @@ export function NotationPreview({
       return
     }
 
+    const previousFocus = document.activeElement
+    const focusedEventId = container.contains(previousFocus) ? previousFocus?.getAttribute('data-event-id') : undefined
+    const focusedSpanId = container.contains(previousFocus) ? previousFocus?.getAttribute('data-span-id') : undefined
+    const focusBox = focusedEventId || focusedSpanId ? previousFocus?.getBoundingClientRect() : undefined
     container.replaceChildren()
 
     const renderedStaffTargets = createRenderedStaffTargets(score)
@@ -789,6 +793,12 @@ export function NotationPreview({
           if (!isPreviewEventId(eventId)) {
             svgElement.setAttribute('role', 'button')
             svgElement.setAttribute('tabindex', '0')
+            svgElement.addEventListener('keydown', event => {
+              if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229 || event.altKey || event.ctrlKey || event.metaKey) return
+              event.preventDefault()
+              event.stopPropagation()
+              onSelectEvent(eventId, event.shiftKey, eventAddress)
+            })
             svgElement.addEventListener('click', (event) => {
               event.stopPropagation()
               onSelectEvent(eventId, event.shiftKey, eventAddress)
@@ -1145,6 +1155,29 @@ export function NotationPreview({
       playhead.setAttribute('y1', String(playbackPoint.y - 10))
       playhead.setAttribute('y2', String(playbackPoint.y + 104))
       overlayGroup.append(playhead)
+    }
+
+    // SVG redraw must not drop a keyboard user's logical target or scroll anchor.
+    if (!printLayout && focusBox) {
+      const target = selectedSpan
+        ? [...container.querySelectorAll<SVGElement>('.notation-span-target')].find(node =>
+          node.dataset.spanId === selectedSpan.id && node.dataset.spanKind === selectedSpan.kind)
+        : [...container.querySelectorAll<SVGElement>('.notation-event')].find(node =>
+          node.dataset.eventId === (selectedEventId ?? focusedEventId) && (!selectedEventAddress ||
+            node.dataset.partId === selectedEventAddress.partId && node.dataset.staffId === selectedEventAddress.staffId &&
+            node.dataset.measureId === selectedEventAddress.measureId && node.dataset.voiceId === selectedEventAddress.voiceId))
+      if (target) {
+        target.focus({preventScroll:true})
+        const box = target.getBoundingClientRect()
+        const top = Math.max(16, Math.min(focusBox.top, window.innerHeight - box.height - 16))
+        window.scrollBy(0, box.top - top)
+        const canvas = container.closest<HTMLElement>('.score-canvas')
+        if (canvas) {
+          const bounds = canvas.getBoundingClientRect()
+          const left = Math.max(bounds.left + 16, Math.min(focusBox.left, bounds.right - box.width - 16))
+          canvas.scrollLeft += box.left - left
+        }
+      }
     }
 
     return () => {
@@ -1852,6 +1885,12 @@ function drawPassiveStaffMeasure(
 
       svgElement.setAttribute('role', 'button')
       svgElement.setAttribute('tabindex', '0')
+      svgElement.addEventListener('keydown', keyEvent => {
+        if (keyEvent.key !== 'Enter' || keyEvent.isComposing || keyEvent.keyCode === 229 || keyEvent.altKey || keyEvent.ctrlKey || keyEvent.metaKey) return
+        keyEvent.preventDefault()
+        keyEvent.stopPropagation()
+        interaction.onSelectEvent(event.id, keyEvent.shiftKey, eventAddress)
+      })
       svgElement.addEventListener('click', (mouseEvent) => {
         mouseEvent.stopPropagation()
         interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)

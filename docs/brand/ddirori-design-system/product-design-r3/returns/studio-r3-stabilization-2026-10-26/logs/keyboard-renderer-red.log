@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: Cancelled save must return keyboard retry focus
++ actual - expected
+
++ null
+- '프로젝트 파일 저장'
+
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:142:30 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: '프로젝트 파일 저장',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

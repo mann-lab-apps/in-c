@@ -1,0 +1,10 @@
+{
+  "source": "out/ddirori/studio-r3-score-source-64/practice.pdf",
+  "servedFile": "out/ddirori/studio-r3-score-transfer/Studio-R3-Practice.pdf",
+  "sha256": "816f09251d1c865999049f2ca7a390a8b8cecd6b13973b6e35a502e7fa3e76ff",
+  "actualPdfInfo": "Title:           in-C\nCreator:         Chromium\nProducer:        Skia/PDF m148\nCreationDate:    Mon Oct 26 01:28:19 2026 KST\nModDate:         Mon Oct 26 01:28:19 2026 KST\nCustom Metadata: no\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           2\nEncrypted:       no\nPage size:       594.96 x 841.92 pts (A4)\nPage rot:        0\nFile size:       65381 bytes\nOptimized:       no\nPDF version:     1.4\n",
+  "measureCount": 64,
+  "requestedPageTarget": 3,
+  "actualPages": 2,
+  "scope": "Actual Studio wizard/entry/native save/PDF export scene. Local HTTP stages a user-visible manual download; it does not import into Score."
+}

@@ -1,0 +1,55 @@
+
+> in-c@0.1.0-alpha.14 test:all
+> npm test && npm run test:tools
+
+
+> in-c@0.1.0-alpha.14 test
+> vitest run
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+
+ Test Files  56 passed | 1 skipped (57)
+      Tests  684 passed | 1 skipped (685)
+   Start at  00:21:55
+   Duration  86.76s (transform 5.36s, setup 0ms, import 11.92s, tests 91.26s, environment 8.99s)
+
+
+> in-c@0.1.0-alpha.14 test:tools
+> node --test "docs/brand/ddirori-design-system/tools/*.test.mjs"
+
+TAP version 13
+# Subtest: API snapshots match across macOS and Linux checkout paths without losing type information
+ok 1 - API snapshots match across macOS and Linux checkout paths without losing type information
+  ---
+  duration_ms: 0.49625
+  type: 'test'
+  ...
+# Subtest: aliases resolve across source/palette and preserve arrays and fractional units
+ok 2 - aliases resolve across source/palette and preserve arrays and fractional units
+  ---
+  duration_ms: 0.841708
+  type: 'test'
+  ...
+# Subtest: missing aliases and cycles fail instead of silently substituting
+ok 3 - missing aliases and cycles fail instead of silently substituting
+  ---
+  duration_ms: 0.260541
+  type: 'test'
+  ...
+# Subtest: generated units and text roles match the validated source
+ok 4 - generated units and text roles match the validated source
+  ---
+  duration_ms: 4.519458
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 45.688375

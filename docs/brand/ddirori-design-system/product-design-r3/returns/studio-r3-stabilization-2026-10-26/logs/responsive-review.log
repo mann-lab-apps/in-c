@@ -1,0 +1,2 @@
+Error: Notation snapshot metrics changed. Diff: /var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-diff.json. Screenshots: /var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-960.png, /var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/in-c-notation-snapshot-1400.png
+    at main (/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-notation-snapshots.cjs:178:13)

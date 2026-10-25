@@ -1,0 +1,8 @@
+{
+  "command": "env -u ELECTRON_RUN_AS_NODE node_modules/.bin/electron scripts/verify-notation-snapshots.cjs",
+  "observedExitCode": 1,
+  "error": "Notation snapshot metrics changed",
+  "evidence": "artifacts/responsive/in-c-notation-snapshot-diff.json",
+  "baselineUpdated": false,
+  "scope": "Default responsive fixture; fixed-canvas and compact viewport acceptance remain separate"
+}

@@ -1,5 +1,40 @@
 # Evidence Log
 
+## 2026-10-26 Studio R3 Compact Workspace and Actual Simulator Receipt
+
+- Original `in-c`, HEAD `bcdcc40fca6656594b6bd0d5c0f7543180a41745`,
+  uncommitted only. R3 manifest unchanged. The new local note-details disclosure
+  and bounded compact dock band preserve score commands/data and saved widths.
+- Failed initial960x1000 viewport acceptance: first staff top1454.9765625px.
+  Final staff913–953px and measured note ink957.5–967.5px;1400 note ink ends847.5px.
+  Both have33 events and no document horizontal overflow. Keyboard/persistence,
+  dark/text200/coarse48 emulation, actual focus-ring containment and print media
+  exclusion passed. Intermediate red logs, including a real clipped4px ring and
+  visible print summary, are retained rather than replaced by only final success.
+- Final sequential `checks-reviewed.json`: typecheck/build, production compact,
+  existing R2, actual first-use/project/retry/reopen, fixed-canvas, `test:all`, both
+  document verifiers and diff check passed with stable six-source hashes.
+  Vitest56 files passed/1 skipped,689 tests passed/1 skipped; Node-native4 passed.
+  No product edits or build/Electron ran during the global suite.
+- Default one-page PDF raster and MusicXML bytes equal the prior R3 output;
+  native semantics equal after comparison-only session/rest UUID normalization.
+  Historical responsive metrics still fail:960 actual880x466 vs644x620,
+  1400 actual680x620 vs804x466. Images/diff retained; no baseline update and no
+  conversion of fixed-canvas success into responsive success.
+- Existing Score was built/installed only on a new dedicated simulator. A real
+  Safari download and native document picker exercised cancellation/retry,
+  managed copy, two-page render, pointer annotation and cold app reopen. Page2
+  and one11-point stroke survived; read-only managed-file SHA equals the Studio
+  source: `816f09251d1c865999049f2ca7a390a8b8cecd6b13973b6e35a502e7fa3e76ff`.
+  No model/prefs injection, user score, shared Play-device manipulation, iOS source
+  or metadata edit. Localhost is QA transport, not automatic product sync or
+  physical cross-device certification. Dedicated simulator/server stopped.
+- [Current handoff](../brand/ddirori-design-system/product-design-r3/returns/studio-r3-compact-2026-10-26/handoff.md)
+  records source/manifest/artifact hashes, exact captures, actual2-page PDF despite
+  requested target3, command/undo preservation, limitations and next review work.
+  Physical IME, OS desktop dialogs, screen reader, hardware input and user-score
+  review remain unperformed. No commit/push/release or Commercial V1/RC claim.
+
 기준일: 2026-07-15
 
 ## Document Control

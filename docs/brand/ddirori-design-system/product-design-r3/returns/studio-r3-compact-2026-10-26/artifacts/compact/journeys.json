@@ -1,0 +1,48 @@
+{
+  "journeys": [
+    {
+      "width": 960,
+      "tabs": 13,
+      "focus": {
+        "field": {
+          "top": 493.4765625,
+          "bottom": 525.4765625
+        },
+        "panel": {
+          "top": 377.5,
+          "bottom": 537.5
+        },
+        "scrollTop": 389,
+        "focusRing": 4,
+        "edits": "4분음표총보0회 수정정지0.0 / 32.5박",
+        "selected": "m1-c4",
+        "overflow": false
+      }
+    },
+    {
+      "width": 1400,
+      "tabs": 13,
+      "focus": {
+        "field": {
+          "top": 882.4765625,
+          "bottom": 914.4765625
+        },
+        "panel": {
+          "top": 377.5,
+          "bottom": 1315.5
+        },
+        "scrollTop": 0,
+        "focusRing": 4,
+        "edits": "4분음표총보0회 수정정지0.0 / 32.5박",
+        "selected": "m1-c4",
+        "overflow": false
+      }
+    }
+  ],
+  "coarse": {
+    "pointer": true,
+    "summaryHeight": 48,
+    "overflow": false
+  },
+  "scope": "Production renderer; native Tab/Enter and reopen. DOM focus setup for dock-field traversal; no physical keyboard/IME/OS dialog claim."
+}

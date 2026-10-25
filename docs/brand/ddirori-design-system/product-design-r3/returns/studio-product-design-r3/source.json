@@ -1,0 +1,31 @@
+{
+  "implementation": "uncommitted",
+  "head": "bcdcc40fca6656594b6bd0d5c0f7543180a41745",
+  "designManifestSha256": "a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36",
+  "baseline": {
+    "src/renderer/src/App.tsx": "2b25c5021fb6cd93260898bbec6eb226ea0133b06df5be797291ffb5650e8cce",
+    "src/renderer/src/App.test.tsx": "59bef0594daee85abc24b78873fecb377ea4f2871e81e6107dbd01e593d9b329",
+    "src/renderer/src/studio-r2.css": "19655fb675080802a65b06b555a9f8daaac5fe09c5e5eea5fe929df27bff5b23",
+    "scripts/verify-ddirori-studio.cjs": "bda1167f32a7b1ba2711c3c4c3954cdd0fc013e5c85a1124d629cc32ecd557ac",
+    "src/renderer/src/SpanProperties.tsx": "1ec0311985d81350b95b5ba657b7db79a5d5fde39f852e05c16b5abebe4f988c",
+    "src/renderer/src/notation/NotationPreview.tsx": "0f2a40c977fea0f68e753c969e10d1944b71038f256f31d3958bc9efa5921f02"
+  },
+  "files": [
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "43965a74d8458ec55940bc0efd3baef1802baa93b76c8b9582f452d8efed72ad"
+    },
+    {
+      "path": "src/renderer/src/App.test.tsx",
+      "sha256": "19053492dc3f3abec5ef139e8304232a2e5037630efbf807355b56c9a420afb6"
+    },
+    {
+      "path": "src/renderer/src/studio-r3.css",
+      "sha256": "9ea3d9ff4fd8cdc305cb6ab42cc0c32a70915e7eb9fed287906084aba61246f4"
+    },
+    {
+      "path": "scripts/verify-studio-first-use.cjs",
+      "sha256": "8308ef3ac6a13f135c2a533ab78743db6f76b06c9212da7b2de443381cda2abb"
+    }
+  ]
+}

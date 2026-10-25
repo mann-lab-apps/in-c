@@ -1,0 +1,710 @@
+{
+  "versions": {
+    "node": "24.16.0",
+    "acorn": "8.16.0",
+    "ada": "3.4.4",
+    "amaro": "1.1.9",
+    "ares": "1.34.6",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.2",
+    "llhttp": "9.4.1",
+    "merve": "1.2.2",
+    "modules": "146",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.68.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "0.0.0",
+    "simdjson": "4.6.1",
+    "simdutf": "7.7.0",
+    "sqlite": "3.53.0",
+    "tz": "2025c",
+    "undici": "7.25.0",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "14.8.178.31-electron.0",
+    "zlib": "1.3.2.1-motley",
+    "zstd": "1.6.0",
+    "electron": "42.4.1",
+    "chrome": "148.0.7778.265"
+  },
+  "before": {
+    "mode": "fit-width",
+    "viewport": [
+      1400,
+      1000
+    ],
+    "svg": [
+      560,
+      633
+    ],
+    "selected": "m4-f-natural-2",
+    "address": [
+      "part-1",
+      "staff-1",
+      "measure-4",
+      "voice-1"
+    ],
+    "anchor": {
+      "top": 585.5,
+      "bottom": 746.5,
+      "left": 598.1199951171875,
+      "right": 609.9246826171875
+    },
+    "canvasScroll": 0,
+    "windowScroll": 500.5,
+    "focused": "m4-f-natural-2",
+    "focusedControl": null,
+    "focusedControlBox": {
+      "x": 598.1199951171875,
+      "y": 585.5,
+      "width": 11.8046875,
+      "height": 161,
+      "top": 585.5,
+      "right": 609.9246826171875,
+      "bottom": 746.5,
+      "left": 598.1199951171875
+    },
+    "input": "4분음표 · 점 0 · 임시표 자동",
+    "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+    "inputActive": "false",
+    "overflow": false
+  },
+  "reflow": {
+    "mode": "fit-width",
+    "viewport": [
+      960,
+      1000
+    ],
+    "svg": [
+      880,
+      466
+    ],
+    "selected": "m4-f-natural-2",
+    "address": [
+      "part-1",
+      "staff-1",
+      "measure-4",
+      "voice-1"
+    ],
+    "anchor": {
+      "top": 705.5,
+      "bottom": 866.5,
+      "left": 686.75,
+      "right": 698.5546875
+    },
+    "canvasScroll": 0,
+    "windowScroll": 333.5,
+    "focused": "m4-f-natural-2",
+    "focusedControl": null,
+    "focusedControlBox": {
+      "x": 686.75,
+      "y": 705.5,
+      "width": 11.8046875,
+      "height": 161,
+      "top": 705.5,
+      "right": 698.5546875,
+      "bottom": 866.5,
+      "left": 686.75
+    },
+    "input": "4분음표 · 점 0 · 임시표 자동",
+    "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+    "inputActive": "false",
+    "overflow": false
+  },
+  "records": [
+    {
+      "size": 207,
+      "mode": "fit-width",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        804,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 585.5,
+        "bottom": 746.5,
+        "left": 995.2219848632812,
+        "right": 1007.0266723632812
+      },
+      "canvasScroll": 0,
+      "windowScroll": 333.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1226.1015625,
+        "y": 234.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 234.5,
+        "right": 1291.4609375,
+        "bottom": 267.5,
+        "left": 1226.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 280,
+      "mode": "fit-width",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        680,
+        620
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 752.5,
+        "bottom": 913.5,
+        "left": 518.1199951171875,
+        "right": 529.9246826171875
+      },
+      "canvasScroll": 0,
+      "windowScroll": 333.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1153.1015625,
+        "y": 234.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 234.5,
+        "right": 1218.4609375,
+        "bottom": 267.5,
+        "left": 1153.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 360,
+      "mode": "fit-width",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        560,
+        633
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 598.5,
+        "bottom": 759.5,
+        "left": 598.1199951171875,
+        "right": 609.9246826171875
+      },
+      "canvasScroll": 0,
+      "windowScroll": 487.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1073.1015625,
+        "y": 80.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 80.5,
+        "right": 1138.4609375,
+        "bottom": 113.5,
+        "left": 1073.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 207,
+      "mode": "fit-width",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        880,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 625.5,
+        "bottom": 786.5,
+        "left": 686.75,
+        "right": 698.5546875
+      },
+      "canvasScroll": 0,
+      "windowScroll": 413.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 154.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 154.5,
+        "right": 578.4609375,
+        "bottom": 187.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 280,
+      "mode": "fit-width",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        880,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 625.5,
+        "bottom": 786.5,
+        "left": 686.75,
+        "right": 698.5546875
+      },
+      "canvasScroll": 0,
+      "windowScroll": 413.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 154.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 154.5,
+        "right": 578.4609375,
+        "bottom": 187.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 360,
+      "mode": "fit-width",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        880,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 625.5,
+        "bottom": 786.5,
+        "left": 686.75,
+        "right": 698.5546875
+      },
+      "canvasScroll": 0,
+      "windowScroll": 413.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 154.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 154.5,
+        "right": 578.4609375,
+        "bottom": 187.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 207,
+      "mode": "fixed",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1104.5,
+        "bottom": 1345.5,
+        "left": 1272.5655517578125,
+        "right": 1290.2686767578125
+      },
+      "canvasScroll": 0,
+      "windowScroll": 0,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1226.1015625,
+        "y": 568,
+        "width": 65.359375,
+        "height": 33,
+        "top": 568,
+        "right": 1291.4609375,
+        "bottom": 601,
+        "left": 1226.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 280,
+      "mode": "fixed",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1020,
+        "bottom": 1261,
+        "left": 1247.5655517578125,
+        "right": 1265.2686767578125
+      },
+      "canvasScroll": 98,
+      "windowScroll": 84.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1153.1015625,
+        "y": 483.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 483.5,
+        "right": 1218.4609375,
+        "bottom": 516.5,
+        "left": 1153.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 360,
+      "mode": "fixed",
+      "viewport": [
+        1400,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1020,
+        "bottom": 1261,
+        "left": 1181.5655517578125,
+        "right": 1199.2686767578125
+      },
+      "canvasScroll": 244,
+      "windowScroll": 84.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 1073.1015625,
+        "y": 483.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 483.5,
+        "right": 1138.4609375,
+        "bottom": 516.5,
+        "left": 1073.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 207,
+      "mode": "fixed",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1156,
+        "bottom": 1397,
+        "left": 661.5655517578125,
+        "right": 679.2686767578125
+      },
+      "canvasScroll": 404,
+      "windowScroll": 84.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 483.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 483.5,
+        "right": 578.4609375,
+        "bottom": 516.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 280,
+      "mode": "fixed",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1156,
+        "bottom": 1397,
+        "left": 661.5655517578125,
+        "right": 679.2686767578125
+      },
+      "canvasScroll": 404,
+      "windowScroll": 84.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 483.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 483.5,
+        "right": 578.4609375,
+        "bottom": 516.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    },
+    {
+      "size": 360,
+      "mode": "fixed",
+      "viewport": [
+        960,
+        1000
+      ],
+      "svg": [
+        900,
+        466
+      ],
+      "selected": "m4-f-natural-2",
+      "address": [
+        "part-1",
+        "staff-1",
+        "measure-4",
+        "voice-1"
+      ],
+      "anchor": {
+        "top": 1156,
+        "bottom": 1397,
+        "left": 661.5655517578125,
+        "right": 679.2686767578125
+      },
+      "canvasScroll": 404,
+      "windowScroll": 84.5,
+      "focusedControl": "속성 도크 폭",
+      "focusedControlBox": {
+        "x": 513.1015625,
+        "y": 483.5,
+        "width": 65.359375,
+        "height": 33,
+        "top": 483.5,
+        "right": 578.4609375,
+        "bottom": 516.5,
+        "left": 513.1015625
+      },
+      "input": "4분음표 · 점 0 · 임시표 자동",
+      "inputAddress": "Melody · 보표 1 · 성부 1 · m4-f-natural-2",
+      "inputActive": "false",
+      "overflow": false
+    }
+  ],
+  "inputBefore": {
+    "mode": "fixed",
+    "viewport": [
+      960,
+      1000
+    ],
+    "svg": [
+      900,
+      466
+    ],
+    "selected": "m4-f-natural-2",
+    "address": [
+      "part-1",
+      "staff-1",
+      "measure-4",
+      "voice-1"
+    ],
+    "anchor": {
+      "top": 402.4765625,
+      "bottom": 643.4765625,
+      "left": 661.5655517578125,
+      "right": 679.2686767578125
+    },
+    "canvasScroll": 404,
+    "windowScroll": 1155,
+    "focusedControl": "속성 도크 폭",
+    "focusedControlBox": {
+      "x": 513.1015625,
+      "y": -270.0234375,
+      "width": 65.359375,
+      "height": 33,
+      "top": -270.0234375,
+      "right": 578.4609375,
+      "bottom": -237.0234375,
+      "left": 513.1015625
+    },
+    "input": "8분음표 · 점 1 · 임시표 자동",
+    "inputAddress": "Melody · 보표 1 · 성부 1 · 13440틱",
+    "inputActive": "true",
+    "overflow": false
+  },
+  "inputAfter": {
+    "mode": "fixed",
+    "viewport": [
+      1400,
+      1000
+    ],
+    "svg": [
+      900,
+      466
+    ],
+    "selected": "m4-f-natural-2",
+    "address": [
+      "part-1",
+      "staff-1",
+      "measure-4",
+      "voice-1"
+    ],
+    "anchor": {
+      "top": 1382.4765625,
+      "bottom": 1623.4765625,
+      "left": 868.5655517578125,
+      "right": 886.2686767578125
+    },
+    "canvasScroll": 404,
+    "windowScroll": 0,
+    "focusedControl": "속성 도크 폭",
+    "focusedControlBox": {
+      "x": 1226.1015625,
+      "y": 845.9765625,
+      "width": 65.359375,
+      "height": 33,
+      "top": 845.9765625,
+      "right": 1291.4609375,
+      "bottom": 878.9765625,
+      "left": 1226.1015625
+    },
+    "input": "8분음표 · 점 1 · 임시표 자동",
+    "inputAddress": "Melody · 보표 1 · 성부 1 · 13440틱",
+    "inputActive": "true",
+    "overflow": false
+  },
+  "nativeScoreUnchanged": true,
+  "musicXmlUnchanged": true,
+  "pdf": "Actual App export scene and Chromium printToPDF; bridge fixture, no OS dialog"
+}

@@ -1,0 +1,174 @@
+{
+  "container": "/Users/jaemankim/Library/Developer/CoreSimulator/Devices/24AB9B6A-7B9B-4566-860F-FD50FA26A956/data/Containers/Data/Application/FF45BB52-66F3-4A96-80A3-099B19B70D28",
+  "scores": [
+    {
+      "id": "1792946534486934-4107771428",
+      "title": "Studio R3 Practice",
+      "composer": "",
+      "tags": [],
+      "note": "",
+      "filePath": "/Users/jaemankim/Library/Developer/CoreSimulator/Devices/24AB9B6A-7B9B-4566-860F-FD50FA26A956/data/Containers/Data/Application/FF45BB52-66F3-4A96-80A3-099B19B70D28/Documents/scores/1792946534486934-4107771428-Studio-R3-Practice.pdf",
+      "collection": "",
+      "group": "",
+      "rating": 0,
+      "linkedFiles": [],
+      "structuredNotes": {
+        "performance": "",
+        "rehearsal": "",
+        "tuning": "",
+        "instrumentation": ""
+      },
+      "customFields": [],
+      "importedAt": "2026-10-26T01:42:14.486934",
+      "updatedAt": "2026-10-26T01:46:01.358557",
+      "lastOpenedAt": "2026-10-26T01:45:17.706160",
+      "lastPage": 2,
+      "isFavorite": false,
+      "isPinned": false,
+      "bookmarks": [],
+      "viewerSettings": {
+        "displayMode": "auto",
+        "halfPageTurn": false,
+        "displayEffect": "normal",
+        "pageScale": "fitPage",
+        "pedalMapping": "standard",
+        "customPedalMapping": {
+          "ArrowLeft": "previousPage",
+          "ArrowRight": "nextPage",
+          "ArrowUp": "previousPage",
+          "ArrowDown": "nextPage",
+          "PageUp": "previousPage",
+          "PageDown": "nextPage",
+          "Enter": "nextPage",
+          "Backspace": "previousPage",
+          "Space": "nextPage",
+          "Shift+Space": "previousPage",
+          "Tab": "nextPage",
+          "Shift+Tab": "previousPage",
+          "MediaPrevious": "previousSetlistScore",
+          "MediaNext": "nextSetlistScore"
+        },
+        "renderProfile": "balanced",
+        "pageTurnAnimation": "natural",
+        "keepAwakeInPerformance": false,
+        "showPerformancePrepNotice": true,
+        "confirmSetlistTransition": true,
+        "autoAdvanceSetlist": false,
+        "allowPerformanceAnnotations": false,
+        "allowPerformanceMenus": false,
+        "allowPerformancePdfLinks": false
+      },
+      "pageSettings": {
+        "hiddenPages": [],
+        "pageRotations": {},
+        "crop": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "pageCrops": {},
+        "pageOrder": [],
+        "instanceRotations": {},
+        "instanceCrops": {},
+        "jumpPoints": [],
+        "rehearsalMarks": [],
+        "cropPresets": [],
+        "blankPageInsertions": [],
+        "visibilityPresets": []
+      },
+      "annotationLayer": {
+        "strokes": [
+          {
+            "id": "1792946761357738-2",
+            "pageNumber": 2,
+            "tool": "pen",
+            "color": 4279308561,
+            "width": 3.5,
+            "points": [
+              {
+                "x": 0.38255833067035616,
+                "y": 0.20204722209193635
+              },
+              {
+                "x": 0.4119187480027671,
+                "y": 0.2041220359820662
+              },
+              {
+                "x": 0.4265989566689726,
+                "y": 0.2055052452421529
+              },
+              {
+                "x": 0.4412791653351781,
+                "y": 0.2061968498721962
+              },
+              {
+                "x": 0.47063958266758904,
+                "y": 0.2089632683923696
+              },
+              {
+                "x": 0.4853197913337945,
+                "y": 0.21034647765245618
+              },
+              {
+                "x": 0.5,
+                "y": 0.21103808228249957
+              },
+              {
+                "x": 0.5146802086662055,
+                "y": 0.21242129154258615
+              },
+              {
+                "x": 0.529360417332411,
+                "y": 0.21380450080267285
+              },
+              {
+                "x": 0.5440406259986165,
+                "y": 0.21449610543271613
+              },
+              {
+                "x": 0.5587208346648219,
+                "y": 0.21587931469280283
+              }
+            ],
+            "createdAt": "2026-10-26T01:46:01.357738"
+          }
+        ],
+        "texts": [],
+        "redoStack": [],
+        "eraseUndoStack": [],
+        "layers": [
+          {
+            "id": "default",
+            "label": "기본 필기",
+            "isVisible": true,
+            "includeInExport": true
+          }
+        ]
+      },
+      "annotationStorage": {
+        "mode": "inline",
+        "path": "",
+        "checksum": "",
+        "updatedAt": null,
+        "lastSaveStatus": "",
+        "lastSaveError": ""
+      },
+      "pdfLinkSanitization": {
+        "sanitizedFromPath": "",
+        "removedUrlLinkCount": 0,
+        "createdAt": null
+      },
+      "autoScrollSettings": {
+        "durationSeconds": 240,
+        "startPage": 1,
+        "endPage": 0,
+        "cueSeconds": 0,
+        "pausePageNumbers": [],
+        "repeatSections": [],
+        "pageDurations": {},
+        "cuePoints": []
+      }
+    }
+  ]
+}

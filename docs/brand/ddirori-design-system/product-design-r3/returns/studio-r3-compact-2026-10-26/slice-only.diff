@@ -1,0 +1,489 @@
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/App.tsx b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/App.tsx
+index f7b0fbe5..df075c9a 100644
+--- a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/App.tsx
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/App.tsx
+@@ -557,6 +557,7 @@ const partMixerStorageKey = 'chromatics.part-mixer.v1'
+ const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+ const dockWidthsStorageKey = 'chromatics.dock-widths.v1'
+ const notationViewStorageKey = 'chromatics.notation-view.v1'
++const noteDetailsStorageKey = 'chromatics.note-details.v1'
+ const notationZoomOptions = ['75', '100', '125', '150', '200'].map(value => ({value, label:`${value}%`}))
+ 
+ function readNotationView(): {mode:'fit-width' | 'fixed'; zoom:number} {
+@@ -587,6 +588,12 @@ export const App = () => {
+   }, [])
+   const [dockWidths, setDockWidths] = useState(readDockWidths)
+   const [notationView, setNotationView] = useState(readNotationView)
++  const [noteDetailsOpen, setNoteDetailsOpen] = useState(() => {
++    try { return localStorage.getItem(noteDetailsStorageKey) === 'true' } catch { return false }
++  })
++  useEffect(() => {
++    try { localStorage.setItem(noteDetailsStorageKey, String(noteDetailsOpen)) } catch { /* Keep the session preference. */ }
++  }, [noteDetailsOpen])
+   useEffect(() => {
+     try { localStorage.setItem(notationViewStorageKey,JSON.stringify(notationView)) } catch { /* Keep the session preference. */ }
+   },[notationView])
+@@ -5701,6 +5708,10 @@ export const App = () => {
+         </div>
+       </section>
+ 
++      <details className="studio-note-details studio-chrome ddirori" data-theme={studioTheme} data-density="compact"
++        hidden={toolbarCategory !== 'note'} open={noteDetailsOpen}
++        onToggle={event => setNoteDetailsOpen(event.currentTarget.open)}>
++        <summary>음표 상세 설정</summary>
+       <section
+         className="selection-toolbar studio-chrome ddirori"
+         data-theme={studioTheme} data-density="compact"
+@@ -5965,6 +5976,7 @@ export const App = () => {
+           </section>
+ 
+       </section>
++      </details>
+ 
+       <section
+         className="selection-toolbar studio-chrome ddirori"
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/App.test.tsx.snapshot b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/App.test.tsx
+index c0c02963..e69b671a 100644
+--- a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/App.test.tsx.snapshot
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/App.test.tsx
+@@ -669,6 +669,15 @@ const installLocalStorageStub = () => {
+   })
+ }
+ 
++const expandNoteDetails = () => {
++  const tabs = screen.getByRole('navigation', { name: '편집 도구 카테고리' })
++  const category = within(tabs).getByRole('button', { name: '음표' })
++  if (category.getAttribute('aria-pressed') !== 'true') fireEvent.click(category)
++  const summary = screen.getByText('음표 상세 설정', { selector: 'summary' })
++  if (!summary.closest('details')!.open) fireEvent.click(summary)
++  expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
++}
++
+ describe('App component shell', () => {
+   afterEach(() => {
+     cleanup()
+@@ -2588,6 +2597,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const workspace = screen.getByRole('region', { name: '악보 편집기' })
+     const toolbarTabs = screen.getByRole('navigation', {
+@@ -2874,6 +2884,7 @@ describe('App component shell', () => {
+     }
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     await waitFor(() => {
+       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+@@ -3979,10 +3990,37 @@ describe('App component shell', () => {
+     expect(screen.queryByRole('button',{name:'가져오는 방법'})).not.toBeInTheDocument()
+   })
+ 
++  it('studio.r3 compact note details start collapsed and persist without changing score history', async () => {
++    window.history.replaceState({}, '', '/?fixture=release-test')
++    const { App } = await import('./App')
++    const app = render(<App />)
++    const preview = screen.getByTestId('notation-preview')
++    const before = preview.getAttribute('data-event-durations')
++    const summary = screen.getByText('음표 상세 설정', { selector: 'summary' })
++    expect(summary.closest('details')).not.toHaveAttribute('open')
++    expect(screen.getByLabelText('입력 보표')).not.toBeVisible()
++    expect(screen.getByRole('button', { name: '음표 입력 전환, 단축키 N' })).toBeVisible()
++    expect(screen.getByRole('button', { name: '8분음표, 단축키 4' })).toBeVisible()
++    fireEvent.click(summary)
++    await waitFor(() => expect(localStorage.getItem('chromatics.note-details.v1')).toBe('true'))
++    expect(screen.getByLabelText('입력 보표')).toBeVisible()
++    expect(preview).toHaveAttribute('data-event-durations', before)
++    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
++    app.unmount()
++    render(<App />)
++    expect(screen.getByText('음표 상세 설정', { selector: 'summary' }).closest('details')).toHaveAttribute('open')
++    expect(screen.getByLabelText('입력 보표')).toBeVisible()
++    fireEvent.click(screen.getByText('음표 상세 설정', { selector: 'summary' }))
++    await waitFor(() => expect(localStorage.getItem('chromatics.note-details.v1')).toBe('false'))
++    expect(screen.getByLabelText('입력 보표')).not.toBeVisible()
++    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
++  })
++
+   it('studio.r2 separates next input from selected event edits without adding undo commands', async () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+     const preview = screen.getByTestId('notation-preview')
+     const original = preview.getAttribute('data-event-durations')
+     fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
+@@ -4743,6 +4781,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=demo')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const voiceOne = screen.getByRole('button', { name: '1성부' })
+     const voiceTwo = screen.getByRole('button', { name: '2성부' })
+@@ -4858,6 +4897,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=demo')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     fireEvent.keyDown(window, { code: 'Digit3', key: '3', metaKey: true, altKey: true })
+ 
+@@ -4891,6 +4931,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=demo')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     fireEvent.click(screen.getByRole('button', { name: 'note-c4 선택' }))
+     fireEvent.click(screen.getByRole('button', { name: 'note-f-sharp-4 선택' }), {
+@@ -5332,6 +5373,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     fireEvent.click(screen.getByRole('button', { name: '음표' }))
+     expect(
+@@ -5543,6 +5585,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+     fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+     const palette = screen.getByRole('region', { name: '범위 기호' })
+     expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toBeDisabled()
+@@ -5869,6 +5912,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const fermataButton = screen.getByRole('button', { name: '페르마타' })
+     const preview = screen.getByTestId('notation-preview')
+@@ -5895,6 +5939,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const inspector = screen.getByRole('region', { name: '음표 편집' })
+     const durationPalette = screen.getByLabelText('음가')
+@@ -6031,6 +6076,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const preview = screen.getByTestId('notation-preview')
+     const threeMarksButton = screen.getByRole('button', { name: '3줄' })
+@@ -6049,6 +6095,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const preview = screen.getByTestId('notation-preview')
+     const trillButton = screen.getByRole('button', { name: 'tr' })
+@@ -6066,6 +6113,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const preview = screen.getByTestId('notation-preview')
+     const trillButton = screen.getByRole('button', { name: 'tr' })
+@@ -6081,6 +6129,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     const preview = screen.getByTestId('notation-preview')
+     const trillButton = screen.getByRole('button', { name: 'tr' })
+@@ -6104,6 +6153,7 @@ describe('App component shell', () => {
+     window.history.replaceState({}, '', '/?fixture=release-test')
+     const { App } = await import('./App')
+     render(<App />)
++    expandNoteDetails()
+ 
+     fireEvent.click(screen.getByRole('button', { name: '3도 추가' }))
+     expect(screen.getByText('화음 구성음을 추가했습니다.')).toBeInTheDocument()
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/studio-r3.css b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/studio-r3.css
+index a5b92d01..3a91fb98 100644
+--- a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/src/renderer/src/studio-r3.css
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/src/renderer/src/studio-r3.css
+@@ -19,6 +19,20 @@
+ .studio-first-save { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--dd-border); }
+ .studio-first-save .dd-progress { display: flex; padding: 0; }
+ .studio-first-save .dd-progress .dd-mark { width: 20px; height: 20px; }
++.studio-note-details { border-bottom: 1px solid var(--dd-border); }
++.studio-note-details > summary { padding: var(--dd-spacing-sm) var(--dd-spacing-xl); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
++@media screen and (min-width: 761px) and (max-width: 1023px) {
++  .studio-docks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
++  .studio-docks > aside { width: auto; max-height: 10rem; overflow: auto; scroll-padding-block: var(--dd-spacing-sm); }
++  .studio-docks > aside :focus-visible { scroll-margin-block: var(--dd-spacing-xs); }
++  .studio-docks > .docked-palette { grid-column: 1; grid-row: 1; grid-template-columns: minmax(0, 1fr); }
++  .studio-docks > .docked-properties { grid-column: 2; grid-row: 1; }
++  .studio-docks[data-palette='false'] > .docked-properties,
++  .studio-docks[data-properties='false'] > .docked-palette { grid-column: 1 / -1; }
++  .studio-docks > .score-canvas { grid-column: 1 / -1; grid-row: 2; }
++  .studio-docks .docked-palette__actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 5rem), 1fr)); }
++  .studio-docks .docked-palette__symbol-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 3rem), 1fr)); }
++}
+ .studio-result { padding: 12px 24px; overflow-wrap: anywhere; }
+ .studio-result h2 { font-size: 1rem; }
+ .studio-result p { margin-block: 8px; }
+@@ -32,4 +46,4 @@
+ .studio-first-use .new-score-template-option :is(small, .new-score-template-option__category) { color: var(--dd-muted); }
+ .studio-transfer-steps { padding-left: 24px; }
+ .studio-transfer-steps li { margin-block: 12px; overflow-wrap: anywhere; }
+-@media print { .studio-first-save, .studio-result, .studio-first-use { display: none; } }
++@media print { .studio-first-save, .studio-result, .studio-first-use, .studio-note-details { display: none; } }
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/scripts/verify-ddirori-studio.cjs b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs
+index fe4c24ad..cea403fe 100644
+--- a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/scripts/verify-ddirori-studio.cjs
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-ddirori-studio.cjs
+@@ -414,6 +414,11 @@ async function verifyR2(win) {
+   await click('음표 입력 전환, 단축키 N')
+   await click('8분음표, 단축키 4')
+   await click('점 추가')
++  await run(()=>{
++    const details=document.querySelector('.studio-note-details')
++    if (!details.open) details.querySelector('summary').click()
++  })
++  await settle()
+   const inputBefore=await metrics()
+   assert.match(inputBefore.input,/8분음표.*점 1/)
+   await settle()
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-compact-workspace.cjs b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-compact-workspace.cjs
+new file mode 100644
+index 00000000..57d11da1
+--- /dev/null
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-compact-workspace.cjs
+@@ -0,0 +1,182 @@
++const { app, BrowserWindow, nativeTheme } = require('electron')
++const fs = require('node:fs')
++const path = require('node:path')
++const os = require('node:os')
++const assert = require('node:assert/strict')
++
++const out = path.resolve(process.env.DDIRORI_COMPACT_QA_OUT || 'out/ddirori/studio-r3-compact')
++const measureOnly = process.argv.includes('--measure-only')
++app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'studio-compact-')))
++app.disableHardwareAcceleration()
++fs.mkdirSync(out, { recursive: true })
++
++app.whenReady().then(async () => {
++  const win = new BrowserWindow({ width: 1400, height: 1000, show: true,
++    webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false } })
++  const run = (fn, arg) => win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
++  const settle = () => run(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
++  const wait = async (fn, arg) => {
++    const start = Date.now()
++    while (!await run(fn, arg)) {
++      assert.ok(Date.now() - start < 5000, `Condition timed out: ${fn}`)
++      await settle()
++    }
++  }
++  const key = async (keyCode, modifiers = []) => {
++    win.webContents.sendInputEvent({ type: 'keyDown', keyCode, modifiers })
++    if (keyCode === 'Enter') win.webContents.sendInputEvent({ type: 'char', keyCode: '\r', modifiers })
++    win.webContents.sendInputEvent({ type: 'keyUp', keyCode, modifiers })
++    await settle()
++  }
++  const tabTo = async (selector, modifiers = []) => {
++    let tabs = 0
++    while (!await run(selector => document.activeElement?.matches(selector), selector)) {
++      assert.ok(tabs++ < 160, `Keyboard could not reach ${selector}`)
++      await key('Tab', modifiers)
++    }
++    return tabs
++  }
++  const capture = async name => fs.writeFileSync(path.join(out, `${name}.png`), (await win.webContents.capturePage()).toPNG())
++  const results = []
++  try {
++    nativeTheme.themeSource = 'light'
++    for (const width of [960, 1400]) {
++      win.setContentSize(width, 1000)
++      await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } })
++      await settle()
++      const result = await run(() => {
++        const box = node => {
++          if (!node || !node.checkVisibility()) return null
++          const r = node.getBoundingClientRect()
++          return { x: r.x, y: r.y, width: r.width, height: r.height, bottom: r.bottom }
++        }
++        const selectors = {
++          document: '.studio-document', categories: '.toolbar-tabs', input: '.studio-input-context',
++          context: '.editor-context-strip', noteDetails: '[aria-label="음표 편집"]', tools: 'header.toolbar',
++          status: '.editor-status', workspace: '.studio-docks', palette: '#studio-palette',
++          properties: '#studio-properties', canvas: '.score-canvas', page: '.score-page',
++          svg: '.notation-preview svg', staff: '.notation-preview .vf-stave'
++        }
++        const text = document.querySelector('.notation-preview .vf-notehead text')
++        let noteInk = null
++        if (text && text.textContent) {
++          const context = document.createElement('canvas').getContext('2d')
++          const style = getComputedStyle(text)
++          context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
++          const metrics = context.measureText(text.textContent)
++          const start = text.getStartPositionOfChar(0)
++          const matrix = text.getScreenCTM()
++          const corners = [
++            [start.x - metrics.actualBoundingBoxLeft, start.y - metrics.actualBoundingBoxAscent],
++            [start.x + metrics.actualBoundingBoxRight, start.y + metrics.actualBoundingBoxDescent]
++          ].map(([x,y]) => new DOMPoint(x,y).matrixTransform(matrix))
++          noteInk = { x: corners[0].x, y: corners[0].y, width: corners[1].x - corners[0].x,
++            height: corners[1].y - corners[0].y, bottom: corners[1].y }
++        }
++        return { viewport: [innerWidth, innerHeight], dpr: devicePixelRatio,
++          boxes: { ...Object.fromEntries(Object.entries(selectors).map(([key, selector]) => [key, box(document.querySelector(selector))])), note: noteInk },
++          overflow: document.documentElement.scrollWidth > innerWidth + 1,
++          noteCount: document.querySelectorAll('.notation-preview .vf-notehead').length,
++          eventCount: document.querySelectorAll('.notation-event').length,
++          noteDetailsOpen: document.querySelector('.studio-note-details')?.open,
++          widths: JSON.parse(localStorage.getItem('chromatics.dock-widths.v1')),
++          selected: document.querySelector('.notation-event.is-selected')?.getAttribute('data-event-id') }
++      })
++      results.push(result)
++      fs.writeFileSync(path.join(out, `${width}.png`), (await win.webContents.capturePage()).toPNG())
++    }
++    fs.writeFileSync(path.join(out, 'metrics.json'), JSON.stringify({ runtime: process.versions, results }, null, 2))
++    for (const result of results) {
++      console.log(JSON.stringify(result))
++      if (measureOnly) continue
++      assert.equal(result.overflow, false)
++      assert.ok(result.boxes.staff && result.boxes.note, 'Measure actual engraved staff and note ink, not an empty canvas')
++      assert.ok(result.boxes.staff.y >= 0 && result.boxes.staff.bottom <= result.viewport[1] - 24,
++        `${result.viewport[0]}px first staff must fit in the initial viewport: ${JSON.stringify(result.boxes.staff)}`)
++      assert.ok(result.boxes.note.y >= 0 && result.boxes.note.bottom <= result.viewport[1] - 24)
++      assert.deepEqual(result.widths, { palette: 280, properties: 280 })
++    }
++    if (!measureOnly) {
++      await win.webContents.debugger.attach('1.3')
++      await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { media: 'print' })
++      await settle()
++      assert.equal(await run(() => document.querySelector('.studio-note-details').checkVisibility()), false,
++        'The new editor disclosure must not appear in print media')
++      await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { media: '' })
++      win.webContents.debugger.detach()
++      const journeys = []
++      for (const width of [960, 1400]) {
++        win.setContentSize(width, 1000)
++        await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } })
++        app.focus({ steal: true }); win.focus()
++        await wait(() => document.hasFocus())
++        const tabs = await tabTo('.studio-note-details > summary')
++        await key('Enter')
++        await wait(() => document.querySelector('.studio-note-details').open && localStorage.getItem('chromatics.note-details.v1') === 'true')
++        assert.equal(await run(() => document.querySelector('[aria-label="입력 성부"]')?.checkVisibility() || document.querySelector('[aria-label="2성부"]').checkVisibility()), true)
++        await tabTo('[aria-label="2성부"]')
++        assert.equal(await run(() => document.activeElement.disabled), false)
++        await capture(`${width}-details-open`)
++        await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } })
++        await settle()
++        assert.equal(await run(() => document.querySelector('.studio-note-details').open), true, 'Expanded preference must survive renderer reopen')
++        await tabTo('.studio-note-details > summary')
++        await key('Enter')
++        await wait(() => !document.querySelector('.studio-note-details').open && localStorage.getItem('chromatics.note-details.v1') === 'false')
++        assert.equal(await run(() => document.activeElement.matches('.studio-note-details > summary')), true)
++        await run(() => document.querySelector('[aria-label="속성 도크 폭"]').focus())
++        await tabTo('[aria-label="선택 요약 표현 텍스트"]')
++        const focus = await run(() => {
++          const field = document.activeElement.getBoundingClientRect()
++          const style = getComputedStyle(document.activeElement)
++          const panel = document.querySelector('#studio-properties').getBoundingClientRect()
++          return { field: { top: field.top, bottom: field.bottom }, panel: { top: panel.top, bottom: panel.bottom },
++            scrollTop: document.querySelector('#studio-properties').scrollTop,
++            focusRing: Math.max(0, parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset)),
++            edits: document.querySelector('.editor-status').textContent,
++            selected: document.querySelector('.notation-event.is-selected')?.getAttribute('data-event-id'),
++            overflow: document.documentElement.scrollWidth > innerWidth + 1 }
++        })
++        await capture(`${width}-property-focus`)
++        assert.ok(focus.field.top >= Math.max(0, focus.panel.top) - 1 && focus.field.bottom <= Math.min(1000, focus.panel.bottom) + 1,
++          'Keyboard focus must scroll a clipped property into the visible panel')
++        assert.ok(focus.field.top - focus.focusRing >= Math.max(0, focus.panel.top) - 1 &&
++          focus.field.bottom + focus.focusRing <= Math.min(1000, focus.panel.bottom) + 1,
++          `Keyboard focus ring must also fit: ${JSON.stringify(focus)}`)
++        assert.match(focus.edits, /0회 수정/)
++        assert.equal(focus.selected, 'm1-c4')
++        assert.equal(focus.overflow, false)
++        if (width === 960) assert.ok(focus.scrollTop > 0)
++        journeys.push({ width, tabs, focus })
++      }
++      win.setContentSize(960, 1000)
++      nativeTheme.themeSource = 'dark'
++      await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } })
++      await settle()
++      await capture('960-dark')
++      assert.equal(await run(() => document.querySelector('.studio-document').dataset.theme), 'dark')
++      await run(() => {
++        const nodes = [...document.querySelectorAll('.studio-chrome,.studio-chrome *')]
++        const sizes = nodes.map(node => parseFloat(getComputedStyle(node).fontSize))
++        nodes.forEach((node, index) => { node.style.fontSize = `${sizes[index] * 2}px` })
++      })
++      await settle()
++      assert.equal(await run(() => document.documentElement.scrollWidth > innerWidth + 1), false)
++      await capture('960-dark-text200')
++      await run(() => document.querySelectorAll('.studio-chrome,.studio-chrome *').forEach(node => node.style.removeProperty('font-size')))
++      await win.webContents.debugger.attach('1.3')
++      await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled', { enabled: true })
++      await settle()
++      const coarse = await run(() => ({ pointer: matchMedia('(pointer:coarse)').matches,
++        summaryHeight: document.querySelector('.studio-note-details > summary').getBoundingClientRect().height,
++        overflow: document.documentElement.scrollWidth > innerWidth + 1 }))
++      assert.equal(coarse.pointer, true)
++      assert.ok(coarse.summaryHeight >= 48)
++      assert.equal(coarse.overflow, false)
++      await capture('960-dark-coarse')
++      win.webContents.debugger.detach()
++      fs.writeFileSync(path.join(out, 'journeys.json'), JSON.stringify({ journeys, coarse, scope: 'Production renderer; native Tab/Enter and reopen. DOM focus setup for dock-field traversal; no physical keyboard/IME/OS dialog claim.' }, null, 2))
++    }
++    console.log(measureOnly ? 'Compact workspace measurements recorded' : 'Compact workspace first staff and note ink visible')
++  } finally { win.destroy(); app.quit() }
++}).catch(error => { console.error(error); app.exit(1) })
+diff --git a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/scripts/verify-studio-first-use.cjs b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs
+index ff33a36a..597678c8 100644
+--- a/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-compact-baseline/scripts/verify-studio-first-use.cjs
++++ b/Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs
+@@ -8,6 +8,10 @@ const out=path.resolve(process.env.DDIRORI_STUDIO_FIRST_USE_OUT || 'out/ddirori/
+ const keyboardRetry=process.argv.includes('--keyboard-retry')
+ const taskViewport=Number(process.env.DDIRORI_STUDIO_FIRST_USE_WIDTH || 960)
+ assert.ok([960,1400].includes(taskViewport),'First-use task viewport must be 960 or 1400')
++const taskMeasures=Number(process.env.DDIRORI_STUDIO_FIRST_USE_MEASURES || 8)
++const taskPdfPages=process.env.DDIRORI_STUDIO_FIRST_USE_PDF_PAGES ? Number(process.env.DDIRORI_STUDIO_FIRST_USE_PDF_PAGES) : undefined
++assert.ok(Number.isInteger(taskMeasures) && taskMeasures>=1 && taskMeasures<=64)
++assert.ok(taskPdfPages===undefined || Number.isInteger(taskPdfPages) && taskPdfPages>=1 && taskPdfPages<=64)
+ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'studio-r3-'))
+ app.setPath('userData',profile)
+ app.disableHardwareAcceleration()
+@@ -125,6 +129,7 @@ app.whenReady().then(async()=>{
+     nativeTheme.themeSource='light';win.setContentSize(taskViewport,1000);await settle()
+     await saveAction('새 악보 만들기')
+     await change('.studio-new-score-form input','R3 First Score')
++    if(taskMeasures!==8) await change('.studio-new-score-form input[max="64"]',String(taskMeasures))
+     await run(()=>{
+       window.r3KeyTrace=[]
+       for(const type of ['keydown','keypress','keyup','submit','invalid','focusin','focusout']) document.addEventListener(type,event=>window.r3KeyTrace.push({type,key:event.key,target:event.target.outerHTML?.slice(0,180),prevented:event.defaultPrevented}),true)
+@@ -173,6 +178,7 @@ app.whenReady().then(async()=>{
+     await wait(()=>document.querySelector('.studio-document')?.textContent.includes('변경 없음'))
+     await key('N');await key('D')
+     await click('내보내기')
++    if(taskPdfPages) await change('[aria-label="PDF 목표 장수"]',String(taskPdfPages))
+     pdfMode='cancel';await click('PDF 변환')
+     await wait(()=>!document.querySelector('.app-shell--pdf-export'))
+     assert.equal(await run(()=>Boolean(document.querySelector('[aria-label="PDF 출력 결과"]'))),false)
+@@ -227,7 +233,7 @@ app.whenReady().then(async()=>{
+     win.webContents.debugger.detach()
+     fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({at:new Date().toISOString(),runtime:process.versions,layout,coarse,normalText,enlargedText,
+       firstNote:{count:notes.length,pitch:notes[0].pitch},undoRedo:true,projectReopen:true,recoveryVerified:true,pdfKeepsProjectDirty:true,
+-      keyboardTrace,keyboardRetry,keyboardActions,taskViewport,projectSaveRequests:projectSaveRequests.length,readySaveHeight,pendingSaveHeight,
++      keyboardTrace,keyboardRetry,keyboardActions,taskViewport,taskMeasures,taskPdfPages,projectSaveRequests:projectSaveRequests.length,readySaveHeight,pendingSaveHeight,
+       scope:'Production renderer/preload and real disk outputs; QA IPC replaces OS dialogs and I/O policy. No physical IME, mobile transfer or Score receipt.',scoreReceiptVerified:false},null,2))
+     console.log('R3 actual first-use, disk project, undo/reopen and PDF/manual guide passed')
+   } catch(error) {

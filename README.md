@@ -64,12 +64,18 @@ npm run site:dev
 ## 검증
 
 ```bash
-npm test
+npm run test:all
 npm run build
 npm run site:build
 npm run verify:site-content
 npm run verify:site-seo
 ```
+
+`npm test`는 제품/저장소 스크립트와 공통 UI의 Vitest 검사를 실행합니다.
+공통 UI는 자체 jsdom 설정을 재사용합니다. `npm run test:tools`는 디자인 도구의
+Node-native 검사를 실행하며, `test:all`과 CI는 두 실행을 모두 요구합니다.
+부분 검사는 기존처럼 `npm test -- src/renderer/src/App.test.tsx -t "studio.r3"`로 실행합니다.
+과거 반환 자료의 스냅샷 파일은 실행 대상이 아닙니다.
 
 TypeScript만 검사할 때는 다음 명령을 사용합니다.
 

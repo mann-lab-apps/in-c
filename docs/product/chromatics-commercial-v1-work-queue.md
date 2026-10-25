@@ -1,5 +1,20 @@
 # Chromatics Commercial V1 Work Queue
 
+## 2026-10-26 Studio R3 Workspace Checkpoint
+
+The original `in-c` R3 adapter now collapses note details by default and bounds
+the compact dock band without changing score commands, saved widths or engraving.
+The default 960x1000 viewport exposes the first staff and actual note ink;
+keyboard disclosure/persistence, focus-ring containment and print exclusion are
+checked in the production renderer. Existing responsive baseline differences
+remain open; no queue row is promoted to overall parity/RC completion.
+
+Dedicated-simulator manual PDF receipt now covers the real iOS picker, cancel
+and retry, byte-identical managed copy, two-page rendering, annotation and cold
+reopen. Physical-device transfer, physical input and assistive-technology review
+remain separate. See the [R3 compact return](../brand/ddirori-design-system/product-design-r3/returns/studio-r3-compact-2026-10-26/handoff.md)
+for exact sources, captures, final receipts and limitations.
+
 작성일: 2026-09-11
 상태: 장기 반복 작업 큐
 

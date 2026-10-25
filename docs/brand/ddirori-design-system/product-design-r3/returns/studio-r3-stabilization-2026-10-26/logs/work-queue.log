@@ -1,0 +1,56 @@
+
+> in-c@0.1.0-alpha.14 verify:chromatics-v1-work-queue
+> node scripts/verify-chromatics-v1-work-queue.mjs
+
+{
+  "checkedAt": "2026-10-25T15:40:26.356Z",
+  "status": "passed",
+  "queue": "docs/product/chromatics-commercial-v1-work-queue.md",
+  "rows": 48,
+  "categories": [
+    "Document Lifecycle",
+    "Editing Workflow",
+    "Layout / Engraving",
+    "MusicXML Compatibility",
+    "PDF / Page Setup",
+    "Packaged App / Release QA",
+    "Parts / Part View",
+    "Playback",
+    "Playback / Mixer",
+    "Same-Staff Multi-Voice",
+    "UI Information Architecture"
+  ],
+  "statuses": [
+    "Blocked external",
+    "Done",
+    "Manual QA required",
+    "Partial",
+    "Todo"
+  ],
+  "automationQueueDrained": false,
+  "expandedRequiredTasks": 16,
+  "nextAutomatableRows": [
+    "CV1-X-PART-XML",
+    "CV1-X-NATIVE-SCHEMA",
+    "CV1-X-NATIVE-LIFECYCLE",
+    "CV1-X-SPAN-PROPERTIES",
+    "CV1-X-OBJECT-FILTERS",
+    "CV1-X-OBJECT-CLIPBOARD",
+    "CV1-X-PART-LAYOUT",
+    "CV1-X-ENGRAVING",
+    "CV1-X-CONCERT-VIEW",
+    "CV1-X-MIDI-INPUT",
+    "CV1-X-PITCH-FIRST",
+    "CV1-X-TEMPLATES-STYLES",
+    "CV1-X-COMMANDS-SHORTCUTS",
+    "CV1-X-WORKSPACE",
+    "CV1-X-IMAGE-EXPORT",
+    "CV1-X-WORKFLOW-AUDIT",
+    "CV1-X-XML-OCTAVE-PITCH",
+    "CV1-X-SPAN-RHYTHMIC-ANCHORS",
+    "CV1-X-HAIRPIN-REPEAT-VELOCITY",
+    "CV1-X-HAIRPIN-DENSE-CLEARANCE",
+    "CV1-X-PART-LAYOUT-STRUCTURE",
+    "CV1-X-SCORE-MEASURE-STRUCTURE"
+  ]
+}

@@ -1,0 +1,216 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3 compact note details --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+----------------------------------------------------------------------------------------------x---------------------------------------------------------
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |studio| src/renderer/src/App.test.tsx > App component shell > studio.r3 compact note details start collapsed and persist without changing score history
+TestingLibraryElementError: Unable to find an element with the text: 음표 상세 설정, which matches selector 'summary'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"문서 상태"[39m
+        [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<strong>[39m
+          [0m문서: release-test[0m
+        [36m</strong>[39m
+        [36m<span[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [0m변경 없음[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"studio-view-controls"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"악보 보기 방식"[39m
+            [33mclass[39m=[32m"dd-choices"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m폭 맞춤[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m고정 배율[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"dd-field"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_0_"[39m
+            [36m>[39m
+              [0m고정 확대율[0m
+            [36m</label>[39m
+            [36m<button[39m
+              [33maria-disabled[39m=[32m"true"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-haspopup[39m=[32m"listbox"[39m
+              [33maria-invalid[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-select"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_0_"[39m
+              [33mrole[39m=[32m"combobox"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [0m100%[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mheight[39m=[32m"16"[39m
+                [33mviewBox[39m=[32m"0 0 16 16"[39m
+                [33mwidth[39m=[32m"16"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m4 6 4 4 4-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+      [36m<nav[39m
+        [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+        [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m파일[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m악보[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"is-active"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m음표[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m표기 객체[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m가사[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m내보내기[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m재생[0m
+        [36m</button>[39m
+      [36m</nav>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"다음 입력"[39m
+        [33mclass[39m=[32m"studio-input-context studio-chrome ddirori"[39m
+  ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/renderer/src/App.test.tsx:3988:28
+    3986|     const preview = screen.getByTestId('notation-preview')
+    3987|     const before = preview.getAttribute('data-event-durations')
+    3988|     const summary = screen.getByText('음표 상세 설정', { selector: 'summary'…
+       |                            ^
+    3989|     expect(summary.closest('details')).not.toHaveAttribute('open')
+    3990|     expect(screen.getByLabelText('입력 보표')).not.toBeVisible()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 151 skipped (152)
+   Start at  01:02:55
+   Duration  1.00s (transform 428ms, setup 0ms, import 356ms, tests 339ms, environment 248ms)
+

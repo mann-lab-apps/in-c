@@ -1,0 +1,14 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run packages/ddirori_web/src/components.test.tsx scripts/verify-feature-map-paths.test.mjs --reporter=dot
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+············
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  00:21:39
+   Duration  676ms (transform 87ms, setup 0ms, import 156ms, tests 139ms, environment 324ms)
+

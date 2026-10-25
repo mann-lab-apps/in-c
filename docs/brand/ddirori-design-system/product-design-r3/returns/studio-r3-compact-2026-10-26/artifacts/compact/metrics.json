@@ -1,0 +1,271 @@
+{
+  "runtime": {
+    "node": "24.16.0",
+    "acorn": "8.16.0",
+    "ada": "3.4.4",
+    "amaro": "1.1.9",
+    "ares": "1.34.6",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.2",
+    "llhttp": "9.4.1",
+    "merve": "1.2.2",
+    "modules": "146",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.68.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "0.0.0",
+    "simdjson": "4.6.1",
+    "simdutf": "7.7.0",
+    "sqlite": "3.53.0",
+    "tz": "2025c",
+    "undici": "7.25.0",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "14.8.178.31-electron.0",
+    "zlib": "1.3.2.1-motley",
+    "zstd": "1.6.0",
+    "electron": "42.4.1",
+    "chrome": "148.0.7778.265"
+  },
+  "results": [
+    {
+      "viewport": [
+        960,
+        1000
+      ],
+      "dpr": 2,
+      "boxes": {
+        "document": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 91.5,
+          "bottom": 91.5
+        },
+        "categories": {
+          "x": 0,
+          "y": 91.5,
+          "width": 960,
+          "height": 49,
+          "bottom": 140.5
+        },
+        "input": {
+          "x": 0,
+          "y": 140.5,
+          "width": 960,
+          "height": 63,
+          "bottom": 203.5
+        },
+        "context": {
+          "x": 0,
+          "y": 203.5,
+          "width": 960,
+          "height": 45,
+          "bottom": 248.5
+        },
+        "noteDetails": null,
+        "tools": {
+          "x": 0,
+          "y": 286.5,
+          "width": 960,
+          "height": 59,
+          "bottom": 345.5
+        },
+        "status": {
+          "x": 0,
+          "y": 345.5,
+          "width": 960,
+          "height": 32,
+          "bottom": 377.5
+        },
+        "workspace": {
+          "x": 0,
+          "y": 377.5,
+          "width": 960,
+          "height": 864,
+          "bottom": 1241.5
+        },
+        "palette": {
+          "x": 0,
+          "y": 377.5,
+          "width": 480,
+          "height": 160,
+          "bottom": 537.5
+        },
+        "properties": {
+          "x": 480,
+          "y": 377.5,
+          "width": 480,
+          "height": 160,
+          "bottom": 537.5
+        },
+        "canvas": {
+          "x": 0,
+          "y": 537.5,
+          "width": 960,
+          "height": 704,
+          "bottom": 1241.5
+        },
+        "page": {
+          "x": 16,
+          "y": 553.5,
+          "width": 928,
+          "height": 672,
+          "bottom": 1225.5
+        },
+        "svg": {
+          "x": 40,
+          "y": 727.5,
+          "width": 880,
+          "height": 466,
+          "bottom": 1193.5
+        },
+        "staff": {
+          "x": 48,
+          "y": 913,
+          "width": 178.4080047607422,
+          "height": 40,
+          "bottom": 953
+        },
+        "note": {
+          "x": 173.60000610351562,
+          "y": 957.5,
+          "width": 11.799999237060547,
+          "height": 10,
+          "bottom": 967.5
+        }
+      },
+      "overflow": false,
+      "noteCount": 33,
+      "eventCount": 33,
+      "noteDetailsOpen": false,
+      "widths": {
+        "palette": 280,
+        "properties": 280
+      },
+      "selected": "m1-c4"
+    },
+    {
+      "viewport": [
+        1400,
+        1000
+      ],
+      "dpr": 2,
+      "boxes": {
+        "document": {
+          "x": 0,
+          "y": 0,
+          "width": 1400,
+          "height": 91.5,
+          "bottom": 91.5
+        },
+        "categories": {
+          "x": 0,
+          "y": 91.5,
+          "width": 1400,
+          "height": 49,
+          "bottom": 140.5
+        },
+        "input": {
+          "x": 0,
+          "y": 140.5,
+          "width": 1400,
+          "height": 63,
+          "bottom": 203.5
+        },
+        "context": {
+          "x": 0,
+          "y": 203.5,
+          "width": 1400,
+          "height": 45,
+          "bottom": 248.5
+        },
+        "noteDetails": null,
+        "tools": {
+          "x": 0,
+          "y": 286.5,
+          "width": 1400,
+          "height": 59,
+          "bottom": 345.5
+        },
+        "status": {
+          "x": 0,
+          "y": 345.5,
+          "width": 1400,
+          "height": 32,
+          "bottom": 377.5
+        },
+        "workspace": {
+          "x": 0,
+          "y": 377.5,
+          "width": 1400,
+          "height": 938,
+          "bottom": 1315.5
+        },
+        "palette": {
+          "x": 0,
+          "y": 377.5,
+          "width": 280,
+          "height": 938,
+          "bottom": 1315.5
+        },
+        "properties": {
+          "x": 1120,
+          "y": 377.5,
+          "width": 280,
+          "height": 938,
+          "bottom": 1315.5
+        },
+        "canvas": {
+          "x": 280,
+          "y": 377.5,
+          "width": 840,
+          "height": 938,
+          "bottom": 1315.5
+        },
+        "page": {
+          "x": 312,
+          "y": 409.5,
+          "width": 776,
+          "height": 874,
+          "bottom": 1283.5
+        },
+        "svg": {
+          "x": 360,
+          "y": 607.5,
+          "width": 680,
+          "height": 620,
+          "bottom": 1227.5
+        },
+        "staff": {
+          "x": 368,
+          "y": 793,
+          "width": 196.8170166015625,
+          "height": 40,
+          "bottom": 833
+        },
+        "note": {
+          "x": 493.6000061035156,
+          "y": 837.5,
+          "width": 11.799999237060547,
+          "height": 10,
+          "bottom": 847.5
+        }
+      },
+      "overflow": false,
+      "noteCount": 33,
+      "eventCount": 33,
+      "noteDetailsOpen": false,
+      "widths": {
+        "palette": 280,
+        "properties": 280
+      },
+      "selected": "m1-c4"
+    }
+  ]
+}

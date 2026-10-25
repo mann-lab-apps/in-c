@@ -25,7 +25,7 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
   const options = selected ? spanEndpointOptions(score, selected) : []
   return (
     <section className="selection-properties span-properties studio-chrome ddirori" data-density="compact" data-theme={theme} aria-label="범위 표기 속성">
-      <Text as="h3" variant="sectionTitle">범위 표기</Text>
+      <Text as="h3" variant="sectionTitle">선택한 표기</Text>
       <label className="selection-properties__edit">
         <span>객체</span>
         <select aria-label="표기 객체 선택" value={span && selected ? `${selected.kind}:${selected.id}` : ''}
@@ -43,6 +43,7 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
       </label>
       {span && selected ? <>
         <dl>
+          <div className="selection-properties__row"><dt>대상 ID</dt><dd><output aria-label="선택 표기 ID">{selected.id}</output></dd></div>
           <div className="selection-properties__row"><dt>종류</dt><dd>{selected.kind === 'slur' ? '슬러' : '헤어핀'}</dd></div>
           <div className="selection-properties__row"><dt>파트</dt><dd>{owner?.name ?? '?'}</dd></div>
           <div className="selection-properties__row"><dt>보표</dt><dd>{owner ? owner.staves.findIndex(staff => staff.id === start?.address.staffId) + 1 : '?'}</dd></div>
@@ -60,6 +61,12 @@ export function SpanProperties({ theme = 'light', score, partId, selected, onSel
         </label>)}
         <details className="span-properties__geometry">
           <summary>배치 · 형상</summary>
+          <output className="span-properties__automatic" aria-label="표기 배치 요약">
+            {span.engraving?.placement === 'above' ? '보표 위' : span.engraving?.placement === 'below' ? '보표 아래' : '배치 자동'}
+            {(['offsetX', 'offsetY', 'height'] as const).map(field => <span key={field}>
+              {` · ${field === 'offsetX' ? '가로' : field === 'offsetY' ? '세로' : '높이'} ${span.engraving?.[field] === undefined ? '자동' : `${span.engraving[field]} sp`}`}
+            </span>)}
+          </output>
           <label className="selection-properties__edit"><span>배치</span>
             <select aria-label="표기 배치" value={span.engraving?.placement ?? 'auto'} onChange={event => onEngravingChange({ ...span.engraving, placement: event.target.value === 'auto' ? undefined : event.target.value as 'above' | 'below' })}>
               <option value="auto">자동</option><option value="above">보표 위</option><option value="below">보표 아래</option>

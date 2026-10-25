@@ -1,0 +1,21 @@
+Error occurred in handler for 'project:save': Error: R3 disk unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:21:31
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+Error occurred in handler for 'pdf:save': Error: R3 PDF unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:43:30
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+R3 actual first-use, disk project, undo/reopen and PDF/manual guide passed
+[79370:1026/002835.638153:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639109:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639123:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639129:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639139:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639147:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639152:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639160:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639165:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639171:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639176:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[79370:1026/002835.639181:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.

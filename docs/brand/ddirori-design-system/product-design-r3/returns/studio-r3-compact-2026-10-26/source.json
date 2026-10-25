@@ -1,0 +1,93 @@
+{
+  "implementation": "uncommitted",
+  "head": "bcdcc40fca6656594b6bd0d5c0f7543180a41745",
+  "designManifestSha256": "a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36",
+  "files": [
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "cf56c35287b6f7f2fd0bdd2ce11709843f729ea56e5861476a741ae4d1502d09"
+    },
+    {
+      "path": "src/renderer/src/App.test.tsx",
+      "sha256": "80ee7086b556f97a136e8e3365b425f9718c4b3f1746fb7b8e17e17083d72676"
+    },
+    {
+      "path": "src/renderer/src/studio-r3.css",
+      "sha256": "8bd477db234f0746b72c389d495959ee4b473bb4d64bef7b6f33412a2ece17b0"
+    },
+    {
+      "path": "scripts/verify-ddirori-studio.cjs",
+      "sha256": "2cb5c2cb9949b55b08f90cc09936ca725934582f7954d4097d36e605582d2874"
+    },
+    {
+      "path": "scripts/verify-studio-compact-workspace.cjs",
+      "sha256": "b6129d6575fa4dcd00cc2e556c8ce5de257f8293d368499d733a114b91cad1aa"
+    },
+    {
+      "path": "scripts/verify-studio-first-use.cjs",
+      "sha256": "d1ec841b1de2042d116e91b11942b0c93b38833ed2abf240adfec75aef398318"
+    }
+  ],
+  "documentationFiles": [
+    {
+      "path": "docs/product/chromatics-musescore-parity-roadmap.md",
+      "sha256": "1404523cbcbb7721c88aa102fb7418b6d317f726dd60b85c8faaf243892b9746"
+    },
+    {
+      "path": "docs/product/chromatics-commercial-v1-work-queue.md",
+      "sha256": "d7496d7c3754c1b857902852fad04121a11ec268f16e69135be0fabd8a4ca617"
+    },
+    {
+      "path": "docs/quality/evidence-log.md",
+      "sha256": "866303b623fc3e3c75150f8a8cccfc50acc2f7dccc3be404572b7fb5a483a85c"
+    }
+  ],
+  "protectedFiles": [
+    {
+      "path": "src/renderer/src/SpanProperties.tsx",
+      "sha256": "1ec0311985d81350b95b5ba657b7db79a5d5fde39f852e05c16b5abebe4f988c",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.test.tsx",
+      "sha256": "fd3a326c2f8da8515a950ac2ff57a01562604bdedd6860028a21df0a351eabe4",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.ts",
+      "sha256": "cd8ea5fe4094e7e8f906312ef6bf71ce72567d4c814287a38005abc5be94aeda",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.test.ts",
+      "sha256": "5e07980f477a8224d3c03d5e022298c65e5cd9d4558128b78a6962364b99687f",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/notation/NotationPreview.tsx",
+      "sha256": "0f2a40c977fea0f68e753c969e10d1944b71038f256f31d3958bc9efa5921f02",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/studio-r2.css",
+      "sha256": "19655fb675080802a65b06b555a9f8daaac5fe09c5e5eea5fe929df27bff5b23",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/verify-studio-input-events.cjs",
+      "sha256": "3be9a83edbc444a056def4a90abeddf4d675561b497e9e59ce3bdb82838a4672",
+      "unchanged": true
+    },
+    {
+      "path": "src/renderer/src/studio-r1.css",
+      "sha256": "4f2951dd65e359e679f6b996a282f95ba4a24c0179040b5d941e606ede18439c"
+    },
+    {
+      "path": "scripts/verify-notation-snapshots.cjs",
+      "sha256": "bcb443221bbafdc1eb4ee7557a2366fbd0ba9da34d8a08f25fbd08b499c5dd66"
+    }
+  ],
+  "sharedApiChanges": [],
+  "iosSourceChanges": [],
+  "iosMetadataChanges": []
+}

@@ -1,5 +1,23 @@
 # Chromatics MuseScore Parity Roadmap
 
+## 2026-10-26 Studio R3 Compact Workspace Checkpoint
+
+Original `in-c` branch only: note-detail controls now use an initially collapsed,
+persisted workspace disclosure. At 960px the two dock surfaces share a bounded
+scrolling band so the first staff and note ink fit the initial 1000px viewport.
+Existing detailed commands remain accessible through the real summary; keyboard
+focus rings and print exclusion are checked separately. Saved dock widths and
+notation geometry are preserved. This does not import the later parity worktree
+or complete the gap matrix below.
+
+A dedicated Score simulator received an actual two-page Studio PDF through
+Safari download and the native document picker. Cancellation/retry, managed-file
+hash equality, page 2, a pointer annotation and cold-reopen persistence passed.
+This is simulator QA, not physical-device transfer or automatic product sync.
+The historical responsive snapshot still differs; fixed-canvas verification is
+kept separate and no baseline is replaced. Current logs and remaining limits:
+[R3 compact handoff](../brand/ddirori-design-system/product-design-r3/returns/studio-r3-compact-2026-10-26/handoff.md).
+
 ## 2026-09-12 Expanded V1 Scope Override
 
 The user-approved [Expanded V1 contracts](chromatics-expanded-v1.md) supersede

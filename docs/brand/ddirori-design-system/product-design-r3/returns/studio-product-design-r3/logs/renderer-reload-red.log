@@ -1,0 +1,17 @@
+Error occurred in handler for 'project:save': Error: R3 disk unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:17:31
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+Error occurred in handler for 'pdf:save': Error: R3 PDF unavailable
+    at /Users/jaemankim/Desktop/privates/coding/in-c/scripts/verify-studio-first-use.cjs:39:30
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:114084)
+    at Session.emit (node:events:509:28)
+Error: ERR_ABORTED (-3) loading 'file:///Users/jaemankim/Desktop/privates/coding/in-c/out/renderer/index.html'
+    at rejectAndCleanup (node:electron/js2c/browser_init:2:89582)
+    at finishListener (node:electron/js2c/browser_init:2:89744)
+    at WebContents.failListener (node:electron/js2c/browser_init:2:90030)
+    at WebContents.emit (node:events:509:28) {
+  errno: -3,
+  code: 'ERR_ABORTED',
+  url: 'file:///Users/jaemankim/Desktop/privates/coding/in-c/out/renderer/index.html'
+}

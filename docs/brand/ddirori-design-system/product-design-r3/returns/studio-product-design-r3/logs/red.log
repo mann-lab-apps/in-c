@@ -1,0 +1,816 @@
+
+> in-c@0.1.0-alpha.14 test
+> vitest run src/renderer/src/App.test.tsx -t studio.r3
+
+
+ RUN  v4.1.9 /Users/jaemankim/Desktop/privates/coding/in-c
+
+ ❯ out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx (0 test)
+ ❯ src/renderer/src/App.test.tsx (143 tests | 4 failed | 137 skipped) 3690ms
+     × studio.r3 first session uses actual notes and only celebrates a current native save 517ms
+     × studio.r3 PDF success exposes manual Score instructions without cleaning the project 1179ms
+     × studio.r3 ignores late PDF success after replacing the document 606ms
+     × studio.r3 ignores late PDF failure after replacing the document 602ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx [ out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx ]
+Error: Failed to resolve import "../../musicxml/fixtures/single-part-treble.musicxml?raw" from "out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/studio-r3-baseline/src/renderer/src/App.test.tsx:15:0
+  396 |  const __vi_import_1__ = await import("@testing-library/jest-dom/vitest");
+  397 |  const __vi_import_2__ = await import("@testing-library/react");
+  398 |  const __vi_import_3__ = await import("../../musicxml/fixtures/single-part-treble.musicxml?raw");
+      |                                       ^
+  399 |  const __vi_import_4__ = await import("../../musicxml/fixtures/tuplet-input-progress.musicxml?raw");
+  400 |  const __vi_import_5__ = await import("../../musicxml/fixtures/expanded-v1-part-export.musicxml?raw");
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r3 first session uses actual notes and only celebrates a current native save
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name "새 악보를 만들어 볼까요?"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main[39m
+    [33mclass[39m=[32m"app-shell app-shell--start"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "무엇을 시작할까요?":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"start-screen-title"[39m
+    [33mclass[39m=[32m"start-screen"[39m
+  [36m/>[39m
+
+  Name "최근 악보 파일":
+  [36m<section[39m
+    [33maria-label[39m=[32m"최근 악보 파일"[39m
+    [33mclass[39m=[32m"recent-files"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"eyebrow"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"recent-files__empty"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "무엇을 시작할까요?":
+  [36m<h1[39m
+    [33mid[39m=[32m"start-screen-title"[39m
+  [36m/>[39m
+
+  Name "최근 악보":
+  [36m<h2 />[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "새 악보 만들기조표, 박자표, 마디 수를 정하고 시작합니다.":
+  [36m<button[39m
+    [33mclass[39m=[32m"start-action"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "MusicXML 가져오기다른 사보 도구에서 만든 악보를 불러옵니다.":
+  [36m<button[39m
+    [33mclass[39m=[32m"start-action"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "복구본 없음자동저장된 작업이 있으면 여기에 표시됩니다.":
+  [36m<button[39m
+    [33mclass[39m=[32m"start-action"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "프로젝트 열기":
+  [36m<button[39m
+    [33mclass[39m=[32m"start-action"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "프로젝트 백업":
+  [36m<button[39m
+    [33mclass[39m=[32m"start-action"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"recent-files__header"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"app-shell app-shell--start"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"start-screen-title"[39m
+        [33mclass[39m=[32m"start-screen"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"start-screen__content"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0min-C[0m
+          [36m</p>[39m
+          [36m<h1[39m
+            [33mid[39m=[32m"start-screen-title"[39m
+          [36m>[39m
+            [0m무엇을 시작할까요?[0m
+          [36m</h1>[39m
+          [36m<p>[39m
+            [0m새 악보를 만들거나 MusicXML 파일을 가져오세요. 자동저장 복구본이 있으면 이어서 열 수 있습니다.[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"시작 작업"[39m
+            [33mclass[39m=[32m"start-actions"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"start-action"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-file-plus-corner"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M11.35 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v5.35"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M14 19h6"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M17 16v6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span>[39m
+                [0m새 악보 만들기[0m
+              [36m</span>[39m
+              [36m<small>[39m
+                [0m조표, 박자표, 마디 수를 정하고 시작합니다.[0m
+              [36m</small>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"start-action"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-file-up"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M12 12v6"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m15 15-3-3-3 3"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span>[39m
+                [0mMusicXML 가져오기[0m
+              [36m</span>[39m
+              [36m<small>[39m
+                [0m다른 사보 도구에서 만든 악보를 불러옵니다.[0m
+              [36m</small>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"start-action"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-rotate-ccw"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v5h5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span>[39m
+                [0m복구본 없음[0m
+              [36m</span>[39m
+              [36m<small>[39m
+                [0m자동저장된 작업이 있으면 여기에 표시됩니다.[0m
+              [36m</small>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"start-action"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-file-music"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M11.65 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v10.35"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 20v-7l3 1.474"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"6"[39m
+                  [33mcy[39m=[32m"20"[39m
+                  [33mr[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span>[39m
+                [0m프로젝트 열기[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"start-action"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-rotate-ccw"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v5h5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span>[39m
+                [0m프로젝트 백업[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<section[39m
+            [33maria-label[39m=[32m"최근 악보 파일"[39m
+            [33mclass[39m=[32m"recent-files"[39m
+          [36m>[39m
+            [36m<header[39m
+              [33mclass[39m=[32m"recent-files__header"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-clock3 lucide-clock-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"18"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"18"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<circle[39m
+                    [33mcx[39m=[32m"12"[39m
+                    [33mcy[39m=[32m"12"[39m
+                    [33mr[39m=[32m"10"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M12 6v6h4"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<h2>[39m
+                  [0m최근 악보[0m
+                [36m</h2>[39m
+              [36m</div>[39m
+            [36m</header>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"recent-files__empty"[39m
+            [36m>[39m
+              [0m아직 최근 파일이 없습니다. MusicXML을 가져오면 여기에 표시됩니다.[0m
+            [36m</p>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/renderer/src/App.test.tsx:3752:19
+    3750|     const { App } = await import('./App')
+    3751|     render(<App />)
+    3752|     expect(screen.getByRole('heading', {name:'새 악보를 만들어 볼까요?'})).toBeI…
+       |                   ^
+    3753|     fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
+    3754|     const dialog=screen.getByRole('dialog', {name:'새 악보 만들기'})
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r3 PDF success exposes manual Score instructions without cleaning the project
+TestingLibraryElementError: Unable to find role="button" and name "가져오는 방법"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"문서 상태"[39m
+        [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<strong>[39m
+          [0m문서: release-test[0m
+        [36m</strong>[39m
+        [36m<span[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [0m저장하지 않은 변경[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"studio-view-controls"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"악보 보기 방식"[39m
+            [33mclass[39m=[32m"dd-choices"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m폭 맞춤[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m고정 배율[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"dd-field"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_2_"[39m
+            [36m>[39m
+              [0m고정 확대율[0m
+            [36m</label>[39m
+            [36m<button[39m
+              [33maria-disabled[39m=[32m"true"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-haspopup[39m=[32m"listbox"[39m
+              [33maria-invalid[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-select"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_2_"[39m
+              [33mrole[39m=[32m"combobox"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [0m100%[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mheight[39m=[32m"16"[39m
+                [33mviewBox[39m=[32m"0 0 16 16"[39m
+                [33mwidth[39m=[32m"16"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m4 6 4 4 4-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+      [36m<nav[39m
+        [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+        [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m파일[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m악보[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m음표[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m표기 객체[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m가사[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"is-active"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m내보내기[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m재생[0m
+        [36m</button>[39m
+      [36m</nav>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"다음 입력"[39m
+        [33mclass[39m=[32m"studio-input-context studio-chrome ddirori"[3...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"문서 상태"[39m
+        [33mclass[39m=[32m"studio-document studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<strong>[39m
+          [0m문서: release-test[0m
+        [36m</strong>[39m
+        [36m<span[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [0m저장하지 않은 변경[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"studio-view-controls"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"악보 보기 방식"[39m
+            [33mclass[39m=[32m"dd-choices"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m폭 맞춤[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-busy[39m=[32m"false"[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-button dd-button--secondary dd-choice"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"dd-choice-check"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m2 7 3 3 7-7"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<span>[39m
+                [0m고정 배율[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"dd-field"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_2_"[39m
+            [36m>[39m
+              [0m고정 확대율[0m
+            [36m</label>[39m
+            [36m<button[39m
+              [33maria-disabled[39m=[32m"true"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-haspopup[39m=[32m"listbox"[39m
+              [33maria-invalid[39m=[32m"false"[39m
+              [33mclass[39m=[32m"dd-select"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_2_"[39m
+              [33mrole[39m=[32m"combobox"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [0m100%[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mheight[39m=[32m"16"[39m
+                [33mviewBox[39m=[32m"0 0 16 16"[39m
+                [33mwidth[39m=[32m"16"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m4 6 4 4 4-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+      [36m<nav[39m
+        [33maria-label[39m=[32m"편집 도구 카테고리"[39m
+        [33mclass[39m=[32m"toolbar-tabs studio-chrome ddirori"[39m
+        [33mdata-density[39m=[32m"compact"[39m
+        [33mdata-theme[39m=[32m"light"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m파일[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m악보[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m음표[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m표기 객체[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m가사[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"is-active"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m내보내기[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0m재생[0m
+        [36m</button>[39m
+      [36m</nav>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"다음 입력"[39m
+        [33mclass[39m=[32m"studio-input-context studio-chrome ddirori"[3...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/renderer/src/App.test.tsx:3812:30
+    3810|     fireEvent.click(screen.getByRole('button', {name:'내보내기'}))
+    3811|     fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
+    3812|     const guide=await screen.findByRole('button', {name:'가져오는 방법'})
+       |                              ^
+    3813|     expect(document.querySelector('.studio-document')).toHaveTextConte…
+    3814|     fireEvent.click(guide)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r3 ignores late PDF success after replacing the document
+Error: expect(element).not.toBeInTheDocument()
+
+expected document not to contain element, found <span>
+  old-r3.pdf로 PDF를 만들었습니다.
+</span> instead
+ ❯ src/renderer/src/App.test.tsx:3836:46
+    3834|     fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'}…
+    3835|     await act(async()=>outcome==='success'?finish({fileName:'old-r3.pd…
+    3836|     expect(screen.queryByText(/old-r3/)).not.toBeInTheDocument()
+       |                                              ^
+    3837|     expect(screen.queryByRole('button',{name:'가져오는 방법'})).not.toBeInTh…
+    3838|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/renderer/src/App.test.tsx > App component shell > studio.r3 ignores late PDF failure after replacing the document
+Error: expect(element).not.toBeInTheDocument()
+
+expected document not to contain element, found <span
+  class="is-error"
+>
+  old-r3-failure
+</span> instead
+ ❯ src/renderer/src/App.test.tsx:3836:46
+    3834|     fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'}…
+    3835|     await act(async()=>outcome==='success'?finish({fileName:'old-r3.pd…
+    3836|     expect(screen.queryByText(/old-r3/)).not.toBeInTheDocument()
+       |                                              ^
+    3837|     expect(screen.queryByRole('button',{name:'가져오는 방법'})).not.toBeInTh…
+    3838|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 2 passed | 137 skipped (143)
+   Start at  22:35:36
+   Duration  4.79s (transform 781ms, setup 0ms, import 628ms, tests 3.69s, environment 765ms)
+
