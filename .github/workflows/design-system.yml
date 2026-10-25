@@ -46,6 +46,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Token equality includes dart-formatted generated sources, even in web QA.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
       - run: npm ci
       - run: npm --prefix packages/ddirori_web run typecheck
       - run: npm --prefix packages/ddirori_web test
@@ -56,6 +62,7 @@ jobs:
       - run: node docs/brand/ddirori-brand-system/icon-family-v2/tools/check-contract.mjs
       - run: node docs/brand/ddirori-design-system/tools/verify-specifications.mjs --skip-flutter
       - run: node --test docs/brand/ddirori-design-system/tools/token-model.test.mjs
+      - run: node --test docs/brand/ddirori-design-system/tools/api-portability.test.mjs
       - run: node docs/brand/ddirori-design-system/tools/verify-palettes.mjs
         env:
           DDIRORI_EVIDENCE_DIR: out/ddirori

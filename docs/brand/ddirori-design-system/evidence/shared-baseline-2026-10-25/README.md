@@ -45,6 +45,8 @@ Flutter web build는 사용되지 않는 CupertinoIcons font family 경고를 �
 
 원격 실행 결과는 [Design system contracts](https://github.com/mann-lab-apps/in-c/actions/workflows/design-system.yml)에서 해당 commit을 선택한다. 이 문서의 로컬 통과표를 원격 성공으로 해석하지 않는다. push 이후 결과는 최종 작업 보고에서 별도 확인한다.
 
+첫 원격 실행 [40185725380](https://github.com/mann-lab-apps/in-c/actions/runs/40185725380)에서 Linux 절대 경로가 React API snapshot에 포함되는 문제와 web job의 Dart formatter 누락을 발견했다. API 경로 정규화·macOS/Linux 회귀 테스트를 추가하고 web job에도 같은 Flutter/Dart 도구를 설치한다. 검사 생략으로 우회하지 않는다. 후속 Play 검토에서는 오류 banner를 스크롤 밖 제목 아래로 이동해 오류가 실제 화면에 보이는지 검증했다(`play-final.log`: 19 통과). 기존 checkpoint 결과와 이 후속 수정은 구분한다.
+
 브라우저 검사 도구는 독립 Playwright 설치를 사용한다. 재현 시 임의 QA 폴더에서 `npm init -y`, `npm install playwright` 후 `DDIRORI_QA_PACKAGE=<QA폴더>/package.json`, `DDIRORI_BROWSER_PATH=<Chrome실행파일>`, `DDIRORI_CATALOG_URL=http://127.0.0.1:8088/`, `DDIRORI_EVIDENCE_DIR=<새 출력폴더>`로 `tools/verify-basic-set.mjs`를 실행한다. 개인 `/tmp` 경로를 필수 설치로 간주하지 않는다. 내장 browser 제어 도구가 세션에 없어 격리된 Chrome으로 수행했다.
 
 실기기·Safari·VoiceOver·TalkBack·실물 IME는 [수동 검수](../../support-matrix.md)를 따른다. Figma는 대응표만 존재한다. Stage/Talk/Utilities 신규 서비스, 엔진/파일 포맷·계정·출시 작업은 추가하지 않았다. 다른 worktree 목록은 시작과 동일하며 다른 작업을 reset/stash/삭제하지 않았다.

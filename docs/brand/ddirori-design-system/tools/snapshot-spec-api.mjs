@@ -3,12 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {portableApiText} from './api-portability.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(path.join(root,'package.json'));
 const ts=require('typescript');
 const base=path.join(root,'docs/brand/ddirori-design-system');
 const check=process.argv.includes('--check');
 function output(file,content){
+ content=portableApiText(content,root);
  if(check){if(!fs.existsSync(file)||fs.readFileSync(file,'utf8')!==content)throw new Error('Stale API snapshot: '+path.relative(root,file));}
  else fs.writeFileSync(file,content);
 }

@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart
+00:00 +0: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 개별 파일을 검색 가능한 트랙 선택기로 연결한다
+00:00 +1: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 개별 파일을 검색 가능한 트랙 선택기로 연결한다
+00:00 +2: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 개별 파일을 검색 가능한 트랙 선택기로 연결한다
+00:00 +3: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/metadata_edit_dialog_test.dart: late save completion after disposal does not access context
+00:00 +4: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 이미 연결된 트랙 교체 시 기존 파일 상태도 정리한다
+00:01 +5: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 자동 후보를 거절하면 파일을 미분류 상태로 둔다
+00:01 +6: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 연결된 파일의 연결을 해제한다
+00:01 +7: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 누락 파일을 새 경로에 재연결하면서 기존 ID를 유지한다
+00:01 +8: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 재연결 확인은 320px와 200% 글자에서 근거와 취소 경로를 유지한다
+00:01 +9: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 새 파일 재연결을 취소하면 방금 만든 관리 복사본을 정리한다
+00:01 +10: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 앱 관리 음원 사용량을 표시하고 확인 후 복사본을 삭제한다
+00:01 +11: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 앱 관리 복사본만 주입된 내보내기 어댑터로 전달한다
+00:01 +12: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 좁은 화면에서도 관리 작업 버튼이 넘치지 않는다
+00:01 +13: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 필드별 사용자 교정을 저장하고 출처를 표시한다
+00:01 +14: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 저장 실패는 draft를 보존하고 재시도 중 중복·닫기를 막는다
+00:02 +15: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 편집 취소는 저장소를 변경하지 않는다
+00:02 +16: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: MusicBrainz 후보에서 선택한 필드를 승인한다
+00:02 +17: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 좁은 화면에서 대표 항목을 고른 뒤 중복 병합을 확인한다
+00:02 +18: /Users/jaemankim/Desktop/privates/coding/in-c/apps/classical_local_library/test/library_management_test.dart: 병합 기록에서 활성 병합을 확인하고 되돌린다
+00:02 +19: All tests passed!

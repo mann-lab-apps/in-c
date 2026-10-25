@@ -128,7 +128,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"<repo>/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -166,7 +166,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"<repo>/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -1756,7 +1756,7 @@
         },
         {
           "name": "children",
-          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index\").JSXElementConstructor<any>>",
+          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"<repo>/node_modules/@types/react/index\").JSXElementConstructor<any>>",
           "required": true,
           "default": "—"
         }

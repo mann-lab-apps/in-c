@@ -340,6 +340,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '저장'));
     await tester.pumpAndSettle();
     expect(find.textContaining('입력은 유지됩니다'), findsOneWidget);
+    expect(find.textContaining('입력은 유지됩니다').hitTestable(), findsOneWidget);
     expect(find.text('메타데이터 교정을 저장했습니다.'), findsNothing);
     expect(
       (tester.widget<TextField>(field)).controller!.text,

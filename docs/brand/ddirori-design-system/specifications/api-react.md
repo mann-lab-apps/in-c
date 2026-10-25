@@ -119,7 +119,7 @@ export function Button({ children, onClick, kind = 'primary', busy = false, sele
 
 | 인자 | 타입 | 필수 | 인자 기본값 |
 | --- | --- | --- | --- |
-| onError | (import("/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) &#124; undefined | 아니오 | — |
+| onError | (import("react").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) &#124; undefined | 아니오 | — |
 | onClick | (() => void &#124; Promise<void>) &#124; undefined | 아니오 | — |
 | kind | "primary" &#124; "secondary" &#124; "danger" &#124; "quiet" &#124; undefined | 아니오 | 'primary' |
 | busy | boolean &#124; undefined | 아니오 | false |
@@ -138,7 +138,7 @@ export function IconButton({ label, children, className = '', ...props }: Button
 
 | 인자 | 타입 | 필수 | 인자 기본값 |
 | --- | --- | --- | --- |
-| onError | (import("/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) &#124; undefined | 아니오 | — |
+| onError | (import("react").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) &#124; undefined | 아니오 | — |
 | onClick | (() => void &#124; Promise<void>) &#124; undefined | 아니오 | — |
 | kind | "primary" &#124; "secondary" &#124; "danger" &#124; "quiet" &#124; undefined | 아니오 | — |
 | busy | boolean &#124; undefined | 아니오 | — |
@@ -1347,4 +1347,4 @@ export function Tooltip({
 | 인자 | 타입 | 필수 | 인자 기본값 |
 | --- | --- | --- | --- |
 | text | string | 예 | — |
-| children | ReactElement<{ "aria-describedby"?: string; }, string &#124; import("/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/@types/react/index").JSXElementConstructor<any>> | 예 | — |
+| children | ReactElement<{ "aria-describedby"?: string; }, string &#124; import("react").JSXElementConstructor<any>> | 예 | — |

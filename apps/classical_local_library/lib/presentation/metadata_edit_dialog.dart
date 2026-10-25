@@ -42,7 +42,18 @@ class _MetadataEditDialogState extends State<MetadataEditDialog> {
     canPop: !saving,
     child: AlertDialog(
       insetPadding: const EdgeInsets.all(16),
-      title: const Text('내부 메타데이터 편집'),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('내부 메타데이터 편집'),
+          if (errorMessage != null)
+            DdiroriBanner(
+              message: errorMessage!,
+              kind: DdiroriNoticeKind.error,
+            ),
+        ],
+      ),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -64,11 +75,6 @@ class _MetadataEditDialogState extends State<MetadataEditDialog> {
                 ),
                 const SizedBox(height: 8),
               ],
-              if (errorMessage != null)
-                DdiroriBanner(
-                  message: errorMessage!,
-                  kind: DdiroriNoticeKind.error,
-                ),
             ],
           ),
         ),
