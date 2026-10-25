@@ -6,9 +6,11 @@ const path = require('node:path')
 const assert = require('node:assert/strict')
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddirori-electron-'))
 app.setPath('userData', profile)
+// Software compositing also supports capturePage under Linux Xvfb runners.
+app.disableHardwareAcceleration()
 const out = path.resolve(__dirname, '../out/ddirori/shared-baseline')
 app.whenReady().then(async () => {
-  const win = new BrowserWindow({width:1200,height:1000,show:false,webPreferences:{sandbox:true,contextIsolation:true}})
+  const win = new BrowserWindow({width:1200,height:1000,show:true,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}})
   try {
     await win.loadFile(path.resolve(__dirname, '../out/renderer/index.html'), {query:{fixture:'release-test'}})
     const result = await win.webContents.executeJavaScript(`(async () => {
@@ -34,14 +36,12 @@ app.whenReady().then(async () => {
         popover:'showPopover' in HTMLElement.prototype, dialog:'showModal' in HTMLDialogElement.prototype,
         panelWidth:panel.getBoundingClientRect().width, overflow:panel.scrollWidth > panel.clientWidth+1};
     })()`)
-    console.log(result)
-    fs.mkdirSync(out,{recursive:true})
-    fs.writeFileSync(path.join(out,'studio-electron.png'),(await win.webContents.capturePage()).toPNG())
     assert.equal(result.committed, '0')
     assert.equal(result.undone, '')
     assert.equal(result.host, true)
     assert.equal(result.overflow, false)
     assert.ok(result.popover && result.dialog && result.height >= 32)
+    await win.webContents.executeJavaScript('document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))')
     fs.mkdirSync(out,{recursive:true})
     fs.writeFileSync(path.join(out,'studio-electron.png'),(await win.webContents.capturePage()).toPNG())
     fs.writeFileSync(path.join(out,'studio-electron.json'),JSON.stringify({at:new Date().toISOString(),versions:process.versions,result,scope:'Built product renderer; fixture, isolated userData, no file/audio bridge. Native history and shared CSS verified; no physical IME or OS accessibility claims.'},null,2))
