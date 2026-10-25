@@ -166,6 +166,69 @@ void main() {
     expect(loadedFavoriteAnnotationPreset?.stampName, 'cue');
   });
 
+  test(
+    'repairs stale managed file paths after an app container changes',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      const oldDocuments = '/simulator/old-container/Documents';
+      const pdfName = 'score-1-prelude.pdf';
+      const linkedName = 'audio-1-reference.m4a';
+      final currentScores = Directory('${documentsDir.path}/scores');
+      final currentLinkedFiles = Directory('${documentsDir.path}/linked-files');
+      await currentScores.create(recursive: true);
+      await currentLinkedFiles.create(recursive: true);
+      await File('${currentScores.path}/$pdfName').writeAsString('pdf');
+      await File('${currentLinkedFiles.path}/$linkedName')
+          .writeAsString('audio');
+
+      final now = DateTime.utc(2026, 10, 25);
+      await store.saveScores(<SheetScore>[
+        SheetScore(
+          id: 'score-1',
+          title: 'Prelude',
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: '$oldDocuments/scores/$pdfName',
+          linkedFiles: <SheetLinkedFile>[
+            SheetLinkedFile(
+              path: '$oldDocuments/linked-files/$linkedName',
+              type: 'm4a',
+              label: 'Reference audio',
+              createdAt: now,
+            ),
+            SheetLinkedFile(
+              path: '/outside-app/original.pdf',
+              type: 'pdf',
+              label: 'Original',
+              createdAt: now,
+            ),
+          ],
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+      ]);
+
+      final repaired = (await store.loadScores()).single;
+
+      expect(repaired.filePath, '${currentScores.path}/$pdfName');
+      expect(
+        repaired.linkedFiles.first.path,
+        '${currentLinkedFiles.path}/$linkedName',
+      );
+      expect(repaired.linkedFiles.last.path, '/outside-app/original.pdf');
+      expect(
+        (await store.loadScores()).single.filePath,
+        '${currentScores.path}/$pdfName',
+      );
+    },
+  );
+
   test('loads legacy in_c_sheet preference keys after Clef rename', () async {
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final score = SheetScore(

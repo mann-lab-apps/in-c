@@ -413,7 +413,19 @@ class SheetLibraryStore {
     final preferences = await SharedPreferences.getInstance();
     final activeLibraryId = await _activeLibraryId(preferences);
     final scores = _readScores(preferences, activeLibraryId);
-    return _sortScores(scores);
+    final repairedScores = await _repairManagedScorePaths(scores);
+    if (!_haveSameScorePaths(scores, repairedScores)) {
+      await preferences.setString(
+        _scopedKey(_scoresKey, activeLibraryId),
+        SheetScore.encodeList(repairedScores),
+      );
+      await _saveAutomaticMetadataBackup(
+        preferences,
+        activeLibraryId,
+        scores: repairedScores,
+      );
+    }
+    return _sortScores(repairedScores);
   }
 
   Future<void> saveScores(List<SheetScore> scores) async {
@@ -1412,6 +1424,92 @@ class SheetLibraryStore {
         failureReason: error.toString(),
       );
     }
+  }
+
+  Future<List<SheetScore>> _repairManagedScorePaths(
+    List<SheetScore> scores,
+  ) async {
+    if (scores.isEmpty) {
+      return scores;
+    }
+    final documents = await getApplicationDocumentsDirectory();
+    return Future.wait(
+      scores.map((score) => _repairManagedScorePath(score, documents)),
+    );
+  }
+
+  Future<SheetScore> _repairManagedScorePath(
+    SheetScore score,
+    Directory documents,
+  ) async {
+    final filePath = await _repairManagedPath(
+      score.filePath,
+      documents: documents,
+      folderName: _pdfFolderName,
+    );
+    final linkedFiles = await Future.wait(
+      score.linkedFiles.map(
+        (linkedFile) async => linkedFile.copyWith(
+          path: await _repairManagedPath(
+            linkedFile.path,
+            documents: documents,
+            folderName: _linkedFilesFolderName,
+          ),
+        ),
+      ),
+    );
+    final hasLinkedPathChange = linkedFiles.asMap().entries.any(
+      (entry) => entry.value.path != score.linkedFiles[entry.key].path,
+    );
+    if (filePath == score.filePath && !hasLinkedPathChange) {
+      return score;
+    }
+    return score.copyWith(filePath: filePath, linkedFiles: linkedFiles);
+  }
+
+  Future<String> _repairManagedPath(
+    String storedPath, {
+    required Directory documents,
+    required String folderName,
+  }) async {
+    if (storedPath.trim().isEmpty || await File(storedPath).exists()) {
+      return storedPath;
+    }
+
+    final normalizedPath = storedPath.replaceAll('\\', '/');
+    final managedDirectory = '/Documents/$folderName/';
+    if (!normalizedPath.contains(managedDirectory)) {
+      return storedPath;
+    }
+    final fileName = normalizedPath.split('/').last;
+    if (fileName.isEmpty || fileName == '.' || fileName == '..') {
+      return storedPath;
+    }
+    final candidate = File('${documents.path}/$folderName/$fileName');
+    return await candidate.exists() ? candidate.path : storedPath;
+  }
+
+  bool _haveSameScorePaths(List<SheetScore> first, List<SheetScore> second) {
+    if (first.length != second.length) {
+      return false;
+    }
+    for (var index = 0; index < first.length; index++) {
+      if (first[index].filePath != second[index].filePath ||
+          first[index].linkedFiles.length != second[index].linkedFiles.length) {
+        return false;
+      }
+      for (
+        var linkedIndex = 0;
+        linkedIndex < first[index].linkedFiles.length;
+        linkedIndex++
+      ) {
+        if (first[index].linkedFiles[linkedIndex].path !=
+            second[index].linkedFiles[linkedIndex].path) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   Future<String> _writeImportedPdf({
