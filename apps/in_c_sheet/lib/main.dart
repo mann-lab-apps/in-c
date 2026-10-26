@@ -6166,43 +6166,60 @@ setlist=$setlistLabel
   }
 
   Future<void> _selectPedalMapping() async {
-    final selected = await showModalBottomSheet<_SheetPedalMapping>(
+    final selected = await showDdiroriSheet<_SheetPedalMapping>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetPedalMapping.values
-              .map(
-                (mapping) => ListTile(
-                  leading: Icon(mapping.icon),
-                  title: Text(mapping.label),
-                  subtitle: switch (mapping) {
-                    _SheetPedalMapping.standard => const Text(
-                      '오른쪽/아래/Enter 계열 입력을 다음 페이지로 사용',
-                    ),
-                    _SheetPedalMapping.reversed => const Text(
-                      '페달 방향이 반대로 느껴질 때 이전/다음 동작을 교환',
-                    ),
-                    _SheetPedalMapping.setlistEdges => const Text(
-                      '곡의 첫/마지막 페이지 경계에서 '
-                      '세트리스트 이전/다음 곡으로 이동',
-                    ),
-                    _SheetPedalMapping.reversedSetlistEdges => const Text(
-                      '반전 방향을 쓰면서 세트리스트 경계에서 곡 이동',
-                    ),
-                    _SheetPedalMapping.custom => const Text(
-                      '키/페달 입력별 동작을 직접 선택',
-                    ),
-                  },
-                  trailing: mapping == _pedalMapping
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(mapping),
+      title: '페달 매핑',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DdiroriBanner(message: '입력 처리와 기존 매핑은 유지한 채 페이지 넘김 방식을 선택합니다.'),
+          const SizedBox(height: 12),
+          for (final (index, mapping) in _SheetPedalMapping.values.indexed) ...[
+            DdiroriItem(
+              title: mapping.label,
+              subtitle: switch (mapping) {
+                _SheetPedalMapping.standard => '오른쪽/아래/Enter 계열 입력을 다음 페이지로 사용',
+                _SheetPedalMapping.reversed => '페달 방향이 반대로 느껴질 때 이전/다음 동작을 교환',
+                _SheetPedalMapping.setlistEdges =>
+                  '곡의 첫/마지막 페이지 경계에서 세트리스트 이전/다음 곡으로 이동',
+                _SheetPedalMapping.reversedSetlistEdges =>
+                  '반전 방향을 쓰면서 세트리스트 경계에서 곡 이동',
+                _SheetPedalMapping.custom => '키/페달 입력별 동작을 직접 선택',
+              },
+              leading: Icon(mapping.icon),
+              trailing: DdiroriStatusBadge(
+                label: mapping == _pedalMapping ? '현재' : '선택 가능',
+                tone: mapping == _pedalMapping
+                    ? DdiroriStatusTone.success
+                    : DdiroriStatusTone.info,
+              ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(mapping),
+              actions: [
+                DdiroriButton(
+                  label: mapping == _pedalMapping
+                      ? mapping == _SheetPedalMapping.custom
+                            ? '맞춤 입력 편집'
+                            : '현재 매핑'
+                      : '이 매핑 사용',
+                  icon: mapping == _pedalMapping
+                      ? mapping == _SheetPedalMapping.custom
+                            ? Icons.tune
+                            : Icons.check
+                      : Icons.keyboard_arrow_right,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed:
+                      mapping == _pedalMapping &&
+                          mapping != _SheetPedalMapping.custom
+                      ? null
+                      : () => Navigator.of(context).pop(mapping),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ],
+            ),
+            if (index != _SheetPedalMapping.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null) {

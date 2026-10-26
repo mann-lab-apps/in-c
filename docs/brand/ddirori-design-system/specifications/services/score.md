@@ -98,5 +98,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 리허설 마크 sheet와 편집 dialog는 공통 `showDdiroriSheet`/`showDdiroriDialog`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriInput`, `DdiroriChoices`, `DdiroriButton`, `DdiroriMenuButton`으로 추가·이동·수정/삭제와 마크 종류·페이지 입력을 구분한다. 공연 모드에서는 기존대로 이동만 허용하며, 저장과 실제 페이지 이동은 기존 Score controller/PDF adapter가 소유한다.
 - 보기 방식 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`으로 현재 방식·선택 가능·좁은 화면의 2페이지 제한을 구분한다. display mode 저장, 자동 스크롤 정지, crop fit 재계산과 PDF invalidate는 기존 Score viewer가 소유한다.
 - 표시 효과와 페이지 맞춤 sheet도 같은 공통 계약으로 현재 선택·선택 가능·표시 변경의 보존 범위를 구분한다. 효과/맞춤 저장, crop fit 재계산, PDF invalidate와 실제 색상·지면 배치는 기존 Score viewer가 소유하며, sheet를 열거나 닫는 일만으로 PDF·주석·페이지 위치를 바꾸지 않는다.
+- 페달 매핑 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`으로 현재 매핑·선택 가능 매핑과 맞춤 입력 편집 진입을 구분한다. HID/키 입력 처리, 설정 저장, custom input action과 실제 USB·Bluetooth 페달 호환성은 기존 Score 입력 adapter와 Device QA가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

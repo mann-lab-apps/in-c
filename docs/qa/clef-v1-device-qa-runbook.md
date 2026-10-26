@@ -240,6 +240,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 - `페이지 맞춤`의 페이지/폭/전체 화면을 가로·세로와 큰 글씨에서 확인한다. crop fit 재계산 뒤 주석 좌표와 현재 페이지가 바뀌지 않아야 한다.
 - 실제 색상 대비, VoiceOver 순서, 터치 영역과 스크롤 감각은 widget 회귀가 대신 검증하지 않는다. 기기·OS·화면 크기·PDF와 결과를 기록한다.
 
+## 페달 매핑 Device QA
+
+- 실제 Bluetooth/USB 페달과 키보드에서 표준·반전·세트리스트 경계 이동·직접 설정을 바꾼 뒤, 다음/이전 페이지와 곡 경계 동작을 확인한다.
+- 맞춤 입력 편집 뒤 앱을 다시 열어 설정이 남는지, 알 수 없는 입력이 진단 경로에만 기록되고 PDF·주석·현재 페이지를 바꾸지 않는지 확인한다.
+- widget 회귀는 선택 sheet와 PDF identity만 확인한다. 실제 HID cadence, 방향키/페이지키 차이, VoiceOver와 출력 장치 호환성은 Device QA로 기록한다.
+
 ## Triage 기준
 
 - blocker: 앱 crash, data loss, import/export 불가, 공연 중 page turn 불가, 백업/복원 실패.

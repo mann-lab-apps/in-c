@@ -800,6 +800,34 @@ void main() {
   );
 
   testWidgets(
+    'real PDF pedal mapping uses Ddirori choices without changing the document',
+    (t) async {
+      await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('페달 매핑:'));
+      await t.pumpAndSettle();
+
+      expect(find.text('페달 매핑'), findsOneWidget);
+      expect(
+        find.text('입력 처리와 기존 매핑은 유지한 채 페이지 넘김 방식을 선택합니다.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '세트리스트 경계 이동',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();
