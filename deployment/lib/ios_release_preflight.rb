@@ -210,7 +210,9 @@ module Deployment
         add('fail', 'icon.marketing', '1024px App Store 아이콘이 없습니다.')
       end
       readme = read('README.md')
-      if readme.match?(/아이콘.*(?:임시|최종.*승인)|(?:임시|미승인).*아이콘/)
+      if readme.match?(/사용자가.{0,100}아이콘.{0,100}최종 아이콘으로 승인했다/)
+        add('pass', 'icon.approval', '현재 Play 아이콘의 사용자 승인 기록이 제품 문서에 있습니다. 실기기·스토어 자산 검수는 별도입니다.')
+      elsif readme.match?(/아이콘.*(?:임시|최종.*승인)|(?:임시|미승인).*아이콘/)
         add('blocked', 'icon.approval', '현재 아이콘은 기술 규격을 통과했지만 최종 디자인 승인이 필요합니다.')
       else
         add('warning', 'icon.approval', '최종 아이콘 승인 근거를 배포 기록에서 확인해야 합니다.')

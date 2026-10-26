@@ -23,8 +23,9 @@ class IOSReleasePreflightTest < Minitest::Test
     assert_equal 'pass', codes['source.demo']
     assert_equal 'pass', codes['privacy.manifest']
     assert_equal 'pass', codes['icon.marketing']
+    assert_equal 'pass', codes['icon.approval']
     assert_equal 'blocked', codes['url.ko.privacy_url']
-    assert_equal 'blocked', codes['checkpoint.source']
+    assert_equal 'pass', codes['checkpoint.source']
     assert_equal 'blocked', codes['screenshots.capture']
   end
 
