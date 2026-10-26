@@ -1,6 +1,6 @@
 {
-  "status": "neutral foundation trial; accent selection remains open",
-  "recommended": null,
+  "status": "unified blue working theme; alternative accents are comparison-only",
+  "recommended": "blue",
   "variants": [
     {
       "key": "violet",

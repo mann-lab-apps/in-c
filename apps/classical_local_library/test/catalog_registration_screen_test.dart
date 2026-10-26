@@ -6,6 +6,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('저장 실패는 입력을 보존하고 재시도 성공 후에만 닫는다', (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var saves = 0;
+    CatalogRecordingDraft? result;
+    final file = _file('first', '01 Allegro.flac');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => FilledButton(
+            onPressed: () async {
+              result = await Navigator.of(context).push<CatalogRecordingDraft>(
+                MaterialPageRoute(
+                  builder: (_) => CatalogRegistrationScreen(
+                    library: emptyClassicalLibrary,
+                    files: [file],
+                    candidates: [_candidate(file, 'Allegro', 1)],
+                    overrides: const [],
+                    onSave: (_) async {
+                      saves += 1;
+                      return saves == 1 ? '저장소 오류입니다.' : null;
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Text('열기'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('라이브러리에 저장'));
+    await tester.pumpAndSettle();
+    expect(find.text('저장소 오류입니다.'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Bach'), findsOneWidget);
+    expect(result, isNull);
+    await tester.tap(find.text('라이브러리에 저장'));
+    await tester.pumpAndSettle();
+    expect(saves, 2);
+    expect(result?.workTitle, 'Suite No. 1');
+    expect(find.text('작품과 녹음 정리'), findsNothing);
+  });
+
   testWidgets('추론값을 채우고 악장 순서를 바꿔 등록 초안을 만든다', (tester) async {
     tester.view.physicalSize = const Size(1200, 2600);
     tester.view.devicePixelRatio = 1;

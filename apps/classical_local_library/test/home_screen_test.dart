@@ -19,7 +19,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('좁은 화면은 전체 앱 이름과 더보기 도구를 유지한다', (tester) async {
+  testWidgets('좁은 화면은 보관함 제목과 더보기 도구를 유지한다', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -41,15 +41,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final title = find.text('띠로리 플레이').first;
+    final title = find.text('보관함').first;
     final paragraph = tester.renderObject<RenderParagraph>(title);
     expect(paragraph.didExceedMaxLines, isFalse);
+    expect(find.text('띠로리 플레이'), findsNothing);
     expect(find.byTooltip('도구 더보기'), findsOneWidget);
     await tester.tap(find.byTooltip('도구 더보기'));
     await tester.pumpAndSettle();
     expect(find.text('음악 발견'), findsOneWidget);
     expect(find.text('IMSLP 자료'), findsOneWidget);
-    expect(find.text('파일 정리'), findsOneWidget);
+    expect(find.text('음원 정보·파일 복구'), findsOneWidget);
     expect(find.text('재생 진단'), findsOneWidget);
     expect(find.text('앱 정보 및 데이터'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -78,17 +79,10 @@ void main() {
     expect(find.text('데모 스캔'), findsNothing);
     await tester.drag(find.byType(ListView), const Offset(0, -520));
     await tester.pumpAndSettle();
-    expect(find.text('내 클래식 라이브러리'), findsOneWidget);
-    expect(find.text('첫 음악을 담아볼까요?'), findsOneWidget);
+    expect(find.text('보관함이 비어 있습니다'), findsOneWidget);
+    expect(find.text('음악 가져오기'), findsOneWidget);
     expect(find.text('작품 랜덤'), findsNothing);
-    expect(
-      tester
-          .widget<IconButton>(
-            find.widgetWithIcon(IconButton, Icons.explore_outlined),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(find.byTooltip('현재 재생 상세 열기'), findsNothing);
   });
 
   testWidgets('보관함 초기화 실패는 경로를 숨기고 다시 시도할 수 있다', (tester) async {
@@ -157,13 +151,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('띠로리'), findsOneWidget);
-    expect(find.text('플레이'), findsOneWidget);
+    expect(find.text('띠로리 플레이'), findsNothing);
+    expect(find.text('보관함'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.label == '띠로리 플레이',
+        (widget) =>
+            widget is Semantics && widget.properties.label == '띠로리 플레이 앱 아이콘',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byTooltip('도구 더보기'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -188,10 +183,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('띠로리 플레이'), findsWidgets);
-    expect(find.text('검색'), findsOneWidget);
+    expect(find.text('띠로리 플레이'), findsNothing);
+    expect(find.byTooltip('내 음악 검색'), findsOneWidget);
     await _showHomeView(tester, '관리');
-    expect(find.text('스캔'), findsOneWidget);
+    expect(find.text('파일 상태'), findsOneWidget);
     expect(find.text('폴더 추가'), findsOneWidget);
     expect(find.text('데모 스캔'), findsOneWidget);
     await tester.scrollUntilVisible(find.byType(DdiroriMetricGroup), 250);
@@ -218,7 +213,16 @@ void main() {
     await _scrollToQueue(tester);
     expect(find.text('현재 재생 큐'), findsOneWidget);
     expect(find.textContaining('교향곡 5번 다단조'), findsWidgets);
-    expect(find.textContaining('샘플 파일'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.byTooltip('음원 정보 1'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('음원 정보 1'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('샘플 파일'), findsOneWidget);
+    await tester.tap(find.text('닫기'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('음악 발견 화면에서 추천 이유를 보고 기존 큐를 선택한다', (tester) async {
@@ -240,7 +244,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('음악 발견'));
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('음악 발견').last);
     await tester.pumpAndSettle();
     expect(find.text('음악 발견'), findsOneWidget);
     expect(find.text('같은 작곡가의 작품'), findsOneWidget);
@@ -254,8 +260,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.play_arrow_outlined).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('띠로리 플레이'), findsWidgets);
-    expect(find.byTooltip('음악 발견'), findsOneWidget);
+    expect(find.text('띠로리 플레이'), findsNothing);
+    expect(find.byTooltip('도구 더보기'), findsOneWidget);
   });
 
   testWidgets('샘플 스캔은 정리 필요 파일 후보를 화면에 표시한다', (tester) async {
@@ -407,6 +413,16 @@ void main() {
       LocalAudioImportBatchResult(
         items: const [
           LocalAudioImportItemResult(
+            outcome: LocalAudioImportOutcome.failed,
+            failureKind: 'unsupportedType',
+          ),
+        ],
+        files: [importedFile],
+        candidates: [importedCandidate],
+      ),
+      LocalAudioImportBatchResult(
+        items: const [
+          LocalAudioImportItemResult(
             outcome: LocalAudioImportOutcome.duplicate,
           ),
           LocalAudioImportItemResult(
@@ -450,13 +466,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('가져옴 1개 · 실패 1개'), findsOneWidget);
-    expect(find.text('movement.wav'), findsOneWidget);
+    expect(find.text('movement.wav'), findsWidgets);
+    expect(find.textContaining('지원하지 않는 파일 형식입니다.'), findsOneWidget);
+    await tester.tap(find.text('실패한 파일 다시 시도'));
+    await tester.pumpAndSettle();
+    expect(controller.importCallCount, 2);
+    expect(controller.selectionNames.last, ['score.pdf']);
+    expect(find.text('가져옴 1개 · 실패 1개'), findsOneWidget);
 
     await tester.ensureVisible(importButton);
     await tester.pumpAndSettle();
     await tester.tap(importButton);
     await tester.pumpAndSettle();
-    expect(controller.importCallCount, 2);
+    expect(controller.importCallCount, 3);
     expect(find.text('중복 1개 · 실패 1개'), findsOneWidget);
   });
 
@@ -485,10 +507,63 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, '파일 가져오기'));
+    await tester.tap(find.byTooltip('음악 가져오기'));
     await tester.pumpAndSettle();
 
     expect(find.text('파일 가져오기가 취소되었습니다.'), findsOneWidget);
+  });
+
+  testWidgets('분석 대기 파일은 수동 정리와 분석 재시도를 함께 제공한다', (tester) async {
+    final file = _audioFile('/managed/pending.flac');
+    await tester.pumpWidget(
+      ClassicalLocalLibraryApp(
+        initialLibrary: emptyClassicalLibrary,
+        enableDemoFeatures: false,
+        playbackController: FakeLocalPlayer(),
+        scanRepository: ScannedAudioRepository(MemoryScannedAudioStore()),
+        scanLocationRepository: ScanLocationRepository(
+          MemoryScanLocationStore(),
+        ),
+        metadataCandidateRepository: MetadataCandidateRepository(
+          MemoryMetadataCandidateStore(),
+        ),
+        fileTrackLinkRepository: AudioFileTrackLinkRepository(
+          MemoryAudioFileTrackLinkStore(),
+        ),
+        audioFilePicker: const _FixedAudioFilePicker([
+          _StubSelectedAudioFile('pending.flac'),
+        ]),
+        localAudioImportCoordinator: _SequencedImportController([
+          LocalAudioImportBatchResult(
+            items: [
+              LocalAudioImportItemResult(
+                outcome: LocalAudioImportOutcome.pending,
+                record: LocalAudioImportRecord(
+                  id: 'pending-import',
+                  sourceKind: 'document',
+                  originalFileName: 'pending.flac',
+                  localPath: file.path,
+                  sha256: 'pending',
+                  sizeBytes: 1,
+                  importedAtMillis: 1,
+                  status: LocalAudioImportStatus.analysisPending,
+                  fileId: file.id,
+                ),
+              ),
+            ],
+            files: [file],
+            candidates: const [],
+          ),
+        ], recoverFiles: const []),
+        supportsFolderScan: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('음악 가져오기'));
+    await tester.pumpAndSettle();
+    expect(find.text('분석 다시 시도'), findsOneWidget);
+    expect(find.byTooltip('pending.flac 작품과 녹음으로 정리'), findsOneWidget);
+    expect(find.textContaining('직접 정리할 수 있습니다.'), findsOneWidget);
   });
 
   testWidgets('등록된 폴더를 다시 스캔하고 비활성화할 수 있다', (tester) async {
@@ -578,6 +653,8 @@ void main() {
     await tester.tap(find.text('라이브러리에 저장'));
     await tester.pumpAndSettle();
 
+    expect(find.text('작품과 녹음을 저장하지 못했습니다. 다시 시도해 주세요.'), findsNothing);
+    expect(find.text('작품과 녹음 정리'), findsNothing);
     expect(find.textContaining('연결 1'), findsOneWidget);
     expect(find.textContaining('연결됨 · 트랙'), findsOneWidget);
     expect(
@@ -831,6 +908,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await _showHomeView(tester, '라이브러리');
+    await tester.tap(find.byTooltip('내 음악 검색'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '베토벤 5번');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
@@ -838,11 +917,13 @@ void main() {
     expect(find.text('교향곡 5번 다단조'), findsWidgets);
 
     await _showHomeView(tester, '라이브러리');
+    await tester.tap(find.byTooltip('내 음악 검색'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Symphony 5 Allegro');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
 
-    expect(find.text('01 Allegro.flac'), findsWidgets);
+    expect(find.textContaining('01 Allegro.flac'), findsWidgets);
   });
 
   testWidgets('검색 결과에서 작품과 녹음 상세를 연속해서 탐색한다', (tester) async {
@@ -864,6 +945,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await _showHomeView(tester, '라이브러리');
+    await tester.tap(find.byTooltip('내 음악 검색'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '운명');
     await tester.pump(const Duration(milliseconds: 180));
     await tester.pumpAndSettle();
@@ -917,6 +1000,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await _showHomeView(tester, '라이브러리');
+    await tester.tap(find.byTooltip('내 음악 검색'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '운명');
     await tester.pumpAndSettle();
     await tester.tap(find.text('교향곡 5번 다단조').last);
@@ -932,9 +1017,16 @@ void main() {
     expect(player.playbackState.playerState, LocalPlayerState.playing);
     expect(player.playbackState.queue, hasLength(4));
 
-    await tester.scrollUntilVisible(find.text('2악장 Andante con moto'), 300);
+    await tester.scrollUntilVisible(
+      find.text('2악장 Andante con moto'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(find.text('2악장 Andante con moto'));
-    await tester.drag(find.byType(ListView).last, const Offset(0, -240));
+    await Scrollable.ensureVisible(
+      tester.element(find.text('2악장 Andante con moto')),
+      alignment: 0.5,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('2악장 Andante con moto'));
     await tester.pumpAndSettle();
@@ -1304,7 +1396,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('재생 진단'));
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('재생 진단').last);
     await tester.pumpAndSettle();
 
     expect(find.text('재생 진단'), findsOneWidget);
@@ -1449,6 +1543,7 @@ class _SequencedImportController implements LocalAudioImportController {
   final List<LocalAudioImportBatchResult> results;
   final List<LocalAudioFile> recoverFiles;
   int importCallCount = 0;
+  final List<List<String>> selectionNames = [];
 
   @override
   Future<LocalAudioImportBatchResult> importFiles(
@@ -1457,6 +1552,7 @@ class _SequencedImportController implements LocalAudioImportController {
     void Function(LocalAudioImportStage stage)? onStage,
     void Function(LocalAudioImportProgress progress)? onProgress,
   }) async {
+    selectionNames.add([for (final selection in selections) selection.name]);
     onStage?.call(LocalAudioImportStage.copying);
     onProgress?.call(
       LocalAudioImportProgress(
@@ -1482,7 +1578,21 @@ class _SequencedImportController implements LocalAudioImportController {
 }
 
 Future<void> _showHomeView(WidgetTester tester, String label) async {
-  await tester.tap(find.byTooltip('$label 보기'));
+  if (label == '라이브러리') {
+    if (find.byTooltip('뒤로').evaluate().isNotEmpty) {
+      await tester.tap(find.byTooltip('뒤로'));
+    }
+  } else {
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    final menuLabel = switch (label) {
+      '관리' => '가져오기·파일 상태',
+      '현재 재생' => '재생 계획',
+      '감상' => '감상 기록',
+      _ => label,
+    };
+    await tester.tap(find.text(menuLabel).last);
+  }
   await tester.pumpAndSettle();
 }
 

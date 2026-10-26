@@ -924,7 +924,7 @@ class DdiroriBanner extends StatelessWidget {
       DdiroriNoticeKind.warning => Icons.warning_amber,
       DdiroriNoticeKind.error => Icons.error_outline,
     };
-    final tone = c[kind == DdiroriNoticeKind.info ? 'action' : kind.name];
+    final tone = c[kind.name];
     return Semantics(
       liveRegion: kind == DdiroriNoticeKind.error,
       child: Container(

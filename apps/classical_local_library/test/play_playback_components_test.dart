@@ -6,6 +6,66 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
+    'draft resets on track change, pause and failure without seeking',
+    (t) async {
+      var state = _playingState();
+      final seeks = <Duration>[];
+      Future<void> render() => t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayNowPlayingControls(
+              state: state,
+              canUseQueue: true,
+              commandRunning: false,
+              onPlayPause: _noop,
+              onNext: _noop,
+              onStop: _noop,
+              onSeek: seeks.add,
+            ),
+          ),
+        ),
+      );
+      await render();
+      for (final change in ['track', 'pause', 'error']) {
+        t.widget<Slider>(find.byType(Slider)).onChanged!(90000);
+        await t.pump();
+        expect(t.widget<Slider>(find.byType(Slider)).value, 90000);
+        state = state.copyWith(
+          position: const Duration(seconds: 5),
+          playerState: change == 'pause'
+              ? LocalPlayerState.paused
+              : change == 'error'
+              ? LocalPlayerState.error
+              : LocalPlayerState.playing,
+          failure: change == 'error'
+              ? const LocalPlaybackFailure(
+                  kind: LocalPlaybackFailureKind.loadFailed,
+                  userMessage: '오디오를 불러오지 못했습니다.',
+                )
+              : null,
+          queue: change == 'track'
+              ? const [
+                  LocalPlaybackQueueItem(
+                    trackId: 'track-2',
+                    recordingId: 'recording-1',
+                    workId: 'work-1',
+                    displayTitle: '다음 악장',
+                    path: '/fixture/next.flac',
+                    usesLinkedFile: true,
+                    workTitle: '작품',
+                    recordingTitle: '녹음',
+                  ),
+                ]
+              : state.queue,
+        );
+        await render();
+        expect(t.widget<Slider>(find.byType(Slider)).value, 5000);
+        expect(seeks, isEmpty);
+      }
+    },
+  );
+
+  testWidgets(
     'seek draft survives engine ticks but never changes engine position',
     (t) async {
       var state = _playingState();

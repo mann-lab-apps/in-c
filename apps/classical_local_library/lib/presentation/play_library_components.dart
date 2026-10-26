@@ -109,8 +109,9 @@ class PlayMovementRow extends StatelessWidget {
       label:
           '$sequenceNumber번, $title, '
           '${hasLocalFile ? '재생 가능' : '재생 불가'}'
-          '${current ? ', 현재 재생 중' : ''}',
+          '${current ? ', 현재 악장' : ''}',
       button: onTap != null,
+      onTap: hasLocalFile ? onTap : null,
       child: ExcludeSemantics(
         child: DdiroriItem(
           flat: true,
@@ -120,8 +121,8 @@ class PlayMovementRow extends StatelessWidget {
           actions: [
             current
                 ? const DdiroriStatusBadge(
-                    label: '재생 중',
-                    tone: DdiroriStatusTone.success,
+                    label: '현재 악장',
+                    tone: DdiroriStatusTone.info,
                   )
                 : DdiroriStatusBadge(
                     label: hasLocalFile ? '재생 가능' : '파일 없음',
@@ -129,6 +130,12 @@ class PlayMovementRow extends StatelessWidget {
                         ? DdiroriStatusTone.success
                         : DdiroriStatusTone.warning,
                   ),
+            if (onTap != null)
+              DdiroriIconButton(
+                label: '$title 재생',
+                icon: Icons.play_arrow,
+                onPressed: hasLocalFile ? onTap : null,
+              ),
           ],
           selected: current,
           enabled: hasLocalFile || onTap == null,
@@ -170,36 +177,96 @@ class PlayQueueRow extends StatelessWidget {
     required this.index,
     required this.item,
     this.current = false,
+    this.showContext = true,
   });
 
   final int index;
   final LocalPlaybackQueueItem item;
   final bool current;
+  final bool showContext;
 
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
     label:
-        '큐 ${index + 1}번, ${item.displayTitle}, ${item.workTitle}, '
-        '${item.recordingTitle}, ${item.fileSourceLabel}'
+        '큐 ${index + 1}번, ${item.displayTitle}, '
+        '${showContext ? '${item.workTitle}, ${item.recordingTitle}, ' : ''}${item.fileSourceLabel}'
         '${current ? ', 현재 악장' : ''}',
     selected: current,
     child: DdiroriItem(
       flat: true,
       title: item.displayTitle,
-      subtitle:
-          '${item.workTitle} · ${item.recordingTitle}\n'
-          '${item.fileSourceLabel} · ${_fileName(item.path)}',
-      leading: CircleAvatar(child: Text('${index + 1}')),
+      subtitle: showContext
+          ? '${item.workTitle} · ${item.recordingTitle}\n${item.fileSourceLabel} · ${_fileName(item.path)}'
+          : item.usesLinkedFile
+          ? null
+          : '실제 파일 연결 필요',
+      leading: SizedBox(width: 24, child: Text('${index + 1}')),
       actions: [
         if (current)
           const DdiroriStatusBadge(
             label: '현재 악장',
             tone: DdiroriStatusTone.info,
           ),
+        DdiroriIconButton(
+          label: '음원 정보 ${index + 1}',
+          icon: Icons.info_outline,
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('음원 정보'),
+              content: SingleChildScrollView(
+                child: Text(
+                  '${item.displayTitle}\n'
+                  '${item.workTitle.isEmpty ? '작품 정보 없음' : item.workTitle}\n'
+                  '${item.recordingTitle.isEmpty ? '녹음 정보 없음' : item.recordingTitle}\n'
+                  '${item.fileSourceLabel} · ${_fileName(item.path)}',
+                ),
+              ),
+              actions: [
+                DdiroriButton(
+                  label: '닫기',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
       selected: current,
     ),
+  );
+}
+
+class PlayQueueContext extends StatelessWidget {
+  const PlayQueueContext({super.key, required this.item, this.onOpenRecording});
+
+  final LocalPlaybackQueueItem item;
+  final ValueChanged<String>? onOpenRecording;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Semantics(
+        header: true,
+        child: Text(
+          item.workTitle.isEmpty ? '작품 정보 없음' : item.workTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+      ),
+      Text(item.recordingTitle.isEmpty ? '녹음 정보 없음' : item.recordingTitle),
+      if (onOpenRecording != null)
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: DdiroriIconButton(
+            label: '녹음 정보 열기',
+            icon: Icons.album_outlined,
+            onPressed: () => onOpenRecording!(item.recordingId),
+          ),
+        ),
+      const SizedBox(height: 8),
+    ],
   );
 }
 

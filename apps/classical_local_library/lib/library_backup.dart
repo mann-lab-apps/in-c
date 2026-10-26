@@ -233,7 +233,12 @@ _BackupDocument _decodeAndValidate(String source) {
       DateTime.tryParse(createdAt)?.isUtc != true) {
     throw const LibraryBackupException('백업 버전 또는 생성 시각이 올바르지 않습니다.');
   }
-  final expectedScope = _tableSpecs.map((spec) => spec.name).toList();
+  // Pre-playlist exports have no playlist table; preserve their import path.
+  final scopedSpecs = [
+    for (final spec in _tableSpecs)
+      if (storageVersion >= 15 || spec.name != 'local_playlists') spec,
+  ];
+  final expectedScope = scopedSpecs.map((spec) => spec.name).toList();
   final rawScope = decoded['scope'];
   if (rawScope is! List<Object?> ||
       rawScope.length != expectedScope.length ||
@@ -256,7 +261,7 @@ _BackupDocument _decodeAndValidate(String source) {
 
   final data = <String, List<Map<String, Object?>>>{};
   var totalRows = 0;
-  for (final spec in _tableSpecs) {
+  for (final spec in scopedSpecs) {
     final rawRows = rawData[spec.name];
     final count = rawCounts[spec.name];
     if (rawRows is! List<Object?> ||
@@ -286,6 +291,7 @@ _BackupDocument _decodeAndValidate(String source) {
     data[spec.name] = rows;
     totalRows += rows.length;
   }
+  if (storageVersion < 15) data['local_playlists'] = const [];
   if (totalRows > 100000) {
     throw const LibraryBackupException('백업 항목이 허용된 개수를 초과했습니다.');
   }
@@ -424,6 +430,21 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
   }
   for (final row in data['imslp_work_links']!) {
     require(works.contains(row['work_id']), 'IMSLP 작품 참조가 올바르지 않습니다.');
+  }
+  for (final row in data['local_playlists']!) {
+    final fileIds = jsonDecode(row['file_ids_json']! as String);
+    require(
+      row['name'] is String &&
+          (row['name']! as String).trim().isNotEmpty &&
+          row['created_at_millis'] is int &&
+          row['updated_at_millis'] is int &&
+          fileIds is List<Object?> &&
+          fileIds.length <= 100000 &&
+          fileIds.every((id) => id is String && id.isNotEmpty) &&
+          fileIds.toSet().length == fileIds.length,
+      '재생목록 데이터가 올바르지 않습니다.',
+    );
+    // A removed file stays in the list for later relinking.
   }
 
   final aliases = <String, String>{};
@@ -791,6 +812,17 @@ final List<_BackupTableSpec> _tableSpecs = [
     name: 'playback_history_preferences',
     primaryKey: 'id',
     columns: ['id', 'retention_policy'],
+  ),
+  const _BackupTableSpec(
+    name: 'local_playlists',
+    primaryKey: 'id',
+    columns: [
+      'id',
+      'name',
+      'file_ids_json',
+      'created_at_millis',
+      'updated_at_millis',
+    ],
   ),
   const _BackupTableSpec(
     name: 'imslp_work_links',

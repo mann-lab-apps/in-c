@@ -1,6 +1,6 @@
 # F-REF 토큰 원본 대조표
 
-2026-10-24 조사 snapshot. 정본은 [tokens.json](../tokens.json)과 [color-system.json](../color-system.json)이다. 변경 후 이 표를 다시 추출하고 생성 도구 --check로 검증한다. 역할·사용 예외·플랫폼 단위는 [기초 명세](foundations.md)에 있다.
+2026-10-26 블루 통일에 맞춰 해석값 갱신. 정본은 [tokens.json](../tokens.json)과 [color-system.json](../color-system.json)이다. 변경 후 이 표를 다시 추출하고 생성 도구 --check로 검증한다. 역할·사용 예외·플랫폼 단위는 [기초 명세](foundations.md)에 있다.
 
 | 경로 | 선언값 | 해석값 | 단위/해석 |
 | --- | --- | --- | --- |
@@ -11,16 +11,16 @@
 | `themes.light.surfaceMuted` | `"@light.surfaceMuted"` | `"#F5F5F5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.text` | `"@light.ink"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.muted` | `"@light.muted"` | `"#616161"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.action` | `"@light.primary"` | `"#52651A"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.actionHover` | `"@light.primaryHover"` | `"#435514"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.actionPressed` | `"@light.primaryPressed"` | `"#35440F"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.action` | `"@light.primary"` | `"#1971C2"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.actionHover` | `"@light.primaryHover"` | `"#1864AB"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.actionPressed` | `"@light.primaryPressed"` | `"#155592"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.onAction` | `"@light.onPrimary"` | `"#FFFFFF"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.sky` | `"@light.sky"` | `"#A8D4E5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.peach` | `"@light.peach"` | `"#F3BB9B"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.onPastel` | `"@light.ink"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.border` | `"@light.border"` | `"#E5E5E5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.controlBorder` | `"@light.controlBorder"` | `"#808080"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.focus` | `"@light.primary"` | `"#52651A"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.focus` | `"@light.primary"` | `"#1971C2"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.success` | `"@light.success"` | `"#246145"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.warning` | `"@light.warning"` | `"#805500"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.error` | `"@light.error"` | `"#AF344B"` | 색 HEX → CSS color / Dart ARGB |
@@ -28,9 +28,9 @@
 | `themes.light.onDisabled` | `"#616161"` | `"#616161"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.overlay` | `"#202020"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.onOverlay` | `"#FFFFFF"` | `"#FFFFFF"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.brand` | `"@brand.primary"` | `"#D5ED70"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.onBrand` | `"@brand.onPrimary"` | `"#263125"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.light.selection` | `"@light.tint"` | `"#F3F8DD"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.brand` | `"@brand.primary"` | `"#A5D8FF"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.onBrand` | `"@brand.onPrimary"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.light.selection` | `"@light.tint"` | `"#E7F5FF"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.onSelection` | `"@light.ink"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.info` | `"@light.muted"` | `"#616161"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.light.interactionHover` | `"@light.surfaceMuted"` | `"#F5F5F5"` | 색 HEX → CSS color / Dart ARGB |
@@ -40,16 +40,16 @@
 | `themes.dark.surfaceMuted` | `"@darkProposal.surfaceMuted"` | `"#2C2C2C"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.text` | `"@darkProposal.ink"` | `"#F5F5F5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.muted` | `"@darkProposal.muted"` | `"#B8B8B8"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.action` | `"@darkProposal.primary"` | `"#D5ED70"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.actionHover` | `"@darkProposal.primaryHover"` | `"#E3EDBC"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.actionPressed` | `"@darkProposal.primaryPressed"` | `"#F3F8DD"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.action` | `"@darkProposal.primary"` | `"#A5D8FF"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.actionHover` | `"@darkProposal.primaryHover"` | `"#D0EBFF"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.actionPressed` | `"@darkProposal.primaryPressed"` | `"#E7F5FF"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.onAction` | `"@darkProposal.onPrimary"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.sky` | `"@darkProposal.sky"` | `"#A8D4E5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.peach` | `"@darkProposal.peach"` | `"#F3BB9B"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.onPastel` | `"@light.ink"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.border` | `"@darkProposal.border"` | `"#424242"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.controlBorder` | `"@darkProposal.controlBorder"` | `"#888888"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.focus` | `"@darkProposal.primary"` | `"#D5ED70"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.focus` | `"@darkProposal.primary"` | `"#A5D8FF"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.success` | `"#7DD8AD"` | `"#7DD8AD"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.warning` | `"#F1CD88"` | `"#F1CD88"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.error` | `"#FFADB6"` | `"#FFADB6"` | 색 HEX → CSS color / Dart ARGB |
@@ -57,9 +57,9 @@
 | `themes.dark.onDisabled` | `"#B8B8B8"` | `"#B8B8B8"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.overlay` | `"#202020"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.onOverlay` | `"#FFFFFF"` | `"#FFFFFF"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.brand` | `"@brand.primary"` | `"#D5ED70"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.onBrand` | `"@brand.onPrimary"` | `"#263125"` | 색 HEX → CSS color / Dart ARGB |
-| `themes.dark.selection` | `"@darkProposal.tint"` | `"#303624"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.brand` | `"@brand.primary"` | `"#A5D8FF"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.onBrand` | `"@brand.onPrimary"` | `"#202020"` | 색 HEX → CSS color / Dart ARGB |
+| `themes.dark.selection` | `"@darkProposal.tint"` | `"#233344"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.onSelection` | `"@darkProposal.ink"` | `"#F5F5F5"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.info` | `"@darkProposal.muted"` | `"#B8B8B8"` | 색 HEX → CSS color / Dart ARGB |
 | `themes.dark.interactionHover` | `"@darkProposal.surfaceMuted"` | `"#2C2C2C"` | 색 HEX → CSS color / Dart ARGB |
@@ -156,8 +156,8 @@
 | `icon.default` | `20` | `20` | 기준 px/logical pixel; 글자 크기는 웹 rem |
 | `icon.large` | `24` | `24` | 기준 px/logical pixel; 글자 크기는 웹 rem |
 | `icon.stroke` | `1.75` | `1.75` | 기준 px/logical pixel; 글자 크기는 웹 rem |
-| `easing.standard` | `[0.2, 0, 0, 1]` | `[0.2, 0, 0, 1]` | 곡선/순서/플랫폼 elevation (CSS px 아님) |
-| `easing.exit` | `[0.4, 0, 1, 1]` | `[0.4, 0, 1, 1]` | 곡선/순서/플랫폼 elevation (CSS px 아님) |
+| `easing.standard` | `[0.2, 0, 0, 1]` | `[0.2,0,0,1]` | 곡선/순서/플랫폼 elevation (CSS px 아님) |
+| `easing.exit` | `[0.4, 0, 1, 1]` | `[0.4,0,1,1]` | 곡선/순서/플랫폼 elevation (CSS px 아님) |
 | `textStyles.screenTitle.size` | `"$typography.title"` | `24` | 기준 px/logical pixel; 글자 크기는 웹 rem |
 | `textStyles.screenTitle.weight` | `"$typography.headingWeight"` | `700` | font weight |
 | `textStyles.screenTitle.lineHeight` | `"$typography.headingLineHeight"` | `1.3` | 무단위 배수 |

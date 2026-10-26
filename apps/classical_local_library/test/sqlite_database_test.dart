@@ -37,7 +37,7 @@ void main() {
     }
   });
 
-  test('schema migration runner applies schema version 14 once', () async {
+  test('schema migration runner applies schema version 15 once', () async {
     final database = await _openDatabase(tempDir);
     addTearDown(database.close);
     const runner = SqliteMigrationRunner();
@@ -51,7 +51,7 @@ void main() {
     );
 
     expect(migrations, hasLength(1));
-    expect(migrations.single['version'], 14);
+    expect(migrations.single['version'], 15);
     expect(tables.map((row) => row['name']), contains('scanned_audio_files'));
     expect(tables.map((row) => row['name']), contains('json_store_migrations'));
     expect(tables.map((row) => row['name']), contains('playback_positions'));
@@ -61,6 +61,7 @@ void main() {
       contains('playback_history_preferences'),
     );
     expect(tables.map((row) => row['name']), contains('playback_queue_state'));
+    expect(tables.map((row) => row['name']), contains('local_playlists'));
     expect(tables.map((row) => row['name']), contains('imslp_work_links'));
     expect(tables.map((row) => row['name']), contains('imslp_resources'));
     expect(tables.map((row) => row['name']), contains('imslp_imports'));
@@ -103,7 +104,7 @@ void main() {
       'schema_migrations',
       orderBy: 'version ASC',
     );
-    expect(migrations.map((row) => row['version']), [1, 14]);
+    expect(migrations.map((row) => row['version']), [1, 15]);
     expect(await _tableCount(database, 'playback_positions'), 0);
     expect(await _tableCount(database, 'playback_history'), 0);
     expect(await _tableCount(database, 'playback_history_preferences'), 0);
@@ -149,7 +150,7 @@ void main() {
           'schema_migrations',
           orderBy: 'version ASC',
         )).map((row) => row['version']),
-        [2, 14],
+        [2, 15],
       );
       expect(await _tableCount(database, 'playback_positions'), 1);
       expect(await _tableCount(database, 'playback_history'), 0);
@@ -381,7 +382,7 @@ void main() {
           'schema_migrations',
           orderBy: 'version ASC',
         )).map((row) => row['version']),
-        [6, 14],
+        [6, 15],
       );
       expect(await scannedStore.load(), hasLength(1));
       expect(await linkStore.load(), hasLength(1));
@@ -436,7 +437,7 @@ CREATE TABLE metadata_overrides (
           'schema_migrations',
           orderBy: 'version ASC',
         )).map((row) => row['version']),
-        [8, 14],
+        [8, 15],
       );
     },
   );
@@ -1055,7 +1056,7 @@ CREATE TABLE metadata_overrides (
         'schema_migrations',
         orderBy: 'version ASC',
       )).map((row) => row['version']),
-      [3, 14],
+      [3, 15],
     );
     expect(
       (await SqlitePlaybackHistoryStore(
@@ -1147,7 +1148,7 @@ CREATE TABLE metadata_candidates (
           'schema_migrations',
           orderBy: 'version ASC',
         )).map((row) => row['version']),
-        [4, 14],
+        [4, 15],
       );
     },
   );
@@ -1308,12 +1309,12 @@ CREATE TABLE library_entity_merges (
           'schema_migrations',
           orderBy: 'version',
         )).map((row) => row['version']),
-        [10, 14],
+        [10, 15],
       );
     },
   );
 
-  test('schema migration upgrades v11 to v14 without data loss', () async {
+  test('schema migration upgrades v11 to v15 without data loss', () async {
     final database = await _openDatabase(tempDir);
     addTearDown(database.close);
     await database.insert('playback_history_preferences', {
@@ -1355,7 +1356,7 @@ CREATE TABLE library_entity_merges (
         'schema_migrations',
         orderBy: 'version',
       )).map((row) => row['version']),
-      [11, 14],
+      [11, 15],
     );
   });
 
@@ -1386,7 +1387,7 @@ CREATE TABLE library_entity_merges (
         'schema_migrations',
         orderBy: 'version',
       )).map((row) => row['version']),
-      [13, 14],
+      [13, 15],
     );
   });
 }

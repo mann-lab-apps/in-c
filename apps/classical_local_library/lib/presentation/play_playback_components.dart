@@ -13,6 +13,8 @@ class PlayNowPlayingControls extends StatelessWidget {
     required this.onNext,
     required this.onStop,
     required this.onSeek,
+    this.onAddToPlaylist,
+    this.showContext = true,
   });
 
   final LocalPlaybackState state;
@@ -22,6 +24,8 @@ class PlayNowPlayingControls extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onStop;
   final ValueChanged<Duration> onSeek;
+  final VoidCallback? onAddToPlaylist;
+  final bool showContext;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +43,12 @@ class PlayNowPlayingControls extends StatelessWidget {
         : state.processingState == LocalPlaybackProcessingState.buffering
         ? '버퍼링 중'
         : null;
+    final contextLabel = showContext && currentItem != null
+        ? currentItem.isDirectFile
+              ? '\n${currentItem.workTitle} · ${currentItem.recordingTitle}'
+              : '\n${currentItem.workTitle.isEmpty ? '작품 정보 없음' : currentItem.workTitle} · '
+                    '${currentItem.recordingTitle.isEmpty ? '녹음 정보 없음' : currentItem.recordingTitle}'
+        : '';
 
     return Semantics(
       container: true,
@@ -63,11 +73,8 @@ class PlayNowPlayingControls extends StatelessWidget {
                   Text(
                     currentItem == null
                         ? '재생할 음원을 선택하세요.'
-                        : '${_playerStateLabel(state.playerState)} · '
-                              '${state.currentIndex + 1}/${state.queue.length}\n'
-                              '${currentItem.workTitle} · '
-                              '${currentItem.recordingTitle} · '
-                              '${currentItem.fileSourceLabel}',
+                        : '${playPlayerStateLabel(state.playerState)} · '
+                              '${state.currentIndex + 1}/${state.queue.length}$contextLabel',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -77,7 +84,7 @@ class PlayNowPlayingControls extends StatelessWidget {
                 DdiroriProgress(size: 24, label: statusLabel ?? '불러오는 중')
               else
                 DdiroriStatusBadge(
-                  label: _playerStateLabel(state.playerState),
+                  label: playPlayerStateLabel(state.playerState),
                   tone: _playerStateTone(state.playerState),
                 ),
             ],
@@ -116,11 +123,22 @@ class PlayNowPlayingControls extends StatelessWidget {
                 icon: Icons.stop_circle_outlined,
                 onPressed: state.hasQueue && !busy ? onStop : null,
               ),
+              if (currentItem?.isDirectFile ?? false)
+                DdiroriIconButton(
+                  label: '현재 곡 재생목록에 추가',
+                  icon: Icons.playlist_add,
+                  onPressed: busy ? null : onAddToPlaylist,
+                ),
             ],
           ),
           const SizedBox(height: 4),
           DdiroriPlaybackProgress(
-            key: ValueKey(currentItem?.trackId),
+            key: ValueKey((
+              currentItem?.trackId,
+              currentItem?.path,
+              state.failure?.kind,
+              state.playerState == LocalPlayerState.paused,
+            )),
             sliderKey: const ValueKey('playback-progress'),
             position: state.normalizedPosition,
             duration: duration,
@@ -141,7 +159,7 @@ class PlayNowPlayingControls extends StatelessWidget {
   }
 }
 
-String _playerStateLabel(LocalPlayerState state) => switch (state) {
+String playPlayerStateLabel(LocalPlayerState state) => switch (state) {
   LocalPlayerState.idle => '대기',
   LocalPlayerState.loading => '불러오는 중',
   LocalPlayerState.ready => '준비됨',

@@ -1,40 +1,20 @@
 part of '../main.dart';
 
-class _EmptyCatalogPanel extends StatelessWidget {
-  const _EmptyCatalogPanel({required this.hasFiles, required this.onRegister});
+class _EmptyFileLibraryPanel extends StatelessWidget {
+  const _EmptyFileLibraryPanel({required this.onImport});
 
-  final bool hasFiles;
-  final VoidCallback? onRegister;
+  final VoidCallback? onImport;
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: '내 클래식 라이브러리',
-      trailingWidget: const DdiroriStatusBadge(
-        label: '작품 없음',
-        tone: DdiroriStatusTone.warning,
+    return DdiroriStatePanel(
+      title: '보관함이 비어 있습니다',
+      message: '기기에 있는 음악 파일을 가져와 바로 들어보세요.',
+      action: DdiroriButton(
+        label: '음악 가져오기',
+        icon: Icons.file_open_outlined,
+        onPressed: onImport,
       ),
-      children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const DdiroriBach(size: 64),
-          title: Text(hasFiles ? '가져온 음원을 작품으로 정리하세요.' : '첫 음악을 담아볼까요?'),
-          subtitle: Text(
-            hasFiles
-                ? '작곡가, 작품, 녹음과 악장 순서를 확인하면 재생 큐가 만들어집니다.'
-                : '파일 가져오기 또는 폴더 추가 후 작품과 악장 정보를 확인할 수 있습니다.',
-          ),
-        ),
-        if (onRegister != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: onRegister,
-              icon: const Icon(Icons.playlist_add_check_outlined),
-              label: const Text('정리 시작'),
-            ),
-          ),
-      ],
     );
   }
 }
@@ -92,14 +72,22 @@ class _SearchPanel extends StatelessWidget {
   const _SearchPanel({
     required this.query,
     required this.results,
+    required this.files,
     required this.onQueryChanged,
     required this.onResultSelected,
+    required this.onFileSelected,
+    required this.onMissingFile,
+    required this.onAddFileToPlaylist,
   });
 
   final String query;
   final List<LibrarySearchResult> results;
+  final List<LocalFileLibraryEntry> files;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<LibrarySearchResult> onResultSelected;
+  final ValueChanged<LocalFileLibraryEntry> onFileSelected;
+  final VoidCallback onMissingFile;
+  final ValueChanged<LocalFileLibraryEntry> onAddFileToPlaylist;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +105,7 @@ class _SearchPanel extends StatelessWidget {
           onChanged: onQueryChanged,
         ),
         const SizedBox(height: 12),
-        if (query.trim().isNotEmpty && results.isEmpty)
+        if (query.trim().isNotEmpty && results.isEmpty && files.isEmpty)
           DdiroriStatePanel(
             title: '검색 결과가 없습니다.',
             message: '다른 검색어로 찾아보세요.',
@@ -127,8 +115,17 @@ class _SearchPanel extends StatelessWidget {
               onPressed: () => onQueryChanged(''),
             ),
           )
-        else if (query.trim().isNotEmpty)
-          for (final result in results.take(5))
+        else if (query.trim().isNotEmpty) ...[
+          for (final file in files)
+            _FileSongRow(
+              entry: file,
+              onTap: () => onFileSelected(file),
+              onMissing: onMissingFile,
+              onAddToPlaylist: () => onAddFileToPlaylist(file),
+            ),
+          for (final result in results.where(
+            (item) => item.type != SearchResultType.fileCandidate,
+          ))
             PlaySearchResultRow(
               result: result,
               onTap:
@@ -137,6 +134,7 @@ class _SearchPanel extends StatelessWidget {
                   ? null
                   : () => onResultSelected(result),
             ),
+        ],
       ],
     );
   }
@@ -270,7 +268,7 @@ class _ScanPanel extends StatelessWidget {
     final linksByFileId = {for (final link in links) link.fileId: link};
 
     return _Section(
-      title: '스캔',
+      title: '파일 상태',
       trailingWidget: DdiroriStatusBadge(
         label: linkedFiles.isEmpty
             ? needsReview.isEmpty
@@ -443,6 +441,8 @@ class _QueuePanel extends StatelessWidget {
     required this.onNextPressed,
     required this.onStopPressed,
     required this.onSeek,
+    required this.showControls,
+    required this.onOpenRecording,
   });
 
   final PlaybackPlan plan;
@@ -454,6 +454,8 @@ class _QueuePanel extends StatelessWidget {
   final VoidCallback onNextPressed;
   final VoidCallback onStopPressed;
   final ValueChanged<Duration> onSeek;
+  final bool showControls;
+  final ValueChanged<String> onOpenRecording;
 
   @override
   Widget build(BuildContext context) {
@@ -469,6 +471,13 @@ class _QueuePanel extends StatelessWidget {
     );
     final showsActiveQueue = playbackState.hasQueue;
     final localQueue = showsActiveQueue ? playbackState.queue : plannedQueue;
+    final singleContext =
+        localQueue.isNotEmpty &&
+        localQueue.every(
+          (item) =>
+              item.workId == localQueue.first.workId &&
+              item.recordingId == localQueue.first.recordingId,
+        );
 
     return KeyedSubtree(
       key: const ValueKey('queue-panel'),
@@ -481,15 +490,22 @@ class _QueuePanel extends StatelessWidget {
               : DdiroriStatusTone.neutral,
         ),
         children: [
-          PlayNowPlayingControls(
-            state: playbackState,
-            canUseQueue: localQueue.isNotEmpty || plannedQueue.isNotEmpty,
-            commandRunning: isCommandRunning,
-            onPlayPause: onPlayPausePressed,
-            onNext: onNextPressed,
-            onStop: onStopPressed,
-            onSeek: onSeek,
-          ),
+          if (singleContext)
+            PlayQueueContext(
+              item: localQueue.first,
+              onOpenRecording: onOpenRecording,
+            ),
+          if (showControls)
+            PlayNowPlayingControls(
+              showContext: !singleContext,
+              state: playbackState,
+              canUseQueue: localQueue.isNotEmpty || plannedQueue.isNotEmpty,
+              commandRunning: isCommandRunning,
+              onPlayPause: onPlayPausePressed,
+              onNext: onNextPressed,
+              onStop: onStopPressed,
+              onSeek: onSeek,
+            ),
           const SizedBox(height: 8),
           if (!showsActiveQueue && availability.missingCount > 0)
             ListTile(
@@ -498,12 +514,23 @@ class _QueuePanel extends StatelessWidget {
               title: Text('연결되지 않은 악장 ${availability.missingCount}개'),
               subtitle: Text(availability.missingTitles.join(' · ')),
             ),
-          for (var index = 0; index < localQueue.length; index += 1)
+          for (var index = 0; index < localQueue.length; index += 1) ...[
+            if (!singleContext &&
+                (index == 0 ||
+                    localQueue[index - 1].workId != localQueue[index].workId ||
+                    localQueue[index - 1].recordingId !=
+                        localQueue[index].recordingId))
+              PlayQueueContext(
+                item: localQueue[index],
+                onOpenRecording: onOpenRecording,
+              ),
             PlayQueueRow(
+              showContext: false,
               index: index,
               item: localQueue[index],
               current: showsActiveQueue && playbackState.currentIndex == index,
             ),
+          ],
         ],
       ),
     );
@@ -864,50 +891,5 @@ class _Section extends StatelessWidget {
         ],
       );
     },
-  );
-}
-
-class _LibraryNavigation extends StatelessWidget {
-  const _LibraryNavigation({required this.selected, required this.onChanged});
-  final _LibraryView selected;
-  final ValueChanged<_LibraryView> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surface,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final entry in const [
-            (_LibraryView.library, '라이브러리', Icons.library_music_outlined),
-            (_LibraryView.playback, '현재 재생', Icons.play_circle_outline),
-            (_LibraryView.management, '관리', Icons.folder_outlined),
-            (_LibraryView.listening, '감상', Icons.history_outlined),
-          ])
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DdiroriIconButton(
-                    label: '${entry.$2} 보기',
-                    icon: entry.$3,
-                    selected: selected == entry.$1,
-                    onPressed: () => onChanged(entry.$1),
-                  ),
-                  ExcludeSemantics(
-                    child: Text(
-                      entry.$2,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    ),
   );
 }

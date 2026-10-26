@@ -88,21 +88,45 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.byType(DdiroriProductSignature), findsOneWidget);
-      if (entry.$4 == 1) {
-        expect(find.text('띠로리 플레이'), findsWidgets);
-      } else {
-        expect(find.text('띠로리'), findsOneWidget);
-        expect(find.text('플레이'), findsOneWidget);
-      }
+      final context = t.element(find.text('보관함').first);
+      final theme = Theme.of(context);
+      final colors = DdiroriStyle.of(context);
+      expect(theme.colorScheme.primary, colors['action']);
+      expect(colors['brand'], const Color(0xFFA5D8FF));
+      expect(
+        colors['action'],
+        entry.$2 == Brightness.light
+            ? const Color(0xFF1971C2)
+            : const Color(0xFFA5D8FF),
+      );
+      expect(
+        colors['selection'],
+        entry.$2 == Brightness.light
+            ? const Color(0xFFE7F5FF)
+            : const Color(0xFF233344),
+      );
+      expect(
+        colors['info'],
+        entry.$2 == Brightness.light
+            ? const Color(0xFF616161)
+            : const Color(0xFFB8B8B8),
+      );
+      expect(find.text('띠로리 플레이'), findsNothing);
+      expect(find.text('보관함'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName ==
+                  'assets/branding/app_icon_provisional.png',
+        ),
+        findsNothing,
+      );
       if (entry.$1.startsWith('empty')) {
-        await t.scrollUntilVisible(
-          find.byType(DdiroriBachVector),
-          200,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await t.pumpAndSettle();
-        expect(find.byType(DdiroriBachVector), findsOneWidget);
+        expect(find.text('보관함이 비어 있습니다'), findsOneWidget);
+        expect(find.text('음악 가져오기'), findsOneWidget);
+        expect(find.byType(DdiroriBachVector), findsNothing);
       }
       expect(t.takeException(), isNull);
       if (Platform.environment['DDIRORI_BRAND_CAPTURE'] == 'true') {

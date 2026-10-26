@@ -4,6 +4,7 @@ import 'package:classical_local_library/library_catalog.dart';
 import 'package:classical_local_library/library_details.dart';
 import 'package:classical_local_library/library_discovery.dart';
 import 'package:classical_local_library/library_search.dart';
+import 'package:classical_local_library/local_file_library.dart';
 import 'package:classical_local_library/playback_planner.dart';
 import 'package:classical_local_library/sqlite_database.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +28,18 @@ void main() {
     final fixture = buildLargeLibraryFixture();
     final library = fixture.library;
     final stopwatch = Stopwatch()..start();
+
+    final fileLibrary = const LocalFileLibrary();
+    final fileEntries = fileLibrary.entries(files: library.files);
+    expect(fileEntries, hasLength(5000));
+    expect(
+      fileLibrary.sort(fileEntries, LocalFileSort.dateAdded),
+      hasLength(5000),
+    );
+    expect(
+      fileLibrary.search(fileEntries, fileEntries.last.file.fileName!),
+      isNotEmpty,
+    );
 
     expect(library.track('track-4999').sequenceNumber, 5);
     expect(

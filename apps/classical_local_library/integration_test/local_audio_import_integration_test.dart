@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:classical_local_library/file_links.dart';
 import 'package:classical_local_library/just_audio_playback.dart';
 import 'package:classical_local_library/local_audio_import.dart';
+import 'package:classical_local_library/local_file_library.dart';
 import 'package:classical_local_library/local_audio_scanner.dart';
 import 'package:classical_local_library/local_playback.dart';
 import 'package:classical_local_library/metadata_candidates.dart';
@@ -77,18 +78,14 @@ void main() {
 
     final player = JustAudioLocalPlaybackController();
     try {
-      await player.loadQueue([
-        LocalPlaybackQueueItem(
-          trackId: 'imported-track',
-          recordingId: 'imported-recording',
-          workId: 'imported-work',
-          displayTitle: '가져온 음원 재생',
-          path: record.localPath,
-          usesLinkedFile: true,
-          workTitle: '가져온 작품',
-          recordingTitle: '가져온 녹음',
-        ),
-      ]);
+      const fileLibrary = LocalFileLibrary();
+      final queue = fileLibrary.queue(
+        fileLibrary.entries(files: result.files, candidates: result.candidates),
+      );
+      expect(queue, hasLength(1));
+      expect(queue.single.isDirectFile, isTrue);
+      expect(queue.single.trackId, 'local-file:${record.fileId}');
+      await player.loadQueue(queue);
       await player.play();
       await _waitUntil(
         () =>

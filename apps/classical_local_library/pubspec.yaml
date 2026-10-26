@@ -74,6 +74,7 @@ flutter:
 
   assets:
     - assets/audio_test/
+    - assets/branding/app_icon_provisional.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

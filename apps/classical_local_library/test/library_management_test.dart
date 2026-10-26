@@ -274,6 +274,33 @@ void main() {
     expect(exporter.files.single.path, '/managed/managed.flac');
     expect(find.text('음원을 내보냈습니다.'), findsOneWidget);
     expect(find.textContaining('/managed/'), findsNothing);
+    await tester.tap(find.text('연결 방법'));
+    await tester.pumpAndSettle();
+    expect(find.text('이 음원으로 악보 연습하기'), findsOneWidget);
+    expect(find.textContaining('띠로리 Score에서 연결할 악보'), findsOneWidget);
+    expect(find.textContaining('Score의 파일 저장을 확인한 결과가 아닙니다'), findsOneWidget);
+  });
+
+  testWidgets('내보내기가 취소되면 Score 연결 안내를 보여주지 않는다', (tester) async {
+    final managed = _file('managed').copyWith(
+      sourceReferences: const [
+        SourceReference(kind: SourceKind.localImport, externalId: 'import-1'),
+      ],
+    );
+    await tester.pumpWidget(
+      _Fixture(
+        files: [managed],
+        manager: _FakeManagedAudioLibrary(),
+        exporter: _FakeManagedAudioExporter(
+          outcome: ManagedAudioExportOutcome.dismissed,
+        ),
+      ).app(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('앱 관리 복사본 내보내기'));
+    await tester.pumpAndSettle();
+    expect(find.text('연결 방법'), findsNothing);
+    expect(find.text('이 음원으로 악보 연습하기'), findsNothing);
   });
 
   testWidgets('좁은 화면에서도 관리 작업 버튼이 넘치지 않는다', (tester) async {
@@ -701,6 +728,9 @@ class _FakeMusicBrainzClient implements MusicBrainzClient {
 }
 
 class _FakeManagedAudioExporter implements ManagedAudioExporter {
+  _FakeManagedAudioExporter({this.outcome = ManagedAudioExportOutcome.success});
+
+  final ManagedAudioExportOutcome outcome;
   final List<ManagedAudioExportFile> files = [];
 
   @override
@@ -709,8 +739,8 @@ class _FakeManagedAudioExporter implements ManagedAudioExporter {
     Rect? sharePositionOrigin,
   }) async {
     files.add(file);
-    return const ManagedAudioExportResult(
-      outcome: ManagedAudioExportOutcome.success,
+    return ManagedAudioExportResult(
+      outcome: outcome,
       userMessage: '음원을 내보냈습니다.',
     );
   }

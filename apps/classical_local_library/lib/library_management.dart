@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 
 import 'audio_tags.dart';
 import 'classical_library_models.dart';
@@ -625,7 +626,28 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
           1,
         ),
       );
-      if (mounted) _showMessage(result.userMessage);
+      if (!mounted) return;
+      final supportsScore = const {
+        '.mp3',
+        '.wav',
+        '.m4a',
+        '.flac',
+        '.ogg',
+      }.contains(path.extension(exportFile.fileName).toLowerCase());
+      if (result.outcome == ManagedAudioExportOutcome.success &&
+          supportsScore) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.userMessage),
+            action: SnackBarAction(
+              label: '연결 방법',
+              onPressed: _showScoreConnectionGuide,
+            ),
+          ),
+        );
+      } else {
+        _showMessage(result.userMessage);
+      }
     } on LocalAudioImportException catch (error) {
       if (mounted) _showMessage(error.userMessage);
     } catch (_) {
@@ -633,6 +655,37 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
+  }
+
+  void _showScoreConnectionGuide() {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('이 음원으로 악보 연습하기'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('1. 공유 화면에서 음원 사본을 파일 앱에 보관했는지 확인하세요.'),
+              SizedBox(height: 12),
+              Text('2. 띠로리 Score에서 연결할 악보를 직접 선택하세요.'),
+              SizedBox(height: 12),
+              Text('3. 악보 정보의 연결 파일 추가에서 보관한 음원을 선택하세요.'),
+              SizedBox(height: 16),
+              Text('Play의 공유 완료는 Score의 파일 저장을 확인한 결과가 아닙니다.'),
+            ],
+          ),
+        ),
+        actions: [
+          DdiroriButton(
+            label: '확인',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   bool _isManagedImport(LocalAudioFile file) => file.sourceReferences.any(
@@ -1074,7 +1127,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     final visible = filteredFiles;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('파일 정리'),
+        title: const Text('음원 정보 및 파일 복구'),
         actions: [
           if (widget.libraryMergeRepository != null)
             IconButton(

@@ -13,6 +13,45 @@ Widget harness(Widget child, {bool reduced = false}) => MaterialApp(
 );
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('blue working theme and neutral information $brightness', (
+      t,
+    ) async {
+      final theme = ddiroriTheme(brightness: brightness);
+      expect(
+        theme.colorScheme.primary,
+        brightness == Brightness.light
+            ? const Color(0xFF1971C2)
+            : const Color(0xFFA5D8FF),
+      );
+      expect(
+        theme.extension<DdiroriStyle>()!['brand'],
+        const Color(0xFFA5D8FF),
+      );
+      await t.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: const Scaffold(
+            body: DdiroriBanner(message: '파일 가져오기가 취소되었습니다.'),
+          ),
+        ),
+      );
+      final banner = find.byType(DdiroriBanner);
+      final icon = t.widget<Icon>(
+        find.descendant(of: banner, matching: find.byType(Icon)),
+      );
+      final box = t.widget<Container>(
+        find.descendant(of: banner, matching: find.byType(Container)),
+      );
+      final info = theme.extension<DdiroriStyle>()!['info'];
+      expect(icon.color, info);
+      expect(
+        ((box.decoration! as BoxDecoration).border! as Border).top.color,
+        info,
+      );
+      expect(info, isNot(theme.colorScheme.primary));
+    });
+  }
   testWidgets('selected actions have a visible fill and disabled wins', (
     t,
   ) async {

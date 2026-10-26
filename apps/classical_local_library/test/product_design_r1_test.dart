@@ -107,7 +107,20 @@ Future<void> _capture(WidgetTester t, String name) async {
 }
 
 Future<void> _view(WidgetTester t, String label) async {
-  await t.tap(find.byTooltip('$label 보기'));
+  if (label == '라이브러리') {
+    await t.tap(find.byTooltip('뒤로'));
+  } else {
+    await t.tap(find.byTooltip('도구 더보기'));
+    await t.pumpAndSettle();
+    await t.tap(
+      find.text(switch (label) {
+        '현재 재생' => '재생 계획',
+        '관리' => '가져오기·파일 상태',
+        '감상' => '감상 기록',
+        _ => label,
+      }).last,
+    );
+  }
   await t.pumpAndSettle();
 }
 
@@ -228,6 +241,11 @@ void main() {
               200,
               scrollable: find.byType(Scrollable).first,
             );
+            await Scrollable.ensureVisible(
+              t.element(find.text('녹음 있는 작품')),
+              alignment: 0.5,
+            );
+            await t.pumpAndSettle();
             await t.tap(find.text('녹음 있는 작품'));
             await t.pumpAndSettle();
             await Scrollable.ensureVisible(
@@ -269,7 +287,7 @@ void main() {
             expect(find.textContaining('/fixture/private'), findsNothing);
             expect(t.takeException(), isNull);
             expect(
-              t.getRect(find.byTooltip('현재 재생 보기')).bottom,
+              t.getRect(find.byTooltip('도구 더보기')).bottom,
               lessThanOrEqualTo(976),
             );
             await t.pumpWidget(const SizedBox());
@@ -286,17 +304,21 @@ void main() {
       await _environment(t, 390, 1, Brightness.light);
       await t.pumpWidget(_app(FakeLocalPlayer(), empty: true));
       await t.pumpAndSettle();
-      expect(find.text('첫 음악을 담아볼까요?'), findsOneWidget);
-      expect(find.byType(DdiroriBach), findsOneWidget);
+      expect(find.text('보관함이 비어 있습니다'), findsOneWidget);
+      expect(find.text('음악 가져오기'), findsOneWidget);
       await _capture(t, 'empty-390-light');
+      await t.tap(find.byTooltip('내 음악 검색'));
+      await t.pumpAndSettle();
       await t.enterText(find.byType(TextField), '없는 작품 qzx');
       await t.pumpAndSettle();
       expect(find.text('검색 결과가 없습니다.'), findsOneWidget);
-      expect(find.byType(DdiroriBach), findsNothing);
+      expect(find.text('보관함이 비어 있습니다'), findsNothing);
       await _capture(t, 'no-results-390-light');
       await t.tap(find.text('검색 초기화'));
       await t.pumpAndSettle();
-      expect(find.text('첫 음악을 담아볼까요?'), findsOneWidget);
+      await t.tap(find.byTooltip('뒤로'));
+      await t.pumpAndSettle();
+      expect(find.text('보관함이 비어 있습니다'), findsOneWidget);
       await t.pumpWidget(const SizedBox());
     },
   );

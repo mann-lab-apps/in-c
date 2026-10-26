@@ -10,7 +10,9 @@ import 'package:classical_local_library/scan_locations.dart';
 import 'package:classical_local_library/scanned_audio_store.dart';
 import 'package:flutter/material.dart';
 
-Future<void> launchCaptureFixtureApp() async {
+Future<void> launchCaptureFixtureApp({
+  FakeLocalPlayer? playbackController,
+}) async {
   final links = [
     for (final track in sampleClassicalLibrary.tracks)
       AudioFileTrackLink(
@@ -25,7 +27,7 @@ Future<void> launchCaptureFixtureApp() async {
       initialLibrary: sampleClassicalLibrary,
       enableDemoFeatures: false,
       supportsFolderScan: false,
-      playbackController: FakeLocalPlayer(),
+      playbackController: playbackController ?? FakeLocalPlayer(),
       scanRepository: ScannedAudioRepository(
         MemoryScannedAudioStore(sampleClassicalLibrary.files),
       ),

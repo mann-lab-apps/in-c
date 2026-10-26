@@ -21,7 +21,7 @@ class SqliteTableSchema {
 class SqliteStorageSchema {
   const SqliteStorageSchema();
 
-  int get version => 14;
+  int get version => 15;
 
   List<SqliteTableSchema> get tables => const [
     SqliteTableSchema(
@@ -222,6 +222,17 @@ CREATE TABLE IF NOT EXISTS local_audio_imports (
   status TEXT NOT NULL,
   file_id TEXT,
   failure_kind TEXT
+);''',
+    ),
+    SqliteTableSchema(
+      name: 'local_playlists',
+      createSql: '''
+CREATE TABLE IF NOT EXISTS local_playlists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  file_ids_json TEXT NOT NULL,
+  created_at_millis INTEGER NOT NULL,
+  updated_at_millis INTEGER NOT NULL
 );''',
     ),
     SqliteTableSchema(

@@ -34,7 +34,13 @@ class LocalPlaybackQueueItem {
   final String recordingTitle;
   final int? fileModifiedAtMillis;
 
-  String get fileSourceLabel => usesLinkedFile ? '연결 파일' : '샘플 파일';
+  bool get isDirectFile => trackId.startsWith('local-file:');
+
+  String get fileSourceLabel => isDirectFile
+      ? '로컬 파일'
+      : usesLinkedFile
+      ? '연결 파일'
+      : '샘플 파일';
 }
 
 class LocalPlaybackQueueBuilder {

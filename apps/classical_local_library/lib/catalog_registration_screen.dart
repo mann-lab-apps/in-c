@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'classical_library_models.dart';
@@ -12,12 +14,16 @@ class CatalogRegistrationScreen extends StatefulWidget {
     required this.files,
     required this.candidates,
     required this.overrides,
+    this.onSave,
+    this.canCancel,
   });
 
   final ClassicalLibrary library;
   final List<LocalAudioFile> files;
   final List<MetadataCandidate> candidates;
   final List<MetadataOverride> overrides;
+  final Future<String?> Function(CatalogRecordingDraft draft)? onSave;
+  final bool Function()? canCancel;
 
   @override
   State<CatalogRegistrationScreen> createState() =>
@@ -37,6 +43,40 @@ class _CatalogRegistrationScreenState extends State<CatalogRegistrationScreen> {
   String selectedWorkId = '';
   String selectedRecordingId = '';
   String? submitError;
+  bool isSubmitting = false;
+  bool isCompleting = false;
+  bool isShowingLeaveDialog = false;
+
+  Future<void> _confirmLeaveAfterCommit() async {
+    if (isShowingLeaveDialog || isSubmitting) return;
+    isShowingLeaveDialog = true;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('이미 저장된 내용이 있습니다'),
+        content: const Text(
+          '작품 등록은 완료되었지만 후속 처리가 끝나지 않았습니다. '
+          '이 화면을 닫아도 저장된 내용은 취소되지 않습니다. 보관함을 다시 확인해 주세요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('계속하기'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('화면 닫기'),
+          ),
+        ],
+      ),
+    );
+    isShowingLeaveDialog = false;
+    if (!mounted || leave != true) return;
+    setState(() => isCompleting = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
 
   @override
   void initState() {
@@ -171,7 +211,8 @@ class _CatalogRegistrationScreenState extends State<CatalogRegistrationScreen> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (isSubmitting) return;
     setState(() => submitError = null);
     if (!(formKey.currentState?.validate() ?? false)) return;
     final yearText = yearController.text.trim();
@@ -180,29 +221,54 @@ class _CatalogRegistrationScreenState extends State<CatalogRegistrationScreen> {
       setState(() => submitError = '연도는 1000부터 3000 사이 숫자로 입력하세요.');
       return;
     }
-    Navigator.of(context).pop(
-      CatalogRecordingDraft(
-        composerName: composerController.text.trim(),
-        workTitle: workController.text.trim(),
-        recordingTitle: recordingController.text.trim(),
-        catalogNumber: catalogController.text.trim(),
-        performerName: performerController.text.trim(),
-        conductorName: conductorController.text.trim(),
-        recordedYear: year,
-        existingWorkId: selectedWorkId.isEmpty ? null : selectedWorkId,
-        existingRecordingId: selectedRecordingId.isEmpty
-            ? null
-            : selectedRecordingId,
-        movements: [
-          for (var index = 0; index < movements.length; index += 1)
-            CatalogMovementDraft(
-              fileId: movements[index].file.id,
-              title: movements[index].titleController.text.trim(),
-              sequenceNumber: index + 1,
-            ),
-        ],
-      ),
+    final draft = CatalogRecordingDraft(
+      composerName: composerController.text.trim(),
+      workTitle: workController.text.trim(),
+      recordingTitle: recordingController.text.trim(),
+      catalogNumber: catalogController.text.trim(),
+      performerName: performerController.text.trim(),
+      conductorName: conductorController.text.trim(),
+      recordedYear: year,
+      existingWorkId: selectedWorkId.isEmpty ? null : selectedWorkId,
+      existingRecordingId: selectedRecordingId.isEmpty
+          ? null
+          : selectedRecordingId,
+      movements: [
+        for (var index = 0; index < movements.length; index += 1)
+          CatalogMovementDraft(
+            fileId: movements[index].file.id,
+            title: movements[index].titleController.text.trim(),
+            sequenceNumber: index + 1,
+          ),
+      ],
     );
+    final save = widget.onSave;
+    if (save == null) {
+      Navigator.of(context).pop(draft);
+      return;
+    }
+    setState(() => isSubmitting = true);
+    String? error;
+    try {
+      error = await save(draft);
+    } catch (_) {
+      error = '작품과 녹음을 저장하지 못했습니다. 다시 시도해 주세요.';
+    }
+    if (!mounted) return;
+    if (error == null) {
+      setState(() {
+        isSubmitting = false;
+        isCompleting = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop(draft);
+      });
+    } else {
+      setState(() {
+        submitError = error;
+        isSubmitting = false;
+      });
+    }
   }
 
   String? _required(String? value) =>
@@ -210,111 +276,145 @@ class _CatalogRegistrationScreenState extends State<CatalogRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canCancel = widget.canCancel?.call() ?? true;
     final recordings = selectedWorkId.isEmpty
         ? widget.library.recordings
         : widget.library.recordingsForWork(selectedWorkId);
-    return Scaffold(
-      appBar: AppBar(title: const Text('작품과 녹음 정리')),
-      body: Form(
-        key: formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: selectedWorkId,
-              decoration: const InputDecoration(
-                labelText: '기존 작품',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: '', child: Text('새 작품 만들기')),
-                for (final work in widget.library.works)
-                  DropdownMenuItem(value: work.id, child: Text(work.title.ko)),
-              ],
-              onChanged: _selectWork,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              key: ValueKey('recording-$selectedWorkId-$selectedRecordingId'),
-              initialValue: selectedRecordingId,
-              decoration: const InputDecoration(
-                labelText: '기존 녹음',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: '', child: Text('새 녹음 만들기')),
-                for (final recording in recordings)
-                  DropdownMenuItem(
-                    value: recording.id,
-                    child: Text(recording.title.ko),
+    return PopScope(
+      canPop: !isSubmitting && (isCompleting || canCancel),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !canCancel && !isCompleting) {
+          unawaited(_confirmLeaveAfterCommit());
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('작품과 녹음 정리'),
+          leading: isSubmitting
+              ? const SizedBox.shrink()
+              : canCancel
+              ? const BackButton()
+              : IconButton(
+                  tooltip: '저장된 등록 화면 닫기',
+                  icon: const Icon(Icons.close),
+                  onPressed: _confirmLeaveAfterCommit,
+                ),
+        ),
+        body: AbsorbPointer(
+          absorbing: isSubmitting,
+          child: Form(
+            key: formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedWorkId,
+                  decoration: const InputDecoration(
+                    labelText: '기존 작품',
+                    border: OutlineInputBorder(),
                   ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('새 작품 만들기')),
+                    for (final work in widget.library.works)
+                      DropdownMenuItem(
+                        value: work.id,
+                        child: Text(work.title.ko),
+                      ),
+                  ],
+                  onChanged: _selectWork,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  key: ValueKey(
+                    'recording-$selectedWorkId-$selectedRecordingId',
+                  ),
+                  initialValue: selectedRecordingId,
+                  decoration: const InputDecoration(
+                    labelText: '기존 녹음',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('새 녹음 만들기')),
+                    for (final recording in recordings)
+                      DropdownMenuItem(
+                        value: recording.id,
+                        child: Text(recording.title.ko),
+                      ),
+                  ],
+                  onChanged: _selectRecording,
+                ),
+                const SizedBox(height: 16),
+                _textField(
+                  composerController,
+                  '작곡가',
+                  enabled: selectedWorkId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                _textField(
+                  workController,
+                  '작품명',
+                  enabled: selectedWorkId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                _textField(
+                  catalogController,
+                  '작품 번호 (선택)',
+                  required: false,
+                  enabled: selectedWorkId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                _textField(
+                  recordingController,
+                  '녹음명',
+                  enabled: selectedRecordingId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                _textField(
+                  performerController,
+                  '연주자 (선택)',
+                  required: false,
+                  enabled: selectedRecordingId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                _textField(
+                  conductorController,
+                  '지휘자 (선택)',
+                  required: false,
+                  enabled: selectedRecordingId.isEmpty,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: yearController,
+                  enabled: selectedRecordingId.isEmpty,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '녹음 연도 (선택)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text('악장 순서', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 4),
+                for (var index = 0; index < movements.length; index += 1)
+                  _movementEditor(index),
+                if (submitError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    submitError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: isSubmitting ? null : _submit,
+                  icon: const Icon(Icons.library_add_check_outlined),
+                  label: Text(isSubmitting ? '저장하는 중' : '라이브러리에 저장'),
+                ),
               ],
-              onChanged: _selectRecording,
             ),
-            const SizedBox(height: 16),
-            _textField(
-              composerController,
-              '작곡가',
-              enabled: selectedWorkId.isEmpty,
-            ),
-            const SizedBox(height: 12),
-            _textField(workController, '작품명', enabled: selectedWorkId.isEmpty),
-            const SizedBox(height: 12),
-            _textField(
-              catalogController,
-              '작품 번호 (선택)',
-              required: false,
-              enabled: selectedWorkId.isEmpty,
-            ),
-            const SizedBox(height: 12),
-            _textField(
-              recordingController,
-              '녹음명',
-              enabled: selectedRecordingId.isEmpty,
-            ),
-            const SizedBox(height: 12),
-            _textField(
-              performerController,
-              '연주자 (선택)',
-              required: false,
-              enabled: selectedRecordingId.isEmpty,
-            ),
-            const SizedBox(height: 12),
-            _textField(
-              conductorController,
-              '지휘자 (선택)',
-              required: false,
-              enabled: selectedRecordingId.isEmpty,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: yearController,
-              enabled: selectedRecordingId.isEmpty,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '녹음 연도 (선택)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text('악장 순서', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            for (var index = 0; index < movements.length; index += 1)
-              _movementEditor(index),
-            if (submitError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                submitError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.library_add_check_outlined),
-              label: const Text('라이브러리에 저장'),
-            ),
-          ],
+          ),
         ),
       ),
     );

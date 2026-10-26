@@ -43,14 +43,14 @@ void main() {
       find.byWidgetPredicate(
         (widget) =>
             widget is DdiroriButton &&
-            widget.label == '파일 가져오기' &&
+            widget.label == '음악 가져오기' &&
             widget.onPressed != null,
       ),
       description: 'production storage startup',
     );
 
-    expect(find.text('띠로리 플레이'), findsOneWidget);
-    expect(find.text('파일 가져오기'), findsOneWidget);
+    expect(find.text('보관함'), findsOneWidget);
+    expect(find.text('음악 가져오기'), findsOneWidget);
     expect(find.text('폴더 추가'), findsNothing);
     expect(find.text('데모 스캔'), findsNothing);
     expect(await File(databasePath).exists(), isTrue);
@@ -59,16 +59,16 @@ void main() {
       await tester.tap(find.byTooltip('도구 더보기'));
       await tester.pumpAndSettle();
       expect(find.text('음악 발견'), findsOneWidget);
-      expect(find.text('파일 정리'), findsOneWidget);
+      expect(find.text('음원 정보·파일 복구'), findsOneWidget);
       expect(find.text('재생 진단'), findsOneWidget);
       expect(find.text('앱 정보 및 데이터'), findsOneWidget);
       await tester.tap(find.text('음악 발견'));
       await tester.pump();
-      expect(find.text('파일 정리'), findsOneWidget);
+      expect(find.text('음원 정보·파일 복구'), findsOneWidget);
       await tester.tap(find.text('IMSLP 자료'));
     } else {
       expect(find.byTooltip('음악 발견'), findsOneWidget);
-      expect(find.byTooltip('파일 정리'), findsOneWidget);
+      expect(find.byTooltip('음원 정보·파일 복구'), findsOneWidget);
       expect(find.byTooltip('재생 진단'), findsOneWidget);
       expect(find.byTooltip('앱 정보 및 데이터'), findsOneWidget);
       await tester.tap(find.byTooltip('IMSLP 자료'));
@@ -178,6 +178,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byTooltip('내 음악 검색'));
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '운명');
       await tester.pumpAndSettle();
       await tester.tap(find.text('교향곡 5번 다단조').last);

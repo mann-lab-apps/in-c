@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'library_details.dart';
 import 'local_playback.dart';
 import 'presentation/play_library_components.dart';
+import 'presentation/play_playback_layout.dart';
 
 class WorkDetailScreen extends StatelessWidget {
   const WorkDetailScreen({
@@ -28,115 +29,117 @@ class WorkDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('작품')),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          children: [
-            Semantics(
-              header: true,
-              child: Text(
-                data.displayTitle,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              [
-                data.displayComposerName,
-                ?data.displayCatalogNumber,
-                ?work.periodLabel,
-              ].join(' · '),
-            ),
-            if (work.title.original != null) ...[
-              const SizedBox(height: 4),
-              Text(work.title.original!),
-            ],
-            const SizedBox(height: 16),
-            if (data.recordings.length > 1)
-              const DdiroriBanner(
-                message: '아래에서 듣고 싶은 녹음을 선택하세요.',
-                kind: DdiroriNoticeKind.info,
-              )
-            else if (playableRecordings.length == 1)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: DdiroriButton(
-                  label: '작품 재생',
-                  icon: Icons.play_arrow_outlined,
-                  onPressed: () =>
-                      onPlayRecording(playableRecordings.single.recording.id),
+        child: PlayPlaybackLayout(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  data.displayTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-              )
-            else
-              const DdiroriBanner(
-                message: '연결된 로컬 파일이 없어 이 작품을 재생할 수 없습니다.',
-                kind: DdiroriNoticeKind.warning,
               ),
-            const SizedBox(height: 16),
-            DdiroriSection(
-              title: '악장',
-              subtitle: data.parts.isEmpty
-                  ? '등록된 악장 정보가 없습니다.'
-                  : '${data.parts.length}개 악장',
-              children: data.parts.isEmpty
-                  ? const [
-                      DdiroriStatePanel(
-                        title: '악장 정보가 없습니다',
-                        message: '파일 정리에서 악장 순서를 확인할 수 있습니다.',
-                      ),
-                    ]
-                  : [
-                      for (final detail in data.parts)
-                        PlayMovementRow(
-                          sequenceNumber: detail.part.sequenceNumber,
-                          title: detail.part.title.ko,
-                          originalTitle: detail.part.title.original,
-                          hasLocalFile: detail.hasLocalFile,
+              const SizedBox(height: 4),
+              Text(
+                [
+                  data.displayComposerName,
+                  ?data.displayCatalogNumber,
+                  ?work.periodLabel,
+                ].join(' · '),
+              ),
+              if (work.title.original != null) ...[
+                const SizedBox(height: 4),
+                Text(work.title.original!),
+              ],
+              const SizedBox(height: 16),
+              if (data.recordings.length > 1)
+                const DdiroriBanner(
+                  message: '아래에서 듣고 싶은 녹음을 선택하세요.',
+                  kind: DdiroriNoticeKind.info,
+                )
+              else if (playableRecordings.length == 1)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: DdiroriButton(
+                    label: '작품 재생',
+                    icon: Icons.play_arrow_outlined,
+                    onPressed: () =>
+                        onPlayRecording(playableRecordings.single.recording.id),
+                  ),
+                )
+              else
+                const DdiroriBanner(
+                  message: '연결된 로컬 파일이 없어 이 작품을 재생할 수 없습니다.',
+                  kind: DdiroriNoticeKind.warning,
+                ),
+              const SizedBox(height: 16),
+              DdiroriSection(
+                title: '악장',
+                subtitle: data.parts.isEmpty
+                    ? '등록된 악장 정보가 없습니다.'
+                    : '${data.parts.length}개 악장',
+                children: data.parts.isEmpty
+                    ? const [
+                        DdiroriStatePanel(
+                          title: '악장 정보가 없습니다',
+                          message: '음원 정보 및 파일 복구에서 악장 순서를 확인할 수 있습니다.',
                         ),
-                    ],
-            ),
-            const SizedBox(height: 16),
-            DdiroriSection(
-              title: '녹음',
-              subtitle: data.recordings.isEmpty
-                  ? '등록된 녹음이 없습니다.'
-                  : '${data.recordings.length}개 녹음',
-              children: data.recordings.isEmpty
-                  ? const [
-                      DdiroriStatePanel(
-                        title: '녹음이 없습니다',
-                        message: '로컬 음원을 작품과 녹음으로 정리하면 여기에 표시됩니다.',
-                      ),
-                    ]
-                  : [
-                      for (final detail in data.recordings)
-                        PlayRecordingRow(
-                          recording: detail.recording,
-                          workTitle: detail.participantLabel,
-                          onTap: () => onOpenRecording(detail.recording.id),
-                          actions: [
-                            DdiroriIconButton(
-                              label: '${detail.recording.title.ko} 재생',
-                              icon: Icons.play_arrow_outlined,
-                              onPressed: detail.canPlay
-                                  ? () => unawaited(
-                                      onPlayRecording(detail.recording.id),
-                                    )
-                                  : null,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 6,
-                              ),
-                              child: Text(
-                                '${detail.availableTrackCount}/${detail.trackCount} 재생 가능',
-                              ),
-                            ),
-                          ],
+                      ]
+                    : [
+                        for (final detail in data.parts)
+                          PlayMovementRow(
+                            sequenceNumber: detail.part.sequenceNumber,
+                            title: detail.part.title.ko,
+                            originalTitle: detail.part.title.original,
+                            hasLocalFile: detail.hasLocalFile,
+                          ),
+                      ],
+              ),
+              const SizedBox(height: 16),
+              DdiroriSection(
+                title: '녹음',
+                subtitle: data.recordings.isEmpty
+                    ? '등록된 녹음이 없습니다.'
+                    : '${data.recordings.length}개 녹음',
+                children: data.recordings.isEmpty
+                    ? const [
+                        DdiroriStatePanel(
+                          title: '녹음이 없습니다',
+                          message: '로컬 음원을 작품과 녹음으로 정리하면 여기에 표시됩니다.',
                         ),
-                    ],
-            ),
-          ],
+                      ]
+                    : [
+                        for (final detail in data.recordings)
+                          PlayRecordingRow(
+                            recording: detail.recording,
+                            workTitle: detail.participantLabel,
+                            onTap: () => onOpenRecording(detail.recording.id),
+                            actions: [
+                              DdiroriIconButton(
+                                label: '${detail.recording.title.ko} 재생',
+                                icon: Icons.play_arrow_outlined,
+                                onPressed: detail.canPlay
+                                    ? () => unawaited(
+                                        onPlayRecording(detail.recording.id),
+                                      )
+                                    : null,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                child: Text(
+                                  '${detail.availableTrackCount}/${detail.trackCount} 재생 가능',
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -161,19 +164,16 @@ class RecordingDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<LocalPlaybackState>(
-      stream: playbackStates,
-      initialData: initialPlaybackState,
-      builder: (context, snapshot) {
-        final playback = snapshot.data ?? initialPlaybackState;
-        final currentTrackId =
-            playback.currentItem?.recordingId == data.recording.id
-            ? playback.currentItem?.trackId
-            : null;
-        final busy = playback.isBusy;
-        return Scaffold(
-          appBar: AppBar(title: const Text('녹음')),
-          body: SafeArea(
+    Widget content(LocalPlaybackState playback, {bool commandRunning = false}) {
+      final currentTrackId =
+          playback.currentItem?.recordingId == data.recording.id
+          ? playback.currentItem?.trackId
+          : null;
+      final busy = playback.isBusy || commandRunning;
+      return Scaffold(
+        appBar: AppBar(title: const Text('녹음')),
+        body: SafeArea(
+          child: PlayPlaybackLayout(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
               children: [
@@ -256,7 +256,7 @@ class RecordingDetailScreen extends StatelessWidget {
                       ? const [
                           DdiroriStatePanel(
                             title: '트랙이 없습니다',
-                            message: '파일 정리에서 녹음의 악장 순서를 확인하세요.',
+                            message: '음원 정보 및 파일 복구에서 녹음의 악장 순서를 확인하세요.',
                           ),
                         ]
                       : [
@@ -280,8 +280,23 @@ class RecordingDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    final scope = PlayPlaybackScope.maybeOf(context);
+    if (scope != null) {
+      return ValueListenableBuilder<PlayPlaybackSnapshot>(
+        valueListenable: scope.snapshot,
+        builder: (context, value, _) =>
+            content(value.state, commandRunning: value.commandRunning),
+      );
+    }
+    return StreamBuilder<LocalPlaybackState>(
+      stream: playbackStates,
+      initialData: initialPlaybackState,
+      builder: (context, snapshot) =>
+          content(snapshot.data ?? initialPlaybackState),
     );
   }
 }

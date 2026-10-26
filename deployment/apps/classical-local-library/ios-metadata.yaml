@@ -25,13 +25,16 @@ content:
   locales:
     ko:
       name: 띠로리 플레이
-      subtitle: 내 음원을 작품과 악장으로
+      subtitle: 내 음악을 가져오고 바로 재생
       description: |-
-        띠로리 플레이는 내가 가진 음원을 클래식 음악의 구조로 정리하고 감상하는 로컬 음악 플레이어입니다.
+        띠로리 플레이는 내가 가진 음원을 가져와 바로 듣고, 원할 때 클래식 작품으로 정리하는 로컬 음악 플레이어입니다.
 
-        iPhone 또는 iPad의 파일 앱에서 음원을 가져와 작곡가, 작품, 녹음과 악장 순서로 정리하세요. 여러 파일로 나뉜 교향곡과 소나타도 하나의 작품 또는 녹음으로 묶어 순서대로 재생할 수 있습니다.
+        iPhone 또는 iPad의 파일 앱에서 음원을 가져오면 보관함의 곡 목록에서 바로 재생할 수 있습니다. 곡·앨범·아티스트·재생목록으로 탐색하고 목록 안에서 검색하거나 곡을 정렬하세요. 곡·앨범·현재 재생에서 재생목록에 담고, 여러 곡을 고르거나 순서를 바꿔 들을 수 있습니다. 폴더별 보기는 도구 메뉴에서 이용할 수 있습니다. 최근 추가한 앨범과 곡도 확인할 수 있습니다. 클래식 작품으로 정리하는 과정은 선택 사항입니다.
+
+        가져오기 결과에서 파일별 성공·중복·분석 대기·실패를 확인하고 실패한 파일만 다시 시도할 수 있습니다. 원한다면 가져온 파일을 작품·녹음·악장으로 정리하세요. 앱 관리 음원을 내보낸 뒤에는 띠로리 Score에서 악보와 음원을 수동으로 연결하는 방법을 확인할 수 있습니다. 앱 간 자동 전송이나 저장 확인은 제공하지 않습니다.
 
         클래식 중심 라이브러리
+        • 가져온 파일을 작품 등록 없이 바로 재생하고 보관함에서 검색
         • 작곡가, 작품, 녹음, 악장과 로컬 파일을 구분해 관리
         • 작품 상세에서 악장과 보유 녹음을 살펴보고 녹음 상세에서 연주자와 파일 상태 확인
         • 작품 번호, 한글·원어 이름과 별칭 검색
@@ -42,6 +45,8 @@ content:
         • 작품, 녹음 또는 악장 단위의 랜덤 재생
         • 분리된 악장을 순서대로 묶은 재생 큐
         • 녹음 전체 또는 선택한 악장부터 남은 악장을 순서대로 재생
+        • 다른 작품과 녹음을 살펴보는 동안 현재 재생 조작에 접근
+        • 큐의 작품·녹음 맥락을 묶어 보고 개별 악장과 음원 정보 확인
         • 재생 위치 저장과 이어 듣기
         • 최근 감상 기록과 작품·녹음별 감상 통계
         • 음원과 원래 폴더 경로를 제외한 라이브러리 백업·복원
@@ -57,13 +62,24 @@ content:
 
         현재 재생은 앱이 실행 중인 동안 지원합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
       keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz
-      promotional_text: 내 음원을 작곡가·작품·녹음·악장으로 정리하고, 여러 파일로 나뉜 작품도 올바른 순서로 이어 들으세요.
+      promotional_text: 내 음원을 가져와 곧바로 듣고, 원할 때 작품·녹음·악장으로 정리하세요.
       support_url:
       marketing_url:
       privacy_url:
       release_notes: |-
+        재생목록을 만들고 곡·앨범·현재 재생에서 바로 담을 수 있습니다. 여러 곡을 한 번에 고르고 편집 화면에서 드래그로 순서를 바꿔 재생하세요. 파일이 누락되면 목록에는 남기고 재생할 때 건너뜁니다. 폴더별 보기는 도구 메뉴로 이동했고, 가져오기·파일 상태와 음원 정보·파일 복구 도구의 이름을 명확히 했습니다.
+        공통 블루 테마로 아이콘 배경과 주요 동작·선택·포커스 색을 통일하고, 일반 안내는 중립색으로 구분했습니다.
+        보관함 첫 화면을 큰 제목, 간결한 분류 목록과 최근 추가한 앨범·곡 카드로 정리하고 제목 위 앱 아이콘·이름은 제거했습니다. 최신 Play 아이콘 후보는 개발 빌드의 런처에 적용했으며 출시용 최종 승인은 대기 중입니다.
+        곡·앨범·아티스트 목록 안 검색과 곡 정렬을 추가했습니다. 누락 파일은 파일 상태 확인으로 연결하고, 검색·정렬 중 재생 큐를 유지합니다.
+        보관함에서 곡·앨범·아티스트·재생목록을 탐색하고 가져온 파일을 정리 없이 바로 재생할 수 있습니다. 폴더별 보기는 도구 메뉴에서 접근합니다. 재생 중 축약 조작에서 상세와 큐를 열 수 있습니다.
+        클래식 정리와 감상 기록, 음악 발견, IMSLP는 상단 도구에서 선택해 이용할 수 있습니다.
+        녹음 탐색 중에도 현재 재생을 조작할 수 있습니다. 넓은 화면은 별도 재생 영역을, 좁은 화면은 하단 축약 조작과 재생 상세를 제공합니다.
+        큐의 반복 작품·녹음 설명을 줄이고 악장 순서와 현재 항목을 명확히 표시했습니다. 음원 정보와 녹음 상세는 계속 확인할 수 있습니다.
         공통 보조 버튼의 중립색과 선택 표현을 정리하고, 입력 확정 및 선택 항목의 접근성 이름을 보완했습니다.
         내부 메타데이터 저장이 실패하면 입력을 유지하고 다시 시도할 수 있습니다. 저장 중 중복 실행을 막고 완료 후 목록으로 돌아갑니다.
+        가져온 파일의 결과를 개별로 확인하고 실패 파일만 다시 시도할 수 있습니다. 선택한 파일은 작품·녹음 정리로 이어지고 등록 실패 시 입력을 보존합니다. 실제 재생 상태 확인 후 첫 재생을 알립니다.
+        작품 등록 후 후속 처리만 실패한 경우 같은 입력으로 재시도하거나, 이미 저장된 내용은 취소되지 않는다는 확인 뒤 화면을 닫고 보관함을 다시 확인할 수 있습니다.
+        내보낼 수 있는 앱 관리 음원은 공유 성공 뒤 띠로리 Score에 수동으로 연결하는 방법을 안내합니다. 공유만으로 Score 저장이 완료되지는 않습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -74,15 +90,39 @@ review:
   reviewed: false
   demo_account_required: false
   notes: |-
+    2026-10-26: Common blue theme: brand/icon background #A5D8FF, light action/focus #1971C2, dark action #A5D8FF. Informational banners use neutral info; success/warning/error keep semantic colors. Existing routes and permissions are unchanged; verify the new source in light/dark before review.
     띠로리 플레이 is a local-file classical music organizer and foreground audio player.
     No account or sign-in is required. The production app starts with an empty library.
 
-    To review the local workflow, import a reviewer-owned WAV, M4A, MP3, FLAC, OGG or Opus file
-    with the "파일 가져오기" action and the iOS document picker. Confirm the inferred metadata,
-    register the file as a work/recording/movement, open the work and recording detail screens,
-    and play the complete recording or start from a selected movement.
+    To review the primary local workflow, import a reviewer-owned WAV, M4A, MP3, FLAC, OGG or Opus
+    file with "파일 가져오기" and the iOS document picker. The song should appear in the library
+    without creating a work or recording. Tap the song to play it, then use the compact player
+    to pause, skip or open the full player and queue. The library shows compact categories and
+    recently added album/song tiles; an album tile opens its local song list. Open Songs to search within that list and
+    use "곡 정렬" to change the order; this does not change the active playback queue. Album,
+    artist and folder lists are optional. A missing file offers file status review, not playback.
+    Classical organization is a separate, optional path under the top "도구 더보기" menu:
+    choose "음원 정보·파일 복구", register the file as work/recording/movement, then use work and recording
+    detail screens to play the complete recording or start from a selected movement.
+    The import result separates imported, duplicate, analysis-pending, failed and cancelled files.
+    Retry acts on failed selections only. From an imported file, open the full work/recording form;
+    cancelling registration retains the imported file, and save failure retains the draft.
+    If catalog persistence has completed but a follow-up step fails, retry the same draft; closing
+    asks for confirmation that the saved catalog is not undone and reloads the library.
+    The first-play message appears only after the player reports playing. Direct song playback
+    remains available without classical registration.
 
-    For metadata editing, open "파일 정리", then the file's "파일 작업" menu and
+    For a completed managed copy only, use "음원 정보·파일 복구" > the file's export action. After a supported
+    audio copy is shared, "연결 방법" explains how to save it in Files, select a score in Ddirori
+    Score and add it as a linked file there. Share success does not verify a Files save or a
+    Score import. No cross-app direct transfer, account or synchronization is provided.
+
+    While playback is active, browsing another work or recording does not replace the playing
+    queue. Use the side playback area on wide layouts, or the bottom compact controls and
+    "재생 상세 열기" on narrow layouts. File details are available via "음원 정보 N" in the queue.
+    Retrying a playback failure reloads the retained queue and starts from its first item.
+
+    For metadata editing, open "도구 더보기" > "음원 정보·파일 복구", then the file's "파일 작업" menu and
     "내부 메타데이터 편집". Cancel leaves existing values unchanged. Save stays in the
     dialog until persistence succeeds; a failure preserves the draft for retry.
 
@@ -107,12 +147,20 @@ testflight:
   reviewed: false
   feedback_email:
   build_id:
-  description: 로컬 클래식 음원을 작품·녹음·악장으로 정리하고, 악장 순서를 유지한 재생과 감상 기록을 테스트합니다.
+  description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
-    R1: 라이브러리의 검색·작품 필터·정렬, 현재 재생·관리·감상 보기를 확인해 주세요. 보기·필터·테마 변경만으로 큐나 재생 위치가 초기화되면 안 됩니다.
-    관리 보기에서 가져오기·폴더·파일 정리와 요약을, 감상 보기에서 이력·통계를 확인해 주세요. 현재 재생의 오류 재시도와 길이 미확정 상태를 구분해 주세요.
+    보관함의 재생목록에서 목록을 만든 뒤 검색으로 곡 두 개를 함께 선택해 추가하고, 편집에서 드래그로 순서를 바꿔 재생해 주세요. 곡·앨범·검색 결과의 더보기와 현재 재생에서도 재생목록에 담을 수 있습니다. 목록 삭제나 곡 제거로 원본 파일이 삭제되어서는 안 됩니다. 앱 재시작 후에도 목록과 순서가 유지되고 누락 곡은 목록에 남지만 재생에서는 건너뛰는지 확인해 주세요. 폴더별 보기는 도구 메뉴에 있습니다.
+    보관함의 곡·앨범·아티스트·재생목록 행을 열어 목록 안 검색과 곡 정렬을 확인해 주세요. 재생 중 검색·정렬을 바꾸어도 큐와 현재 위치가 유지되고, 누락 파일은 파일 상태 확인으로 이어져야 합니다.
+    빈 보관함에서 파일을 가져와 곡 목록에 표시되는지, 작품 등록 전에 바로 재생되는지 확인해 주세요. 축약 조작과 전체 재생 화면의 큐를 확인해 주세요.
+    R3: 여러 파일 중 일부가 실패해도 완료한 곡이 남는지, 실패한 선택만 재시도되는지 확인해 주세요. 가져온 곡의 작품·녹음 정리를 취소하거나 저장 실패로 재시도해도 원본과 큐가 유지되어야 합니다. 등록 후 첫 재생 안내는 실제 재생 시작 뒤에만 나타납니다.
+    앱 관리 복사본 내보내기 성공 뒤 연결 방법을 열어 파일 앱 보관→Score 악보 선택→연결 파일 추가의 수동 경로를 확인해 주세요. 공유 완료는 Score 저장 완료가 아닙니다.
+    앨범·아티스트·재생목록 탐색과 내 음악 검색을 확인해 주세요. 폴더별 보기·클래식 정리·감상 기록·음악 발견·IMSLP는 상단 도구 더보기에서 접근합니다.
+    R2: A 녹음 재생 중 검색으로 B 녹음을 열어도 A의 큐·악장·위치가 유지되는지 확인해 주세요. 넓은 화면 옆 재생 영역과 좁은 화면 하단 조작/재생 상세를 확인해 주세요.
+    같은 녹음의 큐는 작품·녹음 맥락을 한 번 표시하며 혼합 큐는 구간별로 구분합니다. 음원 정보 N에서 파일명·출처를, 녹음 정보 열기에서 상세를 확인해 주세요. 재시도는 기존 큐 첫 악장부터 시작합니다.
+    작품·녹음 검색·필터·정렬은 보관함 아래의 클래식 영역에서 확인해 주세요. 탐색·검색·테마 변경만으로 큐나 재생 위치가 초기화되면 안 됩니다.
+    도구 메뉴의 가져오기·파일 상태에서 파일·폴더·요약을, 음원 정보·파일 복구에서 메타데이터·누락 파일 복구를, 감상 기록에서 이력·통계를 확인해 주세요. 재생의 오류 재시도와 길이 미확정 상태를 구분해 주세요.
     공통 quiet/secondary 버튼의 중립색과 선택 상태, 목록 선택 이름, 검색 입력과 기존 재생·queue 동선이 유지되는지 확인해 주세요.
-    기존 재생 삼각형 심벌과 빈 라이브러리의 바흐 안내를 확인해 주세요. 최종 브랜드·런처 승인을 뜻하지 않습니다.
+    개발 빌드에 적용한 Play 아이콘 후보 08과 빈 보관함의 음악 가져오기 행동을 확인해 주세요. 최종 브랜드·런처 승인을 뜻하지 않습니다.
     큰 글씨·다크 모드에서 이름과 주요 행동을 읽을 수 있는지 확인해 주세요.
     큰 글씨의 좁은 화면에서 섹션 제목과 상태·도구가 별도 줄에 배치되고 최근 감상 메뉴가 겹치지 않는지 확인해 주세요.
     저작권 문제가 없는 짧은 음원으로 파일 가져오기, 메타데이터 확인, 작품·녹음·악장 등록과 재생을 확인해 주세요.
@@ -123,7 +171,7 @@ testflight:
     재생 중 전체 로컬 데이터 초기화를 실행하면 재생과 큐가 비워지고 다시 실행해도 이전 큐·위치·이력이 되살아나지 않는지 확인해 주세요. 외부 원본은 유지되어야 합니다.
     재생 진단을 다시 실행하면 이전 청감 응답은 확인하지 않음으로 돌아갑니다. 자동 결과와 실제 청감 응답을 별도로 확인해 주세요.
     앱 정보 및 데이터에서 논리 백업을 내보내고 가져오기 preview를 확인해 주세요. 백업에는 음원과 원래 파일·폴더 경로가 포함되지 않으며 복원한 음원은 다시 연결해야 합니다.
-    파일 정리에서 누락 파일의 대체 파일을 선택하고 일치 근거를 확인한 뒤 재연결해 기존 작품·교정·감상 상태가 유지되는지 확인해 주세요.
+    음원 정보·파일 복구에서 누락 파일의 대체 파일을 선택하고 일치 근거를 확인한 뒤 재연결해 기존 작품·교정·감상 상태가 유지되는지 확인해 주세요.
     저장소 준비 또는 스캔 실패 뒤 한국어 재시도 동작과 개인 파일 경로 비노출을 확인해 주세요.
     파일 앱 또는 iCloud Drive에서 가져오기, 스피커·유선·Bluetooth 출력과 interruption 동작도 가능한 범위에서 확인해 주세요.
     기기/OS/앱 버전, 음원 형식, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함하되 파일 경로나 개인 메타데이터는 보내지 마세요.
@@ -151,72 +199,84 @@ screenshots:
   scenes:
   - id: metadata_edit
     purpose: 실제 내부 메타데이터 편집에서 공통 입력·출처 안내·저장/취소 행동을 보여준다. 저장 실패 시 같은 draft에서 재시도한다.
-    route: 라이브러리 → 관리 보기 → 파일 정리 열기 → 파일 작업 → 내부 메타데이터 편집
-    fixture: 자체 제작 음원 한 파일을 가져온 뒤 파일 정리 목록에 준비. 사용자 개인정보가 없는 작곡가·작품명만 사용. 자동 촬영 전 파일 준비 필요.
+    route: 보관함 → 도구 더보기 → 음원 정보·파일 복구 → 파일 작업 → 내부 메타데이터 편집
+    fixture: 자체 제작 음원 한 파일을 가져온 뒤 음원 정보 및 파일 복구 목록에 준비. 사용자 개인정보가 없는 작곡가·작품명만 사용. 자동 촬영 전 파일 준비 필요.
     must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 내부 메타데이터 편집 제목, 작곡가 입력과 현재 값 출처
     - 저장·취소 행동과 잘리지 않는 입력 레이블. 오류 안내는 폼 스크롤 밖 상단에서 확인할 수 있을 것
     exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
     - 실제 사용자의 파일 경로·이름·개인정보
     - 카탈로그·팔레트 비교 화면 또는 저장 실패를 성공으로 표시한 상태
     steps:
-    - {action: tap, by: tooltip, value: 관리 보기}
-    - {action: tap, by: tooltip, value: 파일 정리 열기}
+    - {action: wait, milliseconds: 120}
+    - {action: tap, by: tooltip, value: 도구 더보기}
+    - {action: tap, by: text, value: 음원 정보·파일 복구}
     - {action: tap, by: tooltip, value: 파일 작업}
     - {action: tap, by: text, value: 내부 메타데이터 편집}
     - {action: wait, milliseconds: 400}
     assertions:
+    - {by: widget_type, value: Theme, present: true}
     - {by: widget_type, value: MetadataEditDialog, present: true}
     - {by: widget_type, value: DdiroriInput, present: true}
     - {by: text, value: 저장, present: true}
     - {by: text, value: 취소, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: library
-    purpose: 띠로리 플레이 이름과 재생 삼각형 심벌, 작품 중심 라이브러리와 검색·가져오기 진입점을 보여준다 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인 · 역할별 타이포와 실제 목록 여백 검증
-    route: 앱 실행 → 라이브러리
-    fixture: 자체 제작 샘플 카탈로그의 작곡가 2명, 작품 3개와 녹음 3개
+    purpose: 상단 앱 아이콘·이름 없이 큰 보관함 제목, 구분선이 있는 곡·앨범·아티스트·재생목록 분류와 최근 추가한 앨범·곡 카드 및 전체 검색·가져오기 진입점을 보여준다. 곡·앨범·현재 재생의 재생목록 추가와 편집·드래그는 별도 동선 검수 대상이며 이 기본 scene의 증거가 아니다. 폴더별 보기는 도구 메뉴에 있다. R3의 파일별 결과와 첫 재생 안내는 실제 가져오기·엔진 상태가 있는 별도 검수이며 이 데모 scene의 증거가 아니다.
+    route: 앱 실행 → 보관함
+    fixture: 현재 scene smoke는 샘플 카탈로그·가상 파일 목록과 fake controller를 사용한다. 기본 생산 모드는 빈 보관함이다. 실제 스토어 촬영 전 권리 확인 음원을 가져온 fixture와 수동 검수가 필요하다.
     must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 공통 보조 버튼은 중립색, 선택은 면·기호로 구분하며 작품/재생 행동을 보존
-    - 띠로리 플레이 이름과 기존 재생 삼각형 심벌. 대표색·런처 확정과 구분
-    - 검색·전체 작품/녹음 있는 작품 필터·정렬 진입점과 평평한 작품 목록
-    - 라이브러리·현재 재생·관리·감상 보기. 요약·폴더·스캔은 관리 보기에서 확인
-    - 레이블이 온전히 보이는 검색과 파일 가져오기 진입점
+    - 앱 아이콘·이름을 반복하지 않은 큰 보관함 제목. 최종 대표색·런처 승인과 구분
+    - 구분선이 있는 곡·앨범·아티스트·재생목록 분류와 최근 추가한 앨범·곡 카드. 파일명·메타데이터가 읽힐 것
+    - 내 음악 검색과 파일 가져오기, 도구 더보기 진입점. 클래식 정리는 선택 동선
     - 빈 라이브러리에서 바로 실행할 수 있는 파일 가져오기 또는 검색 행동
     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
     - 제목·본문·보조 설명의 글자 위계와 공통 간격. 긴 작품명은 줄바꿈하고 활성/비활성 행동이 구별될 것
     exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
+    - 보관함 제목 위의 앱 아이콘·띠로리 플레이 문구
     - 실제 사용자의 전체 파일·폴더 경로, 개인정보, 오류 또는 권한 팝업
     - 백업 파일 선택기, 백업 가져오기 확인 또는 누락 파일 재연결 확인 대화상자
     - 데모 전용 조작이나 테스트 체크리스트
     - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
     - 이전 굵은 선택 밑줄·중첩 외곽선 UI, 글자나 조작부가 잘린 화면, 웹 컴포넌트 예제
+    - 실제 import나 엔진 playing이 없는 fixture에서 가져오기 완료·첫 재생 성취를 꾸민 상태
     - 시스템 기준 검증용 웹 화면 또는 서로 다른 디자인 버전이 혼재한 화면
     steps:
+    - {action: wait, milliseconds: 120}
     - action: wait
       milliseconds: 500
     assertions:
+    - {by: widget_type, value: Theme, present: true}
     - by: text
       value: 기본 컴포넌트
       present: false
     - by: text
       value: 띠로리 플레이
+      present: false
+    - by: tooltip
+      value: 도구 더보기
       present: true
     - by: tooltip
-      value: 현재 재생 보기
+      value: 내 음악 검색
       present: true
     - by: text
-      value: 검색
+      value: 곡
       present: true
     - by: text
-      value: 전체 작품
+      value: 재생목록
       present: true
-    - by: widget_type
-      value: DdiroriProductSignature
+    - by: text
+      value: 보관함
       present: true
-    - by: widget_type
-      value: DdiroriSearch
+    - by: text
+      value: 최근 추가한 음악
       present: true
     - by: text
       value: 띠로리 색상 작업실
@@ -227,25 +287,55 @@ screenshots:
     - by: text
       value: 디자인 시스템 기준
       present: false
+    - by: text
+      value: 첫 음악을 재생했어요.
+      present: false
+  - id: song_browse
+    purpose: 보관함의 곡 분류에서 촘촘한 곡 행, 목록 안 검색·곡 정렬·곡 더보기 진입을 보여준다. 더보기의 재생목록 추가 선택과 저장은 별도 상호작용 검수 대상이다. 미니플레이어는 큐가 있을 때만 노출한다.
+    route: 앱 실행 → 보관함 → 곡
+    fixture: 현재 smoke는 자체 제작 샘플 카탈로그·가상 파일 목록과 fake controller를 사용한다. 스토어 촬영 전 권리 확인 음원의 실제 가져오기와 수동 검수 필요.
+    must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
+    - 곡 제목과 파일 메타데이터 fallback, 목록 안 검색 입력, 정렬 명령, 곡별 더보기 진입
+    - 중립 표면과 공통 Item/Input/MenuButton. 실제 현재 큐가 없는 상태에서는 미니플레이어 없음
+    exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
+    - 실제 사용자 파일 경로·개인 메타데이터, 미확인 재생 성공 표시
+    - Apple Music 로고·색상·앨범아트 또는 출시 승인 표시
+    steps:
+    - {action: wait, milliseconds: 120}
+    - {action: tap, by: text, value: 곡}
+    - {action: wait, milliseconds: 400}
+    assertions:
+    - {by: widget_type, value: Theme, present: true}
+    - {by: tooltip, value: 곡 정렬, present: true}
+    - {by: text, value: '이 목록에서 검색', present: true}
+    - {by: widget_type, value: DdiroriSearch, present: true}
+    - {by: widget_type, value: PopupMenuButton, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: movement_queue
-    purpose: 여러 파일로 나뉜 악장을 작품 순서대로 묶은 재생 큐를 보여준다 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
-    route: 라이브러리 → 현재 재생 보기 → 현재 재생 큐
+    purpose: 상위 작품·녹음 맥락을 묶고 악장 순서와 현재 표시 중심으로 정리한 읽기 전용 재생 큐를 보여준다. 음원 정보와 상세 접근을 유지한다.
+    route: 보관함 → 도구 더보기 → 재생 계획 → 현재 재생 큐
     fixture: 자체 제작 베토벤 교향곡 샘플 카탈로그와 악장 4개
     must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 작품·녹음 이름과 순서가 표시된 악장 큐
-    - 작품·녹음·파일 출처를 전용 큐 행에서 계층적으로 표시한 상태
+    - 작품·녹음 맥락을 구간 상단에 모으고 큐 행에는 악장 순번·현재 표시·음원 정보 행동을 표시
     - 재생·다음·정지 도구, 진행률과 fixture의 실제 상태 배지. 화면만으로 가청 출력을 입증하지 않음
     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
     exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
     - 실제 재생 중인 저작권 음원과 개인 파일·폴더 전체 경로
     - 파일 없음, 재생 오류 또는 진단 상태
     - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
     - 이전 굵은 선택 밑줄·중첩 외곽선 UI, 글자나 조작부가 잘린 화면, 웹 컴포넌트 예제
     - 시스템 기준 검증용 웹 화면 또는 서로 다른 디자인 버전이 혼재한 화면
     steps:
-    - {action: tap, by: tooltip, value: 현재 재생 보기}
+    - {action: wait, milliseconds: 120}
+    - {action: tap, by: tooltip, value: 도구 더보기}
+    - {action: tap, by: text, value: 재생 계획}
     - action: scroll_to
       by: text
       value: 현재 재생 큐
@@ -253,12 +343,14 @@ screenshots:
     - action: wait
       milliseconds: 400
     assertions:
+    - {by: widget_type, value: Theme, present: true}
     - by: text
       value: 현재 재생 큐
       present: true
     - by: text
       value: 1악장 Allegro con brio
       present: true
+    - {by: tooltip, value: '음원 정보 1', present: true}
     - by: text
       value: 띠로리 색상 작업실
       present: false
@@ -273,6 +365,7 @@ screenshots:
     route: 라이브러리 → 작품 → 교향곡 5번 다단조
     fixture: 자체 제작 베토벤 교향곡 샘플의 악장 4개와 녹음 2개
     must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 작곡가, 작품 번호, 시대, 한국어·원어 작품명
     - 순서와 파일 가용성을 글자로 표시한 악장 목록
     - 첫 악장부터 원래 순서대로 이어지는 목록
@@ -280,12 +373,14 @@ screenshots:
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
     exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
     - 외부 서비스의 저작권 미확인 이미지나 음원
     - 개인정보, 실제 파일 경로와 오류 상태
     - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
     - 이전 굵은 선택 밑줄·중첩 외곽선 UI, 글자나 조작부가 잘린 화면, 웹 컴포넌트 예제
     - 시스템 기준 검증용 웹 화면 또는 서로 다른 디자인 버전이 혼재한 화면
     steps:
+    - {action: wait, milliseconds: 120}
     - action: scroll_to
       by: text
       value: 작품
@@ -296,6 +391,7 @@ screenshots:
     - action: wait
       milliseconds: 400
     assertions:
+    - {by: widget_type, value: Theme, present: true}
     - by: text
       value: 작품
       present: true
@@ -319,19 +415,23 @@ screenshots:
     route: 라이브러리 → 작품 → 교향곡 5번 다단조 → 클라이버 / 빈 필하모닉 연주 녹음
     fixture: 자체 제작 베토벤 교향곡 샘플 녹음과 연결된 로컬 악장 4개
     must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 작품·작곡가·녹음명과 연도, 앙상블, 지휘자
     - 녹음 전체 재생 명령과 재생 가능한 트랙 수
+    - 실제 재생 큐가 있으면 탐색 중 녹음과 구분되는 옆 재생 영역 또는 하단 축약 조작. 큐가 없는 fixture에서는 표시하지 않음
     - 원래 순서를 유지한 악장 목록과 파일명만 표시하는 가용성 상태
     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
     exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
     - 실제 사용자의 전체 파일·폴더 경로와 개인정보
     - 저작권 미확인 음원, 재생 오류 또는 권한 팝업
     - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
     - 이전 굵은 선택 밑줄·중첩 외곽선 UI, 글자나 조작부가 잘린 화면, 웹 컴포넌트 예제
     - 시스템 기준 검증용 웹 화면 또는 서로 다른 디자인 버전이 혼재한 화면
     steps:
+    - {action: wait, milliseconds: 120}
     - action: scroll_to
       by: text
       value: 작품
@@ -349,6 +449,7 @@ screenshots:
     - action: wait
       milliseconds: 400
     assertions:
+    - {by: widget_type, value: Theme, present: true}
     - by: text
       value: 녹음
       present: true
@@ -367,10 +468,42 @@ screenshots:
     - by: text
       value: 디자인 시스템 기준
       present: false
+  - id: browsing_playback
+    purpose: 다른 녹음 탐색 중에도 실제 controller 상태를 읽는 재생 영역과 조작에 접근함을 보여준다. 가청 출력 검증과 구분한다.
+    route: 라이브러리 → 교향곡 5번 → 클라이버 녹음 재생 → 라이브러리 복귀 → 브렌델 녹음 탐색
+    fixture: 자체 제작 카탈로그의 교향곡 5번 큐와 브렌델 피아노 녹음. 촬영 fixture controller 사용 여부를 산출물에 구분하며 실제 사용자 음원은 사용하지 않음.
+    must_show:
+    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
+    - 탐색 중인 브렌델 녹음 정보와 재생 중인 클라이버 큐의 1악장
+    - 넓은 화면의 옆 재생 영역 또는 좁은 화면의 하단 축약 조작과 재생 상세 진입
+    - 선택 녹음 변경만으로 기존 큐를 교체하지 않은 상태
+    exclude:
+    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
+    - 저작권 미확인 음원·개인 파일 경로와 메타데이터
+    - fake snapshot을 물리 출력·백그라운드 재생 증거로 표현한 상태
+    steps:
+    - {action: wait, milliseconds: 120}
+    - {action: scroll_to, by: text, value: 교향곡 5번 다단조, delta: 250}
+    - {action: tap, by: text, value: 교향곡 5번 다단조}
+    - {action: scroll_to, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음, delta: 250}
+    - {action: tap, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음}
+    - {action: tap, by: text, value: 녹음 전체 재생}
+    - {action: back}
+    - {action: back}
+    - {action: scroll_to, by: text, value: 브렌델 피아노 연주 녹음, delta: 250}
+    - {action: tap, by: text, value: 브렌델 피아노 연주 녹음}
+    - {action: wait, milliseconds: 400}
+    assertions:
+    - {by: widget_type, value: Theme, present: true}
+    - {by: text, value: 브렌델 피아노 연주 녹음, present: true}
+    - {by: text, value: 1악장 Allegro con brio, present: true}
+    - {by: tooltip, value: 재생 상세 열기, present: true}
+    - {by: widget_type, value: PlayPlaybackLayout, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
 videos:
   app_preview:
     required: false
-    storyboard: 0–6초 파일 가져오기와 작품 정리 → 6–17초 작품·녹음·악장 탐색 → 17–27초 악장 순서를 유지한 재생 큐. 실제 앱 화면과 자체 제작 음원만 사용.
+    storyboard: 0–6초 파일 가져오기 → 6–17초 곡·앨범·아티스트·재생목록 탐색과 곡 직접 재생 → 17–27초 축약 조작과 전체 재생 큐. 실제 앱 화면과 자체 제작 음원만 사용.
   review_video:
     required: false
     scene: review_core
@@ -390,6 +523,14 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 곡·앨범 더보기, 여러 곡 선택 sheet, 현재 재생 추가, 편집 drag handle의 의미와 320px/큰 글자 조작은 위젯 회귀로 확인. 실기기 VoiceOver의 재정렬/선택 상태 낭독·focus 이동은 pending.
+      2026-10-26 재생목록 생성·이름·곡 추가·순서 메뉴·누락 상태와 폴더별 보기 이동을 위젯에서 검증. VoiceOver의 긴 제목/큰 글자/포커스 순서와 실제 손 조작은 실기기 재검수 pending.
+      2026-10-26 공통 블루 기본값·중립 안내 변경 후 새 후보 빌드의 시각·접근성·스토어 촬영 재검수 필요. Theme assertion은 테마 존재만 확인하며 실제 색상 판정은 공통 테스트와 후속 캡처 검수로 구분한다.
+      2026-10-26 보관함 제목 위 앱 아이콘·이름을 제거하고 제목만 유지. 큰 보관함 제목·앨범 카드·구분선 목록의 글자 확대 검사와 별개로 실기기 VoiceOver의 제목·카드 낭독·읽기 순서와 focus 복귀를 확인해야 함.
+      2026-10-26 보관함 분류 행·목록 안 검색·정렬·누락 파일 상태 확인 동선 변경. 위젯 자동 검증과 별개로 실기기 VoiceOver 탐색 순서·정렬 메뉴 낭독·focus 복귀를 재검수해야 함.
+      2026-10-25 R3 파일별 결과 행·재시도·등록 실패 입력 보존·첫 재생 배너·Score 수동 연결 안내 변경. 320/390/1024·200% 자동 검사와 별개로 VoiceOver 읽기 순서, 오류 focus, 공유 후 복귀를 실제 기기에서 재검수해야 함.
+      2026-10-25 보관함 분류·검색·최근 곡 행과 재생 중 축약 조작으로 기본 동선 변경. 큰 글자/좁은 화면 자동 검증과 별개로 VoiceOver 읽기 순서·파일명 fallback·상세 복귀를 실기기에서 확인해야 함.
+      2026-10-25 R2 옆 재생 영역/하단 축약 조작, 현재 악장과 탐색 녹음 분리, 음원 정보 dialog·키보드 seek 변경. 320/390/1024 및 200% 자동 검사와 별개로 실기기 VoiceOver 읽기 순서·focus 복귀 검수 pending.
       2026-10-25 product-design-r1의 네 보기·작품 필터/정렬·평평한 행·현재 재생 오류 재시도 적용. 새 화면의 실기기 VoiceOver·읽기 순서 재검수는 pending. returns/play-r1-2026-10-25에 자동 검증과 미검수 범위를 분리 기록한다.
       2026-10-25 내부 메타데이터 dialog 저장 중 readOnly·취소/Back 차단·실패 draft 보존 변경. VoiceOver·큰 글자·키보드·오류 읽기 순서 재검수 필요. shared-baseline.md 및 support-matrix.md 참고. 실기기 검수와 새 scene 촬영 미실행.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
@@ -412,6 +553,16 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 곡·앨범·검색·현재 재생에서 재생목록에 담기, 다중 선택과 드래그 순서 변경을 fake controller/SQLite 단위로 검증. 실제 터치 재정렬, Files 제공자와 물리 오디오 출력은 기기 QA pending.
+      2026-10-26 SQLite v15 재생목록 저장·논리 백업·v14 백업 호환과 fake controller 곡 순서 재생을 자동 검증. 실제 Files 제공자 재연결과 물리 오디오 출력, 재생목록 편집 동선은 기기 QA pending.
+      2026-10-26 공통 블루 기본값·중립 안내를 새 iOS 26.5 시뮬레이터 빌드에서 확인. 보관함의 주요 가져오기 버튼은 블루이며 Play 위젯 테스트는 light/dark 행동·선택·안내 역할 값을 확인했다. 실기기 시각·접근성·스토어 촬영 재검수는 필요하다.
+      2026-10-26 최신 Play 아이콘 후보를 개발용 iOS/Android 런처에 적용. 보관함 제목 위의 앱 아이콘은 제거했다. 스토어용 승인·물리 런처 마스크·Android monochrome/원형 아이콘·기기 청감은 별도 확인 대상.
+      2026-10-26 목록 안 검색·정렬과 누락 파일 상태 확인은 fake adapter/Flutter 위젯에서 검증. 실제 Files/iCloud 제공자와 물리 출력·청감, 실기기 큐/위치 지속성은 별도 검수.
+      2026-10-25 R3 iPhone 17 Pro iOS 26.5 Simulator에서 합성 WAV의 앱 관리 복사·곡 직접 재생·작품/녹음 등록·just_audio 녹음 재생 상태와 첫 재생 안내를 통합 검증. 실제 Files chooser/iCloud 제공자·물리 출력·Score 수신 검증은 아님.
+      2026-10-25 R3: 실제 Files/iCloud 선택기의 부분 실패·분석 대기, 지원 음원 등록 후 오디오 시작, 관리 복사본 공유→파일 앱 보관→Score 연결 파일 저장을 물리 기기에서 재검수해야 함. fake 엔진·share adapter 결과는 Score 수신 또는 가청 출력 증거가 아님.
+      2026-10-25 iOS 26.5 Simulator에서 생산 모드 빈 보관함을 직접 확인하고 합성 WAV 선택 결과를 주입한 화면 가져오기→곡 목록→실제 controller 재생→전체 큐 통합 테스트를 통과함. 파일 선택 결과는 fixture이며 실제 Files/iCloud 제공자 UI나 물리 출력 증거는 아님.
+      2026-10-25 새 기본 동선: Files 가져오기→정리 전 곡 재생→축약 조작→전체 큐, 앨범·아티스트·폴더 탐색, 누락 파일 오류와 새 큐 복구를 실제 파일·권한·가청 출력으로 재검수해야 함. 시뮬레이터와 fake adapter는 물리 출력 증거가 아님.
+      2026-10-25 R2: A 재생 중 B 탐색과 목록 끝 조작, 재생 상세/seek, 오류 후 첫 악장 재시작을 실제 파일·권한·가청 출력 환경에서 재검수해야 함. fake snapshot/합성 테스트를 물리 증거로 대체하지 않음.
       2026-10-25 R1 경로 변경: 관리 보기→파일 정리 열기, 현재 재생 보기→큐, 감상 보기→이력/통계. 보기·필터·테마 전환 시 실제 재생 연속성과 Files 권한·interruption 복구를 실기기로 재검수해야 함.
       2026-10-25 파일 정리→파일 작업→내부 메타데이터 편집에서 저장/실패 재시도/취소 후 목록 복귀와 재생 위치 보존을 실기기로 재검수해야 함. repository double의 widget test는 실제 저장장치·재생 증거가 아님.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.
@@ -424,6 +575,10 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
+       2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.
+       2026-10-26 보관함 UI 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영·서명·후보 빌드 선택 미완료.
+       2026-10-25 보관함 중심 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영·서명·후보 빌드 선택 미완료.
+       2026-10-25 R2 제품 적용 변경으로 source pending/content reviewed false 유지. 새 소스의 스토어 촬영·서명·후보 선택은 미완료. 버전/build/future commit pin 없음.
        2026-10-25 product-design-r1 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영과 후보 빌드 선택은 미완료. 버전·build·commit pin은 변경하지 않음.
        2026-10-23 라임 대표색·올리브 행동색 및 새 런처 적용 후 후보 빌드와 실기기 검수 필요. 위젯 렌더링은 스토어 촬영 승인 근거가 아님. 2026-10-23 후속 중립색 시스템: 흰색·무채색 표면과 선택색을 분리하고 Material 표면 틴트를 제거함. 임시 라임 강조색은
       유지. 새 소스의 실기기·VoiceOver·스토어 촬영 검수는 pending이며 공통 위젯 렌더링은 해당 증거를 대신하지 않음. 2026-10-23 조작부 형태·타이포·간격 변경 후 큰 글씨·선택·포커스·터치 영역의 후보 빌드와 실기기 재검수 필요. 위젯/웹 캡처는 스토어 검수
