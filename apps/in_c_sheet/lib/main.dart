@@ -11444,9 +11444,10 @@ class _PageMetadataBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
+        color: style['overlay'].withValues(alpha: 0.58),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -11454,10 +11455,9 @@ class _PageMetadataBadge extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.w800,
-          ),
+          ).copyWith(color: style['onOverlay']),
         ),
       ),
     );
@@ -11588,13 +11588,14 @@ class _QuickJumpButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     final visibleJumpPoints = jumpPoints.take(2).toList(growable: false);
     final overflowJumpPoints = jumpPoints.skip(2).toList(growable: false);
     final overflowCount =
         overflowJumpPoints.length + rehearsalMarks.length + bookmarks.length;
     return Material(
-      color: Colors.black.withValues(alpha: 0.64),
-      borderRadius: BorderRadius.circular(8),
+      color: style['overlay'].withValues(alpha: 0.64),
+      borderRadius: BorderRadius.circular(DdiroriTokens.radius['control']!),
       child: Padding(
         padding: const EdgeInsets.all(4),
         child: Wrap(
@@ -11603,7 +11604,7 @@ class _QuickJumpButtons extends StatelessWidget {
           children: [
             for (final jumpPoint in visibleJumpPoints)
               IconButton(
-                color: Colors.white,
+                color: style['onOverlay'],
                 tooltip:
                     '${jumpPoint.label}: '
                     '${jumpPoint.sourcePage}쪽에서 '
@@ -11617,8 +11618,8 @@ class _QuickJumpButtons extends StatelessWidget {
                 tooltip: '빠른 이동 $overflowCount개',
                 icon: Text(
                   '+$overflowCount',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: style['onOverlay'],
                     fontWeight: FontWeight.w900,
                   ),
                 ),
