@@ -830,7 +830,7 @@ void main() {
   testWidgets(
     'real PDF custom pedal mapping uses Ddirori settings and preserves the document',
     (t) async {
-      await openPdf(t, width: 390, height: 1000, scale: 2);
+      final c = await openPdf(t, width: 390, height: 1000, scale: 2);
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
@@ -852,6 +852,12 @@ void main() {
           (widget) => widget is DdiroriButton && widget.label == '저장',
         ),
         findsOneWidget,
+      );
+      await command(t, '저장');
+      await t.pumpAndSettle();
+      expect(
+        c.scoreById('pilot-0').viewerSettings.pedalMapping,
+        SheetViewerSettings.customPedalMappingType,
       );
       expect(pdf(t).document, same(originalDocument));
       expect(t.takeException(), isNull);
