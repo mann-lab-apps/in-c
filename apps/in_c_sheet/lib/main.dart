@@ -7011,73 +7011,104 @@ setlist=$setlistLabel
       _showSnackBar('PDF가 준비된 뒤 리허설 마크를 편집할 수 있습니다.');
       return;
     }
-    final selected = await showModalBottomSheet<_RehearsalMarkAction>(
+    final selected = await showDdiroriSheet<_RehearsalMarkAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            if (canEditMarks)
-              ListTile(
-                leading: const Icon(Icons.add_location_alt_outlined),
-                title: const Text('현재 페이지에 마크 추가'),
-                onTap: () => Navigator.of(context).pop(
-                  const _RehearsalMarkAction(
-                    type: _RehearsalMarkActionType.add,
+      title: '리허설 마크',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DdiroriBanner(
+            message: canEditMarks
+                ? '리허설·D.S.·Coda 위치를 앱 안에 표시하고 바로 이동할 수 있습니다. 원본 PDF 파일은 수정하지 않습니다.'
+                : '공연 모드에서는 이동만 허용됩니다. 마크 편집은 공연 모드를 끈 뒤 사용할 수 있습니다.',
+          ),
+          const SizedBox(height: 12),
+          if (canEditMarks)
+            DdiroriItem(
+              title: '현재 페이지에 마크 추가',
+              subtitle: '현재 페이지와 마크 종류를 저장합니다.',
+              leading: const Icon(Icons.add_location_alt_outlined),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(
+                const _RehearsalMarkAction(type: _RehearsalMarkActionType.add),
+              ),
+              actions: [
+                DdiroriButton(
+                  label: '현재 페이지에 추가',
+                  icon: Icons.add_location_alt_outlined,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(
+                    const _RehearsalMarkAction(
+                      type: _RehearsalMarkActionType.add,
+                    ),
                   ),
                 ),
-              )
-            else
-              const ListTile(
-                leading: Icon(Icons.lock_outline),
-                title: Text('공연 모드에서는 이동만 허용됩니다'),
-                subtitle: Text('마크 편집은 공연 모드를 끈 뒤 사용할 수 있습니다.'),
+              ],
+            )
+          else
+            const DdiroriItem(
+              title: '공연 모드에서는 이동만 허용됩니다',
+              subtitle: '마크 편집은 공연 모드를 끈 뒤 사용할 수 있습니다.',
+              leading: Icon(Icons.lock_outline),
+              flat: true,
+            ),
+          if (currentScore.pageSettings.rehearsalMarks.isNotEmpty)
+            const Divider(height: 1),
+          for (final entry
+              in currentScore.pageSettings.rehearsalMarks.asMap().entries) ...[
+            DdiroriItem(
+              leading: const Icon(Icons.flag_outlined),
+              title: entry.value.label,
+              subtitle:
+                  '${_rehearsalMarkKindLabel(entry.value.kind)} · ${entry.value.pageNumber}쪽',
+              trailing: DdiroriStatusBadge(
+                label: _rehearsalMarkKindLabel(entry.value.kind),
+                tone: DdiroriStatusTone.info,
               ),
-            for (final mark in currentScore.pageSettings.rehearsalMarks)
-              ListTile(
-                leading: const Icon(Icons.flag_outlined),
-                title: Text(mark.label),
-                subtitle: Text(
-                  '${_rehearsalMarkKindLabel(mark.kind)} · ${mark.pageNumber}쪽',
+              onTap: () => Navigator.of(context).pop(
+                _RehearsalMarkAction(
+                  type: _RehearsalMarkActionType.jump,
+                  mark: entry.value,
                 ),
-                onTap: () => Navigator.of(context).pop(
-                  _RehearsalMarkAction(
-                    type: _RehearsalMarkActionType.jump,
-                    mark: mark,
+              ),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '이동',
+                  icon: Icons.arrow_forward,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(
+                    _RehearsalMarkAction(
+                      type: _RehearsalMarkActionType.jump,
+                      mark: entry.value,
+                    ),
                   ),
                 ),
-                trailing: canEditMarks
-                    ? Wrap(
-                        spacing: 0,
-                        children: [
-                          IconButton(
-                            tooltip: '마크 수정',
-                            onPressed: () => Navigator.of(context).pop(
-                              _RehearsalMarkAction(
-                                type: _RehearsalMarkActionType.edit,
-                                mark: mark,
-                              ),
-                            ),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                          IconButton(
-                            tooltip: '마크 삭제',
-                            onPressed: () => Navigator.of(context).pop(
-                              _RehearsalMarkAction(
-                                type: _RehearsalMarkActionType.remove,
-                                mark: mark,
-                              ),
-                            ),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
-                      )
-                    : null,
-              ),
+                if (canEditMarks)
+                  DdiroriMenuButton<_RehearsalMarkActionType>(
+                    label: '${entry.value.label} 더보기',
+                    icon: Icons.more_horiz,
+                    onSelected: (type) => Navigator.of(
+                      context,
+                    ).pop(_RehearsalMarkAction(type: type, mark: entry.value)),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<_RehearsalMarkActionType>(
+                        value: _RehearsalMarkActionType.edit,
+                        child: Text('마크 수정'),
+                      ),
+                      PopupMenuItem<_RehearsalMarkActionType>(
+                        value: _RehearsalMarkActionType.remove,
+                        child: Text('마크 삭제'),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            if (entry.key !=
+                currentScore.pageSettings.rehearsalMarks.length - 1)
+              const Divider(height: 1),
           ],
-        ),
+        ],
       ),
     );
     if (selected?.type == _RehearsalMarkActionType.jump &&
@@ -7150,89 +7181,89 @@ setlist=$setlistLabel
     required String initialLabel,
     required String initialKind,
   }) async {
-    final labelController = TextEditingController(text: initialLabel);
+    var label = initialLabel;
     var selectedKind = initialKind;
     var selectedPage = pageNumber.clamp(1, pageCount).toInt();
-    try {
-      return await showDialog<({String label, String kind, int pageNumber})>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('리허설 마크'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: labelController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: '표시 이름'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedKind,
-                  decoration: const InputDecoration(labelText: '마크 종류'),
-                  items:
-                      const [
-                            SheetRehearsalMark.rehearsalKind,
-                            SheetRehearsalMark.dsKind,
-                            SheetRehearsalMark.dcKind,
-                            SheetRehearsalMark.codaKind,
-                            SheetRehearsalMark.toCodaKind,
-                            SheetRehearsalMark.segnoKind,
-                          ]
-                          .map(
-                            (kind) => DropdownMenuItem<String>(
-                              value: kind,
-                              child: Text(_rehearsalMarkKindLabel(kind)),
-                            ),
-                          )
-                          .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() {
-                        selectedKind = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedPage,
-                  decoration: const InputDecoration(labelText: '페이지'),
-                  items: [
-                    for (var page = 1; page <= pageCount; page += 1)
-                      DropdownMenuItem<int>(value: page, child: Text('$page쪽')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() {
-                        selectedPage = value;
-                      });
-                    }
-                  },
-                ),
-              ],
+    return showDdiroriDialog<({String label, String kind, int pageNumber})>(
+      context: context,
+      title: '리허설 마크',
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DdiroriInput(
+              value: label,
+              onChanged: (value) => setDialogState(() => label = value),
+              label: '표시 이름',
+              help: '비워 두면 선택한 마크 종류 이름을 사용합니다.',
+              clearable: true,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('취소'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop((
-                  label: labelController.text,
-                  kind: selectedKind,
-                  pageNumber: selectedPage,
-                )),
-                child: const Text('저장'),
-              ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            Text('마크 종류', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              '리허설 위치와 반복 이동의 의미를 구분합니다.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            DdiroriChoices<String>(
+              options: {
+                for (final kind in const [
+                  SheetRehearsalMark.rehearsalKind,
+                  SheetRehearsalMark.dsKind,
+                  SheetRehearsalMark.dcKind,
+                  SheetRehearsalMark.codaKind,
+                  SheetRehearsalMark.toCodaKind,
+                  SheetRehearsalMark.segnoKind,
+                ])
+                  kind: _rehearsalMarkKindLabel(kind),
+              },
+              selected: {selectedKind},
+              onChanged: (values) {
+                final next = values.firstOrNull;
+                if (next != null) {
+                  setDialogState(() => selectedKind = next);
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            Text('페이지', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              '이 마크를 표시할 원본 PDF 쪽입니다.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              initialValue: selectedPage,
+              items: [
+                for (var page = 1; page <= pageCount; page += 1)
+                  DropdownMenuItem<int>(value: page, child: Text('$page쪽')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setDialogState(() => selectedPage = value);
+                }
+              },
+            ),
+          ],
         ),
-      );
-    } finally {
-      labelController.dispose();
-    }
+      ),
+      actions: [
+        DdiroriButton(
+          label: '취소',
+          kind: DdiroriButtonKind.secondary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        DdiroriButton(
+          label: '저장',
+          onPressed: () => Navigator.of(
+            context,
+          ).pop((label: label, kind: selectedKind, pageNumber: selectedPage)),
+        ),
+      ],
+    );
   }
 
   Future<void> _rotateCurrentPageMetadata() async {

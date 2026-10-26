@@ -633,6 +633,97 @@ void main() {
   );
 
   testWidgets(
+    'real PDF rehearsal marks use Ddirori actions without replacing navigation',
+    (t) async {
+      final c = await openPdf(t, width: 1680, height: 2000, scale: 2);
+      final originalDocument = pdf(t).document;
+      final now = DateTime.parse('2026-10-26T16:00:00.000');
+      expect(
+        await c.addRehearsalMark(
+          c.scoreById('pilot-0'),
+          pageCount: 3,
+          mark: SheetRehearsalMark(
+            id: 'r2-mark',
+            pageNumber: 2,
+            label: 'B',
+            kind: SheetRehearsalMark.rehearsalKind,
+            createdAt: now,
+          ),
+        ),
+        isTrue,
+      );
+      await t.pumpAndSettle();
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('페이지 정리'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('리허설 마크'));
+      await t.pumpAndSettle();
+
+      expect(find.text('리허설 마크'), findsOneWidget);
+      expect(
+        find.text(
+          '리허설·D.S.·Coda 위치를 앱 안에 표시하고 바로 이동할 수 있습니다. 원본 PDF 파일은 수정하지 않습니다.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == 'B',
+        ),
+        findsOneWidget,
+      );
+      await command(t, '이동');
+
+      expect(pdf(t).pageNumber, 2);
+      expect(c.scoreById('pilot-0').pageSettings.rehearsalMarks, hasLength(1));
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets('rehearsal mark editor uses Ddirori dialog controls', (t) async {
+    final c = await openPdf(t, width: 1680, height: 2000, scale: 2);
+    final now = DateTime.parse('2026-10-26T16:00:00.000');
+    expect(
+      await c.addRehearsalMark(
+        c.scoreById('pilot-0'),
+        pageCount: 3,
+        mark: SheetRehearsalMark(
+          id: 'r2-editor-mark',
+          pageNumber: 2,
+          label: 'B',
+          kind: SheetRehearsalMark.rehearsalKind,
+          createdAt: now,
+        ),
+      ),
+      isTrue,
+    );
+    await t.pumpAndSettle();
+
+    await command(t, '모든 도구');
+    await t.tap(find.byTooltip('페이지 정리'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('리허설 마크'));
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('B 더보기'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('마크 수정'));
+    await t.pumpAndSettle();
+
+    expect(find.byType(DdiroriInput), findsOneWidget);
+    expect(find.byType(DdiroriChoices<String>), findsOneWidget);
+    expect(find.text('페이지'), findsOneWidget);
+
+    await command(t, '취소');
+    expect(
+      c.scoreById('pilot-0').pageSettings.rehearsalMarks.single.label,
+      'B',
+    );
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

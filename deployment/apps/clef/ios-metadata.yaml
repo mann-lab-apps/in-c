@@ -107,6 +107,7 @@ content:
         숨긴 페이지 관리에서 다시 표시할 쪽과 이동 행동을 분리해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         페이지 순서/복제에서 앱 안의 표시 순서 변경과 원본 PDF 보존을 구분해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         점프 포인트에서 현재 쪽의 바로가기 추가와 대상 쪽 선택, 이동·이름 변경·삭제를 구분해 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
+        리허설 마크에서 현재 페이지 추가와 이동·이름 변경·삭제, 마크 종류·페이지 입력을 구분해 큰 글씨에서도 목록과 입력 창을 사용할 수 있도록 정리했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -188,6 +189,7 @@ testflight:
     모든 도구 → 페이지 정리 → 숨김 페이지 관리에서 숨긴 쪽의 숨김 해제 후 해당 쪽으로 이동하는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·숨김 해제 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 페이지 순서/복제에서 위/아래/복제/기본값 복원 뒤 원본 PDF와 기존 주석이 보존되는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll과 각 행동 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 점프 포인트에서 현재 쪽의 추가, 대상 페이지 선택, 이동·이름 변경·삭제를 확인해 주세요. 숨긴 쪽을 포함한 항목은 이동만 막히고 수정·삭제는 가능한지, 큰 글씨와 VoiceOver에서 목록 scroll·행·더보기 순서도 기록해 주세요.
+    모든 도구 → 페이지 정리 → 리허설 마크에서 현재 페이지 추가, 마크 종류·페이지·이름 편집, 이동·삭제를 확인해 주세요. 공연 모드에서는 이동만 가능하고 편집 행동은 보이지 않는지, 큰 글씨와 VoiceOver에서 목록·입력 창 scroll과 저장/취소 순서도 기록해 주세요.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -758,6 +760,41 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: score-rehearsal-marks
+    purpose: 실제 PDF에서 리허설 마크의 추가·이동·수정/삭제와 마크 종류·페이지 입력을 구분해 보여준다. 실제 iOS VoiceOver 또는 저장 실패 검증 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 페이지 정리 → 리허설 마크
+    fixture: 자가 제작 3쪽 PDF, 2쪽 리허설 마크 1개. PDF·주석·연습 상태는 변경 없음.
+    must_show:
+    - 리허설 마크 제목, 대상 쪽 정보, 이동과 더보기 행동
+    - 큰 글씨에서도 스크롤로 접근 가능한 sheet와 마크 종류·페이지 입력 경로
+    exclude:
+    - 실제 iOS VoiceOver·긴 목록 또는 dialog scroll·한글 IME·저장 실패 검증이 통과했다는 문구
+    - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 모든 도구
+    - action: tap
+      by: tooltip
+      value: 페이지 정리
+    - action: tap
+      by: text
+      value: 리허설 마크
+    assertions:
+    - by: text
+      value: 리허설 마크
+      present: true
+    - by: text
+      value: 현재 페이지에 추가
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -818,6 +855,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 리허설 마크 sheet와 편집 dialog는 실제 PDF widget 회귀에서 2쪽 mark 이동과 공통 input/choice/cancel만 확인했다. 후보 iPhone/iPad에서 긴 목록·dialog scroll, VoiceOver 순서, touch target, 한글 IME, 공연 모드와 실제 저장 실패 복구는 pending이다.
       2026-10-26 점프 포인트와 대상 페이지 선택 sheet는 실제 PDF widget 회귀에서 1쪽→2쪽 바로가기 저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 숨김 쪽 이동 불가, 이름 변경 IME와 실제 저장 실패 복구는 pending이다.
       2026-10-26 페이지 순서/복제 sheet는 실제 PDF widget 회귀에서 공통 행·첫 쪽 복제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 위/아래/기본값 복원과 실제 저장 실패 복구는 pending이다.
       2026-10-26 숨긴 페이지 관리 sheet는 실제 PDF widget 회귀에서 공통 행·숨김 해제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 실제 페이지 전환 및 저장 실패 복구는 pending이다.
@@ -859,6 +897,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 리허설 마크 sheet와 편집 dialog는 실제 PDF widget 회귀에서 2쪽 mark 이동과 공통 input/choice/cancel만 확인했다. 후보 iPhone/iPad에서 긴 목록·dialog scroll, VoiceOver 순서, touch target, 한글 IME, 공연 모드와 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 점프 포인트와 대상 페이지 선택 sheet는 실제 PDF widget 회귀에서 1쪽→2쪽 바로가기 저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 숨김 쪽 이동 불가, 이름 변경 IME와 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 페이지 순서/복제 sheet는 실제 PDF widget 회귀에서 공통 행·첫 쪽 복제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 위/아래/기본값 복원과 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 숨긴 페이지 관리 sheet는 실제 PDF widget 회귀에서 공통 행·숨김 해제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 실제 페이지 전환 및 저장 실패 복구는 Device QA가 필요하다.
