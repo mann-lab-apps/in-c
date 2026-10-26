@@ -6534,33 +6534,38 @@ setlist=$setlistLabel
       return;
     }
 
-    final selectedPage = await showModalBottomSheet<int>(
+    final selectedPage = await showDdiroriSheet<int>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemBuilder: (context, index) {
-            final pageNumber = currentScore.pageSettings.hiddenPages[index];
-            final rotation =
-                currentScore.pageSettings.pageRotations[pageNumber];
-            return ListTile(
-              leading: const Icon(Icons.visibility_off_outlined),
-              title: Text('$pageNumber쪽'),
-              subtitle: rotation == null
+      title: '숨긴 페이지',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DdiroriBanner(message: '숨김을 해제하면 이 페이지를 다시 보고 해당 쪽으로 이동합니다.'),
+          const SizedBox(height: 12),
+          for (final entry
+              in currentScore.pageSettings.hiddenPages.asMap().entries) ...[
+            DdiroriItem(
+              title: '${entry.value}쪽',
+              subtitle:
+                  (currentScore.pageSettings.pageRotations[entry.value] ?? 0) ==
+                      0
                   ? null
-                  : Text('회전 $rotation도 metadata'),
-              trailing: IconButton(
-                tooltip: '숨김 해제',
-                onPressed: () => Navigator.of(context).pop(pageNumber),
-                icon: const Icon(Icons.visibility_outlined),
-              ),
-              onTap: () => Navigator.of(context).pop(pageNumber),
-            );
-          },
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: currentScore.pageSettings.hiddenPages.length,
-        ),
+                  : '회전 ${currentScore.pageSettings.pageRotations[entry.value]}도 metadata',
+              leading: const Icon(Icons.visibility_off_outlined),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '숨김 해제',
+                  icon: Icons.visibility_outlined,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(entry.value),
+                ),
+              ],
+            ),
+            if (entry.key != currentScore.pageSettings.hiddenPages.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selectedPage == null) {

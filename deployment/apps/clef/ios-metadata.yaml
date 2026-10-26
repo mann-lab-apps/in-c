@@ -104,6 +104,7 @@ content:
         파트와 연결 파일 화면에서 현재 악보와 파일별 역할·가용 상태·열기/변경/제거 행동을 구분하고, 앱 저장소 경로 대신 파일명을 표시합니다.
         악보 메모에서 공연·리허설·조율·편성 메모를 큰 글씨에서도 입력하고 저장할 수 있도록 화면 위계를 정리했습니다.
         북마크 목록에서 페이지 이동과 이름 변경·삭제 행동을 구분하고, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
+        숨긴 페이지 관리에서 다시 표시할 쪽과 이동 행동을 분리해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -182,6 +183,7 @@ testflight:
     모든 도구 → 보기 옵션 → 파트/버전에서 현재 PDF와 연결 파일의 파일명·역할·상태를 확인해 주세요. 파일이 없거나 열 수 없는 형식이면 열기만 비활성이고 역할 변경·연결 제거는 가능해야 하며, 파일 전환 뒤 원본 PDF와 기존 metadata가 보존되어야 합니다.
     모든 도구 → 보기 옵션 → 악보 메모에서 공연/리허설/조율/편성 메모를 입력한 뒤 취소와 저장을 확인해 주세요. 취소 시에는 원본 metadata가 바뀌지 않고, 저장 뒤 다시 열면 내용이 남아야 합니다. 큰 글씨와 키보드에서 저장·취소까지 접근 가능한지도 확인해 주세요.
     모든 도구 → 보기 옵션 → 북마크 목록에서 항목 또는 이동을 눌러 대상 쪽으로 이동하고, 더보기의 이름 변경·삭제가 각각 해당 bookmark만 바꾸는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·이동·더보기 순서도 기록해 주세요.
+    모든 도구 → 페이지 정리 → 숨김 페이지 관리에서 숨긴 쪽의 숨김 해제 후 해당 쪽으로 이동하는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·숨김 해제 순서도 기록해 주세요.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -647,6 +649,41 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: score-hidden-pages
+    purpose: 실제 PDF에서 숨긴 페이지를 다시 표시하고 대상 쪽으로 이동하는 행동을 보여준다. 실제 iOS VoiceOver 또는 저장 실패 검증 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 페이지 정리 → 숨김 페이지 관리
+    fixture: 자가 제작 3쪽 PDF, 2쪽 숨김 1개. PDF·주석·연습 상태는 변경 없음.
+    must_show:
+    - 숨긴 페이지 제목, 대상 쪽 정보와 숨김 해제 행동
+    - 큰 글씨에서도 스크롤로 접근 가능한 sheet
+    exclude:
+    - 실제 iOS VoiceOver·긴 목록 scroll 또는 저장 실패가 통과했다는 문구
+    - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 모든 도구
+    - action: tap
+      by: tooltip
+      value: 페이지 정리
+    - action: tap
+      by: text
+      value: 숨김 페이지 관리
+    assertions:
+    - by: text
+      value: 숨긴 페이지
+      present: true
+    - by: text
+      value: 숨김 해제
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -707,6 +744,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 숨긴 페이지 관리 sheet는 실제 PDF widget 회귀에서 공통 행·숨김 해제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 실제 페이지 전환 및 저장 실패 복구는 pending이다.
       2026-10-26 북마크 목록 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 공통 행·이동과 bookmark/PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 이름 변경 IME·삭제 및 실제 저장 실패 복구는 pending이다.
       2026-10-26 악보 메모 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 공연 메모 입력·저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 sheet scroll, 키보드 inset, 한글 IME, VoiceOver, 취소와 실제 저장 실패 복구는 pending이다.
       2026-10-26 파트와 연결 파일 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 파일명·역할·사용 가능 상태, 역할 변경과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 sheet scroll, VoiceOver 순서, touch target, 파일 없음/지원하지 않는 형식과 실제 PDF·이미지·오디오 열기는 pending이다.
@@ -745,6 +783,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 숨긴 페이지 관리 sheet는 실제 PDF widget 회귀에서 공통 행·숨김 해제와 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 실제 페이지 전환 및 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 북마크 목록 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 공통 행·이동과 bookmark/PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 이름 변경 IME·삭제 및 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 악보 메모 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 공연 메모 입력·저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 sheet scroll, 키보드 inset, 한글 IME, VoiceOver, 취소와 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 파트와 연결 파일 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 파일명·역할·사용 가능 상태, 역할 변경과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 sheet scroll, VoiceOver 순서, touch target, 파일 없음/지원하지 않는 형식과 실제 PDF·이미지·오디오 열기·전환 뒤 원본 보존은 Device QA가 필요하다.

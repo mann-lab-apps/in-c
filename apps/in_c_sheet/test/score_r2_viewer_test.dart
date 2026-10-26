@@ -513,6 +513,36 @@ void main() {
     },
   );
 
+  testWidgets('real PDF hidden-page management uses Ddirori rows', (t) async {
+    final c = await openPdf(t, width: 1680, height: 2000, scale: 2);
+    final originalDocument = pdf(t).document;
+    expect(
+      await c.hidePage(c.scoreById('pilot-0'), pageNumber: 2, pageCount: 3),
+      isTrue,
+    );
+    await t.pumpAndSettle();
+
+    await command(t, '모든 도구');
+    await t.tap(find.byTooltip('페이지 정리'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('숨김 페이지 관리'));
+    await t.pumpAndSettle();
+
+    expect(find.text('숨긴 페이지'), findsOneWidget);
+    expect(find.text('숨김을 해제하면 이 페이지를 다시 보고 해당 쪽으로 이동합니다.'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '2쪽',
+      ),
+      findsOneWidget,
+    );
+    await command(t, '숨김 해제');
+
+    expect(c.scoreById('pilot-0').pageSettings.hiddenPages, isEmpty);
+    expect(pdf(t).document, same(originalDocument));
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {

@@ -92,5 +92,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 파트와 연결 파일 sheet는 공통 `showDdiroriSheet`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`, `DdiroriMenuButton`으로 현재 PDF·연결 파일·가용 상태·열기/역할 변경/연결 제거 행동을 구분한다. 기본 행에는 sandbox 절대 경로 대신 파일명만 표시한다. 파일 누락 또는 지원하지 않는 형식은 열기만 막고 metadata 역할 변경·연결 제거는 계속 가능하다. PDF 전환·이미지 보기·오디오 재생과 원본 보존은 기존 Score controller와 viewer adapter가 소유한다.
 - 악보 메모 sheet는 공통 `DdiroriPageHeader`, `DdiroriInput`, `DdiroriAdaptiveActions`, `DdiroriButton`으로 공연/리허설/조율/편성 draft와 취소/저장을 구분한다. sheet 안의 draft는 저장을 누른 뒤 기존 `updateStructuredNotes` 경로로만 반영된다. 단일 scroll 문서는 큰 글씨에서도 모든 입력과 저장 행동을 생성·접근 가능하게 하며, metadata 저장 실패 처리와 PDF·주석·연습 상태 보존은 Score controller가 소유한다.
 - 북마크 목록 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriButton`, `DdiroriMenuButton`으로 이동과 이름 변경/삭제를 분리한다. 행 자체와 `이동`은 기존 PDF page controller 이동만 요청하며, 이름 변경/삭제는 기존 bookmark controller 경로를 그대로 사용한다. 큰 글씨에서 모든 항목과 행동은 scroll로 접근해야 하고, 북마크 목록을 여는 일만으로 PDF 문서나 메타데이터를 바꾸지 않는다.
+- 숨긴 페이지 관리 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriButton`으로 숨긴 쪽과 회전 metadata를 보여주고 `숨김 해제`를 명시한다. 해제와 대상 쪽 이동은 기존 page-settings/PDF controller가 소유하며, 목록을 열거나 닫는 일만으로 페이지 순서·원본 PDF·주석을 바꾸지 않는다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.
