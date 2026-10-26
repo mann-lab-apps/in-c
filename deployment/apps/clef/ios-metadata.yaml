@@ -111,6 +111,7 @@ content:
         보기 방식에서 현재 선택·사용 가능·좁은 화면 제한을 구분해 PDF와 주석을 유지한 채 화면 배치를 바꿀 수 있도록 정리했습니다.
         표시 효과와 페이지 맞춤에서 현재 선택과 가능한 선택을 구분해 PDF·주석·현재 페이지를 유지한 채 화면 표시와 지면 맞춤을 바꿀 수 있도록 정리했습니다.
         페달 매핑에서 현재 설정·선택 가능한 페이지 넘김 방식과 직접 설정 편집 진입을 구분해 입력 설정을 더 쉽게 확인할 수 있도록 정리했습니다.
+        렌더링 프로필과 페이지 넘김 효과에서 현재 설정과 선택 가능한 설정을 구분해 보기 성능과 전환 방식을 더 쉽게 확인할 수 있도록 정리했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -196,6 +197,7 @@ testflight:
     모든 도구 → 보기 옵션 → 보기 모드에서 1페이지·2페이지·세로 스크롤 전환을 확인해 주세요. 좁은 화면의 2페이지 제한, 기존 PDF·주석·현재 페이지 보존과 큰 글씨·VoiceOver sheet 순서를 기록해 주세요.
     모든 도구 → 보기 옵션 → 표시 효과와 페이지 맞춤에서 현재 선택·전환, PDF·주석·현재 페이지 보존을 확인해 주세요. 실제 색상 대비, crop·scroll 감각과 VoiceOver는 기기별로 기록해 주세요.
     모든 도구 → 보기 옵션 → 페달 매핑에서 표준·반전·세트리스트 경계 이동·직접 설정을 확인해 주세요. 실제 Bluetooth/USB 페달, 키보드 입력과 VoiceOver는 기기별로 기록해 주세요.
+    모든 도구 → 보기 옵션 → 렌더링과 페이지 넘김에서 설정 전환 뒤 PDF·주석·현재 페이지 보존을 확인해 주세요. 긴 PDF 성능, 실제 전환 감각, 페달·VoiceOver는 기기별로 기록해 주세요.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -858,6 +860,25 @@ screenshots:
     assertions:
     - {by: text, value: 페달 매핑, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
+  - id: score-rendering-settings
+    purpose: 실제 PDF에서 렌더링 프로필과 페이지 넘김 효과의 현재 설정·선택 가능 상태를 보여준다. 실제 긴 PDF 성능이나 전환 감각 검증 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 렌더링 또는 페이지 넘김
+    fixture: 자가 제작 3쪽 PDF, 기본 균형 렌더링과 기본 페이지 넘김. PDF·주석·현재 페이지는 변경 없음.
+    must_show:
+    - 렌더링 프로필 또는 페이지 넘김 효과 제목, 현재 설정·선택 가능 상태와 선택 행동
+    - PDF 내용·주석·페이지 위치를 유지한다는 안내
+    exclude:
+    - 실제 긴 PDF 성능·프레임률·페달·VoiceOver가 통과했다는 문구
+    - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: tooltip, value: 보기 옵션}
+    - {action: tap, by: text, value: '렌더링: 균형'}
+    assertions:
+    - {by: text, value: 렌더링 프로필, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -918,6 +939,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 렌더링 프로필과 페이지 넘김 효과 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 긴 PDF 성능, 실제 전환 감각, 큰 글씨와 VoiceOver는 pending이다.
       2026-10-26 페달 매핑 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 Bluetooth/USB 페달, 키보드 입력, 큰 글씨와 VoiceOver는 pending이다.
       2026-10-26 표시 효과와 페이지 맞춤 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 색상 대비, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 pending이다.
       2026-10-26 보기 방식 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 2페이지 배치, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 pending이다.
@@ -963,6 +985,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 렌더링 프로필과 페이지 넘김 효과 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 긴 PDF 성능, 실제 전환 감각, 큰 글씨와 VoiceOver는 Device QA가 필요하다.
       2026-10-26 페달 매핑 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 Bluetooth/USB 페달, 키보드 입력, 큰 글씨와 VoiceOver는 Device QA가 필요하다.
       2026-10-26 표시 효과와 페이지 맞춤 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 색상 대비, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 Device QA가 필요하다.
       2026-10-26 보기 방식 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 2페이지 배치, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 Device QA가 필요하다.

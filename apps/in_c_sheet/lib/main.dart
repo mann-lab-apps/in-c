@@ -6363,33 +6363,49 @@ setlist=$setlistLabel
   }
 
   Future<void> _selectRenderProfile() async {
-    final selected = await showModalBottomSheet<_SheetRenderProfile>(
+    final selected = await showDdiroriSheet<_SheetRenderProfile>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetRenderProfile.values
-              .map(
-                (profile) => ListTile(
-                  leading: Icon(profile.icon),
-                  title: Text(profile.label),
-                  subtitle: switch (profile) {
-                    _SheetRenderProfile.balanced => const Text(
-                      '일반 악보에 맞춘 기본 렌더링 캐시 사용',
-                    ),
-                    _SheetRenderProfile.largePdf => const Text(
-                      '큰 PDF에서 메모리 캐시를 줄이고 progressive rendering 사용',
-                    ),
-                  },
-                  trailing: profile == _renderProfile
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(profile),
+      title: '렌더링 프로필',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DdiroriBanner(
+            message: 'PDF 내용·주석·페이지 위치는 유지하고 렌더링 메모리 정책만 바꿉니다.',
+          ),
+          const SizedBox(height: 12),
+          for (final (index, profile)
+              in _SheetRenderProfile.values.indexed) ...[
+            DdiroriItem(
+              title: profile.label,
+              subtitle: switch (profile) {
+                _SheetRenderProfile.balanced => '일반 악보에 맞춘 기본 렌더링 캐시 사용',
+                _SheetRenderProfile.largePdf =>
+                  '큰 PDF에서 메모리 캐시를 줄이고 progressive rendering 사용',
+              },
+              leading: Icon(profile.icon),
+              trailing: DdiroriStatusBadge(
+                label: profile == _renderProfile ? '현재' : '선택 가능',
+                tone: profile == _renderProfile
+                    ? DdiroriStatusTone.success
+                    : DdiroriStatusTone.info,
+              ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(profile),
+              actions: [
+                DdiroriButton(
+                  label: profile == _renderProfile ? '현재 프로필' : '이 프로필 사용',
+                  icon: profile == _renderProfile ? Icons.check : Icons.speed,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: profile == _renderProfile
+                      ? null
+                      : () => Navigator.of(context).pop(profile),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ],
+            ),
+            if (index != _SheetRenderProfile.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null || selected == _renderProfile) {
@@ -6408,36 +6424,52 @@ setlist=$setlistLabel
   }
 
   Future<void> _selectPageTurnAnimation() async {
-    final selected = await showModalBottomSheet<_SheetPageTurnAnimation>(
+    final selected = await showDdiroriSheet<_SheetPageTurnAnimation>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetPageTurnAnimation.values
-              .map(
-                (animation) => ListTile(
-                  leading: Icon(animation.icon),
-                  title: Text(animation.label),
-                  subtitle: switch (animation) {
-                    _SheetPageTurnAnimation.none => const Text(
-                      '페달 반복 입력과 대형 PDF에서 가장 즉각적으로 이동',
-                    ),
-                    _SheetPageTurnAnimation.fast => const Text(
-                      '짧은 이동감만 주는 공연 친화 설정',
-                    ),
-                    _SheetPageTurnAnimation.natural => const Text(
-                      '기본 PDF viewer 이동감 유지',
-                    ),
-                  },
-                  trailing: animation == _pageTurnAnimation
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(animation),
+      title: '페이지 넘김 효과',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DdiroriBanner(
+            message: 'PDF·주석·페이지 위치를 유지하고 다음 페이지로 가는 화면 효과만 바꿉니다.',
+          ),
+          const SizedBox(height: 12),
+          for (final (index, animation)
+              in _SheetPageTurnAnimation.values.indexed) ...[
+            DdiroriItem(
+              title: animation.label,
+              subtitle: switch (animation) {
+                _SheetPageTurnAnimation.none =>
+                  '페달 반복 입력과 대형 PDF에서 가장 즉각적으로 이동',
+                _SheetPageTurnAnimation.fast => '짧은 이동감만 주는 공연 친화 설정',
+                _SheetPageTurnAnimation.natural => '기본 PDF viewer 이동감 유지',
+              },
+              leading: Icon(animation.icon),
+              trailing: DdiroriStatusBadge(
+                label: animation == _pageTurnAnimation ? '현재' : '선택 가능',
+                tone: animation == _pageTurnAnimation
+                    ? DdiroriStatusTone.success
+                    : DdiroriStatusTone.info,
+              ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(animation),
+              actions: [
+                DdiroriButton(
+                  label: animation == _pageTurnAnimation ? '현재 효과' : '이 효과 사용',
+                  icon: animation == _pageTurnAnimation
+                      ? Icons.check
+                      : Icons.arrow_forward,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: animation == _pageTurnAnimation
+                      ? null
+                      : () => Navigator.of(context).pop(animation),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ],
+            ),
+            if (index != _SheetPageTurnAnimation.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null || selected == _pageTurnAnimation) {

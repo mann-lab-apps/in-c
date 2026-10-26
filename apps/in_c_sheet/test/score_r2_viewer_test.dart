@@ -828,6 +828,45 @@ void main() {
   );
 
   testWidgets(
+    'real PDF rendering settings use Ddirori choices without changing the document',
+    (t) async {
+      await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('렌더링:'));
+      await t.pumpAndSettle();
+      expect(find.text('렌더링 프로필'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '대형 PDF',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+
+      await t.binding.handlePopRoute();
+      await t.pumpAndSettle();
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('페이지 넘김:'));
+      await t.pumpAndSettle();
+      expect(find.text('페이지 넘김 효과'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '빠름',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

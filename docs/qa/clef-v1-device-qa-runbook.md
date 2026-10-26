@@ -246,6 +246,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 - 맞춤 입력 편집 뒤 앱을 다시 열어 설정이 남는지, 알 수 없는 입력이 진단 경로에만 기록되고 PDF·주석·현재 페이지를 바꾸지 않는지 확인한다.
 - widget 회귀는 선택 sheet와 PDF identity만 확인한다. 실제 HID cadence, 방향키/페이지키 차이, VoiceOver와 출력 장치 호환성은 Device QA로 기록한다.
 
+## 렌더링·페이지 넘김 Device QA
+
+- 3쪽 PDF와 긴 스캔형 PDF에서 균형/대형 PDF 프로필을 바꾼 뒤, 페이지·주석·crop이 유지되고 메모리 경고나 빈 지면 없이 다시 렌더링되는지 확인한다.
+- 없음/빠름/자연스러움 페이지 넘김 효과를 페달·키보드·터치에서 비교한다. 설정 화면의 설명은 실제 지연이나 프레임률을 보장하지 않는다.
+- widget 회귀는 설정 sheet와 PDF identity만 확인한다. 실제 cache 비용, 전환 감각, VoiceOver·큰 글씨는 Device QA로 기록한다.
+
 ## Triage 기준
 
 - blocker: 앱 crash, data loss, import/export 불가, 공연 중 page turn 불가, 백업/복원 실패.
