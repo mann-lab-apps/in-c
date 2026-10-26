@@ -545,6 +545,12 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriMenuButton && widget.label == '페이지 정리',
+      ),
+      findsOneWidget,
+    );
     await t.tap(find.byTooltip('페이지 정리'));
     await t.pumpAndSettle();
     await t.tap(find.text('숨김 페이지 관리'));

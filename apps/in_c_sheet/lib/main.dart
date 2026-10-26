@@ -8441,14 +8441,12 @@ setlist=$setlistLabel
                         if (current()) action.onPressed!();
                       },
               )
-            else if (action is PopupMenuButton<_ViewerMenuAction>)
+            else if (action is DdiroriMenuButton<_ViewerMenuAction>)
               DdiroriItem(
-                title: action.tooltip ?? '도구 메뉴',
-                leading: action.icon is Icon
-                    ? Icon((action.icon as Icon).icon)
-                    : null,
+                title: action.label,
+                leading: Icon(action.icon),
                 trailing: DdiroriMenuButton<_ViewerMenuAction>(
-                  label: action.tooltip ?? '도구 메뉴',
+                  label: action.label,
                   itemBuilder: (context) => action.itemBuilder(context).map((
                     item,
                   ) {
@@ -10197,9 +10195,9 @@ setlist=$setlistLabel
           icon: const Icon(Icons.redo),
         ),
       if (!isCompactViewer && !_isPerformanceMode)
-        PopupMenuButton<_ViewerMenuAction>(
-          tooltip: '페이지 정리',
-          icon: const Icon(Icons.rule_folder_outlined),
+        DdiroriMenuButton<_ViewerMenuAction>(
+          label: '페이지 정리',
+          icon: Icons.rule_folder_outlined,
           onSelected: (action) => _handleViewerMenuAction(action),
           itemBuilder: (context) => [
             const PopupMenuItem<_ViewerMenuAction>(
