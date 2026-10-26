@@ -1135,6 +1135,39 @@ void main() {
   );
 
   testWidgets(
+    'performance settings use Ddirori sections without changing the PDF',
+    (t) async {
+      await openPdf(t, width: 1680, height: 2000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await command(t, '공연 설정');
+
+      expect(find.text('공연 모드'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriSection && widget.title == '공연 중 허용할 도구',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriInput && widget.label == 'Template 이름',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '저장',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'long scan PDF page mapping crop zoom and toolbar keyboard focus',
     (t) async {
       final c = await openPdf(

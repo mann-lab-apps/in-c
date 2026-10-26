@@ -16,3 +16,9 @@
 - 실제 화면: `모든 도구 → 페이지 정리 → 입력 진단`.
 - 입력 진단은 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriSettingsRow`, `DdiroriItem`, `DdiroriButton`으로 최근 입력·현재 viewer·로그 복사·직접 설정 진입을 같은 sheet 계약 안에 표시한다.
 - 실제 PDF widget 회귀는 빈 진단 sheet 진입과 PDF document identity를 확인한다. Bluetooth/USB 페달·키보드의 key/HID 해석, VoiceOver, 큰 글씨와 재시작 뒤 설정 동작은 Device QA로 남긴다.
+
+## 후속 적용 · 공연 설정
+
+- 실제 화면: `모든 도구 → 공연 설정`.
+- 공연 설정은 공통 sheet 안에서 시작 전 확인, 세트리스트 이동, 공연 중 허용 도구와 preset template을 각각 section으로 분리한다. toggle/template 선택은 sheet draft이며 `저장` 전에는 기존 viewer settings에 반영하지 않는다.
+- 실제 PDF widget 회귀는 공통 section·input·저장 행동과 PDF document identity를 확인한다. 화면 켜짐 유지, 공연 중 페달/키보드, VoiceOver, 큰 글씨와 실제 settings persistence는 Device QA로 남긴다.

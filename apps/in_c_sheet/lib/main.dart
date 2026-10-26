@@ -6445,10 +6445,10 @@ setlist=$setlistLabel
   }
 
   Future<void> _showPerformanceSettings() async {
-    final selected = await showModalBottomSheet<SheetViewerSettings>(
+    final selected = await showDdiroriSheet<SheetViewerSettings>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _PerformanceSettingsSheet(
+      title: '공연 모드',
+      child: _PerformanceSettingsSheet(
         initialSettings: score.viewerSettings,
         presetTemplates: widget.controller.performancePresetTemplates,
         onSavePresetTemplate: (name, viewerSettings, deviceProfile) {
@@ -11295,195 +11295,165 @@ class _PerformanceSettingsSheet extends StatefulWidget {
 class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   late var _settings = widget.initialSettings;
   late var _presetTemplates = widget.presetTemplates;
-  final _templateNameController = TextEditingController();
-  final _templateDeviceController = TextEditingController();
-
-  @override
-  void dispose() {
-    _templateNameController.dispose();
-    _templateDeviceController.dispose();
-    super.dispose();
-  }
+  var _templateName = '';
+  var _templateDevice = '';
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.fullscreen),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '공연 모드',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('공연 준비 안내'),
-            subtitle: const Text('진입 시 자동 잠금/알림/제스처 확인'),
-            value: _settings.showPerformancePrepNotice,
-            onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                showPerformancePrepNotice: value,
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(message: '공연 중에는 편집 행동을 줄이고 페이지 이동에 집중할 수 있습니다.'),
+        DdiroriSection(
+          title: '시작 전 확인',
+          children: [
+            _buildToggle(
+              title: '공연 준비 안내',
+              description: '진입 시 자동 잠금/알림/제스처 확인',
+              value: _settings.showPerformancePrepNotice,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(showPerformancePrepNotice: value),
               ),
             ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('화면 켜짐 유지 확인'),
-            subtitle: const Text('앱 안내와 함께 기기 자동 잠금 설정 확인'),
-            value: _settings.keepAwakeInPerformance,
-            onChanged: (value) => setState(
-              () =>
-                  _settings = _settings.copyWith(keepAwakeInPerformance: value),
-            ),
-          ),
-          const Divider(),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('곡 전환 전 확인'),
-            subtitle: const Text('세트리스트 경계에서 실수 이동 방지'),
-            value: _settings.confirmSetlistTransition,
-            onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                confirmSetlistTransition: value,
+            _buildToggle(
+              title: '화면 켜짐 유지 확인',
+              description: '앱 안내와 함께 기기 자동 잠금 설정 확인',
+              value: _settings.keepAwakeInPerformance,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(keepAwakeInPerformance: value),
               ),
             ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('곡 끝에서 자동 이동'),
-            subtitle: const Text('다음 페이지 입력 시 다음 곡으로 이동'),
-            value: _settings.autoAdvanceSetlist,
-            onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(autoAdvanceSetlist: value),
-            ),
-          ),
-          const Divider(),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('공연 중 필기 허용'),
-            subtitle: const Text('꺼두면 필기 도구와 입력을 잠금'),
-            value: _settings.allowPerformanceAnnotations,
-            onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                allowPerformanceAnnotations: value,
+          ],
+        ),
+        DdiroriSection(
+          title: '세트리스트 이동',
+          children: [
+            _buildToggle(
+              title: '곡 전환 전 확인',
+              description: '세트리스트 경계에서 실수 이동 방지',
+              value: _settings.confirmSetlistTransition,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(confirmSetlistTransition: value),
               ),
             ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('공연 중 메뉴 허용'),
-            subtitle: const Text('꺼두면 편집/정리 메뉴를 숨김'),
-            value: _settings.allowPerformanceMenus,
-            onChanged: (value) => setState(
-              () =>
-                  _settings = _settings.copyWith(allowPerformanceMenus: value),
-            ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('공연 중 PDF 링크 허용'),
-            subtitle: const Text('외부 URL 링크 차단 정책은 유지'),
-            value: _settings.allowPerformancePdfLinks,
-            onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                allowPerformancePdfLinks: value,
+            _buildToggle(
+              title: '곡 끝에서 자동 이동',
+              description: '다음 페이지 입력 시 다음 곡으로 이동',
+              value: _settings.autoAdvanceSetlist,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(autoAdvanceSetlist: value),
               ),
             ),
-          ),
-          const Divider(),
-          _buildPresetTemplates(context),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
+          ],
+        ),
+        DdiroriSection(
+          title: '공연 중 허용할 도구',
+          children: [
+            _buildToggle(
+              title: '공연 중 필기 허용',
+              description: '꺼두면 필기 도구와 입력을 잠금',
+              value: _settings.allowPerformanceAnnotations,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(allowPerformanceAnnotations: value),
+              ),
+            ),
+            _buildToggle(
+              title: '공연 중 메뉴 허용',
+              description: '꺼두면 편집/정리 메뉴를 숨김',
+              value: _settings.allowPerformanceMenus,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(allowPerformanceMenus: value),
+              ),
+            ),
+            _buildToggle(
+              title: '공연 중 PDF 링크 허용',
+              description: '외부 URL 링크 차단 정책은 유지',
+              value: _settings.allowPerformancePdfLinks,
+              onChanged: (value) => _updateSettings(
+                _settings.copyWith(allowPerformancePdfLinks: value),
+              ),
+            ),
+          ],
+        ),
+        _buildPresetTemplates(context),
+        DdiroriAdaptiveActions(
+          label: '공연 모드 작업',
+          children: [
+            DdiroriButton(
+              label: '취소',
+              icon: Icons.close,
+              kind: DdiroriButtonKind.secondary,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            DdiroriButton(
+              label: '저장',
+              icon: Icons.check,
               onPressed: () => Navigator.of(context).pop(_settings),
-              icon: const Icon(Icons.check),
-              label: const Text('저장'),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
+  Widget _buildToggle({
+    required String title,
+    required String description,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) => DdiroriSettingsRow(
+    title: title,
+    description: description,
+    control: Switch(value: value, onChanged: onChanged),
+  );
+
+  void _updateSettings(SheetViewerSettings settings) {
+    setState(() => _settings = settings);
+  }
+
   Widget _buildPresetTemplates(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return DdiroriSection(
+      title: '공연 preset template',
+      subtitle: '현재 설정을 장비별 출발점으로 저장합니다.',
       children: [
-        Text(
-          '공연 preset template',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+        DdiroriInput(
+          value: _templateName,
+          onChanged: (value) => setState(() => _templateName = value),
+          label: 'Template 이름',
+          hint: '예: 태블릿 공연',
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _templateNameController,
-          decoration: const InputDecoration(
-            labelText: 'Template 이름',
-            prefixIcon: Icon(Icons.bookmark_add_outlined),
-          ),
-          textInputAction: TextInputAction.next,
+        DdiroriInput(
+          value: _templateDevice,
+          onChanged: (value) => setState(() => _templateDevice = value),
+          label: '장비 profile',
+          hint: '예: 12.9인치 + 페달',
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _templateDeviceController,
-          decoration: const InputDecoration(
-            labelText: '장비 profile',
-            prefixIcon: Icon(Icons.devices_other),
-          ),
-          textInputAction: TextInputAction.done,
+        DdiroriButton(
+          label: '현재 설정 저장',
+          icon: Icons.save_outlined,
+          kind: DdiroriButtonKind.secondary,
+          onPressed: _saveCurrentPresetTemplate,
         ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: OutlinedButton.icon(
-            onPressed: _saveCurrentPresetTemplate,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('현재 설정 저장'),
-          ),
-        ),
-        if (_presetTemplates.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          for (final template in _presetTemplates)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.tune),
-              title: Text(template.name),
-              subtitle: Text(_presetTemplateSubtitle(template)),
-              onTap: () => setState(() {
-                _settings = template.viewerSettings;
-              }),
-              trailing: IconButton(
-                tooltip: '삭제',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _deletePresetTemplate(template),
-              ),
+        for (final template in _presetTemplates)
+          DdiroriItem(
+            title: template.name,
+            subtitle: _presetTemplateSubtitle(template),
+            leading: const Icon(Icons.tune),
+            onTap: () => _updateSettings(template.viewerSettings),
+            trailing: DdiroriIconButton(
+              label: '${template.name} 삭제',
+              icon: Icons.delete_outline,
+              onPressed: () => _deletePresetTemplate(template),
             ),
-        ],
+          ),
       ],
     );
   }
 
   Future<void> _saveCurrentPresetTemplate() async {
     final template = await widget.onSavePresetTemplate(
-      _templateNameController.text,
+      _templateName,
       _settings,
-      _templateDeviceController.text,
+      _templateDevice,
     );
     if (!mounted) {
       return;
@@ -11494,8 +11464,8 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
           if (item.id != template.id) item,
         template,
       ]);
-      _templateNameController.clear();
-      _templateDeviceController.clear();
+      _templateName = '';
+      _templateDevice = '';
     });
   }
 
