@@ -21,6 +21,8 @@
 | `release_candidate_preflight` with unsigned Runner.app | PASS 18, BLOCKED 12, FAIL 0 | 내부 베타 가능, TestFlight·App Store 준비되지 않음 |
 
 시뮬레이터 테스트의 파일 선택은 fixture picker이며 실제 Files/iCloud 제공자 UI가 아니다. 재생 상태가 `playing`인 것은 물리 출력·청감 증거가 아니다. 현재 브랜치에서 서명, archive 검증, 스토어 이미지 촬영·검수, 원격 업로드·제출은 실행하지 않았다.
+이 브랜치는 Play 화면이 사용하는 공통 블루 색상 토큰과 안내 배너 색 변경도 포함한다.
+공통 UI 패키지 테스트는 통과했으나 다른 앱의 전체 회귀는 실행하지 않았으므로 병합 전 디자인 시스템 작업과 충돌 여부를 확인해야 한다.
 
 ## 차단 항목과 다음 행동
 
