@@ -428,6 +428,30 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('real PDF tuner keeps the microphone route in Ddirori UI', (
+    t,
+  ) async {
+    await openPdf(t, scale: 2);
+    final originalDocument = pdf(t).document;
+
+    await command(t, '연습');
+    await command(t, '튜너');
+
+    expect(find.text('튜너'), findsOneWidget);
+    expect(find.byType(DdiroriPageHeader), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is DdiroriIconButton &&
+            (widget.label == '마이크 끄기' || widget.label == '마이크 켜기'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('기준음/드론'), findsOneWidget);
+    expect(pdf(t).document, same(originalDocument));
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets(
     'long scan PDF page mapping crop zoom and toolbar keyboard focus',
     (t) async {

@@ -14021,6 +14021,7 @@ class _TunerSheetState extends State<_TunerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = DdiroriStyle.of(context);
     final demoReading =
         _settings.detectionProfile.acceptsFrequency(_demoFrequency)
         ? SheetTunerPitch.detect(
@@ -14116,26 +14117,19 @@ class _TunerSheetState extends State<_TunerSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.tune),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '튜너',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  IconButton.filledTonal(
+              DdiroriPageHeader(
+                title: '튜너',
+                subtitle: '현재 음과 기준음을 확인하고 드론을 맞춥니다.',
+                leading: const Icon(Icons.tune),
+                actions: [
+                  DdiroriIconButton(
+                    label: _state.isListening ? '마이크 끄기' : '마이크 켜기',
                     onPressed: _toggleListening,
-                    icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
-                    tooltip: _state.isListening ? '마이크 끄기' : '마이크 켜기',
+                    icon: _state.isListening ? Icons.stop : Icons.mic,
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: style.gap * 2),
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest,
@@ -14339,6 +14333,7 @@ class _TunerSheetState extends State<_TunerSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<SheetTunerPreset>(
                 initialValue: _settings.tuningPreset,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: '튜닝 프리셋',
                   border: OutlineInputBorder(),
@@ -14347,7 +14342,11 @@ class _TunerSheetState extends State<_TunerSheet> {
                     .map(
                       (preset) => DropdownMenuItem<SheetTunerPreset>(
                         value: preset,
-                        child: Text(preset.label),
+                        child: Text(
+                          preset.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
@@ -14360,6 +14359,7 @@ class _TunerSheetState extends State<_TunerSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<SheetTunerDisplayMode>(
                 initialValue: _settings.displayMode,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: '악기/표시 기준',
                   border: OutlineInputBorder(),
@@ -14368,7 +14368,11 @@ class _TunerSheetState extends State<_TunerSheet> {
                     .map(
                       (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
                         value: mode,
-                        child: Text('${mode.label} · ${mode.familyLabel}'),
+                        child: Text(
+                          '${mode.label} · ${mode.familyLabel}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
@@ -14381,6 +14385,7 @@ class _TunerSheetState extends State<_TunerSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<SheetTunerDetectionProfile>(
                 initialValue: _settings.detectionProfile,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: '감지 프로필',
                   border: OutlineInputBorder(),
@@ -14389,7 +14394,11 @@ class _TunerSheetState extends State<_TunerSheet> {
                     .map(
                       (profile) => DropdownMenuItem<SheetTunerDetectionProfile>(
                         value: profile,
-                        child: Text(profile.label),
+                        child: Text(
+                          profile.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
@@ -14522,6 +14531,7 @@ class _TunerSheetState extends State<_TunerSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<SheetToneDroneMode>(
                 initialValue: _toneSettings.droneMode,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: '드론 모드',
                   border: OutlineInputBorder(),
@@ -14530,7 +14540,11 @@ class _TunerSheetState extends State<_TunerSheet> {
                     .map(
                       (mode) => DropdownMenuItem<SheetToneDroneMode>(
                         value: mode,
-                        child: Text(mode.label),
+                        child: Text(
+                          mode.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
