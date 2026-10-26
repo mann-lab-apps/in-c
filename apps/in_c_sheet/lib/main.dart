@@ -11481,15 +11481,20 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        padding: EdgeInsets.fromLTRB(
+          DdiroriTokens.layout['rowPadding']!,
+          DdiroriTokens.spacing['sm']!,
+          DdiroriTokens.layout['rowPadding']!,
+          DdiroriTokens.spacing['xl']!,
+        ),
         children: [
-          Text('자르기 맞춤', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
+          Text('자르기 맞춤', style: ddiroriTextStyle(DdiroriTextRole.sectionTitle)),
+          SizedBox(height: DdiroriTokens.spacing['xs']!),
           Text(
             '원본 PDF는 그대로 두고, 뷰어에서 선택한 영역을 화면에 맞춥니다.',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: ddiroriTextStyle(DdiroriTextRole.description),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: DdiroriTokens.spacing['md']!),
           _CropSlider(
             label: '위',
             value: _crop.top,
@@ -11514,19 +11519,22 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
             onChanged: (value) =>
                 setState(() => _crop = _crop.copyWith(right: value)),
           ),
-          const SizedBox(height: 8),
-          Row(
+          SizedBox(height: DdiroriTokens.spacing['sm']!),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: DdiroriTokens.spacing['sm']!,
+            runSpacing: DdiroriTokens.spacing['sm']!,
             children: [
-              TextButton.icon(
+              DdiroriButton(
+                label: '초기화',
+                icon: Icons.restart_alt,
+                kind: DdiroriButtonKind.secondary,
                 onPressed: () => setState(() => _crop = SheetCropSettings.none),
-                icon: const Icon(Icons.restart_alt),
-                label: const Text('초기화'),
               ),
-              const Spacer(),
-              FilledButton.icon(
+              DdiroriButton(
+                label: '저장',
+                icon: Icons.check,
                 onPressed: () => Navigator.of(context).pop(_crop.normalized()),
-                icon: const Icon(Icons.check),
-                label: const Text('저장'),
               ),
             ],
           ),
