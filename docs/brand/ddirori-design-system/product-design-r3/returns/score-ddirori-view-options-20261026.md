@@ -22,3 +22,9 @@
 - 실제 화면: `모든 도구 → 공연 설정`.
 - 공연 설정은 공통 sheet 안에서 시작 전 확인, 세트리스트 이동, 공연 중 허용 도구와 preset template을 각각 section으로 분리한다. toggle/template 선택은 sheet draft이며 `저장` 전에는 기존 viewer settings에 반영하지 않는다.
 - 실제 PDF widget 회귀는 공통 section·input·저장 행동과 PDF document identity를 확인한다. 화면 켜짐 유지, 공연 중 페달/키보드, VoiceOver, 큰 글씨와 실제 settings persistence는 Device QA로 남긴다.
+
+## 후속 적용 · 연결 음원
+
+- 실제 화면: `연습 → 연결 음원 → 연결 파일`.
+- 연결 음원은 공통 sheet 안에서 파일명·재생 상태·오류·재생/정지를 구분한다. 실제 codec과 native audio session은 변경하지 않는다.
+- 실제 PDF widget 회귀는 상태 행·재생 행동·sandbox 경로 비노출과 PDF identity를 확인한다. 실제 출력·Bluetooth·VoiceOver와 큰 글씨는 Device QA로 남긴다.

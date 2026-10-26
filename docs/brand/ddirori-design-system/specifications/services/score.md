@@ -105,5 +105,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 넓은 화면의 `모든 도구 → 페이지 정리`도 공통 `DdiroriItem`과 `DdiroriMenuButton`으로 이름·아이콘·선택 메뉴를 표시한다. 메뉴의 실제 페이지 metadata 저장·적용 사본·공유와 입력 진단은 기존 Score viewer/controller가 소유하며, 공통 행을 여는 일만으로 PDF·주석·페이지를 바꾸지 않는다.
 - `페이지 정리 → 입력 진단`은 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriSettingsRow`, `DdiroriItem`, `DdiroriButton`으로 최근 입력·현재 viewer 요약·로그 복사·직접 설정 진입을 표시한다. key/HID 해석, 로그 수집, 설정 저장과 실제 장비 호환성은 기존 Score 입력 adapter와 Device QA가 소유하며, 진단 sheet를 열거나 닫는 일만으로 PDF·주석·페이지를 바꾸지 않는다.
 - `공연 설정`은 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriSection`, `DdiroriSettingsRow`, `DdiroriInput`, `DdiroriItem`, `DdiroriButton`으로 시작 전 확인·세트리스트 이동·공연 중 허용 도구·preset template을 구분한다. sheet 안의 toggle/template 선택은 draft이며 최종 저장 전에는 기존 viewer settings를 바꾸지 않는다. 공연 정책·preset 저장·실제 화면 켜짐 유지와 외부 장비 동작은 Score controller와 Device QA가 소유한다.
+- 연결 음원 패널은 공통 `showDdiroriSheet`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriBanner`, `DdiroriButton`으로 파일명·재생 상태·오류·재생/정지를 구분한다. 파일 경로를 기본 화면에 노출하지 않으며, `SheetAudioPlayer`의 native channel 수명·codec·출력 품질은 Score와 Device QA가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

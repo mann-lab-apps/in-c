@@ -358,6 +358,12 @@ void main() {
 
     expect(find.text('연습용 반주'), findsOneWidget);
     expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '연습용 반주',
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.text('연습용 연결 음원 · ddirori-score-linked-audio-fixture.mp3'),
       findsOneWidget,
     );

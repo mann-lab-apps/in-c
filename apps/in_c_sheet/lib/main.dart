@@ -5834,10 +5834,10 @@ setlist=$setlistLabel
     if (!mounted) {
       return;
     }
-    await showModalBottomSheet<void>(
+    await showDdiroriSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _LinkedAudioPlayerSheet(linkedFile: linkedFile),
+      title: '연결 음원',
+      child: _LinkedAudioPlayerSheet(linkedFile: linkedFile),
     );
   }
 
@@ -13599,7 +13599,6 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = DdiroriStyle.of(context);
     final status = _status;
     final errorMessage = switch (_lastResult?.status) {
       SheetAudioPlaybackStatus.unsupportedPlatform =>
@@ -13610,54 +13609,39 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
             : _lastResult!.message,
       _ => null,
     };
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DdiroriPageHeader(
-                title: widget.linkedFile.label,
-                subtitle: '연습용 연결 음원 · $_fileName',
-                leading: const Icon(Icons.audiotrack),
-                actions: [
-                  DdiroriButton(
-                    label: _isPlaying ? '정지' : '재생',
-                    icon: _isPlaying ? Icons.stop : Icons.play_arrow,
-                    onPressed: _togglePlayback,
-                  ),
-                ],
-              ),
-              SizedBox(height: style.gap * 1.5),
-              DdiroriStatusBadge(
-                label: status.label,
-                tone: status.tone,
-                icon: status.icon,
-              ),
-              SizedBox(height: style.gap),
-              Text(
-                '연결 파일은 이 악보와 함께 연습할 때만 사용합니다. 실제 음량과 출력 품질은 현재 기기와 출력 경로에 따라 달라질 수 있습니다.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: style['muted'],
-                ),
-              ),
-              if (errorMessage != null) ...[
-                SizedBox(height: style.gap),
-                DdiroriBanner(
-                  message: errorMessage,
-                  kind:
-                      _lastResult?.status ==
-                          SheetAudioPlaybackStatus.unsupportedPlatform
-                      ? DdiroriNoticeKind.warning
-                      : DdiroriNoticeKind.error,
-                ),
-              ],
-            ],
+    return DdiroriStack(
+      children: [
+        DdiroriItem(
+          title: widget.linkedFile.label,
+          subtitle: '연습용 연결 음원 · $_fileName',
+          leading: const Icon(Icons.audiotrack),
+        ),
+        DdiroriStatusBadge(
+          label: status.label,
+          tone: status.tone,
+          icon: status.icon,
+        ),
+        Text(
+          '연결 파일은 이 악보와 함께 연습할 때만 사용합니다. 실제 음량과 출력 품질은 현재 기기와 출력 경로에 따라 달라질 수 있습니다.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: DdiroriStyle.of(context)['muted'],
           ),
         ),
-      ),
+        if (errorMessage != null)
+          DdiroriBanner(
+            message: errorMessage,
+            kind:
+                _lastResult?.status ==
+                    SheetAudioPlaybackStatus.unsupportedPlatform
+                ? DdiroriNoticeKind.warning
+                : DdiroriNoticeKind.error,
+          ),
+        DdiroriButton(
+          label: _isPlaying ? '정지' : '재생',
+          icon: _isPlaying ? Icons.stop : Icons.play_arrow,
+          onPressed: _togglePlayback,
+        ),
+      ],
     );
   }
 }
