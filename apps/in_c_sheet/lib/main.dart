@@ -15222,37 +15222,32 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = DdiroriStyle.of(context);
+    final gap = style.gap;
     final beatTime = _lastBeatAt == null
         ? '대기'
         : _formatShortDate(_lastBeatAt!);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.speed),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '메트로놈',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                FilledButton.icon(
+            DdiroriPageHeader(
+              title: '메트로놈',
+              subtitle: '박자와 click 소리를 연습에 맞게 조절합니다.',
+              leading: const Icon(Icons.speed),
+              actions: [
+                DdiroriButton(
+                  label: _isRunning ? '정지' : '시작',
+                  icon: _isRunning ? Icons.stop : Icons.play_arrow,
                   onPressed: _toggleRunning,
-                  icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isRunning ? '정지' : '시작'),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: gap * 3),
             Center(
               child: Text(
                 '${_settings.bpm}',
@@ -15267,7 +15262,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 style: theme.textTheme.labelLarge,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: gap * 2),
             Slider(
               value: _settings.bpm.toDouble(),
               min: 40,
@@ -15279,35 +15274,35 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton.filledTonal(
-                  tooltip: 'BPM 낮추기',
+                DdiroriIconButton(
+                  label: 'BPM 낮추기',
                   onPressed: () => _setBpm(_settings.bpm - 1),
-                  icon: const Icon(Icons.remove),
+                  icon: Icons.remove,
                 ),
-                const SizedBox(width: 16),
-                IconButton.filledTonal(
-                  tooltip: 'BPM 올리기',
+                SizedBox(width: gap * 2),
+                DdiroriIconButton(
+                  label: 'BPM 올리기',
                   onPressed: () => _setBpm(_settings.bpm + 1),
-                  icon: const Icon(Icons.add),
+                  icon: Icons.add,
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: SheetMetronomeMeter.values
-                  .map(
-                    (meter) => ChoiceChip(
-                      label: Text(meter.label),
-                      selected: meter == _settings.meter,
-                      onSelected: (_) => _setMeter(meter),
-                    ),
-                  )
-                  .toList(growable: false),
+            SizedBox(height: gap * 2),
+            Center(
+              child: DdiroriChoices<SheetMetronomeMeter>(
+                options: {
+                  for (final meter in SheetMetronomeMeter.values)
+                    meter: meter.label,
+                },
+                selected: {_settings.meter},
+                onChanged: (meters) {
+                  if (meters.isNotEmpty) {
+                    unawaited(_setMeter(meters.first));
+                  }
+                },
+              ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: gap * 3),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List<Widget>.generate(_settings.meter.beatsPerBar, (
@@ -15326,34 +15321,34 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                         ? (isAccent
                               ? theme.colorScheme.primary
                               : theme.colorScheme.tertiary)
-                        : theme.colorScheme.surfaceContainerHighest,
+                        : style['surfaceMuted'],
                     border: Border.all(
                       color: isAccent
                           ? theme.colorScheme.primary
-                          : theme.colorScheme.outlineVariant,
+                          : style['border'],
                       width: isAccent ? 2 : 1,
                     ),
                   ),
                 );
               }),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: gap * 2),
             Center(
               child: Text(
                 _beat.isAccent ? '강박 · $beatTime' : '보통박 · $beatTime',
-                style: theme.textTheme.labelMedium,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: style['muted'],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              secondary: const Icon(Icons.volume_up_outlined),
-              title: const Text('tick 소리'),
-              subtitle: const Text(
-                '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
+            SizedBox(height: gap),
+            DdiroriSettingsRow(
+              title: 'tick 소리',
+              description: '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
+              control: Switch(
+                value: _settings.soundEnabled,
+                onChanged: _setSoundEnabled,
               ),
-              value: _settings.soundEnabled,
-              onChanged: _setSoundEnabled,
             ),
           ],
         ),

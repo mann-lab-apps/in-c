@@ -12,6 +12,7 @@ import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/presentation/score_viewer_components.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
+import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -362,6 +363,46 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+
+  testWidgets('real PDF metronome keeps Score timing controls in Ddirori UI', (
+    t,
+  ) async {
+    final c = await openPdf(t, scale: 2);
+    final originalDocument = pdf(t).document;
+    final initialBpm = c.metronomeSettings.bpm;
+
+    await command(t, '연습');
+    await command(t, '메트로놈');
+
+    expect(find.text('메트로놈'), findsOneWidget);
+    expect(find.byType(DdiroriPageHeader), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriChoices<SheetMetronomeMeter>,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriButton && widget.label == '시작',
+      ),
+      findsOneWidget,
+    );
+
+    await t.ensureVisible(find.byTooltip('BPM 올리기'));
+    await t.tap(find.byTooltip('BPM 올리기'));
+    await t.pumpAndSettle();
+    expect(find.text('${initialBpm + 1}'), findsOneWidget);
+
+    await t.ensureVisible(find.text(SheetMetronomeMeter.threeFour.label));
+    await t.tap(find.text(SheetMetronomeMeter.threeFour.label));
+    await t.pumpAndSettle();
+    expect(find.textContaining('1/3'), findsOneWidget);
+    expect(c.metronomeSettings.bpm, initialBpm + 1);
+    expect(c.metronomeSettings.meter, SheetMetronomeMeter.threeFour);
+    expect(pdf(t).document, same(originalDocument));
+    expect(t.takeException(), isNull);
+  });
 
   testWidgets(
     'long scan PDF page mapping crop zoom and toolbar keyboard focus',

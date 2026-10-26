@@ -85,5 +85,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 페이지 메타 배지와 빠른 이동도 같은 overlay/on-overlay/control-radius token을 사용한다. jump point, 북마크, rehearsal mark의 실제 대상 페이지와 overflow 메뉴 구성은 Score adapter가 소유한다.
 - Crop 설정 sheet는 공통 section-title/description, spacing, secondary/primary button을 사용한다. 네 방향 slider, crop 값 정규화와 원본 PDF 보존은 기존 Score controller가 소유한다.
 - PDF 파일 상태/열기 실패는 `DdiroriStatePanel`을 사용한다. 제목·복구 안내는 기본 화면에 두고, 경로와 오류 상세는 선택 가능한 진단 정보로 접어 기본 노출을 줄인다. 재가져오기/백업 복구의 실제 동작은 기존 library 경로가 소유한다.
+- 메트로놈 sheet는 `DdiroriPageHeader`, `DdiroriButton`, `DdiroriIconButton`, `DdiroriChoices`, `DdiroriSettingsRow`로 제목·시작/정지·BPM·박자·소리 설정의 위계를 맞춘다. 좁은 sheet와 큰 글씨에서 전체 제어를 스크롤로 접근할 수 있다. `Timer`, 현재 박자, BPM/박자 persistence와 기기 click 재생은 계속 Score가 소유하며, widget 검증은 실제 청감·latency 검증을 대신하지 않는다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.
