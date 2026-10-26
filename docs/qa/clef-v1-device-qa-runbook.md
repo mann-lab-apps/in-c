@@ -194,6 +194,8 @@ Audio/tuner:
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
+- 실제 PDF → 연습 → 연결 음원 → 파일 선택에서 파일명·재생 대기/실행/실패 상태와 재생/정지 행동을 확인한다. 기본 화면에는 앱 sandbox의 절대 경로가 보이지 않아야 한다.
+- sheet를 닫은 뒤 다시 열고, 지원하지 않는 형식·출력 route 오류가 있을 때 실패 안내가 실제 재생 성공처럼 표시되지 않는지 기록한다. 자동 widget 검증은 재생 버튼을 누르지 않으므로 codec·음량·지연·종료 후 native 정리의 증거가 아니다.
 
 Tuner 정확도 비교:
 

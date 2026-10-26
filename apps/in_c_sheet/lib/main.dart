@@ -13351,70 +13351,99 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     });
   }
 
+  String get _fileName {
+    final normalizedPath = widget.linkedFile.path.trim().replaceAll('\\', '/');
+    final name = normalizedPath.split('/').last.trim();
+    return name.isEmpty ? '연결된 오디오 파일' : name;
+  }
+
+  ({String label, DdiroriStatusTone tone, IconData icon}) get _status {
+    if (_isPlaying) {
+      return (
+        label: '재생 중',
+        tone: DdiroriStatusTone.success,
+        icon: Icons.play_circle_outline,
+      );
+    }
+    return switch (_lastResult?.status) {
+      SheetAudioPlaybackStatus.unsupportedPlatform => (
+        label: '이 기기에서 재생할 수 없음',
+        tone: DdiroriStatusTone.warning,
+        icon: Icons.portable_wifi_off,
+      ),
+      SheetAudioPlaybackStatus.failed => (
+        label: '재생을 시작하지 못함',
+        tone: DdiroriStatusTone.error,
+        icon: Icons.error_outline,
+      ),
+      _ => (
+        label: '재생 대기',
+        tone: DdiroriStatusTone.neutral,
+        icon: Icons.pause_circle_outline,
+      ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = DdiroriStyle.of(context);
+    final status = _status;
+    final errorMessage = switch (_lastResult?.status) {
+      SheetAudioPlaybackStatus.unsupportedPlatform =>
+        '이 기기에서는 로컬 오디오 재생 채널을 사용할 수 없습니다.',
+      SheetAudioPlaybackStatus.failed =>
+        _lastResult!.message.isEmpty
+            ? '오디오 재생을 시작하지 못했습니다. 연결 파일과 출력 경로를 확인한 뒤 다시 시도해 주세요.'
+            : _lastResult!.message,
+      _ => null,
+    };
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.audiotrack),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.linkedFile.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DdiroriPageHeader(
+                title: widget.linkedFile.label,
+                subtitle: '연습용 연결 음원 · $_fileName',
+                leading: const Icon(Icons.audiotrack),
+                actions: [
+                  DdiroriButton(
+                    label: _isPlaying ? '정지' : '재생',
+                    icon: _isPlaying ? Icons.stop : Icons.play_arrow,
+                    onPressed: _togglePlayback,
                   ),
+                ],
+              ),
+              SizedBox(height: style.gap * 1.5),
+              DdiroriStatusBadge(
+                label: status.label,
+                tone: status.tone,
+                icon: status.icon,
+              ),
+              SizedBox(height: style.gap),
+              Text(
+                '연결 파일은 이 악보와 함께 연습할 때만 사용합니다. 실제 음량과 출력 품질은 현재 기기와 출력 경로에 따라 달라질 수 있습니다.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: style['muted'],
                 ),
-                FilledButton.icon(
-                  onPressed: _togglePlayback,
-                  icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isPlaying ? '정지' : '재생'),
+              ),
+              if (errorMessage != null) ...[
+                SizedBox(height: style.gap),
+                DdiroriBanner(
+                  message: errorMessage,
+                  kind:
+                      _lastResult?.status ==
+                          SheetAudioPlaybackStatus.unsupportedPlatform
+                      ? DdiroriNoticeKind.warning
+                      : DdiroriNoticeKind.error,
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.linkedFile.path,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (_lastResult?.status ==
-                SheetAudioPlaybackStatus.unsupportedPlatform)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  '이 기기에서는 로컬 오디오 재생 채널을 사용할 수 없습니다.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              )
-            else if (_lastResult?.status == SheetAudioPlaybackStatus.failed)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  _lastResult!.message.isEmpty
-                      ? '오디오 재생을 시작하지 못했습니다.'
-                      : _lastResult!.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

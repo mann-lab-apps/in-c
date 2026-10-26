@@ -100,6 +100,7 @@ content:
         메트로놈의 시작/정지, BPM, 박자와 click 소리 설정을 공통 제목·버튼·선택 기준으로 정리하고, 좁은 화면에서도 모든 제어를 스크롤해 사용할 수 있게 했습니다.
         자동 스크롤의 시작·일시정지·재개·정지와 pause marker·반복 구간·cue point 설정을 공통 제목·동작 기준으로 정리하고, 좁은 화면에서 긴 동작이 넘치지 않게 했습니다.
         튜너의 마이크 행동과 긴 프리셋·악기·감지·드론 선택값을 공통 제목·아이콘·작은 화면 기준으로 정리했습니다. 실제 마이크와 드론 품질은 기기별로 확인합니다.
+        연결 음원 재생 화면에서 파일명, 재생 상태와 재생/정지 행동을 공통 기준으로 정리하고 앱 저장소 경로를 기본 화면에 표시하지 않도록 했습니다. 실제 재생 호환성과 출력 품질은 기기별로 확인합니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -137,6 +138,7 @@ review:
     Close and reopen linked audio, then play again. Older cleanup must not interrupt the current track.
     The engine check warns when linked audio is in use instead of replacing it. Stale position captures must not change A-B values.
     These ownership cases have Dart regression coverage; verify actual output on the exact candidate build.
+    Open Practice → Linked audio → an owned audio copy. Confirm its filename, waiting/playing/failure status and Play/Stop action are clear without exposing the app sandbox path. Check codec, speaker/wired/Bluetooth output, VoiceOver and large text on the candidate device separately.
 
     If microphone or external pedal functionality is advertised in this build, attach the verified
     physical-device demonstration and describe setup, permissions, expected results and limitations.
@@ -173,6 +175,7 @@ testflight:
     정지 오류 시 안내와 재시도, 개발자 기기 리포트의 정지 요청/상태 확인 경고를 확인해 주세요.
     오디오 창을 닫고 다시 재생할 때 이전 창의 정리로 새 재생이 멈추지 않는지 확인해 주세요.
     연결 오디오 사용 중 엔진 확인은 재생을 대신 시작하지 않고 경고합니다. 실제 청감·출력 경로는 별도 기록해 주세요.
+    연습 → 연결 음원 → 소유한 음원을 열어 파일명, 재생 대기/실행/실패 상태와 재생/정지 행동을 확인해 주세요. 앱 저장소의 절대 경로가 기본 화면에 보이지 않아야 합니다. 실제 codec·스피커/유선/Bluetooth 출력·VoiceOver·큰 글씨는 별도 Device QA로 기록해 주세요.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -492,6 +495,45 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: linked-audio
+    purpose: 실제 PDF 위에서 연습 도구로 연 연결 음원의 파일명·재생 상태·재생 행동을 보여준다. 실제 codec 재생이나 출력 품질 증명 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 연습 → 연결 음원 → fixture 음원
+    fixture: 자가 제작 3쪽 PDF와 앱이 관리하는 소유 fixture 음원 1개. 재생을 시작하지 않은 상태.
+    must_show:
+    - 연결 음원 제목, 파일명 기반 보조 정보, 재생 대기 상태와 재생 행동
+    - 앱 sandbox의 절대 경로가 아닌 사용자에게 의미 있는 파일명
+    - PDF와 실제 codec 재생을 성공으로 표시하지 않는 sheet
+    exclude:
+    - 실제 음량·codec·스피커/유선/Bluetooth 출력·latency가 통과했다는 문구
+    - 저작권 미확인 음원, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 연습
+    - action: tap
+      by: text
+      value: 연결 음원
+    - action: tap
+      by: text
+      value: 연습용 반주
+    assertions:
+    - by: text
+      value: 연습용 반주
+      present: true
+    - by: text
+      value: 재생 대기
+      present: true
+    - by: text
+      value: 재생
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -563,6 +605,7 @@ manual:
       2026-10-26 메트로놈 sheet의 공통 제목·BPM·박자·소리 설정과 좁은 화면 스크롤은 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 VoiceOver 순서, 200% 글자, 터치 영역과 실제 click 소리·출력 route는 pending이다.
       2026-10-26 자동 스크롤 sheet의 공통 제목·실행 행동·390px 설정 배치는 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 실제 스크롤 속도·cue 경계·pause/resume·큰 글씨·VoiceOver·페달/키보드는 pending이다.
       2026-10-26 튜너 sheet의 공통 제목·마이크 행동과 390px 긴 선택값 배치는 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 마이크 권한·VoiceOver·큰 글씨와 실제 음정·드론 출력은 pending이다.
+      2026-10-26 연결 음원 재생 sheet는 실제 PDF widget 회귀에서 파일명, 재생 대기 상태, 재생 행동과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 실제 codec, 출력 route, VoiceOver, 200% 글자와 sheet 종료 뒤 native 재생 정리는 pending이다.
       2026-10-25 공용 이름 입력 dialog의 취소·저장 후 widget 정리 회귀를 자동 검사했다. 실제 iOS 후보 빌드에서 한글 IME, 키보드 inset, VoiceOver의 세트리스트 이름 입력과 취소/저장을 재검수해야 한다.
       2026-10-25 R3: 빈 악보함의 PDF 악보 추가, Studio PDF 수동 가져오기 안내와 연결 파일의 긴 오디오 형식 안내를 큰 글씨·VoiceOver에서 재검수해야 한다. import metadata 실패는 목록 성공으로 보이지 않고 앱 내부 사본만 정리하는 자동 controller 검사와 물리 iOS provider/VoiceOver 검수는 구분한다.
       2026-10-25 R2: 입력 모드/연습/공연, 주석 옵션 sheet와 저장 중·재시도, 도구 복원 및 하단 페이지 이동을 재검수해야 한다. product-design-r2/returns/score-r2-20261025의 실제 PDFium 위젯 검증과 물리 기기/VoiceOver/IME 검수는 구분한다.
@@ -597,6 +640,7 @@ manual:
       2026-10-26 메트로놈 sheet는 실제 PDF widget 회귀에서 BPM·박자 persistence와 PDF 보존만 확인했다. 후보 iPhone/iPad에서 짧은 sheet 스크롤, VoiceOver, 200% 글자, 실제 click 균일성, 스피커·유선·Bluetooth 출력과 latency의 Device QA가 필요하다.
       2026-10-26 자동 스크롤 sheet는 실제 PDF widget 회귀에서 시작 행동·페이지 범위 설정과 390px overflow 부재만 확인했다. 후보 iPhone/iPad에서 실제 스크롤 속도·cue 경계·pause/resume·가로/큰 글씨·VoiceOver·페달/키보드의 Device QA가 필요하다.
       2026-10-26 튜너 sheet는 실제 PDF widget 회귀에서 마이크 행동과 390px 긴 선택값 overflow 부재만 확인했다. 후보 iPhone/iPad에서 실제 마이크 권한·음정 정확도·주변 소음·드론 음량·스피커/유선/Bluetooth 출력과 VoiceOver의 Device QA가 필요하다.
+      2026-10-26 연결 음원 재생 sheet는 실제 PDF widget 회귀에서 파일명, 재생 대기 상태, 재생 행동과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 실제 MP3/M4A/WAV/FLAC/OGG codec, 출력 route, VoiceOver, 200% 글자와 sheet 종료 뒤 native 재생 정리는 Device QA가 필요하다.
       2026-10-25 R3: PDF/이미지/공유 PDF import의 metadata 저장 실패가 목록을 갱신하지 않는 controller 회귀와 R2의 PDFium 위젯 검증은 통과했다. iOS document-open/share provider, 실제 Studio PDF 전달, 첫 실제 주석 저장, Play 관리 음원 사본의 codec/route와 VoiceOver는 pending이며 자동 검증이 이를 대신하지 않는다.
       2026-10-25 R2 실제 PDF 엔진 위젯 검증 대상: 3쪽/90쪽 PDF, 주석 좌표·저장·undo/redo·원본 보존, 도구 숨김/복원과 공연 정책. iOS 후보 빌드, 실제 터치/펜/페달/오디오, VoiceOver와 스토어 촬영은 pending. 이전 R1의 미실행 PDF 성공 경로 기록을 소급 수정하지 않는다.
       2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.

@@ -70,11 +70,19 @@ Future<SheetLibraryController> openPdf(
   double scale = 1,
   bool dark = false,
   SheetLibraryStore? store,
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
 }) async {
   final c = await pilot.library(store: store);
   final file = File('test-fixtures/pdfs/$fixture').absolute;
   await c.store.saveScores(
-    c.scores.map((s) => s.copyWith(filePath: file.path)).toList(),
+    c.scores
+        .map(
+          (s) => s.copyWith(
+            filePath: file.path,
+            linkedFiles: linkedFiles.isEmpty ? s.linkedFiles : linkedFiles,
+          ),
+        )
+        .toList(),
   );
   await c.load();
   await c.updateViewerSettings(
@@ -310,6 +318,61 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+  testWidgets('real PDF linked audio uses the Ddirori playback sheet', (
+    t,
+  ) async {
+    final audioFile = File(
+      '${Directory.systemTemp.path}/ddirori-score-linked-audio-fixture.mp3',
+    );
+    await t.runAsync(() => audioFile.writeAsBytes(const <int>[0, 0, 0, 0]));
+    addTearDown(() async {
+      if (await audioFile.exists()) await audioFile.delete();
+    });
+    await openPdf(
+      t,
+      width: 390,
+      height: 1000,
+      scale: 2,
+      linkedFiles: [
+        SheetLinkedFile(
+          path: audioFile.path,
+          type: 'mp3',
+          label: '연습용 반주',
+          role: SheetLinkedFile.referenceRole,
+          createdAt: DateTime(2026, 10, 26),
+        ),
+      ],
+    );
+    final originalDocument = pdf(t).document;
+
+    await command(t, '연습');
+    await command(t, '연결 음원');
+    await command(t, '연습용 반주');
+    await t.runAsync(() => Future<void>.delayed(Duration.zero));
+    await t.pumpAndSettle();
+
+    expect(find.text('연습용 반주'), findsOneWidget);
+    expect(
+      find.text('연습용 연결 음원 · ddirori-score-linked-audio-fixture.mp3'),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriStatusBadge && widget.label == '재생 대기',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriButton && widget.label == '재생',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(audioFile.path), findsNothing);
+    expect(pdf(t).document, same(originalDocument));
+    expect(t.takeException(), isNull);
+  });
 
   testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
