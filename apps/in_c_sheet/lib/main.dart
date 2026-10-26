@@ -11306,7 +11306,6 @@ class _ViewerFileStatusBanner extends StatelessWidget {
         ? '파일 크기: ${status.sizeBytes} bytes'
         : status.path;
     return _ViewerProblemBanner(
-      icon: Icons.picture_as_pdf_outlined,
       title: status.title,
       message: status.message,
       detail: detail,
@@ -11323,62 +11322,36 @@ class _ViewerErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ViewerProblemBanner(
-      icon: Icons.picture_as_pdf_outlined,
       title: 'PDF를 열지 못했습니다.',
       message: '파일이 삭제되었거나 손상되었을 수 있습니다. 다시 가져오거나 전체 백업을 복원해주세요.',
       detail: '$filePath\n$error',
+      isError: true,
     );
   }
 }
 
 class _ViewerProblemBanner extends StatelessWidget {
   const _ViewerProblemBanner({
-    required this.icon,
     required this.title,
     required this.message,
     required this.detail,
+    this.isError = false,
   });
 
-  final IconData icon;
   final String title;
   final String message;
   final String detail;
+  final bool isError;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: SingleChildScrollView(
-        child: Card(
-          margin: const EdgeInsets.all(24),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 42, color: theme.colorScheme.error),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: ddiroriTextStyle(DdiroriTextRole.sectionTitle),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(message, textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  SelectableText(
-                    detail,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        child: DdiroriStatePanel(
+          title: title,
+          message: message,
+          diagnostic: detail,
+          error: isError,
         ),
       ),
     );

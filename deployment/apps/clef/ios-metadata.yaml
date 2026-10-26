@@ -96,6 +96,7 @@ content:
         공연 모드의 빠른 동작과 자동 스크롤 시작 안내를 공통 overlay 색·글자·선택 강조 기준에 맞춰 정리했습니다.
         페이지 메타와 빠른 이동 도구도 같은 overlay 색·글자·모서리 기준으로 정리했습니다.
         PDF 여백 자르기 설정의 설명과 초기화/저장 행동을 공통 글자·간격·버튼 기준으로 정리했습니다.
+        PDF 파일을 찾지 못하거나 열지 못했을 때 공통 상태 패널에서 복구 안내를 먼저 보여주고, 경로와 오류 상세는 진단 정보로 확인할 수 있게 했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -148,6 +149,7 @@ testflight:
     공연 모드에서 북마크·자동 스크롤·메트로놈·튜너와 세트리스트 이전/다음 곡 동작이 기존 권한대로 보이는지, 자동 스크롤 카운트다운이 도구와 악보를 가리지 않는지 확인해 주세요.
     PDF의 jump point·리허설 마크·북마크가 빠른 이동 도구와 overflow 메뉴에서 올바른 페이지로 이동하는지 확인해 주세요.
     자르기 맞춤에서 네 방향 값을 바꾸고 초기화/저장해 보세요. 원본 PDF는 바뀌지 않고 현재 뷰어의 여백만 갱신되어야 합니다.
+    PDF를 삭제하거나 손상된 파일을 열어 파일 상태 안내가 보이는지 확인하고, 진단 정보를 열어 경로/오류를 확인한 뒤 다시 가져오기 또는 백업 복구 안내를 따라가 보세요.
     주석 옵션에서 펜·형광펜·지우개·스탬프, 색·굵기, layer 표시/내보내기, undo/redo와 즐겨찾기 도구가 모두 접근 가능한지 확인해 주세요.
     주석 저장 중 중복 입력/Back 차단, 실패 안내/다시 저장과 원본 PDF 보존을 확인해 주세요. 자동 PDFium 위젯 검증은 실제 iOS 기기·펜·페달·VoiceOver 또는 스토어 촬영 검수가 아닙니다.
     R1 확인: 라이브러리 전환 → 검색 → 정렬/필터 → 접힌 빠른 접근 순서를 확인해 주세요. 선택 후 필터를 바꾸면 필터 밖 선택 개수와 하단 일괄 편집 버튼이 유지됩니다. 저장 중 Back·중복 적용 차단, 실패 시 원본/입력/선택 보존, 취소/성공 후 포커스 복귀를 확인해 주세요.
@@ -439,6 +441,7 @@ manual:
       2026-10-26 공연 quick action과 자동 스크롤 cue의 표현은 공통 overlay token으로 정리한 PDF widget 회귀를 검사했다. 실제 iOS 공연 중 터치, 큰 글씨, VoiceOver와 외부 장비는 pending이다.
       2026-10-26 페이지 메타/빠른 이동의 표현은 공통 overlay token으로 정리한 PDF widget 회귀를 검사했다. 실제 iOS 터치, 큰 글씨와 VoiceOver는 pending이다.
       2026-10-26 자르기 맞춤 sheet는 공통 글자·간격·버튼으로 정리한 controller/PDF widget 회귀를 검사했다. 실제 iOS 터치, 큰 글씨와 VoiceOver는 pending이다.
+      2026-10-26 PDF 파일 상태/열기 실패는 공통 상태 panel로 정리한 R1/R2 viewer widget 회귀를 검사했다. 실제 iOS 큰 글씨, VoiceOver와 Files/iCloud provider 오류는 pending이다.
       2026-10-25 공용 이름 입력 dialog의 취소·저장 후 widget 정리 회귀를 자동 검사했다. 실제 iOS 후보 빌드에서 한글 IME, 키보드 inset, VoiceOver의 세트리스트 이름 입력과 취소/저장을 재검수해야 한다.
       2026-10-25 R3: 빈 악보함의 PDF 악보 추가, Studio PDF 수동 가져오기 안내와 연결 파일의 긴 오디오 형식 안내를 큰 글씨·VoiceOver에서 재검수해야 한다. import metadata 실패는 목록 성공으로 보이지 않고 앱 내부 사본만 정리하는 자동 controller 검사와 물리 iOS provider/VoiceOver 검수는 구분한다.
       2026-10-25 R2: 입력 모드/연습/공연, 주석 옵션 sheet와 저장 중·재시도, 도구 복원 및 하단 페이지 이동을 재검수해야 한다. product-design-r2/returns/score-r2-20261025의 실제 PDFium 위젯 검증과 물리 기기/VoiceOver/IME 검수는 구분한다.
@@ -469,6 +472,7 @@ manual:
       2026-10-26 공연 quick action/자동 스크롤 cue는 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 공연 정책, 세트리스트 이동, 자동 스크롤 cue·취소, 오디오/페달·키보드와 VoiceOver의 manual QA가 필요하다.
       2026-10-26 페이지 메타/빠른 이동은 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 jump point·리허설 마크·북마크 대상, overflow 메뉴, 터치 영역과 VoiceOver의 manual QA가 필요하다.
       2026-10-26 자르기 맞춤 sheet는 controller/PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 네 방향 slider, 초기화/저장, 큰 글씨·가로화면·VoiceOver와 실제 원본 PDF 보존의 manual QA가 필요하다.
+      2026-10-26 PDF 파일 상태/열기 실패 panel은 R1/R2 viewer widget 회귀로만 확인했다. 후보 iPhone/iPad에서 삭제·손상·provider 지연, 진단 정보 확장, 큰 글씨·VoiceOver와 복구 안내의 manual QA가 필요하다.
       2026-10-25 R3: PDF/이미지/공유 PDF import의 metadata 저장 실패가 목록을 갱신하지 않는 controller 회귀와 R2의 PDFium 위젯 검증은 통과했다. iOS document-open/share provider, 실제 Studio PDF 전달, 첫 실제 주석 저장, Play 관리 음원 사본의 codec/route와 VoiceOver는 pending이며 자동 검증이 이를 대신하지 않는다.
       2026-10-25 R2 실제 PDF 엔진 위젯 검증 대상: 3쪽/90쪽 PDF, 주석 좌표·저장·undo/redo·원본 보존, 도구 숨김/복원과 공연 정책. iOS 후보 빌드, 실제 터치/펜/페달/오디오, VoiceOver와 스토어 촬영은 pending. 이전 R1의 미실행 PDF 성공 경로 기록을 소급 수정하지 않는다.
       2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.

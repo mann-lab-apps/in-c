@@ -152,6 +152,7 @@ void main() {
         }
         await t.pumpAndSettle();
         expect(find.text('PDF 파일을 찾지 못했습니다.'), findsOneWidget);
+        expect(find.byType(DdiroriStatePanel), findsOneWidget);
         final toolbar = find.byType(ScoreViewerChrome);
         final back = find.byTooltip('뒤로');
         final backPosition = t.getTopLeft(back);

@@ -84,5 +84,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 공연 quick action과 자동 스크롤 cue는 앱이 공연 정책·세트리스트 순서·타이머 수명을 계속 소유한다. 다만 overlay, on-overlay text, 선택 강조, separator와 radius는 `DdiroriStyle`/score token을 사용해 테마 계약을 따른다.
 - 페이지 메타 배지와 빠른 이동도 같은 overlay/on-overlay/control-radius token을 사용한다. jump point, 북마크, rehearsal mark의 실제 대상 페이지와 overflow 메뉴 구성은 Score adapter가 소유한다.
 - Crop 설정 sheet는 공통 section-title/description, spacing, secondary/primary button을 사용한다. 네 방향 slider, crop 값 정규화와 원본 PDF 보존은 기존 Score controller가 소유한다.
+- PDF 파일 상태/열기 실패는 `DdiroriStatePanel`을 사용한다. 제목·복구 안내는 기본 화면에 두고, 경로와 오류 상세는 선택 가능한 진단 정보로 접어 기본 노출을 줄인다. 재가져오기/백업 복구의 실제 동작은 기존 library 경로가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.
