@@ -724,6 +724,36 @@ void main() {
   });
 
   testWidgets(
+    'real PDF display mode uses Ddirori rows without replacing the PDF',
+    (t) async {
+      final c = await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('보기 모드:'));
+      await t.pumpAndSettle();
+
+      expect(find.text('보기 방식'), findsOneWidget);
+      expect(find.text('PDF·주석·페이지 위치는 유지한 채 화면 배치만 바꿉니다.'), findsOneWidget);
+      final verticalScroll = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '세로 스크롤',
+      );
+      expect(verticalScroll, findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '2페이지',
+        ),
+        findsOneWidget,
+      );
+      expect(c.scoreById('pilot-0').viewerSettings.displayMode, isNotEmpty);
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

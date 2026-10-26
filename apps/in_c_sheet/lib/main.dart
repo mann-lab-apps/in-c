@@ -5957,31 +5957,66 @@ setlist=$setlistLabel
   Future<void> _selectDisplayMode() async {
     _stopAutoScroll(showMessage: false);
     final isCompactViewer = MediaQuery.sizeOf(context).width < 720;
-    final selected = await showModalBottomSheet<_SheetViewerDisplayMode>(
+    final selected = await showDdiroriSheet<_SheetViewerDisplayMode>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetViewerDisplayMode.values
-              .map((mode) {
+      title: '보기 방식',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DdiroriBanner(message: 'PDF·주석·페이지 위치는 유지한 채 화면 배치만 바꿉니다.'),
+          const SizedBox(height: 12),
+          for (final entry
+              in _SheetViewerDisplayMode.values.asMap().entries) ...[
+            Builder(
+              builder: (context) {
+                final mode = entry.value;
                 final isDisabled =
                     isCompactViewer && mode == _SheetViewerDisplayMode.twoPage;
-                return ListTile(
-                  enabled: !isDisabled,
+                final isSelected = mode == _displayMode;
+                return DdiroriItem(
+                  title: mode.label,
+                  subtitle: isDisabled
+                      ? '좁은 화면에서는 비활성화'
+                      : isSelected
+                      ? '현재 보고 있는 방식'
+                      : '현재 PDF와 주석을 그대로 유지',
                   leading: Icon(mode.icon),
-                  title: Text(mode.label),
-                  subtitle: isDisabled ? const Text('좁은 화면에서는 비활성화') : null,
-                  trailing: mode == _displayMode
-                      ? const Icon(Icons.check)
-                      : null,
+                  trailing: DdiroriStatusBadge(
+                    label: isDisabled
+                        ? '사용 불가'
+                        : isSelected
+                        ? '현재'
+                        : '선택 가능',
+                    tone: isDisabled
+                        ? DdiroriStatusTone.warning
+                        : isSelected
+                        ? DdiroriStatusTone.success
+                        : DdiroriStatusTone.info,
+                  ),
+                  flat: true,
+                  enabled: !isDisabled,
                   onTap: isDisabled
                       ? null
                       : () => Navigator.of(context).pop(mode),
+                  actions: [
+                    DdiroriButton(
+                      label: isSelected ? '현재 방식' : '이 방식으로 보기',
+                      icon: isSelected
+                          ? Icons.check
+                          : Icons.visibility_outlined,
+                      kind: DdiroriButtonKind.secondary,
+                      onPressed: isDisabled || isSelected
+                          ? null
+                          : () => Navigator.of(context).pop(mode),
+                    ),
+                  ],
                 );
-              })
-              .toList(growable: false),
-        ),
+              },
+            ),
+            if (entry.key != _SheetViewerDisplayMode.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null || selected == _displayMode) {
