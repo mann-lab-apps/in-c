@@ -475,6 +475,45 @@ void main() {
   });
 
   testWidgets(
+    'real PDF bookmarks use Ddirori rows without replacing navigation',
+    (t) async {
+      final c = await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await c.toggleBookmark(c.scoreById('pilot-0'), 1);
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('북마크 목록').last);
+      await t.pumpAndSettle();
+
+      expect(find.text('북마크 목록'), findsOneWidget);
+      expect(
+        find.text('항목을 탭하면 해당 쪽으로 이동합니다. 이름 변경과 삭제는 각 항목의 더보기에서 할 수 있습니다.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '1쪽',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '이동',
+        ),
+        findsOneWidget,
+      );
+
+      await command(t, '이동');
+
+      expect(c.scoreById('pilot-0').bookmarks, hasLength(1));
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

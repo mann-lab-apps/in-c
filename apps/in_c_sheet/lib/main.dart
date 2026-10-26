@@ -5576,56 +5576,64 @@ setlist=$setlistLabel
       return;
     }
 
-    final selected = await showModalBottomSheet<_BookmarkListRequest>(
+    final selected = await showDdiroriSheet<_BookmarkListRequest>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemBuilder: (context, index) {
-            final bookmark = currentScore.bookmarks[index];
-            return ListTile(
-              leading: const Icon(Icons.bookmark),
-              title: Text(bookmark.label),
-              subtitle: Text(
-                '${bookmark.pageNumber}쪽 · ${_formatShortDate(bookmark.createdAt)} 생성',
-              ),
-              trailing: Wrap(
-                spacing: 0,
-                children: [
-                  IconButton(
-                    tooltip: '이름 변경',
-                    onPressed: () => Navigator.of(context).pop(
-                      _BookmarkListRequest(
-                        bookmark: bookmark,
-                        action: _BookmarkListAction.rename,
-                      ),
-                    ),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: () => Navigator.of(context).pop(
-                      _BookmarkListRequest(
-                        bookmark: bookmark,
-                        action: _BookmarkListAction.delete,
-                      ),
-                    ),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ),
+      title: '북마크 목록',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DdiroriBanner(
+            message: '항목을 탭하면 해당 쪽으로 이동합니다. 이름 변경과 삭제는 각 항목의 더보기에서 할 수 있습니다.',
+          ),
+          const SizedBox(height: 12),
+          for (final entry in currentScore.bookmarks.asMap().entries) ...[
+            DdiroriItem(
+              title: entry.value.label,
+              subtitle:
+                  '${entry.value.pageNumber}쪽 · ${_formatShortDate(entry.value.createdAt)} 생성',
+              leading: const Icon(Icons.bookmark_outline),
+              flat: true,
               onTap: () => Navigator.of(context).pop(
                 _BookmarkListRequest(
-                  bookmark: bookmark,
+                  bookmark: entry.value,
                   action: _BookmarkListAction.open,
                 ),
               ),
-            );
-          },
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: currentScore.bookmarks.length,
-        ),
+              actions: [
+                DdiroriButton(
+                  label: '이동',
+                  icon: Icons.arrow_forward,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(
+                    _BookmarkListRequest(
+                      bookmark: entry.value,
+                      action: _BookmarkListAction.open,
+                    ),
+                  ),
+                ),
+                DdiroriMenuButton<_BookmarkListAction>(
+                  label: '${entry.value.label} 더보기',
+                  icon: Icons.more_horiz,
+                  onSelected: (action) => Navigator.of(context).pop(
+                    _BookmarkListRequest(bookmark: entry.value, action: action),
+                  ),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<_BookmarkListAction>(
+                      value: _BookmarkListAction.rename,
+                      child: Text('이름 변경'),
+                    ),
+                    PopupMenuItem<_BookmarkListAction>(
+                      value: _BookmarkListAction.delete,
+                      child: Text('삭제'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (entry.key != currentScore.bookmarks.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null) {
