@@ -375,6 +375,76 @@ void main() {
   });
 
   testWidgets(
+    'real PDF score parts keep file actions and paths scoped to Ddirori rows',
+    (t) async {
+      final partFile = File(
+        '${Directory.systemTemp.path}/ddirori-score-violin-part-fixture.pdf',
+      );
+      final fixture = File('test-fixtures/pdfs/short-score.pdf').absolute;
+      await t.runAsync(() => fixture.copy(partFile.path));
+      addTearDown(() async {
+        if (await partFile.exists()) await partFile.delete();
+      });
+      final c = await openPdf(
+        t,
+        width: 390,
+        height: 1000,
+        scale: 2,
+        linkedFiles: [
+          SheetLinkedFile(
+            path: partFile.path,
+            type: 'pdf',
+            label: '바이올린 파트',
+            role: SheetLinkedFile.partRole,
+            createdAt: DateTime(2026, 10, 26),
+          ),
+        ],
+      );
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('파트/버전').last);
+      await t.pumpAndSettle();
+
+      expect(find.text('파트와 연결 파일'), findsOneWidget);
+      expect(find.text('원본 PDF를 수정하지 않고 현재 파일과 연결 파일만 전환합니다.'), findsOneWidget);
+      expect(find.text('바이올린 파트'), findsOneWidget);
+      expect(
+        find.text('Part · ddirori-score-violin-part-fixture.pdf'),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriStatusBadge && widget.label == '사용 가능',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '이 파일 열기',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(partFile.path), findsNothing);
+
+      await t.ensureVisible(find.byTooltip('역할 변경'));
+      await t.tap(find.byTooltip('역할 변경'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Reference'));
+      await t.pumpAndSettle();
+
+      expect(
+        c.scoreById('pilot-0').linkedFiles.single.role,
+        SheetLinkedFile.referenceRole,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

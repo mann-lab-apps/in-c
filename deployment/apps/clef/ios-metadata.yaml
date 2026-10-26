@@ -101,6 +101,7 @@ content:
         자동 스크롤의 시작·일시정지·재개·정지와 pause marker·반복 구간·cue point 설정을 공통 제목·동작 기준으로 정리하고, 좁은 화면에서 긴 동작이 넘치지 않게 했습니다.
         튜너의 마이크 행동과 긴 프리셋·악기·감지·드론 선택값을 공통 제목·아이콘·작은 화면 기준으로 정리했습니다. 실제 마이크와 드론 품질은 기기별로 확인합니다.
         연결 음원 재생 화면에서 파일명, 재생 상태와 재생/정지 행동을 공통 기준으로 정리하고 앱 저장소 경로를 기본 화면에 표시하지 않도록 했습니다. 실제 재생 호환성과 출력 품질은 기기별로 확인합니다.
+        파트와 연결 파일 화면에서 현재 악보와 파일별 역할·가용 상태·열기/변경/제거 행동을 구분하고, 앱 저장소 경로 대신 파일명을 표시합니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -176,6 +177,7 @@ testflight:
     오디오 창을 닫고 다시 재생할 때 이전 창의 정리로 새 재생이 멈추지 않는지 확인해 주세요.
     연결 오디오 사용 중 엔진 확인은 재생을 대신 시작하지 않고 경고합니다. 실제 청감·출력 경로는 별도 기록해 주세요.
     연습 → 연결 음원 → 소유한 음원을 열어 파일명, 재생 대기/실행/실패 상태와 재생/정지 행동을 확인해 주세요. 앱 저장소의 절대 경로가 기본 화면에 보이지 않아야 합니다. 실제 codec·스피커/유선/Bluetooth 출력·VoiceOver·큰 글씨는 별도 Device QA로 기록해 주세요.
+    모든 도구 → 보기 옵션 → 파트/버전에서 현재 PDF와 연결 파일의 파일명·역할·상태를 확인해 주세요. 파일이 없거나 열 수 없는 형식이면 열기만 비활성이고 역할 변경·연결 제거는 가능해야 하며, 파일 전환 뒤 원본 PDF와 기존 metadata가 보존되어야 합니다.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -534,6 +536,42 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: linked-files
+    purpose: 실제 PDF에서 파트와 연결 파일의 파일명·역할·가용 상태·행동을 표시한다. 파일 전환이나 실제 codec/Files provider 성공을 증명하는 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 파트/버전
+    fixture: 자가 제작 3쪽 PDF, 앱이 관리하는 소유 PDF 파트 fixture 1개. 현재 PDF와 연결 파일이 모두 존재하는 상태.
+    must_show:
+    - 현재 열려 있는 PDF와 연결 PDF의 파일명 기반 보조 정보
+    - 연결 파일의 역할, 사용 가능 상태와 열기/역할 변경/연결 제거 행동
+    - 앱 sandbox의 절대 경로가 아닌 사용자에게 의미 있는 파일명
+    exclude:
+    - 실제 PDF 전환, 이미지 렌더링, codec·출력 route 또는 Files provider가 통과했다는 문구
+    - 저작권 미확인 파일, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 모든 도구
+    - action: tap
+      by: tooltip
+      value: 보기 옵션
+    - action: tap
+      by: text
+      value: 파트/버전
+    assertions:
+    - by: text
+      value: 파트와 연결 파일
+      present: true
+    - by: text
+      value: 사용 가능
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -594,6 +632,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 파트와 연결 파일 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 파일명·역할·사용 가능 상태, 역할 변경과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 sheet scroll, VoiceOver 순서, touch target, 파일 없음/지원하지 않는 형식과 실제 PDF·이미지·오디오 열기는 pending이다.
       2026-10-26 이전 Simulator 컨테이너 절대 경로가 남고 현재 Documents/scores·linked-files·annotations 사본이 존재하는 자동 fixture에서 PDF·연결 파일·파일형 주석 경로 복구와 다른 score ID 파일 차단을 검사했다. 실제 iOS 업데이트/복원 및 외부 파일 provider 경로의 보존은 후보 빌드에서 별도로 확인해야 한다.
       2026-10-26 분류별 찾기의 컬렉션·그룹·별점은 공통 선택 컨트롤로 320px/200% 글자·다크 테마 widget 회귀를 검사했다. 실제 iOS VoiceOver 순서·터치 영역과 후보 빌드 캡처는 pending이다.
       2026-10-26 주석 옵션은 기존 기능을 줄이지 않고 공통 도구 모음으로 감싼 PDF widget 회귀를 검사했다. 실제 iOS VoiceOver 포커스 순서, 펜·손가락 터치와 큰 글씨는 pending이다.
@@ -629,6 +668,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 파트와 연결 파일 sheet는 실제 PDF widget 회귀에서 390px/200% 글자 진입, 파일명·역할·사용 가능 상태, 역할 변경과 sandbox 절대 경로 비노출만 확인했다. 후보 iPhone/iPad에서 sheet scroll, VoiceOver 순서, touch target, 파일 없음/지원하지 않는 형식과 실제 PDF·이미지·오디오 열기·전환 뒤 원본 보존은 Device QA가 필요하다.
       2026-10-26 관리 파일 경로 복구는 현재 앱 Documents에 남은 같은 PDF·연결 파일·파일형 주석 사본만 자동 fixture로 확인했다. iOS 업데이트·복원·삭제 후 재설치와 Files/iCloud provider 원본 수명은 후보 빌드에서 manual QA가 필요하다.
       2026-10-26 분류별 찾기의 공통 선택 컨트롤은 widget 회귀로만 확인했다. 실제 iPhone/iPad의 컬렉션·그룹·별점 선택/해제, 200% 글자, VoiceOver와 악보 자동 열림 부재는 후보 빌드에서 manual QA가 필요하다.
       2026-10-26 주석 옵션의 공통 도구 모음은 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 기존 색·굵기·스탬프·layer 표시/내보내기·undo/redo, 펜/손가락과 VoiceOver 포커스 순서의 manual QA가 필요하다.

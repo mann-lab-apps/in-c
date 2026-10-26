@@ -89,5 +89,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 자동 스크롤 sheet는 `DdiroriPageHeader`와 `DdiroriButton`으로 실행·일시정지·재개·정지 행동의 위계를 맞춘다. pause marker·반복 구간·cue point의 긴 동작은 좁은 화면에서 제목 아래 별도 행으로 배치해 overflow 없이 접근한다. 페이지 범위·cue·반복·타이머와 실제 스크롤 엔진은 계속 Score가 소유하며, widget 검증은 실기기 스크롤 감각이나 페달·VoiceOver 검증을 대신하지 않는다.
 - 튜너 sheet는 `DdiroriPageHeader`와 `DdiroriIconButton`으로 마이크 입력의 현재 시작/정지 행동을 표시한다. 프리셋·악기/표시·감지 프로필·드론 mode의 긴 선택값은 작은 폭에서도 말줄임으로 유지한다. 마이크 권한·음정 감지·드론 재생·실제 출력 품질은 계속 Score의 native adapter와 Device QA가 소유한다.
 - 연결 음원 재생 sheet는 `DdiroriPageHeader`, `DdiroriButton`, `DdiroriStatusBadge`, `DdiroriBanner`로 파일명·재생 대기/실행/실패 상태와 재생/정지 행동을 분리한다. 앱 저장소의 절대 경로는 기본 화면에 표시하지 않는다. `SheetAudioPlayer`의 재생·정지·native channel 수명과 실제 codec/출력 품질은 계속 Score와 Device QA가 소유한다.
+- 파트와 연결 파일 sheet는 공통 `showDdiroriSheet`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`, `DdiroriMenuButton`으로 현재 PDF·연결 파일·가용 상태·열기/역할 변경/연결 제거 행동을 구분한다. 기본 행에는 sandbox 절대 경로 대신 파일명만 표시한다. 파일 누락 또는 지원하지 않는 형식은 열기만 막고 metadata 역할 변경·연결 제거는 계속 가능하다. PDF 전환·이미지 보기·오디오 재생과 원본 보존은 기존 Score controller와 viewer adapter가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

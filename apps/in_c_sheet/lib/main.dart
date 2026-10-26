@@ -1841,6 +1841,16 @@ String _linkedFileRoleLabel(String role) {
   };
 }
 
+String _linkedFileName(SheetLinkedFile file) {
+  return _fileNameFromPath(file.path);
+}
+
+String _fileNameFromPath(String path) {
+  final normalizedPath = path.trim().replaceAll('\\', '/');
+  final name = normalizedPath.split('/').last.trim();
+  return name.isEmpty ? '연결된 파일' : name;
+}
+
 bool _isSupportedLinkedImage(SheetLinkedFile file) {
   final extension = file.type.trim().isNotEmpty
       ? file.type.trim().toLowerCase()
@@ -5659,36 +5669,61 @@ setlist=$setlistLabel
 
   Future<void> _showScoreParts() async {
     final currentScore = score;
-    final selected = await showModalBottomSheet<_LinkedFileAction>(
+    final selected = await showDdiroriSheet<_LinkedFileAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(currentScore.title),
-              subtitle: Text(
-                '현재 열려 있는 악보 · ${File(currentScore.filePath).existsSync() ? '파일 확인됨' : '파일 없음'}',
-              ),
+      title: '파트와 연결 파일',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DdiroriBanner(message: '원본 PDF를 수정하지 않고 현재 파일과 연결 파일만 전환합니다.'),
+          const SizedBox(height: 12),
+          DdiroriItem(
+            title: currentScore.title,
+            subtitle:
+                '현재 열려 있는 악보 · ${_fileNameFromPath(currentScore.filePath)}',
+            leading: const Icon(Icons.description_outlined),
+            trailing: DdiroriStatusBadge(
+              label: File(currentScore.filePath).existsSync()
+                  ? '현재 열림'
+                  : '파일 없음',
+              tone: File(currentScore.filePath).existsSync()
+                  ? DdiroriStatusTone.success
+                  : DdiroriStatusTone.error,
             ),
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('파트/버전은 metadata로 관리됩니다'),
-              subtitle: Text('원본 PDF를 수정하지 않고 현재 파일과 연결 파일만 전환합니다.'),
+            selected: true,
+            flat: true,
+          ),
+          if (currentScore.linkedFiles.isEmpty) ...[
+            const SizedBox(height: 12),
+            const DdiroriBanner(
+              message: '연결된 파트, 버전 또는 연습 파일이 없습니다.',
+              kind: DdiroriNoticeKind.info,
             ),
-            for (final linkedFile in currentScore.linkedFiles)
+          ] else ...[
+            const SizedBox(height: 12),
+            for (final linkedFile in currentScore.linkedFiles) ...[
               Builder(
                 builder: (context) {
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
                   final isAudio = _isSupportedLinkedAudio(linkedFile);
-                  final canOpen =
-                      exists &&
-                      (linkedFile.type == 'pdf' || isImage || isAudio);
-                  return ListTile(
+                  final isPdf = linkedFile.type.trim().toLowerCase() == 'pdf';
+                  final isSupported = isPdf || isImage || isAudio;
+                  final canOpen = exists && isSupported;
+                  final openLabel = isImage
+                      ? '이미지 보기'
+                      : isAudio
+                      ? '오디오 재생'
+                      : '이 파일 열기';
+                  final status = !exists
+                      ? (label: '파일 없음', tone: DdiroriStatusTone.error)
+                      : !isSupported
+                      ? (label: '열 수 없는 형식', tone: DdiroriStatusTone.warning)
+                      : (label: '사용 가능', tone: DdiroriStatusTone.success);
+                  return DdiroriItem(
+                    title: linkedFile.label,
+                    subtitle:
+                        '${_linkedFileRoleLabel(linkedFile.role)} · ${_linkedFileName(linkedFile)}',
                     leading: Icon(
                       !exists
                           ? Icons.error_outline
@@ -5698,68 +5733,62 @@ setlist=$setlistLabel
                           ? Icons.audiotrack
                           : Icons.library_music_outlined,
                     ),
-                    title: Text(linkedFile.label),
-                    subtitle: Text(
-                      '${_linkedFileRoleLabel(linkedFile.role)} · '
-                      '${exists ? '파일 확인됨' : '파일 없음'} · '
-                      '${linkedFile.path}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    trailing: DdiroriStatusBadge(
+                      label: status.label,
+                      tone: status.tone,
                     ),
-                    trailing: Wrap(
-                      spacing: 0,
-                      children: [
-                        IconButton(
-                          tooltip: isImage
-                              ? '이미지 보기'
-                              : isAudio
-                              ? '오디오 재생'
-                              : '이 파일 열기',
-                          onPressed: canOpen
-                              ? () => Navigator.of(context).pop(
-                                  _LinkedFileAction(
-                                    type: _LinkedFileActionType.open,
-                                    file: linkedFile,
-                                  ),
-                                )
-                              : null,
-                          icon: const Icon(Icons.open_in_new),
-                        ),
-                        PopupMenuButton<String>(
-                          tooltip: '역할 변경',
-                          icon: const Icon(Icons.badge_outlined),
-                          onSelected: (role) => Navigator.of(context).pop(
-                            _LinkedFileAction(
-                              type: _LinkedFileActionType.updateRole,
-                              file: linkedFile,
-                              role: role,
-                            ),
+                    flat: true,
+                    actions: [
+                      DdiroriButton(
+                        label: openLabel,
+                        icon: Icons.open_in_new,
+                        kind: DdiroriButtonKind.secondary,
+                        onPressed: canOpen
+                            ? () => Navigator.of(context).pop(
+                                _LinkedFileAction(
+                                  type: _LinkedFileActionType.open,
+                                  file: linkedFile,
+                                ),
+                              )
+                            : null,
+                      ),
+                      DdiroriMenuButton<String>(
+                        label: '역할 변경',
+                        icon: Icons.badge_outlined,
+                        onSelected: (role) => Navigator.of(context).pop(
+                          _LinkedFileAction(
+                            type: _LinkedFileActionType.updateRole,
+                            file: linkedFile,
+                            role: role,
                           ),
-                          itemBuilder: (context) => [
-                            for (final role in _linkedFileRoles)
-                              PopupMenuItem<String>(
-                                value: role,
-                                child: Text(_linkedFileRoleLabel(role)),
-                              ),
-                          ],
                         ),
-                        IconButton(
-                          tooltip: '연결 제거',
-                          onPressed: () => Navigator.of(context).pop(
-                            _LinkedFileAction(
-                              type: _LinkedFileActionType.remove,
-                              file: linkedFile,
+                        itemBuilder: (context) => [
+                          for (final role in _linkedFileRoles)
+                            PopupMenuItem<String>(
+                              value: role,
+                              child: Text(_linkedFileRoleLabel(role)),
                             ),
+                        ],
+                      ),
+                      DdiroriButton(
+                        label: '연결 제거',
+                        icon: Icons.link_off_outlined,
+                        kind: DdiroriButtonKind.danger,
+                        onPressed: () => Navigator.of(context).pop(
+                          _LinkedFileAction(
+                            type: _LinkedFileActionType.remove,
+                            file: linkedFile,
                           ),
-                          icon: const Icon(Icons.link_off_outlined),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 },
               ),
+              const Divider(height: 1),
+            ],
           ],
-        ),
+        ],
       ),
     );
     if (selected == null) {
@@ -13351,11 +13380,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     });
   }
 
-  String get _fileName {
-    final normalizedPath = widget.linkedFile.path.trim().replaceAll('\\', '/');
-    final name = normalizedPath.split('/').last.trim();
-    return name.isEmpty ? '연결된 오디오 파일' : name;
-  }
+  String get _fileName => _linkedFileName(widget.linkedFile);
 
   ({String label, DdiroriStatusTone tone, IconData icon}) get _status {
     if (_isPlaying) {
