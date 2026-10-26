@@ -6043,28 +6043,49 @@ setlist=$setlistLabel
   }
 
   Future<void> _selectDisplayEffect() async {
-    final selected = await showModalBottomSheet<_SheetViewerDisplayEffect>(
+    final selected = await showDdiroriSheet<_SheetViewerDisplayEffect>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetViewerDisplayEffect.values
-              .map(
-                (effect) => ListTile(
-                  leading: Icon(effect.icon),
-                  title: Text(effect.label),
-                  subtitle: effect == _SheetViewerDisplayEffect.inverted
-                      ? const Text('PDF와 필기 overlay 색상을 함께 반전')
-                      : null,
-                  trailing: effect == _displayEffect
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(effect),
+      title: '표시 효과',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DdiroriBanner(message: 'PDF 원본과 저장한 주석은 그대로 두고 화면 표시만 바꿉니다.'),
+          const SizedBox(height: 12),
+          for (final (index, effect)
+              in _SheetViewerDisplayEffect.values.indexed) ...[
+            DdiroriItem(
+              title: effect.label,
+              subtitle: effect == _SheetViewerDisplayEffect.inverted
+                  ? 'PDF와 필기 overlay 색상을 함께 반전'
+                  : effect == _displayEffect
+                  ? '현재 화면에 적용된 방식'
+                  : '기본 색상으로 읽기',
+              leading: Icon(effect.icon),
+              trailing: DdiroriStatusBadge(
+                label: effect == _displayEffect ? '현재' : '선택 가능',
+                tone: effect == _displayEffect
+                    ? DdiroriStatusTone.success
+                    : DdiroriStatusTone.info,
+              ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(effect),
+              actions: [
+                DdiroriButton(
+                  label: effect == _displayEffect ? '현재 효과' : '이 효과로 보기',
+                  icon: effect == _displayEffect
+                      ? Icons.check
+                      : Icons.visibility_outlined,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: effect == _displayEffect
+                      ? null
+                      : () => Navigator.of(context).pop(effect),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ],
+            ),
+            if (index != _SheetViewerDisplayEffect.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null || selected == _displayEffect) {
@@ -6082,36 +6103,49 @@ setlist=$setlistLabel
   }
 
   Future<void> _selectPageScale() async {
-    final selected = await showModalBottomSheet<_SheetViewerPageScale>(
+    final selected = await showDdiroriSheet<_SheetViewerPageScale>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _SheetViewerPageScale.values
-              .map(
-                (scale) => ListTile(
-                  leading: Icon(scale.icon),
-                  title: Text(scale.label),
-                  subtitle: switch (scale) {
-                    _SheetViewerPageScale.fitPage => const Text(
-                      '페이지 전체를 안정적으로 읽는 기본 보기',
-                    ),
-                    _SheetViewerPageScale.fitWidth => const Text(
-                      '가로 여백을 줄여 세로 스크롤과 큰 화면에 맞춤',
-                    ),
-                    _SheetViewerPageScale.fullscreen => const Text(
-                      '공연 중 화면 낭비를 줄이는 최소 여백 보기',
-                    ),
-                  },
-                  trailing: scale == _pageScale
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(scale),
+      title: '페이지 맞춤',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DdiroriBanner(
+            message: 'PDF 원본·페이지 위치·주석을 유지하고 지면의 맞춤 방식만 바꿉니다.',
+          ),
+          const SizedBox(height: 12),
+          for (final (index, scale)
+              in _SheetViewerPageScale.values.indexed) ...[
+            DdiroriItem(
+              title: scale.label,
+              subtitle: switch (scale) {
+                _SheetViewerPageScale.fitPage => '페이지 전체를 안정적으로 읽는 기본 보기',
+                _SheetViewerPageScale.fitWidth => '가로 여백을 줄여 세로 스크롤과 큰 화면에 맞춤',
+                _SheetViewerPageScale.fullscreen => '공연 중 화면 낭비를 줄이는 최소 여백 보기',
+              },
+              leading: Icon(scale.icon),
+              trailing: DdiroriStatusBadge(
+                label: scale == _pageScale ? '현재' : '선택 가능',
+                tone: scale == _pageScale
+                    ? DdiroriStatusTone.success
+                    : DdiroriStatusTone.info,
+              ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(scale),
+              actions: [
+                DdiroriButton(
+                  label: scale == _pageScale ? '현재 맞춤' : '이 방식으로 맞춤',
+                  icon: scale == _pageScale ? Icons.check : Icons.fit_screen,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: scale == _pageScale
+                      ? null
+                      : () => Navigator.of(context).pop(scale),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ],
+            ),
+            if (index != _SheetViewerPageScale.values.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (selected == null || selected == _pageScale) {

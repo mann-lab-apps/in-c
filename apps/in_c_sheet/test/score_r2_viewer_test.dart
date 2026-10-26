@@ -754,6 +754,52 @@ void main() {
   );
 
   testWidgets(
+    'real PDF display effect and page scale use Ddirori choices without replacing the PDF',
+    (t) async {
+      await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('표시 효과:'));
+      await t.pumpAndSettle();
+
+      expect(find.text('표시 효과'), findsOneWidget);
+      expect(find.text('PDF 원본과 저장한 주석은 그대로 두고 화면 표시만 바꿉니다.'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '색상 반전',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+
+      await t.binding.handlePopRoute();
+      await t.pumpAndSettle();
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('페이지 맞춤:'));
+      await t.pumpAndSettle();
+
+      expect(find.text('페이지 맞춤'), findsAtLeastNWidgets(2));
+      expect(
+        find.text('PDF 원본·페이지 위치·주석을 유지하고 지면의 맞춤 방식만 바꿉니다.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '폭 맞춤',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

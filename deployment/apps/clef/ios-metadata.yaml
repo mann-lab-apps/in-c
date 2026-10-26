@@ -109,6 +109,7 @@ content:
         점프 포인트에서 현재 쪽의 바로가기 추가와 대상 쪽 선택, 이동·이름 변경·삭제를 구분해 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         리허설 마크에서 현재 페이지 추가와 이동·이름 변경·삭제, 마크 종류·페이지 입력을 구분해 큰 글씨에서도 목록과 입력 창을 사용할 수 있도록 정리했습니다.
         보기 방식에서 현재 선택·사용 가능·좁은 화면 제한을 구분해 PDF와 주석을 유지한 채 화면 배치를 바꿀 수 있도록 정리했습니다.
+        표시 효과와 페이지 맞춤에서 현재 선택과 가능한 선택을 구분해 PDF·주석·현재 페이지를 유지한 채 화면 표시와 지면 맞춤을 바꿀 수 있도록 정리했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -192,6 +193,7 @@ testflight:
     모든 도구 → 페이지 정리 → 점프 포인트에서 현재 쪽의 추가, 대상 페이지 선택, 이동·이름 변경·삭제를 확인해 주세요. 숨긴 쪽을 포함한 항목은 이동만 막히고 수정·삭제는 가능한지, 큰 글씨와 VoiceOver에서 목록 scroll·행·더보기 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 리허설 마크에서 현재 페이지 추가, 마크 종류·페이지·이름 편집, 이동·삭제를 확인해 주세요. 공연 모드에서는 이동만 가능하고 편집 행동은 보이지 않는지, 큰 글씨와 VoiceOver에서 목록·입력 창 scroll과 저장/취소 순서도 기록해 주세요.
     모든 도구 → 보기 옵션 → 보기 모드에서 1페이지·2페이지·세로 스크롤 전환을 확인해 주세요. 좁은 화면의 2페이지 제한, 기존 PDF·주석·현재 페이지 보존과 큰 글씨·VoiceOver sheet 순서를 기록해 주세요.
+    모든 도구 → 보기 옵션 → 표시 효과와 페이지 맞춤에서 현재 선택·전환, PDF·주석·현재 페이지 보존을 확인해 주세요. 실제 색상 대비, crop·scroll 감각과 VoiceOver는 기기별로 기록해 주세요.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
   engine: flutter_integration_ios
@@ -816,6 +818,25 @@ screenshots:
     assertions:
     - {by: text, value: 보기 방식, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
+  - id: score-display-settings
+    purpose: 실제 PDF의 표시 효과와 페이지 맞춤 선택에서 현재 상태와 보존 범위를 보여준다. 실제 색상 대비·iOS crop 또는 VoiceOver 검증 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 표시 효과 또는 페이지 맞춤
+    fixture: 자가 제작 3쪽 PDF, 기본 표시 효과와 페이지 맞춤. PDF·주석·현재 페이지는 변경 없음.
+    must_show:
+    - 표시 효과 또는 페이지 맞춤 제목, 현재 선택·선택 가능 상태와 선택 행동
+    - PDF 원본·주석·페이지 위치를 유지한다는 안내
+    exclude:
+    - 실제 색상 대비·crop·scroll·VoiceOver가 통과했다는 문구
+    - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: tooltip, value: 보기 옵션}
+    - {action: tap, by: text, value: '표시 효과: 기본'}
+    assertions:
+    - {by: text, value: 표시 효과, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -876,6 +897,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 표시 효과와 페이지 맞춤 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 색상 대비, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 pending이다.
       2026-10-26 보기 방식 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 2페이지 배치, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 pending이다.
       2026-10-26 리허설 마크 sheet와 편집 dialog는 실제 PDF widget 회귀에서 2쪽 mark 이동과 공통 input/choice/cancel만 확인했다. 후보 iPhone/iPad에서 긴 목록·dialog scroll, VoiceOver 순서, touch target, 한글 IME, 공연 모드와 실제 저장 실패 복구는 pending이다.
       2026-10-26 점프 포인트와 대상 페이지 선택 sheet는 실제 PDF widget 회귀에서 1쪽→2쪽 바로가기 저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 숨김 쪽 이동 불가, 이름 변경 IME와 실제 저장 실패 복구는 pending이다.
@@ -919,6 +941,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-26 표시 효과와 페이지 맞춤 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 색상 대비, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 Device QA가 필요하다.
       2026-10-26 보기 방식 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 2페이지 배치, 큰 글씨, VoiceOver와 실제 crop·scroll 감각은 Device QA가 필요하다.
       2026-10-26 리허설 마크 sheet와 편집 dialog는 실제 PDF widget 회귀에서 2쪽 mark 이동과 공통 input/choice/cancel만 확인했다. 후보 iPhone/iPad에서 긴 목록·dialog scroll, VoiceOver 순서, touch target, 한글 IME, 공연 모드와 실제 저장 실패 복구는 Device QA가 필요하다.
       2026-10-26 점프 포인트와 대상 페이지 선택 sheet는 실제 PDF widget 회귀에서 1쪽→2쪽 바로가기 저장과 PDF identity 보존만 확인했다. 후보 iPhone/iPad에서 긴 목록 scroll, VoiceOver 순서, touch target, 숨김 쪽 이동 불가, 이름 변경 IME와 실제 저장 실패 복구는 Device QA가 필요하다.
