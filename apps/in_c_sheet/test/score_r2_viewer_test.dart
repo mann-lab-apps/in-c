@@ -128,6 +128,10 @@ Future<void> command(WidgetTester t, String label) async {
   await t.pumpAndSettle();
 }
 
+Finder compactViewerOptionsButton() => find.byWidgetPredicate(
+  (widget) => widget is DdiroriButton && widget.label == '보기 옵션',
+);
+
 Future<void> capture(WidgetTester t, String name) async {
   if (Platform.environment['DDIRORI_SCORE_R2_CAPTURE'] != 'true') return;
   expect(Platform.environment['DDIRORI_BRAND_FONT'], isNotEmpty);
@@ -403,9 +407,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.text('파트/버전').last);
+      final scoreParts = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '파트/버전',
+      );
+      await t.ensureVisible(scoreParts);
+      await t.tap(scoreParts);
       await t.pumpAndSettle();
 
       expect(find.text('파트와 연결 파일'), findsOneWidget);
@@ -449,9 +457,13 @@ void main() {
     final originalDocument = pdf(t).document;
 
     await command(t, '모든 도구');
-    await t.tap(find.byTooltip('보기 옵션'));
+    await t.tap(compactViewerOptionsButton());
     await t.pumpAndSettle();
-    await t.tap(find.text('악보 메모').last);
+    final scoreNotes = find.byWidgetPredicate(
+      (widget) => widget is DdiroriItem && widget.title == '악보 메모',
+    );
+    await t.ensureVisible(scoreNotes);
+    await t.tap(scoreNotes);
     await t.pumpAndSettle();
 
     expect(find.text('악보 메모'), findsOneWidget);
@@ -482,9 +494,13 @@ void main() {
 
       await c.toggleBookmark(c.scoreById('pilot-0'), 1);
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.text('북마크 목록').last);
+      final bookmarks = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '북마크 목록',
+      );
+      await t.ensureVisible(bookmarks);
+      await t.tap(bookmarks);
       await t.pumpAndSettle();
 
       expect(find.text('북마크 목록'), findsOneWidget);
@@ -730,9 +746,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('보기 모드:'));
+      final displayMode = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('보기 모드:'),
+      );
+      await t.ensureVisible(displayMode);
+      await t.tap(displayMode);
       await t.pumpAndSettle();
 
       expect(find.text('보기 방식'), findsOneWidget);
@@ -760,9 +780,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('표시 효과:'));
+      final displayEffect = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('표시 효과:'),
+      );
+      await t.ensureVisible(displayEffect);
+      await t.tap(displayEffect);
       await t.pumpAndSettle();
 
       expect(find.text('표시 효과'), findsOneWidget);
@@ -778,9 +802,13 @@ void main() {
       await t.binding.handlePopRoute();
       await t.pumpAndSettle();
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('페이지 맞춤:'));
+      final pageScale = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('페이지 맞춤:'),
+      );
+      await t.ensureVisible(pageScale);
+      await t.tap(pageScale);
       await t.pumpAndSettle();
 
       expect(find.text('페이지 맞춤'), findsAtLeastNWidgets(2));
@@ -806,9 +834,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('페달 매핑:'));
+      final pedalMapping = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('페달 매핑:'),
+      );
+      await t.ensureVisible(pedalMapping);
+      await t.tap(pedalMapping);
       await t.pumpAndSettle();
 
       expect(find.text('페달 매핑'), findsOneWidget);
@@ -834,9 +866,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('페달 매핑:'));
+      final pedalMapping = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('페달 매핑:'),
+      );
+      await t.ensureVisible(pedalMapping);
+      await t.tap(pedalMapping);
       await t.pumpAndSettle();
       final customMapping = find.byWidgetPredicate(
         (widget) => widget is DdiroriItem && widget.title == '직접 설정',
@@ -871,9 +907,13 @@ void main() {
       final originalDocument = pdf(t).document;
 
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('렌더링:'));
+      final renderProfile = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('렌더링:'),
+      );
+      await t.ensureVisible(renderProfile);
+      await t.tap(renderProfile);
       await t.pumpAndSettle();
       expect(find.text('렌더링 프로필'), findsOneWidget);
       expect(
@@ -887,9 +927,13 @@ void main() {
       await t.binding.handlePopRoute();
       await t.pumpAndSettle();
       await command(t, '모든 도구');
-      await t.tap(find.byTooltip('보기 옵션'));
+      await t.tap(compactViewerOptionsButton());
       await t.pumpAndSettle();
-      await t.tap(find.textContaining('페이지 넘김:'));
+      final pageTurn = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title.startsWith('페이지 넘김:'),
+      );
+      await t.ensureVisible(pageTurn);
+      await t.tap(pageTurn);
       await t.pumpAndSettle();
       expect(find.text('페이지 넘김 효과'), findsOneWidget);
       expect(

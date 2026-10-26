@@ -101,5 +101,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 페달 매핑 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`으로 현재 매핑·선택 가능 매핑과 맞춤 입력 편집 진입을 구분한다. HID/키 입력 처리, 설정 저장, custom input action과 실제 USB·Bluetooth 페달 호환성은 기존 Score 입력 adapter와 Device QA가 소유한다.
 - 직접 페달 설정은 공통 `DdiroriSettingsRow`, `DdiroriBanner`, `DdiroriAdaptiveActions`, `DdiroriButton`으로 진단 입력과 기본 입력의 동작 선택·저장을 구분한다. 작은 화면의 dropdown은 가용 폭을 채우며, 실제 key/HID ID 해석·저장과 장비 호환성은 기존 adapter와 Device QA가 소유한다.
 - 렌더링 프로필과 페이지 넘김 효과 sheet는 공통 sheet·안내·행·상태·행동으로 현재 설정과 선택 가능 설정을 구분한다. 렌더링 cache/invalidate 정책, 페이지 전환 타이밍과 실제 PDF의 성능·표시 품질은 기존 Score viewer와 Device QA가 소유하며, sheet를 열거나 닫는 일만으로 PDF·주석·현재 페이지를 바꾸지 않는다.
+- 좁은 화면의 `보기 옵션`은 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriSection`, `DdiroriItem`으로 빠른 접근·읽기와 연습·필기·페이지 편집·공유와 진단을 구획한다. 기존 `모든 도구` adapter는 `DdiroriIconButton`도 같은 이름·아이콘·enabled callback 계약으로 변환하며, 설정 저장·PDF 원본·주석·페이지·공연 정책은 계속 Score viewer가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

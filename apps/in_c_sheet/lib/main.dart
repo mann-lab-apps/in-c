@@ -8429,6 +8429,18 @@ setlist=$setlistLabel
                         if (current()) action.onPressed!();
                       },
               )
+            else if (action is DdiroriIconButton)
+              DdiroriButton(
+                label: action.label,
+                icon: action.icon,
+                kind: DdiroriButtonKind.quiet,
+                onPressed: action.onPressed == null
+                    ? null
+                    : () {
+                        Navigator.of(context).pop();
+                        if (current()) action.onPressed!();
+                      },
+              )
             else if (action is PopupMenuButton<_ViewerMenuAction>)
               ListTile(
                 title: Text(action.tooltip ?? '도구 메뉴'),
@@ -9398,6 +9410,367 @@ setlist=$setlistLabel
     }
   }
 
+  Future<void> _showCompactViewerOptions() async {
+    if (!mounted || _isPerformanceMode) {
+      return;
+    }
+    final currentScore = score;
+
+    Future<void> choose(
+      BuildContext sheetContext,
+      _ViewerMenuAction action,
+    ) async {
+      await Navigator.of(sheetContext).maybePop();
+      if (!mounted) {
+        return;
+      }
+      await _handleViewerMenuAction(action);
+    }
+
+    DdiroriItem option(
+      BuildContext sheetContext, {
+      required _ViewerMenuAction action,
+      required IconData icon,
+      required String title,
+      String? subtitle,
+      bool enabled = true,
+    }) => DdiroriItem(
+      leading: Icon(icon),
+      title: title,
+      subtitle: subtitle,
+      enabled: enabled,
+      onTap: enabled ? () => unawaited(choose(sheetContext, action)) : null,
+      trailing: const Icon(Icons.chevron_right),
+    );
+
+    await showDdiroriSheet<void>(
+      context: context,
+      title: '보기 옵션',
+      child: Builder(
+        builder: (sheetContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DdiroriBanner(
+              message: '읽기와 연습에 필요한 도구를 목적별로 선택하세요. 원본 PDF는 바꾸지 않습니다.',
+            ),
+            const SizedBox(height: 12),
+            DdiroriSection(
+              title: '빠른 접근',
+              children: [
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.bookmarks,
+                  icon: Icons.bookmarks_outlined,
+                  title: '북마크 목록',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.scoreParts,
+                  icon: Icons.library_music_outlined,
+                  title: '파트/버전',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.scoreNotes,
+                  icon: Icons.sticky_note_2_outlined,
+                  title: '악보 메모',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pagePicker,
+                  icon: Icons.grid_view_outlined,
+                  title: '페이지 탐색',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pdfTextSearch,
+                  icon: Icons.find_in_page_outlined,
+                  title: 'PDF 본문 검색',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DdiroriSection(
+              title: '읽기와 연습',
+              children: [
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.displayMode,
+                  icon: _displayMode.icon,
+                  title: '보기 모드: ${_displayMode.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.displayEffect,
+                  icon: _displayEffect.icon,
+                  title: '표시 효과: ${_displayEffect.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pageScale,
+                  icon: _pageScale.icon,
+                  title: '페이지 맞춤: ${_pageScale.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pedalMapping,
+                  icon: _pedalMapping.icon,
+                  title: '페달 매핑: ${_pedalMapping.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.renderProfile,
+                  icon: _renderProfile.icon,
+                  title: '렌더링: ${_renderProfile.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pageTurnAnimation,
+                  icon: _pageTurnAnimation.icon,
+                  title: '페이지 넘김: ${_pageTurnAnimation.label}',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.performanceSettings,
+                  icon: Icons.lock_outline,
+                  title: '공연 설정',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.toggleHalfPageTurn,
+                  icon: _useHalfPageTurn
+                      ? Icons.splitscreen
+                      : Icons.splitscreen_outlined,
+                  title: _useHalfPageTurn ? '반 페이지 넘김 끄기' : '반 페이지 넘김',
+                  subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
+                      ? '2페이지 보기에서는 비활성화'
+                      : null,
+                  enabled: _displayMode != _SheetViewerDisplayMode.twoPage,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.autoScroll,
+                  icon: _isAutoScrolling
+                      ? _isAutoScrollPaused
+                            ? Icons.play_circle_outline
+                            : Icons.pause_circle_outline
+                      : Icons.play_circle_outline,
+                  title: '자동 스크롤',
+                  subtitle: _isAutoScrolling
+                      ? (_isAutoScrollPaused ? '일시정지' : '실행 중')
+                      : null,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.metronome,
+                  icon: Icons.speed,
+                  title: '메트로놈',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.tuner,
+                  icon: Icons.tune,
+                  title: '튜너',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DdiroriSection(
+              title: '필기',
+              children: [
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.toggleAnnotationMode,
+                  icon: _isAnnotationMode ? Icons.draw : Icons.draw_outlined,
+                  title: _isAnnotationMode ? '필기 모드 끄기' : '필기 모드',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.undoAnnotation,
+                  icon: Icons.undo,
+                  title: '마지막 필기 취소',
+                  enabled: _isAnnotationMode,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.redoAnnotation,
+                  icon: Icons.redo,
+                  title: '마지막 필기 다시 적용',
+                  enabled: _isAnnotationMode,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DdiroriSection(
+              title: '페이지 편집',
+              subtitle: 'metadata 편집과 적용 사본 생성을 구분합니다.',
+              children: [
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.hideCurrentPage,
+                  icon: Icons.visibility_off_outlined,
+                  title: '현재 페이지 숨김',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.manageHiddenPages,
+                  icon: Icons.visibility_outlined,
+                  title: '숨김 페이지 관리',
+                  subtitle: currentScore.pageSettings.hiddenPages.isEmpty
+                      ? '숨긴 페이지 없음'
+                      : '${currentScore.pageSettings.hiddenPages.length}쪽 숨김',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.managePageOrder,
+                  icon: Icons.reorder,
+                  title: '페이지 순서/복제',
+                  subtitle: currentScore.pageSettings.hasCustomPageOrder
+                      ? '${_pageOrderDisplayCount(currentScore)}개 표시 항목'
+                      : '원본 PDF 보존',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.manageJumpPoints,
+                  icon: Icons.add_link,
+                  title: '점프 포인트',
+                  subtitle: currentScore.pageSettings.hasJumpPoints
+                      ? '${currentScore.pageSettings.jumpPoints.length}개 점프'
+                      : 'D.S./Coda 이동 설정',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.manageRehearsalMarks,
+                  icon: Icons.flag_outlined,
+                  title: '리허설 마크',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.importPdfOutline,
+                  icon: Icons.account_tree_outlined,
+                  title: 'PDF outline 가져오기',
+                  subtitle: '${_pdfOutlineBookmarks.length}개 후보',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.rotateCurrentPage,
+                  icon: Icons.rotate_90_degrees_cw_outlined,
+                  title: '회전 metadata 저장',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.applyPageRotations,
+                  icon: Icons.rotate_right_outlined,
+                  title: '회전 적용 사본 생성',
+                  subtitle: currentScore.pageSettings.pageRotations.isEmpty
+                      ? '저장된 회전 없음'
+                      : '${currentScore.pageSettings.pageRotations.length}쪽 회전',
+                  enabled: currentScore.pageSettings.pageRotations.isNotEmpty,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.cropPages,
+                  icon: Icons.crop_outlined,
+                  title: '자르기 맞춤',
+                  subtitle: currentScore.pageSettings.crop.hasCrop
+                      ? 'metadata 적용 중'
+                      : '원본 PDF 보존',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.applyPageCrop,
+                  icon: Icons.crop_free_outlined,
+                  title: '자르기 적용 사본 생성',
+                  subtitle:
+                      currentScore.pageSettings.crop.hasCrop ||
+                          currentScore.pageSettings.pageCrops.isNotEmpty
+                      ? '전체 crop${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · 페이지별 ${currentScore.pageSettings.pageCrops.length}쪽'
+                      : '저장된 crop 없음',
+                  enabled:
+                      currentScore.pageSettings.crop.hasCrop ||
+                      currentScore.pageSettings.pageCrops.isNotEmpty,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.cropPresets,
+                  icon: Icons.crop_free_outlined,
+                  title: 'Crop preset',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.pageTemplates,
+                  icon: Icons.dashboard_customize_outlined,
+                  title: '페이지 템플릿',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.applyPageArrangement,
+                  icon: Icons.library_books_outlined,
+                  title: '페이지 정리 적용 사본 생성',
+                  subtitle: _pageTemplateSummary(
+                    currentScore,
+                    _pdfController.pageCount,
+                  ),
+                  enabled:
+                      currentScore.pageSettings.hiddenPages.isNotEmpty ||
+                      currentScore.pageSettings.pageOrder.isNotEmpty ||
+                      currentScore.pageSettings.blankPageInsertions.isNotEmpty,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DdiroriSection(
+              title: '공유와 진단',
+              children: [
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.sanitizePdfLinks,
+                  icon: Icons.link_off_outlined,
+                  title: 'PDF 링크 제거 사본 만들기',
+                  subtitle: currentScore.pdfLinkSanitization.hasSanitizedCopy
+                      ? '이전 제거 ${currentScore.pdfLinkSanitization.removedUrlLinkCount}개'
+                      : '외부 URL 링크만 제거',
+                  enabled: !_isSanitizingPdfLinks,
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.sharePdf,
+                  icon: Icons.ios_share,
+                  title: 'PDF 공유',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.shareAnnotatedPdf,
+                  icon: Icons.draw_outlined,
+                  title: '필기 포함 PDF 공유',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.inputDiagnostic,
+                  icon: Icons.keyboard_alt_outlined,
+                  title: '입력 진단',
+                  subtitle: '페달/키보드 key log',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.togglePdfLinks,
+                  icon: _showPdfLinks ? Icons.link : Icons.link_off,
+                  title: _showPdfLinks ? 'PDF 링크 영역 숨기기' : 'PDF 링크 영역 표시',
+                ),
+                option(
+                  sheetContext,
+                  action: _ViewerMenuAction.togglePerformanceMode,
+                  icon: Icons.fullscreen,
+                  title: '공연 모드',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showPageControlsTemporarily() {
     if (!mounted) {
       return;
@@ -10019,341 +10392,10 @@ setlist=$setlistLabel
           icon: const Icon(Icons.fullscreen_exit),
         ),
       if (isCompactViewer && !_isPerformanceMode)
-        PopupMenuButton<_ViewerMenuAction>(
-          tooltip: '보기 옵션',
-          onSelected: (action) => _handleViewerMenuAction(action),
-          itemBuilder: (context) => [
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.bookmarks,
-              child: ListTile(
-                leading: Icon(Icons.bookmarks_outlined),
-                title: Text('북마크 목록'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreParts,
-              child: ListTile(
-                leading: Icon(Icons.library_music_outlined),
-                title: Text('파트/버전'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreNotes,
-              child: ListTile(
-                leading: Icon(Icons.sticky_note_2_outlined),
-                title: Text('악보 메모'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.displayMode,
-              child: ListTile(
-                leading: Icon(_displayMode.icon),
-                title: Text('보기 모드: ${_displayMode.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.displayEffect,
-              child: ListTile(
-                leading: Icon(_displayEffect.icon),
-                title: Text('표시 효과: ${_displayEffect.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageScale,
-              child: ListTile(
-                leading: Icon(_pageScale.icon),
-                title: Text('페이지 맞춤: ${_pageScale.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pedalMapping,
-              child: ListTile(
-                leading: Icon(_pedalMapping.icon),
-                title: Text('페달 매핑: ${_pedalMapping.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.renderProfile,
-              child: ListTile(
-                leading: Icon(_renderProfile.icon),
-                title: Text('렌더링: ${_renderProfile.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageTurnAnimation,
-              child: ListTile(
-                leading: Icon(_pageTurnAnimation.icon),
-                title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.performanceSettings,
-              child: const ListTile(
-                leading: Icon(Icons.lock_outline),
-                title: Text('공연 설정'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _displayMode != _SheetViewerDisplayMode.twoPage,
-              value: _ViewerMenuAction.toggleHalfPageTurn,
-              child: ListTile(
-                leading: Icon(
-                  _useHalfPageTurn
-                      ? Icons.splitscreen
-                      : Icons.splitscreen_outlined,
-                ),
-                title: Text(_useHalfPageTurn ? '반 페이지 넘김 끄기' : '반 페이지 넘김'),
-                subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
-                    ? const Text('2페이지 보기에서는 비활성화')
-                    : null,
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.autoScroll,
-              child: ListTile(
-                leading: Icon(
-                  _isAutoScrolling
-                      ? _isAutoScrollPaused
-                            ? Icons.play_circle_outline
-                            : Icons.pause_circle_outline
-                      : Icons.play_circle_outline,
-                ),
-                title: const Text('자동 스크롤'),
-                subtitle: _isAutoScrolling
-                    ? Text(_isAutoScrollPaused ? '일시정지' : '실행 중')
-                    : null,
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.metronome,
-              child: ListTile(leading: Icon(Icons.speed), title: Text('메트로놈')),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.tuner,
-              child: ListTile(leading: Icon(Icons.tune), title: Text('튜너')),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pagePicker,
-              child: ListTile(
-                leading: Icon(Icons.grid_view_outlined),
-                title: Text('페이지 탐색'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pdfTextSearch,
-              child: ListTile(
-                leading: Icon(Icons.find_in_page_outlined),
-                title: Text('PDF 본문 검색'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.toggleAnnotationMode,
-              child: ListTile(
-                leading: Icon(
-                  _isAnnotationMode ? Icons.draw : Icons.draw_outlined,
-                ),
-                title: Text(_isAnnotationMode ? '필기 모드 끄기' : '필기 모드'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _isAnnotationMode,
-              value: _ViewerMenuAction.undoAnnotation,
-              child: const ListTile(
-                leading: Icon(Icons.undo),
-                title: Text('마지막 필기 취소'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _isAnnotationMode,
-              value: _ViewerMenuAction.redoAnnotation,
-              child: const ListTile(
-                leading: Icon(Icons.redo),
-                title: Text('마지막 필기 다시 적용'),
-              ),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.hideCurrentPage,
-              child: ListTile(
-                leading: Icon(Icons.visibility_off_outlined),
-                title: Text('현재 페이지 숨김'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageHiddenPages,
-              child: ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: const Text('숨김 페이지 관리'),
-                subtitle: Text(
-                  currentScore.pageSettings.hiddenPages.isEmpty
-                      ? '숨긴 페이지 없음'
-                      : '${currentScore.pageSettings.hiddenPages.length}쪽 숨김',
-                ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.managePageOrder,
-              child: ListTile(
-                leading: const Icon(Icons.reorder),
-                title: const Text('페이지 순서/복제'),
-                subtitle: currentScore.pageSettings.hasCustomPageOrder
-                    ? Text('${_pageOrderDisplayCount(currentScore)}개 표시 항목')
-                    : const Text('원본 PDF 보존'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageJumpPoints,
-              child: ListTile(
-                leading: const Icon(Icons.add_link),
-                title: const Text('점프 포인트'),
-                subtitle: currentScore.pageSettings.hasJumpPoints
-                    ? Text('${currentScore.pageSettings.jumpPoints.length}개 점프')
-                    : const Text('D.S./Coda 이동 설정'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageRehearsalMarks,
-              child: ListTile(
-                leading: Icon(Icons.flag_outlined),
-                title: Text('리허설 마크'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.importPdfOutline,
-              child: ListTile(
-                leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF outline 가져오기'),
-                subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.rotateCurrentPage,
-              child: ListTile(
-                leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전 metadata 저장'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: currentScore.pageSettings.pageRotations.isNotEmpty,
-              value: _ViewerMenuAction.applyPageRotations,
-              child: ListTile(
-                leading: const Icon(Icons.rotate_right_outlined),
-                title: const Text('회전 적용 사본 생성'),
-                subtitle: currentScore.pageSettings.pageRotations.isEmpty
-                    ? const Text('저장된 회전 없음')
-                    : Text(
-                        '${currentScore.pageSettings.pageRotations.length}쪽 회전',
-                      ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.cropPages,
-              child: ListTile(
-                leading: const Icon(Icons.crop_outlined),
-                title: const Text('자르기 맞춤'),
-                subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('metadata 적용 중')
-                    : const Text('원본 PDF 보존'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled:
-                  currentScore.pageSettings.crop.hasCrop ||
-                  currentScore.pageSettings.pageCrops.isNotEmpty,
-              value: _ViewerMenuAction.applyPageCrop,
-              child: ListTile(
-                leading: const Icon(Icons.crop_free_outlined),
-                title: const Text('자르기 적용 사본 생성'),
-                subtitle:
-                    currentScore.pageSettings.crop.hasCrop ||
-                        currentScore.pageSettings.pageCrops.isNotEmpty
-                    ? Text(
-                        '전체 crop'
-                        '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
-                        '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
-                      )
-                    : const Text('저장된 crop 없음'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.cropPresets,
-              child: ListTile(
-                leading: Icon(Icons.crop_free_outlined),
-                title: Text('Crop preset'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageTemplates,
-              child: ListTile(
-                leading: Icon(Icons.dashboard_customize_outlined),
-                title: Text('페이지 템플릿'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled:
-                  currentScore.pageSettings.hiddenPages.isNotEmpty ||
-                  currentScore.pageSettings.pageOrder.isNotEmpty ||
-                  currentScore.pageSettings.blankPageInsertions.isNotEmpty,
-              value: _ViewerMenuAction.applyPageArrangement,
-              child: ListTile(
-                leading: const Icon(Icons.library_books_outlined),
-                title: const Text('페이지 정리 적용 사본 생성'),
-                subtitle: Text(
-                  _pageTemplateSummary(currentScore, _pdfController.pageCount),
-                ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: !_isSanitizingPdfLinks,
-              value: _ViewerMenuAction.sanitizePdfLinks,
-              child: ListTile(
-                leading: const Icon(Icons.link_off_outlined),
-                title: const Text('PDF 링크 제거 사본 만들기'),
-                subtitle: currentScore.pdfLinkSanitization.hasSanitizedCopy
-                    ? Text(
-                        '이전 제거 ${currentScore.pdfLinkSanitization.removedUrlLinkCount}개',
-                      )
-                    : const Text('외부 URL 링크만 제거'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.sharePdf,
-              child: ListTile(
-                leading: Icon(Icons.ios_share),
-                title: Text('PDF 공유'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.shareAnnotatedPdf,
-              child: ListTile(
-                leading: Icon(Icons.draw_outlined),
-                title: Text('필기 포함 PDF 공유'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.inputDiagnostic,
-              child: ListTile(
-                leading: Icon(Icons.keyboard_alt_outlined),
-                title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 key log'),
-              ),
-            ),
-            const PopupMenuDivider(),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.togglePdfLinks,
-              child: ListTile(
-                leading: Icon(_showPdfLinks ? Icons.link : Icons.link_off),
-                title: Text(_showPdfLinks ? 'PDF 링크 영역 숨기기' : 'PDF 링크 영역 표시'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.togglePerformanceMode,
-              child: ListTile(
-                leading: Icon(Icons.fullscreen),
-                title: Text('공연 모드'),
-              ),
-            ),
-          ],
+        DdiroriIconButton(
+          label: '보기 옵션',
+          icon: Icons.tune,
+          onPressed: _showCompactViewerOptions,
         ),
       Center(
         child: Padding(
