@@ -553,7 +553,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
-      2026-10-26 사용자가 띠로리 플레이 아이콘 후보 08을 최종 승인하고 iPhone XS에서 직접 물리 QA를 진행하기로 함. 실제 QA 결과·OS 버전·기기 출력/VoiceOver·Files/iCloud 동작은 아직 접수하지 않았고 iPad 물리 QA도 미완료.
+      2026-10-26 사용자가 띠로리 플레이 아이콘 후보 08을 최종 승인하고 iPhone XS에서 직접 물리 QA를 진행하기로 함. 앱 최소 iOS는 15.0이며 iPhone XS는 iOS 26 비지원이므로 iOS 26.5 시뮬레이터와 별도로 설치·첫 실행을 확인해야 함. 실제 QA 결과·OS 버전·기기 출력/VoiceOver·Files/iCloud 동작은 아직 접수하지 않았고 iPad 물리 QA도 미완료.
       2026-10-26 곡·앨범·검색·현재 재생에서 재생목록에 담기, 다중 선택과 드래그 순서 변경을 fake controller/SQLite 단위로 검증. 실제 터치 재정렬, Files 제공자와 물리 오디오 출력은 기기 QA pending.
       2026-10-26 SQLite v15 재생목록 저장·논리 백업·v14 백업 호환과 fake controller 곡 순서 재생을 자동 검증. 실제 Files 제공자 재연결과 물리 오디오 출력, 재생목록 편집 동선은 기기 QA pending.
       2026-10-26 공통 블루 기본값·중립 안내를 새 iOS 26.5 시뮬레이터 빌드에서 확인. 보관함의 주요 가져오기 버튼은 블루이며 Play 위젯 테스트는 light/dark 행동·선택·안내 역할 값을 확인했다. 실기기 시각·접근성·스토어 촬영 재검수는 필요하다.

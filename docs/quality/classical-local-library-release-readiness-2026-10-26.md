@@ -32,7 +32,7 @@
 | 운영·App Store Connect | 앱 ID, 콘텐츠 권리·연령 등급·개인정보·수출·가격·지역·계약·세금·trader 등 수동 선언, TestFlight 피드백 이메일과 build 선택, 외부 파일의 운영 연락처 |
 | 서명 | Apple Developer 권한, 배포 인증서·profile, signed archive와 upload validation 확인 |
 | 캡처 | 최종 디자인과 공개 문구가 확정된 동일 소스에서 iPhone/iPad 장면 촬영 후 이미지 원본을 열어 시각 검수하고 pipeline 검증 결과를 연결 |
-| 물리 QA | 사용자가 iPhone XS에서 VoiceOver, Files/iCloud, 실제 MP3/FLAC/M4A 청감, 스피커·유선·Bluetooth·interruption, 재생목록 재정렬·재기동 보존과 P0/P1 피드백을 확인. iPad 물리 검수는 별도 미완료 |
+| 물리 QA | 사용자가 iPhone XS에서 실제 iOS 버전과 앱 설치, VoiceOver, Files/iCloud, MP3/FLAC/M4A 청감, 스피커·유선·Bluetooth·interruption, 재생목록 재정렬·재기동 보존과 P0/P1 피드백을 확인. iPhone XS는 iOS 26 비지원이므로 기존 iOS 26.5 시뮬레이터 검증과 다르다. iPad 물리 검수는 별도 미완료 |
 
 읽기 전용 확인에서 로컬 키체인에는 Apple Distribution identity가 있지만,
 설치된 provisioning profile 11개 중 현재 Play bundle ID와 일치하는 항목은 없었다.
