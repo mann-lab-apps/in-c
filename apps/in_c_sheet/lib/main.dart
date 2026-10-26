@@ -6597,79 +6597,97 @@ setlist=$setlistLabel
 
     final currentScore = score;
     final order = currentScore.pageSettings.effectivePageOrder(pageCount);
-    final request = await showModalBottomSheet<_PageOrderRequest>(
+    final request = await showDdiroriSheet<_PageOrderRequest>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView.separated(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return ListTile(
-                leading: const Icon(Icons.restart_alt),
-                title: const Text('기본 페이지 순서로 되돌리기'),
-                subtitle: currentScore.pageSettings.hasCustomPageOrder
-                    ? Text('${order.length}개 표시 항목')
-                    : const Text('현재 기본 순서'),
-                onTap: currentScore.pageSettings.hasCustomPageOrder
-                    ? () => Navigator.of(context).pop(
+      title: '페이지 순서/복제',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DdiroriBanner(message: '이 순서는 앱에서만 바뀌며 원본 PDF 파일은 수정하지 않습니다.'),
+          const SizedBox(height: 12),
+          DdiroriItem(
+            title: '기본 페이지 순서로 되돌리기',
+            subtitle: currentScore.pageSettings.hasCustomPageOrder
+                ? '${order.length}개 표시 항목'
+                : '현재 기본 순서',
+            leading: const Icon(Icons.restart_alt),
+            flat: true,
+            enabled: currentScore.pageSettings.hasCustomPageOrder,
+            onTap: () => Navigator.of(context)
+                .pop(const _PageOrderRequest(action: _PageOrderAction.reset)),
+            actions: [
+              DdiroriButton(
+                label: '기본값 복원',
+                icon: Icons.restart_alt,
+                kind: DdiroriButtonKind.secondary,
+                onPressed: !currentScore.pageSettings.hasCustomPageOrder
+                    ? null
+                    : () => Navigator.of(context).pop(
                         const _PageOrderRequest(action: _PageOrderAction.reset),
-                      )
-                    : null,
-              );
-            }
-            final orderIndex = index - 1;
-            final pageNumber = order[orderIndex];
-            final isHidden = currentScore.pageSettings.isHidden(pageNumber);
-            return ListTile(
-              leading: CircleAvatar(child: Text('${orderIndex + 1}')),
-              title: Text('원본 $pageNumber쪽'),
-              subtitle: isHidden ? const Text('숨김 페이지') : null,
-              trailing: Wrap(
-                spacing: 0,
-                children: [
-                  IconButton(
-                    tooltip: '위로',
-                    onPressed: orderIndex == 0
-                        ? null
-                        : () => Navigator.of(context).pop(
-                            _PageOrderRequest(
-                              action: _PageOrderAction.moveUp,
-                              index: orderIndex,
-                            ),
-                          ),
-                    icon: const Icon(Icons.arrow_upward),
-                  ),
-                  IconButton(
-                    tooltip: '아래로',
-                    onPressed: orderIndex == order.length - 1
-                        ? null
-                        : () => Navigator.of(context).pop(
-                            _PageOrderRequest(
-                              action: _PageOrderAction.moveDown,
-                              index: orderIndex,
-                            ),
-                          ),
-                    icon: const Icon(Icons.arrow_downward),
-                  ),
-                  IconButton(
-                    tooltip: '복제',
-                    onPressed: () => Navigator.of(context).pop(
-                      _PageOrderRequest(
-                        action: _PageOrderAction.duplicate,
-                        index: orderIndex,
                       ),
-                    ),
-                    icon: const Icon(Icons.content_copy),
-                  ),
-                ],
               ),
-            );
-          },
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: order.length + 1,
-        ),
+            ],
+          ),
+          const Divider(height: 1),
+          for (final entry in order.asMap().entries) ...[
+            DdiroriItem(
+              title: '${entry.key + 1}번 · 원본 ${entry.value}쪽',
+              subtitle: currentScore.pageSettings.isHidden(entry.value)
+                  ? '숨김 페이지'
+                  : '표시 중',
+              leading: const Icon(Icons.description_outlined),
+              trailing: DdiroriStatusBadge(
+                label: currentScore.pageSettings.isHidden(entry.value)
+                    ? '숨김'
+                    : '표시',
+                tone: currentScore.pageSettings.isHidden(entry.value)
+                    ? DdiroriStatusTone.warning
+                    : DdiroriStatusTone.success,
+              ),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '위로',
+                  icon: Icons.arrow_upward,
+                  kind: DdiroriButtonKind.quiet,
+                  onPressed: entry.key == 0
+                      ? null
+                      : () => Navigator.of(context).pop(
+                          _PageOrderRequest(
+                            action: _PageOrderAction.moveUp,
+                            index: entry.key,
+                          ),
+                        ),
+                ),
+                DdiroriButton(
+                  label: '아래로',
+                  icon: Icons.arrow_downward,
+                  kind: DdiroriButtonKind.quiet,
+                  onPressed: entry.key == order.length - 1
+                      ? null
+                      : () => Navigator.of(context).pop(
+                          _PageOrderRequest(
+                            action: _PageOrderAction.moveDown,
+                            index: entry.key,
+                          ),
+                        ),
+                ),
+                DdiroriButton(
+                  label: '복제',
+                  icon: Icons.content_copy,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(
+                    _PageOrderRequest(
+                      action: _PageOrderAction.duplicate,
+                      index: entry.key,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (entry.key != order.length - 1) const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (request == null) {

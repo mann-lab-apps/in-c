@@ -544,6 +544,41 @@ void main() {
   });
 
   testWidgets(
+    'real PDF page order uses Ddirori actions without editing the PDF',
+    (t) async {
+      final c = await openPdf(t, width: 1680, height: 2000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('페이지 정리'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('페이지 순서/복제'));
+      await t.pumpAndSettle();
+
+      expect(find.text('페이지 순서/복제'), findsOneWidget);
+      expect(find.text('이 순서는 앱에서만 바뀌며 원본 PDF 파일은 수정하지 않습니다.'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '1번 · 원본 1쪽',
+        ),
+        findsOneWidget,
+      );
+      final duplicate = find
+          .byWidgetPredicate(
+            (widget) => widget is DdiroriButton && widget.label == '복제',
+          )
+          .first;
+      await t.ensureVisible(duplicate);
+      await t.tap(duplicate);
+      await t.pumpAndSettle();
+
+      expect(c.scoreById('pilot-0').pageSettings.pageOrder, <int>[1, 1, 2, 3]);
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();
