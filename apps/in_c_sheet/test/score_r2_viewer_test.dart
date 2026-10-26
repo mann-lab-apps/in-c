@@ -264,6 +264,7 @@ void main() {
       expect(pdf(t).document, same(originalDocument));
       await command(t, '펜 옵션');
       expect(find.text('주석 옵션'), findsOneWidget);
+      expect(find.byType(DdiroriToolbar), findsOneWidget);
       expect(find.text('지우개'), findsOneWidget);
       expect(find.text('스탬프'), findsOneWidget);
       await command(t, '닫기');

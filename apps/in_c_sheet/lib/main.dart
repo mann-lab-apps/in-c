@@ -12159,148 +12159,143 @@ class _AnnotationToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final toolbarContent = Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: isCompact ? 6 : 10,
-      runSpacing: 8,
-      children: [
-        for (final tool in _AnnotationToolbarTool.values)
-          DdiroriButton(
-            label: tool.label,
-            icon: tool.icon,
-            kind: DdiroriButtonKind.quiet,
-            selected: selectedTool == tool,
-            onPressed: () => onToolSelected(tool),
-          ),
-        if (selectedTool == _AnnotationToolbarTool.stamp)
-          PopupMenuButton<_AnnotationStamp>(
-            tooltip: '스탬프 선택',
-            icon: Icon(selectedStamp.icon),
-            initialValue: selectedStamp,
-            onSelected: onStampSelected,
-            itemBuilder: (context) => _AnnotationStamp.values
-                .map(
-                  (stamp) => PopupMenuItem<_AnnotationStamp>(
-                    value: stamp,
-                    child: ListTile(
-                      leading: Icon(stamp.icon),
-                      title: Text(stamp.label),
-                    ),
+    final toolbarItems = <Widget>[
+      for (final tool in _AnnotationToolbarTool.values)
+        DdiroriButton(
+          label: tool.label,
+          icon: tool.icon,
+          kind: DdiroriButtonKind.quiet,
+          selected: selectedTool == tool,
+          onPressed: () => onToolSelected(tool),
+        ),
+      if (selectedTool == _AnnotationToolbarTool.stamp)
+        PopupMenuButton<_AnnotationStamp>(
+          tooltip: '스탬프 선택',
+          icon: Icon(selectedStamp.icon),
+          initialValue: selectedStamp,
+          onSelected: onStampSelected,
+          itemBuilder: (context) => _AnnotationStamp.values
+              .map(
+                (stamp) => PopupMenuItem<_AnnotationStamp>(
+                  value: stamp,
+                  child: ListTile(
+                    leading: Icon(stamp.icon),
+                    title: Text(stamp.label),
                   ),
-                )
-                .toList(growable: false),
-          ),
-        for (final color in _colors)
-          Tooltip(
-            message: _colorLabel(color),
-            child: Semantics(
-              button: true,
-              selected: selectedColor == color,
-              child: InkResponse(
-                onTap: () => onColorSelected(color),
-                radius: 18,
-                child: SizedBox.square(
-                  dimension: 48,
-                  child: Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(color),
-                        border: Border.all(
-                          color: selectedColor == color
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.outlineVariant,
-                          width: selectedColor == color ? 3 : 1,
-                        ),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      for (final color in _colors)
+        Tooltip(
+          message: _colorLabel(color),
+          child: Semantics(
+            button: true,
+            selected: selectedColor == color,
+            child: InkResponse(
+              onTap: () => onColorSelected(color),
+              radius: 18,
+              child: SizedBox.square(
+                dimension: 48,
+                child: Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(color),
+                      border: Border.all(
+                        color: selectedColor == color
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant,
+                        width: selectedColor == color ? 3 : 1,
                       ),
-                      child: const SizedBox(width: 24, height: 24),
                     ),
+                    child: const SizedBox(width: 24, height: 24),
                   ),
                 ),
               ),
             ),
           ),
-        for (final width in _widthPresets)
-          Tooltip(
-            message: '${width.toStringAsFixed(0)}pt',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => onWidthChanged(width),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
+        ),
+      for (final width in _widthPresets)
+        Tooltip(
+          message: '${width.toStringAsFixed(0)}pt',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => onWidthChanged(width),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: (selectedWidth - width).abs() < 0.5
+                    ? theme.colorScheme.primaryContainer
+                    : theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
                   color: (selectedWidth - width).abs() < 0.5
-                      ? theme.colorScheme.primaryContainer
-                      : theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: (selectedWidth - width).abs() < 0.5
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outlineVariant,
-                  ),
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outlineVariant,
                 ),
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Center(
-                    child: Container(
-                      width: 18,
-                      height: width.clamp(2, 10).toDouble(),
-                      decoration: BoxDecoration(
-                        color: Color(selectedColor),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+              ),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Container(
+                    width: 18,
+                    height: width.clamp(2, 10).toDouble(),
+                    decoration: BoxDecoration(
+                      color: Color(selectedColor),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        SizedBox(
-          width: isCompact ? 108 : 150,
-          child: Slider(
-            value: selectedWidth,
-            min: 2,
-            max: 14,
-            divisions: 6,
-            label: selectedWidth.toStringAsFixed(0),
-            onChanged: onWidthChanged,
-          ),
         ),
-        IconButton(
-          tooltip: '마지막 필기 취소',
-          onPressed: onUndo,
-          icon: const Icon(Icons.undo),
+      SizedBox(
+        width: isCompact ? 108 : 150,
+        child: Slider(
+          value: selectedWidth,
+          min: 2,
+          max: 14,
+          divisions: 6,
+          label: selectedWidth.toStringAsFixed(0),
+          onChanged: onWidthChanged,
         ),
-        IconButton(
-          tooltip: '마지막 필기 다시 적용',
-          onPressed: onRedo,
-          icon: const Icon(Icons.redo),
+      ),
+      IconButton(
+        tooltip: '마지막 필기 취소',
+        onPressed: onUndo,
+        icon: const Icon(Icons.undo),
+      ),
+      IconButton(
+        tooltip: '마지막 필기 다시 적용',
+        onPressed: onRedo,
+        icon: const Icon(Icons.redo),
+      ),
+      IconButton(
+        tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
+        onPressed: onToggleLayerVisibility,
+        icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
+      ),
+      IconButton(
+        tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+        onPressed: onToggleLayerExport,
+        icon: Icon(
+          includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
         ),
-        IconButton(
-          tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
-          onPressed: onToggleLayerVisibility,
-          icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
-        ),
-        IconButton(
-          tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
-          onPressed: onToggleLayerExport,
-          icon: Icon(
-            includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
-          ),
-        ),
-        IconButton(
-          tooltip: '현재 필기 도구 즐겨찾기 저장',
-          onPressed: onSaveFavorite,
-          icon: const Icon(Icons.star_border),
-        ),
-        IconButton(
-          tooltip: '즐겨찾기 필기 도구 적용',
-          onPressed: hasFavoritePreset ? onApplyFavorite : null,
-          icon: const Icon(Icons.star),
-        ),
-      ],
-    );
-    return toolbarContent;
+      ),
+      IconButton(
+        tooltip: '현재 필기 도구 즐겨찾기 저장',
+        onPressed: onSaveFavorite,
+        icon: const Icon(Icons.star_border),
+      ),
+      IconButton(
+        tooltip: '즐겨찾기 필기 도구 적용',
+        onPressed: hasFavoritePreset ? onApplyFavorite : null,
+        icon: const Icon(Icons.star),
+      ),
+    ];
+    return DdiroriToolbar(label: '주석 도구', children: toolbarItems);
   }
 
   String _colorLabel(int color) {
