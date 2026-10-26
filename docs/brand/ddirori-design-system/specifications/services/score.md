@@ -94,5 +94,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 북마크 목록 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriButton`, `DdiroriMenuButton`으로 이동과 이름 변경/삭제를 분리한다. 행 자체와 `이동`은 기존 PDF page controller 이동만 요청하며, 이름 변경/삭제는 기존 bookmark controller 경로를 그대로 사용한다. 큰 글씨에서 모든 항목과 행동은 scroll로 접근해야 하고, 북마크 목록을 여는 일만으로 PDF 문서나 메타데이터를 바꾸지 않는다.
 - 숨긴 페이지 관리 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriButton`으로 숨긴 쪽과 회전 metadata를 보여주고 `숨김 해제`를 명시한다. 해제와 대상 쪽 이동은 기존 page-settings/PDF controller가 소유하며, 목록을 열거나 닫는 일만으로 페이지 순서·원본 PDF·주석을 바꾸지 않는다.
 - 페이지 순서/복제 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`으로 앱 내부 표시 순서와 숨김 상태, 위/아래/복제/기본값 복원을 구분한다. 모든 변경은 기존 page-order controller를 통해 저장하며 원본 PDF 파일·주석 좌표·연습 상태는 바꾸지 않는다.
+- 점프 포인트와 대상 페이지 선택 sheet는 공통 `showDdiroriSheet`, `DdiroriBanner`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriButton`, `DdiroriMenuButton`으로 현재 페이지의 추가, 이동 가능/숨김 상태, 이동과 이름 변경/삭제를 분리한다. 실제 페이지 이동과 점프 포인트 저장은 기존 Score controller/PDF adapter가 소유하며, 원본 PDF 파일·주석 좌표·연습 상태는 바꾸지 않는다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

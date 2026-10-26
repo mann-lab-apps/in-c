@@ -579,6 +579,60 @@ void main() {
   );
 
   testWidgets(
+    'real PDF jump points use Ddirori sheets without replacing navigation',
+    (t) async {
+      final c = await openPdf(t, width: 1680, height: 2000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('페이지 정리'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('점프 포인트'));
+      await t.pumpAndSettle();
+
+      expect(find.text('점프 포인트'), findsOneWidget);
+      expect(
+        find.text(
+          '반복 연주, D.S./Coda 이동을 위한 앱 안의 바로가기입니다. 원본 PDF 파일은 수정하지 않습니다.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '현재 1쪽에서 점프 추가',
+        ),
+        findsOneWidget,
+      );
+      await command(t, '현재 쪽에서 추가');
+
+      expect(find.text('대상 페이지 선택'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '2쪽',
+        ),
+        findsOneWidget,
+      );
+      final selectSecondPage = find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) => widget is DdiroriItem && widget.title == '2쪽',
+        ),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '선택',
+        ),
+      );
+      await t.ensureVisible(selectSecondPage);
+      await t.tap(selectSecondPage);
+      await t.pumpAndSettle();
+
+      final jumpPoint = c.scoreById('pilot-0').pageSettings.jumpPoints.single;
+      expect(jumpPoint.sourcePage, 1);
+      expect(jumpPoint.targetPage, 2);
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {
       final store = pilot.PendingStore();

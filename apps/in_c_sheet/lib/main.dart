@@ -6750,78 +6750,107 @@ setlist=$setlistLabel
     }
 
     final currentScore = score;
-    final request = await showModalBottomSheet<_JumpPointRequest>(
+    final request = await showDdiroriSheet<_JumpPointRequest>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView.separated(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              final currentPage =
-                  _pdfController.pageNumber ??
-                  _pageNumber ??
-                  currentScore.lastPage;
-              return ListTile(
-                leading: const Icon(Icons.add_link),
-                title: Text('현재 $currentPage쪽에서 점프 추가'),
-                subtitle: const Text('반복 연주, D.S./Coda 이동에 사용'),
-                onTap: () => Navigator.of(context)
+      title: '점프 포인트',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DdiroriBanner(
+            message:
+                '반복 연주, D.S./Coda 이동을 위한 앱 안의 바로가기입니다. 원본 PDF 파일은 수정하지 않습니다.',
+          ),
+          const SizedBox(height: 12),
+          DdiroriItem(
+            title:
+                '현재 ${_pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage}쪽에서 점프 추가',
+            subtitle: '대상 페이지를 선택해 바로가기를 만듭니다.',
+            leading: const Icon(Icons.add_link),
+            flat: true,
+            onTap: () =>
+                Navigator.of(context)
                     .pop(const _JumpPointRequest(action: _JumpPointAction.add)),
-              );
-            }
-            final jumpPoint = currentScore.pageSettings.jumpPoints[index - 1];
-            final includesHiddenPage =
-                currentScore.pageSettings.isHidden(jumpPoint.sourcePage) ||
-                currentScore.pageSettings.isHidden(jumpPoint.targetPage);
-            return ListTile(
-              enabled: !includesHiddenPage,
-              leading: const Icon(Icons.keyboard_tab),
-              title: Text(jumpPoint.label),
-              subtitle: Text(
-                includesHiddenPage
-                    ? '${jumpPoint.sourcePage}쪽 → ${jumpPoint.targetPage}쪽 · 숨김 페이지 포함'
-                    : '${jumpPoint.sourcePage}쪽 → ${jumpPoint.targetPage}쪽',
+            actions: [
+              DdiroriButton(
+                label: '현재 쪽에서 추가',
+                icon: Icons.add_link,
+                kind: DdiroriButtonKind.secondary,
+                onPressed: () => Navigator.of(context)
+                    .pop(const _JumpPointRequest(action: _JumpPointAction.add)),
               ),
-              onTap: includesHiddenPage
-                  ? null
-                  : () => Navigator.of(context).pop(
-                      _JumpPointRequest(
-                        action: _JumpPointAction.open,
-                        jumpPoint: jumpPoint,
-                      ),
-                    ),
-              trailing: Wrap(
-                spacing: 0,
-                children: [
-                  IconButton(
-                    tooltip: '이름 수정',
-                    onPressed: () => Navigator.of(context).pop(
-                      _JumpPointRequest(
-                        action: _JumpPointAction.rename,
-                        jumpPoint: jumpPoint,
-                      ),
-                    ),
-                    icon: const Icon(Icons.edit_outlined),
+            ],
+          ),
+          if (currentScore.pageSettings.jumpPoints.isNotEmpty)
+            const Divider(height: 1),
+          for (final entry
+              in currentScore.pageSettings.jumpPoints.asMap().entries) ...[
+            Builder(
+              builder: (context) {
+                final jumpPoint = entry.value;
+                final includesHiddenPage =
+                    currentScore.pageSettings.isHidden(jumpPoint.sourcePage) ||
+                    currentScore.pageSettings.isHidden(jumpPoint.targetPage);
+                return DdiroriItem(
+                  enabled: !includesHiddenPage,
+                  leading: const Icon(Icons.keyboard_tab),
+                  title: jumpPoint.label,
+                  subtitle: includesHiddenPage
+                      ? '${jumpPoint.sourcePage}쪽 → ${jumpPoint.targetPage}쪽 · 숨김 페이지 포함'
+                      : '${jumpPoint.sourcePage}쪽 → ${jumpPoint.targetPage}쪽',
+                  trailing: DdiroriStatusBadge(
+                    label: includesHiddenPage ? '이동 불가' : '이동 가능',
+                    tone: includesHiddenPage
+                        ? DdiroriStatusTone.warning
+                        : DdiroriStatusTone.success,
                   ),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: () => Navigator.of(context).pop(
-                      _JumpPointRequest(
-                        action: _JumpPointAction.delete,
-                        jumpPoint: jumpPoint,
-                      ),
+                  flat: true,
+                  onTap: includesHiddenPage
+                      ? null
+                      : () => Navigator.of(context).pop(
+                          _JumpPointRequest(
+                            action: _JumpPointAction.open,
+                            jumpPoint: jumpPoint,
+                          ),
+                        ),
+                  actions: [
+                    DdiroriButton(
+                      label: '이동',
+                      icon: Icons.arrow_forward,
+                      kind: DdiroriButtonKind.secondary,
+                      onPressed: includesHiddenPage
+                          ? null
+                          : () => Navigator.of(context).pop(
+                              _JumpPointRequest(
+                                action: _JumpPointAction.open,
+                                jumpPoint: jumpPoint,
+                              ),
+                            ),
                     ),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ),
-            );
-          },
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: currentScore.pageSettings.jumpPoints.length + 1,
-        ),
+                    DdiroriMenuButton<_JumpPointAction>(
+                      label: '${jumpPoint.label} 더보기',
+                      icon: Icons.more_horiz,
+                      onSelected: (action) => Navigator.of(context).pop(
+                        _JumpPointRequest(action: action, jumpPoint: jumpPoint),
+                      ),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<_JumpPointAction>(
+                          value: _JumpPointAction.rename,
+                          child: Text('이름 변경'),
+                        ),
+                        PopupMenuItem<_JumpPointAction>(
+                          value: _JumpPointAction.delete,
+                          child: Text('삭제'),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+            if (entry.key != currentScore.pageSettings.jumpPoints.length - 1)
+              const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (request == null) {
@@ -6886,24 +6915,33 @@ setlist=$setlistLabel
       _showSnackBar('점프 포인트를 만들 페이지가 부족합니다.');
       return;
     }
-    final targetPage = await showModalBottomSheet<int>(
+    final targetPage = await showDdiroriSheet<int>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView.separated(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemBuilder: (context, index) {
-            final pageNumber = targetPages[index];
-            return ListTile(
+      title: '대상 페이지 선택',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DdiroriBanner(message: '$sourcePage쪽에서 이동할 표시 중인 페이지를 선택합니다.'),
+          const SizedBox(height: 12),
+          for (final entry in targetPages.asMap().entries) ...[
+            DdiroriItem(
+              title: '${entry.value}쪽',
+              subtitle: '$sourcePage쪽에서 이 쪽으로 이동',
               leading: const Icon(Icons.flag_outlined),
-              title: Text('$pageNumber쪽'),
-              onTap: () => Navigator.of(context).pop(pageNumber),
-            );
-          },
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: targetPages.length,
-        ),
+              flat: true,
+              onTap: () => Navigator.of(context).pop(entry.value),
+              actions: [
+                DdiroriButton(
+                  label: '선택',
+                  icon: Icons.arrow_forward,
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(entry.value),
+                ),
+              ],
+            ),
+            if (entry.key != targetPages.length - 1) const Divider(height: 1),
+          ],
+        ],
       ),
     );
     if (targetPage == null) {
