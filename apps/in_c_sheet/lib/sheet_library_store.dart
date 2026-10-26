@@ -61,6 +61,7 @@ class SheetLibraryStore {
       'in_c_sheet_library_view_settings';
   static const _pdfFolderName = 'scores';
   static const _linkedFilesFolderName = 'linked-files';
+  static const _annotationFolderName = 'annotations';
   static const _backupFolderName = 'backups';
 
   Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
@@ -415,15 +416,19 @@ class SheetLibraryStore {
     final scores = _readScores(preferences, activeLibraryId);
     final repairedScores = await _repairManagedScorePaths(scores);
     if (!_haveSameScorePaths(scores, repairedScores)) {
-      await preferences.setString(
-        _scopedKey(_scoresKey, activeLibraryId),
-        SheetScore.encodeList(repairedScores),
-      );
-      await _saveAutomaticMetadataBackup(
-        preferences,
-        activeLibraryId,
-        scores: repairedScores,
-      );
+      try {
+        await preferences.setString(
+          _scopedKey(_scoresKey, activeLibraryId),
+          SheetScore.encodeList(repairedScores),
+        );
+        await _saveAutomaticMetadataBackup(
+          preferences,
+          activeLibraryId,
+          scores: repairedScores,
+        );
+      } catch (_) {
+        // A recoverable metadata write must not hide a still-readable score.
+      }
     }
     return _sortScores(repairedScores);
   }
@@ -1429,13 +1434,30 @@ class SheetLibraryStore {
   Future<List<SheetScore>> _repairManagedScorePaths(
     List<SheetScore> scores,
   ) async {
-    if (scores.isEmpty) {
+    if (scores.isEmpty || !scores.any(_mayNeedManagedPathRepair)) {
       return scores;
     }
     final documents = await getApplicationDocumentsDirectory();
     return Future.wait(
       scores.map((score) => _repairManagedScorePath(score, documents)),
     );
+  }
+
+  bool _mayNeedManagedPathRepair(SheetScore score) {
+    return _looksLikeManagedPath(score.filePath, _pdfFolderName) ||
+        score.linkedFiles.any(
+          (linkedFile) =>
+              _looksLikeManagedPath(linkedFile.path, _linkedFilesFolderName),
+        ) ||
+        (score.annotationStorage.isFileBacked &&
+            _looksLikeManagedPath(
+              score.annotationStorage.path,
+              _annotationFolderName,
+            ));
+  }
+
+  bool _looksLikeManagedPath(String path, String folderName) {
+    return path.replaceAll('\\', '/').contains('/Documents/$folderName/');
   }
 
   Future<SheetScore> _repairManagedScorePath(
@@ -1446,6 +1468,7 @@ class SheetLibraryStore {
       score.filePath,
       documents: documents,
       folderName: _pdfFolderName,
+      expectedFilePrefix: '${score.id}-',
     );
     final linkedFiles = await Future.wait(
       score.linkedFiles.map(
@@ -1454,35 +1477,61 @@ class SheetLibraryStore {
             linkedFile.path,
             documents: documents,
             folderName: _linkedFilesFolderName,
+            hasExpectedFileName: _isManagedLinkedFileName,
           ),
         ),
       ),
     );
+    final annotationStorage = score.annotationStorage;
+    final repairedAnnotationStorage = annotationStorage.isFileBacked
+        ? annotationStorage.copyWith(
+            path: await _repairManagedPath(
+              annotationStorage.path,
+              documents: documents,
+              folderName: _annotationFolderName,
+              expectedFilePrefix: '${score.id}-',
+            ),
+          )
+        : annotationStorage;
     final hasLinkedPathChange = linkedFiles.asMap().entries.any(
       (entry) => entry.value.path != score.linkedFiles[entry.key].path,
     );
-    if (filePath == score.filePath && !hasLinkedPathChange) {
+    if (filePath == score.filePath &&
+        !hasLinkedPathChange &&
+        repairedAnnotationStorage.path == annotationStorage.path) {
       return score;
     }
-    return score.copyWith(filePath: filePath, linkedFiles: linkedFiles);
+    return score.copyWith(
+      filePath: filePath,
+      linkedFiles: linkedFiles,
+      annotationStorage: repairedAnnotationStorage,
+    );
   }
 
   Future<String> _repairManagedPath(
     String storedPath, {
     required Directory documents,
     required String folderName,
+    String? expectedFilePrefix,
+    bool Function(String fileName)? hasExpectedFileName,
   }) async {
     if (storedPath.trim().isEmpty || await File(storedPath).exists()) {
       return storedPath;
     }
 
     final normalizedPath = storedPath.replaceAll('\\', '/');
-    final managedDirectory = '/Documents/$folderName/';
-    if (!normalizedPath.contains(managedDirectory)) {
+    if (!_looksLikeManagedPath(normalizedPath, folderName)) {
       return storedPath;
     }
     final fileName = normalizedPath.split('/').last;
     if (fileName.isEmpty || fileName == '.' || fileName == '..') {
+      return storedPath;
+    }
+    if (expectedFilePrefix != null &&
+        !fileName.startsWith(expectedFilePrefix)) {
+      return storedPath;
+    }
+    if (hasExpectedFileName != null && !hasExpectedFileName(fileName)) {
       return storedPath;
     }
     final candidate = File('${documents.path}/$folderName/$fileName');
@@ -1495,7 +1544,9 @@ class SheetLibraryStore {
     }
     for (var index = 0; index < first.length; index++) {
       if (first[index].filePath != second[index].filePath ||
-          first[index].linkedFiles.length != second[index].linkedFiles.length) {
+          first[index].linkedFiles.length != second[index].linkedFiles.length ||
+          first[index].annotationStorage.path !=
+              second[index].annotationStorage.path) {
         return false;
       }
       for (
@@ -1510,6 +1561,10 @@ class SheetLibraryStore {
       }
     }
     return true;
+  }
+
+  bool _isManagedLinkedFileName(String fileName) {
+    return RegExp(r'^\d+-\d+-').hasMatch(fileName);
   }
 
   Future<String> _writeImportedPdf({

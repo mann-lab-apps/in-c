@@ -102,8 +102,10 @@ Repo 포함 fixture:
 7. Cloud provider PDF를 online/offline 상태에서 가져오고 실패 문구를 기록한다.
 8. 실제 CamScanner/object-stream PDF에서 URL link count, sanitizer 결과, 원본 linked file 보존을
    기록한다.
-9. 기준음/드론, local audio playback, tuner latency와 no-signal behavior를 기록한다.
-10. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
+9. 앱 업데이트·복원 또는 개발용 재설치 뒤에도 현재 앱 문서 저장소에 남아 있는 관리 PDF, 연결 파일,
+   파일형 주석이 다시 열리는지 확인한다. 외부 원본 경로와 실제로 없는 파일은 다른 파일로 바꾸지 않아야 한다.
+10. 기준음/드론, local audio playback, tuner latency와 no-signal behavior를 기록한다.
+11. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
 
 ## 기록 양식
 
@@ -159,6 +161,16 @@ Cloud provider:
 
 - provider, online/offline, 내려받기 필요 여부, picker error.
 - 앱 내부 사본 생성 여부, 같은 파일 재가져오기 중복 여부.
+
+관리 파일 경로 복구:
+
+- 앱이 새 container에서 실행된 뒤 이전 절대 경로가 남은 score metadata를 준비한다. 현재
+  `Documents/scores`, `Documents/linked-files`, `Documents/annotations`에 같은 앱 관리 사본이 있을 때만
+  PDF·연결 파일·파일형 주석이 새 경로로 열리는지 기록한다.
+- 다른 악보 ID의 PDF/주석, Files/iCloud 등 외부 원본 경로, 현재 저장소에 없는 파일은 바꾸거나
+  다른 파일로 열면 안 된다.
+- 이는 iOS 업데이트·복원·Files provider의 모든 수명을 자동으로 증명하지 않는다. 설치 방식, 기존/새
+  container 상태와 실제 결과를 함께 남긴다.
 
 CamScanner/object-stream PDF:
 

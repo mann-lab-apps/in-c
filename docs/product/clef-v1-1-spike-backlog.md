@@ -120,7 +120,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 - 현재 v1 상태: inline SharedPreferences metadata가 기본 저장소다. file-backed adapter와
   `SheetAnnotationStorageReference` scaffold는 있고, 10k stroke stress-lite save/load test로
-  external file 경로의 기본 회귀를 확인했다. 강제 migration은 하지 않는다.
+  external file 경로의 기본 회귀를 확인했다. 앱 Documents container가 바뀐 뒤에는 현재
+  `annotations` 폴더의 같은 score ID 파일만 다시 연결한다. 강제 migration은 하지 않는다.
 - 왜 v1.1 spike인지: 대량 stroke 성능, corrupt file recovery, checksum, backup/restore, lazy
   migration rollback 정책이 필요하다.
 - 결정 필요사항: SQLite vs JSON file-backed, profile별 path, transaction/locking, checksum strategy,

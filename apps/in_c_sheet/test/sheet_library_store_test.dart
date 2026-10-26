@@ -173,14 +173,22 @@ void main() {
       final store = SheetLibraryStore();
       const oldDocuments = '/simulator/old-container/Documents';
       const pdfName = 'score-1-prelude.pdf';
-      const linkedName = 'audio-1-reference.m4a';
+      const linkedName = '1760000000000000-42-reference.m4a';
+      const externalNamedLikeManagedFolder = 'user-provided-reference.m4a';
+      const annotationName = 'score-1-annotations.json';
       final currentScores = Directory('${documentsDir.path}/scores');
       final currentLinkedFiles = Directory('${documentsDir.path}/linked-files');
+      final currentAnnotations = Directory('${documentsDir.path}/annotations');
       await currentScores.create(recursive: true);
       await currentLinkedFiles.create(recursive: true);
+      await currentAnnotations.create(recursive: true);
       await File('${currentScores.path}/$pdfName').writeAsString('pdf');
       await File('${currentLinkedFiles.path}/$linkedName')
           .writeAsString('audio');
+      await File('${currentLinkedFiles.path}/$externalNamedLikeManagedFolder')
+          .writeAsString('unrelated audio');
+      await File('${currentAnnotations.path}/$annotationName')
+          .writeAsString('{"strokes":[],"texts":[]}');
 
       final now = DateTime.utc(2026, 10, 25);
       await store.saveScores(<SheetScore>[
@@ -199,6 +207,13 @@ void main() {
               createdAt: now,
             ),
             SheetLinkedFile(
+              path:
+                  '$oldDocuments/linked-files/$externalNamedLikeManagedFolder',
+              type: 'm4a',
+              label: 'External with a managed-looking folder',
+              createdAt: now,
+            ),
+            SheetLinkedFile(
               path: '/outside-app/original.pdf',
               type: 'pdf',
               label: 'Original',
@@ -211,6 +226,10 @@ void main() {
           lastPage: 1,
           isFavorite: false,
           bookmarks: const <SheetBookmark>[],
+          annotationStorage: SheetAnnotationStorageReference(
+            mode: SheetAnnotationStorageReference.fileMode,
+            path: '$oldDocuments/annotations/$annotationName',
+          ),
         ),
       ]);
 
@@ -221,13 +240,64 @@ void main() {
         repaired.linkedFiles.first.path,
         '${currentLinkedFiles.path}/$linkedName',
       );
+      expect(
+        repaired.linkedFiles[1].path,
+        '$oldDocuments/linked-files/$externalNamedLikeManagedFolder',
+      );
       expect(repaired.linkedFiles.last.path, '/outside-app/original.pdf');
+      expect(
+        repaired.annotationStorage.path,
+        '${currentAnnotations.path}/$annotationName',
+      );
       expect(
         (await store.loadScores()).single.filePath,
         '${currentScores.path}/$pdfName',
       );
+      final persisted = (await store.loadScores()).single;
+      expect(
+        persisted.linkedFiles.first.path,
+        '${currentLinkedFiles.path}/$linkedName',
+      );
+      expect(
+        persisted.linkedFiles[1].path,
+        '$oldDocuments/linked-files/$externalNamedLikeManagedFolder',
+      );
+      expect(
+        persisted.annotationStorage.path,
+        '${currentAnnotations.path}/$annotationName',
+      );
     },
   );
+
+  test('does not rebase a managed score to another score file', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final scores = Directory('${documentsDir.path}/scores');
+    await scores.create(recursive: true);
+    await File('${scores.path}/score-1-prelude.pdf').writeAsString('pdf');
+
+    final now = DateTime.utc(2026, 10, 25);
+    const oldPath =
+        '/simulator/old-container/Documents/scores/score-1-prelude.pdf';
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'score-2',
+        title: 'Other score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: oldPath,
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+
+    expect((await store.loadScores()).single.filePath, oldPath);
+  });
 
   test('loads legacy in_c_sheet preference keys after Clef rename', () async {
     final now = DateTime.parse('2026-08-20T10:00:00.000');
