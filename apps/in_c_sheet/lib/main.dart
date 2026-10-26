@@ -12720,6 +12720,8 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = DdiroriStyle.of(context);
+    final gap = style.gap;
     final durationSliderValue = _settings.durationSeconds
         .clamp(30, 900)
         .toDouble();
@@ -12741,38 +12743,30 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    widget.isAutoScrolling
-                        ? widget.isPaused
-                              ? Icons.play_circle_outline
-                              : Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '자동 스크롤',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+              DdiroriPageHeader(
+                title: '자동 스크롤',
+                subtitle: '세로 보기에서 연주 흐름에 맞춰 악보를 이동합니다.',
+                leading: Icon(
+                  widget.isAutoScrolling
+                      ? widget.isPaused
+                            ? Icons.play_circle_outline
+                            : Icons.pause_circle_outline
+                      : Icons.play_circle_outline,
+                ),
+                actions: [
                   if (widget.isAutoScrolling)
-                    OutlinedButton.icon(
+                    DdiroriButton(
+                      kind: DdiroriButtonKind.secondary,
+                      label: widget.isPaused ? '재개' : '일시정지',
                       onPressed: widget.isPaused
                           ? widget.onResume
                           : widget.onPause,
-                      icon: Icon(
-                        widget.isPaused
-                            ? Icons.play_arrow
-                            : Icons.pause_outlined,
-                      ),
-                      label: Text(widget.isPaused ? '재개' : '일시정지'),
+                      icon: widget.isPaused
+                          ? Icons.play_arrow
+                          : Icons.pause_outlined,
                     ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
+                  DdiroriButton(
+                    label: widget.isAutoScrolling ? '정지' : '시작',
                     onPressed: () async {
                       if (widget.isAutoScrolling) {
                         widget.onStop();
@@ -12783,14 +12777,13 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                         Navigator.of(context).pop();
                       }
                     },
-                    icon: Icon(
-                      widget.isAutoScrolling ? Icons.stop : Icons.play_arrow,
-                    ),
-                    label: Text(widget.isAutoScrolling ? '정지' : '시작'),
+                    icon: widget.isAutoScrolling
+                        ? Icons.stop
+                        : Icons.play_arrow,
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: gap * 2),
               if (widget.isAutoScrolling) ...[
                 LinearProgressIndicator(value: progress),
                 const SizedBox(height: 8),
@@ -13104,27 +13097,35 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.pause_circle_outline),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Pause marker',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                          Row(
+                            children: [
+                              const Icon(Icons.pause_circle_outline),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Pause marker',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          TextButton.icon(
-                            onPressed: () => _togglePausePage(currentPage),
-                            icon: Icon(
-                              hasCurrentPause ? Icons.remove : Icons.add,
-                            ),
-                            label: Text(
-                              hasCurrentPause
-                                  ? '현재 쪽 제거'
-                                  : '현재 $currentPage쪽 추가',
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => _togglePausePage(currentPage),
+                              icon: Icon(
+                                hasCurrentPause ? Icons.remove : Icons.add,
+                              ),
+                              label: Text(
+                                hasCurrentPause
+                                    ? '현재 쪽 제거'
+                                    : '현재 $currentPage쪽 추가',
+                              ),
                             ),
                           ),
                         ],
@@ -13163,23 +13164,31 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.repeat),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '반복 구간',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                          Row(
+                            children: [
+                              const Icon(Icons.repeat),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '반복 구간',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          TextButton.icon(
-                            onPressed: _addRepeatSection,
-                            icon: const Icon(Icons.add),
-                            label: Text(
-                              '${_settings.startPage}-${_settings.endPage}쪽',
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: _addRepeatSection,
+                              icon: const Icon(Icons.add),
+                              label: Text(
+                                '${_settings.startPage}-${_settings.endPage}쪽',
+                              ),
                             ),
                           ),
                         ],
@@ -13226,24 +13235,32 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.flag_outlined),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Cue point',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                          Row(
+                            children: [
+                              const Icon(Icons.flag_outlined),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Cue point',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          TextButton.icon(
-                            onPressed: widget.rehearsalMarks.isEmpty
-                                ? null
-                                : _importRehearsalCuePoints,
-                            icon: const Icon(Icons.playlist_add),
-                            label: const Text('리허설 mark 가져오기'),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: widget.rehearsalMarks.isEmpty
+                                  ? null
+                                  : _importRehearsalCuePoints,
+                              icon: const Icon(Icons.playlist_add),
+                              label: const Text('리허설 mark 가져오기'),
+                            ),
                           ),
                         ],
                       ),

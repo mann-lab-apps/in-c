@@ -98,6 +98,7 @@ content:
         PDF 여백 자르기 설정의 설명과 초기화/저장 행동을 공통 글자·간격·버튼 기준으로 정리했습니다.
         PDF 파일을 찾지 못하거나 열지 못했을 때 공통 상태 패널에서 복구 안내를 먼저 보여주고, 경로와 오류 상세는 진단 정보로 확인할 수 있게 했습니다.
         메트로놈의 시작/정지, BPM, 박자와 click 소리 설정을 공통 제목·버튼·선택 기준으로 정리하고, 좁은 화면에서도 모든 제어를 스크롤해 사용할 수 있게 했습니다.
+        자동 스크롤의 시작·일시정지·재개·정지와 pause marker·반복 구간·cue point 설정을 공통 제목·동작 기준으로 정리하고, 좁은 화면에서 긴 동작이 넘치지 않게 했습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -148,6 +149,7 @@ testflight:
     기존 앱 저장소의 PDF·연결 파일·파일형 주석 사본을 복원한 뒤 악보와 연결 음원을 다시 열어 보세요. 앱 관리 폴더에 실제로 존재하는 같은 파일만 새 경로로 복구해야 하며, 외부 원본 경로 또는 다른 악보의 파일은 바꾸지 않아야 합니다.
     R2 확인: 실제 PDF 열기 → 주석 → 펜 옵션 → 필기/undo/redo → 연습 도구 열기/닫기 → 공연 진입/종료 → 도구 숨김/복원 → 페이지 이동. 도구 옵션은 기존 색·굵기·스탬프·텍스트를 유지합니다. 3쪽 PDF와 긴 스캔형 PDF, 가로화면/200% 글자에서 확인해 주세요.
     연습 → 메트로놈을 열어 시작/정지, BPM ±, 박자 선택, tick 소리가 짧은 화면에서도 스크롤로 모두 접근되는지 확인해 주세요. 실제 click 균일성·출력 route·Bluetooth/유선 latency는 별도 Device QA로 기록해 주세요.
+    연습 → 자동 스크롤을 열어 시작/일시정지/재개/정지, 페이지 범위, pause marker·반복 구간·cue point를 확인해 주세요. 390px 폭과 큰 글씨에서 긴 동작이 넘치지 않는지, 실제 스크롤 속도·cue 경계·터치/페달/VoiceOver는 별도 Device QA로 기록해 주세요.
     첫/마지막·숨김 페이지와 세트리스트 안에서 이전/다음이 실제로 가능한 경우에만 활성화되는지, 읽기·주석·연습·공연 상태 문구가 함께 보이는지 확인해 주세요.
     공연 모드에서 북마크·자동 스크롤·메트로놈·튜너와 세트리스트 이전/다음 곡 동작이 기존 권한대로 보이는지, 자동 스크롤 카운트다운이 도구와 악보를 가리지 않는지 확인해 주세요.
     PDF의 jump point·리허설 마크·북마크가 빠른 이동 도구와 overflow 메뉴에서 올바른 페이지로 이동하는지 확인해 주세요.
@@ -416,6 +418,45 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: auto-scroll
+    purpose: 실제 PDF 위에서 연습 도구로 연 자동 스크롤의 공통 제목·시작·페이지 범위·cue 설정을 보여준다. 실제 스크롤 속도나 연주 품질 증명 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 연습 → 자동 스크롤
+    fixture: 자가 제작 3쪽 PDF, 기본 자동 스크롤 설정. 자동 스크롤 실행 중이 아님.
+    must_show:
+    - 자동 스크롤 제목, 시작 버튼, 연주 시간과 시작 페이지 표시
+    - pause marker·반복 구간·cue point 설정과 긴 동작이 작은 폭에서 넘치지 않는 배치
+    - PDF와 앱의 다른 기능을 성공으로 표시하지 않는 연습 도구 sheet
+    exclude:
+    - 실제 스크롤 속도·cue 경계·페달·VoiceOver 품질이 통과했다는 문구
+    - 저작권 미확인 악보, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 연습
+    - action: tap
+      by: text
+      value: 자동 스크롤
+    assertions:
+    - by: text
+      value: 자동 스크롤
+      present: true
+    - by: text
+      value: 시작
+      present: true
+    - by: text
+      value: 연주 시간
+      present: true
+    - by: text
+      value: 시작 1쪽
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: setlist
     purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
     route: 세트리스트 → 연습 목록
@@ -485,6 +526,7 @@ manual:
       2026-10-26 자르기 맞춤 sheet는 공통 글자·간격·버튼으로 정리한 controller/PDF widget 회귀를 검사했다. 실제 iOS 터치, 큰 글씨와 VoiceOver는 pending이다.
       2026-10-26 PDF 파일 상태/열기 실패는 공통 상태 panel로 정리한 R1/R2 viewer widget 회귀를 검사했다. 실제 iOS 큰 글씨, VoiceOver와 Files/iCloud provider 오류는 pending이다.
       2026-10-26 메트로놈 sheet의 공통 제목·BPM·박자·소리 설정과 좁은 화면 스크롤은 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 VoiceOver 순서, 200% 글자, 터치 영역과 실제 click 소리·출력 route는 pending이다.
+      2026-10-26 자동 스크롤 sheet의 공통 제목·실행 행동·390px 설정 배치는 실제 PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 실제 스크롤 속도·cue 경계·pause/resume·큰 글씨·VoiceOver·페달/키보드는 pending이다.
       2026-10-25 공용 이름 입력 dialog의 취소·저장 후 widget 정리 회귀를 자동 검사했다. 실제 iOS 후보 빌드에서 한글 IME, 키보드 inset, VoiceOver의 세트리스트 이름 입력과 취소/저장을 재검수해야 한다.
       2026-10-25 R3: 빈 악보함의 PDF 악보 추가, Studio PDF 수동 가져오기 안내와 연결 파일의 긴 오디오 형식 안내를 큰 글씨·VoiceOver에서 재검수해야 한다. import metadata 실패는 목록 성공으로 보이지 않고 앱 내부 사본만 정리하는 자동 controller 검사와 물리 iOS provider/VoiceOver 검수는 구분한다.
       2026-10-25 R2: 입력 모드/연습/공연, 주석 옵션 sheet와 저장 중·재시도, 도구 복원 및 하단 페이지 이동을 재검수해야 한다. product-design-r2/returns/score-r2-20261025의 실제 PDFium 위젯 검증과 물리 기기/VoiceOver/IME 검수는 구분한다.
@@ -517,6 +559,7 @@ manual:
       2026-10-26 자르기 맞춤 sheet는 controller/PDF widget 회귀로만 확인했다. 후보 iPhone/iPad에서 네 방향 slider, 초기화/저장, 큰 글씨·가로화면·VoiceOver와 실제 원본 PDF 보존의 manual QA가 필요하다.
       2026-10-26 PDF 파일 상태/열기 실패 panel은 R1/R2 viewer widget 회귀로만 확인했다. 후보 iPhone/iPad에서 삭제·손상·provider 지연, 진단 정보 확장, 큰 글씨·VoiceOver와 복구 안내의 manual QA가 필요하다.
       2026-10-26 메트로놈 sheet는 실제 PDF widget 회귀에서 BPM·박자 persistence와 PDF 보존만 확인했다. 후보 iPhone/iPad에서 짧은 sheet 스크롤, VoiceOver, 200% 글자, 실제 click 균일성, 스피커·유선·Bluetooth 출력과 latency의 Device QA가 필요하다.
+      2026-10-26 자동 스크롤 sheet는 실제 PDF widget 회귀에서 시작 행동·페이지 범위 설정과 390px overflow 부재만 확인했다. 후보 iPhone/iPad에서 실제 스크롤 속도·cue 경계·pause/resume·가로/큰 글씨·VoiceOver·페달/키보드의 Device QA가 필요하다.
       2026-10-25 R3: PDF/이미지/공유 PDF import의 metadata 저장 실패가 목록을 갱신하지 않는 controller 회귀와 R2의 PDFium 위젯 검증은 통과했다. iOS document-open/share provider, 실제 Studio PDF 전달, 첫 실제 주석 저장, Play 관리 음원 사본의 codec/route와 VoiceOver는 pending이며 자동 검증이 이를 대신하지 않는다.
       2026-10-25 R2 실제 PDF 엔진 위젯 검증 대상: 3쪽/90쪽 PDF, 주석 좌표·저장·undo/redo·원본 보존, 도구 숨김/복원과 공연 정책. iOS 후보 빌드, 실제 터치/펜/페달/오디오, VoiceOver와 스토어 촬영은 pending. 이전 R1의 미실행 PDF 성공 경로 기록을 소급 수정하지 않는다.
       2026-10-25 R1의 숨은 선택, 저장 실패/재시도, 포커스 복귀 및 뷰어 도구 배치 변경으로 재검수 필요. 자동 위젯 캡처는 PDF 렌더링·오디오·페달·스타일러스·실제 기기 증거가 아니다.

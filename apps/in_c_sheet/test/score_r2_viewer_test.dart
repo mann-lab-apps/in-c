@@ -404,6 +404,30 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('real PDF auto scroll keeps Score range settings in Ddirori UI', (
+    t,
+  ) async {
+    final c = await openPdf(t, scale: 2);
+    final originalDocument = pdf(t).document;
+
+    await command(t, '연습');
+    await command(t, '자동 스크롤');
+
+    expect(find.text('자동 스크롤'), findsOneWidget);
+    expect(find.byType(DdiroriPageHeader), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriButton && widget.label == '시작',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('연주 시간'), findsOneWidget);
+    expect(find.textContaining('시작 1쪽'), findsOneWidget);
+    expect(pdf(t).document, same(originalDocument));
+    expect(c.scoreById('pilot-0').autoScrollSettings.startPage, 1);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets(
     'long scan PDF page mapping crop zoom and toolbar keyboard focus',
     (t) async {
