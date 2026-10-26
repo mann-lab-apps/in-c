@@ -32,4 +32,11 @@
 | 캡처 | 최종 디자인과 공개 문구가 확정된 동일 소스에서 iPhone/iPad 장면 촬영 후 이미지 원본을 열어 시각 검수하고 pipeline 검증 결과를 연결 |
 | 물리 QA | iPhone/iPad의 VoiceOver, Files/iCloud, 실제 MP3/FLAC/M4A 청감, 스피커·유선·Bluetooth·interruption, 재생목록 재정렬·재기동 보존과 P0/P1 피드백 |
 
+읽기 전용 확인에서 로컬 키체인에는 Apple Distribution identity가 있지만,
+설치된 provisioning profile 11개 중 현재 Play bundle ID와 일치하는 항목은 없었다.
+따라서 signed archive나 업로드 가능 상태로 판정하지 않는다.
+`https://in-c.mannlab.app/clef-and-staff/privacy.html`은 200을 반환했으나,
+Play 전용 `/play/privacy.html`과 `/play/support.html`은 각각 404였다.
+다른 앱의 고지를 Play URL로 재사용하지 않았고 metadata URL은 비워 두었다.
+
 현재의 12개 BLOCKED는 위 항목의 중복 집계가 아니라 preflight의 개별 게이트다. 확인되지 않은 항목을 통과로 전환하지 않는다. 실기기 검수 절차는 [물리 기기 체크리스트](classical-local-library-physical-device-checklist.md)에 있다.
