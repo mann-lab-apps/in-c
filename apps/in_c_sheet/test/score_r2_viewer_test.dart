@@ -444,6 +444,36 @@ void main() {
     },
   );
 
+  testWidgets('real PDF score notes save through Ddirori inputs', (t) async {
+    final c = await openPdf(t, width: 390, height: 1000, scale: 2);
+    final originalDocument = pdf(t).document;
+
+    await command(t, '모든 도구');
+    await t.tap(find.byTooltip('보기 옵션'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('악보 메모').last);
+    await t.pumpAndSettle();
+
+    expect(find.text('악보 메모'), findsOneWidget);
+    expect(find.text('공연과 연습에 필요한 메모를 이 악보에만 저장합니다.'), findsOneWidget);
+    final performanceField = find.descendant(
+      of: find.byWidgetPredicate(
+        (widget) => widget is DdiroriInput && widget.label == '공연 메모',
+      ),
+      matching: find.byType(TextField),
+    );
+    await t.enterText(performanceField, '조명 확인 뒤 바로 시작');
+    final save = find.byWidgetPredicate(
+      (widget) => widget is DdiroriButton && widget.label == '저장',
+    );
+    expect(save, findsOneWidget);
+    await command(t, '저장');
+
+    expect(c.scoreById('pilot-0').structuredNotes.performance, '조명 확인 뒤 바로 시작');
+    expect(pdf(t).document, same(originalDocument));
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets(
     'real PDF annotation pending failure retry and undo preserve file and coordinates',
     (t) async {

@@ -10956,37 +10956,23 @@ class _ScoreNotesSheet extends StatefulWidget {
 }
 
 class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
-  late final TextEditingController _performanceController;
-  late final TextEditingController _rehearsalController;
-  late final TextEditingController _tuningController;
-  late final TextEditingController _instrumentationController;
+  late String _performance;
+  late String _rehearsal;
+  late String _tuning;
+  late String _instrumentation;
 
   @override
   void initState() {
     super.initState();
-    _performanceController = TextEditingController(
-      text: widget.initialNotes.performance,
-    );
-    _rehearsalController = TextEditingController(
-      text: widget.initialNotes.rehearsal,
-    );
-    _tuningController = TextEditingController(text: widget.initialNotes.tuning);
-    _instrumentationController = TextEditingController(
-      text: widget.initialNotes.instrumentation,
-    );
-  }
-
-  @override
-  void dispose() {
-    _performanceController.dispose();
-    _rehearsalController.dispose();
-    _tuningController.dispose();
-    _instrumentationController.dispose();
-    super.dispose();
+    _performance = widget.initialNotes.performance;
+    _rehearsal = widget.initialNotes.rehearsal;
+    _tuning = widget.initialNotes.tuning;
+    _instrumentation = widget.initialNotes.instrumentation;
   }
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -10994,59 +10980,71 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
           right: 20,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
         ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              '악보 메모',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            _NoteTextField(controller: _performanceController, label: '공연 메모'),
-            _NoteTextField(controller: _rehearsalController, label: '리허설 메모'),
-            _NoteTextField(controller: _tuningController, label: '조율 메모'),
-            _NoteTextField(
-              controller: _instrumentationController,
-              label: '악기/편성 메모',
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(
-                  SheetScoreNotes(
-                    performance: _performanceController.text,
-                    rehearsal: _rehearsalController.text,
-                    tuning: _tuningController.text,
-                    instrumentation: _instrumentationController.text,
-                  ),
-                ),
-                icon: const Icon(Icons.check),
-                label: const Text('저장'),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DdiroriPageHeader(
+                title: '악보 메모',
+                subtitle: '공연과 연습에 필요한 메모를 이 악보에만 저장합니다.',
+                leading: const Icon(Icons.sticky_note_2_outlined),
               ),
-            ),
-          ],
+              SizedBox(height: style.gap),
+              DdiroriInput(
+                value: _performance,
+                onChanged: (value) => setState(() => _performance = value),
+                label: '공연 메모',
+                help: '무대에서 바로 확인할 짧은 안내를 적어두세요.',
+                maxLines: 3,
+              ),
+              SizedBox(height: style.gap),
+              DdiroriInput(
+                value: _rehearsal,
+                onChanged: (value) => setState(() => _rehearsal = value),
+                label: '리허설 메모',
+                maxLines: 3,
+              ),
+              SizedBox(height: style.gap),
+              DdiroriInput(
+                value: _tuning,
+                onChanged: (value) => setState(() => _tuning = value),
+                label: '조율 메모',
+                maxLines: 3,
+              ),
+              SizedBox(height: style.gap),
+              DdiroriInput(
+                value: _instrumentation,
+                onChanged: (value) => setState(() => _instrumentation = value),
+                label: '악기/편성 메모',
+                maxLines: 3,
+              ),
+              SizedBox(height: style.gap * 1.5),
+              DdiroriAdaptiveActions(
+                label: '악보 메모 작업',
+                children: [
+                  DdiroriButton(
+                    label: '취소',
+                    icon: Icons.close,
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  DdiroriButton(
+                    label: '저장',
+                    icon: Icons.check,
+                    onPressed: () => Navigator.of(context).pop(
+                      SheetScoreNotes(
+                        performance: _performance,
+                        rehearsal: _rehearsal,
+                        tuning: _tuning,
+                        instrumentation: _instrumentation,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _NoteTextField extends StatelessWidget {
-  const _NoteTextField({required this.controller, required this.label});
-
-  final TextEditingController controller;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(labelText: label),
-        maxLines: 3,
       ),
     );
   }
