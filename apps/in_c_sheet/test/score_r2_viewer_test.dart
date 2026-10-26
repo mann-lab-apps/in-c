@@ -539,6 +539,12 @@ void main() {
     await t.pumpAndSettle();
 
     await command(t, '모든 도구');
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '페이지 정리',
+      ),
+      findsOneWidget,
+    );
     await t.tap(find.byTooltip('페이지 정리'));
     await t.pumpAndSettle();
     await t.tap(find.text('숨김 페이지 관리'));

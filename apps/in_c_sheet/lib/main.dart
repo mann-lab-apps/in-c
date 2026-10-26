@@ -8442,8 +8442,11 @@ setlist=$setlistLabel
                       },
               )
             else if (action is PopupMenuButton<_ViewerMenuAction>)
-              ListTile(
-                title: Text(action.tooltip ?? '도구 메뉴'),
+              DdiroriItem(
+                title: action.tooltip ?? '도구 메뉴',
+                leading: action.icon is Icon
+                    ? Icon((action.icon as Icon).icon)
+                    : null,
                 trailing: DdiroriMenuButton<_ViewerMenuAction>(
                   label: action.tooltip ?? '도구 메뉴',
                   itemBuilder: (context) => action.itemBuilder(context).map((
