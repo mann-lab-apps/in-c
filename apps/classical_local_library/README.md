@@ -16,7 +16,7 @@ Flutter 기반 로컬 음악 관리·재생 앱이다. 클래식 작품 정리�
 
 - 현재 앱은 공통 `ddiroriTheme`의 블루 기본값을 사용한다. 밝은 화면의 주요 행동·포커스는 `#1971C2`, 다크 화면은 `#A5D8FF`이며 일반 안내는 중립색이다. 앱별 임시 강조색은 지정하지 않는다.
 - 첫 화면에 큰 `보관함` 제목, 구분선으로 묶인 곡·앨범·아티스트·재생목록 행, 2열 최근 추가 앨범·곡 카드를 배치했다. 앨범 카드는 해당 앨범의 곡 목록으로, 태그가 없는 개별 곡 카드는 바로 재생으로 이어진다. 앨범 표지는 아직 읽지 않으므로 중립적인 자리 표시를 사용한다.
-- iOS·Android 개발용 런처에는 [Play 아이콘 후보 08](../../docs/brand/ddirori-brand-system/icon-family-v8/README.md)을 적용했다. 보관함 제목 위의 아이콘·앱 이름 표시는 제거했다. 공개 출시용 최종 아이콘·대표색 승인은 별도다. 재생 컨트롤에는 앱 아이콘을 앨범 표지처럼 사용하지 않는다.
+- iOS·Android 런처에는 [Play 아이콘 후보 08](../../docs/brand/ddirori-brand-system/icon-family-v8/README.md)을 적용했다. 2026-10-26 사용자가 이 아이콘을 띠로리 플레이의 최종 아이콘으로 승인했다. 보관함 제목 위의 아이콘·앱 이름 표시는 제거했다. 재생 컨트롤에는 앱 아이콘을 앨범 표지처럼 사용하지 않는다. 실기기 런처 렌더링과 스토어 자산 검수는 별도다.
 - [새 Flutter 화면과 아이콘 적용 기록](../../docs/brand/ddirori-design-system/returns/play-apple-library-2026-10-26/README.md)에 실제 렌더링과 기존 화면 차이를 남겼다. 최신 후보의 플랫폼 자산을 다시 만들려면 `node tool/apply_play_icon_candidate.mjs`를 실행한다. 이 명령은 Play 앱 자산만 갱신한다.
 
 ## 보관함 탐색 개선 (2026-10-26)
@@ -103,8 +103,8 @@ Flutter 기반 로컬 음악 관리·재생 앱이다. 클래식 작품 정리�
   원본 파일은 삭제하거나 수정하지 않는다.
 - Android/iOS 백업에는 SQLite 메타데이터가 포함될 수 있지만 재다운로드·재가져오기가
   가능한 `managed_audio`와 `imslp_imports` 음원 복사본은 제외한다.
-- 앱 아이콘과 색상은 내부 베타용 임시 정체성이다. 공개 출시 전에 상표·시각 검토가
-  필요하다.
+- 현재 런처의 Play 아이콘은 사용자 승인을 받았다. 현재 앱은 공통 블루 테마를 사용한다.
+  실기기 아이콘 마스크·접근성과 스토어 자산 검수는 별도다.
 - 공통 테마, 버튼, 검색, 선택, 상태 패널, 상태 배지, 반응형 수치 요약과 목록 문법은
   `packages/ddirori_ui`를 사용한다.
   작품·녹음·악장·재생 큐는 공통 기반을 합성한 띠로리 플레이 전용 컴포넌트로 유지한다.
@@ -446,7 +446,7 @@ Flutter 기반 로컬 음악 관리·재생 앱이다. 클래식 작품 정리�
 - 개인정보 처리방침과 지원 링크는 공개 `https` URL만 열며, 값이 없거나 잘못된 경우 `공개 HTTPS URL 준비 중`으로 표시한다.
 - 320px 폭, Dynamic Type 200%, dark theme, reduced motion, 상세 화면 왕복 뒤 검색 상태 보존을 widget test로 고정했다.
 - iPhone 17 Pro와 iPad Pro 13-inch iOS 26.5 Simulator에서 production startup을 확인했고, iPhone에서 synthetic WAV/AAC/ALAC 재생과 로컬 파일 가져오기·재기동 회귀를 통과했다.
-- 출시 준비 감사 결과와 사람이 확인해야 할 항목은 [`docs/quality/classical-local-library-release-readiness-audit-2026-10-23.md`](../../docs/quality/classical-local-library-release-readiness-audit-2026-10-23.md)에 기록한다. 승인된 최종 아이콘, 공개 지원·개인정보 URL, 배포 서명과 App Store Connect 수동 선언이 준비되기 전에는 공개 출시 후보로 승인하지 않는다.
+- 출시 준비 감사 결과와 사람이 확인해야 할 항목은 [`docs/quality/classical-local-library-release-readiness-audit-2026-10-23.md`](../../docs/quality/classical-local-library-release-readiness-audit-2026-10-23.md)에 기록한다. 아이콘은 승인됐지만 공개 지원·개인정보 URL의 요청 도메인 연결, 배포 서명, 실기기 QA와 App Store Connect 수동 선언이 준비되기 전에는 공개 출시 후보로 승인하지 않는다.
 
 ### 서른일곱 번째 마일스톤
 
@@ -660,8 +660,8 @@ query 수는 측정값이 아니라 코드 검사값으로 별도 표기한다. 
 
 ## 배포 재개 후 후보
 
-1. 승인된 최종 App Store 아이콘과 공개 개인정보·지원 URL을 반영하고 signed archive의 App Store validation을 통과한다.
+1. 승인된 Play 아이콘의 스토어 자산·실기기 렌더링을 검수하고 공개 개인정보·지원 URL을 반영한 뒤 signed archive의 App Store validation을 통과한다.
 2. App Store Connect의 개인정보, 연령 등급, 콘텐츠 권리, 수출 규정, 가격·배포 지역과 TestFlight 연락처를 운영자가 확정한다.
-3. 물리 iPhone/iPad에서 VoiceOver, Dynamic Type, Files/iCloud 문서 선택기, 실제 음원 재생과 출력 route를 사용자 피드백으로 검증한다.
+3. 사용자가 물리 iPhone XS에서 VoiceOver, Dynamic Type, Files/iCloud 문서 선택기, 실제 음원 재생과 출력 route를 검증한다. iPad 물리 검수는 별도 미완료 항목이다.
 4. 첫 TestFlight 후보에서 P0/P1 회귀가 없음을 확인한 뒤 screenshot capture와 메타데이터 검수를 완료한다.
 5. 공개 출시 뒤에만 Chromaprint, 상용 외부 서비스 정책, 백그라운드 재생 같은 비필수 확장을 다시 평가한다.
