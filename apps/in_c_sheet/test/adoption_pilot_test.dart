@@ -194,6 +194,52 @@ void main() {
       });
     }
   }
+  testWidgets('facet explorer uses Ddirori choices without opening a score', (
+    t,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 10, 26);
+    await store.saveScores([
+      SheetScore(
+        id: 'facet-score',
+        title: 'Facet study',
+        composer: '자가 제작 샘플',
+        tags: const [],
+        note: '',
+        filePath: '/ddirori-pilot-fixture/facet.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+        collection: 'Etudes',
+        group: 'Lesson A',
+        rating: 4,
+      ),
+    ]);
+    final c = SheetLibraryController(store: store);
+    addTearDown(c.dispose);
+    await c.load();
+    expect(c.collectionFacets.single.label, 'Etudes');
+    expect(c.groupFacets.single.label, 'Lesson A');
+    expect(c.ratingFacets.map((facet) => facet.value), contains('4'));
+    await mount(t, c, width: 320, scale: 2, dark: true);
+
+    await t.ensureVisible(find.textContaining('분류별 찾기'));
+    await t.tap(find.textContaining('분류별 찾기'));
+    await t.pumpAndSettle();
+
+    expect(find.byType(DdiroriChoices<String>), findsNWidgets(3));
+    expect(find.text('컬렉션'), findsOneWidget);
+    expect(find.text('Etudes 1'), findsOneWidget);
+    await t.tap(find.text('Etudes 1'));
+    await t.pumpAndSettle();
+    expect(c.libraryViewSettings.collectionQuery, 'Etudes');
+    expect(c.scores.single.lastOpenedAt, isNull);
+    expect(t.takeException(), isNull);
+  });
   testWidgets(
     'search sort filter selection and bulk edit preserve stable IDs',
     (t) async {

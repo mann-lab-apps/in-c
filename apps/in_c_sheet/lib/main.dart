@@ -1615,6 +1615,8 @@ class _LibraryFacetExplorer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
+    final gap = DdiroriTokens.spacing['sm']!;
     final visibleCollectionFacets = collectionFacets.take(6).toList();
     final visibleGroupFacets = groupFacets.take(6).toList();
     final visibleRatingFacets = ratingFacets.take(5).toList();
@@ -1626,14 +1628,14 @@ class _LibraryFacetExplorer extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-        borderRadius: BorderRadius.circular(8),
+        color: style['surfaceMuted'],
+        border: Border.all(color: style['border']),
+        borderRadius: BorderRadius.circular(DdiroriTokens.radius['control']!),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        padding: EdgeInsets.all(DdiroriTokens.layout['rowPadding']!),
+        child: DdiroriStack(
+          gap: gap,
           children: [
             if (visibleCollectionFacets.isNotEmpty)
               _LibraryFacetRow(
@@ -1647,9 +1649,6 @@ class _LibraryFacetExplorer extends StatelessWidget {
                   );
                 },
               ),
-            if (visibleCollectionFacets.isNotEmpty &&
-                visibleGroupFacets.isNotEmpty)
-              const SizedBox(height: 8),
             if (visibleGroupFacets.isNotEmpty)
               _LibraryFacetRow(
                 label: '그룹',
@@ -1660,10 +1659,6 @@ class _LibraryFacetExplorer extends StatelessWidget {
                   onGroupSelected(value == selectedGroup ? '' : value);
                 },
               ),
-            if ((visibleCollectionFacets.isNotEmpty ||
-                    visibleGroupFacets.isNotEmpty) &&
-                visibleRatingFacets.isNotEmpty)
-              const SizedBox(height: 8),
             if (visibleRatingFacets.isNotEmpty)
               _LibraryFacetRow(
                 label: '별점',
@@ -1703,41 +1698,33 @@ class _LibraryFacetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 76,
-          height: 48 * MediaQuery.textScalerOf(context).scale(1),
-          child: Row(
-            children: [
-              Icon(icon, size: 18),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
+    final options = <String, String>{
+      for (final facet in facets) facet.value: '${facet.label} ${facet.count}',
+    };
+    return Semantics(
+      container: true,
+      label: '$label 필터',
+      child: DdiroriStack(
+        gap: DdiroriTokens.spacing['xs']!,
+        children: [
+          ExcludeSemantics(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18),
+                SizedBox(width: DdiroriTokens.spacing['xs']!),
+                Text(label, style: ddiroriTextStyle(DdiroriTextRole.label)),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final facet in facets)
-                ChoiceChip(
-                  label: Text('${facet.label} ${facet.count}'),
-                  selected: facet.value == selectedValue,
-                  onSelected: (_) => onSelected(facet.value),
-                ),
-            ],
+          DdiroriChoices<String>(
+            options: options,
+            selected: selectedValue.isEmpty ? <String>{} : {selectedValue},
+            onChanged: (values) =>
+                onSelected(values.isEmpty ? '' : values.first),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
