@@ -12379,9 +12379,10 @@ class _PerformanceQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     return Material(
-      color: Colors.black.withValues(alpha: 0.64),
-      borderRadius: BorderRadius.circular(8),
+      color: style['overlay'].withValues(alpha: 0.64),
+      borderRadius: BorderRadius.circular(DdiroriTokens.radius['control']!),
       child: Padding(
         padding: const EdgeInsets.all(4),
         child: Flex(
@@ -12435,7 +12436,7 @@ class _PerformanceQuickActions extends StatelessWidget {
               Container(
                 width: 28,
                 height: 1,
-                color: Colors.white.withValues(alpha: 0.22),
+                color: style['onOverlay'].withValues(alpha: 0.22),
               ),
               const SizedBox(height: 4),
               _PerformanceQuickActionButton(
@@ -12471,11 +12472,14 @@ class _PerformanceQuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     return SizedBox.square(
       dimension: 48,
       child: IconButton(
         tooltip: tooltip,
-        color: isActive ? const Color(0xffffd54f) : Colors.white,
+        color: isActive
+            ? Color(DdiroriTokens.score['annotationYellow']!)
+            : style['onOverlay'],
         onPressed: onPressed,
         icon: Icon(icon),
       ),
@@ -12490,11 +12494,12 @@ class _AutoScrollCueOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = DdiroriStyle.of(context);
     final theme = Theme.of(context);
     return Center(
       child: Material(
-        color: Colors.black.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(8),
+        color: style['overlay'].withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(DdiroriTokens.radius['control']!),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           child: Column(
@@ -12502,14 +12507,14 @@ class _AutoScrollCueOverlay extends StatelessWidget {
             children: [
               Icon(
                 Icons.timer_outlined,
-                color: Colors.white.withValues(alpha: 0.88),
+                color: style['onOverlay'].withValues(alpha: 0.88),
                 size: 32,
               ),
               const SizedBox(height: 10),
               Text(
                 '$remainingSeconds',
                 style: theme.textTheme.displayLarge?.copyWith(
-                  color: Colors.white,
+                  color: style['onOverlay'],
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -12517,7 +12522,7 @@ class _AutoScrollCueOverlay extends StatelessWidget {
               Text(
                 '자동 스크롤 시작',
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: Colors.white70,
+                  color: style['onOverlay'].withValues(alpha: 0.72),
                   fontWeight: FontWeight.w800,
                 ),
               ),
