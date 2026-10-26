@@ -6255,22 +6255,20 @@ setlist=$setlistLabel
     final recentEntriesByInputId = <String, SheetViewerInputDiagnosticEntry>{
       for (final entry in _inputDiagnosticLog.reversed) entry.inputId: entry,
     };
-    final updated = await showModalBottomSheet<Map<String, String>>(
+    final updated = await showDdiroriSheet<Map<String, String>>(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
+      title: '페달 직접 설정',
+      child: StatefulBuilder(
         builder: (context, setModalState) {
           Widget mappingField(String inputId, {String? helperText}) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: DropdownButtonFormField<String>(
+            return DdiroriSettingsRow(
+              title: _viewerInputLabel(inputId),
+              description: helperText,
+              control: DropdownButtonFormField<String>(
                 initialValue:
                     mapping[inputId] ?? SheetViewerInputAction.none.value,
-                decoration: InputDecoration(
-                  labelText: _viewerInputLabel(inputId),
-                  helperText: helperText,
-                ),
+                isExpanded: true,
+                decoration: const InputDecoration(),
                 items: SheetViewerInputAction.values
                     .map(
                       (action) => DropdownMenuItem<String>(
@@ -6280,9 +6278,7 @@ setlist=$setlistLabel
                     )
                     .toList(growable: false),
                 onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
+                  if (value == null) return;
                   setModalState(() {
                     mapping = <String, String>{...mapping, inputId: value};
                   });
@@ -6291,58 +6287,45 @@ setlist=$setlistLabel
             );
           }
 
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  Text(
-                    '페달 직접 설정',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const DdiroriBanner(message: '연결된 페달이 보내는 키 입력별 동작을 선택합니다.'),
+              const SizedBox(height: 12),
+              if (recentUnknownInputIds.isNotEmpty) ...[
+                Text(
+                  '최근 진단 입력',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                for (final inputId in recentUnknownInputIds)
+                  mappingField(
+                    inputId,
+                    helperText: () {
+                      final entry = recentEntriesByInputId[inputId];
+                      if (entry == null) {
+                        return null;
+                      }
+                      return 'logical ${entry.logicalKeyLabel} · '
+                          'physical ${entry.physicalKeyId}';
+                    }(),
                   ),
-                  const SizedBox(height: 8),
-                  const Text('연결된 페달이 보내는 키 입력별 동작을 선택합니다.'),
-                  const SizedBox(height: 12),
-                  if (recentUnknownInputIds.isNotEmpty) ...[
-                    Text(
-                      '최근 진단 입력',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    for (final inputId in recentUnknownInputIds)
-                      mappingField(
-                        inputId,
-                        helperText: () {
-                          final entry = recentEntriesByInputId[inputId];
-                          if (entry == null) {
-                            return null;
-                          }
-                          return 'logical ${entry.logicalKeyLabel} · '
-                              'physical ${entry.physicalKeyId}';
-                        }(),
-                      ),
-                    const Divider(height: 24),
-                  ],
-                  for (final inputId in sheetViewerCustomInputIds)
-                    mappingField(inputId),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: () => Navigator.of(context).pop(mapping),
-                      icon: const Icon(Icons.check),
-                      label: const Text('저장'),
-                    ),
+                const Divider(height: 24),
+              ],
+              for (final inputId in sheetViewerCustomInputIds)
+                mappingField(inputId),
+              const SizedBox(height: 12),
+              DdiroriAdaptiveActions(
+                label: '직접 페달 설정',
+                children: [
+                  DdiroriButton(
+                    label: '저장',
+                    icon: Icons.check,
+                    onPressed: () => Navigator.of(context).pop(mapping),
                   ),
                 ],
               ),
-            ),
+            ],
           );
         },
       ),

@@ -828,6 +828,37 @@ void main() {
   );
 
   testWidgets(
+    'real PDF custom pedal mapping uses Ddirori settings and preserves the document',
+    (t) async {
+      await openPdf(t, width: 390, height: 1000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('보기 옵션'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('페달 매핑:'));
+      await t.pumpAndSettle();
+      final customMapping = find.byWidgetPredicate(
+        (widget) => widget is DdiroriItem && widget.title == '직접 설정',
+      );
+      await t.ensureVisible(customMapping);
+      await t.tap(customMapping);
+      await t.pumpAndSettle();
+
+      expect(find.text('페달 직접 설정'), findsOneWidget);
+      expect(find.byType(DdiroriSettingsRow), findsWidgets);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '저장',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'real PDF rendering settings use Ddirori choices without changing the document',
     (t) async {
       await openPdf(t, width: 390, height: 1000, scale: 2);
