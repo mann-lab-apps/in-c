@@ -716,15 +716,17 @@ const DdiroriPageControls({
     required this.onNext,
     this.pageCount,
     this.performance = false,
+    this.statusLabel,
   });
   final int page;
   final int? pageCount;
   final VoidCallback? onPrevious, onNext;
   final bool performance;
+  final String? statusLabel;
 }
 ```
 
-필드 타입: `int page`, `int? pageCount`, `VoidCallback? onPrevious, onNext`, `bool performance`.
+필드 타입: `int page`, `int? pageCount`, `VoidCallback? onPrevious, onNext`, `bool performance`, `String? statusLabel`.
 
 <a id="DdiroriAnnotationTools"></a>
 ## DdiroriAnnotationTools

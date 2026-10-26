@@ -421,8 +421,9 @@ void main() {
           builder: (c, set) => DdiroriPageControls(
             page: page,
             pageCount: 2,
-            onPrevious: () => set(() => page--),
-            onNext: () => set(() => page++),
+            statusLabel: '읽기',
+            onPrevious: page > 1 ? () => set(() => page--) : null,
+            onNext: page < 2 ? () => set(() => page++) : null,
           ),
         ),
       ),
@@ -436,6 +437,7 @@ void main() {
           .first,
     );
     expect(previous.onPressed, isNull);
+    expect(find.text('읽기'), findsOneWidget);
     await t.tap(find.byTooltip('다음 페이지'));
     await t.pump();
     expect(page, 2);

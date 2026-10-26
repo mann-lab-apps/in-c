@@ -80,5 +80,6 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 일괄 편집은 결과 int를 반환하는 앱 sheet다. 처리 중 입력/취소/Back/drag/barrier를 차단, 실패 시 입력 유지+재시도. 성공 후에만 선택 모드를 끝낸다. 기존 controller의 persistence 정책·모델은 변경하지 않는다.
 - `InCSheetApp.accent?`, `themeMode=system`은 검증/host 주입용이며 제품에 새 색 선택 설정을 추가하지 않았다. 기본 active palette는 그대로다.
 - 주석 옵션은 기존 도구·색·굵기·스탬프·layer·undo/redo 동작을 유지한 채 `DdiroriToolbar`의 tokenized surface와 focus traversal 안에 배치한다. 공통 `DdiroriAnnotationTools`의 제한된 도구 집합으로 기능을 축소하지 않는다.
+- ViewerChrome의 페이지 이동은 `DdiroriPageControls`를 사용한다. 현재 mode label과 실제 이전/다음 가능 여부는 앱의 PDF·숨김 페이지·세트리스트 정책이 계산해 nullable callback으로 전달하며, 공통 컴포넌트는 PDF 페이지 순서나 controller를 추측하지 않는다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.

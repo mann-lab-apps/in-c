@@ -12,11 +12,13 @@ class DdiroriPageControls extends StatelessWidget {
     required this.onNext,
     this.pageCount,
     this.performance = false,
+    this.statusLabel,
   });
   final int page;
   final int? pageCount;
   final VoidCallback? onPrevious, onNext;
   final bool performance;
+  final String? statusLabel;
   @override
   Widget build(BuildContext context) {
     final c = DdiroriStyle.of(context);
@@ -37,22 +39,38 @@ class DdiroriPageControls extends StatelessWidget {
             icon: Icon(Icons.chevron_left, size: performance ? 34 : 24),
             color: c['onOverlay'],
             disabledColor: c['onOverlay'].withValues(alpha: .4),
-            onPressed: page > 1 ? onPrevious : null,
+            onPressed: onPrevious,
           ),
-          Text(
-            '$page / ${pageCount ?? '—'}',
-            style: TextStyle(
-              color: c['onOverlay'],
-              fontSize: performance ? 22 : 16,
-              fontWeight: FontWeight.w700,
-            ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$page / ${pageCount ?? '—'}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: c['onOverlay'],
+                  fontSize: performance ? 22 : 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (statusLabel != null)
+                Text(
+                  statusLabel!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: c['onOverlay'].withValues(alpha: .72),
+                    fontSize: performance ? 12 : 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
           ),
           IconButton(
             tooltip: '다음 페이지',
             icon: Icon(Icons.chevron_right, size: performance ? 34 : 24),
             color: c['onOverlay'],
             disabledColor: c['onOverlay'].withValues(alpha: .4),
-            onPressed: pageCount != null && page >= pageCount! ? null : onNext,
+            onPressed: onNext,
           ),
         ],
       ),

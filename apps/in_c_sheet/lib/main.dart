@@ -12334,68 +12334,13 @@ class _ViewerControls extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       heightFactor: 1,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isPerformanceMode ? 14 : 8,
-            vertical: isPerformanceMode ? 10 : 6,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: '이전 페이지',
-                onPressed: canGoPrevious ? onPrevious : null,
-                disabledColor: Colors.white38,
-                color: canGoPrevious ? Colors.white : Colors.white38,
-                iconSize: isPerformanceMode ? 34 : 24,
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Flexible(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isPerformanceMode ? 18 : 12,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '$pageNumber / ${pageCount ?? '-'}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isPerformanceMode ? 18 : null,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        modeLabel,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: isPerformanceMode ? 12 : 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: '다음 페이지',
-                onPressed: canGoNext ? onNext : null,
-                disabledColor: Colors.white38,
-                color: canGoNext ? Colors.white : Colors.white38,
-                iconSize: isPerformanceMode ? 34 : 24,
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-        ),
+      child: DdiroriPageControls(
+        page: pageNumber,
+        pageCount: pageCount,
+        performance: isPerformanceMode,
+        statusLabel: modeLabel,
+        onPrevious: canGoPrevious ? onPrevious : null,
+        onNext: canGoNext ? onNext : null,
       ),
     );
   }
