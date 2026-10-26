@@ -115,6 +115,7 @@ content:
         직접 페달 설정에서 진단 입력과 기본 입력의 동작 선택·저장을 정리하고, 작은 화면에서 긴 선택값이 잘리지 않도록 개선했습니다.
         좁은 화면의 보기 옵션을 읽기·연습·필기·페이지 편집·공유와 진단으로 구분해, 기존 악보 도구를 더 쉽게 찾을 수 있도록 정리했습니다.
         모든 도구의 페이지 정리를 공통 행과 메뉴로 표시해, 페이지 편집 도구의 아이콘·이름·행동을 일관되게 확인할 수 있도록 정리했습니다.
+        입력 진단을 공통 sheet·상태 행·행동으로 정리해, 입력 기록 확인과 직접 설정 진입을 작은 화면에서도 일관되게 사용할 수 있도록 개선했습니다.
         상단 페이지 정리 메뉴도 공통 메뉴 컴포넌트로 통일해, 넓은 화면과 모든 도구에서 같은 메뉴 계약을 사용하도록 정리했습니다.
 declarations:
   reviewed: false
@@ -205,6 +206,7 @@ testflight:
     모든 도구 → 보기 옵션 → 페달 매핑 → 직접 설정에서 긴 입력 이름·선택값과 저장을 확인해 주세요. 실제 USB/Bluetooth 장비, 재시작 뒤 입력 동작과 VoiceOver는 기기별로 기록해 주세요.
     모든 도구 → 보기 옵션에서 목적별 구획과 모든 기존 도구 진입이 보이는지 확인해 주세요. 390px·200% 글자에서 목록 scroll·focus 복귀·VoiceOver heading/행 순서는 별도 Device QA로 기록해 주세요.
     모든 도구 → 페이지 정리에서 공통 행의 이름·아이콘·메뉴를 확인하고, 숨김 페이지 관리·페이지 순서/복제·점프 포인트·리허설 마크로 각각 진입해 주세요. 실제 PDF 변형 사본 생성과 VoiceOver·큰 글씨는 Device QA로 기록해 주세요.
+    모든 도구 → 페이지 정리 → 입력 진단에서 빈 상태·입력 로그·진단 로그 복사와 직접 설정 진입을 확인해 주세요. 실제 Bluetooth/USB 페달, 키보드, VoiceOver와 큰 글씨는 Device QA로 기록해 주세요.
     넓은 화면 상단의 페이지 정리와 모든 도구 안의 페이지 정리에서 같은 메뉴 항목·비활성 상태가 보이는지 확인해 주세요. 메뉴를 여닫아도 PDF·주석·현재 페이지가 바뀌지 않아야 합니다.
     기기/OS/앱 버전, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함해 주세요.
 screenshots:
@@ -811,6 +813,41 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: score-input-diagnostic
+    purpose: 실제 PDF에서 입력 진단의 빈 상태, viewer 요약과 로그 복사 행동을 보여준다. 실제 HID/Bluetooth 장비 또는 VoiceOver 검증 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 페이지 정리 → 입력 진단
+    fixture: 자가 제작 3쪽 PDF, 진단 입력 없음. PDF·주석·연습 상태는 변경 없음.
+    must_show:
+    - 입력 진단 제목, 최근 입력 수와 viewer 요약
+    - 빈 입력 안내와 진단 로그 복사 행동
+    exclude:
+    - 실제 Bluetooth/USB 페달·키보드 해석, VoiceOver 또는 재시작 뒤 입력 설정이 통과했다는 문구
+    - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
+    steps:
+    - action: tap
+      by: text
+      value: Prelude
+    - action: wait
+      milliseconds: 5000
+    - action: tap
+      by: text
+      value: 모든 도구
+    - action: tap
+      by: tooltip
+      value: 페이지 정리
+    - action: tap
+      by: text
+      value: 입력 진단
+    assertions:
+    - by: text
+      value: 입력 진단
+      present: true
+    - by: text
+      value: 진단 로그 복사
+      present: true
+    - by: widget_type
+      value: ErrorWidget
+      present: false
   - id: score-display-mode
     purpose: 실제 PDF에서 보기 방식의 현재 선택, 선택 가능 상태와 좁은 화면의 2페이지 제한을 보여준다. 실제 iOS 2페이지 배치 또는 VoiceOver 검증 장면이 아니다.
     route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 보기 모드
@@ -967,6 +1004,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-26 입력 진단 sheet는 실제 PDF widget 회귀에서 빈 상태, 공통 안내·상태 행·로그 복사 행동과 PDF identity만 확인했다. 후보 iPhone/iPad에서 실제 Bluetooth/USB 페달·키보드 key/HID 해석, 큰 글씨, VoiceOver와 재시작 뒤 직접 설정 동작은 pending이다.
       2026-10-26 직접 페달 설정 sheet는 실제 PDF widget 회귀에서 390px 공통 설정 행·저장 행동과 PDF identity만 확인했다. 후보 iPhone/iPad에서 실제 USB/Bluetooth 장비, 큰 글씨, VoiceOver와 재시작 뒤 입력 동작은 pending이다.
       2026-10-26 렌더링 프로필과 페이지 넘김 효과 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 긴 PDF 성능, 실제 전환 감각, 큰 글씨와 VoiceOver는 pending이다.
       2026-10-26 페달 매핑 sheet는 실제 PDF widget 회귀에서 공통 행과 PDF identity만 확인했다. 후보 iPhone/iPad에서 Bluetooth/USB 페달, 키보드 입력, 큰 글씨와 VoiceOver는 pending이다.

@@ -1101,6 +1101,40 @@ void main() {
   });
 
   testWidgets(
+    'input diagnostics use a Ddirori sheet without changing the PDF',
+    (t) async {
+      await openPdf(t, width: 1680, height: 2000, scale: 2);
+      final originalDocument = pdf(t).document;
+
+      await command(t, '모든 도구');
+      await t.tap(find.byTooltip('페이지 정리'));
+      await t.pumpAndSettle();
+      final inputDiagnostic = find.text('입력 진단');
+      await t.ensureVisible(inputDiagnostic);
+      await t.tap(inputDiagnostic);
+      await t.pumpAndSettle();
+
+      expect(find.text('입력 진단'), findsOneWidget);
+      expect(find.byType(DdiroriBanner), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is DdiroriItem && widget.title == '아직 기록된 입력이 없습니다.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '진단 로그 복사',
+        ),
+        findsOneWidget,
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'long scan PDF page mapping crop zoom and toolbar keyboard focus',
     (t) async {
       final c = await openPdf(

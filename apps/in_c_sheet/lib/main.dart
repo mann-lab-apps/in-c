@@ -2712,79 +2712,54 @@ $log
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.keyboard_alt_outlined),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '입력 진단',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Bluetooth 페달이나 키보드를 누른 뒤 앱이 인식한 key와 action을 확인합니다.',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          _InfoRow(label: '최근 입력', value: '${entries.length}개'),
-          _InfoRow(label: 'Viewer', value: viewerSummary.split('\n').first),
-          const SizedBox(height: 12),
-          if (entries.isEmpty)
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.info_outline),
-              title: Text('아직 기록된 입력이 없습니다.'),
-              subtitle: Text('이 화면을 닫고 viewer에서 페달이나 키보드를 눌러보세요.'),
-            )
-          else
-            for (final entry in entries)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.keyboard_command_key),
-                title: Text(
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(
+          message: 'Bluetooth 페달이나 키보드를 누른 뒤 앱이 인식한 key와 action을 확인합니다.',
+        ),
+        DdiroriSettingsRow(title: '최근 입력', control: Text('${entries.length}개')),
+        DdiroriSettingsRow(
+          title: 'Viewer',
+          control: Text(viewerSummary.split('\n').first),
+        ),
+        if (entries.isEmpty)
+          const DdiroriItem(
+            flat: true,
+            leading: Icon(Icons.info_outline),
+            title: '아직 기록된 입력이 없습니다.',
+            subtitle: '이 화면을 닫고 viewer에서 페달이나 키보드를 눌러보세요.',
+          )
+        else
+          for (final entry in entries)
+            DdiroriItem(
+              flat: true,
+              leading: const Icon(Icons.keyboard_command_key),
+              title:
                   '${entry.inputId} → ${_viewerInputActionLabel(entry.action)}',
-                ),
-                subtitle: Text(
+              subtitle:
                   'logical ${entry.logicalKeyLabel} (${entry.logicalKeyId}) · '
                   'physical ${entry.physicalKeyId}',
-                ),
-              ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: _copyText));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('입력 진단 로그를 복사했습니다.')),
-                );
-              }
-            },
-            icon: const Icon(Icons.content_copy),
-            label: const Text('진단 로그 복사'),
-          ),
-          if (entries.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.tune),
-              label: const Text('직접 설정에 사용'),
             ),
-          ],
-        ],
-      ),
+        DdiroriButton(
+          label: '진단 로그 복사',
+          icon: Icons.content_copy,
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: _copyText));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('입력 진단 로그를 복사했습니다.')),
+              );
+            }
+          },
+        ),
+        if (entries.isNotEmpty)
+          DdiroriButton(
+            label: '직접 설정에 사용',
+            icon: Icons.tune,
+            kind: DdiroriButtonKind.quiet,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+      ],
     );
   }
 }
@@ -9819,10 +9794,10 @@ setlist=$setlistLabel
 
   Future<void> _showInputDiagnostic() async {
     final currentScore = score;
-    final openCustomMapping = await showModalBottomSheet<bool>(
+    final openCustomMapping = await showDdiroriSheet<bool>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _InputDiagnosticSheet(
+      title: '입력 진단',
+      child: _InputDiagnosticSheet(
         entries: List<SheetViewerInputDiagnosticEntry>.unmodifiable(
           _inputDiagnosticLog,
         ),
