@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
@@ -1398,6 +1399,101 @@ void main() {
     expect((await store.loadScores()).single.autoScrollSettings.cueSeconds, 5);
   });
 
+  for (final olderFails in [false, true]) {
+    test(
+      'auto scroll writes stay ordered after older failure=$olderFails',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final store = _DelayedAutoScrollStore();
+        await store.saveScores([_score(DateTime(2026, 10, 30))]);
+        final controller = SheetLibraryController(store: store);
+        addTearDown(controller.dispose);
+        await controller.load();
+        final score = controller.scores.single;
+        final gate = Completer<void>();
+        store.nextGate = gate;
+        store.failNext = olderFails;
+        final first = controller.updateAutoScrollSettings(
+          score,
+          score.autoScrollSettings.copyWith(durationSeconds: 270),
+        );
+        final firstResult = olderFails
+            ? expectLater(first, throwsA(isA<FileSystemException>()))
+            : expectLater(first, completes);
+        await Future<void>.delayed(Duration.zero);
+        final latest = controller.updateAutoScrollSettings(
+          score,
+          score.autoScrollSettings.copyWith(durationSeconds: 210),
+        );
+        gate.complete();
+        await firstResult;
+        await latest;
+        expect(
+          controller.scores.single.autoScrollSettings.durationSeconds,
+          210,
+        );
+        expect(
+          (await store.loadScores()).single.autoScrollSettings.durationSeconds,
+          210,
+        );
+      },
+    );
+  }
+
+  test('auto scroll preserves current metadata rather than a stale caller snapshot', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SheetLibraryStore();
+    await store.saveScores([_score(DateTime(2026, 10, 30))]);
+    final controller = SheetLibraryController(store: store);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final stale = controller.scores.single;
+    await controller.updateScoreMetadata(
+      stale,
+      title: '최신 제목',
+      composer: '자가 제작',
+      tags: '연습',
+      note: '보존',
+    );
+    await controller.updateAutoScrollSettings(
+      stale,
+      stale.autoScrollSettings.copyWith(durationSeconds: 210),
+    );
+    expect(controller.scores.single.title, '최신 제목');
+    expect(controller.scores.single.note, '보존');
+    expect((await store.loadScores()).single.title, '최신 제목');
+  });
+
+  test('queued auto scroll request rejects a reloaded library', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = _DelayedAutoScrollStore();
+    await store.saveScores([_score(DateTime(2026, 10, 30))]);
+    final controller = SheetLibraryController(store: store);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final score = controller.scores.single;
+    final gate = Completer<void>();
+    store.nextGate = gate;
+    store.failNext = true;
+    final firstResult = expectLater(
+      controller.updateAutoScrollSettings(score, score.autoScrollSettings),
+      throwsA(isA<FileSystemException>()),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final latestResult = expectLater(
+      controller.updateAutoScrollSettings(score, score.autoScrollSettings),
+      throwsA(isA<StateError>()),
+    );
+    await controller.load();
+    gate.complete();
+    await firstResult;
+    await latestResult;
+    expect(
+      controller.scores.single.autoScrollSettings.toJson(),
+      score.autoScrollSettings.toJson(),
+    );
+  });
+
   test('adds, erases, and undoes annotation strokes', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -2136,6 +2232,22 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
     SheetScore score,
   ) async {
     return result;
+  }
+}
+
+class _DelayedAutoScrollStore extends SheetLibraryStore {
+  Completer<void>? nextGate;
+  bool failNext = false;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    final gate = nextGate;
+    final fail = failNext;
+    nextGate = null;
+    failNext = false;
+    if (gate != null) await gate.future;
+    if (fail) throw const FileSystemException('auto scroll write fixture');
+    await super.saveScores(scores);
   }
 }
 

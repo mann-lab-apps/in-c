@@ -98,10 +98,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 실제 기기의 연주 속도·오디오/페달/펜·장시간·VoiceOver는 pending이다. running 상태 검사는 무한 프레임을 기다리는 settle 대신 bounded frame과 native PDF 준비를 사용한다.
 - 최종 format/analyze·전체 614 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-autoscroll-rc-clean-20261030.log`). 앞선 RC도 614 tests는 통과했으나 중괄호 lint 한 건 때문에 exit 1이었고 이를 수정 후 재검증했다. metadata check PASS, source pending (`/private/tmp/score-autoscroll-metadata-20261030.log`).
 
+## 자동 스크롤 재진입 저장 순서
+
+- red: 이전 sheet에서 270초 저장을 지연하고 닫기 → 새 sheet에서 210초 저장 → 이전 저장 완료 순서에 실제 metadata가 270초로 되돌아갔다 (`/private/tmp/score-auto-reentry-red-20261030.log`). 실행 수명과 별개인 저장 순서 문제다.
+- `updateAutoScrollSettings`의 요청만 controller에서 순차 실행하고 각 요청 시작 시 최신 score를 읽는다. 실패는 원래 caller에 반환하되 다음 쓰기/재시도를 막지 않는다. 대기 중 라이브러리가 reload되면 해당 대기 요청을 거부한다. 일반 `_replace`와 store 파일 형식/정책은 바꾸지 않았다.
+- 실제 PDF 재진입을 포함한 auto-scroll widget 17 tests PASS (`/private/tmp/score-auto-reentry-green-20261030.log`). controller는 정상/이전 실패 뒤 최신 성공·오래된 caller의 metadata 보존·reload된 라이브러리 요청 거부를 검사한다. 첫 controller 검사의 마지막 equality는 identity 비교여서 실패했고, 저장된 내용의 toJson 비교로 수정했다.
+- 이미 실행한 쓰기와 다른 종류 metadata 저장/외부 store 변경을 전역 직렬화한 것이 아니다. 라이브러리 전환 중 in-flight 저장의 rollback/취소·강제 종료 복구는 이번 완료 범위가 아니다.
+- 최종 format/analyze·전체 619 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-auto-reentry-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-auto-reentry-metadata-20261030.log`). 테스터 체크리스트에도 변경 영향 범위만 추가했다.
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 자동 스크롤 창을 닫고 다시 여는 동안 서로 다른 창의 설정 저장 순서, 악보함 가져오기 메뉴의 큰 글자/가로 접근성. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 악보함 가져오기 메뉴의 큰 글자/가로 접근성. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.

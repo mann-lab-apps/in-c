@@ -2464,6 +2464,41 @@ void main() {
     },
   );
 
+  testWidgets(
+    'auto scroll newer sheet settings win after an older sheet closes',
+    (t) async {
+      final store = AutoScrollWriteStore();
+      final c = await openPdf(t, store: store);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      final gate = Completer<void>();
+      store.nextGate = gate;
+      store.attempts.clear();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await t.tap(find.byTooltip('느리게'));
+      await t.pumpAndSettle();
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      await t.tap(find.byTooltip('빠르게'));
+      await t.pumpAndSettle();
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(find.text('연주 시간 3분 30초'), findsOneWidget);
+      expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 210);
+      expect(
+        (await store.loadScores()).first.autoScrollSettings.durationSeconds,
+        210,
+      );
+      expect(find.textContaining('설정을 저장하지 못했습니다.'), findsNothing);
+      expect(store.attempts.length, 2);
+      expect(t.takeException(), isNull);
+    },
+  );
+
   testWidgets('viewer keyboard page turn works while tools own focus', (
     t,
   ) async {

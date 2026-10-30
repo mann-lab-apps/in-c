@@ -46,6 +46,11 @@ class SheetLibraryController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isImporting = false;
   String? _errorMessage;
+  // Auto-scroll sheets may close/reopen while persistence is still pending.
+  // Keep their writes ordered across route instances, reading current metadata
+  // when each request runs rather than restoring a captured score snapshot.
+  Future<void> _autoScrollSettingsWrite = Future<void>.value();
+  int _libraryLoadGeneration = 0;
 
   List<SheetScore> get scores => _scores;
   List<SheetSetlist> get setlists => _setlists;
@@ -170,6 +175,7 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> _loadActiveLibraryState() async {
+    _libraryLoadGeneration++;
     _libraryProfiles = await store.loadLibraryProfiles();
     _activeLibraryProfile = await store.loadActiveLibraryProfile();
     _scores = await store.loadScores();
@@ -810,10 +816,31 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> updateAutoScrollSettings(
     SheetScore score,
     SheetAutoScrollSettings settings,
-  ) async {
-    await _replace(
-      score.copyWith(autoScrollSettings: settings, updatedAt: DateTime.now()),
+  ) {
+    final previous = _autoScrollSettingsWrite;
+    final libraryGeneration = _libraryLoadGeneration;
+    final libraryId = _activeLibraryProfile.id;
+    final write = () async {
+      await previous;
+      if (libraryGeneration != _libraryLoadGeneration ||
+          libraryId != _activeLibraryProfile.id) {
+        throw StateError('Auto-scroll settings belong to a previous library');
+      }
+      final current = scoreById(score.id);
+      await _replace(
+        current.copyWith(
+          autoScrollSettings: settings,
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }();
+    // A failed request is still returned to its caller, but cannot poison the
+    // queue and prevent a newer request or retry from running.
+    _autoScrollSettingsWrite = write.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {},
     );
+    return write;
   }
 
   Future<void> updateMetronomeSettings(SheetMetronomeSettings settings) async {
