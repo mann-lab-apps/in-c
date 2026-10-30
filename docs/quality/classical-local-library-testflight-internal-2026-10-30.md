@@ -29,3 +29,16 @@
 - 사용자 iPhone Xs에서 Files 제공자, 실제 음원 재생·청감, 중단·복구, VoiceOver를 직접 확인한다.
 - App Store 공개 출시에는 별도의 개인정보/지원 URL, 스크린샷, 스토어 내용 검수 및 심사가 필요하다.
 - 이 문서는 업로드·코드 서명·자동 테스트 증거다. 실기기 동작이나 App Store 승인 근거로 사용하지 않는다.
+
+## 0.1.0(2) — iOS 화면 잠금 재생
+
+- 제품 소스: `e31e5eb19b6b4748778a45578ed2fda25a5d75fe`.
+- 브랜치: `feature/ddirori-play-ios-background-audio-20261030`.
+- `ENABLE_DEMO_LIBRARY=false`, `APP_VERSION_LABEL=0.1.0 (2)`로 Release archive/IPA 생성 성공.
+- IPA SHA-256: `09781b4d7320768e5aec925356f34e9952499ed2cd2e129480816b98bf1e8276`.
+- archive/IPA에서 `com.mannlab.ddirori.play`, `0.1.0`, build `2`, `UIBackgroundModes: [audio]`, `ITSAppUsesNonExemptEncryption=false`를 확인했다.
+- Apple Distribution 서명, 기존 일치 프로파일, `testFlightInternalTestingOnly=true`와 codesign 검증 통과.
+- 회귀와 실제 시뮬레이터 앱 전환 결과는 [background audio 증거](classical-local-library-ios-background-audio-2026-10-30.md)에 기록한다. 물리 iPhone Xs 잠금·청감·출력 route는 미검증이다.
+- Fastlane 전송 성공, Apple 업로드 완료 시각 2026-10-30 21:24:47 KST. 업로드·빌드 ID `eb230219-dfa5-462d-a586-5d78140187c6`, 업로드 `COMPLETE` (오류·경고 0), 빌드 `VALID / INTERNAL_ONLY`.
+- 사용자 승인한 암호화 답변이 바이너리에서 반영돼 `usesNonExemptEncryption=false`와 `READY_FOR_BETA_TESTING`을 확인했다. 기존 내부 그룹에 연결한 뒤 `IN_BETA_TESTING`, 그룹에 빌드 1·2와 테스터 1명이 있음을 확인했다. 0.1.0(1)은 보존됐다.
+- 자동 생성한 [Apple 배포 확인 JSON](evidence/play-ios-background-distribution-20261030.json)을 참고한다. 테스터 계정의 기존 INSTALLED 상태는 새 build 2 설치나 물리 잠금·청감의 증거로 해석하지 않는다.

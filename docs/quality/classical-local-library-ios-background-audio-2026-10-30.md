@@ -22,9 +22,12 @@ iOS에서 사용자가 시작한 로컬 재생은 화면 잠금·앱 전환 중 
 | fixture 무결성 | `dart run tool/generate_audio_fixtures.dart --check` | 통과 |
 | 실제 시뮬레이터 OS 앱 전환 | `tool/run_ios_background_audio_qa.py` | 6초 앱 전환, 실제 lifecycle 수신, native 큐 진행·완료·위치 저장 |
 | native 플레이어 + 주입한 interruption/route 이벤트 | 신규 integration 두 번째 테스트 | pause, 자동 재개 없음, stop |
+| 기존 native audio integration | `audio_playback_integration_test.dart` 두 테스트 | FLAC seek·완료, WAV/AAC/ALAC 큐·pause/resume·위치/이력·손상 파일 오류 복구 통과 |
+| 배포 preflight 테스트 | Ruby 8개, assertion 35개 | 실패 0, 예상 밖 background mode·필수 audio 누락 차단 |
+| signed archive preflight | `release_candidate_preflight` | PASS 20 / BLOCKED 10 / FAIL 0, 내부 베타 준비됨 |
 | iPhone Xs 잠금·가청 출력 | 사용자 QA | 미검증 |
 
-시뮬레이터: 전용 `DDIRORI-QA-Play-20261023`, iOS 26.5. 앱에서 합성 WAV 12항목을 재생한 뒤 Settings 앱을 열고 6초 뒤 복귀했다. `inactive → hidden → paused → hidden → inactive → resumed`를 실제 OS에서 받았고, 0번에서 3번 큐 항목으로 진행했다. 완료 인덱스는 기존 앱 계약대로 queue.length(12)이며 failure가 없다. 저장 위치도 확인했다.
+환경: macOS 26.6.2, Xcode 26.5 (17F42), iPhone 17 Pro 유형의 전용 `DDIRORI-QA-Play-20261023`, iOS 26.5 Simulator. 앱에서 합성 WAV 12항목을 재생한 뒤 Settings 앱을 열고 6초 뒤 복귀했다. `inactive → hidden → paused → hidden → inactive → resumed`를 실제 OS에서 받았고, 0번에서 3번 큐 항목으로 진행했다. 완료 인덱스는 기존 앱 계약대로 queue.length(12)이며 failure가 없다. 저장 위치도 확인했다.
 
 첫 실행에서는 완료 인덱스를 마지막 항목 11로 잘못 기대한 테스트가 실패했다. 앱의 기존 완료 계약을 확인해 기대값을 바로잡은 뒤 재실행하여 두 integration 테스트 모두 통과했다. 엔진의 완료 동작은 변경하지 않았다.
 
@@ -41,7 +44,7 @@ flutter test integration_test/audio_playback_integration_test.dart -d <simulator
 
 ## 기기 검수와 배포
 
-0.1.0(1)은 보존하고 0.1.0(2)를 내부 테스트 전용으로 준비한다. 제품 소스 commit·서명·IPA 해시와 Apple 처리 결과는 실제 확인 후 별도 배포 기록에 남긴다. iPhone Xs에서는 [물리 기기 점검표](classical-local-library-physical-device-checklist.md)의 화면 잠금 QA를 실행한다.
+0.1.0(1)은 보존하고 0.1.0(2)를 내부 테스트 전용으로 배포했다. 제품 소스는 `e31e5eb19b6b4748778a45578ed2fda25a5d75fe`다. archive와 IPA의 Bundle ID·버전·audio 모드·암호화 flag, matching profile과 `codesign --verify --strict --deep`를 확인했다. Apple의 빌드 `VALID/INTERNAL_ONLY`, 기존 그룹 연결 후 `IN_BETA_TESTING`과 테스터 1명 접근을 확인했다. [배포 기록](classical-local-library-testflight-internal-2026-10-30.md)에 IPA 해시와 원격 확인 결과가 있다. iPhone Xs에서는 [물리 기기 점검표](classical-local-library-physical-device-checklist.md)의 화면 잠금 QA를 실행한다. 자동화 결과는 로컬 실행 증거이며 원격 CI 결과를 수집하지 않았다.
 
 ## 공식 근거
 

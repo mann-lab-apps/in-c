@@ -150,7 +150,7 @@ review:
 testflight:
   reviewed: false
   feedback_email:
-  build_id:
+  build_id: eb230219-dfa5-462d-a586-5d78140187c6
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
     0.1.0(2): iPhone Xs에서 1분 이상 음원을 재생한 뒤 전원 버튼으로 화면을 잠그고 30초간 재생이 이어지는지 확인해 주세요. 잠금 중 다음 곡, 잠금 해제 후 큐·위치 유지, 직접 일시정지 후 자동 재생 방지, 전화/다른 오디오·헤드폰 분리 시 일시정지와 자동 재개 방지를 확인해 주세요. 잠금 화면 재생 버튼은 이번 범위가 아닙니다.
@@ -522,6 +522,7 @@ manual:
   export_compliance:
     status: pending
     evidence: >-
+      2026-10-30 동일한 사용자 승인 답변을 0.1.0(2) Info.plist에 반영했으며 Apple API usesNonExemptEncryption=false, 내부 상태 IN_BETA_TESTING 확인.
       2026-10-30 사용자가 내부 TestFlight 빌드의 비면제 암호화 사용 안 함 신고를 승인. 코드에서 확인한 암호화 관련 사용은 HTTPS와 파일 중복 확인용 SHA-256 해시이며 App Store Connect 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e에 usesNonExemptEncryption=false 등록 후 READY_FOR_BETA_TESTING 확인. 공개 출시용 수출 규정 설문과 지역별 요건 검토는 별도 pending.
   content_licenses:
     status: pending
@@ -585,7 +586,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
-       2026-10-30 iOS background audio 변경을 포함한 0.1.0(2) 내부 TestFlight 후보 준비. 0.1.0(1) 기존 빌드와 초대 기록은 보존하며 새 제품 커밋·서명·Apple 처리·그룹 연결은 실제 결과 후 기록한다.
+       2026-10-30 iOS background audio 0.1.0(2) 제품 소스 e31e5eb19b6b4748778a45578ed2fda25a5d75fe에서 서명·IPA 생성·업로드 완료. Apple 빌드 eb230219-dfa5-462d-a586-5d78140187c6 COMPLETE/VALID/INTERNAL_ONLY/IN_BETA_TESTING, 오류·경고 0. 기존 내부 그룹에 0.1.0(1)과 함께 연결, 테스터 1명 접근 확인. 새 빌드의 물리 iPhone Xs 설치·화면 잠금·청감은 사용자 QA 대기. docs/quality/classical-local-library-ios-background-audio-2026-10-30.md 참고.
        2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드 및 비면제 암호화 사용 안 함 신고를 승인. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 내부 그룹 61f6e80b-f830-4c8d-9086-cca142e61f91에 빌드 연결, 사용자 확인 후 단일 계정 보유자를 내부 테스터로 추가. Apple API에서 그룹 테스터 1명 INVITED, 빌드 IN_BETA_TESTING 확인. 초대 수락·iPhone Xs 설치·실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.
        2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.
