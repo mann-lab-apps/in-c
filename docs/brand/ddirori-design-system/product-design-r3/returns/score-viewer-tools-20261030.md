@@ -155,10 +155,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 촬영 scene은 기본 라이브러리의 메뉴 진입만 정의하고 존재하지 않는 사용자 profile이나 관리 성공을 만들지 않는다. 실제 저장 실패·여러 provider·VoiceOver/focus와 많은 profile의 성능은 별도 범위다.
 - 최종 format/analyze·전체 645 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-library-profile-rc-clean-20261030.log`). 첫 RC도 645 tests는 통과했으나 문자열 보간 style 두 건을 수정한 뒤 재검증했다. metadata check PASS, source pending (`/private/tmp/score-library-profile-metadata-20261030.log`).
 
+## 악보함 정렬 선택
+
+- 기존 raw Column은 840×390/200%에서 하단 149px overflow가 재현됐다 (`/private/tmp/score-library-sort-red-20261030.log`). 공통 Sheet/Stack/flat Item/Button과 단일 scroll로 현재 정렬·선택·취소를 구분한다.
+- 선택 후 mounted/라이브러리 ID를 확인하고 기존 `updateLibrarySortMode`를 사용한다. 정렬 enum·저장 형식·검색·즐겨찾기·악보 ID/최근 열기는 바꾸지 않는다. 저장 실패의 전역 복구 모델을 새로 보장하는 변경이 아니다.
+- focused 4 tests PASS (`/private/tmp/score-library-sort-final-focused-20261030.log`): 세 viewport/200% light/dark의 하단 가져온 날짜 선택·저장/재진입·취소·검색/즐겨찾기/자료 ID/미열기 보존, 다른 라이브러리로 바뀐 뒤 이전 선택 거부.
+- 촬영은 기본 최근 열기 선택 장면만 정의했다. 물리 터치/VoiceOver·포커스와 저장소 실패 검수는 별도다.
+- 최종 format/analyze·전체 649 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-library-sort-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-library-sort-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 악보함 정렬/필터 선택 메뉴의 큰 글자·가로 접근성. 이미 발신한 SystemChrome 요청의 실제 실행/복원, 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 태그/컬렉션/그룹/별점 필터 선택의 공통화와 긴 목록 접근성. 이미 발신한 SystemChrome 요청의 실제 실행/복원, 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.

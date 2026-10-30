@@ -537,28 +537,37 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _selectSortMode() async {
-    final selected = await showModalBottomSheet<SheetLibrarySortMode>(
+    final libraryId = controller.activeLibraryProfile.id;
+    final selected = await showDdiroriSheet<SheetLibrarySortMode>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: SheetLibrarySortMode.values
-              .map(
-                (mode) => ListTile(
-                  leading: Icon(_librarySortIcon(mode)),
-                  title: Text(_librarySortLabel(mode)),
-                  trailing: controller.libraryViewSettings.sortMode == mode
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(mode),
-                ),
-              )
-              .toList(growable: false),
+      title: '정렬',
+      child: Builder(
+        builder: (sheetContext) => DdiroriStack(
+          children: [
+            const DdiroriBanner(message: '검색과 필터를 유지한 채 목록의 표시 순서를 바꿉니다.'),
+            for (final mode in SheetLibrarySortMode.values)
+              DdiroriItem(
+                flat: true,
+                leading: Icon(_librarySortIcon(mode)),
+                title: _librarySortLabel(mode),
+                subtitle: controller.libraryViewSettings.sortMode == mode
+                    ? '현재 정렬'
+                    : null,
+                selected: controller.libraryViewSettings.sortMode == mode,
+                onTap: () => Navigator.of(sheetContext).pop(mode),
+              ),
+            DdiroriButton(
+              label: '취소',
+              kind: DdiroriButtonKind.quiet,
+              onPressed: () => Navigator.of(sheetContext).pop(),
+            ),
+          ],
         ),
       ),
     );
-    if (selected != null) {
+    if (mounted &&
+        controller.activeLibraryProfile.id == libraryId &&
+        selected != null) {
       await controller.updateLibrarySortMode(selected);
     }
   }

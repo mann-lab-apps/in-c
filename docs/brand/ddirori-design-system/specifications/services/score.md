@@ -8,6 +8,8 @@
 
 ## 표시 API와 상태 소유권
 
+악보함 정렬은 공통 Sheet/Stack/flat Item/Button으로 현재 정렬과 선택/취소를 표시한다. 스크롤이 하단 항목 접근을 보장하며 선택이 돌아올 때 mounted와 라이브러리 ID를 확인한다. 검색/필터·자료·정렬 저장 정책은 기존 controller가 소유한다.
+
 라이브러리 전환은 공통 Sheet/Stack/Banner의 flat Item으로 전체 이름과 현재 상태를 표시한다. 각 관리 Menu는 전환과 별개이고, 생성/취소는 Button으로 구분한다. metadata 비우기 확인은 공통 경고 Dialog를 사용하며, 저장소 전환·검색 초기화·자료 보존 정책은 기존 controller/store가 소유한다.
 
 공연 진입/종료 adapter는 준비 저장과 platform 응답 뒤 viewer 수명·요청 세대·문서·현재 route를 확인한다. 닫혔거나 다른 화면 아래 남은 viewer의 늦은 준비 결과는 새 시스템 UI 전환/오류를 보내지 않으며, 현재 요청의 저장/전환 오류는 기존 앱 상태와 재시도 안내를 유지한다. 이미 native에 보낸 명령을 취소하거나 OS의 처리 순서를 보장하는 계약은 아니다.
