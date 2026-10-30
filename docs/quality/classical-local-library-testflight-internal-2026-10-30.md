@@ -18,8 +18,10 @@
 - Apple 업로드 완료 시각: `2026-10-30T04:33:30-07:00`
 - 마지막 확인: 업로드 `COMPLETE` (오류·경고 0), 빌드 `VALID`, audience `INTERNAL_ONLY`.
 - 빌드 ID: `a75f2996-e8e6-4516-a990-1a6b05b3216e`.
-- 내부 TestFlight 상태: `READY_FOR_BETA_TESTING`.
-- 그룹 ID: `61f6e80b-f830-4c8d-9086-cca142e61f91`. 그룹의 빌드 목록에서 해당 빌드 ID를 확인했다. 현재 테스터 0명으로 설치는 아직 사용자 계정에 열리지 않았다.
+- 내부 TestFlight 상태: 테스터 추가 전 `READY_FOR_BETA_TESTING`, 추가 후 `IN_BETA_TESTING`.
+- 그룹 ID: `61f6e80b-f830-4c8d-9086-cca142e61f91`. 그룹의 빌드 목록에서 해당 빌드 ID를 확인했다.
+- 사용자가 단일 App Store Connect 계정 보유자가 본인임을 확인한 후 해당 계정을 내부 테스터로 추가했다. 테스터 ID `6cacdc50-082c-4784-9488-50f652cc5cba`, 그룹 멤버 1명, 상태 `INVITED`를 Apple API에서 확인했다. 이메일 주소는 기록하지 않았다.
+- 초대 메일 수신·수락과 iPhone Xs 설치는 사용자 확인이 필요하다.
 - 코드에서 확인한 관련 사용: `http` 통신과 파일 중복 확인용 SHA-256 해시. 사용자가 2026-10-30에 비면제 암호화 사용 안 함을 승인했고 App Store Connect 빌드 속성 `usesNonExemptEncryption=false`로 확인했다.
 
 ## 남은 검수
