@@ -291,10 +291,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showLibrarySwitcher() async {
-    final action = await showModalBottomSheet<_LibraryProfileAction>(
+    final action = await showDdiroriSheet<_LibraryProfileAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _LibraryProfileSheet(
+      title: '라이브러리 전환',
+      child: _LibraryProfileSheet(
         activeLibraryId: controller.activeLibraryProfile.id,
         profiles: controller.libraryProfiles,
         activeScoreCount: controller.scores.length,
@@ -357,26 +357,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           );
         }
       case _LibraryProfileActionType.delete:
-        final didConfirm = await showDialog<bool>(
+        final didConfirm = await showDdiroriConfirmDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('라이브러리 비우기'),
-            content: Text(
+          title: '라이브러리 비우기',
+          message:
               '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 metadata만 비웁니다.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('취소'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('비우기'),
-              ),
-            ],
-          ),
+          confirmLabel: '비우기',
+          danger: true,
         );
-        if (!mounted || didConfirm != true) {
+        if (!mounted || !didConfirm) {
           return;
         }
         final didClear = await controller.clearLibraryProfile(action.libraryId);
@@ -1462,83 +1451,71 @@ class _LibraryProfileSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          ListTile(
-            leading: const Icon(Icons.library_music_outlined),
-            title: const Text(SheetLibraryProfile.defaultName),
-            subtitle: const Text('기존 악보 저장소'),
-            trailing: activeLibraryId == SheetLibraryProfile.defaultId
-                ? const Icon(Icons.check)
-                : null,
-            onTap: () => Navigator.of(
-              context,
-            ).pop(const _LibraryProfileAction(_LibraryProfileActionType.all)),
-          ),
-          const Divider(),
-          for (final profile in profiles.where((profile) => !profile.isDefault))
-            ListTile(
-              leading: const Icon(Icons.collections_bookmark_outlined),
-              title: Text(
-                profile.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(
-                profile.id == activeLibraryId
-                    ? '$activeScoreCount곡'
-                    : '분리된 악보 저장소',
-              ),
-              trailing: Wrap(
-                spacing: 0,
-                children: [
-                  if (profile.id == activeLibraryId) const Icon(Icons.check),
-                  IconButton(
-                    tooltip: '이름 변경',
-                    onPressed: () => Navigator.of(context).pop(
-                      _LibraryProfileAction(
-                        _LibraryProfileActionType.rename,
-                        libraryId: profile.id,
-                        label: profile.name,
-                      ),
-                    ),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  IconButton(
-                    tooltip: '라이브러리 비우기',
-                    onPressed: () => Navigator.of(context).pop(
-                      _LibraryProfileAction(
-                        _LibraryProfileActionType.delete,
-                        libraryId: profile.id,
-                        label: profile.name,
-                      ),
-                    ),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ),
-              onTap: () => Navigator.of(context).pop(
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(message: '악보 목록과 설정을 라이브러리별로 관리합니다.'),
+        DdiroriItem(
+          flat: true,
+          leading: const Icon(Icons.library_music_outlined),
+          title: SheetLibraryProfile.defaultName,
+          subtitle: activeLibraryId == SheetLibraryProfile.defaultId
+              ? '$activeScoreCount곡 · 현재 라이브러리'
+              : '기존 악보 저장소',
+          selected: activeLibraryId == SheetLibraryProfile.defaultId,
+          onTap: () => Navigator.of(context)
+              .pop(const _LibraryProfileAction(_LibraryProfileActionType.all)),
+        ),
+        for (final profile in profiles.where((profile) => !profile.isDefault))
+          DdiroriItem(
+            flat: true,
+            leading: const Icon(Icons.collections_bookmark_outlined),
+            title: profile.name,
+            subtitle: profile.id == activeLibraryId
+                ? '$activeScoreCount곡 · 현재 라이브러리'
+                : '분리된 악보 저장소',
+            selected: profile.id == activeLibraryId,
+            trailing: DdiroriMenuButton<_LibraryProfileActionType>(
+              label: '${profile.name} 관리',
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: _LibraryProfileActionType.rename,
+                  child: Text('이름 변경'),
+                ),
+                PopupMenuItem(
+                  value: _LibraryProfileActionType.delete,
+                  child: Text('라이브러리 비우기'),
+                ),
+              ],
+              onSelected: (type) => Navigator.of(context).pop(
                 _LibraryProfileAction(
-                  _LibraryProfileActionType.select,
+                  type,
                   libraryId: profile.id,
                   label: profile.name,
                 ),
               ),
             ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.add),
-            title: const Text('새 라이브러리'),
-            subtitle: const Text('분리된 악보 저장소 만들기'),
             onTap: () => Navigator.of(context).pop(
-              const _LibraryProfileAction(_LibraryProfileActionType.create),
+              _LibraryProfileAction(
+                _LibraryProfileActionType.select,
+                libraryId: profile.id,
+                label: profile.name,
+              ),
             ),
           ),
-        ],
-      ),
+        DdiroriButton(
+          label: '새 라이브러리',
+          icon: Icons.add,
+          kind: DdiroriButtonKind.secondary,
+          onPressed: () => Navigator.of(
+            context,
+          ).pop(const _LibraryProfileAction(_LibraryProfileActionType.create)),
+        ),
+        DdiroriButton(
+          label: '취소',
+          kind: DdiroriButtonKind.quiet,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
     );
   }
 }

@@ -147,10 +147,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 준비 선호 저장 전과 mode/알림 결과 전 current route도 확인한다. 최신 focused 10 tests PASS (`/private/tmp/score-performance-owner-final-focused-20261030.log`). 첫 전체는 639 tests PASS였으나 신규 테스트 helper의 중괄호 lint가 남았고 이를 수정했다. 두 route fixture·최종 소스는 이어지는 RC에서 재검증한다.
 - 최종 format/analyze·전체 641 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-owner-rc-clean-20261030.log`). metadata check PASS (`/private/tmp/score-performance-owner-metadata-final-20261030.log`), source pending이며 작업 파일의 release_notes는 1,121자다. 공개 문구에 내부 Device QA 미실행 경고를 넣지 않고 manual/runbook에 구분했다.
 
+## 라이브러리 전환 메뉴
+
+- 기존 profile의 한 줄 제목은 세 viewport/200%에서 실제 RenderParagraph.didExceedMaxLines가 true였다 (`/private/tmp/score-library-profile-red-actual-20261030.log`). 공통 Sheet/flat Item으로 전체 이름을 줄바꿈하고 현재 상태를 문자와 선택 상태로 표시한다.
+- 이름 변경/비우기는 독립 공통 Menu, 새 라이브러리/취소는 Button이다. 비우기 확인도 공통 scrollable 경고 Dialog로 합성하고, 실제 controller 전환·비우기 반환값·검색 초기화·원본 파일 보존 정책은 바꾸지 않았다.
+- focused 4 tests PASS (`/private/tmp/score-library-profile-final-focused-20261030.log`): 세 viewport/200% light/dark의 실제 미잘림·관리와 전환 분리, rename 취소/검색·자료 유지, 다른 라이브러리/기본 자료 복귀, sheet/create/clear 취소. 추가 테스트 등록 위치가 초기 helper 안에 들어간 오류를 수정하고 main에서 정적으로 등록해 검사했다.
+- 촬영 scene은 기본 라이브러리의 메뉴 진입만 정의하고 존재하지 않는 사용자 profile이나 관리 성공을 만들지 않는다. 실제 저장 실패·여러 provider·VoiceOver/focus와 많은 profile의 성능은 별도 범위다.
+- 최종 format/analyze·전체 645 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-library-profile-rc-clean-20261030.log`). 첫 RC도 645 tests는 통과했으나 문자열 보간 style 두 건을 수정한 뒤 재검증했다. metadata check PASS, source pending (`/private/tmp/score-library-profile-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 이미 발신한 SystemChrome 요청의 실제 실행/복원, 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 악보함 정렬/필터 선택 메뉴의 큰 글자·가로 접근성. 이미 발신한 SystemChrome 요청의 실제 실행/복원, 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
