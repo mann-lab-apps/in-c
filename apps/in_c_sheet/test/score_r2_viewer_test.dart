@@ -16,6 +16,7 @@ import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import 'adoption_pilot_test.dart' as pilot;
@@ -58,6 +59,28 @@ class AutoScrollWriteStore extends SheetLibraryStore {
     await super.saveScores(scores);
   }
 }
+
+class PerformancePresetWriteStore extends SheetLibraryStore {
+  Completer<void>? gate;
+  bool failWrites = false;
+  int writes = 0;
+
+  @override
+  Future<void> savePerformancePresetTemplates(
+    List<SheetPerformancePresetTemplate> templates,
+  ) async {
+    writes++;
+    final pending = gate;
+    if (pending != null) await pending.future;
+    if (failWrites) throw const FileSystemException('preset fixture failure');
+    await super.savePerformancePresetTemplates(templates);
+  }
+}
+
+Finder templateField(String label) => find.descendant(
+  of: find.byWidgetPredicate((w) => w is DdiroriInput && w.label == label),
+  matching: find.byType(TextField),
+);
 
 Future<void> openNotes(WidgetTester t) async {
   await command(t, '모든 도구');
@@ -789,6 +812,134 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'performance preset creation failure preserves draft and retries',
+    (t) async {
+      final store = PerformancePresetWriteStore();
+      final c = await openPdf(t, store: store, scale: 2);
+      final original = c.scoreById('pilot-0').viewerSettings.toJson();
+      await openPerformanceSettings(t);
+      await togglePerformanceAnnotation(t);
+      await t.ensureVisible(templateField('Template 이름'));
+      await t.pumpAndSettle();
+      await t.enterText(templateField('Template 이름'), '내 공연');
+      await t.enterText(templateField('장비 profile'), '태블릿');
+      await t.pumpAndSettle();
+      store.failWrites = true;
+      await command(t, '현재 설정 저장');
+      expect(t.takeException(), isNull);
+      expect(
+        find.text('Preset을 저장하지 못했습니다. 이름과 설정을 유지했습니다. 다시 시도해 주세요.'),
+        findsOneWidget,
+      );
+      expect(c.performancePresetTemplates, isEmpty);
+      expect(
+        t.widget<TextField>(templateField('Template 이름')).controller!.text,
+        '내 공연',
+      );
+      store.failWrites = false;
+      await command(t, '현재 설정 저장');
+      expect(c.performancePresetTemplates.single.name, '내 공연');
+      expect(
+        (await store.loadPerformancePresetTemplates()).single.deviceProfile,
+        '태블릿',
+      );
+      expect(c.scoreById('pilot-0').viewerSettings.toJson(), original);
+      await command(t, '취소');
+      expect(c.scoreById('pilot-0').viewerSettings.toJson(), original);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'performance preset deletion waits for storage and retains failed item',
+    (t) async {
+      final store = PerformancePresetWriteStore();
+      final c = await openPdf(t, store: store, scale: 2);
+      final template = await c.savePerformancePresetTemplate(
+        name: '유지할 공연',
+        viewerSettings: c.scoreById('pilot-0').viewerSettings,
+      );
+      await openPerformanceSettings(t);
+      final gate = Completer<void>();
+      store.gate = gate;
+      store.failWrites = true;
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await t.ensureVisible(find.byTooltip('유지할 공연 삭제'));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('유지할 공연 삭제'));
+      await t.pumpAndSettle();
+      expect(c.performancePresetTemplates.single.id, template.id);
+      await t.state<NavigatorState>(find.byType(Navigator).first).maybePop();
+      await t.pumpAndSettle();
+      expect(find.text('공연 모드'), findsOneWidget);
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(
+        find.text('Preset을 삭제하지 못했습니다. 목록을 유지했습니다. 다시 시도해 주세요.'),
+        findsOneWidget,
+      );
+      expect(c.performancePresetTemplates.single.id, template.id);
+      store.gate = null;
+      store.failWrites = false;
+      await t.ensureVisible(find.byTooltip('유지할 공연 삭제'));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('유지할 공연 삭제'));
+      await t.pumpAndSettle();
+      expect(c.performancePresetTemplates, isEmpty);
+      expect(await store.loadPerformancePresetTemplates(), isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'performance preset creation blocks duplicate writes and dismissal',
+    (t) async {
+      final store = PerformancePresetWriteStore();
+      final c = await openPdf(t, store: store, scale: 2);
+      await openPerformanceSettings(t);
+      await t.ensureVisible(templateField('Template 이름'));
+      await t.pumpAndSettle();
+      await t.enterText(templateField('Template 이름'), '저장 대기');
+      await t.pumpAndSettle();
+      final gate = Completer<void>();
+      store.gate = gate;
+      store.writes = 0;
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await command(t, '현재 설정 저장');
+      expect(store.writes, 1);
+      expect(c.performancePresetTemplates, isEmpty);
+      expect(
+        t.widget<TextField>(templateField('Template 이름')).readOnly,
+        isTrue,
+      );
+      final button = find.byWidgetPredicate(
+        (w) => w is DdiroriButton && w.label == '현재 설정 저장',
+      );
+      expect(t.widget<DdiroriButton>(button).onPressed, isNull);
+      await t.ensureVisible(button);
+      await t.tap(button);
+      await t.pumpAndSettle();
+      await t.state<NavigatorState>(find.byType(Navigator).first).maybePop();
+      await t.pumpAndSettle();
+      expect(find.text('공연 모드'), findsOneWidget);
+      expect(store.writes, 1);
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(c.performancePresetTemplates.single.name, '저장 대기');
+      expect(
+        t.widget<TextField>(templateField('Template 이름')).controller!.text,
+        isEmpty,
+      );
+      expect(find.text('공연 모드'), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets('crop waits for storage and keeps its draft on failure', (
     t,

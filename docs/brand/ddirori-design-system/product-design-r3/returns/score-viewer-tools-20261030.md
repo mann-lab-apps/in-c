@@ -121,10 +121,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 촬영 scene을 휴대폰/태블릿 공통 보기 옵션 경로로 수정했다. 실제 시스템 Back·VoiceOver·공연 화면 유지와 기기 저장 실패는 manual QA로 남긴다.
 - 최종 format/analyze·전체 628 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-save-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-performance-save-metadata-20261030.log`).
 
+## 공연 preset 자체 저장·삭제
+
+- red: 쓰기 실패 시 저장은 처리되지 않은 예외로 끝나고, 삭제는 저장 완료 전에 controller 목록에서 항목이 사라졌다 (`/private/tmp/score-performance-preset-red-actual-20261030.log`). 초기 테스트의 모델 import 누락을 수정한 후 실제 UI 경로에서 재현한 결과다.
+- controller는 normalized 목록을 저장한 뒤에만 메모리 목록을 갱신한다. sheet는 preset 작업을 await하며 pending 동안 입력·닫기·중복 작업/최종 저장을 막는다. 실패는 preset 영역에 별도 오류를 표시해 이름·설정·기존 목록을 유지한다. 최종 공연 설정 실패와 preset 실패의 재시도 행동을 섞지 않는다.
+- preset 저장 성공은 preset 목록에만 반영하며, 최종 공연 설정은 저장/취소 계약을 그대로 따른다. 기존 파일 형식·normalize/이름 중복 정책·preset 적용·공연 정책은 유지한다. 쓰기 전 실패 fixture이므로 store 내부 부분 쓰기/자동 백업 실패·강제 종료 rollback을 보장하지 않는다.
+- 최종 focused 로그: `/private/tmp/score-performance-preset-final-20261030.log`. 생성 실패/이름·설정 보존·재시도, 지연 삭제/기존 항목 유지·실패/재시도, 지연 생성/입력·중복·Back 차단을 검사한다. 앞선 최종 설정/취소와 함께 실행한 8 tests도 PASS (`score-performance-preset-green-20261030.log`).
+- 최종 focused 3 tests·format/analyze·전체 631 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-preset-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-performance-preset-metadata-20261030.log`). 실제 provider/기기 검증과 통합 작업트리의 자동 검증을 구분한다.
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 공연 preset 자체 저장/삭제의 실패 처리와 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 공연 준비 안내의 좁은 가로/큰 글자 접근성과 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.

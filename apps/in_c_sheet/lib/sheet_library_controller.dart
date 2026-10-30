@@ -724,10 +724,9 @@ class SheetLibraryController extends ChangeNotifier {
         if (item.id != template.id) item,
       template,
     ];
-    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
-      next,
-    );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    final normalized = SheetPerformancePresetTemplate.normalizeList(next);
+    await store.savePerformancePresetTemplates(normalized);
+    _performancePresetTemplates = normalized;
     notifyListeners();
     return template;
   }
@@ -739,10 +738,9 @@ class SheetLibraryController extends ChangeNotifier {
     if (next.length == _performancePresetTemplates.length) {
       return false;
     }
-    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
-      next,
-    );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    final normalized = SheetPerformancePresetTemplate.normalizeList(next);
+    await store.savePerformancePresetTemplates(normalized);
+    _performancePresetTemplates = normalized;
     notifyListeners();
     return true;
   }

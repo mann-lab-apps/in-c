@@ -11166,9 +11166,13 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   var _templateDevice = '';
   bool _saving = false;
   String? _error;
+  bool _presetSaving = false;
+  String? _presetError;
+
+  bool get _busy => _saving || _presetSaving;
 
   Future<void> _saveSettings() async {
-    if (_saving) return;
+    if (_busy) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -11191,20 +11195,20 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
     return ScoreViewerDraftForm<bool>(
       title: '공연 모드',
       description: '공연 중에는 편집 행동을 줄이고 페이지 이동에 집중할 수 있습니다.',
-      saving: _saving,
+      saving: _busy,
       error: _error,
       actions: [
         DdiroriButton(
           label: '취소',
           icon: Icons.close,
           kind: DdiroriButtonKind.secondary,
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
         ),
         DdiroriButton(
           label: _error == null ? '저장' : '다시 시도',
           icon: Icons.check,
           busy: _saving,
-          onPressed: _saving ? null : _saveSettings,
+          onPressed: _busy ? null : _saveSettings,
         ),
       ],
       children: [
@@ -11292,10 +11296,11 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   }) => DdiroriSettingsRow(
     title: title,
     description: description,
-    control: Switch(value: value, onChanged: _saving ? null : onChanged),
+    control: Switch(value: value, onChanged: _busy ? null : onChanged),
   );
 
   void _updateSettings(SheetViewerSettings settings) {
+    if (_busy) return;
     setState(() => _settings = settings);
   }
 
@@ -11304,16 +11309,18 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
       title: '공연 preset template',
       subtitle: '현재 설정을 장비별 출발점으로 저장합니다.',
       children: [
+        if (_presetError != null)
+          DdiroriBanner(message: _presetError!, kind: DdiroriNoticeKind.error),
         DdiroriInput(
           value: _templateName,
-          readOnly: _saving,
+          readOnly: _busy,
           onChanged: (value) => setState(() => _templateName = value),
           label: 'Template 이름',
           hint: '예: 태블릿 공연',
         ),
         DdiroriInput(
           value: _templateDevice,
-          readOnly: _saving,
+          readOnly: _busy,
           onChanged: (value) => setState(() => _templateDevice = value),
           label: '장비 profile',
           hint: '예: 12.9인치 + 페달',
@@ -11322,27 +11329,45 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
           label: '현재 설정 저장',
           icon: Icons.save_outlined,
           kind: DdiroriButtonKind.secondary,
-          onPressed: _saving ? null : _saveCurrentPresetTemplate,
+          onPressed: _busy ? null : _saveCurrentPresetTemplate,
         ),
         for (final template in _presetTemplates)
           DdiroriItem(
             title: template.name,
             subtitle: _presetTemplateSubtitle(template),
             leading: const Icon(Icons.tune),
-            onTap: _saving
+            onTap: _busy
                 ? null
                 : () => _updateSettings(template.viewerSettings),
             trailing: DdiroriIconButton(
               label: '${template.name} 삭제',
               icon: Icons.delete_outline,
-              onPressed: _saving ? null : () => _deletePresetTemplate(template),
+              onPressed: _busy ? null : () => _deletePresetTemplate(template),
             ),
           ),
       ],
     );
   }
 
-  Future<void> _saveCurrentPresetTemplate() async {
+  Future<void> _runPresetWrite(
+    Future<void> Function() write,
+    String failureMessage,
+  ) async {
+    if (_busy) return;
+    setState(() {
+      _presetSaving = true;
+      _presetError = null;
+    });
+    try {
+      await write();
+    } catch (_) {
+      if (mounted) setState(() => _presetError = failureMessage);
+    } finally {
+      if (mounted) setState(() => _presetSaving = false);
+    }
+  }
+
+  Future<void> _saveCurrentPresetTemplate() => _runPresetWrite(() async {
     final template = await widget.onSavePresetTemplate(
       _templateName,
       _settings,
@@ -11360,21 +11385,20 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
       _templateName = '';
       _templateDevice = '';
     });
-  }
+  }, 'Preset을 저장하지 못했습니다. 이름과 설정을 유지했습니다. 다시 시도해 주세요.');
 
-  Future<void> _deletePresetTemplate(
-    SheetPerformancePresetTemplate template,
-  ) async {
-    final didDelete = await widget.onDeletePresetTemplate(template.id);
-    if (!mounted || !didDelete) {
-      return;
-    }
-    setState(() {
-      _presetTemplates = _presetTemplates
-          .where((item) => item.id != template.id)
-          .toList(growable: false);
-    });
-  }
+  Future<void> _deletePresetTemplate(SheetPerformancePresetTemplate template) =>
+      _runPresetWrite(() async {
+        final didDelete = await widget.onDeletePresetTemplate(template.id);
+        if (!mounted || !didDelete) {
+          return;
+        }
+        setState(() {
+          _presetTemplates = _presetTemplates
+              .where((item) => item.id != template.id)
+              .toList(growable: false);
+        });
+      }, 'Preset을 삭제하지 못했습니다. 목록을 유지했습니다. 다시 시도해 주세요.');
 
   String _presetTemplateSubtitle(SheetPerformancePresetTemplate template) {
     final parts = <String>[
