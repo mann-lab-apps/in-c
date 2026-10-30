@@ -6581,42 +6581,39 @@ setlist=$setlistLabel
       return;
     }
     var hideNextTime = false;
-    final didContinue = await showDialog<bool>(
+    final didContinue = await showDdiroriDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('공연 모드 준비'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '기기 자동 잠금, 알림, 제스처 방해 설정을 공연 전에 확인해주세요. '
-                'Clef는 공연 중 앱 UI를 단순화하고 시스템 바를 숨깁니다.',
-              ),
-              const SizedBox(height: 12),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                value: hideNextTime,
-                onChanged: (value) =>
-                    setDialogState(() => hideNextTime = value ?? false),
-                title: const Text('다시 보지 않기'),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('취소'),
+      title: '공연 모드 준비',
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => DdiroriStack(
+          children: [
+            const DdiroriBanner(
+              message:
+                  '기기 자동 잠금, 알림, 제스처 방해 설정을 공연 전에 확인해주세요. '
+                  '띠로리 스코어는 공연 중 앱 UI를 단순화하고 시스템 바를 숨깁니다.',
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('시작'),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: hideNextTime,
+              onChanged: (value) =>
+                  setDialogState(() => hideNextTime = value ?? false),
+              title: const Text('다시 보지 않기'),
+              controlAffinity: ListTileControlAffinity.leading,
             ),
           ],
         ),
       ),
+      actions: [
+        DdiroriButton(
+          label: '취소',
+          kind: DdiroriButtonKind.secondary,
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        DdiroriButton(
+          label: '시작',
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
     );
     if (hideNextTime) {
       await widget.controller.updateViewerSettings(
@@ -6661,9 +6658,9 @@ setlist=$setlistLabel
       _showPageControls = true;
     });
     if (enabled && _effectiveViewerSettings.keepAwakeInPerformance) {
-      _showSnackBar('자동 잠금 방지는 기기 설정에서 함께 확인해주세요.');
+      _showSnackBar('기기 자동 잠금 설정도 확인해 주세요.');
     } else if (enabled) {
-      _showSnackBar('공연 모드입니다. 페이지 넘김과 허용된 quick action만 유지됩니다.');
+      _showSnackBar('공연 모드로 전환했습니다.');
     }
     _schedulePageControlsAutoHide();
   }

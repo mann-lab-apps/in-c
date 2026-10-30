@@ -312,6 +312,24 @@ Future<void> liveCommand(WidgetTester t, String label) async {
   await t.pump(const Duration(milliseconds: 400));
 }
 
+Future<void> waitForPerformanceState(WidgetTester t, bool enabled) async {
+  // SystemChrome replies come through the platform channel/event loop; an
+  // animation-free frame alone does not mean the mode request has completed.
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await t.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await t.pump(const Duration(milliseconds: 50));
+    if (t
+            .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+            .performance ==
+        enabled) {
+      return;
+    }
+  }
+  fail('Performance state did not reach $enabled after its platform reply');
+}
+
 Finder compactViewerOptionsButton() => find.byWidgetPredicate(
   (widget) => widget is DdiroriButton && widget.label == '보기 옵션',
 );
@@ -940,6 +958,86 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets(
+      'performance preparation uses accessible common actions at $viewport',
+      (t) async {
+        final c = await openPdf(
+          t,
+          width: viewport.width,
+          height: viewport.height,
+          dark: viewport.dark,
+          scale: 2,
+        );
+        await c.updateViewerSettings(
+          c.scoreById('pilot-0'),
+          c
+              .scoreById('pilot-0')
+              .viewerSettings
+              .copyWith(showPerformancePrepNotice: true),
+        );
+        await t.pumpAndSettle();
+        final document = pdf(t).document;
+        await command(t, '공연');
+        expect(t.takeException(), isNull);
+        expect(find.text('공연 모드 준비'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '시작'),
+          findsOneWidget,
+        );
+        await captureToolSheet(
+          t,
+          'performance-prep-dialog-${viewport.width.toInt()}x${viewport.height.toInt()}',
+        );
+        await t.ensureVisible(find.text('다시 보지 않기'));
+        await t.pumpAndSettle();
+        expect(find.byType(Checkbox).hitTestable(), findsOneWidget);
+        await t.ensureVisible(find.text('취소'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('취소'));
+        await t.pumpAndSettle();
+        expect(
+          t
+              .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+              .performance,
+          isFalse,
+        );
+        expect(
+          c.scoreById('pilot-0').viewerSettings.showPerformancePrepNotice,
+          isTrue,
+        );
+        await command(t, '공연');
+        await t.ensureVisible(find.text('시작'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('시작'));
+        await t.pumpAndSettle();
+        expect(find.text('공연 모드 준비'), findsNothing);
+        await waitForPerformanceState(t, true);
+        await t.pumpAndSettle();
+        await captureToolSheet(
+          t,
+          'performance-prep-active-${viewport.width.toInt()}x${viewport.height.toInt()}',
+        );
+        expect(
+          t
+              .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+              .performance,
+          isTrue,
+        );
+        await command(t, '공연 종료');
+        await waitForPerformanceState(t, false);
+        expect(
+          t
+              .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+              .performance,
+          isFalse,
+        );
+        expect(pdf(t).document, same(document));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('crop waits for storage and keeps its draft on failure', (
     t,

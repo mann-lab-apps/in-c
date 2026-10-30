@@ -129,10 +129,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 최종 focused 로그: `/private/tmp/score-performance-preset-final-20261030.log`. 생성 실패/이름·설정 보존·재시도, 지연 삭제/기존 항목 유지·실패/재시도, 지연 생성/입력·중복·Back 차단을 검사한다. 앞선 최종 설정/취소와 함께 실행한 8 tests도 PASS (`score-performance-preset-green-20261030.log`).
 - 최종 focused 3 tests·format/analyze·전체 631 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-preset-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-performance-preset-metadata-20261030.log`). 실제 provider/기기 검증과 통합 작업트리의 자동 검증을 구분한다.
 
+## 공연 준비 안내·전환 알림
+
+- 기존 안내 Column은 840×390/200%에서 115px overflow였다 (`/private/tmp/score-performance-prep-red-20261030.log`). 공통 scrollable Dialog/Stack/Banner/Button과 기존 themed Checkbox로 전환했다. 공연 허용/진입·다시 보지 않기 저장 조건과 SystemChrome 요청은 바꾸지 않았다.
+- 실제 공연 시작/종료 검사는 native channel 응답을 bounded real event loop로 기다린다. fake animation settle만으로는 mode 요청 완료를 뜻하지 않았다. 가로 fixture에서는 긴 기존 snackbar가 종료 버튼을 가려 hit-test가 실패했고, 짧은 전환/자동 잠금 문구로 줄여 알림이 표시된 상태에서도 종료를 실제 탭한다. miss 경고를 숨기거나 상태 assertion을 제거하지 않았다.
+- 세 viewport/200% light/dark에서 안내·하단 checkbox 접근·취소/시작·종료와 PDF identity를 검사한다. capture+focused 3 tests PASS (`/private/tmp/score-performance-prep-captures-20261030.log`); 최종 checkbox 접근 assertion 추가 후 전체 검증에서 다시 확인한다.
+- 실제 headless PDF 화면 `/private/tmp/score-tool-captures-20261030.nMNI7A/performance-prep-{dialog,active}-*.png` 중 가로 Dialog/전환 알림을 눈으로 확인했다. 200%·blue·system Korean font/실제 icon font fixture이며 물리 기기의 시스템 바 숨김·VoiceOver 검수는 아니다. 다시 보지 않기 저장 실패와 화면 종료 중 native 전환 요청은 별도 수명 검토 후보다.
+- checkbox hit-test까지 포함한 최종 format/analyze·전체 634 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-prep-rc-clean-20261030.log`). 앞선 전체 634 tests는 PASS였으나 신규 helper의 중괄호 lint를 수정 후 재검증했다. metadata check PASS, source pending (`/private/tmp/score-performance-prep-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 공연 준비 안내의 좁은 가로/큰 글자 접근성과 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 공연 준비 선호 저장을 기다리는 중 viewer 종료 뒤 native mode 요청이 전송되는지 확인, 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
