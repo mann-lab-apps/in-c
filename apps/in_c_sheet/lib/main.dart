@@ -245,30 +245,41 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showImportOptions() async {
-    final action = await showModalBottomSheet<_LibraryImportAction>(
+    final action = await showDdiroriSheet<_LibraryImportAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      title: '악보 추가',
+      child: Builder(
+        builder: (sheetContext) => DdiroriStack(
           children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('PDF 가져오기'),
-              subtitle: const Text('파일 앱, 다운로드 또는 Studio에서 내보낸 PDF'),
-              onTap: () => Navigator.of(context).pop(_LibraryImportAction.pdf),
+            const DdiroriBanner(
+              message: 'PDF 또는 이미지 파일을 선택해 앱 안에 악보 사본을 만듭니다.',
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('이미지를 PDF 악보로 묶기'),
-              subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
+            DdiroriItem(
+              flat: true,
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: 'PDF 가져오기',
+              subtitle: '파일 앱, 다운로드 또는 Studio에서 내보낸 PDF',
               onTap: () =>
-                  Navigator.of(context).pop(_LibraryImportAction.images),
+                  Navigator.of(sheetContext).pop(_LibraryImportAction.pdf),
+            ),
+            DdiroriItem(
+              flat: true,
+              leading: const Icon(Icons.photo_library_outlined),
+              title: '이미지를 PDF 악보로 묶기',
+              subtitle: 'JPG/PNG를 페이지별 PDF로 등록',
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_LibraryImportAction.images),
+            ),
+            DdiroriButton(
+              label: '취소',
+              kind: DdiroriButtonKind.quiet,
+              onPressed: () => Navigator.of(sheetContext).pop(),
             ),
           ],
         ),
       ),
     );
+    if (!mounted) return;
     switch (action) {
       case _LibraryImportAction.pdf:
         await _importPdf();

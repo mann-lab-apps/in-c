@@ -106,10 +106,17 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 이미 실행한 쓰기와 다른 종류 metadata 저장/외부 store 변경을 전역 직렬화한 것이 아니다. 라이브러리 전환 중 in-flight 저장의 rollback/취소·강제 종료 복구는 이번 완료 범위가 아니다.
 - 최종 format/analyze·전체 619 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-auto-reentry-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-auto-reentry-metadata-20261030.log`). 테스터 체크리스트에도 변경 영향 범위만 추가했다.
 
+## 악보함 가져오기 선택
+
+- 기존 raw modal의 Column은 840×390/200%에서 하단 149px overflow가 재현됐다 (`/private/tmp/score-import-sheet-red-20261030.log`). 세로 조건의 red는 공통 행 부재를 확인한 것이며 overflow로 표현하지 않는다.
+- 공통 Sheet/Stack/Banner/flat Item과 이름 있는 취소로 전환했다. 파일 선택·사본 생성·controller 저장 경로는 유지한다. modal 종료 뒤 화면이 이미 종료됐으면 가져오기를 새로 요청하지 않는다.
+- focused 4 tests PASS (`/private/tmp/score-import-sheet-green-20261030.log`): 390/840/가로·200% light/dark의 이미지 선택 취소·명시 취소·Back, PDF 실패/취소 재시도와 악보/검색 조건/라이브러리 보존. store는 취소/실패를 주입한 fixture이며 실제 파일 provider/변환 성공 증거가 아니다.
+- 최종 format/analyze·전체 623 tests·RC PASS (`/private/tmp/score-import-sheet-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-import-sheet-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 악보함 가져오기 메뉴의 큰 글자/가로 접근성. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 공연 설정의 최종 저장도 성공 전에 창이 닫히는지 확인한다. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
