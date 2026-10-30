@@ -6549,11 +6549,12 @@ setlist=$setlistLabel
   }
 
   Future<void> _showPerformanceSettings() async {
-    final selected = await showDdiroriSheet<SheetViewerSettings>(
+    final selected = await showScoreViewerDraftSheet<bool>(
       context: context,
-      title: '공연 모드',
       child: _PerformanceSettingsSheet(
         initialSettings: score.viewerSettings,
+        onSave: (settings) =>
+            widget.controller.updateViewerSettings(score, settings),
         presetTemplates: widget.controller.performancePresetTemplates,
         onSavePresetTemplate: (name, viewerSettings, deviceProfile) {
           return widget.controller.savePerformancePresetTemplate(
@@ -6566,10 +6567,9 @@ setlist=$setlistLabel
             widget.controller.deletePerformancePresetTemplate,
       ),
     );
-    if (selected == null) {
+    if (selected != true) {
       return;
     }
-    await widget.controller.updateViewerSettings(score, selected);
     if (mounted) {
       setState(() {});
       _showPageControlsTemporarily();
@@ -11137,12 +11137,14 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
 class _PerformanceSettingsSheet extends StatefulWidget {
   const _PerformanceSettingsSheet({
     required this.initialSettings,
+    required this.onSave,
     required this.presetTemplates,
     required this.onSavePresetTemplate,
     required this.onDeletePresetTemplate,
   });
 
   final SheetViewerSettings initialSettings;
+  final Future<void> Function(SheetViewerSettings settings) onSave;
   final List<SheetPerformancePresetTemplate> presetTemplates;
   final Future<SheetPerformancePresetTemplate> Function(
     String name,
@@ -11162,12 +11164,50 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   late var _presetTemplates = widget.presetTemplates;
   var _templateName = '';
   var _templateDevice = '';
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _saveSettings() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(_settings);
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = '공연 설정을 저장하지 못했습니다. 값을 유지했습니다. 다시 시도해 주세요.';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DdiroriStack(
+    return ScoreViewerDraftForm<bool>(
+      title: '공연 모드',
+      description: '공연 중에는 편집 행동을 줄이고 페이지 이동에 집중할 수 있습니다.',
+      saving: _saving,
+      error: _error,
+      actions: [
+        DdiroriButton(
+          label: '취소',
+          icon: Icons.close,
+          kind: DdiroriButtonKind.secondary,
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+        ),
+        DdiroriButton(
+          label: _error == null ? '저장' : '다시 시도',
+          icon: Icons.check,
+          busy: _saving,
+          onPressed: _saving ? null : _saveSettings,
+        ),
+      ],
       children: [
-        const DdiroriBanner(message: '공연 중에는 편집 행동을 줄이고 페이지 이동에 집중할 수 있습니다.'),
         DdiroriSection(
           title: '시작 전 확인',
           children: [
@@ -11240,22 +11280,6 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
           ],
         ),
         _buildPresetTemplates(context),
-        DdiroriAdaptiveActions(
-          label: '공연 모드 작업',
-          children: [
-            DdiroriButton(
-              label: '취소',
-              icon: Icons.close,
-              kind: DdiroriButtonKind.secondary,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            DdiroriButton(
-              label: '저장',
-              icon: Icons.check,
-              onPressed: () => Navigator.of(context).pop(_settings),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -11268,7 +11292,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   }) => DdiroriSettingsRow(
     title: title,
     description: description,
-    control: Switch(value: value, onChanged: onChanged),
+    control: Switch(value: value, onChanged: _saving ? null : onChanged),
   );
 
   void _updateSettings(SheetViewerSettings settings) {
@@ -11282,12 +11306,14 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
       children: [
         DdiroriInput(
           value: _templateName,
+          readOnly: _saving,
           onChanged: (value) => setState(() => _templateName = value),
           label: 'Template 이름',
           hint: '예: 태블릿 공연',
         ),
         DdiroriInput(
           value: _templateDevice,
+          readOnly: _saving,
           onChanged: (value) => setState(() => _templateDevice = value),
           label: '장비 profile',
           hint: '예: 12.9인치 + 페달',
@@ -11296,18 +11322,20 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
           label: '현재 설정 저장',
           icon: Icons.save_outlined,
           kind: DdiroriButtonKind.secondary,
-          onPressed: _saveCurrentPresetTemplate,
+          onPressed: _saving ? null : _saveCurrentPresetTemplate,
         ),
         for (final template in _presetTemplates)
           DdiroriItem(
             title: template.name,
             subtitle: _presetTemplateSubtitle(template),
             leading: const Icon(Icons.tune),
-            onTap: () => _updateSettings(template.viewerSettings),
+            onTap: _saving
+                ? null
+                : () => _updateSettings(template.viewerSettings),
             trailing: DdiroriIconButton(
               label: '${template.name} 삭제',
               icon: Icons.delete_outline,
-              onPressed: () => _deletePresetTemplate(template),
+              onPressed: _saving ? null : () => _deletePresetTemplate(template),
             ),
           ),
       ],

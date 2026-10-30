@@ -8,6 +8,8 @@
 
 ## 표시 API와 상태 소유권
 
+공연 설정은 메모·자르기와 같은 앱 저장 폼을 합성한다. 실제 설정 저장을 await하고 pending 동안 Back/닫기/수정/중복 저장을 막으며, 실패는 draft와 재시도를 유지한다. preset 자체 저장/삭제는 최종 공연 설정 저장과 별도 동작이며 공연 정책·PDF/연습 엔진은 그대로 앱이 소유한다.
+
 악보함 `악보 추가`는 공통 Sheet/Stack/Banner/Item/Button으로 PDF·이미지 선택과 취소를 표시한다. 단일 scroll이 큰 글자·가로 화면의 선택지 접근을 소유한다. 파일 선택·사본 생성·저장·실패 복구는 기존 controller/store가 소유하고 메뉴 선택을 가져오기 성공으로 표시하지 않는다.
 
 아래는 목표 API이며 현재 공개 클래스가 아니다. Dart record/enum으로 앱 내부에 둔다. `id`는 String, page는 int(1-based), counts는 int?, duration은 Duration?, flags는 bool. 모든 callback은 void이며 비동기 결과 상태는 controller의 다음 snapshot으로 반영한다. 공통 패키지로 SheetScore 타입을 이동하지 않는다.

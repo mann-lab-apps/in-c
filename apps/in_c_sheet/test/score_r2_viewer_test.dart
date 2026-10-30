@@ -76,6 +76,21 @@ Future<void> openNotes(WidgetTester t) async {
   await t.pumpAndSettle();
 }
 
+Future<void> openPerformanceSettings(WidgetTester t) async {
+  await openViewerOption(t, '공연 설정');
+}
+
+Future<void> togglePerformanceAnnotation(WidgetTester t) async {
+  final row = find.byWidgetPredicate(
+    (w) => w is DdiroriSettingsRow && w.title == '공연 중 필기 허용',
+  );
+  final toggle = find.descendant(of: row, matching: find.byType(Switch));
+  await t.ensureVisible(toggle);
+  await t.pumpAndSettle();
+  await t.tap(toggle);
+  await t.pumpAndSettle();
+}
+
 Finder notesField() => find.descendant(
   of: find.byWidgetPredicate((w) => w is DdiroriInput && w.label == '공연 메모'),
   matching: find.byType(TextField),
@@ -671,6 +686,109 @@ void main() {
     expect(pdf(t).document, same(original));
     expect(t.takeException(), isNull);
   });
+
+  for (final fails in [false, true]) {
+    testWidgets('performance draft waits for storage (failure=$fails)', (
+      t,
+    ) async {
+      final store = NotesWriteStore();
+      final c = await openPdf(t, store: store, scale: 2);
+      final original = c
+          .scoreById('pilot-0')
+          .viewerSettings
+          .allowPerformanceAnnotations;
+      final document = pdf(t).document;
+      await openPerformanceSettings(t);
+      await togglePerformanceAnnotation(t);
+      final gate = Completer<void>();
+      store.gate = gate;
+      store.failWrites = fails;
+      store.writes = 0;
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await command(t, '저장');
+      expect(find.text('공연 모드'), findsOneWidget);
+      expect(
+        c.scoreById('pilot-0').viewerSettings.allowPerformanceAnnotations,
+        original,
+      );
+      expect(store.writes, 1);
+      final save = find.byWidgetPredicate(
+        (w) => w is DdiroriButton && w.label == '저장',
+      );
+      expect(t.widget<DdiroriButton>(save).onPressed, isNull);
+      await t.state<NavigatorState>(find.byType(Navigator).first).maybePop();
+      await t.pumpAndSettle();
+      expect(find.text('공연 모드'), findsOneWidget);
+      await t.tapAt(const Offset(10, 10));
+      await t.pumpAndSettle();
+      expect(find.text('공연 모드'), findsOneWidget);
+      gate.complete();
+      await t.pumpAndSettle();
+      if (fails) {
+        expect(
+          find.text('공연 설정을 저장하지 못했습니다. 값을 유지했습니다. 다시 시도해 주세요.'),
+          findsOneWidget,
+        );
+        expect(
+          c.scoreById('pilot-0').viewerSettings.allowPerformanceAnnotations,
+          original,
+        );
+        store.gate = null;
+        store.failWrites = false;
+        await command(t, '다시 시도');
+      }
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(
+        c.scoreById('pilot-0').viewerSettings.allowPerformanceAnnotations,
+        !original,
+      );
+      expect(
+        (await store.loadScores())
+            .first
+            .viewerSettings
+            .allowPerformanceAnnotations,
+        !original,
+      );
+      expect(pdf(t).document, same(document));
+      expect(t.takeException(), isNull);
+    });
+  }
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('performance draft cancels without persistence at $viewport', (
+      t,
+    ) async {
+      final c = await openPdf(
+        t,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+        scale: 2,
+      );
+      final document = pdf(t).document;
+      final original = c.scoreById('pilot-0').viewerSettings.toJson();
+      await openPerformanceSettings(t);
+      await togglePerformanceAnnotation(t);
+      await command(t, '취소');
+      expect(c.scoreById('pilot-0').viewerSettings.toJson(), original);
+      await openPerformanceSettings(t);
+      await t.ensureVisible(
+        find.byWidgetPredicate(
+          (w) => w is DdiroriInput && w.label == 'Template 이름',
+        ),
+      );
+      await t.pumpAndSettle();
+      await command(t, '취소');
+      expect(
+        (await c.store.loadScores()).first.viewerSettings.toJson(),
+        original,
+      );
+      expect(pdf(t).document, same(document));
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets('crop waits for storage and keeps its draft on failure', (
     t,

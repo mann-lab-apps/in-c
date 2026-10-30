@@ -113,10 +113,18 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - focused 4 tests PASS (`/private/tmp/score-import-sheet-green-20261030.log`): 390/840/가로·200% light/dark의 이미지 선택 취소·명시 취소·Back, PDF 실패/취소 재시도와 악보/검색 조건/라이브러리 보존. store는 취소/실패를 주입한 fixture이며 실제 파일 provider/변환 성공 증거가 아니다.
 - 최종 format/analyze·전체 623 tests·RC PASS (`/private/tmp/score-import-sheet-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-import-sheet-metadata-20261030.log`).
 
+## 공연 설정 최종 저장
+
+- 코드 조사에서 pop 뒤 parent 저장 경로를 확인했다. 첫 red fixture는 compact 화면의 공연 설정을 버튼으로 잘못 찾아 실패했으므로 버그 증거가 아니다. 실제 보기 옵션 항목 경로로 고친 뒤 기존 제품 코드에서 지연 성공/실패 모두 공연 설정 창이 먼저 닫혔다 (`/private/tmp/score-performance-save-red-actual-20261030.log`). 신규 제품 diff만 임시 역적용/재적용해 기존 코드의 red를 확인했고 다른 변경은 건드리지 않았다.
+- 메모·자르기의 `showScoreViewerDraftSheet`/`ScoreViewerDraftForm`을 재사용한다. 저장 await 뒤 성공일 때만 닫기/갱신하고, pending 동안 수정·취소·Back·barrier·중복 저장을 막는다. 실패 시 draft와 오류/다시 시도를 유지한다. preset template 자체 쓰기는 별도 기존 동작이며 여기서 트랜잭션 보장을 확대하지 않았다.
+- focused 6 tests PASS (`/private/tmp/score-performance-save-green-20261030.log`): 기존 공통 section 경로, 지연 성공/실패·재시도/Back/barrier 차단, 세 viewport/200%·light/dark의 취소·재진입·하단 preset 접근과 PDF identity 보존.
+- 촬영 scene을 휴대폰/태블릿 공통 보기 옵션 경로로 수정했다. 실제 시스템 Back·VoiceOver·공연 화면 유지와 기기 저장 실패는 manual QA로 남긴다.
+- 최종 format/analyze·전체 628 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-save-rc-20261030.log`). metadata check PASS, source pending (`/private/tmp/score-performance-save-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 공연 설정의 최종 저장도 성공 전에 창이 닫히는지 확인한다. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 공연 preset 자체 저장/삭제의 실패 처리와 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
