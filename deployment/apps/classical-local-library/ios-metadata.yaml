@@ -2,9 +2,9 @@
 schema_version: 1
 app: classical-local-library
 source:
-  state: pending
+  state: pinned
   path: apps/classical_local_library
-  commit: '5504a957fb5d023e2fb3c330c51fc4757ce23e3b'
+  commit: 'e31e5eb19b6b4748778a45578ed2fda25a5d75fe'
   version: 0.1.0
   build_number: 2
   bundle_id: com.mannlab.ddirori.play
