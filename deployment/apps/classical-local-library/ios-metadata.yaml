@@ -4,17 +4,17 @@ app: classical-local-library
 source:
   state: pinned
   path: apps/classical_local_library
-  commit: '48c90b07eaf793075b1680826e13bb460cd37972'
+  commit: '5504a957fb5d023e2fb3c330c51fc4757ce23e3b'
   version: 0.1.0
   build_number: 1
-  bundle_id: app.inc.classicalLocalLibrary
+  bundle_id: com.mannlab.ddirori.play
   dart_defines:
     ENABLE_DEMO_LIBRARY: 'false'
     APP_VERSION_LABEL: 0.1.0 (1)
   flavor:
 store:
-  app_id:
-  bundle_id: app.inc.classicalLocalLibrary
+  app_id: '6828809673'
+  bundle_id: com.mannlab.ddirori.play
   expected_name: 띠로리 플레이
   version: 0.1.0
   first_release: true
@@ -543,7 +543,8 @@ manual:
       빌드 재검수는 pending. 기존 scene 진입 동작과 전환 대기 400ms는 유지하고 새 시스템 예제 혼입을 assertions로 제외한다.
   pricing_availability:
     status: pending
-    evidence: ''
+    evidence: >-
+      2026-10-30 사용자 결정: 첫 출시 가격은 무료, 배포 지역은 대한민국 우선. App Store Connect 가격·지역 입력과 확인은 아직 수행하지 않았으므로 pending 유지.
   agreements_tax_banking:
     status: pending
     evidence: ''
@@ -553,6 +554,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-30 새 Bundle ID com.mannlab.ddirori.play의 서명 후보를 iPhone XS에 설치·재생한 물리 QA 결과는 아직 받지 못함.
       2026-10-26 사용자가 띠로리 플레이 아이콘 후보 08을 최종 승인하고 iPhone XS에서 직접 물리 QA를 진행하기로 함. 앱 최소 iOS는 15.0이며 iPhone XS는 iOS 26 비지원이므로 iOS 26.5 시뮬레이터와 별도로 설치·첫 실행을 확인해야 함. 실제 QA 결과·OS 버전·기기 출력/VoiceOver·Files/iCloud 동작은 아직 접수하지 않았고 iPad 물리 QA도 미완료.
       2026-10-26 곡·앨범·검색·현재 재생에서 재생목록에 담기, 다중 선택과 드래그 순서 변경을 fake controller/SQLite 단위로 검증. 실제 터치 재정렬, Files 제공자와 물리 오디오 출력은 기기 QA pending.
       2026-10-26 SQLite v15 재생목록 저장·논리 백업·v14 백업 호환과 fake controller 곡 순서 재생을 자동 검증. 실제 Files 제공자 재연결과 물리 오디오 출력, 재생목록 편집 동선은 기기 QA pending.
@@ -576,6 +578,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
+       2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드를 선택. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play는 읽기 전용 API로 확인. 서명된 내부 테스트 전용 빌드의 업로드·처리·테스터 배포 결과는 별도 검증 대상.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.
        2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.
        2026-10-26 보관함 UI 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영·서명·후보 빌드 선택 미완료.
