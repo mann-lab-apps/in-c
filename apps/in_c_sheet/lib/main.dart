@@ -31,6 +31,7 @@ import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
 import 'presentation/score_library_choices.dart';
+import 'presentation/score_global_viewer_settings.dart';
 import 'presentation/score_viewer_components.dart';
 import 'presentation/score_pdf_search_sheet.dart';
 import 'sheet_setlist.dart';
@@ -823,173 +824,37 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showGlobalViewerDefaults() async {
-    var settings = controller.globalViewerSettings;
-    final selected = await showModalBottomSheet<SheetViewerSettings>(
+    final saved = await showScoreViewerDraftSheet<bool>(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          void updateSettings(SheetViewerSettings next) {
-            setModalState(() => settings = next);
-          }
-
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  Text(
-                    '전역 보기/입력 기본값',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _globalViewerDisplayModeValue(settings),
-                    decoration: const InputDecoration(labelText: '보기 모드'),
-                    items: const [
-                      DropdownMenuItem<String>(
-                        value: 'auto',
-                        child: Text('자동'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'singlePage',
-                        child: Text('1페이지'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'twoPage',
-                        child: Text('2페이지'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'continuousVertical',
-                        child: Text('세로 스크롤'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        updateSettings(settings.copyWith(displayMode: value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: settings.pageScale,
-                    decoration: const InputDecoration(labelText: '페이지 맞춤'),
-                    items: _SheetViewerPageScale.values
-                        .map(
-                          (scale) => DropdownMenuItem<String>(
-                            value: scale.settingValue,
-                            child: Text(scale.label),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        updateSettings(settings.copyWith(pageScale: value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('반 페이지 넘김'),
-                    value: settings.halfPageTurn,
-                    onChanged: (value) =>
-                        updateSettings(settings.copyWith(halfPageTurn: value)),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('공연 모드 화면 유지'),
-                    value: settings.keepAwakeInPerformance,
-                    onChanged: (value) => updateSettings(
-                      settings.copyWith(keepAwakeInPerformance: value),
-                    ),
-                  ),
-                  DropdownButtonFormField<String>(
-                    initialValue: settings.pedalMapping,
-                    decoration: const InputDecoration(labelText: '페달 매핑'),
-                    items: _SheetPedalMapping.values
-                        .map(
-                          (mapping) => DropdownMenuItem<String>(
-                            value: mapping.settingValue,
-                            child: Text(mapping.label),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        updateSettings(settings.copyWith(pedalMapping: value));
-                      }
-                    },
-                  ),
-                  if (settings.pedalMapping ==
-                      SheetViewerSettings.customPedalMappingType) ...[
-                    const SizedBox(height: 12),
-                    for (final inputId in sheetViewerCustomInputIds)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: DropdownButtonFormField<String>(
-                          initialValue:
-                              settings.customPedalMapping[inputId] ??
-                              SheetViewerInputAction.none.value,
-                          decoration: InputDecoration(
-                            labelText: _viewerInputLabel(inputId),
-                          ),
-                          items: SheetViewerInputAction.values
-                              .map(
-                                (action) => DropdownMenuItem<String>(
-                                  value: action.value,
-                                  child: Text(_viewerInputActionLabel(action)),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            updateSettings(
-                              settings.copyWith(
-                                customPedalMapping: <String, String>{
-                                  ...settings.customPedalMapping,
-                                  inputId: value,
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: () => Navigator.of(context).pop(settings),
-                      icon: const Icon(Icons.check),
-                      label: const Text('저장'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+      child: ScoreGlobalViewerSettings(
+        initialValue: controller.globalViewerSettings.copyWith(
+          displayMode: _globalViewerDisplayModeValue(
+            controller.globalViewerSettings,
+          ),
+        ),
+        pageScales: {
+          for (final scale in _SheetViewerPageScale.values)
+            scale.settingValue: scale.label,
         },
+        pedalMappings: {
+          for (final mapping in _SheetPedalMapping.values)
+            mapping.settingValue: mapping.label,
+        },
+        inputLabels: {
+          for (final inputId in sheetViewerCustomInputIds)
+            inputId: _viewerInputLabel(inputId),
+        },
+        inputActions: {
+          for (final action in SheetViewerInputAction.values)
+            action.value: _viewerInputActionLabel(action),
+        },
+        onSave: controller.updateGlobalViewerSettings,
       ),
     );
-    if (selected == null || !mounted) {
-      return;
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('전역 보기/입력 기본값을 저장했습니다.')));
     }
-    await controller.updateGlobalViewerSettings(selected);
-    if (!mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('전역 보기/입력 기본값을 저장했습니다.')));
   }
 
   Future<void> _importFullBackup() async {

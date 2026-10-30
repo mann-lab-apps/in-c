@@ -1,5 +1,14 @@
 # Score · 연습 도구 공통 UI 후속 적용
 
+## 중단 체크포인트 · 전역 보기/입력 기본값
+
+- 사용자 일단락 요청 후 새 slice를 시작하지 않고 진행 중이던 기본값 변경만 정리한다. red는 지연 저장 성공/실패 모두 기존 창이 먼저 닫힌 실제 widget 재현이다 (`/private/tmp/score-global-defaults-red-20261030.log`). 세 viewport의 초기 red는 공통 section 부재이며 overflow 증거가 아니다.
+- 기존 draft form과 공통 Section/SettingsRow/Choices/Button으로 읽기·공연·입력을 구분했다. 중복 저장·수정·Back을 pending 동안 막고 실패 시 draft/다시 시도를 유지한다. controller는 store 성공 뒤 memory 기본값을 publish하며 기존 악보의 viewerSettings를 변경하지 않는다. 파일 저장과 자동 백업 도중 부분 실패·강제 종료 원자성이나 concurrent 외부 설정 쓰기의 순서까지 보장하지 않는다.
+- focused 5 tests PASS (`/private/tmp/score-global-defaults-final-focused-20261030.log`): 지연 성공/실패·retry·Back 차단·저장/재진입 및 세 viewport/200%·light/dark의 직접 입력 매핑이 있는 설정 취소. 첫 green의 취소 검사 3건은 부분 custom map이 load 시 기본 입력으로 채워지는 기존 정규화를 무시해 실패했다. memory와 persisted 기준을 각각 시작 시 캡처해 비교했으며 제품 정규화 정책은 변경하지 않았다.
+- 전체 660 tests PASS, metadata check PASS. 마지막 RC 실행은 생성자 argument 순서 lint와 unrelated `experiments/piano-performance/data/README.md:63`의 EOF 빈 줄 때문에 exit 1이었다 (`/private/tmp/score-global-defaults-final-rc-20261030.log`). argument 순서만 수정 후 별도 최종 analyze PASS (`/private/tmp/score-global-defaults-final-analyze-20261030.log`), 이번 변경 대상의 diff 공백 검사 PASS. 전역 RC를 PASS로 표시하지 않으며 다른 작업의 README는 보존했다.
+- 새 빌드·버전 변경·push/merge·업로드는 하지 않았다. 기기 오디오/codec·마이크·페달·펜·VoiceOver/실제 터치·공연 화면 유지와 외부 PDF viewer 호환성은 pending이다. 제품 코드에는 이번 종료 후 미완료 draft를 남기지 않고 기존 사용자 변경은 보존한다.
+- 남은 후속 후보: 악보함 공유 대상 선택, 전역 설정의 실제 키보드/VoiceOver와 PDF·기기 기본값 적용, 세트리스트 선택/공연 메모 UI 점검. 대형 기능·엔진·새 저장 형식은 이번 범위가 아니다. 전체 수동 QA를 출시 관문으로 추가하지 않고 변경 영향 범위만 확인한다.
+
 ## 악보함 분류 선택 후속
 
 - 태그·컬렉션·그룹·별점의 raw 행을 공통 Sheet/Banner/flat Item/Button으로 교체했다. typed app adapter는 표시/선택 intent만 담당하며 기존 controller의 저장 정책은 변경하지 않는다. 현재 선택·조건별 해제·취소와 라이브러리 identity 확인을 추가했다. 일반 설정 저장의 실패 rollback이나 A→B→A 재진입 세대 보장으로 확대해 표현하지 않는다.

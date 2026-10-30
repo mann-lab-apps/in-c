@@ -2028,8 +2028,8 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> updateGlobalViewerSettings(SheetViewerSettings settings) async {
-    _globalViewerSettings = settings;
     await store.saveGlobalViewerSettings(settings);
+    _globalViewerSettings = settings;
     notifyListeners();
   }
 

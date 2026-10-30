@@ -127,6 +127,8 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 
 ## 2026-10-30 연습 도구 후속 적용
 
+- 전역 보기/입력 기본값은 앱의 `ScoreGlobalViewerSettings`와 기존 `ScoreViewerDraftForm`을 조합한다. 읽기·공연·입력 Section, Choices·SettingsRow·Button을 사용하며 native Switch에 명시적 접근성 이름을 둔다. 선택지 label/value와 저장은 앱 adapter 소유다. 저장 await 전에는 기본값을 memory에 publish하지 않고 성공한 경우에만 닫으며 실패 시 draft/retry를 유지한다. SharedPreferences와 자동 백업의 원자성·다른 쓰기와의 전역 직렬화까지 보장하지 않는다.
+
 - 악보함 태그·컬렉션·그룹·별점은 앱의 typed `ScoreLibraryChoices<T>` adapter와 공통 Sheet·Banner·flat Item·Button을 조합한다. 선택 ID·저장·navigation은 앱 소유이며 빈 문자열/별점 0/취소 null을 구분한다. 긴 이름은 줄바꿈하고 20개 초과 선택지는 bounded lazy list로 표시한다. 이 수치는 렌더링 전략이며 기기 성능 검수 결과가 아니다. 메뉴가 열린 사이 라이브러리가 바뀌면 결과를 적용하지 않는다.
 
 - 자동 스크롤은 공통 `showDdiroriSheet`의 단일 스크롤과 `DdiroriSection`, `DdiroriSettingsRow`, `DdiroriIconButton`, `DdiroriChoices`, `DdiroriButton`으로 설정과 실행을 구분한다. 기존 페이지 범위·쪽별 속도·cue·pause·반복 저장과 스크롤 엔진은 Score가 소유한다.
