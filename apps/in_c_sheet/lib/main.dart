@@ -27,11 +27,11 @@ import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
-import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
 import 'presentation/score_viewer_components.dart';
+import 'presentation/score_pdf_search_sheet.dart';
 import 'sheet_setlist.dart';
 import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
@@ -8902,239 +8902,30 @@ setlist=$setlistLabel
       return;
     }
     final textSearcher = _ensureTextSearcher();
-    final queryController = TextEditingController();
-    final currentPattern = textSearcher.pattern;
-    if (currentPattern != null) {
-      queryController.text = currentPattern.toString();
-    }
-    var didSearch = currentPattern != null;
-    String? errorMessage;
-    try {
-      await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setModalState) {
-            void refreshWhileSearching() {
-              Future<void>.delayed(const Duration(milliseconds: 200), () {
-                if (!context.mounted) {
-                  return;
-                }
-                setModalState(() {});
-                if (textSearcher.isSearching) {
-                  refreshWhileSearching();
-                }
-              });
-            }
-
-            void startSearch() {
-              final query = queryController.text.trim();
-              if (query.isEmpty) {
-                textSearcher.resetTextSearch();
-                setModalState(() {
-                  didSearch = false;
-                  errorMessage = null;
-                });
-                return;
-              }
-              try {
-                textSearcher.startTextSearch(
-                  query,
-                  caseInsensitive: true,
-                  searchImmediately: true,
-                );
-                setModalState(() {
-                  didSearch = true;
-                  errorMessage = null;
-                });
-                refreshWhileSearching();
-              } catch (_) {
-                setModalState(() {
-                  didSearch = true;
-                  errorMessage =
-                      SheetPdfSearchSupport.unsupportedTextSearchMessage;
-                });
-              }
-            }
-
-            void clearSearch() {
-              queryController.clear();
-              textSearcher.resetTextSearch();
-              setModalState(() {
-                didSearch = false;
-                errorMessage = null;
-              });
-            }
-
-            final matches = textSearcher.matches;
-            final progress = textSearcher.searchProgress;
-            final currentIndex = textSearcher.currentIndex;
-            final currentLabel = currentIndex == null || matches.isEmpty
-                ? null
-                : '${currentIndex + 1}/${matches.length}';
-            final searchingPage = textSearcher.searchingPageNumber;
-            final totalPageCount = textSearcher.totalPageCount;
-            final searchStatus = textSearcher.isSearching
-                ? searchingPage == null || totalPageCount == null
-                      ? '검색 중'
-                      : '검색 중 · $searchingPage/$totalPageCount쪽'
-                : !didSearch
-                ? 'PDF 본문 검색은 악보 파일명/라이브러리 검색과 별개입니다.'
-                : matches.isEmpty
-                ? SheetPdfSearchSupport.noResultStatus
-                : currentLabel == null
-                ? '${matches.length}개 결과'
-                : '$currentLabel 결과';
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-                ),
-                child: SizedBox(
-                  height: MediaQuery.sizeOf(context).height * 0.72,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PDF 본문 검색',
-                        style: Theme.of(context).textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: queryController,
-                        decoration: InputDecoration(
-                          labelText: '검색어',
-                          helperText:
-                              SheetPdfSearchSupport.embeddedTextOnlyHelper,
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: '검색어 지우기',
-                                onPressed: queryController.text.isEmpty
-                                    ? null
-                                    : clearSearch,
-                                icon: const Icon(Icons.clear),
-                              ),
-                              IconButton(
-                                tooltip: '검색',
-                                onPressed: startSearch,
-                                icon: const Icon(Icons.search),
-                              ),
-                            ],
-                          ),
-                        ),
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (_) => startSearch(),
-                        onChanged: (_) => setModalState(() {}),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(child: Text(searchStatus)),
-                          IconButton(
-                            tooltip: '이전 결과',
-                            onPressed: matches.isEmpty
-                                ? null
-                                : () async {
-                                    await textSearcher.goToPrevMatch();
-                                    setModalState(() {});
-                                  },
-                            icon: const Icon(Icons.keyboard_arrow_up),
-                          ),
-                          IconButton(
-                            tooltip: '다음 결과',
-                            onPressed: matches.isEmpty
-                                ? null
-                                : () async {
-                                    await textSearcher.goToNextMatch();
-                                    setModalState(() {});
-                                  },
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                          ),
-                        ],
-                      ),
-                      if (textSearcher.isSearching) ...[
-                        const SizedBox(height: 6),
-                        LinearProgressIndicator(value: progress),
-                      ],
-                      if (!textSearcher.isSearching &&
-                          didSearch &&
-                          matches.isEmpty &&
-                          errorMessage == null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            SheetPdfSearchSupport.ocrUnsupportedHint,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      if (errorMessage != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          errorMessage!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: matches.isEmpty
-                            ? const Center(
-                                child: Text('검색어를 입력하면 page 결과가 여기에 표시됩니다.'),
-                              )
-                            : ListView.separated(
-                                itemBuilder: (context, index) {
-                                  final match = matches[index];
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      child: Text('${match.pageNumber}'),
-                                    ),
-                                    title: Text(
-                                      match.text.trim().isEmpty
-                                          ? '검색 결과 ${index + 1}'
-                                          : match.text.trim(),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    subtitle: Text(
-                                      '${match.pageNumber}쪽 · ${index + 1}/${matches.length}',
-                                    ),
-                                    trailing: index == textSearcher.currentIndex
-                                        ? const Icon(Icons.check)
-                                        : null,
-                                    onTap: () async {
-                                      await textSearcher.goToMatchOfIndex(
-                                        index,
-                                      );
-                                      if (context.mounted) {
-                                        Navigator.of(context).pop();
-                                      }
-                                      _showPageControlsTemporarily();
-                                    },
-                                  );
-                                },
-                                separatorBuilder: (context, index) =>
-                                    const Divider(height: 1),
-                                itemCount: matches.length,
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+    final source = _activePdfSource;
+    bool current() => mounted && identical(_activePdfSource, source);
+    await showDdiroriSheet<void>(
+      context: context,
+      title: 'PDF 본문 검색',
+      child: ListenableBuilder(
+        listenable: widget.controller,
+        builder: (context, _) => ScorePdfTextSearchSheet(
+          searcher: textSearcher,
+          isCurrent: current,
+          onResultSelected: () {
+            if (current()) _showPageControlsTemporarily();
           },
         ),
-      );
-    } finally {
-      queryController.dispose();
-    }
+      ),
+      actions: [
+        DdiroriButton(
+          label: '닫기',
+          kind: DdiroriButtonKind.quiet,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+    if (current()) _keyboardFocusNode.requestFocus();
   }
 
   Future<void> _showMetronome() async {

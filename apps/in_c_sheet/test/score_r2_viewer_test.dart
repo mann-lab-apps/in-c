@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/presentation/score_viewer_components.dart';
+import 'package:in_c_sheet/presentation/score_pdf_search_sheet.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -1934,6 +1935,215 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets(
+      'PDF text search uses common fields with keyboard inset at $viewport',
+      (t) async {
+        final c = await openPdf(
+          t,
+          width: viewport.width,
+          height: viewport.height,
+          scale: 2,
+          dark: viewport.dark,
+        );
+        final document = pdf(t).document;
+        t.view.viewInsets = FakeViewPadding(
+          bottom: viewport.height < 500 ? 100 : 240,
+        );
+        addTearDown(t.view.resetViewInsets);
+        await t.pumpAndSettle();
+        await openViewerOption(t, 'PDF 본문 검색');
+        expect(t.takeException(), isNull);
+        await captureToolSheet(
+          t,
+          'pdf-search-${viewport.width.toInt()}x${viewport.height.toInt()}-${viewport.dark ? 'dark' : 'light'}',
+        );
+        final entry = find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w is DdiroriInput && w.label == '검색어',
+          ),
+          matching: find.byType(TextField),
+        );
+        await t.enterText(entry, 'Page 2 of 3');
+        await t.pumpAndSettle();
+        await command(t, '검색');
+        final result = find.byWidgetPredicate(
+          (w) => w is DdiroriItem && w.title == 'Page 2 of 3',
+        );
+        for (
+          var attempt = 0;
+          attempt < 100 && result.evaluate().isEmpty;
+          attempt++
+        ) {
+          await t.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          await t.pump(const Duration(milliseconds: 20));
+        }
+        expect(result, findsOneWidget);
+        final searcher = t
+            .widget<ScorePdfTextSearchSheet>(
+              find.byType(ScorePdfTextSearchSheet),
+            )
+            .searcher;
+        expect(searcher.matches.single.pageNumber, 2);
+        await t.ensureVisible(result);
+        await t.pumpAndSettle();
+        await t.tap(result);
+        await t.pumpAndSettle();
+        expect(searcher.currentIndex, 0);
+        expect(
+          pdf(t).visibleRect.overlaps(pdf(t).layout.pageLayouts[1]),
+          isTrue,
+        );
+        // Wide mode keeps the first page of its visible spread as the cursor.
+        expect(pdf(t).pageNumber, viewport.width < 720 ? 2 : 1);
+        expect(c.scoreById('pilot-0').lastPage, pdf(t).pageNumber);
+        expect(pdf(t).document, same(document));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'PDF search clears empty results and reopens without stale query',
+    (t) async {
+      await openPdf(t, scale: 2);
+      final document = pdf(t).document;
+      await openViewerOption(t, 'PDF 본문 검색');
+      final field = find.descendant(
+        of: find.byType(DdiroriInput),
+        matching: find.byType(TextField),
+      );
+      await t.enterText(field, 'no_fixture_match_20261030');
+      await t.pumpAndSettle();
+      await command(t, '검색');
+      final searcher = t
+          .widget<ScorePdfTextSearchSheet>(find.byType(ScorePdfTextSearchSheet))
+          .searcher;
+      for (
+        var attempt = 0;
+        attempt < 100 &&
+            (searcher.isSearching || searcher.searchingPageNumber != 3);
+        attempt++
+      ) {
+        await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await t.pump(const Duration(milliseconds: 20));
+      }
+      expect(searcher.isSearching, isFalse);
+      expect(searcher.matches, isEmpty);
+      expect(find.text('결과 없음 · 스캔 PDF는 텍스트가 없을 수 있습니다.'), findsOneWidget);
+      await command(t, '검색어 지우기');
+      expect(searcher.pattern, isNull);
+      expect(t.widget<TextField>(field).controller!.text, isEmpty);
+      await command(t, '닫기');
+      await openViewerOption(t, 'PDF 본문 검색');
+      expect(t.widget<TextField>(field).controller!.text, isEmpty);
+      expect(pdf(t).document, same(document));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'PDF search keeps the latest query and ignores duplicate search',
+    (t) async {
+      await openPdf(t, scale: 2);
+      await openViewerOption(t, 'PDF 본문 검색');
+      final field = find.descendant(
+        of: find.byType(DdiroriInput),
+        matching: find.byType(TextField),
+      );
+      final search = find.byWidgetPredicate(
+        (w) => w is DdiroriButton && w.label == '검색',
+      );
+      await t.enterText(field, 'Page 1 of 3');
+      await t.pumpAndSettle();
+      await t.ensureVisible(search);
+      await t.tap(search);
+      await t.pump();
+      await t.enterText(field, 'Page 3 of 3');
+      await t.pumpAndSettle();
+      await t.testTextInput.receiveAction(TextInputAction.done);
+      await t.pumpAndSettle();
+      final searcher = t
+          .widget<ScorePdfTextSearchSheet>(find.byType(ScorePdfTextSearchSheet))
+          .searcher;
+      for (
+        var attempt = 0;
+        attempt < 100 &&
+            (searcher.isSearching || searcher.searchingPageNumber != 3);
+        attempt++
+      ) {
+        await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await t.pump(const Duration(milliseconds: 20));
+      }
+      expect(searcher.pattern, 'Page 3 of 3');
+      expect(searcher.matches, hasLength(1));
+      expect(searcher.matches.single.pageNumber, 3);
+      final session = searcher.searchSession;
+      await command(t, '검색');
+      expect(searcher.searchSession, session);
+      expect(searcher.matches.single.pageNumber, 3);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets('PDF search rejects actions for a replaced document', (t) async {
+    final c = await openPdf(t, scale: 2);
+    await openViewerOption(t, 'PDF 본문 검색');
+    await c.store.saveScores(
+      c.scores
+          .map(
+            (s) => s.id == 'pilot-0'
+                ? s.copyWith(filePath: '/missing-search-fixture.pdf')
+                : s,
+          )
+          .toList(),
+    );
+    await c.load();
+    await t.pump(const Duration(milliseconds: 100));
+    await waitForMissingPdf(t);
+    await t.runAsync(() => t.pumpAndSettle());
+    expect(find.text('악보가 바뀌었습니다. 닫은 뒤 다시 검색해 주세요.'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    await command(t, '닫기');
+    expect(c.scoreById('pilot-0').filePath, '/missing-search-fixture.pdf');
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('PDF search can close while a long document is being searched', (
+    t,
+  ) async {
+    await openPdf(t, fixture: 'long-scan-like-score.pdf', scale: 2);
+    final document = pdf(t).document;
+    await openViewerOption(t, 'PDF 본문 검색');
+    final field = find.descendant(
+      of: find.byType(DdiroriInput),
+      matching: find.byType(TextField),
+    );
+    await t.enterText(field, 'no_fixture_match_20261030');
+    await t.pumpAndSettle();
+    final search = find.byWidgetPredicate(
+      (w) => w is DdiroriButton && w.label == '검색',
+    );
+    await t.ensureVisible(search);
+    await t.tap(search);
+    await t.pump();
+    t.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await t.pumpAndSettle();
+    await t.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 150)),
+    );
+    await t.pump();
+    expect(find.byType(ScorePdfTextSearchSheet), findsNothing);
+    expect(pdf(t).document, same(document));
+    expect(t.takeException(), isNull);
+  });
 
   testWidgets('viewer keyboard page turn works while tools own focus', (
     t,

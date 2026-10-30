@@ -79,9 +79,19 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - focused 로그: `/private/tmp/score-option-menus-20261030.log`, `/private/tmp/score-text-actions-20261030.log`.
 - 메뉴/프리셋/cue/share 6 tests와 실제 text action 1 test PASS. 일반 악보함 공유 picker 변경은 포함하지 않았다. 최종 format·analyze·전체 595 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-option-menus-rc-final-20261030.log`); metadata check PASS (`/private/tmp/score-option-menus-metadata-20261030.log`).
 
+## PDF 본문 검색
+
+- 실제 fixture에서 가로·200%·키보드 inset의 fixed-height Column overflow(138px)를 재현했다 (`/private/tmp/score-search-red-20261030.log`). 공통 Sheet의 scroll과 app-owned `ScorePdfTextSearchSheet`로 Input/Action/상태/결과를 합성한다.
+- viewer 소유 PdfTextSearcher를 그대로 사용하고 Listenable 알림으로 실제 상태를 갱신한다. recursive refresh timer와 route 밖에서 즉시 dispose하던 입력 controller는 제거했다. 같은 query를 재실행해 진행 중 native session을 취소하지 않으며 문서 source/검색 세대 확인 뒤 결과 UI를 처리한다.
+- 2페이지 보기에서는 2쪽 match가 실제 표시되는지·selected match index와 펼침 첫 쪽 cursor/lastPage 일치를 검사한다. narrow는 실제 2쪽 이동을 확인한다. PDF/zoom 엔진과 기존 첫 결과 자동 이동 정책을 바꾸지 않았다.
+- focused 7 tests PASS (`/private/tmp/score-search-green-20261030.log`): 세 viewport의 키보드 inset/200%, 결과 없음·clear/reopen, 최신 query/중복 검색, 파일 교체 시 action 거부, 90쪽 검색 중 닫기. 문서 교체 fixture는 실제 파일 I/O 완료를 기다리며 fake-clock settle 제한을 늘리지 않았다.
+- 공통 API 제안: Input에 textInputAction 설정이 없어 명시적인 native Search 키 모양은 이번 공통 입력으로 설정할 수 없다. onSubmitted 동작과 이름 있는 검색 버튼은 유지하며 실제 키보드 액션/IME는 manual 항목으로 남긴다. 공통 패키지 확장은 다른 실제 소비처의 수요와 함께 별도 검토한다.
+- 최종 capture+focused 7 tests PASS (`/private/tmp/score-search-captures-final-20261030.log`), keyboard done 제출도 실제 검색을 실행한다. 캡처는 `/private/tmp/score-tool-captures-20261030.nMNI7A/pdf-search-*.png`이며 같은 blue/system font/icon fixture에 240px(portrait)/100px(landscape) fake viewInsets를 적용했다. 물리 키보드 화면을 촬영한 것이 아니다. 한 줄 helper가 200%에서 잘리는 현상을 확인해 description 역할의 줄바꿈 텍스트로 옮겼다.
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
-- 다음 후보: 본문 검색의 키보드/오류 동선, 자동 스크롤 실행/닫기/재진입 수명과 실제 상태 표시.
+- PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
+- 다음 후보: 자동 스크롤 실행/닫기/재진입 수명과 실제 상태 표시. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
