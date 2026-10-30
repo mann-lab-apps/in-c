@@ -193,6 +193,7 @@ Audio/tuner:
 - 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
+- 공통 튜너 sheet에서 이름 있는 마이크 켜기/끄기 버튼과 기준음/드론까지 스크롤 접근을 확인한다. 메트로놈은 무음 시작/정지·실행 중 닫기/재진입 후 정지 상태와 저장된 BPM·박자를 확인한다. 자동 timer/위젯 검증은 실제 마이크 권한·오디오 출력·VoiceOver 검증을 대신하지 않는다.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
 - 실제 PDF → 연습 → 연결 음원 → 파일 선택에서 파일명·재생 대기/실행/실패 상태와 재생/정지 행동을 확인한다. 기본 화면에는 앱 sandbox의 절대 경로가 보이지 않아야 한다.
 - sheet를 닫은 뒤 다시 열고, 지원하지 않는 형식·출력 route 오류가 있을 때 실패 안내가 실제 재생 성공처럼 표시되지 않는지 기록한다. 자동 widget 검증은 재생 버튼을 누르지 않으므로 codec·음량·지연·종료 후 native 정리의 증거가 아니다.

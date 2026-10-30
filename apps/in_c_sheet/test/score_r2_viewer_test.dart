@@ -18,6 +18,12 @@ import 'package:pdfrx/pdfrx.dart';
 
 import 'adoption_pilot_test.dart' as pilot;
 
+const viewerSheetViewports = <({double width, double height, bool dark})>[
+  (width: 390, height: 1000, dark: false),
+  (width: 840, height: 1000, dark: true),
+  (width: 840, height: 390, dark: false),
+];
+
 Future<void> waitForPdf(WidgetTester tester, int pages) async {
   for (var attempt = 0; attempt < 150; attempt++) {
     await tester.runAsync(
@@ -1018,45 +1024,71 @@ void main() {
     },
   );
 
-  testWidgets('real PDF metronome keeps Score timing controls in Ddirori UI', (
-    t,
-  ) async {
-    final c = await openPdf(t, scale: 2);
-    final originalDocument = pdf(t).document;
-    final initialBpm = c.metronomeSettings.bpm;
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('metronome sheet preserves settings and PDF at $viewport', (
+      t,
+    ) async {
+      final c = await openPdf(
+        t,
+        scale: 2,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+      );
+      final originalDocument = pdf(t).document;
+      final originalPage = pdf(t).pageNumber;
+      final initialBpm = c.metronomeSettings.bpm;
 
-    await command(t, '연습');
-    await command(t, '메트로놈');
+      await command(t, '연습');
+      await command(t, '메트로놈');
+      expect(find.text('메트로놈'), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(DdiroriPageHeader), findsNothing);
+      expect(
+        find.byWidgetPredicate((w) => w is DdiroriChoices<SheetMetronomeMeter>),
+        findsOneWidget,
+      );
 
-    expect(find.text('메트로놈'), findsOneWidget);
-    expect(find.byType(DdiroriPageHeader), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is DdiroriChoices<SheetMetronomeMeter>,
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is DdiroriButton && widget.label == '시작',
-      ),
-      findsOneWidget,
-    );
+      await t.ensureVisible(find.byTooltip('BPM 올리기'));
+      await t.tap(find.byTooltip('BPM 올리기'));
+      await t.pumpAndSettle();
+      expect(find.text('${initialBpm + 1}'), findsOneWidget);
+      await t.ensureVisible(find.text(SheetMetronomeMeter.threeFour.label));
+      await t.tap(find.text(SheetMetronomeMeter.threeFour.label));
+      await t.pumpAndSettle();
+      expect(find.textContaining('1/3'), findsOneWidget);
+      expect(c.metronomeSettings.bpm, initialBpm + 1);
+      expect(c.metronomeSettings.meter, SheetMetronomeMeter.threeFour);
 
-    await t.ensureVisible(find.byTooltip('BPM 올리기'));
-    await t.tap(find.byTooltip('BPM 올리기'));
-    await t.pumpAndSettle();
-    expect(find.text('${initialBpm + 1}'), findsOneWidget);
+      // Exercise the real timer controls silently; this is not audio evidence.
+      await t.ensureVisible(find.byType(Switch));
+      if (t.widget<Switch>(find.byType(Switch)).value) {
+        await t.tap(find.byType(Switch));
+        await t.pumpAndSettle();
+      }
+      expect(c.metronomeSettings.soundEnabled, isFalse);
+      await command(t, '시작');
+      expect(find.text('정지'), findsOneWidget);
+      await command(t, '정지');
+      expect(find.text('시작'), findsOneWidget);
+      await command(t, '시작');
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      await t.pump(const Duration(seconds: 1));
+      expect(pdf(t).document, same(originalDocument));
+      expect(pdf(t).pageNumber, originalPage);
 
-    await t.ensureVisible(find.text(SheetMetronomeMeter.threeFour.label));
-    await t.tap(find.text(SheetMetronomeMeter.threeFour.label));
-    await t.pumpAndSettle();
-    expect(find.textContaining('1/3'), findsOneWidget);
-    expect(c.metronomeSettings.bpm, initialBpm + 1);
-    expect(c.metronomeSettings.meter, SheetMetronomeMeter.threeFour);
-    expect(pdf(t).document, same(originalDocument));
-    expect(t.takeException(), isNull);
-  });
+      await command(t, '연습');
+      await command(t, '메트로놈');
+      expect(find.text('시작'), findsOneWidget);
+      expect(find.text('${initialBpm + 1}'), findsOneWidget);
+      final stored = await c.store.loadMetronomeSettings();
+      expect(stored.bpm, initialBpm + 1);
+      expect(stored.meter, SheetMetronomeMeter.threeFour);
+      expect(stored.soundEnabled, isFalse);
+      expect(t.takeException(), isNull);
+    });
+  }
 
   for (final viewport in <({double width, double height, bool dark})>[
     (width: 390, height: 1000, dark: false),
@@ -1119,29 +1151,42 @@ void main() {
     });
   }
 
-  testWidgets('real PDF tuner keeps the microphone route in Ddirori UI', (
-    t,
-  ) async {
-    await openPdf(t, scale: 2);
-    final originalDocument = pdf(t).document;
-
-    await command(t, '연습');
-    await command(t, '튜너');
-
-    expect(find.text('튜너'), findsOneWidget);
-    expect(find.byType(DdiroriPageHeader), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is DdiroriIconButton &&
-            (widget.label == '마이크 끄기' || widget.label == '마이크 켜기'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.textContaining('기준음/드론'), findsOneWidget);
-    expect(pdf(t).document, same(originalDocument));
-    expect(t.takeException(), isNull);
-  });
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('tuner sheet preserves PDF and tone controls at $viewport', (
+      t,
+    ) async {
+      await openPdf(
+        t,
+        scale: 2,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+      );
+      final originalDocument = pdf(t).document;
+      final originalPage = pdf(t).pageNumber;
+      await command(t, '연습');
+      await command(t, '튜너');
+      expect(find.text('튜너'), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(DdiroriPageHeader), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is DdiroriButton &&
+              (w.label == '마이크 끄기' || w.label == '마이크 켜기'),
+        ),
+        findsOneWidget,
+      );
+      await t.ensureVisible(find.textContaining('기준음/드론'));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      expect(pdf(t).document, same(originalDocument));
+      expect(pdf(t).pageNumber, originalPage);
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets(
     'input diagnostics use a Ddirori sheet without changing the PDF',

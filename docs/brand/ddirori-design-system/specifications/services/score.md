@@ -112,4 +112,5 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 ## 2026-10-30 연습 도구 후속 적용
 
 - 자동 스크롤은 공통 `showDdiroriSheet`의 단일 스크롤과 `DdiroriSection`, `DdiroriSettingsRow`, `DdiroriIconButton`, `DdiroriChoices`, `DdiroriButton`으로 설정과 실행을 구분한다. 기존 페이지 범위·쪽별 속도·cue·pause·반복 저장과 스크롤 엔진은 Score가 소유한다.
+- 메트로놈·튜너도 공통 sheet의 단일 제목·스크롤을 사용한다. 튜너의 마이크 시작/정지는 이름 있는 버튼으로 표시하며, native 입력/출력·음정 meter·연습 데이터는 기존 Score adapter가 소유한다.
 - [실제 PDF 검증과 적용 기록](../../product-design-r3/returns/score-viewer-tools-20261030.md).

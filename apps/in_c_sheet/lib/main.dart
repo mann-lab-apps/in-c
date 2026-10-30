@@ -9171,10 +9171,10 @@ setlist=$setlistLabel
   }
 
   Future<void> _showMetronome() async {
-    await showModalBottomSheet<void>(
+    await showDdiroriSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _MetronomeSheet(
+      title: '메트로놈',
+      child: _MetronomeSheet(
         initialSettings: widget.controller.metronomeSettings,
         onSettingsChanged: widget.controller.updateMetronomeSettings,
       ),
@@ -9185,10 +9185,10 @@ setlist=$setlistLabel
   }
 
   Future<void> _showTuner() async {
-    await showModalBottomSheet<void>(
+    await showDdiroriSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _TunerSheet(
+      title: '튜너',
+      child: _TunerSheet(
         initialSettings: widget.controller.tunerSettings,
         initialToneSettings: widget.controller.toneSettings,
         onSettingsChanged: widget.controller.updateTunerSettings,
@@ -13994,7 +13994,6 @@ class _TunerSheetState extends State<_TunerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = DdiroriStyle.of(context);
     final demoReading =
         _settings.detectionProfile.acceptsFrequency(_demoFrequency)
         ? SheetTunerPitch.detect(
@@ -14082,582 +14081,540 @@ class _TunerSheetState extends State<_TunerSheet> {
         ? SheetTunerStringTarget.fromTargets(tuningTargets)
         : const <SheetTunerStringTarget>[];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DdiroriPageHeader(
-                title: '튜너',
-                subtitle: '현재 음과 기준음을 확인하고 드론을 맞춥니다.',
-                leading: const Icon(Icons.tune),
-                actions: [
-                  DdiroriIconButton(
-                    label: _state.isListening ? '마이크 끄기' : '마이크 켜기',
-                    onPressed: _toggleListening,
-                    icon: _state.isListening ? Icons.stop : Icons.mic,
-                  ),
-                ],
-              ),
-              SizedBox(height: style.gap * 2),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        status.icon,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          statusMessage,
-                          style: theme.textTheme.labelLarge,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Center(
-                child: Text(
-                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
-                      '--',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isInTune
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Center(
-                child: Text(
-                  effectiveReading == null
-                      ? targetLock.isRejected
-                            ? '타겟 음을 기다리는 중'
-                            : '소리를 내면 음을 잡습니다'
-                      : displayedPitch!.detailLabelWith(
-                          preferFlats: _preferFlats,
-                        ),
-                  style: theme.textTheme.labelLarge,
-                ),
-              ),
-              if (targetNote != null && targetWrittenNote != null)
-                Center(
-                  child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
-                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              Center(
-                child: Text(
-                  '표시 ${_settings.displayMode.label} · 감지 ${_settings.detectionProfile.label}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${feedback.displayCents >= 0 ? '+' : ''}'
-                    '${feedback.displayCents.toStringAsFixed(1)} cents',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: targetLock.isRejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '신호 ${(reading.signalLevel * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              _TunerMeter(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerLedStrip(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerInputPowerBar(power: inputPower),
-              if (stringTargets.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _TunerStringTargetPanel(
-                  title: _settings.tuningPreset.stringTargetPanelLabel,
-                  stringTargets: stringTargets,
-                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
-                  referencePitchA4: _settings.referencePitchA4,
-                  preferFlats: _preferFlats,
-                  onSelected: (target) => unawaited(
-                    _setTargetConcertMidiNumber(target.concertMidiNumber),
-                  ),
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(message: '현재 음과 기준음을 확인하고 드론을 맞춥니다.'),
+        DdiroriAdaptiveActions(
+          children: [
+            DdiroriButton(
+              label: _state.isListening ? '마이크 끄기' : '마이크 켜기',
+              onPressed: _toggleListening,
+              icon: _state.isListening ? Icons.stop : Icons.mic,
+            ),
+          ],
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Icon(status.icon, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(statusMessage, style: theme.textTheme.labelLarge),
                 ),
               ],
-              const SizedBox(height: 20),
-              Text(
-                _settings.tuningMode == SheetTunerMode.target
-                    ? '타겟 음'
-                    : '빠른 타겟',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final target in tuningTargets)
-                    if (isCustomTargets)
-                      InputChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
-                        onDeleted: () => unawaited(
-                          _removeCustomTarget(target.concertMidiNumber),
-                        ),
-                      )
-                    else
-                      FilterChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
-                      ),
-                  ActionChip(
-                    avatar: const Icon(Icons.add, size: 18),
-                    label: const Text('현재 음 추가'),
-                    onPressed: () =>
-                        unawaited(_addCurrentReadingAsCustomTarget(reading)),
-                  ),
-                  if (_settings.targetConcertMidiNumber != null)
-                    ActionChip(
-                      avatar: const Icon(Icons.close, size: 18),
-                      label: const Text('타겟 해제'),
-                      onPressed: () =>
-                          unawaited(_clearTargetConcertMidiNumber()),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text('튜닝 설정', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final mode in SheetTunerMode.values)
-                    ChoiceChip(
-                      selected: _settings.tuningMode == mode,
-                      label: Text(mode.label),
-                      onSelected: (_) => unawaited(_setTuningMode(mode)),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerPreset>(
-                initialValue: _settings.tuningPreset,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: '튜닝 프리셋',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerPreset.values
-                    .map(
-                      (preset) => DropdownMenuItem<SheetTunerPreset>(
-                        value: preset,
-                        child: Text(
-                          preset.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setTuningPreset(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerDisplayMode>(
-                initialValue: _settings.displayMode,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: '악기/표시 기준',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerDisplayMode.values
-                    .map(
-                      (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
-                        value: mode,
-                        child: Text(
-                          '${mode.label} · ${mode.familyLabel}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setDisplayMode(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerDetectionProfile>(
-                initialValue: _settings.detectionProfile,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: '감지 프로필',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerDetectionProfile.values
-                    .map(
-                      (profile) => DropdownMenuItem<SheetTunerDetectionProfile>(
-                        value: profile,
-                        child: Text(
-                          profile.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setDetectionProfile(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
-                title: Text('고급 설정', style: theme.textTheme.titleMedium),
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('표기', style: theme.textTheme.labelLarge),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final notation
-                          in SheetTunerNotationPreference.values)
-                        ChoiceChip(
-                          selected: _settings.notationPreference == notation,
-                          label: Text(notation.label),
-                          onSelected: (_) =>
-                              unawaited(_setNotationPreference(notation)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('타겟 잠금'),
-                    subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
-                    value: _settings.targetLockEnabled,
-                    onChanged: (value) =>
-                        unawaited(_setTargetLockEnabled(value)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saveCustomPreset,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('커스텀 프리셋 저장'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_settings.customPresets.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final preset in _settings.customPresets)
-                          InputChip(
-                            selected: preset.id == _settings.customPresetId,
-                            label: Text(preset.name),
-                            onSelected: (_) =>
-                                unawaited(_applyCustomPreset(preset)),
-                            onDeleted: () =>
-                                unawaited(_deleteCustomPreset(preset)),
-                          ),
-                      ],
-                    ),
-                  ],
-                  if (calibrationSuggestion != null) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => unawaited(
-                        _confirmCalibrationSuggestion(calibrationSuggestion),
-                      ),
-                      icon: const Icon(Icons.my_location),
-                      label: Text(calibrationSuggestion.label),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('기준음/드론', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (_settings.targetConcertMidiNumber != null &&
-                      _toneSettings.rootConcertMidiNumber !=
-                          _settings.targetConcertMidiNumber)
-                    ActionChip(
-                      avatar: const Icon(Icons.track_changes, size: 18),
-                      label: const Text('타겟으로 맞추기'),
-                      onPressed: () => unawaited(
-                        _setToneSettings(
-                          _toneSettings.copyWith(
-                            rootConcertMidiNumber:
-                                _settings.targetConcertMidiNumber!,
-                          ),
-                        ),
-                      ),
-                    ),
-                  for (final target in tuningTargets)
-                    ChoiceChip(
-                      selected:
-                          _toneSettings.rootConcertMidiNumber ==
-                          target.concertMidiNumber,
-                      label: Text(
-                        target.targetLabel(
-                          displayMode: _settings.displayMode,
-                          referencePitchA4: _settings.referencePitchA4,
-                          preferFlats: _preferFlats,
-                        ),
-                      ),
-                      onSelected: (_) => unawaited(
-                        _setToneSettings(
-                          _toneSettings.copyWith(
-                            rootConcertMidiNumber: target.concertMidiNumber,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetToneDroneMode>(
-                initialValue: _toneSettings.droneMode,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: '드론 모드',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetToneDroneMode.values
-                    .map(
-                      (mode) => DropdownMenuItem<SheetToneDroneMode>(
-                        value: mode,
-                        child: Text(
-                          mode.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(
-                      _setToneSettings(
-                        _toneSettings.copyWith(droneMode: value),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _toneLabel(),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Slider(
-                value: _toneSettings.volumePercent.toDouble(),
-                min: 0,
-                max: 100,
-                divisions: 20,
-                label: '${_toneSettings.volumePercent}%',
-                onChanged: (value) => unawaited(
-                  _setToneSettings(
-                    _toneSettings.copyWith(volumePercent: value.round()),
-                  ),
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: _toggleTone,
-                icon: Icon(_isTonePlaying ? Icons.stop : Icons.graphic_eq),
-                label: Text(_isTonePlaying ? '드론 정지' : '드론 재생'),
-              ),
-              if (_lastTonePlaybackResult?.status ==
-                  SheetTonePlaybackStatus.unsupportedPlatform)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '이 기기에서는 기준음 재생 채널을 사용할 수 없습니다.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                )
-              else if (_lastTonePlaybackResult?.status ==
-                  SheetTonePlaybackStatus.failed)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    _lastTonePlaybackResult!.message.isEmpty
-                        ? '기준음 재생을 시작하지 못했습니다.'
-                        : _lastTonePlaybackResult!.message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Text(
-                'A4 기준음 ${_settings.referencePitchA4} Hz',
-                style: theme.textTheme.labelLarge,
-              ),
-              Slider(
-                value: _settings.referencePitchA4.toDouble(),
-                min: 415,
-                max: 466,
-                divisions: 51,
-                label: '${_settings.referencePitchA4} Hz',
-                onChanged: (value) => _setReferencePitch(value.round()),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: 'A4 낮추기',
-                    onPressed: () =>
-                        _setReferencePitch(_settings.referencePitchA4 - 1),
-                    icon: const Icon(Icons.remove),
-                  ),
-                  const SizedBox(width: 16),
-                  IconButton.filledTonal(
-                    tooltip: 'A4 올리기',
-                    onPressed: () =>
-                        _setReferencePitch(_settings.referencePitchA4 + 1),
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final quickPitch in <int>[440, 441, 442])
-                    ChoiceChip(
-                      selected: _settings.referencePitchA4 == quickPitch,
-                      label: Text('$quickPitch Hz'),
-                      onSelected: (_) => unawaited(
-                        _setReferencePitch(
-                          quickPitch,
-                          calibrationSource: 'quick',
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              if (_settings.calibrationHistory.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '최근 기준음 ${_settings.calibrationHistory.take(3).map((event) => '${event.referencePitchA4} Hz').join(' · ')}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
-              if (!_state.isListening) ...[
-                Text(
-                  '테스트 주파수 ${_demoFrequency.toStringAsFixed(2)} Hz',
-                  style: theme.textTheme.labelLarge,
-                ),
-                Slider(
-                  value: _demoFrequency,
-                  min: _settings.detectionProfile.minFrequency,
-                  max: _settings.detectionProfile.maxFrequency,
-                  divisions: 120,
-                  label: '${_demoFrequency.toStringAsFixed(2)} Hz',
-                  onChanged: _setDemoFrequency,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 18),
+        Center(
+          child: Text(
+            displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ?? '--',
+            style: theme.textTheme.displayLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: isInTune
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+        Center(
+          child: Text(
+            effectiveReading == null
+                ? targetLock.isRejected
+                      ? '타겟 음을 기다리는 중'
+                      : '소리를 내면 음을 잡습니다'
+                : displayedPitch!.detailLabelWith(preferFlats: _preferFlats),
+            style: theme.textTheme.labelLarge,
+          ),
+        ),
+        if (targetNote != null && targetWrittenNote != null)
+          Center(
+            child: Text(
+              '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
+              ' · Concert ${targetNote.labelWith(preferFlats: true)}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        Center(
+          child: Text(
+            '표시 ${_settings.displayMode.label} · 감지 ${_settings.detectionProfile.label}',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        if (reading != null)
+          Center(
+            child: Text(
+              '${reading.frequency.toStringAsFixed(2)} Hz · '
+              '${feedback.displayCents >= 0 ? '+' : ''}'
+              '${feedback.displayCents.toStringAsFixed(1)} cents',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: targetLock.isRejected
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        if (reading != null)
+          Center(
+            child: Text(
+              '신호 ${(reading.signalLevel * 100).round()}%',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        const SizedBox(height: 20),
+        _TunerMeter(feedback: feedback),
+        const SizedBox(height: 14),
+        _TunerLedStrip(feedback: feedback),
+        const SizedBox(height: 14),
+        _TunerInputPowerBar(power: inputPower),
+        if (stringTargets.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _TunerStringTargetPanel(
+            title: _settings.tuningPreset.stringTargetPanelLabel,
+            stringTargets: stringTargets,
+            selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
+            referencePitchA4: _settings.referencePitchA4,
+            preferFlats: _preferFlats,
+            onSelected: (target) => unawaited(
+              _setTargetConcertMidiNumber(target.concertMidiNumber),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        Text(
+          _settings.tuningMode == SheetTunerMode.target ? '타겟 음' : '빠른 타겟',
+          style: theme.textTheme.labelLarge,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final target in tuningTargets)
+              if (isCustomTargets)
+                InputChip(
+                  selected:
+                      _settings.tuningMode == SheetTunerMode.target &&
+                      _settings.targetConcertMidiNumber ==
+                          target.concertMidiNumber,
+                  label: Text(
+                    target.targetLabel(
+                      displayMode: _settings.displayMode,
+                      referencePitchA4: _settings.referencePitchA4,
+                      preferFlats: _preferFlats,
+                    ),
+                  ),
+                  onSelected: (selected) => unawaited(
+                    selected
+                        ? _setTargetConcertMidiNumber(target.concertMidiNumber)
+                        : _clearTargetConcertMidiNumber(),
+                  ),
+                  onDeleted: () =>
+                      unawaited(_removeCustomTarget(target.concertMidiNumber)),
+                )
+              else
+                FilterChip(
+                  selected:
+                      _settings.tuningMode == SheetTunerMode.target &&
+                      _settings.targetConcertMidiNumber ==
+                          target.concertMidiNumber,
+                  label: Text(
+                    target.targetLabel(
+                      displayMode: _settings.displayMode,
+                      referencePitchA4: _settings.referencePitchA4,
+                      preferFlats: _preferFlats,
+                    ),
+                  ),
+                  onSelected: (selected) => unawaited(
+                    selected
+                        ? _setTargetConcertMidiNumber(target.concertMidiNumber)
+                        : _clearTargetConcertMidiNumber(),
+                  ),
+                ),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 18),
+              label: const Text('현재 음 추가'),
+              onPressed: () =>
+                  unawaited(_addCurrentReadingAsCustomTarget(reading)),
+            ),
+            if (_settings.targetConcertMidiNumber != null)
+              ActionChip(
+                avatar: const Icon(Icons.close, size: 18),
+                label: const Text('타겟 해제'),
+                onPressed: () => unawaited(_clearTargetConcertMidiNumber()),
+              ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text('튜닝 설정', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final mode in SheetTunerMode.values)
+              ChoiceChip(
+                selected: _settings.tuningMode == mode,
+                label: Text(mode.label),
+                onSelected: (_) => unawaited(_setTuningMode(mode)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<SheetTunerPreset>(
+          initialValue: _settings.tuningPreset,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: '튜닝 프리셋',
+            border: OutlineInputBorder(),
+          ),
+          items: SheetTunerPreset.values
+              .map(
+                (preset) => DropdownMenuItem<SheetTunerPreset>(
+                  value: preset,
+                  child: Text(
+                    preset.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            if (value != null) {
+              unawaited(_setTuningPreset(value));
+            }
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<SheetTunerDisplayMode>(
+          initialValue: _settings.displayMode,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: '악기/표시 기준',
+            border: OutlineInputBorder(),
+          ),
+          items: SheetTunerDisplayMode.values
+              .map(
+                (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
+                  value: mode,
+                  child: Text(
+                    '${mode.label} · ${mode.familyLabel}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            if (value != null) {
+              unawaited(_setDisplayMode(value));
+            }
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<SheetTunerDetectionProfile>(
+          initialValue: _settings.detectionProfile,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: '감지 프로필',
+            border: OutlineInputBorder(),
+          ),
+          items: SheetTunerDetectionProfile.values
+              .map(
+                (profile) => DropdownMenuItem<SheetTunerDetectionProfile>(
+                  value: profile,
+                  child: Text(
+                    profile.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            if (value != null) {
+              unawaited(_setDetectionProfile(value));
+            }
+          },
+        ),
+        const SizedBox(height: 12),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
+          title: Text('고급 설정', style: theme.textTheme.titleMedium),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('표기', style: theme.textTheme.labelLarge),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final notation in SheetTunerNotationPreference.values)
+                  ChoiceChip(
+                    selected: _settings.notationPreference == notation,
+                    label: Text(notation.label),
+                    onSelected: (_) =>
+                        unawaited(_setNotationPreference(notation)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('타겟 잠금'),
+              subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
+              value: _settings.targetLockEnabled,
+              onChanged: (value) => unawaited(_setTargetLockEnabled(value)),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _saveCustomPreset,
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('커스텀 프리셋 저장'),
+                  ),
+                ),
+              ],
+            ),
+            if (_settings.customPresets.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final preset in _settings.customPresets)
+                    InputChip(
+                      selected: preset.id == _settings.customPresetId,
+                      label: Text(preset.name),
+                      onSelected: (_) => unawaited(_applyCustomPreset(preset)),
+                      onDeleted: () => unawaited(_deleteCustomPreset(preset)),
+                    ),
+                ],
+              ),
+            ],
+            if (calibrationSuggestion != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => unawaited(
+                  _confirmCalibrationSuggestion(calibrationSuggestion),
+                ),
+                icon: const Icon(Icons.my_location),
+                label: Text(calibrationSuggestion.label),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text('기준음/드론', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (_settings.targetConcertMidiNumber != null &&
+                _toneSettings.rootConcertMidiNumber !=
+                    _settings.targetConcertMidiNumber)
+              ActionChip(
+                avatar: const Icon(Icons.track_changes, size: 18),
+                label: const Text('타겟으로 맞추기'),
+                onPressed: () => unawaited(
+                  _setToneSettings(
+                    _toneSettings.copyWith(
+                      rootConcertMidiNumber: _settings.targetConcertMidiNumber!,
+                    ),
+                  ),
+                ),
+              ),
+            for (final target in tuningTargets)
+              ChoiceChip(
+                selected:
+                    _toneSettings.rootConcertMidiNumber ==
+                    target.concertMidiNumber,
+                label: Text(
+                  target.targetLabel(
+                    displayMode: _settings.displayMode,
+                    referencePitchA4: _settings.referencePitchA4,
+                    preferFlats: _preferFlats,
+                  ),
+                ),
+                onSelected: (_) => unawaited(
+                  _setToneSettings(
+                    _toneSettings.copyWith(
+                      rootConcertMidiNumber: target.concertMidiNumber,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<SheetToneDroneMode>(
+          initialValue: _toneSettings.droneMode,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: '드론 모드',
+            border: OutlineInputBorder(),
+          ),
+          items: SheetToneDroneMode.values
+              .map(
+                (mode) => DropdownMenuItem<SheetToneDroneMode>(
+                  value: mode,
+                  child: Text(
+                    mode.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            if (value != null) {
+              unawaited(
+                _setToneSettings(_toneSettings.copyWith(droneMode: value)),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _toneLabel(),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Slider(
+          value: _toneSettings.volumePercent.toDouble(),
+          min: 0,
+          max: 100,
+          divisions: 20,
+          label: '${_toneSettings.volumePercent}%',
+          onChanged: (value) => unawaited(
+            _setToneSettings(
+              _toneSettings.copyWith(volumePercent: value.round()),
+            ),
+          ),
+        ),
+        FilledButton.icon(
+          onPressed: _toggleTone,
+          icon: Icon(_isTonePlaying ? Icons.stop : Icons.graphic_eq),
+          label: Text(_isTonePlaying ? '드론 정지' : '드론 재생'),
+        ),
+        if (_lastTonePlaybackResult?.status ==
+            SheetTonePlaybackStatus.unsupportedPlatform)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '이 기기에서는 기준음 재생 채널을 사용할 수 없습니다.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          )
+        else if (_lastTonePlaybackResult?.status ==
+            SheetTonePlaybackStatus.failed)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _lastTonePlaybackResult!.message.isEmpty
+                  ? '기준음 재생을 시작하지 못했습니다.'
+                  : _lastTonePlaybackResult!.message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+        const SizedBox(height: 24),
+        Text(
+          'A4 기준음 ${_settings.referencePitchA4} Hz',
+          style: theme.textTheme.labelLarge,
+        ),
+        Slider(
+          value: _settings.referencePitchA4.toDouble(),
+          min: 415,
+          max: 466,
+          divisions: 51,
+          label: '${_settings.referencePitchA4} Hz',
+          onChanged: (value) => _setReferencePitch(value.round()),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton.filledTonal(
+              tooltip: 'A4 낮추기',
+              onPressed: () =>
+                  _setReferencePitch(_settings.referencePitchA4 - 1),
+              icon: const Icon(Icons.remove),
+            ),
+            const SizedBox(width: 16),
+            IconButton.filledTonal(
+              tooltip: 'A4 올리기',
+              onPressed: () =>
+                  _setReferencePitch(_settings.referencePitchA4 + 1),
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final quickPitch in <int>[440, 441, 442])
+              ChoiceChip(
+                selected: _settings.referencePitchA4 == quickPitch,
+                label: Text('$quickPitch Hz'),
+                onSelected: (_) => unawaited(
+                  _setReferencePitch(quickPitch, calibrationSource: 'quick'),
+                ),
+              ),
+          ],
+        ),
+        if (_settings.calibrationHistory.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '최근 기준음 ${_settings.calibrationHistory.take(3).map((event) => '${event.referencePitchA4} Hz').join(' · ')}',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        if (!_state.isListening) ...[
+          Text(
+            '테스트 주파수 ${_demoFrequency.toStringAsFixed(2)} Hz',
+            style: theme.textTheme.labelLarge,
+          ),
+          Slider(
+            value: _demoFrequency,
+            min: _settings.detectionProfile.minFrequency,
+            max: _settings.detectionProfile.maxFrequency,
+            divisions: 120,
+            label: '${_demoFrequency.toStringAsFixed(2)} Hz',
+            onChanged: _setDemoFrequency,
+          ),
+        ],
+      ],
     );
   }
 
@@ -15232,131 +15189,115 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
         ? '대기'
         : _formatShortDate(_lastBeatAt!);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(message: '박자와 click 소리를 연습에 맞게 조절합니다.'),
+        DdiroriAdaptiveActions(
           children: [
-            DdiroriPageHeader(
-              title: '메트로놈',
-              subtitle: '박자와 click 소리를 연습에 맞게 조절합니다.',
-              leading: const Icon(Icons.speed),
-              actions: [
-                DdiroriButton(
-                  label: _isRunning ? '정지' : '시작',
-                  icon: _isRunning ? Icons.stop : Icons.play_arrow,
-                  onPressed: _toggleRunning,
-                ),
-              ],
-            ),
-            SizedBox(height: gap * 3),
-            Center(
-              child: Text(
-                '${_settings.bpm}',
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            Center(
-              child: Text(
-                'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar}',
-                style: theme.textTheme.labelLarge,
-              ),
-            ),
-            SizedBox(height: gap * 2),
-            Slider(
-              value: _settings.bpm.toDouble(),
-              min: 40,
-              max: 240,
-              divisions: 200,
-              label: '${_settings.bpm} BPM',
-              onChanged: (value) => _setBpm(value.round()),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                DdiroriIconButton(
-                  label: 'BPM 낮추기',
-                  onPressed: () => _setBpm(_settings.bpm - 1),
-                  icon: Icons.remove,
-                ),
-                SizedBox(width: gap * 2),
-                DdiroriIconButton(
-                  label: 'BPM 올리기',
-                  onPressed: () => _setBpm(_settings.bpm + 1),
-                  icon: Icons.add,
-                ),
-              ],
-            ),
-            SizedBox(height: gap * 2),
-            Center(
-              child: DdiroriChoices<SheetMetronomeMeter>(
-                options: {
-                  for (final meter in SheetMetronomeMeter.values)
-                    meter: meter.label,
-                },
-                selected: {_settings.meter},
-                onChanged: (meters) {
-                  if (meters.isNotEmpty) {
-                    unawaited(_setMeter(meters.first));
-                  }
-                },
-              ),
-            ),
-            SizedBox(height: gap * 3),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List<Widget>.generate(_settings.meter.beatsPerBar, (
-                index,
-              ) {
-                final isCurrent = index == _beat.beatIndex;
-                final isAccent = index == 0;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  width: isCurrent ? 30 : 22,
-                  height: isCurrent ? 30 : 22,
-                  margin: const EdgeInsets.symmetric(horizontal: 5),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isCurrent
-                        ? (isAccent
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.tertiary)
-                        : style['surfaceMuted'],
-                    border: Border.all(
-                      color: isAccent
-                          ? theme.colorScheme.primary
-                          : style['border'],
-                      width: isAccent ? 2 : 1,
-                    ),
-                  ),
-                );
-              }),
-            ),
-            SizedBox(height: gap * 2),
-            Center(
-              child: Text(
-                _beat.isAccent ? '강박 · $beatTime' : '보통박 · $beatTime',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: style['muted'],
-                ),
-              ),
-            ),
-            SizedBox(height: gap),
-            DdiroriSettingsRow(
-              title: 'tick 소리',
-              description: '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
-              control: Switch(
-                value: _settings.soundEnabled,
-                onChanged: _setSoundEnabled,
-              ),
+            DdiroriButton(
+              label: _isRunning ? '정지' : '시작',
+              icon: _isRunning ? Icons.stop : Icons.play_arrow,
+              onPressed: _toggleRunning,
             ),
           ],
         ),
-      ),
+        Center(
+          child: Text(
+            '${_settings.bpm}',
+            style: theme.textTheme.displayMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        Center(
+          child: Text(
+            'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar}',
+            style: theme.textTheme.labelLarge,
+          ),
+        ),
+        SizedBox(height: gap * 2),
+        Slider(
+          value: _settings.bpm.toDouble(),
+          min: 40,
+          max: 240,
+          divisions: 200,
+          label: '${_settings.bpm} BPM',
+          onChanged: (value) => _setBpm(value.round()),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            DdiroriIconButton(
+              label: 'BPM 낮추기',
+              onPressed: () => _setBpm(_settings.bpm - 1),
+              icon: Icons.remove,
+            ),
+            SizedBox(width: gap * 2),
+            DdiroriIconButton(
+              label: 'BPM 올리기',
+              onPressed: () => _setBpm(_settings.bpm + 1),
+              icon: Icons.add,
+            ),
+          ],
+        ),
+        SizedBox(height: gap * 2),
+        Center(
+          child: DdiroriChoices<SheetMetronomeMeter>(
+            options: {
+              for (final meter in SheetMetronomeMeter.values)
+                meter: meter.label,
+            },
+            selected: {_settings.meter},
+            onChanged: (meters) {
+              if (meters.isNotEmpty) {
+                unawaited(_setMeter(meters.first));
+              }
+            },
+          ),
+        ),
+        SizedBox(height: gap * 3),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List<Widget>.generate(_settings.meter.beatsPerBar, (index) {
+            final isCurrent = index == _beat.beatIndex;
+            final isAccent = index == 0;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: isCurrent ? 30 : 22,
+              height: isCurrent ? 30 : 22,
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isCurrent
+                    ? (isAccent
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.tertiary)
+                    : style['surfaceMuted'],
+                border: Border.all(
+                  color: isAccent ? theme.colorScheme.primary : style['border'],
+                  width: isAccent ? 2 : 1,
+                ),
+              ),
+            );
+          }),
+        ),
+        SizedBox(height: gap * 2),
+        Center(
+          child: Text(
+            _beat.isAccent ? '강박 · $beatTime' : '보통박 · $beatTime',
+            style: theme.textTheme.labelMedium?.copyWith(color: style['muted']),
+          ),
+        ),
+        SizedBox(height: gap),
+        DdiroriSettingsRow(
+          title: 'tick 소리',
+          description: '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
+          control: Switch(
+            value: _settings.soundEnabled,
+            onChanged: _setSoundEnabled,
+          ),
+        ),
+      ],
     );
   }
 }
