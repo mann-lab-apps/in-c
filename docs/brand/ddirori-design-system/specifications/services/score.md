@@ -114,4 +114,5 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 자동 스크롤은 공통 `showDdiroriSheet`의 단일 스크롤과 `DdiroriSection`, `DdiroriSettingsRow`, `DdiroriIconButton`, `DdiroriChoices`, `DdiroriButton`으로 설정과 실행을 구분한다. 기존 페이지 범위·쪽별 속도·cue·pause·반복 저장과 스크롤 엔진은 Score가 소유한다.
 - 메트로놈·튜너도 공통 sheet의 단일 제목·스크롤을 사용한다. 튜너의 마이크 시작/정지는 이름 있는 버튼으로 표시하며, native 입력/출력·음정 meter·연습 데이터는 기존 Score adapter가 소유한다.
 - 악보 메모는 공통 Input·Banner·StatusBadge·AdaptiveActions·Button을 조합하고 실제 `updateStructuredNotes` 저장 완료 후에만 닫힌다. 저장 중 draft는 read-only이며 중복 요청·취소·Back·barrier/drag 닫기를 차단한다. 실패 시 원본과 draft를 유지하고 다시 시도하며 성공 안내는 완료 후에만 표시한다. 현재 공통 sheet API에 dismissal 제어가 없으므로 이 저장 폼의 native modal host는 앱이 소유한다.
+- 메모·자르기는 앱의 `showScoreViewerDraftSheet`/`ScoreViewerDraftForm` adapter를 재사용한다. 여백은 공통 SettingsRow와 native Slider로 방향·퍼센트·제어를 표시하고 저장/실패/retry를 소유한다. 실제 crop 저장은 기존 page/global 또는 per-instance controller 경로를 유지하며 성공 후에만 viewer fit을 갱신한다. 태블릿의 모든 도구에도 묶인 보기 옵션 진입점을 제공하고 기존 개별 도구는 유지한다.
 - [실제 PDF 검증과 적용 기록](../../product-design-r3/returns/score-viewer-tools-20261030.md).

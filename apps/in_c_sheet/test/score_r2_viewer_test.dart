@@ -61,6 +61,28 @@ Finder notesField() => find.descendant(
   matching: find.byType(TextField),
 );
 
+Future<void> openCrop(WidgetTester t) async {
+  await command(t, '모든 도구');
+  if (compactViewerOptionsButton().evaluate().isNotEmpty) {
+    await t.tap(compactViewerOptionsButton());
+    await t.pumpAndSettle();
+    final crop = find.byWidgetPredicate(
+      (w) => w is DdiroriItem && w.title == '자르기 맞춤',
+    );
+    await t.ensureVisible(crop);
+    await t.tap(crop);
+  } else {
+    await t.ensureVisible(find.byTooltip('페이지 정리'));
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('페이지 정리'));
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.text('자르기 맞춤'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('자르기 맞춤'));
+  }
+  await t.pumpAndSettle();
+}
+
 Future<void> waitForPdf(WidgetTester tester, int pages) async {
   for (var attempt = 0; attempt < 150; attempt++) {
     await tester.runAsync(
@@ -552,6 +574,115 @@ void main() {
     expect(pdf(t).document, same(original));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('crop waits for storage and keeps its draft on failure', (
+    t,
+  ) async {
+    final store = NotesWriteStore();
+    final c = await openPdf(t, store: store, scale: 2);
+    final original = pdf(t).document;
+    final originalCrop = c.scoreById('pilot-0').pageSettings.crop;
+    await openCrop(t);
+    final slider = find.byType(Slider).first;
+    await t.ensureVisible(slider);
+    await t.tapAt(t.getCenter(slider));
+    await t.pumpAndSettle();
+    final draftTop = t.widget<Slider>(slider).value;
+    expect(draftTop, greaterThan(0));
+    expect(
+      c.scoreById('pilot-0').pageSettings.crop.toJson(),
+      originalCrop.toJson(),
+    );
+    final gate = Completer<void>();
+    store.gate = gate;
+    store.failWrites = true;
+    store.writes = 0;
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    final save = find.byWidgetPredicate(
+      (w) => w is DdiroriButton && w.label == '저장',
+    );
+    await t.ensureVisible(save);
+    await t.tap(save);
+    await t.pumpAndSettle();
+    expect(find.text('자르기 맞춤'), findsOneWidget);
+    expect(store.writes, 1);
+    expect(t.widget<Slider>(slider).onChanged, isNull);
+    await t.ensureVisible(save);
+    await t.tap(save);
+    await t.pump();
+    expect(store.writes, 1);
+    final navigator = t.state<NavigatorState>(find.byType(Navigator).first);
+    await navigator.maybePop();
+    await t.pumpAndSettle();
+    expect(find.text('자르기 맞춤'), findsOneWidget);
+    gate.complete();
+    await t.pumpAndSettle();
+    expect(
+      find.text('자르기 설정을 저장하지 못했습니다. 값을 유지했습니다. 다시 시도해 주세요.'),
+      findsOneWidget,
+    );
+    expect(t.widget<Slider>(slider).value, draftTop);
+    expect(
+      c.scoreById('pilot-0').pageSettings.crop.toJson(),
+      originalCrop.toJson(),
+    );
+    expect(
+      (await store.loadScores()).first.pageSettings.crop.toJson(),
+      originalCrop.toJson(),
+    );
+    store.failWrites = false;
+    await command(t, '다시 시도');
+    expect(store.writes, 2);
+    expect(c.scoreById('pilot-0').pageSettings.crop.top, draftTop);
+    expect(pdf(t).document, same(original));
+    expect(t.takeException(), isNull);
+  });
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('crop cancel and save preserve PDF at $viewport', (t) async {
+      final c = await openPdf(
+        t,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+        scale: 2,
+      );
+      final document = pdf(t).document;
+      final source = File(c.scoreById('pilot-0').filePath);
+      final bytes = await t.runAsync(source.readAsBytes);
+      final initialCrop = c.scoreById('pilot-0').pageSettings.crop.toJson();
+      await openCrop(t);
+      expect(
+        find.byType(ScoreViewerDraftForm<SheetCropSettings>),
+        findsOneWidget,
+      );
+      expect(find.text('위 · 0%'), findsOneWidget);
+      final slider = find.byType(Slider).first;
+      await t.ensureVisible(slider);
+      await t.tapAt(t.getCenter(slider));
+      await t.pumpAndSettle();
+      expect(t.widget<Slider>(slider).value, greaterThan(0));
+      await command(t, '취소');
+      expect(c.scoreById('pilot-0').pageSettings.crop.toJson(), initialCrop);
+      await openCrop(t);
+      expect(t.widget<Slider>(slider).value, 0);
+      await t.ensureVisible(slider);
+      await t.tapAt(t.getCenter(slider));
+      await t.pumpAndSettle();
+      final draftTop = t.widget<Slider>(slider).value;
+      await command(t, '저장');
+      expect(c.scoreById('pilot-0').pageSettings.crop.top, draftTop);
+      expect(
+        (await c.store.loadScores()).first.pageSettings.crop.top,
+        draftTop,
+      );
+      expect(pdf(t).document, same(document));
+      expect(await t.runAsync(source.readAsBytes), orderedEquals(bytes!));
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets('notes preserve draft on storage failure and retry once', (
     t,

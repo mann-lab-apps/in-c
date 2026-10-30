@@ -5899,13 +5899,9 @@ setlist=$setlistLabel
   }
 
   Future<void> _showScoreNotes() async {
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await showScoreViewerDraftSheet<bool>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (context) => _ScoreNotesSheet(
+      child: _ScoreNotesSheet(
         initialNotes: score.structuredNotes,
         onSave: (notes) =>
             widget.controller.updateStructuredNotes(score, notes),
@@ -7541,25 +7537,24 @@ setlist=$setlistLabel
             orderIndex: orderIndex,
           );
 
-    final selected = await showModalBottomSheet<SheetCropSettings>(
+    final selected = await showScoreViewerDraftSheet<SheetCropSettings>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _CropSettingsSheet(initialCrop: initialCrop),
+      child: _CropSettingsSheet(
+        initialCrop: initialCrop,
+        onSave: (crop) => orderIndex == null
+            ? widget.controller.updatePageCrop(currentScore, crop)
+            : widget.controller.updatePageInstanceCrop(
+                currentScore,
+                orderIndex: orderIndex,
+                pageCount: _pdfController.pageCount,
+                crop: crop,
+              ),
+      ),
     );
-    if (selected == null) {
+    if (!mounted || selected == null) {
       return;
     }
 
-    if (orderIndex == null) {
-      await widget.controller.updatePageCrop(currentScore, selected);
-    } else {
-      await widget.controller.updatePageInstanceCrop(
-        currentScore,
-        orderIndex: orderIndex,
-        pageCount: _pdfController.pageCount,
-        crop: selected,
-      );
-    }
     _resetCropFitPosition();
     if (selected.hasCrop) {
       _scheduleCropToFit(pageNumber, orderIndex: orderIndex, force: true);
@@ -8395,6 +8390,16 @@ setlist=$setlistLabel
       title: '악보 도구',
       child: DdiroriStack(
         children: [
+          if (MediaQuery.sizeOf(context).width >= 720 && !_isPerformanceMode)
+            DdiroriButton(
+              label: '보기 옵션',
+              icon: Icons.tune,
+              kind: DdiroriButtonKind.quiet,
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (current()) _showViewerOptions();
+              },
+            ),
           for (final action in actions)
             if (action is IconButton)
               DdiroriButton(
@@ -9390,7 +9395,7 @@ setlist=$setlistLabel
     }
   }
 
-  Future<void> _showCompactViewerOptions() async {
+  Future<void> _showViewerOptions() async {
     if (!mounted || _isPerformanceMode) {
       return;
     }
@@ -10375,7 +10380,7 @@ setlist=$setlistLabel
         DdiroriIconButton(
           label: '보기 옵션',
           icon: Icons.tune,
-          onPressed: _showCompactViewerOptions,
+          onPressed: _showViewerOptions,
         ),
       Center(
         child: Padding(
@@ -11223,93 +11228,57 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final style = DdiroriStyle.of(context);
-    return PopScope<bool>(
-      canPop: !_saving,
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DdiroriPageHeader(
-                  title: '악보 메모',
-                  subtitle: '공연과 연습에 필요한 메모를 이 악보에만 저장합니다.',
-                  leading: const Icon(Icons.sticky_note_2_outlined),
-                ),
-                if (_saving) const DdiroriStatusBadge(label: '저장 중'),
-                if (_error != null)
-                  DdiroriBanner(
-                    message: _error!,
-                    kind: DdiroriNoticeKind.error,
-                  ),
-                SizedBox(height: style.gap),
-                DdiroriInput(
-                  value: _performance,
-                  readOnly: _saving,
-                  onChanged: (value) => setState(() => _performance = value),
-                  label: '공연 메모',
-                  help: '무대에서 바로 확인할 짧은 안내를 적어두세요.',
-                  maxLines: 3,
-                ),
-                SizedBox(height: style.gap),
-                DdiroriInput(
-                  value: _rehearsal,
-                  readOnly: _saving,
-                  onChanged: (value) => setState(() => _rehearsal = value),
-                  label: '리허설 메모',
-                  maxLines: 3,
-                ),
-                SizedBox(height: style.gap),
-                DdiroriInput(
-                  value: _tuning,
-                  readOnly: _saving,
-                  onChanged: (value) => setState(() => _tuning = value),
-                  label: '조율 메모',
-                  maxLines: 3,
-                ),
-                SizedBox(height: style.gap),
-                DdiroriInput(
-                  value: _instrumentation,
-                  readOnly: _saving,
-                  onChanged: (value) =>
-                      setState(() => _instrumentation = value),
-                  label: '악기/편성 메모',
-                  maxLines: 3,
-                ),
-                SizedBox(height: style.gap * 1.5),
-                DdiroriAdaptiveActions(
-                  label: '악보 메모 작업',
-                  children: [
-                    DdiroriButton(
-                      label: '취소',
-                      icon: Icons.close,
-                      kind: DdiroriButtonKind.secondary,
-                      onPressed: _saving
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                    ),
-                    DdiroriButton(
-                      label: _error == null ? '저장' : '다시 시도',
-                      icon: Icons.check,
-                      busy: _saving,
-                      onPressed: _saving ? null : _save,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+  Widget build(BuildContext context) => ScoreViewerDraftForm<bool>(
+    title: '악보 메모',
+    description: '공연과 연습에 필요한 메모를 이 악보에만 저장합니다.',
+    saving: _saving,
+    error: _error,
+    actions: [
+      DdiroriButton(
+        label: '취소',
+        icon: Icons.close,
+        kind: DdiroriButtonKind.secondary,
+        onPressed: _saving ? null : () => Navigator.of(context).pop(),
       ),
-    );
-  }
+      DdiroriButton(
+        label: _error == null ? '저장' : '다시 시도',
+        icon: Icons.check,
+        busy: _saving,
+        onPressed: _saving ? null : _save,
+      ),
+    ],
+    children: [
+      DdiroriInput(
+        value: _performance,
+        readOnly: _saving,
+        onChanged: (value) => setState(() => _performance = value),
+        label: '공연 메모',
+        help: '무대에서 바로 확인할 짧은 안내를 적어두세요.',
+        maxLines: 3,
+      ),
+      DdiroriInput(
+        value: _rehearsal,
+        readOnly: _saving,
+        onChanged: (value) => setState(() => _rehearsal = value),
+        label: '리허설 메모',
+        maxLines: 3,
+      ),
+      DdiroriInput(
+        value: _tuning,
+        readOnly: _saving,
+        onChanged: (value) => setState(() => _tuning = value),
+        label: '조율 메모',
+        maxLines: 3,
+      ),
+      DdiroriInput(
+        value: _instrumentation,
+        readOnly: _saving,
+        onChanged: (value) => setState(() => _instrumentation = value),
+        label: '악기/편성 메모',
+        maxLines: 3,
+      ),
+    ],
+  );
 }
 
 class _PerformanceSettingsSheet extends StatefulWidget {
@@ -11697,9 +11666,10 @@ class _PageMetadataBadge extends StatelessWidget {
 }
 
 class _CropSettingsSheet extends StatefulWidget {
-  const _CropSettingsSheet({required this.initialCrop});
+  const _CropSettingsSheet({required this.initialCrop, required this.onSave});
 
   final SheetCropSettings initialCrop;
+  final Future<void> Function(SheetCropSettings crop) onSave;
 
   @override
   State<_CropSettingsSheet> createState() => _CropSettingsSheetState();
@@ -11707,73 +11677,88 @@ class _CropSettingsSheet extends StatefulWidget {
 
 class _CropSettingsSheetState extends State<_CropSettingsSheet> {
   late SheetCropSettings _crop = widget.initialCrop;
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final crop = _crop.normalized();
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(crop);
+      if (mounted) Navigator.of(context).pop(crop);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = '자르기 설정을 저장하지 못했습니다. 값을 유지했습니다. 다시 시도해 주세요.';
+        });
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: EdgeInsets.fromLTRB(
-          DdiroriTokens.layout['rowPadding']!,
-          DdiroriTokens.spacing['sm']!,
-          DdiroriTokens.layout['rowPadding']!,
-          DdiroriTokens.spacing['xl']!,
-        ),
-        children: [
-          Text('자르기 맞춤', style: ddiroriTextStyle(DdiroriTextRole.sectionTitle)),
-          SizedBox(height: DdiroriTokens.spacing['xs']!),
-          Text(
-            '원본 PDF는 그대로 두고, 뷰어에서 선택한 영역을 화면에 맞춥니다.',
-            style: ddiroriTextStyle(DdiroriTextRole.description),
-          ),
-          SizedBox(height: DdiroriTokens.spacing['md']!),
-          _CropSlider(
-            label: '위',
-            value: _crop.top,
-            onChanged: (value) =>
-                setState(() => _crop = _crop.copyWith(top: value)),
-          ),
-          _CropSlider(
-            label: '아래',
-            value: _crop.bottom,
-            onChanged: (value) =>
-                setState(() => _crop = _crop.copyWith(bottom: value)),
-          ),
-          _CropSlider(
-            label: '왼쪽',
-            value: _crop.left,
-            onChanged: (value) =>
-                setState(() => _crop = _crop.copyWith(left: value)),
-          ),
-          _CropSlider(
-            label: '오른쪽',
-            value: _crop.right,
-            onChanged: (value) =>
-                setState(() => _crop = _crop.copyWith(right: value)),
-          ),
-          SizedBox(height: DdiroriTokens.spacing['sm']!),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: DdiroriTokens.spacing['sm']!,
-            runSpacing: DdiroriTokens.spacing['sm']!,
-            children: [
-              DdiroriButton(
-                label: '초기화',
-                icon: Icons.restart_alt,
-                kind: DdiroriButtonKind.secondary,
-                onPressed: () => setState(() => _crop = SheetCropSettings.none),
-              ),
-              DdiroriButton(
-                label: '저장',
-                icon: Icons.check,
-                onPressed: () => Navigator.of(context).pop(_crop.normalized()),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => ScoreViewerDraftForm<SheetCropSettings>(
+    title: '자르기 맞춤',
+    description: '원본 PDF는 그대로 두고, 뷰어에서 선택한 영역을 화면에 맞춥니다.',
+    saving: _saving,
+    error: _error,
+    actions: [
+      DdiroriButton(
+        label: '취소',
+        icon: Icons.close,
+        kind: DdiroriButtonKind.quiet,
+        onPressed: _saving ? null : () => Navigator.of(context).pop(),
       ),
-    );
-  }
+      DdiroriButton(
+        label: '초기화',
+        icon: Icons.restart_alt,
+        kind: DdiroriButtonKind.secondary,
+        onPressed: _saving
+            ? null
+            : () => setState(() => _crop = SheetCropSettings.none),
+      ),
+      DdiroriButton(
+        label: _error == null ? '저장' : '다시 시도',
+        icon: Icons.check,
+        busy: _saving,
+        onPressed: _saving ? null : _save,
+      ),
+    ],
+    children: [
+      _CropSlider(
+        label: '위',
+        value: _crop.top,
+        onChanged: _saving
+            ? null
+            : (v) => setState(() => _crop = _crop.copyWith(top: v)),
+      ),
+      _CropSlider(
+        label: '아래',
+        value: _crop.bottom,
+        onChanged: _saving
+            ? null
+            : (v) => setState(() => _crop = _crop.copyWith(bottom: v)),
+      ),
+      _CropSlider(
+        label: '왼쪽',
+        value: _crop.left,
+        onChanged: _saving
+            ? null
+            : (v) => setState(() => _crop = _crop.copyWith(left: v)),
+      ),
+      _CropSlider(
+        label: '오른쪽',
+        value: _crop.right,
+        onChanged: _saving
+            ? null
+            : (v) => setState(() => _crop = _crop.copyWith(right: v)),
+      ),
+    ],
+  );
 }
 
 class _CropSlider extends StatelessWidget {
@@ -11785,30 +11770,24 @@ class _CropSlider extends StatelessWidget {
 
   final String label;
   final double value;
-  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(width: 44, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value,
-            min: 0,
-            max: 0.35,
-            divisions: 35,
-            label: '${(value * 100).round()}%',
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 44,
-          child: Text('${(value * 100).round()}%', textAlign: TextAlign.end),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => DdiroriSettingsRow(
+    title: '$label · ${(value * 100).round()}%',
+    control: Semantics(
+      label: '$label 여백',
+      child: Slider(
+        value: value,
+        min: 0,
+        max: 0.35,
+        divisions: 35,
+        label: '${(value * 100).round()}%',
+        semanticFormatterCallback: (v) => '${(v * 100).round()}%',
+        onChanged: onChanged,
+      ),
+    ),
+  );
 }
 
 class _QuickJumpButtons extends StatelessWidget {

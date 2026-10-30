@@ -3,6 +3,66 @@ import 'dart:async';
 import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/material.dart';
 
+/// Score's saved drafts need explicit cancellation and must survive slow writes.
+/// Persistence and the result returned by Navigator remain with the caller.
+Future<T?> showScoreViewerDraftSheet<T>({
+  required BuildContext context,
+  required Widget child,
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  isDismissible: false,
+  enableDrag: false,
+  showDragHandle: false,
+  builder: (_) => child,
+);
+
+class ScoreViewerDraftForm<T> extends StatelessWidget {
+  const ScoreViewerDraftForm({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.saving,
+    required this.children,
+    required this.actions,
+    this.error,
+  });
+
+  final String title, description;
+  final bool saving;
+  final String? error;
+  final List<Widget> children, actions;
+
+  @override
+  Widget build(BuildContext context) => PopScope<T>(
+    canPop: !saving,
+    child: SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          DdiroriTokens.layout['rowPadding']!,
+          0,
+          DdiroriTokens.layout['rowPadding']!,
+          MediaQuery.viewInsetsOf(context).bottom +
+              DdiroriTokens.spacing['xl']!,
+        ),
+        child: SingleChildScrollView(
+          child: DdiroriStack(
+            children: [
+              DdiroriPageHeader(title: title, subtitle: description),
+              if (saving) const DdiroriStatusBadge(label: '저장 중'),
+              if (error != null)
+                DdiroriBanner(message: error!, kind: DdiroriNoticeKind.error),
+              ...children,
+              DdiroriAdaptiveActions(label: '$title 작업', children: actions),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Only presentation and intents live here. Document and performance policy stay
 /// with SheetViewerScreen, including which commands are currently available.
 class ScoreViewerChrome extends StatelessWidget {
