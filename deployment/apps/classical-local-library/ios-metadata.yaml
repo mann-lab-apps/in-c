@@ -146,7 +146,7 @@ review:
 testflight:
   reviewed: false
   feedback_email:
-  build_id:
+  build_id: a75f2996-e8e6-4516-a990-1a6b05b3216e
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
     보관함의 재생목록에서 목록을 만든 뒤 검색으로 곡 두 개를 함께 선택해 추가하고, 편집에서 드래그로 순서를 바꿔 재생해 주세요. 곡·앨범·검색 결과의 더보기와 현재 재생에서도 재생목록에 담을 수 있습니다. 목록 삭제나 곡 제거로 원본 파일이 삭제되어서는 안 됩니다. 앱 재시작 후에도 목록과 순서가 유지되고 누락 곡은 목록에 남지만 재생에서는 건너뛰는지 확인해 주세요. 폴더별 보기는 도구 메뉴에 있습니다.
@@ -578,7 +578,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
-       2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드를 선택. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play는 읽기 전용 API로 확인. 서명된 내부 테스트 전용 빌드의 업로드·처리·테스터 배포 결과는 별도 검증 대상.
+       2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드를 선택. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 수출 규정 답변이 없어 내부 테스트 상태 MISSING_EXPORT_COMPLIANCE이며 그룹 연결은 거부됨. 테스터 설치와 실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.
        2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.
        2026-10-26 보관함 UI 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영·서명·후보 빌드 선택 미완료.
