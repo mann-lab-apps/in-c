@@ -7575,53 +7575,57 @@ setlist=$setlistLabel
 
   Future<void> _showCropPresets() async {
     final currentScore = score;
-    final selected = await showModalBottomSheet<_CropPresetAction>(
+    final selected = await showDdiroriSheet<_CropPresetAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text('현재 자르기 값을 preset으로 저장'),
-              subtitle: Text(
-                currentScore.pageSettings.crop.hasCrop
-                    ? '현재 crop 사용'
-                    : 'crop 없음',
-              ),
-              onTap: () => Navigator.of(
-                context,
-              ).pop(const _CropPresetAction(type: _CropPresetActionType.add)),
-            ),
-            for (final preset in currentScore.pageSettings.cropPresets)
-              ListTile(
-                leading: const Icon(Icons.crop_outlined),
-                title: Text(preset.label),
-                subtitle: Text(
-                  '${_cropPresetScopeLabel(preset.scope)} · '
-                  '${_cropPresetSummary(preset.crop)}',
-                ),
-                onTap: () => Navigator.of(context).pop(
-                  _CropPresetAction(
-                    type: _CropPresetActionType.apply,
-                    preset: preset,
+      title: '자르기 프리셋',
+      child: DdiroriStack(
+        children: [
+          const DdiroriBanner(
+            message: '자주 쓰는 여백 설정을 저장하고 다시 적용할 수 있습니다. 원본 PDF는 변경하지 않습니다.',
+          ),
+          DdiroriItem(
+            title: '현재 자르기를 프리셋으로 저장',
+            subtitle: currentScore.pageSettings.crop.hasCrop
+                ? '현재 여백 사용'
+                : '여백 없음',
+            leading: const Icon(Icons.add),
+            flat: true,
+            onTap: () => Navigator.of(context)
+                .pop(const _CropPresetAction(type: _CropPresetActionType.add)),
+          ),
+          if (currentScore.pageSettings.cropPresets.isEmpty)
+            const DdiroriBanner(message: '저장한 자르기 프리셋이 없습니다.'),
+          for (final preset in currentScore.pageSettings.cropPresets)
+            DdiroriItem(
+              title: preset.label,
+              subtitle:
+                  '${_cropPresetScopeLabel(preset.scope)} · ${_cropPresetSummary(preset.crop)}',
+              leading: const Icon(Icons.crop_outlined),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '적용',
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () => Navigator.of(context).pop(
+                    _CropPresetAction(
+                      type: _CropPresetActionType.apply,
+                      preset: preset,
+                    ),
                   ),
                 ),
-                trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+                DdiroriButton(
+                  label: '삭제',
+                  kind: DdiroriButtonKind.quiet,
                   onPressed: () => Navigator.of(context).pop(
                     _CropPresetAction(
                       type: _CropPresetActionType.remove,
                       preset: preset,
                     ),
                   ),
-                  icon: const Icon(Icons.delete_outline),
                 ),
-              ),
-          ],
-        ),
+              ],
+            ),
+        ],
       ),
     );
     if (selected?.type == _CropPresetActionType.apply &&
@@ -7701,76 +7705,59 @@ setlist=$setlistLabel
     required BuildContext context,
     required String initialLabel,
     required String initialScope,
-  }) async {
-    final labelController = TextEditingController(text: initialLabel);
+  }) {
+    var label = initialLabel;
     var selectedScope = initialScope;
-    try {
-      return await showDialog<({String label, String scope})>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Crop preset 저장'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: labelController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: '이름'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedScope,
-                  decoration: const InputDecoration(labelText: '적용 범위'),
-                  items:
-                      const [
-                            SheetCropPreset.allPagesScope,
-                            SheetCropPreset.oddEvenScope,
-                            SheetCropPreset.coverExcludedScope,
-                          ]
-                          .map(
-                            (scope) => DropdownMenuItem<String>(
-                              value: scope,
-                              child: Text(_cropPresetScopeLabel(scope)),
-                            ),
-                          )
-                          .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() {
-                        selectedScope = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '기본 저장은 앱 표시 metadata이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('취소'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final label = labelController.text.trim();
-                  Navigator.of(context).pop((
-                    label: label.isEmpty ? 'Crop preset' : label,
-                    scope: selectedScope,
-                  ));
-                },
-                child: const Text('저장'),
-              ),
-            ],
-          ),
+    return showDdiroriDialog<({String label, String scope})>(
+      context: context,
+      title: '자르기 프리셋 저장',
+      actions: [
+        DdiroriButton(
+          label: '취소',
+          kind: DdiroriButtonKind.quiet,
+          onPressed: () => Navigator.of(context).pop(),
         ),
-      );
-    } finally {
-      labelController.dispose();
-    }
+        DdiroriButton(
+          label: '저장',
+          onPressed: () => Navigator.of(context).pop((
+            label: label.trim().isEmpty ? 'Crop preset' : label.trim(),
+            scope: selectedScope,
+          )),
+        ),
+      ],
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => DdiroriStack(
+          children: [
+            DdiroriInput(
+              label: '이름',
+              value: label,
+              onChanged: (value) => setDialogState(() => label = value),
+            ),
+            Text('적용 범위', style: ddiroriTextStyle(DdiroriTextRole.label)),
+            DdiroriChoices<String>(
+              options: {
+                for (final scope in const [
+                  SheetCropPreset.allPagesScope,
+                  SheetCropPreset.oddEvenScope,
+                  SheetCropPreset.coverExcludedScope,
+                ])
+                  scope: _cropPresetScopeLabel(scope),
+              },
+              selected: {selectedScope},
+              onChanged: (values) {
+                if (values.isNotEmpty) {
+                  setDialogState(() => selectedScope = values.single);
+                }
+              },
+            ),
+            const DdiroriBanner(
+              message:
+                  '원본 PDF는 변경하지 않습니다. 저장한 설정은 필요할 때 PDF 사본에 따로 적용할 수 있습니다.',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showPageTemplates() async {
@@ -7782,68 +7769,77 @@ setlist=$setlistLabel
       _showSnackBar('PDF가 준비된 뒤 페이지 템플릿을 편집할 수 있습니다.');
       return;
     }
-    final action = await showModalBottomSheet<String>(
+    final action = await showDdiroriSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('페이지 템플릿 metadata'),
-              subtitle: Text('기본 저장은 metadata이며, 필요하면 PDF 사본에 적용합니다.'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.summarize_outlined),
-              title: const Text('현재 페이지 정리 요약'),
-              subtitle: Text(_pageTemplateSummary(currentScore, pageCount)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.note_add_outlined),
-              title: const Text('현재 페이지 뒤 빈 페이지 metadata'),
-              onTap: () => Navigator.of(context).pop('blank'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('현재 숨김 상태를 preset으로 저장'),
-              onTap: () => Navigator.of(context).pop('visibility'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.filter_1_outlined),
-              title: const Text('Cover 제외 preset 저장'),
-              onTap: () => Navigator.of(context).pop('cover'),
-            ),
-            for (final preset in currentScore.pageSettings.visibilityPresets)
-              ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: Text(preset.label),
-                subtitle: Text('${preset.hiddenPages.length}쪽 숨김'),
-                onTap: () => Navigator.of(context).pop('apply:${preset.id}'),
-                trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+      title: '페이지 템플릿',
+      child: DdiroriStack(
+        children: [
+          const DdiroriBanner(
+            message: '빈 페이지 위치와 숨김 설정을 앱에 기록합니다. 원본 PDF는 변경하지 않으며 PDF 사본에 따로 적용할 수 있습니다.',
+          ),
+          DdiroriItem(
+            title: '현재 페이지 정리 요약',
+            subtitle: _pageTemplateSummary(currentScore, pageCount),
+            leading: const Icon(Icons.summarize_outlined),
+            flat: true,
+          ),
+          DdiroriItem(
+            title: '현재 페이지 뒤 빈 페이지 위치 기록',
+            subtitle: 'PDF 사본에 적용하기 전에는 원본 쪽 수를 바꾸지 않습니다.',
+            leading: const Icon(Icons.note_add_outlined),
+            flat: true,
+            onTap: () => Navigator.of(context).pop('blank'),
+          ),
+          DdiroriItem(
+            title: '현재 숨김 상태를 preset으로 저장',
+            leading: const Icon(Icons.visibility_off_outlined),
+            flat: true,
+            onTap: () => Navigator.of(context).pop('visibility'),
+          ),
+          DdiroriItem(
+            title: 'Cover 제외 preset 저장',
+            leading: const Icon(Icons.filter_1_outlined),
+            flat: true,
+            onTap: () => Navigator.of(context).pop('cover'),
+          ),
+          for (final preset in currentScore.pageSettings.visibilityPresets)
+            DdiroriItem(
+              title: preset.label,
+              subtitle: '${preset.hiddenPages.length}쪽 숨김',
+              leading: const Icon(Icons.visibility_outlined),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '적용',
+                  kind: DdiroriButtonKind.secondary,
+                  onPressed: () =>
+                      Navigator.of(context).pop('apply:${preset.id}'),
+                ),
+                DdiroriButton(
+                  label: '삭제',
+                  kind: DdiroriButtonKind.quiet,
                   onPressed: () =>
                       Navigator.of(context)
                           .pop('removeVisibility:${preset.id}'),
-                  icon: const Icon(Icons.delete_outline),
                 ),
-              ),
-            for (final insertion
-                in currentScore.pageSettings.blankPageInsertions)
-              ListTile(
-                leading: const Icon(Icons.note_outlined),
-                title: Text(insertion.label),
-                subtitle: Text('${insertion.afterPage}쪽 뒤 빈 페이지 metadata'),
-                trailing: IconButton(
-                  tooltip: '빈 페이지 metadata 삭제',
+              ],
+            ),
+          for (final insertion in currentScore.pageSettings.blankPageInsertions)
+            DdiroriItem(
+              title: insertion.label,
+              subtitle: '${insertion.afterPage}쪽 뒤에 기록한 빈 페이지 위치',
+              leading: const Icon(Icons.note_outlined),
+              flat: true,
+              actions: [
+                DdiroriButton(
+                  label: '기록 삭제',
+                  kind: DdiroriButtonKind.quiet,
                   onPressed: () =>
                       Navigator.of(context).pop('removeBlank:${insertion.id}'),
-                  icon: const Icon(Icons.delete_outline),
                 ),
-              ),
-          ],
-        ),
+              ],
+            ),
+        ],
       ),
     );
     if (action == null) {
@@ -8177,23 +8173,21 @@ setlist=$setlistLabel
     if (candidates.length == 1) {
       return candidates.single;
     }
-    return showModalBottomSheet<SheetScoreShareCandidate>(
+    return showDdiroriSheet<SheetScoreShareCandidate>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            for (final candidate in candidates)
-              ListTile(
-                leading: Icon(_shareCandidateIcon(candidate)),
-                title: Text(candidate.label),
-                subtitle: Text(candidate.fileName),
-                onTap: () => Navigator.of(context).pop(candidate),
-              ),
-          ],
-        ),
+      title: '공유할 파일 선택',
+      child: DdiroriStack(
+        children: [
+          const DdiroriBanner(message: '공유할 파일을 선택해 주세요.'),
+          for (final candidate in candidates)
+            DdiroriItem(
+              leading: Icon(_shareCandidateIcon(candidate)),
+              title: candidate.label,
+              subtitle: candidate.fileName,
+              flat: true,
+              onTap: () => Navigator.of(context).pop(candidate),
+            ),
+        ],
       ),
     );
   }
@@ -8724,28 +8718,26 @@ setlist=$setlistLabel
   Future<void> _showTextAnnotationActions(
     SheetTextAnnotation annotation,
   ) async {
-    final action = await showModalBottomSheet<_TextAnnotationAction>(
+    final action = await showDdiroriSheet<_TextAnnotationAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('텍스트 수정'),
-              subtitle: Text(annotation.text, maxLines: 2),
-              onTap: () =>
-                  Navigator.of(context).pop(_TextAnnotationAction.edit),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('텍스트 삭제'),
-              onTap: () =>
-                  Navigator.of(context).pop(_TextAnnotationAction.delete),
-            ),
-          ],
-        ),
+      title: '텍스트 주석',
+      child: DdiroriStack(
+        children: [
+          DdiroriItem(
+            leading: const Icon(Icons.edit_outlined),
+            title: '텍스트 수정',
+            subtitle: annotation.text,
+            flat: true,
+            onTap: () => Navigator.of(context).pop(_TextAnnotationAction.edit),
+          ),
+          DdiroriItem(
+            leading: const Icon(Icons.delete_outline),
+            title: '텍스트 삭제',
+            flat: true,
+            onTap: () =>
+                Navigator.of(context).pop(_TextAnnotationAction.delete),
+          ),
+        ],
       ),
     );
     if (action == null || !mounted) {
@@ -13083,9 +13075,13 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
             DdiroriChoices<int>(
               options: {for (final seconds in cueOptions) seconds: '$seconds초'},
               selected: {_settings.cueSeconds},
-              onChanged: (selection) => _setSettings(
-                _settings.copyWith(cueSeconds: selection.single),
-              ),
+              onChanged: (selection) {
+                if (selection.isNotEmpty) {
+                  _setSettings(
+                    _settings.copyWith(cueSeconds: selection.single),
+                  );
+                }
+              },
             ),
           ],
         ),

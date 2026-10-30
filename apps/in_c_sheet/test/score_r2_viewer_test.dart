@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/presentation/score_viewer_components.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -91,6 +92,28 @@ Future<void> openPagePicker(WidgetTester t) async {
   );
   await t.ensureVisible(pages);
   await t.tap(pages);
+  await t.pumpAndSettle();
+}
+
+Future<void> openViewerOption(WidgetTester t, String title) async {
+  await command(t, '모든 도구');
+  await command(t, '보기 옵션');
+  final option = find.byWidgetPredicate(
+    (w) => w is DdiroriItem && w.title == title,
+  );
+  await t.ensureVisible(option);
+  await t.pumpAndSettle();
+  await t.tap(option);
+  await t.pumpAndSettle();
+}
+
+Future<void> chooseItem(WidgetTester t, String title) async {
+  final item = find.byWidgetPredicate(
+    (w) => w is DdiroriItem && w.title == title,
+  );
+  await t.ensureVisible(item);
+  await t.pumpAndSettle();
+  await t.tap(item);
   await t.pumpAndSettle();
 }
 
@@ -1707,6 +1730,207 @@ void main() {
       expect(pdf(t).pageNumber, 88);
       expect(c.scoreById('pilot-0').lastPage, 88);
       expect(pdf(t).document, same(original));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('viewer preset and template menus preserve PDF at $viewport', (
+      t,
+    ) async {
+      final c = await openPdf(
+        t,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+        scale: 2,
+      );
+      final document = pdf(t).document;
+      await c.addCropPreset(
+        c.scoreById('pilot-0'),
+        SheetCropPreset(
+          id: 'fixture-crop',
+          label: '공연 여백',
+          scope: SheetCropPreset.allPagesScope,
+          crop: const SheetCropSettings(left: .08, top: 0, right: 0, bottom: 0),
+          alternateCrop: SheetCropSettings.none,
+          createdAt: DateTime(2026, 10, 30),
+        ),
+      );
+      await t.pumpAndSettle();
+      await openViewerOption(t, 'Crop preset');
+      expect(find.text('자르기 프리셋'), findsOneWidget);
+      await command(t, '적용');
+      expect(c.scoreById('pilot-0').pageSettings.crop.left, .08);
+      await c.updatePageCrop(c.scoreById('pilot-0'), SheetCropSettings.none);
+      await t.pumpAndSettle();
+      await openViewerOption(t, 'Crop preset');
+      await command(t, '삭제');
+      expect(c.scoreById('pilot-0').pageSettings.cropPresets, isEmpty);
+      expect(c.scoreById('pilot-0').pageSettings.crop.hasCrop, isFalse);
+
+      await openViewerOption(t, '페이지 템플릿');
+      expect(find.text('페이지 템플릿'), findsOneWidget);
+      await chooseItem(t, '현재 페이지 뒤 빈 페이지 위치 기록');
+      expect(
+        c.scoreById('pilot-0').pageSettings.blankPageInsertions,
+        hasLength(1),
+      );
+      expect(pdf(t).pageCount, 3);
+      await openViewerOption(t, '페이지 템플릿');
+      await command(t, '기록 삭제');
+      expect(c.scoreById('pilot-0').pageSettings.blankPageInsertions, isEmpty);
+      expect(pdf(t).document, same(document));
+      expect(t.takeException(), isNull);
+    });
+  }
+
+  testWidgets('crop preset dialog keeps its single scope and cancels safely', (
+    t,
+  ) async {
+    final c = await openPdf(t, scale: 2);
+    await openViewerOption(t, 'Crop preset');
+    await chooseItem(t, '현재 자르기를 프리셋으로 저장');
+    expect(find.text('자르기 프리셋 저장'), findsOneWidget);
+    final name = find.descendant(
+      of: find.byWidgetPredicate((w) => w is DdiroriInput && w.label == '이름'),
+      matching: find.byType(TextField),
+    );
+    await t.enterText(name, '취소할 여백');
+    await t.pumpAndSettle();
+    await command(t, '취소');
+    expect(c.scoreById('pilot-0').pageSettings.cropPresets, isEmpty);
+    await openViewerOption(t, 'Crop preset');
+    await chooseItem(t, '현재 자르기를 프리셋으로 저장');
+    await t.enterText(name, '연습 여백');
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.text('모든 페이지'));
+    await t.tap(find.text('모든 페이지'));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    await command(t, '저장');
+    expect(
+      c.scoreById('pilot-0').pageSettings.cropPresets.single.label,
+      '연습 여백',
+    );
+    expect(
+      c.scoreById('pilot-0').pageSettings.cropPresets.single.scope,
+      SheetCropPreset.allPagesScope,
+    );
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('reselecting the current auto scroll cue keeps it selected', (
+    t,
+  ) async {
+    final c = await openPdf(t, scale: 2);
+    await command(t, '연습');
+    await command(t, '자동 스크롤');
+    for (final seconds in [0, 3, 3]) {
+      final chip = find.ancestor(
+        of: find.text('$seconds초'),
+        matching: find.byType(FilterChip),
+      );
+      await t.ensureVisible(chip);
+      await t.pumpAndSettle();
+      await t.tap(chip);
+      await t.pumpAndSettle();
+      expect(c.scoreById('pilot-0').autoScrollSettings.cueSeconds, seconds);
+      expect(t.takeException(), isNull);
+    }
+  });
+
+  testWidgets('viewer share candidates use named rows without exposing paths', (
+    t,
+  ) async {
+    final linked = SheetLinkedFile(
+      path: File('test-fixtures/pdfs/link-annotation-score.pdf').absolute.path,
+      type: 'pdf',
+      label: '다른 판본',
+      createdAt: DateTime(2026, 10, 30),
+    );
+    final c = await openPdf(t, scale: 2, linkedFiles: [linked]);
+    final document = pdf(t).document;
+    final candidates = c.shareCandidates(c.scoreById('pilot-0'));
+    expect(candidates, hasLength(2));
+    await openViewerOption(t, 'PDF 공유');
+    expect(find.text('공유할 파일 선택'), findsOneWidget);
+    for (final candidate in candidates) {
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is DdiroriItem && w.title == candidate.label,
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(candidate.fileName), findsOneWidget);
+      expect(find.text(candidate.path), findsNothing);
+    }
+    t.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await t.pumpAndSettle();
+    expect(pdf(t).document, same(document));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets(
+    'text annotation action sheet edits and deletes the selected text',
+    (t) async {
+      final c = await openPdf(t, width: 840, height: 1200);
+      final document = pdf(t).document;
+      final annotation = SheetTextAnnotation(
+        id: 'fixture-text',
+        pageNumber: 1,
+        position: const SheetAnnotationPoint(x: .3, y: .3),
+        text: '표현을 여유롭게',
+        color: 0xff111111,
+        fontSize: 24,
+        createdAt: DateTime(2026, 10, 30),
+      );
+      await c.addTextAnnotation(c.scoreById('pilot-0'), annotation);
+      await t.pumpAndSettle();
+      await command(t, '주석');
+      await command(t, '펜 옵션');
+      await command(t, '텍스트');
+      await command(t, '닫기');
+      Future<void> openTextActions() async {
+        final rect = pdf(t).layout.pageLayouts.first;
+        final point = pdf(t).documentToGlobal(
+          Offset(rect.left + rect.width * .3, rect.top + rect.height * .3),
+        )!;
+        expect(t.getRect(find.byType(PdfViewer)).contains(point), isTrue);
+        await t.tapAt(point);
+        await t.pumpAndSettle();
+        expect(find.text('텍스트 주석'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is DdiroriItem && w.title == '텍스트 수정',
+          ),
+          findsOneWidget,
+        );
+      }
+
+      await openTextActions();
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      expect(
+        c.scoreById('pilot-0').annotationLayer.texts.single.text,
+        annotation.text,
+      );
+      await openTextActions();
+      await chooseItem(t, '텍스트 수정');
+      await t.enterText(find.byType(TextField), '호흡을 먼저');
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.widgetWithText(FilledButton, '저장'));
+      await t.tap(find.widgetWithText(FilledButton, '저장'));
+      await t.pumpAndSettle();
+      expect(
+        c.scoreById('pilot-0').annotationLayer.texts.single.text,
+        '호흡을 먼저',
+      );
+      await openTextActions();
+      await chooseItem(t, '텍스트 삭제');
+      expect(c.scoreById('pilot-0').annotationLayer.texts, isEmpty);
+      expect((await c.store.loadScores()).first.annotationLayer.texts, isEmpty);
+      expect(pdf(t).document, same(document));
       expect(t.takeException(), isNull);
     },
   );

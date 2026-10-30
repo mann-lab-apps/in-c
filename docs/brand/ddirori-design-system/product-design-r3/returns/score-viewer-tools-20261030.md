@@ -70,9 +70,18 @@ a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36  docs/brand/ddi
 f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddirori_ui/lib/src/generated/ddirori_tokens.dart
 ```
 
+## 나머지 viewer 선택 메뉴
+
+- crop preset·페이지 템플릿·viewer 공유 대상·텍스트 주석 action은 공통 Sheet/Stack/Item/Button으로 구성한다. preset 입력은 Dialog/Input/Choices이며 저장 데이터와 적용/삭제/공유/주석 처리는 기존 경로다.
+- AlertDialog 내부의 SettingsRow(LayoutBuilder)는 intrinsic 측정과 충돌해 fixture에서 실패했다. dialog scope는 공통 label+Choices로 구성해 해결했으며 공통 패키지는 변경하지 않았다.
+- Choices가 선택한 항목 재탭 시 빈 집합을 전달하는 실제 계약을 확인해 preset scope와 auto-scroll cue의 비어 있지 않아야 하는 단일 선택을 보존한다. cue 0/3/3 재선택 회귀를 추가했다.
+- acceptance: 390/840/가로 200%에서 preset 적용/삭제·빈 페이지 위치 기록/삭제와 PDF identity 보존, preset 입력 취소/저장, 공유 선택 취소·절대 경로 비노출, 실제 PDF 위 text hit-testing→메뉴 취소→수정/삭제→저장소와 문서 보존. 실제 공유 OS sheet는 호출하지 않았다.
+- focused 로그: `/private/tmp/score-option-menus-20261030.log`, `/private/tmp/score-text-actions-20261030.log`.
+- 메뉴/프리셋/cue/share 6 tests와 실제 text action 1 test PASS. 일반 악보함 공유 picker 변경은 포함하지 않았다. 최종 format·analyze·전체 595 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-option-menus-rc-final-20261030.log`); metadata check PASS (`/private/tmp/score-option-menus-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
-- 다음 후보: crop preset·페이지 템플릿·공유 대상·텍스트 주석 메뉴의 공통 계약, 본문 검색의 키보드/오류 동선.
+- 다음 후보: 본문 검색의 키보드/오류 동선, 자동 스크롤 실행/닫기/재진입 수명과 실제 상태 표시.

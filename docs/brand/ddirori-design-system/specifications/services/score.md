@@ -117,3 +117,4 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 메모·자르기는 앱의 `showScoreViewerDraftSheet`/`ScoreViewerDraftForm` adapter를 재사용한다. 여백은 공통 SettingsRow와 native Slider로 방향·퍼센트·제어를 표시하고 저장/실패/retry를 소유한다. 실제 crop 저장은 기존 page/global 또는 per-instance controller 경로를 유지하며 성공 후에만 viewer fit을 갱신한다. 태블릿의 모든 도구에도 묶인 보기 옵션 진입점을 제공하고 기존 개별 도구는 유지한다.
 - [실제 PDF 검증과 적용 기록](../../product-design-r3/returns/score-viewer-tools-20261030.md).
 - 페이지 탐색은 공통 Sheet·Section·Input·Button·Accordion을 조합한 `ScorePagePicker`다. 입력/Slider는 미리 선택, `이동`과 격자·바로 이동·표시 지점은 기존 `_goToSheetPage`를 요청한다. 범위 밖·숨김 쪽은 차단하며 grid는 lazy build와 큰 글자에 맞는 cell 높이를 사용한다. PDF 순서·숨김·crop·주석과 표시 지점 데이터는 viewer/controller가 소유하고 오래된 문서 결과는 새 문서를 이동하지 않는다.
+- 자르기 프리셋·페이지 템플릿·viewer 공유 대상·텍스트 주석 메뉴도 공통 Sheet·Stack·Item·Button으로 구성한다. 선택 결과와 기존 controller/PDF/주석 처리의 경계를 유지한다. preset dialog는 공통 Dialog·Input·Choices를 쓰고 실제 저장은 기존 controller가 수행한다. 단일 선택을 다시 눌러 빈 집합이 와도 기존 scope/cue를 유지한다. 일반 악보함 공유 picker는 이번 viewer 변경에 포함하지 않는다.

@@ -109,6 +109,8 @@ content:
         악보 메모는 실제 저장 완료 뒤에만 닫히며, 저장 중에는 편집·중복 저장·닫기를 막습니다. 저장 실패 시 입력을 유지하고 같은 화면에서 다시 시도할 수 있습니다.
         자르기 맞춤도 저장 완료 뒤에만 닫히고 실패 시 여백 값을 유지해 재시도합니다. 큰 글자에서 방향과 퍼센트가 잘리지 않도록 공통 설정 행으로 정리하고, 태블릿의 모든 도구에도 보기 옵션 진입점을 제공했습니다.
         긴 PDF 페이지 탐색에 쪽 번호 입력·슬라이더·처음/현재/끝/10쪽 이동과 표시 지점 접근을 추가했습니다. 입력과 슬라이더는 이동 전 미리보기이며 숨김 쪽은 이동을 막고, 큰 글자·가로 화면에서도 탐색할 수 있도록 개선했습니다.
+        자르기 프리셋·페이지 템플릿·공유 대상·텍스트 주석의 선택 메뉴를 공통 화면과 행동으로 정리했습니다. 프리셋 적용과 삭제를 구분하고 텍스트 수정·삭제는 기존 주석 저장 흐름을 사용합니다.
+        자동 스크롤에서 선택된 시작 큐를 다시 눌러도 선택과 저장값이 유지되도록 보완했습니다.
         북마크 목록에서 페이지 이동과 이름 변경·삭제 행동을 구분하고, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         숨긴 페이지 관리에서 다시 표시할 쪽과 이동 행동을 분리해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         페이지 순서/복제에서 앱 안의 표시 순서 변경과 원본 PDF 보존을 구분해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
@@ -177,6 +179,7 @@ testflight:
     연습 → 메트로놈을 열어 시작/정지, BPM ±, 박자 선택, tick 소리가 짧은 화면에서도 스크롤로 모두 접근되는지 확인해 주세요. 실제 click 균일성·출력 route·Bluetooth/유선 latency는 별도 Device QA로 기록해 주세요.
     연습 → 자동 스크롤을 열어 시작/일시정지/재개/정지, 페이지 범위, pause marker·반복 구간·cue point를 확인해 주세요. 390px 폭과 큰 글씨에서 긴 동작이 넘치지 않는지, 실제 스크롤 속도·cue 경계·터치/페달/VoiceOver는 별도 Device QA로 기록해 주세요.
     자동 스크롤에서 끝 페이지를 바꾸고 닫은 뒤 다시 열어 값이 유지되는지 확인해 주세요. 390/840px·가로·200% 글자에서 아래쪽 cue 설정까지 스크롤로 접근하고, 설정 창을 여닫을 때 PDF와 현재 쪽이 유지되는지 확인해 주세요.
+    자동 스크롤의 현재 시작 큐를 다시 눌러도 오류 없이 같은 선택이 남아야 합니다. 0초/3초를 선택하고 재선택해 확인해 주세요.
     연습 → 튜너를 열어 마이크 시작/정지와 프리셋·악기/표시·감지 프로필·드론 선택값이 작은 폭에서 잘리지 않는지 확인해 주세요. 실제 권한·음정 정확도·노이즈·드론 출력·Bluetooth/유선 latency는 별도 Device QA로 기록해 주세요.
     메트로놈의 소리를 끄고 시작/정지·재시작 뒤 sheet를 닫았다가 다시 열어 정지 상태와 저장된 BPM·박자가 유지되는지 확인해 주세요. 튜너는 이름 있는 마이크 버튼과 아래쪽 기준음/드론까지 스크롤 접근을 확인해 주세요.
     첫/마지막·숨김 페이지와 세트리스트 안에서 이전/다음이 실제로 가능한 경우에만 활성화되는지, 읽기·주석·연습·공연 상태 문구가 함께 보이는지 확인해 주세요.
@@ -185,6 +188,7 @@ testflight:
     PDF의 jump point·리허설 마크·북마크가 빠른 이동 도구와 overflow 메뉴에서 올바른 페이지로 이동하는지 확인해 주세요.
     자르기 맞춤에서 네 방향 값을 바꾸고 초기화/저장해 보세요. 원본 PDF는 바뀌지 않고 현재 뷰어의 여백만 갱신되어야 합니다.
     자르기 설정을 취소하면 기존 값이 남고, 저장 중에는 조정·초기화·닫기가 막혀야 합니다. 저장 실패 시 값을 유지하고 다시 시도하며, 성공 후에만 뷰어 맞춤과 완료 안내를 실행합니다. 휴대폰·태블릿 모두 모든 도구 → 보기 옵션에서 접근할 수 있습니다.
+    보기 옵션의 Crop preset과 페이지 템플릿에서 적용·삭제·빈 페이지 위치 기록을 구분해 주세요. 프리셋 이름 입력을 취소해도 오류가 없어야 합니다. PDF 공유의 파일 선택을 취소하면 공유하지 않고, 텍스트 주석은 텍스트 도구로 눌러 수정·삭제할 수 있어야 합니다.
     PDF를 삭제하거나 손상된 파일을 열어 파일 상태 안내가 보이는지 확인하고, 진단 정보를 열어 경로/오류를 확인한 뒤 다시 가져오기 또는 백업 복구 안내를 따라가 보세요.
     주석 옵션에서 펜·형광펜·지우개·스탬프, 색·굵기, layer 표시/내보내기, undo/redo와 즐겨찾기 도구가 모두 접근 가능한지 확인해 주세요.
     주석 저장 중 중복 입력/Back 차단, 실패 안내/다시 저장과 원본 PDF 보존을 확인해 주세요. 자동 PDFium 위젯 검증은 실제 iOS 기기·펜·페달·VoiceOver 또는 스토어 촬영 검수가 아닙니다.
@@ -627,6 +631,50 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: score-crop-presets
+    purpose: 자르기 프리셋 목록의 공통 안내·빈 상태·현재 설정 저장 진입을 보여준다. 실제 preset 저장/적용 품질 증명 장면이 아니다.
+    route: 라이브러리 → 자가 제작 PDF → 모든 도구 → 보기 옵션 → Crop preset
+    fixture: 자가 제작 3쪽 PDF, 저장된 crop preset 없음.
+    must_show:
+    - 자르기 프리셋 제목과 원본 PDF 보존 안내
+    - 현재 자르기를 프리셋으로 저장하는 행과 빈 상태 안내
+    exclude:
+    - 실제 저장·기기 입력·VoiceOver를 통과했다고 표시
+    - 실제 개인정보·저작권 미확인 PDF·ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: text, value: 보기 옵션}
+    - {action: scroll_to, by: text, value: Crop preset, delta: 300}
+    - {action: tap, by: text, value: Crop preset}
+    assertions:
+    - {by: text, value: 자르기 프리셋, present: true}
+    - {by: widget_type, value: DdiroriItem, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
+  - id: score-page-templates
+    purpose: 페이지 템플릿의 앱 설정 기록과 원본 PDF 보존, 이름 있는 행동을 보여준다. 실제 PDF 변형 사본 생성 증거가 아니다.
+    route: 라이브러리 → 자가 제작 PDF → 모든 도구 → 보기 옵션 → 페이지 템플릿
+    fixture: 자가 제작 3쪽 PDF, visibility preset과 blank insertion 없음.
+    must_show:
+    - 페이지 템플릿 제목과 현재 페이지 정리 요약
+    - 빈 페이지 위치 기록과 숨김 프리셋 저장 행동
+    - 원본 PDF를 바꾸지 않으며 사본에 따로 적용한다는 설명
+    exclude:
+    - 빈 페이지 기록만으로 원본 PDF 쪽 수가 늘었다고 표시
+    - 실제 사본 생성·기기 파일 공유·VoiceOver 통과 문구, ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: text, value: 보기 옵션}
+    - {action: scroll_to, by: text, value: 페이지 템플릿, delta: 300}
+    - {action: tap, by: text, value: 페이지 템플릿}
+    assertions:
+    - {by: text, value: 페이지 템플릿, present: true}
+    - {by: text, value: 현재 페이지 정리 요약, present: true}
+    - {by: widget_type, value: DdiroriItem, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-page-picker
     purpose: 실제 PDF의 페이지 탐색에서 숫자 입력·슬라이더 미리 선택과 이동 행동을 보여준다. 실제 기기 속도·페달·VoiceOver 증명 장면이 아니다.
     route: 라이브러리 → 자가 제작 PDF → 모든 도구 → 보기 옵션 → 페이지 탐색
@@ -1112,6 +1160,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-30 preset·템플릿·공유 대상·텍스트 주석 메뉴를 공통 행/행동으로 정리했다. fixture의 이름 입력·취소와 cue 재선택 검사와 별개로 실제 VoiceOver·IME·기기 파일 공유는 pending이다.
       2026-10-30 페이지 탐색의 큰 글자/가로 overflow와 범위/숨김 오류를 widget fixture로 검증한다. 실제 기기의 숫자 키보드·VoiceOver·격자 안팎 scroll 조작은 pending이다.
       2026-10-30 메모·자르기의 앱 전용 저장 폼과 가변 높이 여백 행을 적용했다. 큰 글자 widget 검사와 별개로 실제 기기의 키보드 inset·VoiceOver·원본 보존·실제 저장 실패 확인은 pending이다.
       2026-10-30 메모 저장 대기·오류·재시도와 닫기 차단을 자동 fixture로 검증한다. 후보 기기에서 실제 저장 실패·IME·VoiceOver 상태 읽기와 취소 뒤 focus 복귀는 pending이다.
@@ -1167,6 +1216,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-30 실제 PDF widget에서 preset 적용/삭제·빈 페이지 기록/삭제·공유 선택 취소·텍스트 주석 수정/삭제를 검사한다. 물리기기의 펜·VoiceOver·IME·공유 OS sheet와 PDF 사본 생성은 pending이다.
       2026-10-30 긴 PDF의 입력·slider 미리 선택·60쪽 실제 이동과 숨김/표시 지점은 자동 PDF fixture로 검사한다. 물리기기의 긴 문서 속도·zoom·crop·VoiceOver는 pending이다.
       2026-10-30 자르기 저장 지연/실패/재시도와 기존 PDF byte 보존은 자동 fixture로 검사한다. 물리 iOS의 좌표/zoom/crop 감각과 화면 전환·디스크 실패·VoiceOver는 pending이다.
       2026-10-30 메모의 비동기 저장 순서·실패 draft 복구는 widget/store double 검사와 실제 기기 저장을 구분한다. 물리 iOS의 키보드·VoiceOver·디스크 실패는 pending이다.
