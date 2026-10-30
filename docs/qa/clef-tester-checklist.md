@@ -25,6 +25,7 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
+   악보 메모도 입력 후 취소/저장해 보고, 저장 완료 뒤에만 창이 닫히고 입력 내용이 남는지 확인한다.
 8. 튜너를 열었을 때 시작 버튼 없이 음정/meter/입력 bar가 먼저 보이는지 확인하고,
    Chromatic/Target mode, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset을 전환한다.
 9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 target shortcut,

@@ -24,6 +24,43 @@ const viewerSheetViewports = <({double width, double height, bool dark})>[
   (width: 840, height: 390, dark: false),
 ];
 
+class NotesWriteStore extends SheetLibraryStore {
+  Completer<void>? gate;
+  bool failWrites = false;
+  int writes = 0;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    writes++;
+    final current = gate;
+    if (current != null) await current.future;
+    if (failWrites) throw const FileSystemException('notes fixture failure');
+    await super.saveScores(scores);
+  }
+}
+
+Future<void> openNotes(WidgetTester t) async {
+  await command(t, '모든 도구');
+  if (compactViewerOptionsButton().evaluate().isNotEmpty) {
+    await t.tap(compactViewerOptionsButton());
+    await t.pumpAndSettle();
+  } else {
+    await command(t, '악보 메모');
+    return;
+  }
+  final notes = find.byWidgetPredicate(
+    (w) => w is DdiroriItem && w.title == '악보 메모',
+  );
+  await t.ensureVisible(notes);
+  await t.tap(notes);
+  await t.pumpAndSettle();
+}
+
+Finder notesField() => find.descendant(
+  of: find.byWidgetPredicate((w) => w is DdiroriInput && w.label == '공연 메모'),
+  matching: find.byType(TextField),
+);
+
 Future<void> waitForPdf(WidgetTester tester, int pages) async {
   for (var attempt = 0; attempt < 150; attempt++) {
     await tester.runAsync(
@@ -464,39 +501,129 @@ void main() {
     },
   );
 
-  testWidgets('real PDF score notes save through Ddirori inputs', (t) async {
-    final c = await openPdf(t, width: 390, height: 1000, scale: 2);
-    final originalDocument = pdf(t).document;
-
-    await command(t, '모든 도구');
-    await t.tap(compactViewerOptionsButton());
-    await t.pumpAndSettle();
-    final scoreNotes = find.byWidgetPredicate(
-      (widget) => widget is DdiroriItem && widget.title == '악보 메모',
-    );
-    await t.ensureVisible(scoreNotes);
-    await t.tap(scoreNotes);
-    await t.pumpAndSettle();
-
-    expect(find.text('악보 메모'), findsOneWidget);
-    expect(find.text('공연과 연습에 필요한 메모를 이 악보에만 저장합니다.'), findsOneWidget);
-    final performanceField = find.descendant(
-      of: find.byWidgetPredicate(
-        (widget) => widget is DdiroriInput && widget.label == '공연 메모',
-      ),
-      matching: find.byType(TextField),
-    );
-    await t.enterText(performanceField, '조명 확인 뒤 바로 시작');
+  testWidgets('notes wait for storage and block dismissal while pending', (
+    t,
+  ) async {
+    final store = NotesWriteStore();
+    final c = await openPdf(t, store: store, scale: 2);
+    final original = pdf(t).document;
+    await openNotes(t);
+    await t.enterText(notesField(), '저장 완료 전 닫지 않기');
+    final gate = Completer<void>();
+    store.gate = gate;
+    store.writes = 0;
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
     final save = find.byWidgetPredicate(
-      (widget) => widget is DdiroriButton && widget.label == '저장',
+      (w) => w is DdiroriButton && w.label == '저장',
     );
-    expect(save, findsOneWidget);
-    await command(t, '저장');
-
-    expect(c.scoreById('pilot-0').structuredNotes.performance, '조명 확인 뒤 바로 시작');
-    expect(pdf(t).document, same(originalDocument));
+    await t.ensureVisible(save);
+    await t.tap(save);
+    await t.pumpAndSettle();
+    expect(find.text('악보 메모'), findsOneWidget);
+    expect(store.writes, 1);
+    expect(c.scoreById('pilot-0').structuredNotes.performance, isEmpty);
+    expect(find.text('악보 메모를 저장했습니다.'), findsNothing);
+    expect(t.widget<TextField>(notesField()).readOnly, isTrue);
+    await t.ensureVisible(save);
+    await t.tap(save);
+    await t.pump();
+    expect(store.writes, 1);
+    final navigator = t.state<NavigatorState>(find.byType(Navigator).first);
+    await navigator.maybePop();
+    await t.pumpAndSettle();
+    expect(find.text('악보 메모'), findsOneWidget);
+    await t.tapAt(const Offset(10, 10));
+    await t.pumpAndSettle();
+    expect(find.text('악보 메모'), findsOneWidget);
+    await t.drag(find.byType(BottomSheet), const Offset(0, 300));
+    await t.pumpAndSettle();
+    expect(find.text('악보 메모'), findsOneWidget);
+    gate.complete();
+    await t.pumpAndSettle();
+    expect(find.text('악보 메모를 저장했습니다.'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(c.scoreById('pilot-0').structuredNotes.performance, '저장 완료 전 닫지 않기');
+    expect(
+      (await store.loadScores()).first.structuredNotes.performance,
+      '저장 완료 전 닫지 않기',
+    );
+    expect(pdf(t).document, same(original));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('notes preserve draft on storage failure and retry once', (
+    t,
+  ) async {
+    final store = NotesWriteStore();
+    final c = await openPdf(t, store: store, scale: 2);
+    final original = pdf(t).document;
+    await openNotes(t);
+    await t.enterText(notesField(), '실패해도 남는 메모');
+    store.failWrites = true;
+    store.writes = 0;
+    await command(t, '저장');
+    expect(find.text('악보 메모'), findsOneWidget);
+    expect(t.widget<TextField>(notesField()).controller!.text, '실패해도 남는 메모');
+    expect(
+      find.text('메모를 저장하지 못했습니다. 입력을 유지했습니다. 다시 시도해 주세요.'),
+      findsOneWidget,
+    );
+    expect(c.scoreById('pilot-0').structuredNotes.performance, isEmpty);
+    expect(
+      (await store.loadScores()).first.structuredNotes.performance,
+      isEmpty,
+    );
+    expect(find.text('악보 메모를 저장했습니다.'), findsNothing);
+    store.failWrites = false;
+    await command(t, '다시 시도');
+    expect(store.writes, 2);
+    expect(find.text('악보 메모를 저장했습니다.'), findsOneWidget);
+    expect(c.scoreById('pilot-0').structuredNotes.performance, '실패해도 남는 메모');
+    expect(pdf(t).document, same(original));
+    expect(t.takeException(), isNull);
+  });
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets('score notes cancel and save preserve PDF at $viewport', (
+      t,
+    ) async {
+      final c = await openPdf(
+        t,
+        width: viewport.width,
+        height: viewport.height,
+        scale: 2,
+        dark: viewport.dark,
+      );
+      final originalDocument = pdf(t).document;
+      final originalPage = pdf(t).pageNumber;
+      await openNotes(t);
+      expect(find.text('악보 메모'), findsOneWidget);
+      expect(find.text('공연과 연습에 필요한 메모를 이 악보에만 저장합니다.'), findsOneWidget);
+      await t.enterText(notesField(), '취소할 초안');
+      await t.pumpAndSettle();
+      await command(t, '취소');
+      expect(c.scoreById('pilot-0').structuredNotes.performance, isEmpty);
+      expect(find.text('악보 메모를 저장했습니다.'), findsNothing);
+      await openNotes(t);
+      expect(t.widget<TextField>(notesField()).controller!.text, isEmpty);
+      await t.enterText(notesField(), '조명 확인 뒤 바로 시작');
+      await t.pumpAndSettle();
+      await command(t, '저장');
+      expect(
+        c.scoreById('pilot-0').structuredNotes.performance,
+        '조명 확인 뒤 바로 시작',
+      );
+      expect(
+        (await c.store.loadScores()).first.structuredNotes.performance,
+        '조명 확인 뒤 바로 시작',
+      );
+      expect(pdf(t).document, same(originalDocument));
+      expect(pdf(t).pageNumber, originalPage);
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets(
     'real PDF bookmarks use Ddirori rows without replacing navigation',

@@ -5899,18 +5899,22 @@ setlist=$setlistLabel
   }
 
   Future<void> _showScoreNotes() async {
-    final notes = await showModalBottomSheet<SheetScoreNotes>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) =>
-          _ScoreNotesSheet(initialNotes: score.structuredNotes),
+      useSafeArea: true,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (context) => _ScoreNotesSheet(
+        initialNotes: score.structuredNotes,
+        onSave: (notes) =>
+            widget.controller.updateStructuredNotes(score, notes),
+      ),
     );
-    if (notes == null) {
-      return;
+    if (mounted) {
+      _keyboardFocusNode.requestFocus();
+      if (saved == true) _showSnackBar('악보 메모를 저장했습니다.');
     }
-    await widget.controller.updateStructuredNotes(score, notes);
-    _showSnackBar('악보 메모를 저장했습니다.');
   }
 
   Future<void> _importPdfOutlineBookmarks() async {
@@ -11166,9 +11170,10 @@ class _PendingPageRotationBanner extends StatelessWidget {
 }
 
 class _ScoreNotesSheet extends StatefulWidget {
-  const _ScoreNotesSheet({required this.initialNotes});
+  const _ScoreNotesSheet({required this.initialNotes, required this.onSave});
 
   final SheetScoreNotes initialNotes;
+  final Future<void> Function(SheetScoreNotes notes) onSave;
 
   @override
   State<_ScoreNotesSheet> createState() => _ScoreNotesSheetState();
@@ -11179,6 +11184,8 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
   late String _rehearsal;
   late String _tuning;
   late String _instrumentation;
+  bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
@@ -11189,79 +11196,115 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
     _instrumentation = widget.initialNotes.instrumentation;
   }
 
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(
+        SheetScoreNotes(
+          performance: _performance,
+          rehearsal: _rehearsal,
+          tuning: _tuning,
+          instrumentation: _instrumentation,
+        ),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = '메모를 저장하지 못했습니다. 입력을 유지했습니다. 다시 시도해 주세요.';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final style = DdiroriStyle.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DdiroriPageHeader(
-                title: '악보 메모',
-                subtitle: '공연과 연습에 필요한 메모를 이 악보에만 저장합니다.',
-                leading: const Icon(Icons.sticky_note_2_outlined),
-              ),
-              SizedBox(height: style.gap),
-              DdiroriInput(
-                value: _performance,
-                onChanged: (value) => setState(() => _performance = value),
-                label: '공연 메모',
-                help: '무대에서 바로 확인할 짧은 안내를 적어두세요.',
-                maxLines: 3,
-              ),
-              SizedBox(height: style.gap),
-              DdiroriInput(
-                value: _rehearsal,
-                onChanged: (value) => setState(() => _rehearsal = value),
-                label: '리허설 메모',
-                maxLines: 3,
-              ),
-              SizedBox(height: style.gap),
-              DdiroriInput(
-                value: _tuning,
-                onChanged: (value) => setState(() => _tuning = value),
-                label: '조율 메모',
-                maxLines: 3,
-              ),
-              SizedBox(height: style.gap),
-              DdiroriInput(
-                value: _instrumentation,
-                onChanged: (value) => setState(() => _instrumentation = value),
-                label: '악기/편성 메모',
-                maxLines: 3,
-              ),
-              SizedBox(height: style.gap * 1.5),
-              DdiroriAdaptiveActions(
-                label: '악보 메모 작업',
-                children: [
-                  DdiroriButton(
-                    label: '취소',
-                    icon: Icons.close,
-                    kind: DdiroriButtonKind.secondary,
-                    onPressed: () => Navigator.of(context).pop(),
+    return PopScope<bool>(
+      canPop: !_saving,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DdiroriPageHeader(
+                  title: '악보 메모',
+                  subtitle: '공연과 연습에 필요한 메모를 이 악보에만 저장합니다.',
+                  leading: const Icon(Icons.sticky_note_2_outlined),
+                ),
+                if (_saving) const DdiroriStatusBadge(label: '저장 중'),
+                if (_error != null)
+                  DdiroriBanner(
+                    message: _error!,
+                    kind: DdiroriNoticeKind.error,
                   ),
-                  DdiroriButton(
-                    label: '저장',
-                    icon: Icons.check,
-                    onPressed: () => Navigator.of(context).pop(
-                      SheetScoreNotes(
-                        performance: _performance,
-                        rehearsal: _rehearsal,
-                        tuning: _tuning,
-                        instrumentation: _instrumentation,
-                      ),
+                SizedBox(height: style.gap),
+                DdiroriInput(
+                  value: _performance,
+                  readOnly: _saving,
+                  onChanged: (value) => setState(() => _performance = value),
+                  label: '공연 메모',
+                  help: '무대에서 바로 확인할 짧은 안내를 적어두세요.',
+                  maxLines: 3,
+                ),
+                SizedBox(height: style.gap),
+                DdiroriInput(
+                  value: _rehearsal,
+                  readOnly: _saving,
+                  onChanged: (value) => setState(() => _rehearsal = value),
+                  label: '리허설 메모',
+                  maxLines: 3,
+                ),
+                SizedBox(height: style.gap),
+                DdiroriInput(
+                  value: _tuning,
+                  readOnly: _saving,
+                  onChanged: (value) => setState(() => _tuning = value),
+                  label: '조율 메모',
+                  maxLines: 3,
+                ),
+                SizedBox(height: style.gap),
+                DdiroriInput(
+                  value: _instrumentation,
+                  readOnly: _saving,
+                  onChanged: (value) =>
+                      setState(() => _instrumentation = value),
+                  label: '악기/편성 메모',
+                  maxLines: 3,
+                ),
+                SizedBox(height: style.gap * 1.5),
+                DdiroriAdaptiveActions(
+                  label: '악보 메모 작업',
+                  children: [
+                    DdiroriButton(
+                      label: '취소',
+                      icon: Icons.close,
+                      kind: DdiroriButtonKind.secondary,
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    DdiroriButton(
+                      label: _error == null ? '저장' : '다시 시도',
+                      icon: Icons.check,
+                      busy: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

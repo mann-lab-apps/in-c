@@ -25,9 +25,19 @@
 - focused 6 tests PASS. RC 첫 실행의 전체 576 tests는 PASS였지만 unused style 변수 때문에 analyze가 실패했다. 해당 변수를 제거한 최종 RC는 analyze·전체 576 tests·fixture·scan 모두 PASS, 종료 코드 0 (`/private/tmp/score-practice-rc-final-20261030.log`).
 - 영향 scene에 공통 행동 위젯 assertion을 추가한 metadata check PASS (`/private/tmp/score-practice-metadata-20261030.log`).
 
+## 악보 메모 저장 실패·재시도
+
+- 기존 흐름은 `Navigator.pop(notes)` 뒤 parent에서 저장했다. 지연 저장과 실패를 주입한 두 red test에서 입력 창이 먼저 닫히는 문제가 재현됐다 (`/private/tmp/score-notes-red-20261030.log`).
+- 기존 controller `_replace`의 저장 후 모델 갱신 순서를 유지한다. 앱의 notes adapter가 저장을 await하고, 성공 후 bool 결과로 닫는다. 실패는 공통 Banner와 `다시 시도`로 표시하며 입력과 원본 metadata를 보존한다.
+- 저장 중 Input.readOnly·Button.busy·취소 비활성·PopScope를 적용한다. native host는 barrier/drag dismiss를 막고 안전 영역을 적용한다. 성공 뒤에만 완료 snackbar와 viewer focus 복귀를 요청한다.
+- 공통 API 제안: `showDdiroriSheet`에는 현재 dismiss/drag 제어 API가 없다. 이번에는 저장 폼의 native modal host를 앱에 유지하며 공통 소스를 복사하거나 패키지 API를 바꾸지 않았다. 실제 두 소비처가 같은 계약을 요구할 때 별도 확장을 검토한다.
+- acceptance: 지연 저장 중 미닫힘·편집/중복 요청/Back/barrier/drag 차단, 실패 draft/원본 유지·재시도 한 번, 정상 취소/저장과 PDF identity/현재 쪽 보존. 저장소와 기기 I/O 증거는 구분한다.
+- focused 5 tests PASS (`/private/tmp/score-notes-green-20261030.log`), warning 없음. 200% 가로 검사에서는 입력 후 caret scroll이 안정된 뒤 취소/저장 버튼까지 이동하며 실제 hit-test로 탭한다.
+- format·analyze·전체 580 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-notes-rc-20261030.log`). metadata check PASS (`/private/tmp/score-notes-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
-- 다음 후보: 악보 메모의 저장 완료 전 닫힘과 실패 draft 복구, 남은 viewer 옵션의 실제 중복 조사.
+- 다음 후보: 자르기 맞춤의 공통 설정 행·저장 완료 대기와 실패 복구, 남은 viewer 옵션의 실제 중복 조사.
