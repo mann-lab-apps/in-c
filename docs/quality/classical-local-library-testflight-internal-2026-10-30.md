@@ -10,7 +10,7 @@
 - IPA SHA-256: `562f2b030a3a84e9d54bfb6ca5b2150130199b9f8fa1301bff0d470ef7bf8a7c`
 - 내보내기: `testFlightInternalTestingOnly=true`. 공개 TestFlight 및 App Store 제출에 사용할 수 없는 내부 테스트 전용 바이너리다.
 - Fastlane `upload_to_testflight`: App Store Connect 전송 성공. Apple 처리 결과는 아래 상태를 따른다.
-- 내부 그룹 `내부 테스트` 생성, 자동 배포 꺼짐, 테스터 초대/알림 미실행.
+- 내부 그룹 `내부 테스트` 생성, 자동 배포 꺼짐. 사용자 확인을 받아 빌드의 비면제 암호화 사용 여부를 `false`로 등록했다.
 
 ## Apple 처리 상태
 
@@ -18,9 +18,9 @@
 - Apple 업로드 완료 시각: `2026-10-30T04:33:30-07:00`
 - 마지막 확인: 업로드 `COMPLETE` (오류·경고 0), 빌드 `VALID`, audience `INTERNAL_ONLY`.
 - 빌드 ID: `a75f2996-e8e6-4516-a990-1a6b05b3216e`.
-- 내부 TestFlight 상태: `MISSING_EXPORT_COMPLIANCE`. Apple이 내부 그룹 연결을 `Build is not in an internally testable state`로 거부했다.
-- 그룹 ID: `61f6e80b-f830-4c8d-9086-cca142e61f91`. 그룹은 생성됐지만 빌드 연결과 테스터 초대는 완료되지 않았다.
-- 코드에서 확인한 관련 사용: `http` 통신과 파일 중복 확인용 SHA-256 해시. 실제 암호화 신고는 운영자 확인 후 진행한다.
+- 내부 TestFlight 상태: `READY_FOR_BETA_TESTING`.
+- 그룹 ID: `61f6e80b-f830-4c8d-9086-cca142e61f91`. 그룹의 빌드 목록에서 해당 빌드 ID를 확인했다. 현재 테스터 0명으로 설치는 아직 사용자 계정에 열리지 않았다.
+- 코드에서 확인한 관련 사용: `http` 통신과 파일 중복 확인용 SHA-256 해시. 사용자가 2026-10-30에 비면제 암호화 사용 안 함을 승인했고 App Store Connect 빌드 속성 `usesNonExemptEncryption=false`로 확인했다.
 
 ## 남은 검수
 

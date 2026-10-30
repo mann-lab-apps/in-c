@@ -516,7 +516,8 @@ manual:
       경로를 제외하고 사용자 명시 동작으로만 공유·가져오기 하는 계약을 검증. App Store Connect 설문과 signed archive privacy report는 운영자 확인 대기.
   export_compliance:
     status: pending
-    evidence: ''
+    evidence: >-
+      2026-10-30 사용자가 내부 TestFlight 빌드의 비면제 암호화 사용 안 함 신고를 승인. 코드에서 확인한 암호화 관련 사용은 HTTPS와 파일 중복 확인용 SHA-256 해시이며 App Store Connect 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e에 usesNonExemptEncryption=false 등록 후 READY_FOR_BETA_TESTING 확인. 공개 출시용 수출 규정 설문과 지역별 요건 검토는 별도 pending.
   content_licenses:
     status: pending
     evidence: ''
@@ -578,7 +579,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
-       2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드를 선택. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 수출 규정 답변이 없어 내부 테스트 상태 MISSING_EXPORT_COMPLIANCE이며 그룹 연결은 거부됨. 테스터 설치와 실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
+       2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드 및 비면제 암호화 사용 안 함 신고를 승인. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY, 내부 상태 READY_FOR_BETA_TESTING. 내부 그룹 61f6e80b-f830-4c8d-9086-cca142e61f91에 빌드 연결 완료. 현재 테스터 0명이며 설치와 실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.
        2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.
        2026-10-26 보관함 UI 제품 변경은 미커밋이며 source pending/content reviewed false 유지. 새 scene 촬영·서명·후보 빌드 선택 미완료.
