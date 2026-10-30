@@ -837,7 +837,7 @@ void main() {
     );
   });
 
-  testWidgets('앱이 background로 이동하면 일시정지하고 위치를 저장한다', (tester) async {
+  testWidgets('Android 앱이 background로 이동하면 일시정지하고 위치를 저장한다', (tester) async {
     final fixture = _linkedPlaybackFixture();
     final store = MemoryPlaybackPositionStore();
     final historyStore = MemoryPlaybackHistoryStore();
@@ -881,7 +881,7 @@ void main() {
     expect(history, hasLength(1));
     expect(history.single.trackId, player.currentItem!.trackId);
     expect(history.single.lastPosition, const Duration(seconds: 25));
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('검색어로 작품과 파일 후보를 찾을 수 있다', (tester) async {
     await tester.pumpWidget(

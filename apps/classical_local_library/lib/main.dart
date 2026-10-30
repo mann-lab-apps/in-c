@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ddirori_ui/ddirori_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
@@ -491,21 +492,26 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
-      unawaited(_pauseAndPersistForLifecycle());
+      unawaited(_persistPlaybackForLifecycle());
     }
   }
 
-  Future<void> _pauseAndPersistForLifecycle() async {
+  Future<void> _persistPlaybackForLifecycle() async {
     if (isLifecycleCommandRunning) {
       return;
     }
     isLifecycleCommandRunning = true;
     try {
-      if (localPlayer.playbackState.playerState == LocalPlayerState.playing) {
+      // iOS background audio keeps the engine alive while its view is inactive.
+      // Interruption and route-change events still pause through the session.
+      if (defaultTargetPlatform != TargetPlatform.iOS &&
+          localPlayer.playbackState.playerState == LocalPlayerState.playing) {
         await localPlayer.pause();
       } else {
         await localPlayer.persistPosition();
       }
+    } on Object {
+      // A lifecycle checkpoint failure must not interrupt ongoing playback.
     } finally {
       isLifecycleCommandRunning = false;
     }

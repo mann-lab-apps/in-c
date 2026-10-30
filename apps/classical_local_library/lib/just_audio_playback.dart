@@ -495,7 +495,7 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
         force: force,
       );
     } on Object {
-      // Position persistence must never interrupt foreground playback.
+      // Position persistence must never interrupt audio playback.
     }
   }
 

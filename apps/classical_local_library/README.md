@@ -269,7 +269,7 @@ Flutter 기반 로컬 음악 관리·재생 앱이다. 클래식 작품 정리�
 - 샘플 경로, 누락 파일, 미지원 형식, 네이티브 오디오 로드 실패를 구조화된 오류로 보존하고 한국어 상태로 표시한다.
 - 재생 준비 중에는 중복 명령을 막고 `불러오는 중` 진행 상태를 표시한다.
 - 앱 화면 dispose 시 player stream과 네이티브 오디오 자원을 정리한다.
-- 포그라운드 로컬 파일만 사용하므로 Android Manifest와 iOS Info.plist에 네트워크/백그라운드 권한을 추가하지 않았다.
+- 이 단계에서는 포그라운드 로컬 파일만 사용했다. 2026-10-30 iOS 화면 잠금 재생 단계에서 iOS Info.plist에 background audio 설정을 추가했다.
 - Android debug APK와 iOS Simulator 빌드, iOS Simulator 첫 화면 기동을 확인했다.
 - 테스트용 실제 음원이 없어 소리 출력과 포맷별 디코딩은 아직 직접 검증하지 않았다.
 
@@ -280,12 +280,12 @@ Flutter 기반 로컬 음악 관리·재생 앱이다. 클래식 작품 정리�
 - 현재 재생 패널에 `mm:ss`/`h:mm:ss` 시간과 진행 slider를 추가했다. 드래그 종료 시 한 번만 seek한다.
 - `audio_session` 0.2.4를 직접 의존성으로 명시하고 음악 감상용 session을 구성한다.
 - 전화나 다른 앱의 audio interruption이 시작되거나 출력 장치가 분리되면 일시정지하며, interruption 종료 후 자동 재생하지 않는다.
-- 포그라운드 범위를 유지하기 위해 앱이 background로 이동하면 일시정지하고 현재 위치를 저장한다.
+- iOS에서는 앱 전환·화면 잠금 시 재생을 유지하고 위치만 저장한다(2026-10-30 변경). Android에서는 background 이동 시 일시정지한다.
 - SQLite schema v2에 `playback_positions`를 추가해 경로별 위치, 길이, 완료 여부, 파일 수정 시각을 저장한다.
 - 일반 진행 위치는 15초 간격으로만 저장하고 pause, stop, 다음 악장, lifecycle 변화, dispose에서는 즉시 저장한다.
 - queue를 새로 불러올 때 첫 악장의 유효한 위치만 복원한다. 자연스럽게 다음 악장으로 넘어갈 때는 저장 위치를 적용하지 않는다.
 - 완료된 음원, 끝에서 10초 이내인 위치, 수정 시각이 달라진 파일은 처음부터 시작한다.
-- `audio_service`와 background audio 권한은 추가하지 않았고 Android Manifest와 iOS Info.plist도 변경하지 않았다.
+- `audio_service`는 도입하지 않았다. 2026-10-30부터 iOS `UIBackgroundModes: audio`를 사용하며 Android 설정은 기존 상태다.
 
 ### 열네 번째 마일스톤
 
@@ -610,7 +610,7 @@ bundle exec fastlane release_candidate_preflight \
 아직 하지 않은 것:
 
 - 원본 파일 태그 쓰기.
-- 백그라운드 재생과 잠금 화면/알림 제어.
+- Android 백그라운드 재생, 잠금 화면/알림 조작, 헤드폰 버튼과 CarPlay.
 - 헤드폰 버튼과 시스템 미디어 세션 명령.
 - gapless/crossfade 품질과 실제 기기별 포맷 호환성 검증.
 - JSON migration 이후 cleanup/archive 정책.
@@ -664,4 +664,11 @@ query 수는 측정값이 아니라 코드 검사값으로 별도 표기한다. 
 2. App Store Connect의 개인정보, 연령 등급, 콘텐츠 권리, 수출 규정, 가격·배포 지역과 TestFlight 연락처를 운영자가 확정한다.
 3. 사용자가 물리 iPhone XS에서 VoiceOver, Dynamic Type, Files/iCloud 문서 선택기, 실제 음원 재생과 출력 route를 검증한다. iPad 물리 검수는 별도 미완료 항목이다.
 4. 첫 TestFlight 후보에서 P0/P1 회귀가 없음을 확인한 뒤 screenshot capture와 메타데이터 검수를 완료한다.
-5. 공개 출시 뒤에만 Chromaprint, 상용 외부 서비스 정책, 백그라운드 재생 같은 비필수 확장을 다시 평가한다.
+5. Chromaprint, 상용 외부 서비스 정책, Android 백그라운드 재생과 시스템 미디어 조작은 별도 후속 범위다.
+
+## iOS 화면 잠금 재생 — 0.1.0(2), 2026-10-30
+
+- 음악용 `AudioSessionConfiguration.music()`과 `UIBackgroundModes: audio`를 사용한다. iOS lifecycle의 inactive/hidden/paused/detached는 재생을 멈추지 않고 위치를 저장하며, 화면 복귀만으로 재생을 시작하지 않는다. 실제 종료 시 기존 dispose가 자원을 정리한다.
+- interruption 시작과 출력 장치 분리는 기존대로 일시정지한다. interruption 종료 후 자동 재개하지 않는다. 별도 백그라운드 task, 무음 keepalive, 오디오 패키지 추가는 없다.
+- `python3 tool/run_ios_background_audio_qa.py --device <전용 simulator UDID> --output <증적 폴더>`는 실제 OS 앱 전환을 실행하고 합성 WAV 큐의 다음 항목·완료와 lifecycle을 검증한다. 실제 기기 잠금·가청 출력·배터리 성능의 증거는 아니다.
+- iPhone Xs에서 잠금 후 30초 청취, 다음 곡 전환, 잠금 해제 후 큐/위치, 전화 interruption과 헤드폰 분리를 확인해야 한다. 앱 강제 종료 후 자동 재생과 시스템 잠금 화면 조작은 지원 범위에 포함하지 않는다.

@@ -235,10 +235,12 @@ module Deployment
         add('fail', 'privacy.manifest', 'PrivacyInfo.xcprivacy가 Runner resource에 포함되지 않았습니다.')
       end
       info = plist('ios/Runner/Info.plist')
-      forbidden = info.keys.grep(/UsageDescription$/) + (info.key?('UIBackgroundModes') ? ['UIBackgroundModes'] : [])
+      forbidden = info.keys.grep(/UsageDescription$/)
+      expected_modes = data['app'] == 'classical-local-library' ? ['audio'] : []
+      background_valid = info.fetch('UIBackgroundModes', []) == expected_modes
       ats = info.dig('NSAppTransportSecurity', 'NSAllowsArbitraryLoads') == true
-      if forbidden.empty? && !ats
-        add('pass', 'privacy.permissions', '사용하지 않는 iOS 권한·background mode·ATS 전면 허용이 없습니다.')
+      if forbidden.empty? && background_valid && !ats
+        add('pass', 'privacy.permissions', 'iOS 권한·background mode가 앱 계약과 일치하며 ATS 전면 허용이 없습니다.')
       else
         add('fail', 'privacy.permissions', '불필요하거나 전면 허용된 iOS capability를 검토해야 합니다.')
       end

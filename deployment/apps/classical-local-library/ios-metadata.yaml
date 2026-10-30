@@ -2,15 +2,15 @@
 schema_version: 1
 app: classical-local-library
 source:
-  state: pinned
+  state: pending
   path: apps/classical_local_library
   commit: '5504a957fb5d023e2fb3c330c51fc4757ce23e3b'
   version: 0.1.0
-  build_number: 1
+  build_number: 2
   bundle_id: com.mannlab.ddirori.play
   dart_defines:
     ENABLE_DEMO_LIBRARY: 'false'
-    APP_VERSION_LABEL: 0.1.0 (1)
+    APP_VERSION_LABEL: 0.1.0 (2)
   flavor:
 store:
   app_id: '6828809673'
@@ -60,13 +60,14 @@ content:
 
         음원, 파일 정보, 카탈로그와 감상 기록은 기본적으로 기기에 저장됩니다. 계정, 광고 또는 분석 SDK를 사용하지 않으며 원본 음원과 원본 태그를 수정하지 않습니다.
 
-        현재 재생은 앱이 실행 중인 동안 지원합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
+        iOS에서는 음악 재생 중 화면을 잠그거나 다른 앱으로 전환해도 재생을 이어갑니다. 전화 등 오디오 중단이나 헤드폰 분리 시 일시정지합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
       keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz
       promotional_text: 내 음원을 가져와 곧바로 듣고, 원할 때 작품·녹음·악장으로 정리하세요.
       support_url:
       marketing_url:
       privacy_url:
       release_notes: |-
+        iOS에서 화면 잠금·앱 전환 중 재생을 이어가고 현재 위치를 저장하도록 변경했습니다. interruption과 헤드폰 분리 시 일시정지하고 자동 재개하지 않는 정책은 유지합니다.
         재생목록을 만들고 곡·앨범·현재 재생에서 바로 담을 수 있습니다. 여러 곡을 한 번에 고르고 편집 화면에서 드래그로 순서를 바꿔 재생하세요. 파일이 누락되면 목록에는 남기고 재생할 때 건너뜁니다. 폴더별 보기는 도구 메뉴로 이동했고, 가져오기·파일 상태와 음원 정보·파일 복구 도구의 이름을 명확히 했습니다.
         공통 블루 테마로 아이콘 배경과 주요 동작·선택·포커스 색을 통일하고, 일반 안내는 중립색으로 구분했습니다.
         보관함 첫 화면을 큰 제목, 간결한 분류 목록과 최근 추가한 앨범·곡 카드로 정리하고 제목 위 앱 아이콘·이름은 제거했습니다. 런처에는 승인된 띠로리 플레이 아이콘을 적용했습니다.
@@ -135,8 +136,11 @@ review:
     the user; the app does not scrape undocumented file links or bypass membership, waiting-period,
     CAPTCHA or regional restrictions.
 
-    Audio playback is foreground-only. The app does not provide background playback, lock-screen
-    controls, accounts, analytics, advertising or cloud synchronization. Original files and tags are
+    On iOS, the playback audio session and background audio mode allow local playback to continue
+    when the screen locks or another app opens. Calls/audio interruptions and headphone disconnection
+    pause playback without automatic resumption. Physical iPhone screen-lock audibility remains pending
+    user QA. Lock-screen controls, accounts, analytics, advertising and cloud synchronization are not
+    provided. Original files and tags are
     never modified. A logical JSON backup can restore catalog and listening state, but deliberately
     excludes audio bytes and original file/folder paths. Restored or moved files must be relinked
     with explicit user confirmation. Storage startup and scan failures show a path-free Korean retry action.
@@ -146,9 +150,10 @@ review:
 testflight:
   reviewed: false
   feedback_email:
-  build_id: a75f2996-e8e6-4516-a990-1a6b05b3216e
+  build_id:
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
+    0.1.0(2): iPhone Xs에서 1분 이상 음원을 재생한 뒤 전원 버튼으로 화면을 잠그고 30초간 재생이 이어지는지 확인해 주세요. 잠금 중 다음 곡, 잠금 해제 후 큐·위치 유지, 직접 일시정지 후 자동 재생 방지, 전화/다른 오디오·헤드폰 분리 시 일시정지와 자동 재개 방지를 확인해 주세요. 잠금 화면 재생 버튼은 이번 범위가 아닙니다.
     보관함의 재생목록에서 목록을 만든 뒤 검색으로 곡 두 개를 함께 선택해 추가하고, 편집에서 드래그로 순서를 바꿔 재생해 주세요. 곡·앨범·검색 결과의 더보기와 현재 재생에서도 재생목록에 담을 수 있습니다. 목록 삭제나 곡 제거로 원본 파일이 삭제되어서는 안 됩니다. 앱 재시작 후에도 목록과 순서가 유지되고 누락 곡은 목록에 남지만 재생에서는 건너뛰는지 확인해 주세요. 폴더별 보기는 도구 메뉴에 있습니다.
     보관함의 곡·앨범·아티스트·재생목록 행을 열어 목록 안 검색과 곡 정렬을 확인해 주세요. 재생 중 검색·정렬을 바꾸어도 큐와 현재 위치가 유지되고, 누락 파일은 파일 상태 확인으로 이어져야 합니다.
     빈 보관함에서 파일을 가져와 곡 목록에 표시되는지, 작품 등록 전에 바로 재생되는지 확인해 주세요. 축약 조작과 전체 재생 화면의 큐를 확인해 주세요.
@@ -555,6 +560,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-30 iOS 화면 잠금·앱 전환 중 재생 유지로 lifecycle 정책과 UIBackgroundModes audio가 변경됨. iPhone Xs의 물리 잠금·청감·전화 interruption·출력 장치 분리는 새 0.1.0(2)에서 재검수 필요. 실제 기기 결과와 시뮬레이터 앱 전환 증거를 구분한다.
       2026-10-30 새 Bundle ID com.mannlab.ddirori.play의 서명 후보를 iPhone XS에 설치·재생한 물리 QA 결과는 아직 받지 못함.
       2026-10-26 사용자가 띠로리 플레이 아이콘 후보 08을 최종 승인하고 iPhone XS에서 직접 물리 QA를 진행하기로 함. 앱 최소 iOS는 15.0이며 iPhone XS는 iOS 26 비지원이므로 iOS 26.5 시뮬레이터와 별도로 설치·첫 실행을 확인해야 함. 실제 QA 결과·OS 버전·기기 출력/VoiceOver·Files/iCloud 동작은 아직 접수하지 않았고 iPad 물리 QA도 미완료.
       2026-10-26 곡·앨범·검색·현재 재생에서 재생목록에 담기, 다중 선택과 드래그 순서 변경을 fake controller/SQLite 단위로 검증. 실제 터치 재정렬, Files 제공자와 물리 오디오 출력은 기기 QA pending.
@@ -579,6 +585,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
+       2026-10-30 iOS background audio 변경을 포함한 0.1.0(2) 내부 TestFlight 후보 준비. 0.1.0(1) 기존 빌드와 초대 기록은 보존하며 새 제품 커밋·서명·Apple 처리·그룹 연결은 실제 결과 후 기록한다.
        2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드 및 비면제 암호화 사용 안 함 신고를 승인. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 내부 그룹 61f6e80b-f830-4c8d-9086-cca142e61f91에 빌드 연결, 사용자 확인 후 단일 계정 보유자를 내부 테스터로 추가. Apple API에서 그룹 테스터 1명 INVITED, 빌드 IN_BETA_TESTING 확인. 초대 수락·iPhone Xs 설치·실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.
        2026-10-26 첫 화면 구성과 아이콘 후보 적용으로 제품 소스 변경. source pending/content reviewed false 유지. 승인된 최종 아이콘·후보 빌드·스토어 촬영 선택 없음.

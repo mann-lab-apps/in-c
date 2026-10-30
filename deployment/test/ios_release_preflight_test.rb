@@ -22,11 +22,25 @@ class IOSReleasePreflightTest < Minitest::Test
     codes = result['issues'].to_h { |issue| [issue['code'], issue['status']] }
     assert_equal 'pass', codes['source.demo']
     assert_equal 'pass', codes['privacy.manifest']
+    assert_equal 'pass', codes['privacy.permissions']
     assert_equal 'pass', codes['icon.marketing']
     assert_equal 'pass', codes['icon.approval']
     assert_equal 'blocked', codes['url.ko.privacy_url']
     assert_equal 'pass', codes['checkpoint.source']
     assert_equal 'blocked', codes['screenshots.capture']
+  end
+
+  def test_play_requires_only_the_audio_background_mode
+    [nil, [], ['audio', 'fetch'], ['location'], 'audio'].each do |modes|
+      preflight = Deployment::IOSReleasePreflight.new(manifest: MANIFEST)
+      preflight.define_singleton_method(:plist) do |relative|
+        value = super(relative)
+        value['UIBackgroundModes'] = modes if relative == 'ios/Runner/Info.plist'
+        value
+      end
+      result = preflight.run
+      assert result['issues'].any? { |row| row.values_at('code', 'status') == ['privacy.permissions', 'fail'] }, modes.inspect
+    end
   end
 
   def test_public_https_url_rejects_placeholders_private_hosts_and_credentials
@@ -109,7 +123,7 @@ class IOSReleasePreflightTest < Minitest::Test
     {
       'schemaVersion' => 1,
       'appVersion' => '0.1.0',
-      'buildNumber' => 1,
+      'buildNumber' => YAML.safe_load(File.read(MANIFEST)).dig('source', 'build_number'),
       'platform' => 'ios',
       'deviceClass' => 'phone',
       'osMajor' => 26,
