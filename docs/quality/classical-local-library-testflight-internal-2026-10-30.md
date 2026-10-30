@@ -42,3 +42,14 @@
 - Fastlane 전송 성공, Apple 업로드 완료 시각 2026-10-30 21:24:47 KST. 업로드·빌드 ID `eb230219-dfa5-462d-a586-5d78140187c6`, 업로드 `COMPLETE` (오류·경고 0), 빌드 `VALID / INTERNAL_ONLY`.
 - 사용자 승인한 암호화 답변이 바이너리에서 반영돼 `usesNonExemptEncryption=false`와 `READY_FOR_BETA_TESTING`을 확인했다. 기존 내부 그룹에 연결한 뒤 `IN_BETA_TESTING`, 그룹에 빌드 1·2와 테스터 1명이 있음을 확인했다. 0.1.0(1)은 보존됐다.
 - 자동 생성한 [Apple 배포 확인 JSON](evidence/play-ios-background-distribution-20261030.json)을 참고한다. 테스터 계정의 기존 INSTALLED 상태는 새 build 2 설치나 물리 잠금·청감의 증거로 해석하지 않는다.
+
+## 0.1.0(3) — iOS 시스템 미디어 조작
+
+- 제품 소스: `066e36e55831856100fae3050d5050b47e62f597`, 브랜치 `feature/ddirori-play-ios-media-controls-20261030`.
+- Release target `lib/main.dart`, `ENABLE_DEMO_LIBRARY=false`, `APP_VERSION_LABEL=0.1.0 (3)`으로 archive·IPA 생성 성공.
+- IPA SHA-256: `ae293388f6bb222f356de1e1038159f179d3e5fc3a77a84e54be51858f18e3a3`.
+- archive/IPA의 Bundle ID·0.1.0(3)·UIBackgroundModes audio·암호화 false, matching profile·codesign strict/deep와 내부 테스트 전용 export를 확인했다. native bridge가 포함되고 QA용 testCommand가 Release에서 제외됨을 확인했다.
+- Flutter 418개, native/화면 integration 7개, 정적 분석·fixture, 배포 Ruby 테스트 8개 통과. signed preflight는 PASS 20 / BLOCKED 10 / FAIL 0이다.
+- [시스템 미디어 QA 기록](classical-local-library-ios-system-media-2026-10-30.md)과 iPhone Xs 점검표를 따른다. 실제 잠금 화면·제어센터 버튼과 물리 청감은 사용자 검수다.
+- Fastlane 전송 성공, Apple 업로드 완료 시각 2026-10-30 22:15:19 KST. 업로드·빌드 ID `eb468b7f-8296-4030-afc9-f2c08d42a1f5`, 업로드 COMPLETE (오류·경고 0), 빌드 VALID/INTERNAL_ONLY/암호화 false 확인.
+- 기존 내부 그룹 연결 후 IN_BETA_TESTING, 그룹에 빌드 1·2·3과 테스터 1명이 있음을 확인했다. 빌드 1·2는 보존했다. [자동 생성한 Apple 배포 확인](evidence/play-ios-system-media-distribution-20261030.json)을 참고한다. 새 빌드의 물리 기기 설치·시스템 UI 조작·청감은 미검증이다.

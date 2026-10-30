@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-10-30T13:20:27Z",
+  "app_id": "6828809673",
+  "build_id": "eb468b7f-8296-4030-afc9-f2c08d42a1f5",
+  "version": "0.1.0",
+  "build_number": "3",
+  "processing_state": "VALID",
+  "audience": "INTERNAL_ONLY",
+  "uses_non_exempt_encryption": false,
+  "internal_build_state": "IN_BETA_TESTING",
+  "group_id": "61f6e80b-f830-4c8d-9086-cca142e61f91",
+  "group_build_ids": [
+    "eb468b7f-8296-4030-afc9-f2c08d42a1f5",
+    "eb230219-dfa5-462d-a586-5d78140187c6",
+    "a75f2996-e8e6-4516-a990-1a6b05b3216e"
+  ],
+  "group_tester_count": 1,
+  "ipa_sha256": "ae293388f6bb222f356de1e1038159f179d3e5fc3a77a84e54be51858f18e3a3",
+  "physical_system_ui_or_audibility_verified": false
+}

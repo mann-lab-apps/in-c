@@ -154,7 +154,7 @@ review:
 testflight:
   reviewed: false
   feedback_email:
-  build_id:
+  build_id: eb468b7f-8296-4030-afc9-f2c08d42a1f5
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
     0.1.0(3): 잠금 화면·제어센터의 곡명과 앱의 현재 곡이 일치하는지 확인해 주세요. 재생·일시정지·다음·이전·진행 위치를 조작한 뒤 앱 큐·위치와 비교하세요. 일시정지 중 곡 이동은 재생을 시작하지 않아야 합니다. 이전은 3초 이상이면 현재 곡 처음, 3초 미만이면 이전 곡으로 이동합니다. 진단 실행·실패·화면 닫기 후에도 본재생 큐·위치가 보존되고 자동 재개하지 않는지 확인하세요. 실제 iPhone Xs 시스템 버튼·잠금 청감은 사용자 QA 대상입니다.
@@ -595,7 +595,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
-       2026-10-30 iOS 시스템 미디어 조작 0.1.0(3) 내부 TestFlight 후보 준비. 실제 제품 커밋·archive·IPA·Apple 처리·그룹 연결은 검증 후 기록하고 기존 1·2 빌드는 보존한다.
+       2026-10-30 iOS 시스템 미디어 조작 0.1.0(3) 제품 소스 066e36e55831856100fae3050d5050b47e62f597에서 서명·IPA·업로드 완료. Apple 빌드 eb468b7f-8296-4030-afc9-f2c08d42a1f5 COMPLETE/VALID/INTERNAL_ONLY/IN_BETA_TESTING, 오류·경고 0, 암호화 false. 기존 그룹에 빌드 1·2·3과 테스터 1명 접근 확인. Release에서 QA testCommand 제외를 확인했으며 물리 Xs 시스템 버튼·새 빌드 설치·청감은 사용자 검수 대기. docs/quality/classical-local-library-ios-system-media-2026-10-30.md 참고.
        2026-10-30 iOS background audio 0.1.0(2) 제품 소스 e31e5eb19b6b4748778a45578ed2fda25a5d75fe에서 서명·IPA 생성·업로드 완료. Apple 빌드 eb230219-dfa5-462d-a586-5d78140187c6 COMPLETE/VALID/INTERNAL_ONLY/IN_BETA_TESTING, 오류·경고 0. 기존 내부 그룹에 0.1.0(1)과 함께 연결, 테스터 1명 접근 확인. 새 빌드의 물리 iPhone Xs 설치·화면 잠금·청감은 사용자 QA 대기. docs/quality/classical-local-library-ios-background-audio-2026-10-30.md 참고.
        2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드 및 비면제 암호화 사용 안 함 신고를 승인. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 내부 그룹 61f6e80b-f830-4c8d-9086-cca142e61f91에 빌드 연결, 사용자 확인 후 단일 계정 보유자를 내부 테스터로 추가. Apple API에서 그룹 테스터 1명 INVITED, 빌드 IN_BETA_TESTING 확인. 초대 수락·iPhone Xs 설치·실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.

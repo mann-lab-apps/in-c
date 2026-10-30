@@ -28,6 +28,8 @@
 | UI 이전 버튼·완료/오류 비활성 | play_playback_components_test.dart | 공통 IconButton과 동작 상태 확인 |
 | 전체 Flutter 회귀 | flutter test --no-pub | 418개 통과 |
 | 정적 분석·fixture | flutter analyze / generate_audio_fixtures --check | 통과 |
+| 배포 preflight 테스트 | Ruby 8개·assertion 35개 | 실패 0 |
+| signed archive 점검 | release_candidate_preflight | PASS 20 / BLOCKED 10 / FAIL 0, 내부 베타 준비됨 |
 | 공개 Now Playing 센터 조회 + native bridge 명령 주입 | ios_system_media_integration_test.dart | 실제 엔진과 정보 일치, 완료·정지 정리 |
 | 기존 native audio | audio_playback_integration_test.dart | FLAC/WAV/AAC/ALAC, seek·완료·복원·오류 복구 통과 |
 | 실제 OS 앱 전환 | run_ios_background_audio_qa.py | 6초 전환 중 큐 0→3, 복귀 후 합성 곡명과 rate 1.0 일치, 전체 완료 |
@@ -38,7 +40,7 @@
 
 [실제 background 결과](evidence/play-ios-system-media-background-20261030.json)와 [native bridge 로그](evidence/play-ios-system-media-native-20261030.log)는 실행 결과를 복사한 증적이다. 공개 센터 조회와 명시적 채널 이벤트 주입이며, 실제 OS 잠금 화면 버튼을 눌렀다는 증거가 아니다. 사용 가능한 simctl IO/UI 명령에는 버튼 입력 기능이 없어 실제 시스템 UI·headset·물리 청감은 사용자 검수로 남긴다.
 
-첫 integration 검사에서 Runner에 Swift DEBUG 조건이 빠진 점을 수정했다. 기존 native 회귀는 play 요청 직후의 interruption 경합과 엔진 이벤트 전달 지연을 드러냈다. 실제 player.playing 확인과 명령 이후의 엔진 snapshot 반영을 보완하고 native 검사를 재실행해 통과했다. QA inspect/testCommand는 Swift DEBUG에서만 빌드하고 Release 바이너리 제외 여부를 archive 검사에서 확인한다.
+첫 integration 검사에서 Runner에 Swift DEBUG 조건이 빠진 점을 수정했다. 기존 native 회귀는 play 요청 직후의 interruption 경합과 엔진 이벤트 전달 지연을 드러냈다. 실제 player.playing 확인과 명령 이후의 엔진 snapshot 반영을 보완하고 native 검사를 재실행해 통과했다. QA inspect/testCommand는 Swift DEBUG에서만 빌드한다. Release archive에 시스템 미디어 브리지 문자열이 포함되고 testCommand는 없음을 바이너리 검사로 확인했다.
 
 화면 계약 검사는 클래식 계획 패널의 이전 callback 누락을 발견했다. 해당 adapter와 진단 busy 상태 전달을 보완하고 두 화면 integration을 재실행해 통과했다. 이는 실제 스토어 이미지 촬영·검수 결과가 아니다.
 
@@ -55,7 +57,7 @@ flutter test integration_test/audio_playback_integration_test.dart -d <QA simula
 python3 tool/run_ios_background_audio_qa.py --device <QA simulator> --output /tmp/play-media-qa
 ```
 
-제품 commit·서명·IPA 해시와 Apple 처리 결과는 [내부 TestFlight 기록](classical-local-library-testflight-internal-2026-10-30.md)에 확인 후 추가한다. 기존 빌드 1·2는 보존하며 사용자 iPhone Xs는 [물리 점검표](classical-local-library-physical-device-checklist.md)의 build 3 절차를 사용한다. 로컬 검증과 원격 CI를 구분하며 CI 결과는 수집하지 않았다.
+제품 소스는 `066e36e55831856100fae3050d5050b47e62f597`이다. 서명·IPA 해시와 Apple의 VALID/INTERNAL_ONLY, 기존 그룹 연결 후 IN_BETA_TESTING은 [내부 TestFlight 기록](classical-local-library-testflight-internal-2026-10-30.md)에 기록했다. 그룹의 빌드 1·2·3과 내부 테스터 1명 접근을 확인했다. 사용자 iPhone Xs는 [물리 점검표](classical-local-library-physical-device-checklist.md)의 build 3 절차를 사용한다. 로컬 검증과 원격 CI를 구분하며 CI 결과는 수집하지 않았다.
 
 ## 공식 자료 확인 — 2026-10-30
 
