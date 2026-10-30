@@ -5183,10 +5183,10 @@ setlist=$setlistLabel
     final pageCount = _pdfController.isReady
         ? _pdfController.pageCount
         : (_pageCount ?? 1);
-    await showModalBottomSheet<void>(
+    await showDdiroriSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => _AutoScrollSheet(
+      title: '자동 스크롤',
+      child: _AutoScrollSheet(
         initialSettings: score.autoScrollSettings,
         rehearsalMarks: score.pageSettings.rehearsalMarks,
         metronomeBpm: widget.controller.metronomeSettings.bpm,
@@ -12935,588 +12935,336 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = DdiroriStyle.of(context);
-    final gap = style.gap;
+    final currentPage = widget.currentPage.clamp(1, _safePageCount).toInt();
+    final progress = widget.progress.clamp(0.0, 1.0).toDouble();
     final durationSliderValue = _settings.durationSeconds
         .clamp(30, 900)
         .toDouble();
-    final progress = widget.progress.clamp(0.0, 1.0).toDouble();
-    final cueOptions = <int>{0, 3, 5, 10, _settings.cueSeconds}.toList()
-      ..sort();
-    final currentPage = widget.currentPage.clamp(1, _safePageCount).toInt();
-    final hasCurrentPause = _settings.pausePageNumbers.contains(currentPage);
     final currentPageDuration = _settings.pageDurations[currentPage] ?? 60;
     final hasCurrentPageDuration = _settings.pageDurations.containsKey(
       currentPage,
     );
+    final hasCurrentPause = _settings.pausePageNumbers.contains(currentPage);
+    final cueOptions = <int>{0, 3, 5, 10, _settings.cueSeconds}.toList()
+      ..sort();
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DdiroriPageHeader(
-                title: '자동 스크롤',
-                subtitle: '세로 보기에서 연주 흐름에 맞춰 악보를 이동합니다.',
-                leading: Icon(
-                  widget.isAutoScrolling
-                      ? widget.isPaused
-                            ? Icons.play_circle_outline
-                            : Icons.pause_circle_outline
-                      : Icons.play_circle_outline,
-                ),
-                actions: [
-                  if (widget.isAutoScrolling)
-                    DdiroriButton(
-                      kind: DdiroriButtonKind.secondary,
-                      label: widget.isPaused ? '재개' : '일시정지',
-                      onPressed: widget.isPaused
-                          ? widget.onResume
-                          : widget.onPause,
-                      icon: widget.isPaused
-                          ? Icons.play_arrow
-                          : Icons.pause_outlined,
+    return DdiroriStack(
+      children: [
+        const DdiroriBanner(message: '세로 보기에서 연주 흐름에 맞춰 악보를 이동합니다.'),
+        DdiroriAdaptiveActions(
+          children: [
+            if (widget.isAutoScrolling)
+              DdiroriButton(
+                kind: DdiroriButtonKind.secondary,
+                label: widget.isPaused ? '재개' : '일시정지',
+                onPressed: widget.isPaused ? widget.onResume : widget.onPause,
+                icon: widget.isPaused ? Icons.play_arrow : Icons.pause_outlined,
+              ),
+            DdiroriButton(
+              label: widget.isAutoScrolling ? '정지' : '시작',
+              onPressed: () async {
+                if (widget.isAutoScrolling) {
+                  widget.onStop();
+                  return;
+                }
+                await widget.onStart(_settings);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              icon: widget.isAutoScrolling ? Icons.stop : Icons.play_arrow,
+            ),
+          ],
+        ),
+        if (widget.isAutoScrolling) ...[
+          LinearProgressIndicator(value: progress),
+          DdiroriStatusBadge(
+            label:
+                '${widget.isPaused ? '일시정지 · ' : ''}진행률 ${(progress * 100).round()}%',
+          ),
+        ],
+        DdiroriSection(
+          title: '연주 시간',
+          children: [
+            DdiroriSettingsRow(
+              title: '연주 시간 ${_durationLabel(_settings.durationSeconds)}',
+              control: DdiroriStack(
+                inline: true,
+                children: [
+                  DdiroriIconButton(
+                    label: '느리게',
+                    icon: Icons.keyboard_arrow_down,
+                    onPressed: () => _setSettings(
+                      _settings.copyWith(
+                        durationSeconds: _settings.durationSeconds + 30,
+                      ),
                     ),
-                  DdiroriButton(
-                    label: widget.isAutoScrolling ? '정지' : '시작',
-                    onPressed: () async {
-                      if (widget.isAutoScrolling) {
-                        widget.onStop();
-                        return;
-                      }
-                      await widget.onStart(_settings);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    icon: widget.isAutoScrolling
-                        ? Icons.stop
-                        : Icons.play_arrow,
+                  ),
+                  DdiroriIconButton(
+                    label: '빠르게',
+                    icon: Icons.keyboard_arrow_up,
+                    onPressed: () => _setSettings(
+                      _settings.copyWith(
+                        durationSeconds: _settings.durationSeconds - 30,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              SizedBox(height: gap * 2),
-              if (widget.isAutoScrolling) ...[
-                LinearProgressIndicator(value: progress),
-                const SizedBox(height: 8),
-                Text(
-                  widget.isPaused
-                      ? '일시정지 · 진행률 ${(progress * 100).round()}%'
-                      : '진행률 ${(progress * 100).round()}%',
-                  style: theme.textTheme.labelMedium,
-                ),
-                const SizedBox(height: 16),
+            ),
+            Slider(
+              value: durationSliderValue,
+              min: 30,
+              max: 900,
+              divisions: 29,
+              label: _durationLabel(durationSliderValue.round()),
+              semanticFormatterCallback: (value) =>
+                  _durationLabel(value.round()),
+              onChanged: (value) => _setSettings(
+                _settings.copyWith(durationSeconds: (value / 30).round() * 30),
+              ),
+            ),
+            DdiroriStack(
+              inline: true,
+              children: [
+                for (final beatsPerPage in const <int>[16, 32, 64])
+                  DdiroriButton(
+                    kind: DdiroriButtonKind.secondary,
+                    icon: Icons.music_note,
+                    label: '${widget.metronomeBpm} BPM · $beatsPerPage박/쪽',
+                    onPressed: () => _applyBpmPreset(beatsPerPage),
+                  ),
               ],
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.timer_outlined),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '연주 시간 ${_durationLabel(_settings.durationSeconds)}',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '느리게',
-                            onPressed: () => _setSettings(
-                              _settings.copyWith(
-                                durationSeconds: _settings.durationSeconds + 30,
-                              ),
-                            ),
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                          ),
-                          IconButton(
-                            tooltip: '빠르게',
-                            onPressed: () => _setSettings(
-                              _settings.copyWith(
-                                durationSeconds: _settings.durationSeconds - 30,
-                              ),
-                            ),
-                            icon: const Icon(Icons.keyboard_arrow_up),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: durationSliderValue,
-                        min: 30,
-                        max: 900,
-                        divisions: 29,
-                        label: _durationLabel(durationSliderValue.round()),
-                        onChanged: (value) => _setSettings(
-                          _settings.copyWith(
-                            durationSeconds: (value / 30).round() * 30,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final beatsPerPage in const <int>[16, 32, 64])
-                            ActionChip(
-                              avatar: const Icon(Icons.music_note, size: 18),
-                              label: Text(
-                                '${widget.metronomeBpm} BPM · $beatsPerPage박/쪽',
-                              ),
-                              onPressed: () => _applyBpmPreset(beatsPerPage),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.speed_outlined),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              hasCurrentPageDuration
-                                  ? '현재 $currentPage쪽 ${_durationLabel(currentPageDuration)}'
-                                  : '현재 $currentPage쪽 기본 속도',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '현재 쪽 빠르게',
-                            onPressed: () => _setCurrentPageDuration(
-                              currentPage,
-                              currentPageDuration - 10,
-                            ),
-                            icon: const Icon(Icons.keyboard_arrow_up),
-                          ),
-                          IconButton(
-                            tooltip: '현재 쪽 느리게',
-                            onPressed: () => _setCurrentPageDuration(
-                              currentPage,
-                              currentPageDuration + 10,
-                            ),
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                          ),
-                          IconButton(
-                            tooltip: '현재 쪽 기본 속도',
-                            onPressed: hasCurrentPageDuration
-                                ? () => _clearCurrentPageDuration(currentPage)
-                                : null,
-                            icon: const Icon(Icons.restart_alt),
-                          ),
-                        ],
-                      ),
-                      if (_settings.pageDurations.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final entry in _settings.pageDurations.entries)
-                              Chip(
-                                avatar: const Icon(Icons.timer, size: 18),
-                                label: Text(
-                                  '${entry.key}쪽 ${_durationLabel(entry.value)}',
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.timer_outlined),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _settings.cueSeconds == 0
-                                  ? '시작 큐 없음'
-                                  : '시작 큐 ${_settings.cueSeconds}초',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SegmentedButton<int>(
-                          showSelectedIcon: false,
-                          segments: cueOptions
-                              .map(
-                                (seconds) => ButtonSegment<int>(
-                                  value: seconds,
-                                  label: Text('$seconds'),
-                                ),
-                              )
-                              .toList(growable: false),
-                          selected: <int>{_settings.cueSeconds},
-                          onSelectionChanged: (selection) => _setSettings(
-                            _settings.copyWith(cueSeconds: selection.single),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.vertical_align_top),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '시작 ${_settings.startPage}쪽',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '시작 페이지 감소',
-                            onPressed: _settings.startPage <= 1
-                                ? null
-                                : () => _setSettings(
-                                    _settings.copyWith(
-                                      startPage: _settings.startPage - 1,
-                                    ),
-                                  ),
-                            icon: const Icon(Icons.remove),
-                          ),
-                          IconButton(
-                            tooltip: '시작 페이지 증가',
-                            onPressed: _settings.startPage >= _safePageCount
-                                ? null
-                                : () => _setSettings(
-                                    _settings.copyWith(
-                                      startPage: _settings.startPage + 1,
-                                    ),
-                                  ),
-                            icon: const Icon(Icons.add),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.vertical_align_bottom),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '끝 ${_settings.endPage}쪽',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '끝 페이지 감소',
-                            onPressed: _settings.endPage <= _settings.startPage
-                                ? null
-                                : () => _setSettings(
-                                    _settings.copyWith(
-                                      endPage: _settings.endPage - 1,
-                                    ),
-                                  ),
-                            icon: const Icon(Icons.remove),
-                          ),
-                          IconButton(
-                            tooltip: '끝 페이지 증가',
-                            onPressed: _settings.endPage >= _safePageCount
-                                ? null
-                                : () => _setSettings(
-                                    _settings.copyWith(
-                                      endPage: _settings.endPage + 1,
-                                    ),
-                                  ),
-                            icon: const Icon(Icons.add),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () => _setSettings(
-                            _settings.copyWith(startPage: widget.currentPage),
-                          ),
-                          icon: const Icon(Icons.my_location),
-                          label: Text('현재 ${widget.currentPage}쪽부터'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.pause_circle_outline),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Pause marker',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () => _togglePausePage(currentPage),
-                              icon: Icon(
-                                hasCurrentPause ? Icons.remove : Icons.add,
-                              ),
-                              label: Text(
-                                hasCurrentPause
-                                    ? '현재 쪽 제거'
-                                    : '현재 $currentPage쪽 추가',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_settings.pausePageNumbers.isEmpty)
-                        Text(
-                          '등록된 pause marker가 없습니다.',
-                          style: theme.textTheme.bodySmall,
-                        )
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final page in _settings.pausePageNumbers)
-                              InputChip(
-                                avatar: const Icon(Icons.pause, size: 18),
-                                label: Text('$page쪽'),
-                                onDeleted: () => _removePausePage(page),
-                              ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.repeat),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  '반복 구간',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: _addRepeatSection,
-                              icon: const Icon(Icons.add),
-                              label: Text(
-                                '${_settings.startPage}-${_settings.endPage}쪽',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_settings.repeatSections.isEmpty)
-                        Text(
-                          '등록된 반복 구간이 없습니다.',
-                          style: theme.textTheme.bodySmall,
-                        )
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (
-                              var index = 0;
-                              index < _settings.repeatSections.length;
-                              index += 1
-                            )
-                              InputChip(
-                                avatar: const Icon(Icons.repeat, size: 18),
-                                label: Text(
-                                  '${_settings.repeatSections[index].startPage}-'
-                                  '${_settings.repeatSections[index].endPage}쪽'
-                                  ' x${_settings.repeatSections[index].repeatCount + 1}',
-                                ),
-                                onDeleted: () => _removeRepeatSection(index),
-                              ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.flag_outlined),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Cue point',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: widget.rehearsalMarks.isEmpty
-                                  ? null
-                                  : _importRehearsalCuePoints,
-                              icon: const Icon(Icons.playlist_add),
-                              label: const Text('리허설 mark 가져오기'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_settings.cuePoints.isEmpty)
-                        Text(
-                          '등록된 cue point가 없습니다.',
-                          style: theme.textTheme.bodySmall,
-                        )
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final cue in _settings.cuePoints)
-                              InputChip(
-                                avatar: const Icon(Icons.flag, size: 18),
-                                label: Text(
-                                  cue.label.trim().isEmpty
-                                      ? '${cue.pageNumber}쪽'
-                                      : '${cue.pageNumber}쪽 ${cue.label}',
-                                ),
-                                onDeleted: () => _removeCuePoint(cue.key),
-                              ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '세로 스크롤 보기에서 일정한 속도로 움직입니다. 일시정지 후 이어갈 수 있고, '
-                '페이지 넘김이나 필기 시작 같은 수동 조작을 하면 자동 스크롤은 멈춥니다.',
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
+        DdiroriSection(
+          title: '쪽별 속도',
+          children: [
+            DdiroriSettingsRow(
+              title: hasCurrentPageDuration
+                  ? '현재 $currentPage쪽 ${_durationLabel(currentPageDuration)}'
+                  : '현재 $currentPage쪽 기본 속도',
+              control: DdiroriStack(
+                inline: true,
+                children: [
+                  DdiroriIconButton(
+                    label: '현재 쪽 빠르게',
+                    icon: Icons.keyboard_arrow_up,
+                    onPressed: () => _setCurrentPageDuration(
+                      currentPage,
+                      currentPageDuration - 10,
+                    ),
+                  ),
+                  DdiroriIconButton(
+                    label: '현재 쪽 느리게',
+                    icon: Icons.keyboard_arrow_down,
+                    onPressed: () => _setCurrentPageDuration(
+                      currentPage,
+                      currentPageDuration + 10,
+                    ),
+                  ),
+                  DdiroriIconButton(
+                    label: '현재 쪽 기본 속도',
+                    icon: Icons.restart_alt,
+                    onPressed: hasCurrentPageDuration
+                        ? () => _clearCurrentPageDuration(currentPage)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+            if (_settings.pageDurations.isNotEmpty)
+              DdiroriStack(
+                inline: true,
+                children: [
+                  for (final entry in _settings.pageDurations.entries)
+                    DdiroriStatusBadge(
+                      label: '${entry.key}쪽 ${_durationLabel(entry.value)}',
+                    ),
+                ],
+              ),
+          ],
+        ),
+        DdiroriSection(
+          title: '시작 큐',
+          children: [
+            Text(
+              _settings.cueSeconds == 0
+                  ? '시작 큐 없음'
+                  : '시작 큐 ${_settings.cueSeconds}초',
+            ),
+            DdiroriChoices<int>(
+              options: {for (final seconds in cueOptions) seconds: '$seconds초'},
+              selected: {_settings.cueSeconds},
+              onChanged: (selection) => _setSettings(
+                _settings.copyWith(cueSeconds: selection.single),
+              ),
+            ),
+          ],
+        ),
+        DdiroriSection(
+          title: '페이지 범위',
+          children: [
+            DdiroriSettingsRow(
+              title: '시작 ${_settings.startPage}쪽',
+              control: DdiroriStack(
+                inline: true,
+                children: [
+                  DdiroriIconButton(
+                    label: '시작 페이지 감소',
+                    icon: Icons.remove,
+                    onPressed: _settings.startPage <= 1
+                        ? null
+                        : () => _setSettings(
+                            _settings.copyWith(
+                              startPage: _settings.startPage - 1,
+                            ),
+                          ),
+                  ),
+                  DdiroriIconButton(
+                    label: '시작 페이지 증가',
+                    icon: Icons.add,
+                    onPressed: _settings.startPage >= _safePageCount
+                        ? null
+                        : () => _setSettings(
+                            _settings.copyWith(
+                              startPage: _settings.startPage + 1,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            DdiroriSettingsRow(
+              title: '끝 ${_settings.endPage}쪽',
+              control: DdiroriStack(
+                inline: true,
+                children: [
+                  DdiroriIconButton(
+                    label: '끝 페이지 감소',
+                    icon: Icons.remove,
+                    onPressed: _settings.endPage <= _settings.startPage
+                        ? null
+                        : () => _setSettings(
+                            _settings.copyWith(endPage: _settings.endPage - 1),
+                          ),
+                  ),
+                  DdiroriIconButton(
+                    label: '끝 페이지 증가',
+                    icon: Icons.add,
+                    onPressed: _settings.endPage >= _safePageCount
+                        ? null
+                        : () => _setSettings(
+                            _settings.copyWith(endPage: _settings.endPage + 1),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            DdiroriButton(
+              label: '현재 ${widget.currentPage}쪽부터',
+              icon: Icons.my_location,
+              kind: DdiroriButtonKind.secondary,
+              onPressed: () => _setSettings(
+                _settings.copyWith(startPage: widget.currentPage),
+              ),
+            ),
+          ],
+        ),
+        DdiroriSection(
+          title: 'Pause marker',
+          children: [
+            DdiroriButton(
+              label: hasCurrentPause ? '현재 쪽 제거' : '현재 $currentPage쪽 추가',
+              icon: hasCurrentPause ? Icons.remove : Icons.add,
+              kind: DdiroriButtonKind.secondary,
+              onPressed: () => _togglePausePage(currentPage),
+            ),
+            if (_settings.pausePageNumbers.isEmpty)
+              const Text('등록된 pause marker가 없습니다.')
+            else
+              DdiroriStack(
+                inline: true,
+                children: [
+                  for (final page in _settings.pausePageNumbers)
+                    InputChip(
+                      avatar: const Icon(Icons.pause, size: 18),
+                      label: Text('$page쪽'),
+                      onDeleted: () => _removePausePage(page),
+                    ),
+                ],
+              ),
+          ],
+        ),
+        DdiroriSection(
+          title: '반복 구간',
+          children: [
+            DdiroriButton(
+              label: '${_settings.startPage}-${_settings.endPage}쪽',
+              icon: Icons.add,
+              kind: DdiroriButtonKind.secondary,
+              onPressed: _addRepeatSection,
+            ),
+            if (_settings.repeatSections.isEmpty)
+              const Text('등록된 반복 구간이 없습니다.')
+            else
+              DdiroriStack(
+                inline: true,
+                children: [
+                  for (
+                    var index = 0;
+                    index < _settings.repeatSections.length;
+                    index++
+                  )
+                    InputChip(
+                      avatar: const Icon(Icons.repeat, size: 18),
+                      label: Text(
+                        '${_settings.repeatSections[index].startPage}-'
+                        '${_settings.repeatSections[index].endPage}쪽'
+                        ' x${_settings.repeatSections[index].repeatCount + 1}',
+                      ),
+                      onDeleted: () => _removeRepeatSection(index),
+                    ),
+                ],
+              ),
+          ],
+        ),
+        DdiroriSection(
+          title: 'Cue point',
+          children: [
+            DdiroriButton(
+              label: '리허설 mark 가져오기',
+              icon: Icons.playlist_add,
+              kind: DdiroriButtonKind.secondary,
+              onPressed: widget.rehearsalMarks.isEmpty
+                  ? null
+                  : _importRehearsalCuePoints,
+            ),
+            if (_settings.cuePoints.isEmpty)
+              const Text('등록된 cue point가 없습니다.')
+            else
+              DdiroriStack(
+                inline: true,
+                children: [
+                  for (final cue in _settings.cuePoints)
+                    InputChip(
+                      avatar: const Icon(Icons.flag, size: 18),
+                      label: Text(
+                        cue.label.trim().isEmpty
+                            ? '${cue.pageNumber}쪽'
+                            : '${cue.pageNumber}쪽 ${cue.label}',
+                      ),
+                      onDeleted: () => _removeCuePoint(cue.key),
+                    ),
+                ],
+              ),
+          ],
+        ),
+        const DdiroriBanner(
+          message:
+              '세로 스크롤 보기에서 일정한 속도로 움직입니다. 일시정지 후 이어갈 수 있고, '
+              '페이지 넘김이나 필기 시작 같은 수동 조작을 하면 자동 스크롤은 멈춥니다.',
+        ),
+      ],
     );
   }
 }

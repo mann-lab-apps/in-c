@@ -1058,29 +1058,66 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('real PDF auto scroll keeps Score range settings in Ddirori UI', (
-    t,
-  ) async {
-    final c = await openPdf(t, scale: 2);
-    final originalDocument = pdf(t).document;
+  for (final viewport in <({double width, double height, bool dark})>[
+    (width: 390, height: 1000, dark: false),
+    (width: 840, height: 1000, dark: true),
+    (width: 840, height: 390, dark: false),
+  ]) {
+    testWidgets('auto scroll sheet preserves settings and PDF at $viewport', (
+      t,
+    ) async {
+      final c = await openPdf(
+        t,
+        scale: 2,
+        width: viewport.width,
+        height: viewport.height,
+        dark: viewport.dark,
+      );
+      final originalDocument = pdf(t).document;
+      final originalPage = pdf(t).pageNumber;
 
-    await command(t, '연습');
-    await command(t, '자동 스크롤');
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
 
-    expect(find.text('자동 스크롤'), findsOneWidget);
-    expect(find.byType(DdiroriPageHeader), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is DdiroriButton && widget.label == '시작',
-      ),
-      findsOneWidget,
-    );
-    expect(find.textContaining('연주 시간'), findsOneWidget);
-    expect(find.textContaining('시작 1쪽'), findsOneWidget);
-    expect(pdf(t).document, same(originalDocument));
-    expect(c.scoreById('pilot-0').autoScrollSettings.startPage, 1);
-    expect(t.takeException(), isNull);
-  });
+      expect(find.text('자동 스크롤'), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(DdiroriBanner), findsWidgets);
+      expect(find.byType(DdiroriPageHeader), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is DdiroriButton && widget.label == '시작',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('연주 시간 4분'), findsOneWidget);
+      expect(find.textContaining('시작 1쪽'), findsOneWidget);
+      expect(pdf(t).document, same(originalDocument));
+      expect(c.scoreById('pilot-0').autoScrollSettings.startPage, 1);
+      expect(t.takeException(), isNull);
+
+      await t.ensureVisible(find.byTooltip('끝 페이지 감소'));
+      await t.tap(find.byTooltip('끝 페이지 감소'));
+      await t.pumpAndSettle();
+      expect(c.scoreById('pilot-0').autoScrollSettings.endPage, 2);
+      expect((await c.store.loadScores()).first.autoScrollSettings.endPage, 2);
+
+      // Lower settings remain reachable through the sheet's single scroll view.
+      await t.ensureVisible(find.text('등록된 cue point가 없습니다.'));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      expect(pdf(t).document, same(originalDocument));
+      expect(pdf(t).pageNumber, originalPage);
+
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      expect(find.text('끝 2쪽'), findsOneWidget);
+      expect(c.scoreById('pilot-0').autoScrollSettings.endPage, 2);
+      expect(pdf(t).document, same(originalDocument));
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets('real PDF tuner keeps the microphone route in Ddirori UI', (
     t,

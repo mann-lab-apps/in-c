@@ -108,3 +108,8 @@ Play로 연결하는 콘텐츠는 안정적 파일/작품 식별 매핑이 확�
 - 연결 음원 패널은 공통 `showDdiroriSheet`, `DdiroriItem`, `DdiroriStatusBadge`, `DdiroriBanner`, `DdiroriButton`으로 파일명·재생 상태·오류·재생/정지를 구분한다. 파일 경로를 기본 화면에 노출하지 않으며, `SheetAudioPlayer`의 native channel 수명·codec·출력 품질은 Score와 Device QA가 소유한다.
 
 [실제 앱 테스트](../../../../../apps/in_c_sheet/test/adoption_pilot_test.dart), [검수·이행 기록](../../adoption-pilot.md). 카탈로그 예제를 실제 PDF 렌더러 검증으로 대신하지 않는다.
+
+## 2026-10-30 연습 도구 후속 적용
+
+- 자동 스크롤은 공통 `showDdiroriSheet`의 단일 스크롤과 `DdiroriSection`, `DdiroriSettingsRow`, `DdiroriIconButton`, `DdiroriChoices`, `DdiroriButton`으로 설정과 실행을 구분한다. 기존 페이지 범위·쪽별 속도·cue·pause·반복 저장과 스크롤 엔진은 Score가 소유한다.
+- [실제 PDF 검증과 적용 기록](../../product-design-r3/returns/score-viewer-tools-20261030.md).
