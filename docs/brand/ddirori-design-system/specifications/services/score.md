@@ -2,6 +2,10 @@
 
 소스: [main.dart](../../../../../apps/in_c_sheet/lib/main.dart), [제품 README](../../../../../apps/in_c_sheet/README.md). Flutter/iOS·Android. 현재 공통 테마·검색·상태와 악보함 목록/필터/빠른 접근을 도입했다. 아래 확대된 전용 facade는 **후속 설계**이며 실제 적용 범위는 다음과 같다. private 위젯의 기존 모델·행동을 유지하며 adapter로 점진 전환한다. 참조 공통: C04/C08/C11/C19/C24/C27/C36~C39.
 
+## 자동 스크롤 설정의 요청 수명
+
+앱 adapter가 실행·일시정지·진행률·큐의 실제 상태를 공통 sheet에 전달한다. 저장은 이 설정 창 안에서 순차 실행하며 실패한 입력을 유지하고 재시도한다. 시작은 대기 중인 설정 저장 뒤 실행하고 중복 시작을 막는다. 닫힌 창·종료된 viewer·교체된 문서의 늦은 결과는 새 UI나 자동 스크롤을 시작하지 않는다. 이미 전송한 native 이동·파일 쓰기의 취소나 다른 저장 경로까지의 전역 동시성 보장을 뜻하지 않는다.
+
 ## 표시 API와 상태 소유권
 
 아래는 목표 API이며 현재 공개 클래스가 아니다. Dart record/enum으로 앱 내부에 둔다. `id`는 String, page는 int(1-based), counts는 int?, duration은 Duration?, flags는 bool. 모든 callback은 void이며 비동기 결과 상태는 controller의 다음 snapshot으로 반영한다. 공통 패키지로 SheetScore 타입을 이동하지 않는다.

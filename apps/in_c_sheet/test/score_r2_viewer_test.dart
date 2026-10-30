@@ -41,6 +41,24 @@ class NotesWriteStore extends SheetLibraryStore {
   }
 }
 
+class AutoScrollWriteStore extends SheetLibraryStore {
+  Completer<void>? nextGate;
+  bool failNext = false;
+  final List<List<SheetScore>> attempts = [];
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    attempts.add(scores);
+    final gate = nextGate;
+    final fail = failNext;
+    nextGate = null;
+    failNext = false;
+    if (gate != null) await gate.future;
+    if (fail) throw const FileSystemException('auto scroll fixture failure');
+    await super.saveScores(scores);
+  }
+}
+
 Future<void> openNotes(WidgetTester t) async {
   await command(t, '모든 도구');
   if (compactViewerOptionsButton().evaluate().isNotEmpty) {
@@ -241,6 +259,19 @@ Future<void> command(WidgetTester t, String label) async {
   );
   await t.tap(finder);
   await t.pumpAndSettle();
+}
+
+// Running auto scroll schedules a frame every 16ms, so settling is not a
+// meaningful completion condition. Use bounded frames while operating it.
+Future<void> liveCommand(WidgetTester t, String label) async {
+  final button = find.byWidgetPredicate(
+    (w) => w is DdiroriButton && w.label == label,
+  );
+  await t.ensureVisible(button);
+  await t.pump(const Duration(milliseconds: 400));
+  expect(t.widget<DdiroriButton>(button).onPressed, isNotNull);
+  await t.tap(button);
+  await t.pump(const Duration(milliseconds: 400));
 }
 
 Finder compactViewerOptionsButton() => find.byWidgetPredicate(
@@ -2144,6 +2175,294 @@ void main() {
     expect(pdf(t).document, same(document));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets(
+    'auto scroll controls follow pause resume and stop in one sheet',
+    (t) async {
+      await openPdf(t);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      await liveCommand(t, '시작');
+      await waitForNativePdf(t, 3);
+      for (var i = 0; i < 8; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(BottomSheet), findsNothing);
+      await liveCommand(t, '연습');
+      await liveCommand(t, '자동 스크롤');
+      await liveCommand(t, '일시정지');
+      expect(
+        find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '재개'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('일시정지 · 진행률'), findsOneWidget);
+      await liveCommand(t, '재개');
+      expect(
+        find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '일시정지'),
+        findsOneWidget,
+      );
+      await liveCommand(t, '정지');
+      await t.pumpAndSettle();
+      expect(
+        find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '시작'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('진행률'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'auto scroll delayed start ignores closed viewer (failure=$fails)',
+      (t) async {
+        final store = NotesWriteStore();
+        await openPdf(t, store: store);
+        await command(t, '연습');
+        await command(t, '자동 스크롤');
+        final gate = Completer<void>();
+        store.gate = gate;
+        store.failWrites = fails;
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+        await liveCommand(t, '시작');
+        final navigator = t.state<NavigatorState>(find.byType(Navigator).first);
+        navigator.pop();
+        await t.pumpAndSettle();
+        navigator.pop();
+        await t.pumpAndSettle();
+        expect(find.byType(SheetViewerScreen), findsNothing);
+        gate.complete();
+        await t.pump(const Duration(milliseconds: 500));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('auto scroll start failure keeps settings and offers retry', (
+    t,
+  ) async {
+    final store = NotesWriteStore();
+    final c = await openPdf(t, store: store);
+    await command(t, '연습');
+    await command(t, '자동 스크롤');
+    await t.tap(find.byTooltip('느리게'));
+    await t.pumpAndSettle();
+    expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 270);
+    store.failWrites = true;
+    await liveCommand(t, '시작');
+    expect(t.takeException(), isNull);
+    expect(find.text('자동 스크롤을 시작하지 못했습니다. 다시 시도해 주세요.'), findsOneWidget);
+    expect(find.text('연주 시간 4분 30초'), findsOneWidget);
+    store.failWrites = false;
+    await liveCommand(t, '시작');
+    await waitForNativePdf(t, 3);
+    for (var i = 0; i < 8; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(BottomSheet), findsNothing);
+    await liveCommand(t, '연습');
+    await liveCommand(t, '자동 스크롤');
+    await liveCommand(t, '정지');
+    await t.pumpAndSettle();
+    expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 270);
+    expect(t.takeException(), isNull);
+  });
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'auto scroll settings serialize rapid edits (older failure=$fails)',
+      (t) async {
+        final store = AutoScrollWriteStore();
+        final c = await openPdf(t, store: store);
+        await command(t, '연습');
+        await command(t, '자동 스크롤');
+        final gate = Completer<void>();
+        store.nextGate = gate;
+        store.failNext = fails;
+        store.attempts.clear();
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+        await t.tap(find.byTooltip('느리게'));
+        await t.pump();
+        await t.tap(find.byTooltip('빠르게'));
+        await t.pump();
+        expect(store.attempts.length, 1);
+        expect(find.text('연주 시간 4분'), findsOneWidget);
+        gate.complete();
+        await t.pumpAndSettle();
+        expect(store.attempts.length, 2);
+        expect(store.attempts[0].first.autoScrollSettings.durationSeconds, 270);
+        expect(store.attempts[1].first.autoScrollSettings.durationSeconds, 240);
+        expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 240);
+        expect(
+          (await store.loadScores()).first.autoScrollSettings.durationSeconds,
+          240,
+        );
+        expect(find.textContaining('설정을 저장하지 못했습니다.'), findsNothing);
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'auto scroll settings failure preserves draft and retries on start',
+    (t) async {
+      final store = AutoScrollWriteStore();
+      final c = await openPdf(t, store: store);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      store.failNext = true;
+      await t.tap(find.byTooltip('느리게'));
+      await t.pumpAndSettle();
+      expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 240);
+      expect(find.text('연주 시간 4분 30초'), findsOneWidget);
+      expect(find.textContaining('설정을 저장하지 못했습니다.'), findsOneWidget);
+      await liveCommand(t, '시작');
+      await waitForNativePdf(t, 3);
+      for (var i = 0; i < 8; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 270);
+      await liveCommand(t, '연습');
+      await liveCommand(t, '자동 스크롤');
+      await liveCommand(t, '정지');
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'auto scroll newest settings failure stays visible after older success',
+    (t) async {
+      final store = AutoScrollWriteStore();
+      final c = await openPdf(t, store: store);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      await t.tap(find.byTooltip('느리게'));
+      await t.pumpAndSettle();
+      store.failNext = true;
+      await t.tap(find.byTooltip('빠르게'));
+      await t.pumpAndSettle();
+      expect(find.text('연주 시간 4분'), findsOneWidget);
+      expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 270);
+      expect(find.textContaining('설정을 저장하지 못했습니다.'), findsOneWidget);
+      await t.tap(find.byTooltip('느리게'));
+      await t.pumpAndSettle();
+      expect(find.textContaining('설정을 저장하지 못했습니다.'), findsNothing);
+      expect(c.scoreById('pilot-0').autoScrollSettings.durationSeconds, 270);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'auto scroll closed sheet cannot start or close its replacement (failure=$fails)',
+      (t) async {
+        final store = AutoScrollWriteStore();
+        await openPdf(t, store: store);
+        final document = pdf(t).document;
+        await command(t, '연습');
+        await command(t, '자동 스크롤');
+        final gate = Completer<void>();
+        store.nextGate = gate;
+        store.failNext = fails;
+        store.attempts.clear();
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+        await liveCommand(t, '시작');
+        await liveCommand(t, '시작');
+        expect(store.attempts.length, 1);
+        t.state<NavigatorState>(find.byType(Navigator).first).pop();
+        await t.pumpAndSettle();
+        await command(t, '연습');
+        await command(t, '자동 스크롤');
+        gate.complete();
+        await t.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+        expect(find.textContaining('진행률'), findsNothing);
+        expect(find.textContaining('시작하지 못했습니다.'), findsNothing);
+        expect(find.textContaining('자동 스크롤은 세로'), findsNothing);
+        expect(
+          find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '시작'),
+          findsOneWidget,
+        );
+        expect(pdf(t).document, same(document));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'auto scroll cue survives successful sheet close and can be cancelled',
+    (t) async {
+      await openPdf(t);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      await t.ensureVisible(find.text('10초'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('10초'));
+      await t.pumpAndSettle();
+      await liveCommand(t, '시작');
+      await waitForNativePdf(t, 3);
+      for (var i = 0; i < 6; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(BottomSheet), findsNothing);
+      await liveCommand(t, '연습');
+      await liveCommand(t, '자동 스크롤');
+      expect(find.textContaining('시작까지'), findsOneWidget);
+      await liveCommand(t, '정지');
+      await t.pumpAndSettle();
+      expect(find.textContaining('시작까지'), findsNothing);
+      expect(
+        find.byWidgetPredicate((w) => w is DdiroriButton && w.label == '시작'),
+        findsOneWidget,
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'auto scroll stale start failure cannot act on replacement document',
+    (t) async {
+      final store = AutoScrollWriteStore();
+      final c = await openPdf(t, store: store);
+      await command(t, '연습');
+      await command(t, '자동 스크롤');
+      final gate = Completer<void>();
+      store.nextGate = gate;
+      store.failNext = true;
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await liveCommand(t, '시작');
+      final replacement = c
+          .scoreById('pilot-0')
+          .copyWith(filePath: '/missing-auto-scroll-fixture.pdf');
+      await store.saveScores([replacement]);
+      await c.load();
+      await waitForMissingPdf(t);
+      for (var i = 0; i < 5; i++) {
+        await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 25)),
+        );
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('악보가 바뀌었습니다. 닫은 뒤 다시 열어 주세요.'), findsOneWidget);
+      gate.complete();
+      await t.pumpAndSettle();
+      expect(c.scoreById('pilot-0').filePath, replacement.filePath);
+      expect(find.textContaining('자동 스크롤은 세로'), findsNothing);
+      expect(find.textContaining('시작하지 못했습니다.'), findsNothing);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets('viewer keyboard page turn works while tools own focus', (
     t,

@@ -4435,6 +4435,14 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   bool _isAutoScrolling = false;
   bool _isAutoScrollPaused = false;
   bool _isAutoScrollTicking = false;
+  int _autoScrollStartGeneration = 0;
+  final _autoScrollSheetState =
+      ValueNotifier<({bool running, bool paused, int percent, int? cue})>((
+        running: false,
+        paused: false,
+        percent: 0,
+        cue: null,
+      ));
   int? _autoScrollCueRemainingSeconds;
   int? _pageOrderCursor;
   DateTime? _autoScrollStartedAt;
@@ -4687,6 +4695,8 @@ setlist=$setlistLabel
   void dispose() {
     _autoScrollTimer?.cancel();
     _autoScrollCueTimer?.cancel();
+    _autoScrollStartGeneration++;
+    _autoScrollSheetState.dispose();
     _pageControlsTimer?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     widget.controller.removeListener(_handleLibraryChanged);
@@ -4705,6 +4715,10 @@ setlist=$setlistLabel
 
   void _handleLibraryChanged() {
     if (mounted) {
+      if (_viewerFileStatusPath != null &&
+          score.filePath != _viewerFileStatusPath) {
+        _stopAutoScroll(showMessage: false);
+      }
       setState(() {});
     }
   }
@@ -4732,6 +4746,7 @@ setlist=$setlistLabel
 
   Future<SheetViewerFileStatus> _viewerFileStatusFor(String path) {
     if (_viewerFileStatusPath != path || _viewerFileStatusFuture == null) {
+      _autoScrollStartGeneration++;
       _activePdfSource = null;
       _readyPdfSource = null;
       _viewerBuildIdentity = null;
@@ -5183,45 +5198,92 @@ setlist=$setlistLabel
     final pageCount = _pdfController.isReady
         ? _pdfController.pageCount
         : (_pageCount ?? 1);
-    await showDdiroriSheet<void>(
-      context: context,
-      title: '자동 스크롤',
-      child: _AutoScrollSheet(
-        initialSettings: score.autoScrollSettings,
-        rehearsalMarks: score.pageSettings.rehearsalMarks,
-        metronomeBpm: widget.controller.metronomeSettings.bpm,
-        currentPage: _pageNumber ?? score.lastPage,
-        pageCount: pageCount,
-        isAutoScrolling: _isAutoScrolling,
-        isPaused: _isAutoScrollPaused,
-        progress: _autoScrollProgress,
-        onSettingsChanged: (settings) =>
-            widget.controller.updateAutoScrollSettings(score, settings),
-        onStart: _startAutoScroll,
-        onPause: _pauseAutoScroll,
-        onResume: _resumeAutoScroll,
-        onStop: () => _stopAutoScroll(showMessage: true),
-      ),
-    );
-    if (mounted) {
+    final path = score.filePath;
+    final fileStatus = _viewerFileStatusFuture;
+    var open = true;
+    bool current() =>
+        mounted &&
+        open &&
+        score.filePath == path &&
+        identical(fileStatus, _viewerFileStatusFuture);
+    try {
+      await showDdiroriSheet<void>(
+        context: context,
+        title: '자동 스크롤',
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            _autoScrollSheetState,
+            widget.controller,
+          ]),
+          builder: (context, _) => !current()
+              ? const DdiroriBanner(message: '악보가 바뀌었습니다. 닫은 뒤 다시 열어 주세요.')
+              : _AutoScrollSheet(
+                  initialSettings: score.autoScrollSettings,
+                  rehearsalMarks: score.pageSettings.rehearsalMarks,
+                  metronomeBpm: widget.controller.metronomeSettings.bpm,
+                  currentPage: _pageNumber ?? score.lastPage,
+                  pageCount: pageCount,
+                  isAutoScrolling: _isAutoScrolling,
+                  isPaused: _isAutoScrollPaused,
+                  progress: _autoScrollProgress,
+                  isCurrent: current,
+                  cueRemaining: _autoScrollCueRemainingSeconds,
+                  onSettingsChanged: (settings) => widget.controller
+                      .updateAutoScrollSettings(score, settings),
+                  onStart: (settings) =>
+                      _startAutoScroll(settings, isCurrent: current),
+                  onPause: _pauseAutoScroll,
+                  onResume: _resumeAutoScroll,
+                  onStop: () => _stopAutoScroll(showMessage: true),
+                ),
+        ),
+      );
+    } finally {
+      open = false;
+    }
+    if (mounted && score.filePath == path) {
       _keyboardFocusNode.requestFocus();
     }
   }
 
-  Future<void> _startAutoScroll(SheetAutoScrollSettings settings) async {
+  void _publishAutoScrollState() {
+    if (!mounted) return;
+    _autoScrollSheetState.value = (
+      running: _isAutoScrolling,
+      paused: _isAutoScrollPaused,
+      percent: (_autoScrollProgress.clamp(0, 1) * 100).round(),
+      cue: _autoScrollCueRemainingSeconds,
+    );
+  }
+
+  Future<bool> _startAutoScroll(
+    SheetAutoScrollSettings settings, {
+    bool Function()? isCurrent,
+  }) async {
     if (!_pdfController.isReady) {
       _showSnackBar('PDF가 준비된 뒤 자동 스크롤을 시작할 수 있습니다.');
-      return;
+      return false;
     }
-
-    _autoScrollCueTimer?.cancel();
-    _autoScrollCueTimer = null;
-    await widget.controller.updateAutoScrollSettings(score, settings);
+    _stopAutoScroll(showMessage: false);
+    final generation = ++_autoScrollStartGeneration;
+    final path = score.filePath;
+    bool current() =>
+        mounted &&
+        generation == _autoScrollStartGeneration &&
+        score.filePath == path &&
+        (isCurrent?.call() ?? true);
+    try {
+      await widget.controller.updateAutoScrollSettings(score, settings);
+    } catch (_) {
+      if (!current()) return false;
+      rethrow;
+    }
+    if (!current()) return false;
     final currentPage = _pageNumber ?? score.lastPage;
     final pageCount = _pdfController.pageCount;
     if (score.pageSettings.hasCustomPageOrder) {
       _showSnackBar('반복 페이지 순서가 있는 곡은 자동 스크롤 대신 페달/페이지 넘김을 사용해주세요.');
-      return;
+      return false;
     }
     final plan = settings.plan(currentPage: currentPage, pageCount: pageCount);
     if (_displayMode != _SheetViewerDisplayMode.continuousVertical) {
@@ -5232,7 +5294,9 @@ setlist=$setlistLabel
       _pdfController.invalidate();
       _showSnackBar('자동 스크롤은 세로 스크롤 보기에서 실행합니다.');
       await Future<void>.delayed(const Duration(milliseconds: 16));
+      if (!current()) return false;
     }
+    if (!_pdfController.isReady) return false;
     if (_isAnnotationMode) {
       setState(() {
         _isAnnotationMode = false;
@@ -5241,14 +5305,20 @@ setlist=$setlistLabel
       });
     }
 
-    await _pdfController.goToPage(
-      pageNumber: score.pageSettings.closestVisiblePage(
-        fromPage: plan.startPage,
-        pageCount: pageCount,
-      ),
-      anchor: PdfPageAnchor.top,
-      duration: _pageTurnDuration,
-    );
+    try {
+      await _pdfController.goToPage(
+        pageNumber: score.pageSettings.closestVisiblePage(
+          fromPage: plan.startPage,
+          pageCount: pageCount,
+        ),
+        anchor: PdfPageAnchor.top,
+        duration: _pageTurnDuration,
+      );
+    } catch (_) {
+      if (!current()) return false;
+      rethrow;
+    }
+    if (!current()) return false;
 
     if (settings.cueSeconds > 0) {
       _autoScrollTimer?.cancel();
@@ -5264,8 +5334,11 @@ setlist=$setlistLabel
         _autoScrollCueRemainingSeconds = settings.cueSeconds;
         _showPageControls = true;
       });
+      _publishAutoScrollState();
       _autoScrollCueTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) {
+        if (!mounted ||
+            generation != _autoScrollStartGeneration ||
+            score.filePath != path) {
           timer.cancel();
           return;
         }
@@ -5279,12 +5352,14 @@ setlist=$setlistLabel
         setState(() {
           _autoScrollCueRemainingSeconds = remaining;
         });
+        _publishAutoScrollState();
       });
       _showSnackBar('자동 스크롤 ${settings.cueSeconds}초 후 시작합니다.');
-      return;
+      return true;
     }
 
     _beginAutoScroll(plan);
+    return true;
   }
 
   void _maybeAutoStartScroll() {
@@ -5294,7 +5369,13 @@ setlist=$setlistLabel
     _didAutoStartScroll = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        unawaited(_startAutoScroll(score.autoScrollSettings));
+        unawaited(() async {
+          try {
+            await _startAutoScroll(score.autoScrollSettings);
+          } catch (_) {
+            if (mounted) _showSnackBar('자동 스크롤을 시작하지 못했습니다. 다시 시도해 주세요.');
+          }
+        }());
       }
     });
   }
@@ -5315,6 +5396,7 @@ setlist=$setlistLabel
       _autoScrollCueRemainingSeconds = null;
       _showPageControls = true;
     });
+    _publishAutoScrollState();
     _autoScrollTimer = Timer.periodic(
       sheetAutoScrollSmoothTickInterval,
       (_) => _tickAutoScroll(),
@@ -5332,6 +5414,8 @@ setlist=$setlistLabel
     if (_isAutoScrollPaused) {
       return;
     }
+    final generation = _autoScrollStartGeneration;
+    final source = _activePdfSource;
 
     final plan = _autoScrollPlan;
     final startedAt = _autoScrollStartedAt;
@@ -5430,11 +5514,16 @@ setlist=$setlistLabel
     } finally {
       _isAutoScrollTicking = false;
     }
-
+    if (!mounted ||
+        generation != _autoScrollStartGeneration ||
+        source != _activePdfSource) {
+      return;
+    }
     if (mounted) {
       setState(() {
         _autoScrollProgress = progress;
       });
+      _publishAutoScrollState();
     }
     if (progress >= 1) {
       final shouldAdvanceSetlist = _shouldAutoAdvanceSetlist(1);
@@ -5470,6 +5559,7 @@ setlist=$setlistLabel
       _isAutoScrollPaused = true;
       _autoScrollPausedAt = DateTime.now();
     });
+    _publishAutoScrollState();
     _showSnackBar(message ?? '자동 스크롤을 일시정지했습니다.');
   }
 
@@ -5486,6 +5576,7 @@ setlist=$setlistLabel
       _isAutoScrollPaused = false;
       _autoScrollPausedAt = null;
     });
+    _publishAutoScrollState();
     _autoScrollTimer?.cancel();
     _autoScrollTimer = Timer.periodic(
       sheetAutoScrollSmoothTickInterval,
@@ -5496,6 +5587,7 @@ setlist=$setlistLabel
   }
 
   void _stopAutoScroll({required bool showMessage, bool completed = false}) {
+    _autoScrollStartGeneration++;
     if (!_isAutoScrolling &&
         _autoScrollTimer == null &&
         _autoScrollCueTimer == null) {
@@ -5528,6 +5620,7 @@ setlist=$setlistLabel
       _autoScrollConsumedCueKeys = const <String>{};
       _autoScrollCueRemainingSeconds = null;
     }
+    _publishAutoScrollState();
     if (showMessage) {
       _showSnackBar(completed ? '자동 스크롤이 끝났습니다.' : '자동 스크롤을 정지했습니다.');
     }
@@ -12513,6 +12606,8 @@ class _AutoScrollSheet extends StatefulWidget {
     required this.isAutoScrolling,
     required this.isPaused,
     required this.progress,
+    required this.isCurrent,
+    required this.cueRemaining,
     required this.onSettingsChanged,
     required this.onStart,
     required this.onPause,
@@ -12528,9 +12623,11 @@ class _AutoScrollSheet extends StatefulWidget {
   final bool isAutoScrolling;
   final bool isPaused;
   final double progress;
+  final bool Function() isCurrent;
+  final int? cueRemaining;
   final Future<void> Function(SheetAutoScrollSettings settings)
   onSettingsChanged;
-  final Future<void> Function(SheetAutoScrollSettings settings) onStart;
+  final Future<bool> Function(SheetAutoScrollSettings settings) onStart;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
@@ -12541,6 +12638,10 @@ class _AutoScrollSheet extends StatefulWidget {
 
 class _AutoScrollSheetState extends State<_AutoScrollSheet> {
   late SheetAutoScrollSettings _settings;
+  Future<void> _settingsWrite = Future<void>.value();
+  int _settingsGeneration = 0;
+  bool _starting = false;
+  String? _error;
 
   int get _safePageCount => math.max(1, widget.pageCount);
 
@@ -12589,11 +12690,52 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
   }
 
   Future<void> _setSettings(SheetAutoScrollSettings settings) async {
+    if (_starting || !widget.isCurrent()) return;
     final nextSettings = _normalize(settings);
+    final generation = ++_settingsGeneration;
     setState(() {
       _settings = nextSettings;
+      _error = null;
     });
-    await widget.onSettingsChanged(nextSettings);
+    final previous = _settingsWrite;
+    _settingsWrite = () async {
+      await previous;
+      if (!mounted || !widget.isCurrent()) return;
+      try {
+        await widget.onSettingsChanged(nextSettings);
+      } catch (_) {
+        if (mounted &&
+            widget.isCurrent() &&
+            generation == _settingsGeneration) {
+          setState(() => _error = '설정을 저장하지 못했습니다. 다시 변경하거나 시작을 눌러 재시도해 주세요.');
+        }
+      }
+    }();
+    await _settingsWrite;
+  }
+
+  Future<void> _startOrStop() async {
+    if (_starting || !widget.isCurrent()) return;
+    if (widget.isAutoScrolling || widget.cueRemaining != null) {
+      widget.onStop();
+      return;
+    }
+    setState(() {
+      _starting = true;
+      _error = null;
+    });
+    try {
+      await _settingsWrite;
+      if (!mounted || !widget.isCurrent()) return;
+      final started = await widget.onStart(_settings);
+      if (started && mounted && widget.isCurrent()) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted && widget.isCurrent()) {
+        setState(() => _error = '자동 스크롤을 시작하지 못했습니다. 다시 시도해 주세요.');
+      }
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
   }
 
   Future<void> _applyBpmPreset(int beatsPerPage) {
@@ -12722,6 +12864,8 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     return DdiroriStack(
       children: [
         const DdiroriBanner(message: '세로 보기에서 연주 흐름에 맞춰 악보를 이동합니다.'),
+        if (_error != null)
+          DdiroriBanner(message: _error!, kind: DdiroriNoticeKind.error),
         DdiroriAdaptiveActions(
           children: [
             if (widget.isAutoScrolling)
@@ -12732,19 +12876,17 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                 icon: widget.isPaused ? Icons.play_arrow : Icons.pause_outlined,
               ),
             DdiroriButton(
-              label: widget.isAutoScrolling ? '정지' : '시작',
-              onPressed: () async {
-                if (widget.isAutoScrolling) {
-                  widget.onStop();
-                  return;
-                }
-                await widget.onStart(_settings);
-                if (context.mounted) Navigator.of(context).pop();
-              },
+              label: widget.isAutoScrolling || widget.cueRemaining != null
+                  ? '정지'
+                  : '시작',
+              busy: _starting,
+              onPressed: _startOrStop,
               icon: widget.isAutoScrolling ? Icons.stop : Icons.play_arrow,
             ),
           ],
         ),
+        if (widget.cueRemaining != null)
+          DdiroriStatusBadge(label: '시작까지 ${widget.cueRemaining}초'),
         if (widget.isAutoScrolling) ...[
           LinearProgressIndicator(value: progress),
           DdiroriStatusBadge(
@@ -12752,292 +12894,309 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                 '${widget.isPaused ? '일시정지 · ' : ''}진행률 ${(progress * 100).round()}%',
           ),
         ],
-        DdiroriSection(
-          title: '연주 시간',
-          children: [
-            DdiroriSettingsRow(
-              title: '연주 시간 ${_durationLabel(_settings.durationSeconds)}',
-              control: DdiroriStack(
-                inline: true,
+        IgnorePointer(
+          ignoring: _starting,
+          child: DdiroriStack(
+            children: [
+              DdiroriSection(
+                title: '연주 시간',
                 children: [
-                  DdiroriIconButton(
-                    label: '느리게',
-                    icon: Icons.keyboard_arrow_down,
-                    onPressed: () => _setSettings(
+                  DdiroriSettingsRow(
+                    title: '연주 시간 ${_durationLabel(_settings.durationSeconds)}',
+                    control: DdiroriStack(
+                      inline: true,
+                      children: [
+                        DdiroriIconButton(
+                          label: '느리게',
+                          icon: Icons.keyboard_arrow_down,
+                          onPressed: () => _setSettings(
+                            _settings.copyWith(
+                              durationSeconds: _settings.durationSeconds + 30,
+                            ),
+                          ),
+                        ),
+                        DdiroriIconButton(
+                          label: '빠르게',
+                          icon: Icons.keyboard_arrow_up,
+                          onPressed: () => _setSettings(
+                            _settings.copyWith(
+                              durationSeconds: _settings.durationSeconds - 30,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Slider(
+                    value: durationSliderValue,
+                    min: 30,
+                    max: 900,
+                    divisions: 29,
+                    label: _durationLabel(durationSliderValue.round()),
+                    semanticFormatterCallback: (value) =>
+                        _durationLabel(value.round()),
+                    onChanged: (value) => _setSettings(
                       _settings.copyWith(
-                        durationSeconds: _settings.durationSeconds + 30,
+                        durationSeconds: (value / 30).round() * 30,
                       ),
                     ),
                   ),
-                  DdiroriIconButton(
-                    label: '빠르게',
-                    icon: Icons.keyboard_arrow_up,
-                    onPressed: () => _setSettings(
-                      _settings.copyWith(
-                        durationSeconds: _settings.durationSeconds - 30,
-                      ),
-                    ),
+                  DdiroriStack(
+                    inline: true,
+                    children: [
+                      for (final beatsPerPage in const <int>[16, 32, 64])
+                        DdiroriButton(
+                          kind: DdiroriButtonKind.secondary,
+                          icon: Icons.music_note,
+                          label:
+                              '${widget.metronomeBpm} BPM · $beatsPerPage박/쪽',
+                          onPressed: () => _applyBpmPreset(beatsPerPage),
+                        ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            Slider(
-              value: durationSliderValue,
-              min: 30,
-              max: 900,
-              divisions: 29,
-              label: _durationLabel(durationSliderValue.round()),
-              semanticFormatterCallback: (value) =>
-                  _durationLabel(value.round()),
-              onChanged: (value) => _setSettings(
-                _settings.copyWith(durationSeconds: (value / 30).round() * 30),
+              DdiroriSection(
+                title: '쪽별 속도',
+                children: [
+                  DdiroriSettingsRow(
+                    title: hasCurrentPageDuration
+                        ? '현재 $currentPage쪽 ${_durationLabel(currentPageDuration)}'
+                        : '현재 $currentPage쪽 기본 속도',
+                    control: DdiroriStack(
+                      inline: true,
+                      children: [
+                        DdiroriIconButton(
+                          label: '현재 쪽 빠르게',
+                          icon: Icons.keyboard_arrow_up,
+                          onPressed: () => _setCurrentPageDuration(
+                            currentPage,
+                            currentPageDuration - 10,
+                          ),
+                        ),
+                        DdiroriIconButton(
+                          label: '현재 쪽 느리게',
+                          icon: Icons.keyboard_arrow_down,
+                          onPressed: () => _setCurrentPageDuration(
+                            currentPage,
+                            currentPageDuration + 10,
+                          ),
+                        ),
+                        DdiroriIconButton(
+                          label: '현재 쪽 기본 속도',
+                          icon: Icons.restart_alt,
+                          onPressed: hasCurrentPageDuration
+                              ? () => _clearCurrentPageDuration(currentPage)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_settings.pageDurations.isNotEmpty)
+                    DdiroriStack(
+                      inline: true,
+                      children: [
+                        for (final entry in _settings.pageDurations.entries)
+                          DdiroriStatusBadge(
+                            label:
+                                '${entry.key}쪽 ${_durationLabel(entry.value)}',
+                          ),
+                      ],
+                    ),
+                ],
               ),
-            ),
-            DdiroriStack(
-              inline: true,
-              children: [
-                for (final beatsPerPage in const <int>[16, 32, 64])
+              DdiroriSection(
+                title: '시작 큐',
+                children: [
+                  Text(
+                    _settings.cueSeconds == 0
+                        ? '시작 큐 없음'
+                        : '시작 큐 ${_settings.cueSeconds}초',
+                  ),
+                  DdiroriChoices<int>(
+                    options: {
+                      for (final seconds in cueOptions) seconds: '$seconds초',
+                    },
+                    selected: {_settings.cueSeconds},
+                    onChanged: (selection) {
+                      if (selection.isNotEmpty) {
+                        _setSettings(
+                          _settings.copyWith(cueSeconds: selection.single),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+              DdiroriSection(
+                title: '페이지 범위',
+                children: [
+                  DdiroriSettingsRow(
+                    title: '시작 ${_settings.startPage}쪽',
+                    control: DdiroriStack(
+                      inline: true,
+                      children: [
+                        DdiroriIconButton(
+                          label: '시작 페이지 감소',
+                          icon: Icons.remove,
+                          onPressed: _settings.startPage <= 1
+                              ? null
+                              : () => _setSettings(
+                                  _settings.copyWith(
+                                    startPage: _settings.startPage - 1,
+                                  ),
+                                ),
+                        ),
+                        DdiroriIconButton(
+                          label: '시작 페이지 증가',
+                          icon: Icons.add,
+                          onPressed: _settings.startPage >= _safePageCount
+                              ? null
+                              : () => _setSettings(
+                                  _settings.copyWith(
+                                    startPage: _settings.startPage + 1,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  DdiroriSettingsRow(
+                    title: '끝 ${_settings.endPage}쪽',
+                    control: DdiroriStack(
+                      inline: true,
+                      children: [
+                        DdiroriIconButton(
+                          label: '끝 페이지 감소',
+                          icon: Icons.remove,
+                          onPressed: _settings.endPage <= _settings.startPage
+                              ? null
+                              : () => _setSettings(
+                                  _settings.copyWith(
+                                    endPage: _settings.endPage - 1,
+                                  ),
+                                ),
+                        ),
+                        DdiroriIconButton(
+                          label: '끝 페이지 증가',
+                          icon: Icons.add,
+                          onPressed: _settings.endPage >= _safePageCount
+                              ? null
+                              : () => _setSettings(
+                                  _settings.copyWith(
+                                    endPage: _settings.endPage + 1,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                   DdiroriButton(
+                    label: '현재 ${widget.currentPage}쪽부터',
+                    icon: Icons.my_location,
                     kind: DdiroriButtonKind.secondary,
-                    icon: Icons.music_note,
-                    label: '${widget.metronomeBpm} BPM · $beatsPerPage박/쪽',
-                    onPressed: () => _applyBpmPreset(beatsPerPage),
-                  ),
-              ],
-            ),
-          ],
-        ),
-        DdiroriSection(
-          title: '쪽별 속도',
-          children: [
-            DdiroriSettingsRow(
-              title: hasCurrentPageDuration
-                  ? '현재 $currentPage쪽 ${_durationLabel(currentPageDuration)}'
-                  : '현재 $currentPage쪽 기본 속도',
-              control: DdiroriStack(
-                inline: true,
-                children: [
-                  DdiroriIconButton(
-                    label: '현재 쪽 빠르게',
-                    icon: Icons.keyboard_arrow_up,
-                    onPressed: () => _setCurrentPageDuration(
-                      currentPage,
-                      currentPageDuration - 10,
+                    onPressed: () => _setSettings(
+                      _settings.copyWith(startPage: widget.currentPage),
                     ),
-                  ),
-                  DdiroriIconButton(
-                    label: '현재 쪽 느리게',
-                    icon: Icons.keyboard_arrow_down,
-                    onPressed: () => _setCurrentPageDuration(
-                      currentPage,
-                      currentPageDuration + 10,
-                    ),
-                  ),
-                  DdiroriIconButton(
-                    label: '현재 쪽 기본 속도',
-                    icon: Icons.restart_alt,
-                    onPressed: hasCurrentPageDuration
-                        ? () => _clearCurrentPageDuration(currentPage)
-                        : null,
                   ),
                 ],
               ),
-            ),
-            if (_settings.pageDurations.isNotEmpty)
-              DdiroriStack(
-                inline: true,
+              DdiroriSection(
+                title: 'Pause marker',
                 children: [
-                  for (final entry in _settings.pageDurations.entries)
-                    DdiroriStatusBadge(
-                      label: '${entry.key}쪽 ${_durationLabel(entry.value)}',
-                    ),
-                ],
-              ),
-          ],
-        ),
-        DdiroriSection(
-          title: '시작 큐',
-          children: [
-            Text(
-              _settings.cueSeconds == 0
-                  ? '시작 큐 없음'
-                  : '시작 큐 ${_settings.cueSeconds}초',
-            ),
-            DdiroriChoices<int>(
-              options: {for (final seconds in cueOptions) seconds: '$seconds초'},
-              selected: {_settings.cueSeconds},
-              onChanged: (selection) {
-                if (selection.isNotEmpty) {
-                  _setSettings(
-                    _settings.copyWith(cueSeconds: selection.single),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-        DdiroriSection(
-          title: '페이지 범위',
-          children: [
-            DdiroriSettingsRow(
-              title: '시작 ${_settings.startPage}쪽',
-              control: DdiroriStack(
-                inline: true,
-                children: [
-                  DdiroriIconButton(
-                    label: '시작 페이지 감소',
-                    icon: Icons.remove,
-                    onPressed: _settings.startPage <= 1
-                        ? null
-                        : () => _setSettings(
-                            _settings.copyWith(
-                              startPage: _settings.startPage - 1,
-                            ),
+                  DdiroriButton(
+                    label: hasCurrentPause ? '현재 쪽 제거' : '현재 $currentPage쪽 추가',
+                    icon: hasCurrentPause ? Icons.remove : Icons.add,
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: () => _togglePausePage(currentPage),
+                  ),
+                  if (_settings.pausePageNumbers.isEmpty)
+                    const Text('등록된 pause marker가 없습니다.')
+                  else
+                    DdiroriStack(
+                      inline: true,
+                      children: [
+                        for (final page in _settings.pausePageNumbers)
+                          InputChip(
+                            avatar: const Icon(Icons.pause, size: 18),
+                            label: Text('$page쪽'),
+                            onDeleted: () => _removePausePage(page),
                           ),
-                  ),
-                  DdiroriIconButton(
-                    label: '시작 페이지 증가',
+                      ],
+                    ),
+                ],
+              ),
+              DdiroriSection(
+                title: '반복 구간',
+                children: [
+                  DdiroriButton(
+                    label: '${_settings.startPage}-${_settings.endPage}쪽',
                     icon: Icons.add,
-                    onPressed: _settings.startPage >= _safePageCount
-                        ? null
-                        : () => _setSettings(
-                            _settings.copyWith(
-                              startPage: _settings.startPage + 1,
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: _addRepeatSection,
+                  ),
+                  if (_settings.repeatSections.isEmpty)
+                    const Text('등록된 반복 구간이 없습니다.')
+                  else
+                    DdiroriStack(
+                      inline: true,
+                      children: [
+                        for (
+                          var index = 0;
+                          index < _settings.repeatSections.length;
+                          index++
+                        )
+                          InputChip(
+                            avatar: const Icon(Icons.repeat, size: 18),
+                            label: Text(
+                              '${_settings.repeatSections[index].startPage}-'
+                              '${_settings.repeatSections[index].endPage}쪽'
+                              ' x${_settings.repeatSections[index].repeatCount + 1}',
                             ),
+                            onDeleted: () => _removeRepeatSection(index),
                           ),
-                  ),
+                      ],
+                    ),
                 ],
               ),
-            ),
-            DdiroriSettingsRow(
-              title: '끝 ${_settings.endPage}쪽',
-              control: DdiroriStack(
-                inline: true,
+              DdiroriSection(
+                title: 'Cue point',
                 children: [
-                  DdiroriIconButton(
-                    label: '끝 페이지 감소',
-                    icon: Icons.remove,
-                    onPressed: _settings.endPage <= _settings.startPage
+                  DdiroriButton(
+                    label: '리허설 mark 가져오기',
+                    icon: Icons.playlist_add,
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: widget.rehearsalMarks.isEmpty
                         ? null
-                        : () => _setSettings(
-                            _settings.copyWith(endPage: _settings.endPage - 1),
-                          ),
+                        : _importRehearsalCuePoints,
                   ),
-                  DdiroriIconButton(
-                    label: '끝 페이지 증가',
-                    icon: Icons.add,
-                    onPressed: _settings.endPage >= _safePageCount
-                        ? null
-                        : () => _setSettings(
-                            _settings.copyWith(endPage: _settings.endPage + 1),
+                  if (_settings.cuePoints.isEmpty)
+                    const Text('등록된 cue point가 없습니다.')
+                  else
+                    DdiroriStack(
+                      inline: true,
+                      children: [
+                        for (final cue in _settings.cuePoints)
+                          InputChip(
+                            avatar: const Icon(Icons.flag, size: 18),
+                            label: Text(
+                              cue.label.trim().isEmpty
+                                  ? '${cue.pageNumber}쪽'
+                                  : '${cue.pageNumber}쪽 ${cue.label}',
+                            ),
+                            onDeleted: () => _removeCuePoint(cue.key),
                           ),
-                  ),
-                ],
-              ),
-            ),
-            DdiroriButton(
-              label: '현재 ${widget.currentPage}쪽부터',
-              icon: Icons.my_location,
-              kind: DdiroriButtonKind.secondary,
-              onPressed: () => _setSettings(
-                _settings.copyWith(startPage: widget.currentPage),
-              ),
-            ),
-          ],
-        ),
-        DdiroriSection(
-          title: 'Pause marker',
-          children: [
-            DdiroriButton(
-              label: hasCurrentPause ? '현재 쪽 제거' : '현재 $currentPage쪽 추가',
-              icon: hasCurrentPause ? Icons.remove : Icons.add,
-              kind: DdiroriButtonKind.secondary,
-              onPressed: () => _togglePausePage(currentPage),
-            ),
-            if (_settings.pausePageNumbers.isEmpty)
-              const Text('등록된 pause marker가 없습니다.')
-            else
-              DdiroriStack(
-                inline: true,
-                children: [
-                  for (final page in _settings.pausePageNumbers)
-                    InputChip(
-                      avatar: const Icon(Icons.pause, size: 18),
-                      label: Text('$page쪽'),
-                      onDeleted: () => _removePausePage(page),
+                      ],
                     ),
                 ],
               ),
-          ],
-        ),
-        DdiroriSection(
-          title: '반복 구간',
-          children: [
-            DdiroriButton(
-              label: '${_settings.startPage}-${_settings.endPage}쪽',
-              icon: Icons.add,
-              kind: DdiroriButtonKind.secondary,
-              onPressed: _addRepeatSection,
-            ),
-            if (_settings.repeatSections.isEmpty)
-              const Text('등록된 반복 구간이 없습니다.')
-            else
-              DdiroriStack(
-                inline: true,
-                children: [
-                  for (
-                    var index = 0;
-                    index < _settings.repeatSections.length;
-                    index++
-                  )
-                    InputChip(
-                      avatar: const Icon(Icons.repeat, size: 18),
-                      label: Text(
-                        '${_settings.repeatSections[index].startPage}-'
-                        '${_settings.repeatSections[index].endPage}쪽'
-                        ' x${_settings.repeatSections[index].repeatCount + 1}',
-                      ),
-                      onDeleted: () => _removeRepeatSection(index),
-                    ),
-                ],
+              const DdiroriBanner(
+                message:
+                    '세로 스크롤 보기에서 일정한 속도로 움직입니다. 일시정지 후 이어갈 수 있고, '
+                    '페이지 넘김이나 필기 시작 같은 수동 조작을 하면 자동 스크롤은 멈춥니다.',
               ),
-          ],
-        ),
-        DdiroriSection(
-          title: 'Cue point',
-          children: [
-            DdiroriButton(
-              label: '리허설 mark 가져오기',
-              icon: Icons.playlist_add,
-              kind: DdiroriButtonKind.secondary,
-              onPressed: widget.rehearsalMarks.isEmpty
-                  ? null
-                  : _importRehearsalCuePoints,
-            ),
-            if (_settings.cuePoints.isEmpty)
-              const Text('등록된 cue point가 없습니다.')
-            else
-              DdiroriStack(
-                inline: true,
-                children: [
-                  for (final cue in _settings.cuePoints)
-                    InputChip(
-                      avatar: const Icon(Icons.flag, size: 18),
-                      label: Text(
-                        cue.label.trim().isEmpty
-                            ? '${cue.pageNumber}쪽'
-                            : '${cue.pageNumber}쪽 ${cue.label}',
-                      ),
-                      onDeleted: () => _removeCuePoint(cue.key),
-                    ),
-                ],
-              ),
-          ],
-        ),
-        const DdiroriBanner(
-          message:
-              '세로 스크롤 보기에서 일정한 속도로 움직입니다. 일시정지 후 이어갈 수 있고, '
-              '페이지 넘김이나 필기 시작 같은 수동 조작을 하면 자동 스크롤은 멈춥니다.',
+            ],
+          ),
         ),
       ],
     );

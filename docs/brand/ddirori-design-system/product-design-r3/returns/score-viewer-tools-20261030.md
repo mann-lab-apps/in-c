@@ -88,10 +88,20 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 공통 API 제안: Input에 textInputAction 설정이 없어 명시적인 native Search 키 모양은 이번 공통 입력으로 설정할 수 없다. onSubmitted 동작과 이름 있는 검색 버튼은 유지하며 실제 키보드 액션/IME는 manual 항목으로 남긴다. 공통 패키지 확장은 다른 실제 소비처의 수요와 함께 별도 검토한다.
 - 최종 capture+focused 7 tests PASS (`/private/tmp/score-search-captures-final-20261030.log`), keyboard done 제출도 실제 검색을 실행한다. 캡처는 `/private/tmp/score-tool-captures-20261030.nMNI7A/pdf-search-*.png`이며 같은 blue/system font/icon fixture에 240px(portrait)/100px(landscape) fake viewInsets를 적용했다. 물리 키보드 화면을 촬영한 것이 아니다. 한 줄 helper가 200%에서 잘리는 현상을 확인해 description 역할의 줄바꿈 텍스트로 옮겼다.
 
+## 자동 스크롤 상태·시작 요청 수명
+
+- red: 같은 sheet에서 pause 뒤 resume이 표시되지 않았다. 실제 viewer를 닫은 뒤 지연 저장 성공은 분리된 PdfViewerController 접근으로 null 예외, 실패는 처리되지 않은 FileSystemException이었다 (`score-autoscroll-lifetime-red-20261030.log`, `score-autoscroll-delayed-red-20261030.log`, 모두 `/private/tmp/`). 초기 종료 fixture는 route 퇴장 애니메이션을 완료하지 않아 viewer가 남아 있었고, 실제 종료를 기다린 두 번째 red가 요청 수명 근거다.
+- 실행·pause·정지·정수 퍼센트·큐 변화만 앱 notifier로 전달해 열린 sheet도 현재 상태를 반영한다. PDF scroll 계획/좌표/타이머 간격은 유지한다. 시작은 저장·layout 대기·native 페이지 이동 후 요청 세대/파일/창 수명을 다시 검사하며, 정지·viewer 종료·문서 교체는 이전 시작을 무효화한다.
+- 설정 변경은 이 sheet 안에서 저장 순서를 직렬화한다. 이전 실패가 최신 성공을 덮지 않고 최신 실패는 draft와 오류를 유지한다. 시작은 대기 쓰기 뒤 실행하며 설정 중복 조작과 중복 시작을 막고 실패 시 다시 시작으로 재시도한다. 성공으로 닫힌 시작 큐는 유지하고 새로 열린 창에서 정지할 수 있다.
+- focused 16 tests PASS (`/private/tmp/score-autoscroll-focused-final-20261030.log`): 기존 3 viewport/200%와 cue 재선택, 실제 시작/pause/resume/stop, 지연 성공·실패 후 viewer 종료/새 sheet 보존, 중복 시작, 설정 저장 순서/오류/재시도, 정상 큐 유지/취소, 문서 교체 뒤 늦은 시작 실패.
+- 경계: native에 이미 보낸 이동이나 저장의 취소를 보장하지 않는다. 외부에서 store를 직접 쓰고 controller.load를 지연된 _replace와 동시에 실행한 탐색 fixture는 기존 _replace의 snapshot 저장 경계를 건드리므로 이번 UI 보호의 보장 범위에서 제외했다. 최종 문서 교체 fixture는 오래된 쓰기 실패를 주입하고 새 경로 보존을 확인한다. 다른 저장 경로와의 동시 성공/자료 보존은 별도 controller 거래 설계·회귀가 필요하며 해결됐다고 표시하지 않는다.
+- 실제 기기의 연주 속도·오디오/페달/펜·장시간·VoiceOver는 pending이다. running 상태 검사는 무한 프레임을 기다리는 settle 대신 bounded frame과 native PDF 준비를 사용한다.
+- 최종 format/analyze·전체 614 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-autoscroll-rc-clean-20261030.log`). 앞선 RC도 614 tests는 통과했으나 중괄호 lint 한 건 때문에 exit 1이었고 이를 수정 후 재검증했다. metadata check PASS, source pending (`/private/tmp/score-autoscroll-metadata-20261030.log`).
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 자동 스크롤 실행/닫기/재진입 수명과 실제 상태 표시. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 자동 스크롤 창을 닫고 다시 여는 동안 서로 다른 창의 설정 저장 순서, 악보함 가져오기 메뉴의 큰 글자/가로 접근성. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
