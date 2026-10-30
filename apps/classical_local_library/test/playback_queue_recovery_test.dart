@@ -239,6 +239,9 @@ class _DelayedPlaybackController implements LocalPlaybackController {
   Future<void> next() => _operation('next');
 
   @override
+  Future<void> previous() => _operation('previous');
+
+  @override
   Future<void> stop() => _operation('stop');
 
   @override

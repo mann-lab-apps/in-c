@@ -208,13 +208,16 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
         ),
       );
     }
-    _emitWith(playerState: LocalPlayerState.playing);
     unawaited(_playAndHandleErrors());
+    // Read the engine after requesting play; never infer it from the command.
+    // Stream delivery can lag this cached engine observation by a microtask.
+    _handlePlayerState(_player.playerState);
   }
 
   @override
   Future<void> pause() async {
-    if (_playbackState.playerState != LocalPlayerState.playing) {
+    if (_playbackState.playerState != LocalPlayerState.playing &&
+        !_player.playing) {
       await persistPosition();
       return;
     }
@@ -229,7 +232,8 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
   @override
   Future<void> next() async {
     if (_playbackState.queue.isEmpty ||
-        _playbackState.playerState == LocalPlayerState.error) {
+        _playbackState.playerState == LocalPlayerState.error ||
+        _playbackState.playerState == LocalPlayerState.completed) {
       return;
     }
 
@@ -242,25 +246,71 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
       return;
     }
 
+    await _moveTo(index + 1);
+  }
+
+  @override
+  Future<void> previous() async {
+    if (_playbackState.queue.isEmpty ||
+        _playbackState.playerState == LocalPlayerState.error) {
+      return;
+    }
+    final index = _playbackState.playerState == LocalPlayerState.completed
+        ? _playbackState.queue.length - 1
+        : _playbackState.position >= const Duration(seconds: 3)
+        ? _normalizedCurrentIndex
+        : (_normalizedCurrentIndex - 1).clamp(
+            0,
+            _playbackState.queue.length - 1,
+          );
+    await persistPosition();
+    await _moveTo(index);
+  }
+
+  Future<void> _moveTo(int index) async {
+    final queue = _playbackState.queue;
+    final oldState = _playbackState.playerState;
+    final keepPlaying = oldState == LocalPlayerState.playing;
     _skipNextIndexPositionSave = true;
-    await _player.seek(Duration.zero, index: index + 1);
-    _emit(
-      _playbackState.copyWith(
-        playerState: LocalPlayerState.playing,
-        currentIndex: index + 1,
-        position: Duration.zero,
-        bufferedPosition: Duration.zero,
-        duration: _player.duration,
-        processingState: LocalPlaybackProcessingState.ready,
-        failure: null,
-      ),
-    );
-    unawaited(_playAndHandleErrors());
+    try {
+      if (!keepPlaying) await _player.pause();
+      await _player.seek(Duration.zero, index: index);
+      if (_isDisposed || !identical(queue, _playbackState.queue)) return;
+      _emit(
+        _playbackState.copyWith(
+          playerState: _player.playing && keepPlaying
+              ? LocalPlayerState.playing
+              : oldState == LocalPlayerState.paused ||
+                    oldState == LocalPlayerState.completed
+              ? LocalPlayerState.paused
+              : LocalPlayerState.ready,
+          currentIndex: index,
+          position: Duration.zero,
+          bufferedPosition: Duration.zero,
+          duration: _player.duration,
+          processingState: LocalPlaybackProcessingState.ready,
+          failure: null,
+        ),
+      );
+    } on Object catch (error) {
+      if (!_isDisposed && identical(queue, _playbackState.queue)) {
+        _emitLoadFailure(error.toString(), queue);
+      }
+    } finally {
+      _skipNextIndexPositionSave = false;
+    }
   }
 
   @override
   Future<void> seek(Duration position) {
-    final operation = _seekTail.then((_) => _performSeek(position));
+    final queue = _playbackState.queue;
+    final item = _playbackState.currentItem;
+    final operation = _seekTail.then((_) async {
+      if (identical(queue, _playbackState.queue) &&
+          identical(item, _playbackState.currentItem)) {
+        await _performSeek(position);
+      }
+    });
     _seekTail = operation.then<void>((_) {}, onError: (_, _) {});
     return operation;
   }
@@ -269,6 +319,8 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
     if (!_hasLoadedSources || _playbackState.currentItem == null) {
       return;
     }
+    final queue = _playbackState.queue;
+    final item = _playbackState.currentItem;
     final normalized = const PlaybackPositionPolicy().normalizePosition(
       position,
       _playbackState.duration,
@@ -276,6 +328,11 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
     _emit(_playbackState.copyWith(isSeeking: true, position: normalized));
     try {
       await _player.seek(normalized, index: _normalizedCurrentIndex);
+      if (_isDisposed ||
+          !identical(queue, _playbackState.queue) ||
+          !identical(item, _playbackState.currentItem)) {
+        return;
+      }
       _emit(
         _playbackState.copyWith(
           position: normalized,
@@ -286,7 +343,11 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
         ),
       );
     } on Object catch (error) {
-      _emitLoadFailure(error.toString(), _playbackState.queue);
+      if (!_isDisposed &&
+          identical(queue, _playbackState.queue) &&
+          identical(item, _playbackState.currentItem)) {
+        _emitLoadFailure(error.toString(), queue);
+      }
     }
   }
 
@@ -340,25 +401,30 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
   }
 
   Future<void> _playAndHandleErrors() async {
+    final queue = _playbackState.queue;
     try {
       await _player.play();
     } on PlayerException catch (error) {
-      _emitLoadFailure(
-        error.message ?? error.code.toString(),
-        _playbackState.queue,
-      );
+      if (!_isDisposed && identical(queue, _playbackState.queue)) {
+        _emitLoadFailure(error.message ?? error.code.toString(), queue);
+      }
     } on PlayerInterruptedException catch (error) {
-      _emitLoadFailure(
-        error.message ?? 'Audio playback was interrupted.',
-        _playbackState.queue,
-      );
+      if (!_isDisposed && identical(queue, _playbackState.queue)) {
+        _emitLoadFailure(
+          error.message ?? 'Audio playback was interrupted.',
+          queue,
+        );
+      }
     } on Object catch (error) {
-      _emitLoadFailure(error.toString(), _playbackState.queue);
+      if (!_isDisposed && identical(queue, _playbackState.queue)) {
+        _emitLoadFailure(error.toString(), queue);
+      }
     }
   }
 
   void _handlePlayerState(PlayerState playerState) {
-    if (_playbackState.queue.isEmpty ||
+    if (!_hasLoadedSources ||
+        _playbackState.queue.isEmpty ||
         _playbackState.playerState == LocalPlayerState.error) {
       return;
     }
@@ -380,6 +446,8 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
               ? LocalPlayerState.playing
               : _playbackState.playerState == LocalPlayerState.loading
               ? LocalPlayerState.ready
+              : _playbackState.playerState == LocalPlayerState.playing
+              ? LocalPlayerState.paused
               : null,
           processingState: LocalPlaybackProcessingState.ready,
         );
@@ -389,8 +457,12 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
   }
 
   void _handleCurrentIndex(int? index) {
-    if (index == null ||
+    if (!_hasLoadedSources ||
+        index == null ||
         _playbackState.queue.isEmpty ||
+        index < 0 ||
+        index >= _playbackState.queue.length ||
+        index != _player.currentIndex ||
         _playbackState.playerState == LocalPlayerState.completed ||
         _playbackState.playerState == LocalPlayerState.error ||
         index == _playbackState.currentIndex) {
@@ -453,7 +525,14 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
   }
 
   bool get _isCurrentPlayerIndex {
-    return _playbackState.currentItem != null &&
+    final item = _playbackState.currentItem;
+    final sequence = _player.sequence;
+    final index = _player.currentIndex;
+    return _hasLoadedSources &&
+        item != null &&
+        index != null &&
+        index < sequence.length &&
+        sequence[index].tag == item.trackId &&
         _player.currentIndex == _playbackState.currentIndex;
   }
 
@@ -464,12 +543,18 @@ class JustAudioLocalPlaybackController implements LocalPlaybackController {
   }
 
   Future<void> _pauseForExternalEvent() async {
-    if (_playbackState.playerState == LocalPlayerState.playing) {
+    if (_playbackState.playerState == LocalPlayerState.playing ||
+        _player.playing) {
       await pause();
     }
   }
 
   void _handlePlayerError(PlayerException error) {
+    if (!_hasLoadedSources ||
+        _isDisposed ||
+        (error.index != null && error.index != _player.currentIndex)) {
+      return;
+    }
     _emitLoadFailure(
       error.message ?? error.code.toString(),
       _playbackState.queue,

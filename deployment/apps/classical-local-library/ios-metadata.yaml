@@ -2,15 +2,15 @@
 schema_version: 1
 app: classical-local-library
 source:
-  state: pinned
+  state: pending
   path: apps/classical_local_library
   commit: 'e31e5eb19b6b4748778a45578ed2fda25a5d75fe'
   version: 0.1.0
-  build_number: 2
+  build_number: 3
   bundle_id: com.mannlab.ddirori.play
   dart_defines:
     ENABLE_DEMO_LIBRARY: 'false'
-    APP_VERSION_LABEL: 0.1.0 (2)
+    APP_VERSION_LABEL: 0.1.0 (3)
   flavor:
 store:
   app_id: '6828809673'
@@ -60,13 +60,14 @@ content:
 
         음원, 파일 정보, 카탈로그와 감상 기록은 기본적으로 기기에 저장됩니다. 계정, 광고 또는 분석 SDK를 사용하지 않으며 원본 음원과 원본 태그를 수정하지 않습니다.
 
-        iOS에서는 음악 재생 중 화면을 잠그거나 다른 앱으로 전환해도 재생을 이어갑니다. 전화 등 오디오 중단이나 헤드폰 분리 시 일시정지합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
+        iOS에서는 음악 재생 중 화면을 잠그거나 다른 앱으로 전환해도 재생을 이어갑니다. 잠금 화면·제어센터에서 곡 정보를 보고 재생·일시정지·이전·다음·진행 위치를 조작할 수 있습니다. 전화 등 오디오 중단이나 헤드폰 분리 시 일시정지합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
       keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz
       promotional_text: 내 음원을 가져와 곧바로 듣고, 원할 때 작품·녹음·악장으로 정리하세요.
       support_url:
       marketing_url:
       privacy_url:
       release_notes: |-
+        iOS 잠금 화면·제어센터에 곡 정보와 재생 조작을 연결하고 이전 곡 버튼을 추가했습니다. 일시정지 중 곡 이동은 재생을 시작하지 않으며, 진단 실행은 본재생을 일시정지하고 큐·위치를 보존합니다.
         iOS에서 화면 잠금·앱 전환 중 재생을 이어가고 현재 위치를 저장하도록 변경했습니다. interruption과 헤드폰 분리 시 일시정지하고 자동 재개하지 않는 정책은 유지합니다.
         재생목록을 만들고 곡·앨범·현재 재생에서 바로 담을 수 있습니다. 여러 곡을 한 번에 고르고 편집 화면에서 드래그로 순서를 바꿔 재생하세요. 파일이 누락되면 목록에는 남기고 재생할 때 건너뜁니다. 폴더별 보기는 도구 메뉴로 이동했고, 가져오기·파일 상태와 음원 정보·파일 복구 도구의 이름을 명확히 했습니다.
         공통 블루 테마로 아이콘 배경과 주요 동작·선택·포커스 색을 통일하고, 일반 안내는 중립색으로 구분했습니다.
@@ -139,8 +140,11 @@ review:
     On iOS, the playback audio session and background audio mode allow local playback to continue
     when the screen locks or another app opens. Calls/audio interruptions and headphone disconnection
     pause playback without automatic resumption. Physical iPhone screen-lock audibility remains pending
-    user QA. Lock-screen controls, accounts, analytics, advertising and cloud synchronization are not
-    provided. Original files and tags are
+    user QA. Now Playing info and play/pause/previous/next/seek/stop commands use Apple's public
+    MediaPlayer APIs and the same playback controller as the app. Previous restarts the current
+    track at 3 seconds or later; otherwise it selects the previous track. Paused navigation stays
+    paused. Diagnostics pause library playback without replacing its queue or automatically resuming.
+    Accounts, analytics, advertising and cloud synchronization are not provided. Original files and tags are
     never modified. A logical JSON backup can restore catalog and listening state, but deliberately
     excludes audio bytes and original file/folder paths. Restored or moved files must be relinked
     with explicit user confirmation. Storage startup and scan failures show a path-free Korean retry action.
@@ -150,10 +154,11 @@ review:
 testflight:
   reviewed: false
   feedback_email:
-  build_id: eb230219-dfa5-462d-a586-5d78140187c6
+  build_id:
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
-    0.1.0(2): iPhone Xs에서 1분 이상 음원을 재생한 뒤 전원 버튼으로 화면을 잠그고 30초간 재생이 이어지는지 확인해 주세요. 잠금 중 다음 곡, 잠금 해제 후 큐·위치 유지, 직접 일시정지 후 자동 재생 방지, 전화/다른 오디오·헤드폰 분리 시 일시정지와 자동 재개 방지를 확인해 주세요. 잠금 화면 재생 버튼은 이번 범위가 아닙니다.
+    0.1.0(3): 잠금 화면·제어센터의 곡명과 앱의 현재 곡이 일치하는지 확인해 주세요. 재생·일시정지·다음·이전·진행 위치를 조작한 뒤 앱 큐·위치와 비교하세요. 일시정지 중 곡 이동은 재생을 시작하지 않아야 합니다. 이전은 3초 이상이면 현재 곡 처음, 3초 미만이면 이전 곡으로 이동합니다. 진단 실행·실패·화면 닫기 후에도 본재생 큐·위치가 보존되고 자동 재개하지 않는지 확인하세요. 실제 iPhone Xs 시스템 버튼·잠금 청감은 사용자 QA 대상입니다.
+    기존 잠금 재생 회귀: iPhone Xs에서 1분 이상 음원을 재생한 뒤 전원 버튼으로 화면을 잠그고 30초간 재생이 이어지는지 확인해 주세요. 잠금 중 다음 곡, 잠금 해제 후 큐·위치 유지, 직접 일시정지 후 자동 재생 방지, 전화/다른 오디오·헤드폰 분리 시 일시정지와 자동 재개 방지를 확인해 주세요.
     보관함의 재생목록에서 목록을 만든 뒤 검색으로 곡 두 개를 함께 선택해 추가하고, 편집에서 드래그로 순서를 바꿔 재생해 주세요. 곡·앨범·검색 결과의 더보기와 현재 재생에서도 재생목록에 담을 수 있습니다. 목록 삭제나 곡 제거로 원본 파일이 삭제되어서는 안 됩니다. 앱 재시작 후에도 목록과 순서가 유지되고 누락 곡은 목록에 남지만 재생에서는 건너뛰는지 확인해 주세요. 폴더별 보기는 도구 메뉴에 있습니다.
     보관함의 곡·앨범·아티스트·재생목록 행을 열어 목록 안 검색과 곡 정렬을 확인해 주세요. 재생 중 검색·정렬을 바꾸어도 큐와 현재 위치가 유지되고, 누락 파일은 파일 상태 확인으로 이어져야 합니다.
     빈 보관함에서 파일을 가져와 곡 목록에 표시되는지, 작품 등록 전에 바로 재생되는지 확인해 주세요. 축약 조작과 전체 재생 화면의 큐를 확인해 주세요.
@@ -326,7 +331,7 @@ screenshots:
     - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 작품·녹음 이름과 순서가 표시된 악장 큐
     - 작품·녹음 맥락을 구간 상단에 모으고 큐 행에는 악장 순번·현재 표시·음원 정보 행동을 표시
-    - 재생·다음·정지 도구, 진행률과 fixture의 실제 상태 배지. 화면만으로 가청 출력을 입증하지 않음
+    - 이전·재생·다음·정지 도구, 진행률과 fixture의 실제 상태 배지. 화면만으로 가청 출력이나 시스템 미디어 UI를 입증하지 않음
     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
@@ -356,6 +361,8 @@ screenshots:
       value: 1악장 Allegro con brio
       present: true
     - {by: tooltip, value: '음원 정보 1', present: true}
+    - {by: tooltip, value: '이전', present: true}
+    - {by: tooltip, value: '다음', present: true}
     - by: text
       value: 띠로리 색상 작업실
       present: false
@@ -530,6 +537,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-30 공통 IconButton을 사용하는 이전 버튼과 완료·오류 상태의 명령 비활성화를 추가했다. widget 회귀와 좁은 화면·큰 글자 검사를 수행하며 실제 iPhone Xs VoiceOver의 새 버튼 낭독·포커스는 재검수 필요.
       2026-10-26 곡·앨범 더보기, 여러 곡 선택 sheet, 현재 재생 추가, 편집 drag handle의 의미와 320px/큰 글자 조작은 위젯 회귀로 확인. 실기기 VoiceOver의 재정렬/선택 상태 낭독·focus 이동은 pending.
       2026-10-26 재생목록 생성·이름·곡 추가·순서 메뉴·누락 상태와 폴더별 보기 이동을 위젯에서 검증. VoiceOver의 긴 제목/큰 글자/포커스 순서와 실제 손 조작은 실기기 재검수 pending.
       2026-10-26 공통 블루 기본값·중립 안내 변경 후 새 후보 빌드의 시각·접근성·스토어 촬영 재검수 필요. Theme assertion은 테마 존재만 확인하며 실제 색상 판정은 공통 테스트와 후속 캡처 검수로 구분한다.
@@ -561,6 +569,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-30 0.1.0(3) iOS Now Playing 정보·remote command, 이전/다음 정책과 진단 소유권 변경. 새 빌드의 iPhone Xs 잠금 화면·제어센터 실제 조작, 청감·interruption·헤드폰 검수 필요. 채널 명령 주입과 공개 MPNowPlayingInfoCenter 조회는 실제 OS 버튼 조작 증거가 아니다.
       2026-10-30 iOS 화면 잠금·앱 전환 중 재생 유지로 lifecycle 정책과 UIBackgroundModes audio가 변경됨. iPhone Xs의 물리 잠금·청감·전화 interruption·출력 장치 분리는 새 0.1.0(2)에서 재검수 필요. 실제 기기 결과와 시뮬레이터 앱 전환 증거를 구분한다.
       2026-10-30 새 Bundle ID com.mannlab.ddirori.play의 서명 후보를 iPhone XS에 설치·재생한 물리 QA 결과는 아직 받지 못함.
       2026-10-26 사용자가 띠로리 플레이 아이콘 후보 08을 최종 승인하고 iPhone XS에서 직접 물리 QA를 진행하기로 함. 앱 최소 iOS는 15.0이며 iPhone XS는 iOS 26 비지원이므로 iOS 26.5 시뮬레이터와 별도로 설치·첫 실행을 확인해야 함. 실제 QA 결과·OS 버전·기기 출력/VoiceOver·Files/iCloud 동작은 아직 접수하지 않았고 iPad 물리 QA도 미완료.
@@ -586,6 +595,7 @@ manual:
   build_selection:
     status: pending
     evidence: >2-
+       2026-10-30 iOS 시스템 미디어 조작 0.1.0(3) 내부 TestFlight 후보 준비. 실제 제품 커밋·archive·IPA·Apple 처리·그룹 연결은 검증 후 기록하고 기존 1·2 빌드는 보존한다.
        2026-10-30 iOS background audio 0.1.0(2) 제품 소스 e31e5eb19b6b4748778a45578ed2fda25a5d75fe에서 서명·IPA 생성·업로드 완료. Apple 빌드 eb230219-dfa5-462d-a586-5d78140187c6 COMPLETE/VALID/INTERNAL_ONLY/IN_BETA_TESTING, 오류·경고 0. 기존 내부 그룹에 0.1.0(1)과 함께 연결, 테스터 1명 접근 확인. 새 빌드의 물리 iPhone Xs 설치·화면 잠금·청감은 사용자 QA 대기. docs/quality/classical-local-library-ios-background-audio-2026-10-30.md 참고.
        2026-10-30 사용자가 0.1.0(1) TestFlight 내부 테스트 업로드 및 비면제 암호화 사용 안 함 신고를 승인. App Store Connect Apple ID 6828809673과 Bundle ID com.mannlab.ddirori.play 확인. 내부 전용 IPA 업로드 COMPLETE/오류·경고 0, 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e VALID/INTERNAL_ONLY. 내부 그룹 61f6e80b-f830-4c8d-9086-cca142e61f91에 빌드 연결, 사용자 확인 후 단일 계정 보유자를 내부 테스터로 추가. Apple API에서 그룹 테스터 1명 INVITED, 빌드 IN_BETA_TESTING 확인. 초대 수락·iPhone Xs 설치·실기기 QA는 미확인. docs/quality/classical-local-library-testflight-internal-2026-10-30.md 참고.
        2026-10-26 Play 아이콘은 사용자 승인. 런처 실기기 렌더링·스토어 자산·서명 빌드·촬영은 미검수. 공개 지원/개인정보 사이트는 별도 호스팅에 게시됐으나 ddirori.mannlab.app DNS 검증 대기 중이므로 제출 URL을 고정하지 않음.

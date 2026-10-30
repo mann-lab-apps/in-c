@@ -15,6 +15,15 @@ abstract class PlaybackDiagnosticRunner {
   Future<PlaybackDiagnosticReport> run();
 }
 
+class ExclusivePlaybackDiagnosticRunner implements PlaybackDiagnosticRunner {
+  ExclusivePlaybackDiagnosticRunner(this.player, this.delegate);
+  final SerializedLocalPlaybackController player;
+  final PlaybackDiagnosticRunner delegate;
+
+  @override
+  Future<PlaybackDiagnosticReport> run() => player.runDiagnostic(delegate.run);
+}
+
 typedef PlaybackDiagnosticControllerFactory =
     LocalPlaybackController Function();
 typedef PlaybackDiagnosticAssetLoader = Future<Uint8List> Function(
@@ -283,6 +292,8 @@ class _PlaybackDiagnosticScreenState extends State<PlaybackDiagnosticScreen> {
             const Text('합성 WAV와 AAC·ALAC-in-M4A 테스트 파일만 사용합니다.'),
             const SizedBox(height: 8),
             const Text('개인 음악 파일, 감상 이력, 기기 식별자, 네트워크 전송은 포함하지 않습니다.'),
+            const SizedBox(height: 8),
+            const Text('진단을 실행하면 감상 중인 음악을 일시정지합니다. 진단 후 재생 버튼으로 다시 시작해 주세요.'),
             const SizedBox(height: 20),
             DdiroriButton(
               label: '진단 실행',

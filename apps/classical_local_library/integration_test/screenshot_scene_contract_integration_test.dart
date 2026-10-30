@@ -62,6 +62,8 @@ void main() {
     await scrollTo(tester, '현재 재생 큐');
     expect(find.text('현재 재생 큐'), findsOneWidget);
     expect(find.text('1악장 Allegro con brio'), findsWidgets);
+    expect(find.byTooltip('이전'), findsWidgets);
+    expect(find.byTooltip('다음'), findsWidgets);
 
     await restart(tester);
     await scrollTo(tester, '교향곡 5번 다단조');

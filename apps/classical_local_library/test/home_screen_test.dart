@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:classical_local_library/classical_library_models.dart';
+import 'package:classical_local_library/system_media.dart';
 import 'package:classical_local_library/file_links.dart';
 import 'package:classical_local_library/folder_picker.dart';
 import 'package:classical_local_library/local_audio_scanner.dart';
@@ -1375,6 +1378,70 @@ void main() {
     expect(tester.widget<IconButton>(disabledButton).onPressed, isNull);
   });
 
+  testWidgets('진단 화면을 닫아도 진행 중인 진단과 본재생이 겹치지 않는다', (tester) async {
+    final player = FakeLocalPlayer();
+    final runner = _PendingDiagnosticRunner();
+    final session = _HomeMediaSession();
+    await tester.pumpWidget(
+      ClassicalLocalLibraryApp(
+        playbackController: player,
+        systemMediaSession: session,
+        playbackDiagnosticRunner: runner,
+        scanRepository: ScannedAudioRepository(MemoryScannedAudioStore()),
+        scanLocationRepository: ScanLocationRepository(
+          MemoryScanLocationStore(),
+        ),
+        metadataCandidateRepository: MetadataCandidateRepository(
+          MemoryMetadataCandidateStore(),
+        ),
+        fileTrackLinkRepository: AudioFileTrackLinkRepository(
+          MemoryAudioFileTrackLinkStore(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await player.loadQueue(const [
+      LocalPlaybackQueueItem(
+        trackId: 'diagnostic-owner',
+        workId: 'work',
+        recordingId: 'recording',
+        displayTitle: '본재생',
+        path: '/fixture/music.wav',
+        usesLinkedFile: true,
+        workTitle: '작품',
+        recordingTitle: '녹음',
+      ),
+    ]);
+    await player.play();
+    await player.updatePosition(const Duration(seconds: 12));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('재생 진단').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('감상 중인 음악을 일시정지'), findsOneWidget);
+    await tester.tap(find.text('진단 실행'));
+    await tester.pump();
+    expect(player.state, LocalPlayerState.paused);
+    expect(session.value!.actions, isEmpty);
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 400));
+    final value = session.value!;
+    await session.handler!(
+      SystemMediaCommand(SystemMediaAction.play, value.id, value.generation),
+    );
+    expect(player.state, LocalPlayerState.paused);
+    runner.result.complete(await _FixedPlaybackDiagnosticRunner().run());
+    await tester.pumpAndSettle();
+    expect(player.currentItem!.trackId, 'diagnostic-owner');
+    expect(player.playbackState.position.inSeconds, 12);
+    expect(player.state, LocalPlayerState.paused);
+    expect(session.value!.actions, contains(SystemMediaAction.play));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(session.handler, isNull);
+  });
+
   testWidgets('재생 진단은 synthetic 결과와 청감 선택만 표시한다', (tester) async {
     final historyStore = MemoryPlaybackHistoryStore();
     await tester.pumpWidget(
@@ -1487,6 +1554,30 @@ class _CountingPlaybackHistoryStore extends MemoryPlaybackHistoryStore {
   }) {
     statisticsLoadCount += 1;
     return super.loadStatistics(sinceMillis: sinceMillis, limit: limit);
+  }
+}
+
+class _PendingDiagnosticRunner implements PlaybackDiagnosticRunner {
+  final result = Completer<PlaybackDiagnosticReport>();
+  @override
+  Future<PlaybackDiagnosticReport> run() => result.future;
+}
+
+class _HomeMediaSession implements SystemMediaSession {
+  SystemMediaSnapshot? value;
+  Future<void> Function(SystemMediaCommand)? handler;
+  @override
+  void setCommandHandler(Future<void> Function(SystemMediaCommand)? next) =>
+      handler = next;
+  @override
+  Future<void> publish(SystemMediaSnapshot? snapshot) async {
+    value = snapshot;
+  }
+
+  @override
+  Future<void> dispose() async {
+    value = null;
+    handler = null;
   }
 }
 

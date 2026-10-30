@@ -11,6 +11,7 @@ class PlayNowPlayingControls extends StatelessWidget {
     required this.commandRunning,
     required this.onPlayPause,
     required this.onNext,
+    this.onPrevious,
     required this.onStop,
     required this.onSeek,
     this.onAddToPlaylist,
@@ -22,6 +23,7 @@ class PlayNowPlayingControls extends StatelessWidget {
   final bool commandRunning;
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
+  final VoidCallback? onPrevious;
   final VoidCallback onStop;
   final ValueChanged<Duration> onSeek;
   final VoidCallback? onAddToPlaylist;
@@ -104,6 +106,14 @@ class PlayNowPlayingControls extends StatelessWidget {
           DdiroriToolbar(
             label: '재생 도구',
             children: [
+              if (onPrevious != null)
+                DdiroriIconButton(
+                  label: '이전',
+                  icon: Icons.skip_previous_outlined,
+                  onPressed: canUseQueue && !busy && state.failure == null
+                      ? onPrevious
+                      : null,
+                ),
               DdiroriIconButton(
                 label: state.playerState == LocalPlayerState.playing
                     ? '일시정지'
@@ -116,7 +126,9 @@ class PlayNowPlayingControls extends StatelessWidget {
               DdiroriIconButton(
                 label: '다음',
                 icon: Icons.skip_next_outlined,
-                onPressed: canUseQueue && !busy ? onNext : null,
+                onPressed: currentItem != null && !busy && state.failure == null
+                    ? onNext
+                    : null,
               ),
               DdiroriIconButton(
                 label: '정지',

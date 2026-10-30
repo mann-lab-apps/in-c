@@ -18,6 +18,7 @@ class PlayPlaybackScope extends InheritedWidget {
     required this.snapshot,
     required this.onPlayPause,
     required this.onNext,
+    this.onPrevious,
     required this.onStop,
     required this.onSeek,
     this.onAddToPlaylist,
@@ -27,6 +28,7 @@ class PlayPlaybackScope extends InheritedWidget {
   final ValueListenable<PlayPlaybackSnapshot> snapshot;
   final Future<void> Function() onPlayPause;
   final Future<void> Function() onNext;
+  final Future<void> Function()? onPrevious;
   final Future<void> Function() onStop;
   final Future<void> Function(Duration) onSeek;
   final VoidCallback? onAddToPlaylist;
@@ -46,6 +48,7 @@ class PlayPlaybackScope extends InheritedWidget {
         showContext: showContext,
         onPlayPause: onPlayPause,
         onNext: onNext,
+        onPrevious: onPrevious,
         onStop: onStop,
         onSeek: onSeek,
         onAddToPlaylist: onAddToPlaylist,
@@ -282,7 +285,12 @@ class _PlaybackStrip extends StatelessWidget {
               DdiroriIconButton(
                 label: '축약 다음',
                 icon: Icons.skip_next,
-                onPressed: busy ? null : scope.onNext,
+                onPressed:
+                    busy ||
+                        value.state.currentItem == null ||
+                        value.state.failure != null
+                    ? null
+                    : scope.onNext,
               ),
             ],
           ),

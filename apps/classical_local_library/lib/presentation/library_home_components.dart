@@ -439,6 +439,7 @@ class _QueuePanel extends StatelessWidget {
     required this.isCommandRunning,
     required this.onPlayPausePressed,
     required this.onNextPressed,
+    this.onPreviousPressed,
     required this.onStopPressed,
     required this.onSeek,
     required this.showControls,
@@ -452,6 +453,7 @@ class _QueuePanel extends StatelessWidget {
   final bool isCommandRunning;
   final VoidCallback onPlayPausePressed;
   final VoidCallback onNextPressed;
+  final VoidCallback? onPreviousPressed;
   final VoidCallback onStopPressed;
   final ValueChanged<Duration> onSeek;
   final bool showControls;
@@ -503,6 +505,7 @@ class _QueuePanel extends StatelessWidget {
               commandRunning: isCommandRunning,
               onPlayPause: onPlayPausePressed,
               onNext: onNextPressed,
+              onPrevious: onPreviousPressed,
               onStop: onStopPressed,
               onSeek: onSeek,
             ),

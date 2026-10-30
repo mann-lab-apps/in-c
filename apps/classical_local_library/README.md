@@ -610,7 +610,7 @@ bundle exec fastlane release_candidate_preflight \
 아직 하지 않은 것:
 
 - 원본 파일 태그 쓰기.
-- Android 백그라운드 재생, 잠금 화면/알림 조작, 헤드폰 버튼과 CarPlay.
+- Android 백그라운드 재생·알림 조작, 물리 헤드폰 버튼·CarPlay 검증.
 - 헤드폰 버튼과 시스템 미디어 세션 명령.
 - gapless/crossfade 품질과 실제 기기별 포맷 호환성 검증.
 - JSON migration 이후 cleanup/archive 정책.
@@ -664,7 +664,7 @@ query 수는 측정값이 아니라 코드 검사값으로 별도 표기한다. 
 2. App Store Connect의 개인정보, 연령 등급, 콘텐츠 권리, 수출 규정, 가격·배포 지역과 TestFlight 연락처를 운영자가 확정한다.
 3. 사용자가 물리 iPhone XS에서 VoiceOver, Dynamic Type, Files/iCloud 문서 선택기, 실제 음원 재생과 출력 route를 검증한다. iPad 물리 검수는 별도 미완료 항목이다.
 4. 첫 TestFlight 후보에서 P0/P1 회귀가 없음을 확인한 뒤 screenshot capture와 메타데이터 검수를 완료한다.
-5. Chromaprint, 상용 외부 서비스 정책, Android 백그라운드 재생과 시스템 미디어 조작은 별도 후속 범위다.
+5. Chromaprint, 상용 외부 서비스 정책, Android 백그라운드 재생·알림, CarPlay는 별도 후속 범위다.
 
 ## iOS 화면 잠금 재생 — 0.1.0(2), 2026-10-30
 
@@ -672,3 +672,12 @@ query 수는 측정값이 아니라 코드 검사값으로 별도 표기한다. 
 - interruption 시작과 출력 장치 분리는 기존대로 일시정지한다. interruption 종료 후 자동 재개하지 않는다. 별도 백그라운드 task, 무음 keepalive, 오디오 패키지 추가는 없다.
 - `python3 tool/run_ios_background_audio_qa.py --device <전용 simulator UDID> --output <증적 폴더>`는 실제 OS 앱 전환을 실행하고 합성 WAV 큐의 다음 항목·완료와 lifecycle을 검증한다. 실제 기기 잠금·가청 출력·배터리 성능의 증거는 아니다.
 - iPhone Xs에서 잠금 후 30초 청취, 다음 곡 전환, 잠금 해제 후 큐/위치, 전화 interruption과 헤드폰 분리를 확인해야 한다. 앱 강제 종료 후 자동 재생과 시스템 잠금 화면 조작은 지원 범위에 포함하지 않는다.
+
+## iOS 시스템 미디어 조작 — 0.1.0(3), 2026-10-30
+
+- 이전 0.1.0(2)의 시스템 조작 제한을 확장했다. iOS `MPNowPlayingInfoCenter`와 `MPRemoteCommandCenter`에 곡 정보·진행 시간과 재생/일시정지/이전/다음/seek/stop을 연결한다. OS가 실제 표시하는 버튼 구성은 기기·OS가 결정한다.
+- 음악용 세션·background audio·just_audio를 유지한다. 진단이 별도 플레이어를 사용하는 구조와 iOS 범위를 고려해 얇은 native adapter를 선택했으며 audio_service/just_audio_background나 새 권한을 추가하지 않았다. Android 동작은 기존 범위다.
+- 앱과 시스템은 같은 직렬화 controller를 사용한다. paused 이동은 paused, 이전은 3초 이상이면 곡 처음·미만이면 이전 항목, 첫 항목에서는 처음으로 이동한다. 마지막 다음은 completed(queue.length), completed 재생은 첫 곡부터, completed 이전은 마지막 곡 처음의 paused 상태다. stop은 시스템 정보와 등록 명령을 정리한다.
+- 시스템 ID에는 track ID의 hash를 사용하며 경로·파일 URL·외부 artwork 요청은 없다. 태그/교정 정보의 artist·album만 사용하고 녹음명을 아티스트로 해석하지 않는다. 클래식 곡명에는 작품·악장을 표시한다.
+- 진단 실행은 본재생을 일시정지하고 앱/시스템 명령을 잠근다. 화면을 닫아도 실행 중 진단이 정리될 때까지 잠금을 유지하고 완료·실패 후 자동 재개하지 않는다. 큐·위치와 시스템의 본재생 정보는 보존한다.
+- Swift Debug 구성의 검사/명령 주입은 자동 QA 전용이다. Release에는 포함하지 않으며, 채널 주입과 공개 Now Playing 센터 조회를 물리 잠금 화면 버튼 검수로 표현하지 않는다. [검증 기록](../../docs/quality/classical-local-library-ios-system-media-2026-10-30.md)을 참고한다.

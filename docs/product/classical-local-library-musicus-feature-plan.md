@@ -2,6 +2,10 @@
 
 작성일: 2026-10-13
 
+## iOS 시스템 미디어 조작 — 2026-10-30
+
+0.1.0(3)은 기존 iOS background audio 위에 공개 MediaPlayer API adapter를 추가해 곡 정보와 재생/일시정지/이전/다음/seek/stop을 기존 controller에 연결한다. 원본·SQLite schema는 유지하며 시스템 정보는 태그/교정 값과 작품·악장에 근거한다. 이전 3초 정책과 paused 이동, 진단 중 독점 실행·자동 재개 방지, stale 명령/갱신 검증을 포함한다. iPhone Xs의 실제 시스템 UI·출력 검수는 사용자 QA다. 아래 과거 마일스톤의 lock-screen 미지원 기록은 해당 단계의 이력이다.
+
 ## 현재 iOS 재생 범위 변경 — 2026-10-30
 
 아래 과거 마일스톤의 foreground-only 제한은 iOS 0.1.0(2)에서 변경한다. iOS 음악용 오디오 세션과 `UIBackgroundModes: audio`로 화면 잠금·앱 전환 중 재생을 유지하고 lifecycle에서는 위치만 저장한다. Android는 기존 background 일시정지 정책이다. interruption·출력 장치 분리 시 일시정지하고 자동 재개하지 않는 정책, 큐·파일 ID·위치 저장은 유지한다. 시스템 잠금 화면 조작·헤드폰 버튼·CarPlay·강제 종료 후 자동 재생은 별도 범위다. 시뮬레이터 앱 전환 증거와 iPhone Xs 물리 잠금·청감 확인을 구분한다.

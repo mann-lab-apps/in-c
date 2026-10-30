@@ -5,6 +5,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('이전 버튼은 조작 가능하며 완료·오류 상태의 지원 명령을 구분한다', (t) async {
+    var state = _playingState();
+    var previous = 0;
+    Future<void> render() => t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PlayNowPlayingControls(
+            state: state,
+            canUseQueue: true,
+            commandRunning: false,
+            onPlayPause: _noop,
+            onNext: _noop,
+            onStop: _noop,
+            onSeek: (_) {},
+            onPrevious: () => previous++,
+          ),
+        ),
+      ),
+    );
+    await render();
+    await t.tap(find.byTooltip('이전'));
+    expect(previous, 1);
+    DdiroriIconButton button(String label) => t.widget(
+      find.byWidgetPredicate(
+        (widget) => widget is DdiroriIconButton && widget.label == label,
+      ),
+    );
+    state = state.copyWith(
+      playerState: LocalPlayerState.completed,
+      currentIndex: state.queue.length,
+    );
+    await render();
+    expect(button('다음').onPressed, isNull);
+    expect(button('이전').onPressed, isNotNull);
+    state = state.copyWith(
+      playerState: LocalPlayerState.error,
+      failure: const LocalPlaybackFailure(
+        kind: LocalPlaybackFailureKind.loadFailed,
+        userMessage: '불러오기 실패',
+      ),
+    );
+    await render();
+    expect(button('이전').onPressed, isNull);
+  });
   testWidgets(
     'draft resets on track change, pause and failure without seeking',
     (t) async {

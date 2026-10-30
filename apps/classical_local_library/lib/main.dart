@@ -28,6 +28,7 @@ import 'library_deduplication.dart';
 import 'library_discovery.dart';
 import 'library_discovery_screen.dart';
 import 'local_playback.dart';
+import 'system_media.dart';
 import 'local_audio_scanner.dart';
 import 'local_audio_import.dart';
 import 'local_import_feedback.dart';
@@ -108,6 +109,7 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
     this.managedAudioExporter,
     this.supportsFolderScan,
     this.playbackController,
+    this.systemMediaSession,
     this.playbackPositionStore,
     this.playbackQueueSnapshotStore,
     this.playbackHistoryStore,
@@ -141,6 +143,7 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
   final ManagedAudioExporter? managedAudioExporter;
   final bool? supportsFolderScan;
   final LocalPlaybackController? playbackController;
+  final SystemMediaSession? systemMediaSession;
   final PlaybackPositionStore? playbackPositionStore;
   final PlaybackQueueSnapshotStore? playbackQueueSnapshotStore;
   final PlaybackHistoryStore? playbackHistoryStore;
@@ -185,6 +188,7 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
         managedAudioExporter: managedAudioExporter,
         supportsFolderScan: supportsFolderScan,
         playbackController: playbackController,
+        systemMediaSession: systemMediaSession,
         playbackPositionStore: playbackPositionStore,
         playbackQueueSnapshotStore: playbackQueueSnapshotStore,
         playbackHistoryStore: playbackHistoryStore,
@@ -223,6 +227,7 @@ class LibraryHomeScreen extends StatefulWidget {
     this.managedAudioExporter,
     this.supportsFolderScan,
     this.playbackController,
+    this.systemMediaSession,
     this.playbackPositionStore,
     this.playbackQueueSnapshotStore,
     this.playbackHistoryStore,
@@ -255,6 +260,7 @@ class LibraryHomeScreen extends StatefulWidget {
   final ManagedAudioExporter? managedAudioExporter;
   final bool? supportsFolderScan;
   final LocalPlaybackController? playbackController;
+  final SystemMediaSession? systemMediaSession;
   final PlaybackPositionStore? playbackPositionStore;
   final PlaybackQueueSnapshotStore? playbackQueueSnapshotStore;
   final PlaybackHistoryStore? playbackHistoryStore;
@@ -283,7 +289,9 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   ClassicalPlaybackPlanner? planner;
   PlaybackPlan? plan;
   PlaybackMode mode = PlaybackMode.workRandom;
-  late final LocalPlaybackController localPlayer;
+  late final SerializedLocalPlaybackController localPlayer;
+  late final PlaybackSystemMediaCoordinator? systemMedia;
+  late final StreamSubscription<bool> commandAvailabilitySubscription;
   late final StreamSubscription<LocalPlaybackState> playbackSubscription;
   late final StreamSubscription<PlaybackHistoryEntry>
   playbackHistorySubscription;
@@ -389,15 +397,35 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
           final database = await _openDefaultDatabase();
           return SqlitePlaybackPositionStore(database);
         });
-    localPlayer =
-        widget.playbackController ??
-        SerializedLocalPlaybackController(
-          JustAudioLocalPlaybackController(
-            positionCoordinator: PlaybackPositionCoordinator(
-              store: positionStore,
-            ),
-          ),
-        );
+    final suppliedPlayer = widget.playbackController;
+    localPlayer = suppliedPlayer is SerializedLocalPlaybackController
+        ? suppliedPlayer
+        : SerializedLocalPlaybackController(
+            suppliedPlayer ??
+                JustAudioLocalPlaybackController(
+                  positionCoordinator: PlaybackPositionCoordinator(
+                    store: positionStore,
+                  ),
+                ),
+          );
+    final mediaSession =
+        widget.systemMediaSession ??
+        (suppliedPlayer == null && Platform.isIOS
+            ? IOSSystemMediaSession()
+            : null);
+    systemMedia = mediaSession == null
+        ? null
+        : PlaybackSystemMediaCoordinator(
+            controller: localPlayer,
+            session: mediaSession,
+          );
+    commandAvailabilitySubscription = localPlayer.commandAvailability.listen((
+      _,
+    ) {
+      if (!mounted) return;
+      setState(() {});
+      _syncPlaybackView();
+    });
     final queueStore =
         widget.playbackQueueSnapshotStore ??
         (widget.playbackController != null
@@ -468,11 +496,13 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     unawaited(playbackSubscription.cancel());
     playbackView.dispose();
     unawaited(playbackHistorySubscription.cancel());
+    unawaited(commandAvailabilitySubscription.cancel());
     unawaited(_disposePlayback());
     super.dispose();
   }
 
   Future<void> _disposePlayback() async {
+    await systemMedia?.dispose();
     await playbackQueueCoordinator.flush();
     await playbackHistoryCoordinator.dispose();
     await localPlayer.dispose();
@@ -2239,13 +2269,18 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     return _runPlaybackCommand(() => localPlayer.seek(position));
   }
 
+  Future<void> _previousPlaybackItem() =>
+      _runPlaybackCommand(localPlayer.previous);
+
   Future<void> _openPlaybackDiagnostic() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (context) => PlaybackDiagnosticScreen(
-          runner:
-              widget.playbackDiagnosticRunner ??
-              LocalFixturePlaybackDiagnosticRunner(),
+          runner: ExclusivePlaybackDiagnosticRunner(
+            localPlayer,
+            widget.playbackDiagnosticRunner ??
+                LocalFixturePlaybackDiagnosticRunner(),
+          ),
         ),
       ),
     );
@@ -2335,7 +2370,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   }
 
   Future<void> _runPlaybackCommand(Future<void> Function() command) async {
-    if (isPlaybackCommandRunning) {
+    if (isPlaybackCommandRunning || localPlayer.diagnosticActive) {
       return;
     }
 
@@ -2386,7 +2421,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   void _syncPlaybackView() {
     playbackView.value = PlayPlaybackSnapshot(
       playbackState,
-      commandRunning: isPlaybackCommandRunning,
+      commandRunning: isPlaybackCommandRunning || localPlayer.diagnosticActive,
     );
   }
 
@@ -2394,6 +2429,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     snapshot: playbackView,
     onPlayPause: _togglePlayback,
     onNext: _nextPlaybackItem,
+    onPrevious: _previousPlaybackItem,
     onStop: _stopPlayback,
     onSeek: _seekPlayback,
     onAddToPlaylist: () => unawaited(_addCurrentFileToPlaylist()),
@@ -2924,9 +2960,12 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                     PlayNowPlayingControls(
                       state: playbackState,
                       canUseQueue: playbackState.hasQueue,
-                      commandRunning: isPlaybackCommandRunning,
+                      commandRunning:
+                          isPlaybackCommandRunning ||
+                          localPlayer.diagnosticActive,
                       onPlayPause: _togglePlayback,
                       onNext: _nextPlaybackItem,
+                      onPrevious: _previousPlaybackItem,
                       onStop: _stopPlayback,
                       onSeek: _seekPlayback,
                       onAddToPlaylist: _addCurrentFileToPlaylist,
@@ -2952,9 +2991,12 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                       scannedFiles: scannedFiles,
                       links: fileTrackLinks,
                       playbackState: playbackState,
-                      isCommandRunning: isPlaybackCommandRunning,
+                      isCommandRunning:
+                          isPlaybackCommandRunning ||
+                          localPlayer.diagnosticActive,
                       onPlayPausePressed: _togglePlayback,
                       onNextPressed: _nextPlaybackItem,
+                      onPreviousPressed: _previousPlaybackItem,
                       onStopPressed: _stopPlayback,
                       onSeek: _seekPlayback,
                       showControls:
@@ -2977,9 +3019,12 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                     PlayNowPlayingControls(
                       state: playbackState,
                       canUseQueue: playbackState.hasQueue,
-                      commandRunning: isPlaybackCommandRunning,
+                      commandRunning:
+                          isPlaybackCommandRunning ||
+                          localPlayer.diagnosticActive,
                       onPlayPause: _togglePlayback,
                       onNext: _nextPlaybackItem,
+                      onPrevious: _previousPlaybackItem,
                       onStop: _stopPlayback,
                       onSeek: _seekPlayback,
                       onAddToPlaylist: _addCurrentFileToPlaylist,

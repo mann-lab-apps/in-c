@@ -22,6 +22,8 @@ class LocalPlaybackQueueItem {
     required this.workTitle,
     required this.recordingTitle,
     this.fileModifiedAtMillis,
+    this.artist,
+    this.album,
   });
 
   final String trackId;
@@ -33,6 +35,8 @@ class LocalPlaybackQueueItem {
   final String workTitle;
   final String recordingTitle;
   final int? fileModifiedAtMillis;
+  final String? artist;
+  final String? album;
 
   bool get isDirectFile => trackId.startsWith('local-file:');
 
@@ -160,6 +164,8 @@ class LocalPlaybackQueueBuilder {
       workTitle: effective.text(MetadataField.workTitle) ?? item.work.title.ko,
       recordingTitle: item.recording.title.ko,
       fileModifiedAtMillis: linkedFile?.modifiedAtMillis,
+      artist: effective.text(MetadataField.performer),
+      album: linkedFile?.tagMetadata?.album,
     );
   }
 }
@@ -359,6 +365,8 @@ abstract class LocalPlaybackController {
 
   Future<void> next();
 
+  Future<void> previous();
+
   Future<void> seek(Duration position);
 
   Future<void> persistPosition();
@@ -374,6 +382,12 @@ class SerializedLocalPlaybackController implements LocalPlaybackController {
   final LocalPlaybackController delegate;
   Future<void> _tail = Future<void>.value();
   bool _disposeRequested = false;
+  bool _diagnosticActive = false;
+  int _queueRevision = 0;
+  final _availability = StreamController<bool>.broadcast(sync: true);
+
+  bool get diagnosticActive => _diagnosticActive;
+  Stream<bool> get commandAvailability => _availability.stream;
 
   @override
   LocalPlaybackState get playbackState => delegate.playbackState;
@@ -389,35 +403,89 @@ class SerializedLocalPlaybackController implements LocalPlaybackController {
   }
 
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) =>
-      _enqueue(() => delegate.loadQueue(queue));
+  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
+    if (_diagnosticActive || _disposeRequested) return Future<void>.value();
+    _queueRevision += 1;
+    return _enqueue(() => delegate.loadQueue(queue));
+  }
+
+  Future<void> _command(Future<void> Function() operation) {
+    if (_diagnosticActive) return Future<void>.value();
+    return _enqueue(operation);
+  }
+
+  Future<void> dispatchForSelection(
+    List<LocalPlaybackQueueItem> queue,
+    int index,
+    Future<void> Function(LocalPlaybackController) operation,
+  ) => _command(() async {
+    if (identical(queue, playbackState.queue) &&
+        index == playbackState.currentIndex) {
+      await operation(delegate);
+    }
+  });
 
   @override
-  Future<void> play() => _enqueue(delegate.play);
+  Future<void> play() => _command(delegate.play);
 
   @override
-  Future<void> pause() => _enqueue(delegate.pause);
+  Future<void> pause() => _command(delegate.pause);
 
   @override
-  Future<void> resume() => _enqueue(delegate.resume);
+  Future<void> resume() => _command(delegate.resume);
 
   @override
-  Future<void> next() => _enqueue(delegate.next);
+  Future<void> next() => _command(delegate.next);
 
   @override
-  Future<void> seek(Duration position) =>
-      _enqueue(() => delegate.seek(position));
+  Future<void> previous() => _command(delegate.previous);
+
+  @override
+  Future<void> seek(Duration position) {
+    final item = playbackState.currentItem;
+    final revision = _queueRevision;
+    return _command(() async {
+      if (revision == _queueRevision &&
+          identical(item, playbackState.currentItem)) {
+        await delegate.seek(position);
+      }
+    });
+  }
 
   @override
   Future<void> persistPosition() => _enqueue(delegate.persistPosition);
 
   @override
+  // Destructive app flows await stop before clearing user data. Keep it ordered
+  // behind a diagnostic instead of silently dropping that shutdown boundary.
   Future<void> stop() => _enqueue(delegate.stop);
+
+  Future<T> runDiagnostic<T>(Future<T> Function() operation) {
+    if (_diagnosticActive || _disposeRequested) {
+      throw StateError('Playback diagnostic unavailable');
+    }
+    _diagnosticActive = true;
+    _availability.add(false);
+    final result = _tail.then((_) async {
+      try {
+        await delegate.pause();
+        return await operation();
+      } finally {
+        _diagnosticActive = false;
+        _availability.add(true);
+      }
+    });
+    _tail = result.then<void>((_) {}, onError: (_, _) {});
+    return result;
+  }
 
   @override
   Future<void> dispose() {
     if (_disposeRequested) return _tail;
-    final result = _tail.then((_) => delegate.dispose());
+    final result = _tail.then((_) async {
+      await delegate.dispose();
+      await _availability.close();
+    });
     _disposeRequested = true;
     _tail = result.then<void>((_) {}, onError: (_, _) {});
     return result;
@@ -755,6 +823,13 @@ class FakeLocalPlayer implements LocalPlaybackController {
       _playbackState.copyWith(
         playerState: LocalPlayerState.playing,
         currentIndex: index,
+        position: state == LocalPlayerState.completed
+            ? Duration.zero
+            : _playbackState.position,
+        bufferedPosition: state == LocalPlayerState.completed
+            ? Duration.zero
+            : _playbackState.bufferedPosition,
+        duration: trackDurations[queue[index].trackId],
         processingState: LocalPlaybackProcessingState.ready,
         failure: null,
       ),
@@ -782,13 +857,21 @@ class FakeLocalPlayer implements LocalPlaybackController {
       _emit(const LocalPlaybackState.idle());
       return;
     }
+    if (state == LocalPlayerState.error ||
+        state == LocalPlayerState.completed) {
+      return;
+    }
 
     if (currentIndex < queue.length - 1) {
       await persistPosition();
       final nextIndex = currentIndex + 1;
       _emit(
         LocalPlaybackState(
-          playerState: LocalPlayerState.playing,
+          playerState: state == LocalPlayerState.playing
+              ? LocalPlayerState.playing
+              : state == LocalPlayerState.paused
+              ? LocalPlayerState.paused
+              : LocalPlayerState.ready,
           queue: queue,
           currentIndex: nextIndex,
           duration: trackDurations[queue[nextIndex].trackId],
@@ -810,6 +893,31 @@ class FakeLocalPlayer implements LocalPlaybackController {
         ),
       );
     }
+  }
+
+  @override
+  Future<void> previous() async {
+    if (queue.isEmpty || state == LocalPlayerState.error) return;
+    final index = state == LocalPlayerState.completed
+        ? queue.length - 1
+        : _playbackState.position >= const Duration(seconds: 3)
+        ? currentIndex
+        : (currentIndex - 1).clamp(0, queue.length - 1);
+    await persistPosition();
+    _emit(
+      LocalPlaybackState(
+        playerState: state == LocalPlayerState.playing
+            ? LocalPlayerState.playing
+            : state == LocalPlayerState.paused ||
+                  state == LocalPlayerState.completed
+            ? LocalPlayerState.paused
+            : LocalPlayerState.ready,
+        queue: queue,
+        currentIndex: index,
+        duration: trackDurations[queue[index].trackId],
+        processingState: LocalPlaybackProcessingState.ready,
+      ),
+    );
   }
 
   @override

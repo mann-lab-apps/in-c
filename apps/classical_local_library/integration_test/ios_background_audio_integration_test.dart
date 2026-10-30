@@ -12,6 +12,7 @@ import 'package:classical_local_library/playback_audio_session.dart';
 import 'package:classical_local_library/playback_position.dart';
 import 'package:classical_local_library/scan_locations.dart';
 import 'package:classical_local_library/scanned_audio_store.dart';
+import 'package:classical_local_library/system_media.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,6 +48,7 @@ void main() {
         initialLibrary: emptyClassicalLibrary,
         enableDemoFeatures: false,
         playbackController: player,
+        systemMediaSession: IOSSystemMediaSession(),
         scanRepository: ScannedAudioRepository(MemoryScannedAudioStore()),
         scanLocationRepository: ScanLocationRepository(
           MemoryScanLocationStore(),
@@ -72,6 +74,14 @@ void main() {
     expect(player.playbackState.playerState, LocalPlayerState.playing);
     expect(player.playbackState.failure, isNull);
     final returnedIndex = player.playbackState.currentIndex;
+    final nowPlaying = await const MethodChannel(
+      'app.ddirori.play/system_media',
+    ).invokeMapMethod<String, Object?>('inspect');
+    expect(
+      nowPlaying?['title'],
+      player.playbackState.currentItem?.displayTitle,
+    );
+    expect(nowPlaying?['rate'], 1);
     expect(returnedIndex, greaterThan(startIndex));
     final saved = await store.load(file.path);
     expect(saved, isNotNull, reason: 'background transition saves position');
@@ -87,7 +97,7 @@ void main() {
     expect(player.playbackState.currentItem, isNull);
     expect(player.playbackState.failure, isNull);
     debugPrint(
-      'DDIRORI_BACKGROUND_RESULT ${jsonEncode({'lifecycle': lifecycle.states.map((state) => state.name).toList(), 'start_index': startIndex, 'returned_index': returnedIndex, 'completed_index': player.playbackState.currentIndex, 'position_saved': saved != null, 'completed': true})}',
+      'DDIRORI_BACKGROUND_RESULT ${jsonEncode({'lifecycle': lifecycle.states.map((state) => state.name).toList(), 'start_index': startIndex, 'returned_index': returnedIndex, 'completed_index': player.playbackState.currentIndex, 'position_saved': saved != null, 'completed': true, 'now_playing_title_after_return': nowPlaying?['title'], 'now_playing_rate_after_return': nowPlaying?['rate']})}',
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

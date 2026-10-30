@@ -1,0 +1,6 @@
+00:00 +0: loading /private/tmp/ddirori-play-testflight-20261030/apps/classical_local_library/integration_test/ios_system_media_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.2s
+00:00 +0: public iOS Now Playing center and injected native remote commands follow the engine
+00:12 +1: (tearDownAll)
+00:13 +1: All tests passed!

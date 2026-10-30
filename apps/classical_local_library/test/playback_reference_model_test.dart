@@ -352,7 +352,10 @@ class _ReferencePlaybackModel {
     }
     if (currentIndex >= queue.length) {
       currentIndex = 0;
+      position = Duration.zero;
+      bufferedPosition = Duration.zero;
     }
+    duration = _durations[queue[currentIndex].trackId];
     playerState = LocalPlayerState.playing;
     processingState = LocalPlaybackProcessingState.ready;
     failureKind = null;
@@ -363,9 +366,16 @@ class _ReferencePlaybackModel {
       _idle();
       return;
     }
+    if (playerState == LocalPlayerState.error ||
+        playerState == LocalPlayerState.completed) {
+      return;
+    }
     if (currentIndex < queue.length - 1) {
       currentIndex += 1;
-      playerState = LocalPlayerState.playing;
+      if (playerState != LocalPlayerState.playing &&
+          playerState != LocalPlayerState.paused) {
+        playerState = LocalPlayerState.ready;
+      }
       processingState = LocalPlaybackProcessingState.ready;
       position = Duration.zero;
       bufferedPosition = Duration.zero;

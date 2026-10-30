@@ -228,6 +228,8 @@ class LocalFileLibrary {
           usesLinkedFile: true,
           workTitle: entry.album,
           recordingTitle: entry.artist,
+          artist: entry.artist == '아티스트 정보 없음' ? null : entry.artist,
+          album: entry.album == '앨범 정보 없음' ? null : entry.album,
           fileModifiedAtMillis: entry.file.modifiedAtMillis,
         ),
     ]);
