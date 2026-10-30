@@ -65,6 +65,212 @@ class ScoreViewerDraftForm<T> extends StatelessWidget {
 
 /// Only presentation and intents live here. Document and performance policy stay
 /// with SheetViewerScreen, including which commands are currently available.
+class ScorePageMarker {
+  const ScorePageMarker({required this.label, required this.page});
+
+  final String label;
+  final int page;
+}
+
+/// A page number draft is presentation state; only onSelected requests a jump.
+class ScorePagePicker extends StatefulWidget {
+  const ScorePagePicker({
+    super.key,
+    required this.pageCount,
+    required this.currentPage,
+    required this.summary,
+    required this.hiddenPages,
+    required this.pageLabels,
+    required this.markers,
+    required this.onSelected,
+  });
+
+  final int pageCount, currentPage;
+  final String summary;
+  final Set<int> hiddenPages;
+  final Map<int, String> pageLabels;
+  final List<ScorePageMarker> markers;
+  final ValueChanged<int> onSelected;
+
+  @override
+  State<ScorePagePicker> createState() => _ScorePagePickerState();
+}
+
+class _ScorePagePickerState extends State<ScorePagePicker> {
+  late String _draft = '${widget.currentPage}';
+  String? _error;
+  bool _markersOpen = false;
+
+  int get _preview => (int.tryParse(_draft) ?? widget.currentPage)
+      .clamp(1, widget.pageCount)
+      .toInt();
+
+  void _choose(int? page) {
+    if (page == null || page < 1 || page > widget.pageCount) {
+      setState(() => _error = '1~${widget.pageCount} 사이의 쪽 번호를 입력해 주세요.');
+    } else if (widget.hiddenPages.contains(page)) {
+      setState(() => _error = '숨긴 페이지입니다. 숨김을 해제한 뒤 이동해 주세요.');
+    } else {
+      widget.onSelected(page);
+    }
+  }
+
+  int? _visibleNear(int page) {
+    for (var distance = 0; distance < widget.pageCount; distance++) {
+      for (final candidate in [page + distance, page - distance]) {
+        if (candidate >= 1 &&
+            candidate <= widget.pageCount &&
+            !widget.hiddenPages.contains(candidate)) {
+          return candidate;
+        }
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gridHeight = (MediaQuery.sizeOf(context).height * .45)
+        .clamp(180.0, 400.0)
+        .toDouble();
+    final visiblePages = [
+      for (var p = 1; p <= widget.pageCount; p++)
+        if (!widget.hiddenPages.contains(p)) p,
+    ];
+    return DdiroriStack(
+      children: [
+        DdiroriBanner(message: widget.summary),
+        DdiroriSection(
+          title: '쪽 번호로 이동',
+          subtitle: '번호나 슬라이더로 쪽을 고른 뒤 이동을 누르세요.',
+          children: [
+            DdiroriInput(
+              label: '이동할 쪽',
+              value: _draft,
+              help: '현재 ${widget.currentPage}쪽 · 전체 ${widget.pageCount}쪽',
+              error: _error,
+              keyboardType: TextInputType.number,
+              onChanged: (value) => setState(() {
+                _draft = value;
+                _error = null;
+              }),
+              onSubmitted: (_) => _choose(int.tryParse(_draft)),
+            ),
+            if (widget.pageCount > 1)
+              Semantics(
+                label: '이동할 쪽 미리 선택',
+                child: Slider(
+                  value: _preview.toDouble(),
+                  min: 1,
+                  max: widget.pageCount.toDouble(),
+                  divisions: widget.pageCount <= 201
+                      ? widget.pageCount - 1
+                      : null,
+                  label: '$_preview쪽',
+                  semanticFormatterCallback: (v) => '${v.round()}쪽',
+                  onChanged: (v) => setState(() {
+                    _draft = '${v.round()}';
+                    _error = null;
+                  }),
+                ),
+              ),
+            DdiroriButton(
+              label: '이동',
+              icon: Icons.keyboard_tab,
+              onPressed: () => _choose(int.tryParse(_draft)),
+            ),
+            DdiroriStack(
+              inline: true,
+              children: [
+                for (final shortcut in <String, int?>{
+                  '처음': visiblePages.firstOrNull,
+                  '현재': widget.currentPage,
+                  '끝': visiblePages.lastOrNull,
+                  '10쪽 전': _visibleNear(
+                    (widget.currentPage - 10)
+                        .clamp(1, widget.pageCount)
+                        .toInt(),
+                  ),
+                  '10쪽 뒤': _visibleNear(
+                    (widget.currentPage + 10)
+                        .clamp(1, widget.pageCount)
+                        .toInt(),
+                  ),
+                }.entries)
+                  DdiroriButton(
+                    label: shortcut.key,
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: shortcut.value == null
+                        ? null
+                        : () => _choose(shortcut.value),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        if (widget.markers.isNotEmpty)
+          DdiroriAccordion(
+            title: '표시 지점 ${widget.markers.length}개',
+            open: _markersOpen,
+            onChanged: (open) => setState(() => _markersOpen = open),
+            child: DdiroriStack(
+              children: [
+                for (final marker in widget.markers)
+                  DdiroriItem(
+                    title: marker.label,
+                    subtitle:
+                        '${marker.page}쪽${widget.hiddenPages.contains(marker.page) ? ' · 숨김' : ''}',
+                    leading: const Icon(Icons.bookmark_outline),
+                    flat: true,
+                    actions: [
+                      DdiroriButton(
+                        label: '${marker.page}쪽으로 이동',
+                        kind: DdiroriButtonKind.secondary,
+                        onPressed: widget.hiddenPages.contains(marker.page)
+                            ? null
+                            : () => _choose(marker.page),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        DdiroriSection(
+          title: '모든 페이지',
+          children: [
+            SizedBox(
+              height: gridHeight,
+              child: GridView.builder(
+                primary: false,
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 220,
+                  mainAxisExtent:
+                      MediaQuery.textScalerOf(context).scale(16) * 3 + 32,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: widget.pageCount,
+                itemBuilder: (context, index) {
+                  final page = index + 1;
+                  final status = widget.pageLabels[page];
+                  return DdiroriButton(
+                    label: '$page쪽${status == null ? '' : '\n$status'}',
+                    kind: DdiroriButtonKind.secondary,
+                    selected: page == widget.currentPage,
+                    onPressed: widget.hiddenPages.contains(page)
+                        ? null
+                        : () => _choose(page),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class ScoreViewerChrome extends StatelessWidget {
   const ScoreViewerChrome({
     super.key,

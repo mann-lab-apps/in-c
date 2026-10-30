@@ -108,6 +108,7 @@ content:
         악보 메모에서 공연·리허설·조율·편성 메모를 큰 글씨에서도 입력하고 저장할 수 있도록 화면 위계를 정리했습니다.
         악보 메모는 실제 저장 완료 뒤에만 닫히며, 저장 중에는 편집·중복 저장·닫기를 막습니다. 저장 실패 시 입력을 유지하고 같은 화면에서 다시 시도할 수 있습니다.
         자르기 맞춤도 저장 완료 뒤에만 닫히고 실패 시 여백 값을 유지해 재시도합니다. 큰 글자에서 방향과 퍼센트가 잘리지 않도록 공통 설정 행으로 정리하고, 태블릿의 모든 도구에도 보기 옵션 진입점을 제공했습니다.
+        긴 PDF 페이지 탐색에 쪽 번호 입력·슬라이더·처음/현재/끝/10쪽 이동과 표시 지점 접근을 추가했습니다. 입력과 슬라이더는 이동 전 미리보기이며 숨김 쪽은 이동을 막고, 큰 글자·가로 화면에서도 탐색할 수 있도록 개선했습니다.
         북마크 목록에서 페이지 이동과 이름 변경·삭제 행동을 구분하고, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         숨긴 페이지 관리에서 다시 표시할 쪽과 이동 행동을 분리해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
         페이지 순서/복제에서 앱 안의 표시 순서 변경과 원본 PDF 보존을 구분해, 큰 글씨에서도 목록을 스크롤해 사용할 수 있도록 정리했습니다.
@@ -179,6 +180,7 @@ testflight:
     연습 → 튜너를 열어 마이크 시작/정지와 프리셋·악기/표시·감지 프로필·드론 선택값이 작은 폭에서 잘리지 않는지 확인해 주세요. 실제 권한·음정 정확도·노이즈·드론 출력·Bluetooth/유선 latency는 별도 Device QA로 기록해 주세요.
     메트로놈의 소리를 끄고 시작/정지·재시작 뒤 sheet를 닫았다가 다시 열어 정지 상태와 저장된 BPM·박자가 유지되는지 확인해 주세요. 튜너는 이름 있는 마이크 버튼과 아래쪽 기준음/드론까지 스크롤 접근을 확인해 주세요.
     첫/마지막·숨김 페이지와 세트리스트 안에서 이전/다음이 실제로 가능한 경우에만 활성화되는지, 읽기·주석·연습·공연 상태 문구가 함께 보이는지 확인해 주세요.
+    모든 도구 → 보기 옵션 → 페이지 탐색에서 쪽 번호·슬라이더는 PDF를 즉시 옮기지 않고 이동을 눌러야 반영되어야 합니다. 범위 밖/숨김 쪽 오류, 처음/현재/끝/10쪽 이동과 표시 지점을 확인하고 취소 시 현재 PDF 쪽이 유지되는지 확인해 주세요.
     공연 모드에서 북마크·자동 스크롤·메트로놈·튜너와 세트리스트 이전/다음 곡 동작이 기존 권한대로 보이는지, 자동 스크롤 카운트다운이 도구와 악보를 가리지 않는지 확인해 주세요.
     PDF의 jump point·리허설 마크·북마크가 빠른 이동 도구와 overflow 메뉴에서 올바른 페이지로 이동하는지 확인해 주세요.
     자르기 맞춤에서 네 방향 값을 바꾸고 초기화/저장해 보세요. 원본 PDF는 바뀌지 않고 현재 뷰어의 여백만 갱신되어야 합니다.
@@ -625,6 +627,29 @@ screenshots:
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: score-page-picker
+    purpose: 실제 PDF의 페이지 탐색에서 숫자 입력·슬라이더 미리 선택과 이동 행동을 보여준다. 실제 기기 속도·페달·VoiceOver 증명 장면이 아니다.
+    route: 라이브러리 → 자가 제작 PDF → 모든 도구 → 보기 옵션 → 페이지 탐색
+    fixture: 자가 제작 3쪽 PDF의 첫 쪽, 숨김 쪽 없음. 입력을 확정하지 않은 상태.
+    must_show:
+    - 페이지 탐색 제목, 이동할 쪽 입력과 현재/전체 쪽 안내
+    - 이동 버튼, 슬라이더와 처음/현재/끝/10쪽 바로 이동
+    - 입력과 슬라이더가 미리 선택임을 알리는 설명
+    exclude:
+    - 변경하지 않은 PDF의 실제 쪽을 이동 완료로 표시
+    - 저작권 미확인 PDF·실제 개인정보·ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: text, value: 보기 옵션}
+    - {action: scroll_to, by: text, value: 페이지 탐색, delta: 300}
+    - {action: tap, by: text, value: 페이지 탐색}
+    assertions:
+    - {by: text, value: 페이지 탐색, present: true}
+    - {by: text, value: 이동할 쪽, present: true}
+    - {by: widget_type, value: ScorePagePicker, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-crop-settings
     purpose: 실제 PDF 위에서 네 방향 여백과 저장/취소/초기화 행동을 표시한다. 기본 draft 화면이며 실제 저장 실패·기기 기하 정확도 검증 증거가 아니다.
     route: 라이브러리 → 자가 제작 PDF → 모든 도구 → 보기 옵션 → 자르기 맞춤
@@ -1087,6 +1112,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-30 페이지 탐색의 큰 글자/가로 overflow와 범위/숨김 오류를 widget fixture로 검증한다. 실제 기기의 숫자 키보드·VoiceOver·격자 안팎 scroll 조작은 pending이다.
       2026-10-30 메모·자르기의 앱 전용 저장 폼과 가변 높이 여백 행을 적용했다. 큰 글자 widget 검사와 별개로 실제 기기의 키보드 inset·VoiceOver·원본 보존·실제 저장 실패 확인은 pending이다.
       2026-10-30 메모 저장 대기·오류·재시도와 닫기 차단을 자동 fixture로 검증한다. 후보 기기에서 실제 저장 실패·IME·VoiceOver 상태 읽기와 취소 뒤 focus 복귀는 pending이다.
       2026-10-30 메트로놈·튜너의 공통 sheet와 이름 있는 마이크 버튼을 적용했다. 자동 widget 검증과 별개로 실제 마이크 권한·오디오·VoiceOver·터치 검수는 pending이다.
@@ -1141,6 +1167,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-30 긴 PDF의 입력·slider 미리 선택·60쪽 실제 이동과 숨김/표시 지점은 자동 PDF fixture로 검사한다. 물리기기의 긴 문서 속도·zoom·crop·VoiceOver는 pending이다.
       2026-10-30 자르기 저장 지연/실패/재시도와 기존 PDF byte 보존은 자동 fixture로 검사한다. 물리 iOS의 좌표/zoom/crop 감각과 화면 전환·디스크 실패·VoiceOver는 pending이다.
       2026-10-30 메모의 비동기 저장 순서·실패 draft 복구는 widget/store double 검사와 실제 기기 저장을 구분한다. 물리 iOS의 키보드·VoiceOver·디스크 실패는 pending이다.
       2026-10-26 직접 페달 설정 sheet는 실제 PDF widget 회귀에서 390px 공통 설정 행·저장 행동과 PDF identity만 확인했다. 후보 iPhone/iPad에서 실제 USB/Bluetooth 장비, 큰 글씨, VoiceOver와 재시작 뒤 입력 동작은 Device QA가 필요하다.

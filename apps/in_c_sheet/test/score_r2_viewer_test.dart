@@ -83,6 +83,17 @@ Future<void> openCrop(WidgetTester t) async {
   await t.pumpAndSettle();
 }
 
+Future<void> openPagePicker(WidgetTester t) async {
+  await command(t, '모든 도구');
+  await command(t, '보기 옵션');
+  final pages = find.byWidgetPredicate(
+    (w) => w is DdiroriItem && w.title == '페이지 탐색',
+  );
+  await t.ensureVisible(pages);
+  await t.tap(pages);
+  await t.pumpAndSettle();
+}
+
 Future<void> waitForPdf(WidgetTester tester, int pages) async {
   for (var attempt = 0; attempt < 150; attempt++) {
     await tester.runAsync(
@@ -157,7 +168,22 @@ Future<SheetLibraryController> openPdf(
         .viewerSettings
         .copyWith(showPerformancePrepNotice: false),
   );
-  await pilot.mount(t, c, width: width, scale: scale, dark: dark);
+  await pilot.mount(
+    t,
+    c,
+    width: width,
+    scale: scale,
+    dark: dark,
+    accent: 'blue',
+  );
+  if (Platform.environment['DDIRORI_SCORE_UI_CAPTURE'] != null) {
+    await t.runAsync(() async {
+      await (FontLoader(
+        'MaterialIcons',
+      )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    });
+    await t.pumpAndSettle();
+  }
   t.view.physicalSize = Size(width, height);
   t
       .state<NavigatorState>(find.byType(Navigator).first)
@@ -196,6 +222,22 @@ Future<void> command(WidgetTester t, String label) async {
 Finder compactViewerOptionsButton() => find.byWidgetPredicate(
   (widget) => widget is DdiroriButton && widget.label == '보기 옵션',
 );
+
+Future<void> captureToolSheet(WidgetTester t, String name) async {
+  final directory = Platform.environment['DDIRORI_SCORE_UI_CAPTURE'];
+  if (directory == null) return;
+  final boundary = t.renderObject<RenderRepaintBoundary>(
+    find.byKey(const Key('pilot-capture')),
+  );
+  await t.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 1);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await Directory(directory).create(recursive: true);
+    await File('$directory/$name.png')
+        .writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
+}
 
 Future<void> capture(WidgetTester t, String name) async {
   if (Platform.environment['DDIRORI_SCORE_R2_CAPTURE'] != 'true') return;
@@ -1552,6 +1594,119 @@ void main() {
       expect(c.scoreById('pilot-0').pageSettings.crop.toJson(), crop.toJson());
       await capture(t, 'long-scan-90-page59');
       expect(c.scoreById('pilot-0').lastPage, 59);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final viewport in viewerSheetViewports) {
+    testWidgets(
+      'long PDF picker previews then jumps without replacing the document at $viewport',
+      (t) async {
+        final c = await openPdf(
+          t,
+          fixture: 'long-scan-like-score.pdf',
+          width: viewport.width,
+          height: viewport.height,
+          dark: viewport.dark,
+          scale: 2,
+        );
+        final original = pdf(t).document;
+        await c.toggleBookmark(c.scoreById('pilot-0'), 60);
+        await t.pumpAndSettle();
+        await openPagePicker(t);
+        expect(t.takeException(), isNull);
+        await captureToolSheet(
+          t,
+          'page-picker-${viewport.width.toInt()}x${viewport.height.toInt()}-${viewport.dark ? 'dark' : 'light'}',
+        );
+        final entry = find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w is DdiroriInput && w.label == '이동할 쪽',
+          ),
+          matching: find.byType(TextField),
+        );
+        await t.enterText(entry, '91');
+        await t.pumpAndSettle();
+        await command(t, '이동');
+        expect(find.text('1~90 사이의 쪽 번호를 입력해 주세요.'), findsOneWidget);
+        expect(pdf(t).pageNumber, 1);
+        final slider = find.byType(Slider);
+        await t.ensureVisible(slider);
+        await t.tapAt(t.getCenter(slider));
+        await t.pumpAndSettle();
+        expect(pdf(t).pageNumber, 1);
+        await t.enterText(entry, '60');
+        await t.pumpAndSettle();
+        expect(pdf(t).pageNumber, 1);
+        expect(c.scoreById('pilot-0').lastPage, 1);
+        await command(t, '이동');
+        expect(pdf(t).pageNumber, 60);
+        expect(c.scoreById('pilot-0').lastPage, 60);
+        expect(pdf(t).document, same(original));
+        await openPagePicker(t);
+        await t.enterText(entry, '80');
+        await t.pumpAndSettle();
+        t.state<NavigatorState>(find.byType(Navigator).first).pop();
+        await t.pumpAndSettle();
+        expect(pdf(t).pageNumber, 60);
+        expect(c.scoreById('pilot-0').lastPage, 60);
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'page picker keeps hidden pages blocked and opens bookmark destinations',
+    (t) async {
+      final c = await openPdf(t, fixture: 'long-scan-like-score.pdf', scale: 2);
+      final original = pdf(t).document;
+      await c.hidePage(c.scoreById('pilot-0'), pageNumber: 30, pageCount: 90);
+      await c.toggleBookmark(c.scoreById('pilot-0'), 60);
+      await t.pumpAndSettle();
+      await openPagePicker(t);
+      final entry = find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => w is DdiroriInput && w.label == '이동할 쪽',
+        ),
+        matching: find.byType(TextField),
+      );
+      await t.enterText(entry, '30');
+      await t.pumpAndSettle();
+      await command(t, '이동');
+      expect(find.text('숨긴 페이지입니다. 숨김을 해제한 뒤 이동해 주세요.'), findsOneWidget);
+      expect(pdf(t).pageNumber, 1);
+      await command(t, '표시 지점 1개 +');
+      await command(t, '60쪽으로 이동');
+      expect(pdf(t).pageNumber, 60);
+      expect(pdf(t).document, same(original));
+      expect(c.scoreById('pilot-0').pageSettings.hiddenPages, contains(30));
+      await openPagePicker(t);
+      await command(t, '10쪽 뒤');
+      expect(pdf(t).pageNumber, 70);
+      await openPagePicker(t);
+      await command(t, '끝');
+      expect(pdf(t).pageNumber, 90);
+      await openPagePicker(t);
+      final grid = find.byType(GridView);
+      await t.ensureVisible(grid);
+      await t.pumpAndSettle();
+      final page88 = find.byWidgetPredicate(
+        (w) => w is DdiroriButton && w.label == '88쪽',
+      );
+      await t.scrollUntilVisible(
+        page88,
+        240,
+        scrollable: find.descendant(
+          of: grid,
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(page88);
+      await t.pumpAndSettle();
+      expect(pdf(t).pageNumber, 88);
+      expect(c.scoreById('pilot-0').lastPage, 88);
+      expect(pdf(t).document, same(original));
       expect(t.takeException(), isNull);
     },
   );

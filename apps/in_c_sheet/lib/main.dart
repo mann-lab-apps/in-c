@@ -8853,89 +8853,55 @@ setlist=$setlistLabel
       if (pageSettings.instanceRotations.isNotEmpty)
         'instance 회전 ${pageSettings.instanceRotations.length}',
     ].join(' · ');
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '페이지 탐색',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                pageSummary.isEmpty
-                    ? '원본 PDF는 그대로이고 앱 표시 metadata만 반영됩니다.'
-                    : '$pageSummary · 원본 PDF는 그대로입니다.',
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.58,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 96,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.2,
-                  ),
-                  itemCount: pageCount,
-                  itemBuilder: (context, index) {
-                    final page = index + 1;
-                    final isCurrent =
-                        page == (_pageNumber ?? currentScore.lastPage);
-                    final isHidden = pageSettings.isHidden(page);
-                    final duplicateCount = duplicateCounts[page] ?? 0;
-                    final isOutsideOrder =
-                        pageSettings.hasCustomPageOrder && duplicateCount == 0;
-                    return OutlinedButton(
-                      onPressed: isHidden
-                          ? null
-                          : () {
-                              Navigator.of(context).pop();
-                              unawaited(_goToSheetPage(page));
-                            },
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: isCurrent
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : null,
-                        foregroundColor: isHidden
-                            ? Theme.of(context).disabledColor
-                            : null,
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$page',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          if (isHidden)
-                            const Text('숨김', style: TextStyle(fontSize: 11))
-                          else if (duplicateCount > 1)
-                            Text(
-                              'x$duplicateCount',
-                              style: const TextStyle(fontSize: 11),
-                            )
-                          else if (isOutsideOrder)
-                            const Text('순서 제외', style: TextStyle(fontSize: 11)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+    final source = _activePdfSource;
+    final markers = <ScorePageMarker>[
+      for (final bookmark in currentScore.bookmarks)
+        ScorePageMarker(
+          label: '북마크 ${bookmark.label}',
+          page: bookmark.pageNumber,
         ),
+      for (final mark in pageSettings.rehearsalMarks)
+        ScorePageMarker(
+          label: '${_rehearsalMarkKindLabel(mark.kind)} ${mark.label}',
+          page: mark.pageNumber,
+        ),
+      for (final jump in pageSettings.jumpPoints)
+        ScorePageMarker(label: '점프 ${jump.label}', page: jump.targetPage),
+      for (final bookmark in _pdfOutlineBookmarks)
+        ScorePageMarker(
+          label: '목차 ${bookmark.label}',
+          page: bookmark.pageNumber,
+        ),
+    ].where((marker) => marker.page >= 1 && marker.page <= pageCount).toList();
+    final selected = await showDdiroriSheet<int>(
+      context: context,
+      title: '페이지 탐색',
+      child: ScorePagePicker(
+        pageCount: pageCount,
+        currentPage: (_pageNumber ?? currentScore.lastPage)
+            .clamp(1, pageCount)
+            .toInt(),
+        summary: pageSummary.isEmpty
+            ? '원본 PDF는 변경하지 않습니다.'
+            : '$pageSummary · 원본 PDF는 그대로입니다.',
+        hiddenPages: pageSettings.hiddenPages.toSet(),
+        pageLabels: {
+          for (var page = 1; page <= pageCount; page++)
+            if (pageSettings.isHidden(page))
+              page: '숨김'
+            else if ((duplicateCounts[page] ?? 0) > 1)
+              page: 'x${duplicateCounts[page]}'
+            else if (pageSettings.hasCustomPageOrder &&
+                (duplicateCounts[page] ?? 0) == 0)
+              page: '순서 제외',
+        },
+        markers: markers,
+        onSelected: (page) => Navigator.of(context).pop(page),
       ),
     );
+    if (!mounted || !identical(_activePdfSource, source)) return;
+    if (selected != null) await _goToSheetPage(selected);
+    if (mounted) _keyboardFocusNode.requestFocus();
   }
 
   Future<void> _showPdfTextSearch() async {

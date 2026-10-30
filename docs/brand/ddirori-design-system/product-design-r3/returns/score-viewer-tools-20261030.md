@@ -45,9 +45,34 @@
 - 메모와 자르기 focused 9 tests PASS. 초기 전체 584 tests는 PASS였으나 신규 arg 순서/중괄호 lint 3건이 남아 수정했다. 최종 format·analyze·전체 584 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-crop-rc-final-20261030.log`).
 - crop scene의 실제 진입 경로·정상 draft assertion을 추가했고 metadata check PASS (`/private/tmp/score-crop-metadata-20261030.log`). scene 촬영과 물리기기 검수는 수행하지 않았다.
 
+## 긴 PDF 페이지 탐색
+
+- 기존 fixed-height modal은 실제 90쪽 PDF의 200% 글자에서 390/840/가로 모두 bottom overflow가 발생했다 (`/private/tmp/score-pages-red-20261030.log`).
+- 공통 Sheet 안의 `ScorePagePicker`는 숫자/Slider 미리 선택과 확정 이동을 구분한다. 처음·현재·끝·10쪽 shortcut, 숨김/복제/순서 제외 상태를 표시하는 lazy grid, 접힌 표시 지점을 제공한다.
+- bookmark·rehearsal·jump·PDF outline은 viewer가 label/page로 매핑하며 UI는 해당 페이지 선택만 반환한다. viewer는 문서 source identity를 다시 확인하고 기존 `_goToSheetPage`로 이동한다.
+- 실제 PDF 회귀 범위: 세 viewport의 범위 오류·입력/Slider 미리 선택·60쪽 이동과 취소 보존, 숨김 30쪽 차단·북마크 60쪽 이동·10쪽 뒤·마지막 쪽 이동. source document와 lastPage를 대조한다. 아직 모든 외부 PDF outline/물리 기기 사례를 검사한 것은 아니다.
+- focused 로그: `/private/tmp/score-pages-green-20261030.log`. 캡처는 실제 widget 렌더와 기기 실행을 구분해 기록한다.
+- lazy grid를 실제 스크롤해 88쪽으로 이동하는 회귀도 PASS (`/private/tmp/score-page-grid-20261030.log`). 내부 grid는 route의 primary scroll controller를 공유하지 않는다. 최종 format·analyze·전체 588 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-pages-rc-final-20261030.log`).
+- metadata check PASS (`/private/tmp/score-pages-metadata-20261030.log`). 모든 검증은 기존 공통 패키지 변경을 보존한 현재 통합 작업트리 기준이며, 별도 clean checkout 검증이나 스토어 촬영은 수행하지 않았다.
+- 추가 캡처 검사 4 tests PASS (`/private/tmp/score-page-captures-20261030.log`). 실제 PDFium widget 위의 sheet를 390×1000 light, 840×1000 dark, 840×390 light에서 200% 글자로 캡처해 확인했다. 폰트는 검사 호스트의 AppleGothic, 아이콘은 앱 MaterialIcons, UI는 blue fixture다. 최초 fixture의 lime/아이콘 누락 캡처를 최종 근거로 사용하지 않는다.
+- 캡처 경로: `/private/tmp/score-tool-captures-20261030.nMNI7A`. 한국어와 아이콘, 줄바꿈·스크롤 경계를 확인했으며 가로 200%는 아래쪽 컨트롤을 스크롤로 접근한다. iOS Simulator/실기기·VoiceOver·스토어 촬영을 실행한 증거는 아니다.
+
+### 캡처 시점 소스 SHA-256
+
+공통 토큰·디자인 문서에는 기존 사용자 변경이 포함된 현재 작업트리 해시다. 역사적 R3 manifest는 재생성하지 않았다.
+
+```text
+bded4dfc662a7142b05a540caa1154137c9c169183d409b573938028cdb81fdc  apps/in_c_sheet/lib/main.dart
+4ac7c166642a482ece3d3d8903d19922cb3d60d7b8f7313b1b11f1f5bd9df9b0  apps/in_c_sheet/lib/presentation/score_viewer_components.dart
+2ff4ba01a13b327100008aee733eee2dfb16b39cbca2948afc2e9e9992e8bf7f  docs/brand/ddirori-design-system/service-theme-contract.md
+bee281a7541bd83b814b928442eafef6af0a4d62c7494eff18c83c432115a867  docs/brand/ddirori-design-system/shared-baseline.md
+a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36  docs/brand/ddirori-design-system/product-design-r3/revision.json
+f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddirori_ui/lib/src/generated/ddirori_tokens.dart
+```
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
-- 다음 후보: 페이지 탐색의 큰 글자/가로 overflow와 긴 PDF 빠른 이동, 남은 viewer 옵션의 실제 중복 조사.
+- 다음 후보: crop preset·페이지 템플릿·공유 대상·텍스트 주석 메뉴의 공통 계약, 본문 검색의 키보드/오류 동선.
