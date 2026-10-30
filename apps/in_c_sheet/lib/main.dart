@@ -4433,6 +4433,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   int? _pageCount;
   bool _showPdfLinks = false;
   bool _isPerformanceMode = false;
+  int _performanceModeGeneration = 0;
   _SheetViewerDisplayMode _displayMode = _SheetViewerDisplayMode.singlePage;
   _SheetViewerDisplayEffect _displayEffect = _SheetViewerDisplayEffect.normal;
   _SheetViewerPageScale _pageScale = _SheetViewerPageScale.fitPage;
@@ -6580,6 +6581,7 @@ setlist=$setlistLabel
     if (!_effectiveViewerSettings.showPerformancePrepNotice || !mounted) {
       return;
     }
+    final fileStatus = _viewerFileStatusFuture;
     var hideNextTime = false;
     final didContinue = await showDdiroriDialog<bool>(
       context: context,
@@ -6615,6 +6617,11 @@ setlist=$setlistLabel
         ),
       ],
     );
+    if (!mounted ||
+        !identical(fileStatus, _viewerFileStatusFuture) ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      throw const _PerformanceModeCanceled();
+    }
     if (hideNextTime) {
       await widget.controller.updateViewerSettings(
         score,
@@ -6627,20 +6634,42 @@ setlist=$setlistLabel
   }
 
   Future<void> _setPerformanceMode(bool enabled) async {
+    if (!mounted) return;
+    final generation = ++_performanceModeGeneration;
     if (enabled == _isPerformanceMode) {
       return;
     }
-    if (enabled) {
-      try {
+    final fileStatus = _viewerFileStatusFuture;
+    bool current() =>
+        mounted &&
+        generation == _performanceModeGeneration &&
+        identical(fileStatus, _viewerFileStatusFuture) &&
+        ModalRoute.of(context)?.isCurrent != false;
+    try {
+      if (enabled) {
         await _showPerformancePrepNoticeIfNeeded();
-      } on _PerformanceModeCanceled {
-        return;
       }
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    } else {
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      if (!current()) return;
+      await SystemChrome.setEnabledSystemUIMode(
+        enabled ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+    } on _PerformanceModeCanceled {
+      return;
+    } catch (_) {
+      if (current()) {
+        _showSnackBar(
+          '공연 모드를 바꾸지 못했습니다.',
+          action: SnackBarAction(
+            label: '다시 시도',
+            onPressed: () {
+              if (current()) unawaited(_setPerformanceMode(enabled));
+            },
+          ),
+        );
+      }
+      return;
     }
-    if (!mounted) {
+    if (!current()) {
       return;
     }
     setState(() {

@@ -181,7 +181,7 @@ Future<void> waitForPdf(WidgetTester tester, int pages) async {
     );
     await tester.runAsync(() => tester.pump(const Duration(milliseconds: 40)));
     final viewer = find.byType(PdfViewer);
-    if (viewer.evaluate().isNotEmpty) {
+    if (viewer.evaluate().length == 1) {
       final controller = tester.widget<PdfViewer>(viewer).controller!;
       final chrome = find.byType(ScoreViewerChrome);
       if (controller.isReady &&
@@ -1034,6 +1034,239 @@ void main() {
           isFalse,
         );
         expect(pdf(t).document, same(document));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'closed viewer ignores delayed performance preparation (failure=$fails)',
+      (t) async {
+        final store = NotesWriteStore();
+        final c = await openPdf(t, store: store, scale: 2);
+        await c.updateViewerSettings(
+          c.scoreById('pilot-0'),
+          c
+              .scoreById('pilot-0')
+              .viewerSettings
+              .copyWith(showPerformancePrepNotice: true),
+        );
+        await t.pumpAndSettle();
+        final modes = <String>[];
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(SystemChannels.platform, (
+          call,
+        ) async {
+          if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+            modes.add(call.arguments as String);
+          }
+          return null;
+        });
+        addTearDown(
+          () =>
+              messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+        );
+        await command(t, '공연');
+        await t.ensureVisible(find.byType(Checkbox));
+        await t.pumpAndSettle();
+        await t.tap(find.byType(Checkbox));
+        await t.pumpAndSettle();
+        final gate = Completer<void>();
+        store.gate = gate;
+        store.failWrites = fails;
+        store.writes = 0;
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+        await command(t, '시작');
+        expect(store.writes, 1);
+        await t.tap(find.byTooltip('뒤로'));
+        await t.pumpAndSettle();
+        expect(find.byType(SheetViewerScreen), findsNothing);
+        modes.clear();
+        gate.complete();
+        await t.pumpAndSettle();
+        expect(modes, isEmpty);
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final entering in [true, false]) {
+    testWidgets(
+      'performance native rejection keeps prior state and retries (entering=$entering)',
+      (t) async {
+        await openPdf(t, scale: 2);
+        final target = entering
+            ? SystemUiMode.immersiveSticky
+            : SystemUiMode.edgeToEdge;
+        var failNext = true;
+        final requests = <String>[];
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(SystemChannels.platform, (
+          call,
+        ) async {
+          if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+            final mode = call.arguments as String;
+            requests.add(mode);
+            if (mode == target.toString() && failNext) {
+              failNext = false;
+              throw PlatformException(code: 'qa-mode-rejected');
+            }
+          }
+          return null;
+        });
+        addTearDown(
+          () =>
+              messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+        );
+        if (!entering) {
+          await command(t, '공연');
+          await waitForPerformanceState(t, true);
+        }
+        await command(t, entering ? '공연' : '공연 종료');
+        expect(t.takeException(), isNull);
+        expect(
+          t
+              .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+              .performance,
+          !entering,
+        );
+        expect(find.text('공연 모드를 바꾸지 못했습니다.'), findsOneWidget);
+        await t.tap(find.text('다시 시도'));
+        await t.pumpAndSettle();
+        await waitForPerformanceState(t, entering);
+        expect(
+          requests.where((mode) => mode == target.toString()),
+          hasLength(2),
+        );
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'performance preference failure offers retry without entering mode',
+    (t) async {
+      final store = NotesWriteStore();
+      final c = await openPdf(t, store: store, scale: 2);
+      await c.updateViewerSettings(
+        c.scoreById('pilot-0'),
+        c
+            .scoreById('pilot-0')
+            .viewerSettings
+            .copyWith(showPerformancePrepNotice: true),
+      );
+      await t.pumpAndSettle();
+      await command(t, '공연');
+      await t.ensureVisible(find.byType(Checkbox));
+      await t.pumpAndSettle();
+      await t.tap(find.byType(Checkbox));
+      await t.pumpAndSettle();
+      store.failWrites = true;
+      await command(t, '시작');
+      expect(t.takeException(), isNull);
+      expect(
+        t.widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome)).performance,
+        isFalse,
+      );
+      expect(
+        c.scoreById('pilot-0').viewerSettings.showPerformancePrepNotice,
+        isTrue,
+      );
+      expect(find.text('공연 모드를 바꾸지 못했습니다.'), findsOneWidget);
+      store.failWrites = false;
+      await t.tap(find.text('다시 시도'));
+      await t.pumpAndSettle();
+      expect(find.text('공연 모드 준비'), findsOneWidget);
+      await t.ensureVisible(find.byType(Checkbox));
+      await t.pumpAndSettle();
+      await t.tap(find.byType(Checkbox));
+      await t.pumpAndSettle();
+      await command(t, '시작');
+      await waitForPerformanceState(t, true);
+      expect(
+        c.scoreById('pilot-0').viewerSettings.showPerformancePrepNotice,
+        isFalse,
+      );
+      expect(
+        (await store.loadScores())
+            .first
+            .viewerSettings
+            .showPerformancePrepNotice,
+        isFalse,
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'covered viewer cannot change mode or report errors above a new viewer (failure=$fails)',
+      (t) async {
+        final store = NotesWriteStore();
+        final c = await openPdf(t, store: store);
+        await c.updateViewerSettings(
+          c.scoreById('pilot-0'),
+          c
+              .scoreById('pilot-0')
+              .viewerSettings
+              .copyWith(showPerformancePrepNotice: true),
+        );
+        await t.pumpAndSettle();
+        final modes = <String>[];
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(SystemChannels.platform, (
+          call,
+        ) async {
+          if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+            modes.add(call.arguments as String);
+          }
+          return null;
+        });
+        addTearDown(
+          () =>
+              messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+        );
+        await command(t, '공연');
+        await t.tap(find.byType(Checkbox));
+        await t.pumpAndSettle();
+        final gate = Completer<void>();
+        store.gate = gate;
+        store.failWrites = fails;
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+        await command(t, '시작');
+        t
+            .state<NavigatorState>(find.byType(Navigator).first)
+            .push<void>(
+              MaterialPageRoute(
+                builder: (_) =>
+                    SheetViewerScreen(controller: c, scoreId: 'pilot-1'),
+              ),
+            );
+        await t.runAsync(() => t.pump(const Duration(milliseconds: 400)));
+        await waitForPdf(t, 3);
+        expect(
+          find.byType(SheetViewerScreen, skipOffstage: false),
+          findsNWidgets(2),
+        );
+        modes.clear();
+        gate.complete();
+        await t.pumpAndSettle();
+        expect(modes, isEmpty);
+        expect(find.text('공연 모드를 바꾸지 못했습니다.'), findsNothing);
+        expect(
+          t
+              .widget<ScoreViewerChrome>(find.byType(ScoreViewerChrome))
+              .performance,
+          isFalse,
+        );
         expect(t.takeException(), isNull);
       },
     );

@@ -137,10 +137,20 @@ f3f2c819e4947762ba3f600afc756f50873f6f1ccc933fbf04023c75e35c4efc  packages/ddiro
 - 실제 headless PDF 화면 `/private/tmp/score-tool-captures-20261030.nMNI7A/performance-prep-{dialog,active}-*.png` 중 가로 Dialog/전환 알림을 눈으로 확인했다. 200%·blue·system Korean font/실제 icon font fixture이며 물리 기기의 시스템 바 숨김·VoiceOver 검수는 아니다. 다시 보지 않기 저장 실패와 화면 종료 중 native 전환 요청은 별도 수명 검토 후보다.
 - checkbox hit-test까지 포함한 최종 format/analyze·전체 634 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-prep-rc-clean-20261030.log`). 앞선 전체 634 tests는 PASS였으나 신규 helper의 중괄호 lint를 수정 후 재검증했다. metadata check PASS, source pending (`/private/tmp/score-performance-prep-metadata-20261030.log`).
 
+## 공연 진입 요청 수명·오류 재시도
+
+- red: 준비의 다시 보지 않기 저장을 지연하고 실제 뒤로 가기로 viewer 종료 후 성공을 반환하면 immersiveSticky 요청이 뒤늦게 전송됐다. 같은 상황의 저장 실패는 처리되지 않은 예외였다 (`/private/tmp/score-performance-owner-red-20261030.log`). platform channel mock은 발신 기록만 검사하며 OS 전환 품질 증거가 아니다.
+- 준비 저장 뒤 native 전환 전과 응답 뒤에 mounted·요청 세대·파일 상태 수명을 확인한다. 이전 요청은 UI/알림을 덮지 않고, 현재 요청의 저장/전환 거부는 기존 모드를 유지하며 SnackbarAction으로 재시도한다. native에 이미 보낸 명령을 무조건 반대로 실행해 새 화면을 건드리지 않는다.
+- focused 8 tests PASS (`/private/tmp/score-performance-owner-focused-20261030.log`): 기존 세 viewport 준비 경로, 종료 후 지연 성공/실패, 진입/종료 channel 거부와 재시도, 준비 선호 저장 실패/기존 값 유지/재시도. native 처리 순서·OS 바 실제 표시·강제 종료 rollback은 미검수다.
+- 누적 출시 문구가 5,391자였다. [Apple의 버전 정보 명세](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information/)는 변경 사항을 4,000자로 제한하므로 중복된 개발 이력을 기능별 출시 요약으로 정리했다. 상세 근거는 이 문서와 커밋에 유지하며 기존 사용자 블루 테마 문구는 작업 파일에 보존한다. 검수/빌드 번호/출시 승인을 뜻하지 않는다.
+- 추가 red: 이전 viewer를 종료하지 않고 다른 실제 PDF viewer를 위에 push한 경우에도 이전 성공은 immersive 요청을, 이전 실패는 새 화면에 오류를 보냈다 (`/private/tmp/score-performance-covered-red-actual-20261030.log`). 초기 fixture의 중간 route 애니메이션에는 두 PdfViewer가 있으므로 기존 helper를 단일 활성 viewer가 된 뒤 사용하도록 고쳤다. 이후 두 viewer가 모두 mounted인 상태에서 실패를 재현했다.
+- 준비 선호 저장 전과 mode/알림 결과 전 current route도 확인한다. 최신 focused 10 tests PASS (`/private/tmp/score-performance-owner-final-focused-20261030.log`). 첫 전체는 639 tests PASS였으나 신규 테스트 helper의 중괄호 lint가 남았고 이를 수정했다. 두 route fixture·최종 소스는 이어지는 RC에서 재검증한다.
+- 최종 format/analyze·전체 641 tests·RC PASS, 종료 코드 0 (`/private/tmp/score-performance-owner-rc-clean-20261030.log`). metadata check PASS (`/private/tmp/score-performance-owner-metadata-final-20261030.log`), source pending이며 작업 파일의 release_notes는 1,121자다. 공개 문구에 내부 Device QA 미실행 경고를 넣지 않고 manual/runbook에 구분했다.
+
 ## 검증과 남은 범위
 
 - 자동 스크롤 focused PDF widget 검사: 세 viewport 조건 모두 PASS. 처음에는 재진입 테스트가 연습 패널을 다시 열지 않아 실패했고, 실제 제품 진입 순서로 수정했다. section 제목과 값의 중복을 허용하는 느슨한 assertion 대신 정확한 시간 값을 검사한다.
 - `dart format lib test tool`: PASS. RC 내부 analyze·전체 572 tests·fixture·공백/tab/stale/debug 검사 PASS, 종료 코드 0 (`/private/tmp/score-rc-20261030.log`).
 - `prepare_ios_metadata ... mode:check`: PASS, source pending (`/private/tmp/score-metadata-20261030.log`). 실제 화면 캡처·기기 청취·OS provider·VoiceOver 검수는 미실행이다.
 - PDF 검색 최종 RC: analyze·전체 602 tests·fixture·공백/tab/stale/debug 검사 PASS (`/private/tmp/score-search-rc-final-20261030.log`의 checklist 완료). metadata check PASS, source pending (`/private/tmp/score-search-metadata-20261030.log`).
-- 다음 후보: 공연 준비 선호 저장을 기다리는 중 viewer 종료 뒤 native mode 요청이 전송되는지 확인, 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
+- 다음 후보: 악보함 라이브러리 전환 메뉴의 긴 이름/보조 행동 구분. 이미 발신한 SystemChrome 요청의 실제 실행/복원, 물리 키보드/IME와 검색 결과의 VoiceOver 읽기는 manual QA로 남긴다.
