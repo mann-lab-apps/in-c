@@ -1,5 +1,12 @@
 # Score · 연습 도구 공통 UI 후속 적용
 
+## 악보함 분류 선택 후속
+
+- 태그·컬렉션·그룹·별점의 raw 행을 공통 Sheet/Banner/flat Item/Button으로 교체했다. typed app adapter는 표시/선택 intent만 담당하며 기존 controller의 저장 정책은 변경하지 않는다. 현재 선택·조건별 해제·취소와 라이브러리 identity 확인을 추가했다. 일반 설정 저장의 실패 rollback이나 A→B→A 재진입 세대 보장으로 확대해 표현하지 않는다.
+- focused 6 tests PASS (`/private/tmp/score-library-filter-focused-20261030.log`): 세 viewport/200% light/dark의 긴 태그·별점 저장/복원/취소·개별 해제, 컬렉션/그룹 조합, 새 라이브러리의 오래된 선택 거부. 모든 경우 검색/자료 보존을 검사하는 것은 아니며 첫 세 viewport 시나리오가 query/favorite/IDs/미열기를 함께 검증한다.
+- 300개 선택지 fixture는 lazy build와 마지막 행 선택을 확인한다. 20개 초과의 bounded 목록은 앱 adapter 전략이며 실제 기기 성능·중첩 스크롤·VoiceOver/focus는 pending이다. 이번 refactor의 자동 검증을 실제 장비 QA로 표현하지 않는다.
+- format/analyze·전체 655 tests·metadata check PASS. RC exit 1은 unrelated `experiments/piano-performance/data/README.md:63`의 EOF 빈 줄에 대한 전역 `git diff --check` 실패이며 Score 검사/테스트는 통과했다. 다른 작업 파일을 수정하지 않았다. 로그: `/private/tmp/score-library-filter-{rc,metadata}-20261030.log`. 이번 선택적 staged diff의 공백 검사는 별도로 확인한다.
+
 ## 기준과 보존
 
 - 시작 checkpoint: `01b337e5`. 기존 제품 lib/test에는 변경이 없었다.

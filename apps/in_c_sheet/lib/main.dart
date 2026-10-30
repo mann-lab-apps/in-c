@@ -30,6 +30,7 @@ import 'sheet_metronome.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
+import 'presentation/score_library_choices.dart';
 import 'presentation/score_viewer_components.dart';
 import 'presentation/score_pdf_search_sheet.dart';
 import 'sheet_setlist.dart';
@@ -573,35 +574,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _selectTagFilter() async {
-    final tags = controller.allTags;
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.sell_outlined),
-              title: const Text('전체 태그'),
-              trailing: controller.libraryViewSettings.tagQuery.isEmpty
-                  ? const Icon(Icons.check)
-                  : null,
-              onTap: () => Navigator.of(context).pop(''),
-            ),
-            for (final tag in tags)
-              ListTile(
-                leading: const Icon(Icons.sell_outlined),
-                title: Text(tag),
-                trailing: controller.libraryViewSettings.tagQuery == tag
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(tag),
-              ),
-          ],
-        ),
-      ),
+    final selected = await _selectMetadataFilter(
+      title: '태그',
+      currentValue: controller.libraryViewSettings.tagQuery,
+      values: controller.allTags,
+      icon: Icons.sell_outlined,
+      allLabel: '전체 태그',
     );
     if (selected != null) {
       await controller.updateTagFilter(selected);
@@ -639,67 +617,54 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     required String currentValue,
     required List<String> values,
     required IconData icon,
-  }) {
-    return showModalBottomSheet<String>(
+    String? allLabel,
+  }) async {
+    final libraryId = controller.activeLibraryProfile.id;
+    final selected = await showDdiroriSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: Icon(icon),
-              title: Text('$title 전체'),
-              trailing: currentValue.isEmpty ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.of(context).pop(''),
-            ),
+      title: title,
+      child: Builder(
+        builder: (sheetContext) => ScoreLibraryChoices<String>(
+          description: '$title 조건으로 목록을 좁힙니다. 전체를 선택하면 이 조건만 해제합니다.',
+          selectedValue: currentValue,
+          options: [
+            (value: '', label: allLabel ?? '$title 전체', icon: icon),
             for (final value in values)
-              ListTile(
-                leading: Icon(icon),
-                title: Text(value),
-                trailing: currentValue == value
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(value),
-              ),
+              (value: value, label: value, icon: icon),
           ],
+          onSelected: (value) => Navigator.of(sheetContext).pop(value),
+          onCancel: () => Navigator.of(sheetContext).pop(),
         ),
       ),
     );
+    if (!mounted || controller.activeLibraryProfile.id != libraryId) {
+      return null;
+    }
+    return selected;
   }
 
   Future<void> _selectRatingFilter() async {
-    final selected = await showModalBottomSheet<int>(
+    final libraryId = controller.activeLibraryProfile.id;
+    final selected = await showDdiroriSheet<int>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.star_border),
-              title: const Text('별점 전체'),
-              trailing: controller.libraryViewSettings.minimumRating == 0
-                  ? const Icon(Icons.check)
-                  : null,
-              onTap: () => Navigator.of(context).pop(0),
-            ),
-            for (var rating = 5; rating >= 1; rating -= 1)
-              ListTile(
-                leading: const Icon(Icons.star_outline),
-                title: Text('$rating점 이상'),
-                trailing: controller.libraryViewSettings.minimumRating == rating
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(rating),
-              ),
+      title: '별점',
+      child: Builder(
+        builder: (sheetContext) => ScoreLibraryChoices<int>(
+          description: '선택한 별점 이상의 악보만 표시합니다. 전체를 선택하면 별점 조건만 해제합니다.',
+          selectedValue: controller.libraryViewSettings.minimumRating,
+          options: [
+            (value: 0, label: '별점 전체', icon: Icons.star_border),
+            for (var rating = 5; rating >= 1; rating--)
+              (value: rating, label: '$rating점 이상', icon: Icons.star_outline),
           ],
+          onSelected: (value) => Navigator.of(sheetContext).pop(value),
+          onCancel: () => Navigator.of(sheetContext).pop(),
         ),
       ),
     );
-    if (selected != null) {
+    if (mounted &&
+        controller.activeLibraryProfile.id == libraryId &&
+        selected != null) {
       await controller.updateMinimumRatingFilter(selected);
     }
   }
