@@ -27,6 +27,13 @@
 
 ## 후속 순서
 
+### 전역 기본값 회귀
+
+- 기존 제품 구현을 재구현하지 않고 4개 회귀를 추가했다. 공통 Choices에서 보기/맞춤/직접 매핑을 실제 탭하고 현재 선택을 다시 눌러도 값이 비워지지 않는지, 저장/재열기와 화면에 없는 효과·렌더링·공연 옵션 및 기존 악보가 보존되는지 검사한다.
+- PDF·이미지 PDF·공유 PDF는 실제 controller의 `_withActiveCollection` 경로로 새 악보에 기본값을 적용한다. store의 가져오기 결과는 fixture로 주입하고 저장/재로드를 검사한다. 실제 OS provider/이미지 변환/native 수신 성공 검수가 아니다.
+- focused 9 PASS (`/private/tmp/score-defaults-followup-focused-20261031.log`). 초기 fixture의 존재하지 않는 copyWith(id:)와 잘못된 shared import 타입 import는 테스트 컴파일 오류였고 제품 결함으로 기록하지 않는다. 테스트만 변경했으므로 제품 동선·metadata는 이 slice에서 바꾸지 않는다.
+- format/analyze·전체 672 tests PASS (`/private/tmp/score-defaults-followup-rc-20261031.log`). RC는 unrelated README:63 EOF 공백 한 건 때문에 exit 1이며 이번 staged 공백 검사는 PASS다.
+
 - 공유 slice 검증: 전체 668 tests PASS (`/private/tmp/score-share-rc-20261031.log`), 최종 analyze PASS (`score-share-final-analyze-20261031.log`), metadata check PASS (`score-share-metadata-20261031.log`, 모두 `/private/tmp/`). RC 최초 analyze의 명시적 mounted guard/unused import 경고는 수정했다. RC 전체 exit 1은 초기 경고와 unrelated README:63 EOF 공백 실패로 기록하며 RC PASS라고 표시하지 않는다. 선택적 diff 공백 검사는 별도로 통과했다.
 
 1. 전역 기본값의 보기/맞춤/직접 입력 매핑 저장·현재 선택 재클릭·기존 필드 보존 회귀와 실제 import controller 경로 적용 범위를 확인한다.

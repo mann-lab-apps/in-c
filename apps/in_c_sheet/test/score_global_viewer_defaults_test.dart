@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_library_controller.dart';
 
 import 'adoption_pilot_test.dart' as pilot;
 
@@ -25,6 +26,19 @@ class GlobalSettingsStore extends SheetLibraryStore {
   }
 }
 
+class DefaultsImportStore extends SheetLibraryStore {
+  late SheetScore template;
+  SheetScore imported(String id) =>
+      SheetScore.fromJson({...template.toJson(), 'id': id});
+  @override
+  Future<SheetScore?> importPdf() async => imported('new-pdf');
+  @override
+  Future<SheetScore?> importImagesAsPdf() async => imported('new-images');
+  @override
+  Future<SheetScore> importPdfFile(File file, {String? fileName}) async =>
+      imported('new-shared');
+}
+
 Future<void> openDefaults(WidgetTester t) async {
   await t.tap(find.byTooltip('전역 보기/입력 기본값'));
   await t.pumpAndSettle();
@@ -42,6 +56,124 @@ Future<void> action(WidgetTester t, String label) async {
 }
 
 void main() {
+  testWidgets(
+    'global choice values persist and reselecting does not clear them',
+    (t) async {
+      final c = await pilot.library();
+      addTearDown(c.dispose);
+      await c.updateGlobalViewerSettings(
+        c.globalViewerSettings.copyWith(
+          displayEffect: 'sepia',
+          renderProfile: 'largePdf',
+          allowPerformanceMenus: true,
+        ),
+      );
+      final originalScores = c.scores.map((s) => s.toJson()).toList();
+      await pilot.mount(t, c, accent: 'blue');
+      await openDefaults(t);
+      Future<void> choice(String row, String label) async {
+        final target = find.descendant(
+          of: find.ancestor(
+            of: find.text(row),
+            matching: find.byType(DdiroriSettingsRow),
+          ),
+          matching: find.widgetWithText(FilterChip, label),
+        );
+        await t.ensureVisible(target);
+        await t.pumpAndSettle();
+        await t.tap(target);
+        await t.pumpAndSettle();
+      }
+
+      await choice('보기 모드', '2페이지');
+      await choice('보기 모드', '2페이지');
+      await choice('페이지 맞춤', '폭 맞춤');
+      await choice('페이지 맞춤', '폭 맞춤');
+      await choice('페달 매핑', '직접 설정');
+      await choice('오른쪽 화살표', '이전 페이지');
+      await choice('오른쪽 화살표', '이전 페이지');
+      await action(t, '저장');
+      final expected = c.globalViewerSettings.toJson();
+      expect(c.globalViewerSettings.displayMode, 'twoPage');
+      expect(c.globalViewerSettings.pageScale, 'fitWidth');
+      expect(
+        c.globalViewerSettings.customPedalMapping['ArrowRight'],
+        'previousPage',
+      );
+      expect(c.globalViewerSettings.displayEffect, 'sepia');
+      expect(c.globalViewerSettings.renderProfile, 'largePdf');
+      expect(c.globalViewerSettings.allowPerformanceMenus, isTrue);
+      expect(c.scores.map((s) => s.toJson()).toList(), originalScores);
+      await c.load();
+      expect(c.globalViewerSettings.toJson(), expected);
+      await openDefaults(t);
+      final twoPage = find.widgetWithText(FilterChip, '2페이지');
+      await t.ensureVisible(twoPage);
+      await t.pumpAndSettle();
+      expect(t.widget<FilterChip>(twoPage).selected, isTrue);
+      await action(t, '취소');
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final route in ['pdf', 'images', 'shared']) {
+    test(
+      'new $route import receives defaults without changing existing scores',
+      () async {
+        final store = DefaultsImportStore();
+        final c = await pilot.library(store: store);
+        addTearDown(c.dispose);
+        store.template = c.scores.first;
+        final existing = c.scores.map((s) => s.toJson()).toList();
+        final defaults = c.globalViewerSettings.copyWith(
+          displayMode: 'twoPage',
+          pageScale: 'fitWidth',
+          pedalMapping: 'custom',
+          customPedalMapping: {
+            ...SheetViewerSettings.defaultCustomPedalMapping,
+            'ArrowRight': 'previousPage',
+          },
+        );
+        await c.updateGlobalViewerSettings(defaults);
+        final SheetScore? imported;
+        switch (route) {
+          case 'pdf':
+            imported = await c.importPdf();
+          case 'images':
+            imported = await c.importImagesAsPdf();
+          default:
+            imported = (await c.importSharedPdfFiles([
+              const SheetSharedImportFile(
+                path: '/fixture/new.pdf',
+                name: 'new.pdf',
+              ),
+            ])).single;
+        }
+        expect(imported, isNotNull);
+        expect(imported!.viewerSettings.toJson(), defaults.toJson());
+        expect(
+          c.scores
+              .where((s) => s.id.startsWith('pilot-'))
+              .map((s) => s.toJson())
+              .toList(),
+          existing,
+        );
+        await c.load();
+        expect(
+          c.scoreById(imported.id).viewerSettings.toJson(),
+          defaults.toJson(),
+        );
+        expect(
+          c.scores
+              .where((s) => s.id.startsWith('pilot-'))
+              .map((s) => s.toJson())
+              .toList(),
+          existing,
+        );
+      },
+    );
+  }
+
   for (final fail in [false, true]) {
     testWidgets(
       'global defaults wait for save and retain failed draft: $fail',
