@@ -60,7 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
-        • 튜너의 PCM 입력 묶음이 샘플 중간에서 나뉘어도 음정 감지가 끊기지 않도록 보완했습니다.
+        • 튜너의 PCM 입력 묶음이 샘플 중간에서 나뉘어도 음정 감지가 끊기지 않도록 보완했습니다. 측정 중 감지 엔진을 바꿀 때는 같은 입력 스트림의 샘플 경계를 유지하고 실제 정지·재시작에서는 초기화합니다.
         악보함과 연습·공연 도구의 디자인과 사용 흐름을 정리했습니다.
 
         • PDF·이미지·공유받은 PDF는 라이브러리 저장을 마친 뒤 목록에 표시합니다. 실패하면 성공으로 안내하지 않고 앱 내부 사본만 정리합니다.
@@ -1446,6 +1446,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-10-31 튜너 live 설정: 같은 recorder stream 중 hybrid→YIN/autocorrelation 변경 시 분석 window/noise/history는 초기화하되 PCM low byte 경계를 보존한다. start/stop/error/reset은 전체 stream state를 지운다. 자동 지연 recorder와 합성 A442 fixture 검사이며 실제 설정 전환 반응·기기 정확도·native stream 중단은 pending이다.
       2026-10-31 튜너 PCM 경계: mono signed PCM16 little-endian의 홀수 byte event에서 미완성 low byte를 다음 event로 이월하고 session reset 시 지운다. 44.1/48kHz·110~880Hz, A442 ±15cents, 무음·reset과 recorder service stream fixture의 경계를 검사한다. 사전 기준은 clean tone ±5cents와 window+최대 packet 이내 sample-domain 포착이다. OS 입력 latency·실제 악기/소음/청감·장치 출력 route·sample-rate 협상은 검수하지 않았으며 pending이다. 새 앱 빌드는 없다.
       2026-10-31 링크 제거 사본 원본 참조: controller는 같은 score ID의 primary를 변경하고 sanitizedFromPath를 따로 보관한다. 이 원본 경로만 이전 container에 남은 경우도 정확한 ID/관리 파일명으로 복구하고 공유 원본 후보를 유지한다. 외부/타 ID/삭제된 파일은 추측하지 않는다. 자동 fixture의 파일 byte·링크 차단 검사이며 실제 iOS 이동/복원·공유 OS sheet는 pending이다.
       2026-10-31 f93712cd: format/analyze·전체 1,929 tests·RC 및 metadata check PASS. 경로 복구 후속: 이전 iOS sandbox 형태·관리 폴더의 바로 아래 파일·score ID/명명 계약과 현재 canonical 대상 범위를 함께 확인한다. 외부 Documents·중첩/상위 이동·symlink 이탈은 자동 연결하지 않는다. metadata/자동 백업의 false·exception 뒤 readable 경로 유지와 rollback·retry, 지연 조회 중 library 전환은 자동 fixture이며 실제 iOS 업데이트/재설치/Files provider와 강제 종료 보장은 pending이다. 이 checkpoint에서 원본 sanitizedFromPath 참조 복구는 미포함이었으며 후속 기록을 참고한다. 새 빌드·촬영은 수행하지 않았다.
