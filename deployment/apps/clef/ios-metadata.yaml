@@ -629,12 +629,12 @@ screenshots:
       present: false
   - id: tuner
     purpose: 실제 PDF 위에서 튜너 공통 sheet의 단일 제목·이름 있는 마이크 버튼·긴 선택값 배치를 보여준다. 실제 마이크·음정·드론 품질 증명 장면이 아니다.
-    route: 라이브러리 → 자가 제작 악보 열기 → 연습 → 튜너
+    route: 라이브러리 → 자가 제작 악보 열기 → 도구 → 튜너. 넓은 화면의 튜너 툴바도 동일 진입
     fixture: 자가 제작 3쪽 PDF, 기본 튜너 설정. 실제 마이크 권한과 드론 재생은 촬영에서 요구하지 않음.
     must_show:
-    - 튜너 제목, 마이크 시작 또는 정지 행동, 기준음/드론 섹션
+    - 튜너 단일 제목, 이름 있는 마이크 시작 또는 정지 행동, A4 기준음과 세부 설정 진입
     - 마이크 켜기 또는 마이크 끄기 동작명이 보이는 버튼
-    - 긴 프리셋·악기/표시·감지 프로필·드론 mode 선택값이 작은 폭에서 잘리지 않는 배치
+    - 크로매틱 그래프의 측정값 또는 측정값 없음. 드론 옵션은 세부 설정을 펼쳐 접근
     - PDF와 앱의 다른 기능을 성공으로 표시하지 않는 연습 도구 sheet
     - 최신 기능 통합 후보에서는 꺼짐·거절·오류 시 측정값 없는 그래프, 테스트 주파수 조작 뒤에만 실제 측정 아님 표시
     exclude:
@@ -648,7 +648,7 @@ screenshots:
       milliseconds: 5000
     - action: tap
       by: text
-      value: 연습
+      value: 도구
     - action: tap
       by: text
       value: 튜너
@@ -660,11 +660,33 @@ screenshots:
       value: 튜너
       present: true
     - by: text
-      value: 기준음/드론
+      value: 세부 설정
       present: true
     - by: widget_type
       value: ErrorWidget
       present: false
+  - id: tuner-drone-options
+    purpose: 최신 기능 후보의 공통 튜너 Sheet에서 펼친 기준음/드론 설정과 음량 접근을 보여준다. 실제 출력 품질이나 음정 정확도 증명 장면이 아니다.
+    route: 라이브러리 → 자가 제작 악보 → 도구 → 튜너 → 세부 설정 → 기준음/드론
+    fixture: 자가 제작 3쪽 PDF, 기본 튜너와 드론 설정. 재생하지 않은 상태.
+    must_show:
+    - 기준음/드론 제목과 드론 모드 선택값, 드론 음량과 재생 행동
+    - 옵션이 큰 글자와 좁은 폭에서 스크롤로 접근 가능함
+    exclude:
+    - 실제 오디오 출력·codec·마이크 정확도·VoiceOver 검수 완료 문구
+    - 저작권 미확인 악보와 ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 도구}
+    - {action: tap, by: text, value: 튜너}
+    - {action: scroll_to, by: text, value: 세부 설정, delta: 200}
+    - {action: tap, by: text, value: 세부 설정}
+    - {action: scroll_to, by: text, value: 기준음/드론, delta: 160}
+    assertions:
+    - {by: text, value: 기준음/드론, present: true}
+    - {by: text, value: 드론 음량, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: linked-audio
     purpose: 실제 PDF 위에서 연습 도구로 연 연결 음원의 파일명·재생 상태·재생 행동을 보여준다. 실제 codec 재생이나 출력 품질 증명 장면이 아니다.
     route: 라이브러리 → 자가 제작 악보 열기 → 연습 → 연결 음원 → fixture 음원
@@ -1365,6 +1387,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-31 최신 기능 후보의 튜너를 공통 Sheet/이름 있는 마이크·작은 창 행동/상태로 이행했다. 실제 PDF 엔진에서 열기·닫기 후 페이지/주석/원본·외부 URL 차단 fixture를 확인했다. 권한은 mock 거절이며 실제 마이크·출력·펜/페달·VoiceOver·기기 캡처는 pending이다. 좁은 200% 선택값은 고정 높이 대신 확장되는 native 필드로 검사한다.
       2026-10-31 최신 기능 기준 악보함은 공통 flat Item 행 adapter로 이행하며 파일 형식·metadata·선택 ID와 길게 눌러 선택·즐겨찾기/핀/편집/공유를 보존한다. 선택 개수는 별도 줄, 정보 보강 작업은 내용 높이로 배치한다. 기존/새 검증 결과와 실제 기기 촬영을 구분하고 모든 화면 공통화 완료로 표시하지 않는다.
       2026-10-31 최신 기능 기준 Score가 committed 공통 UI의 명시적 blue light/dark 테마를 상속하도록 이행했다. 홈 390/840px·100/200% widget 검증과 실제 기기/촬영을 구분한다. 원본 악보·저장된 주석색·기능 엔진은 변경하지 않았으며 화면별 공통 컴포넌트 통합은 별도다.
       2026-10-31 최신 기능 후보의 튜너 측정/표시 미리보기 분리는 widget fixture 대상이다. 중앙 디자인 소스/촬영과 통합 전이며 캡처로 실제 입력 정확도나 신호 강도를 증명하지 않는다.
