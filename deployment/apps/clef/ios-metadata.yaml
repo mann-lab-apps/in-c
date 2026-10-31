@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 공유할 파일의 역할·파일명을 공통 선택 화면으로 정리하고 링크 제거 사본을 명시했습니다. 취소·라이브러리 전환·오래된 응답을 구분하고 파일 누락과 공유 실패 후 재시도를 보완했습니다.
         • 가져오기 저장에 실패하고 목록을 다시 읽을 수 없어도, 같은 요청이 소유한 목록은 직전 상태로 복구해 미저장 악보 카드가 남지 않도록 보완했습니다.
         • 튜너의 PCM 입력 묶음이 샘플 중간에서 나뉘어도 음정 감지가 끊기지 않도록 보완했습니다. 측정 중 감지 엔진을 바꿀 때는 같은 입력 스트림의 샘플 경계를 유지하고 실제 정지·재시작에서는 초기화합니다.
         악보함과 연습·공연 도구의 디자인과 사용 흐름을 정리했습니다.
@@ -230,19 +231,18 @@ screenshots:
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-share-choices
     purpose: 악보함과 뷰어가 재사용하는 공통 공유 선택을 실제 PDF에서 보여준다. 취소는 공유하지 않으며 실제 OS 공유 성공 검수 장면이 아니다.
-    route: 자가 제작 PDF → 모든 도구 → 보기 옵션 → PDF 공유
+    route: 자가 제작 PDF → 악보 도구 → PDF 공유/인쇄
     fixture: linked-files와 동일한 자가 제작 PDF와 소유한 연결 PDF 1개. 복수 후보가 실제 존재해야 한다.
     must_show:
     - 공유할 파일 선택 제목과 현재 PDF·연결 파일의 역할/파일명
-    - 취소 행동
+    - 취소 행동; 200%·가로에서는 스크롤로 접근 가능. 원본이 있는 링크 제거 사본은 별도 역할로 표시
     exclude:
     - 앱 sandbox 절대 경로, OS 공유/전송 성공을 증명한다는 문구, ErrorWidget
     steps:
     - {action: tap, by: text, value: Prelude}
     - {action: wait, milliseconds: 5000}
-    - {action: tap, by: text, value: 모든 도구}
-    - {action: tap, by: text, value: 보기 옵션}
-    - {action: tap, by: text, value: PDF 공유}
+    - {action: tap, by: tooltip, value: 악보 도구}
+    - {action: tap, by: text, value: PDF 공유/인쇄}
     assertions:
     - {by: text, value: 공유할 파일 선택, present: true}
     - {by: text, value: 현재 PDF, present: true}
@@ -1447,6 +1447,8 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-10-31 사용자 일단락: 최신 제품 checkpoint 4ad7ad5d(feature/score-reference-gap-20261031, /private/tmp/score-mobilesheets-20261031)는 format/analyze·전체 1,971 tests·RC exit 0, 공유 흐름 20 tests와 실제 widget/PDF 캡처 검사를 통과했다. 버전 1.0.2+29, 새 binary·push/merge·물리기기 검수는 없다. 중앙 root의 기존 디자인·배포 YAML·브랜드 변경과의 전체 통합 완료나 출시 승인은 아니다. source pending/reviewed false 유지.
+      2026-10-31 최신 기능 후보 공유 UI: 악보함 더보기 → PDF 공유/인쇄, 실제 PDF 악보 도구 → PDF 공유/인쇄에서 공통 Sheet로 역할·파일명·취소를 표시한다. 이전 root의 모든 도구/보기 옵션 경로와 혼합하지 않는다. source pending인 별도 feature worktree 통합 중이며 중앙 root 바이너리 촬영 완료가 아니다. 자동 widget에서 320/390/840·가로·200%·light/dark, stale 선택/응답·실패/retry와 실제 PDF page/byte 보존을 검사한다. 실제 iOS OS 공유창/iPad popover·VoiceOver/focus·기기 캡처는 pending이다.
       2026-10-31 import read recovery: PDF/batch/image/shared 저장 실패 뒤 recovery read까지 실패하는 fixture에서 직전 목록·실패 안내·retry를 검사한다. 이후 성공한 편집이나 library 전환의 목록은 과거 snapshot으로 덮지 않는다. 기존 optimistic cache·metadata writer·rollback 정책은 유지하며 저장 전 모든 목록 노출이나 동시 편집/강제 종료 원자성 전체 해결을 주장하지 않는다. 실제 Files/iCloud provider·OS 저장 실패는 pending이다.
       2026-10-31 튜너 live 설정: 같은 recorder stream 중 hybrid→YIN/autocorrelation 변경 시 분석 window/noise/history는 초기화하되 PCM low byte 경계를 보존한다. start/stop/error/reset은 전체 stream state를 지운다. 자동 지연 recorder와 합성 A442 fixture 검사이며 실제 설정 전환 반응·기기 정확도·native stream 중단은 pending이다.
       2026-10-31 튜너 PCM 경계: mono signed PCM16 little-endian의 홀수 byte event에서 미완성 low byte를 다음 event로 이월하고 session reset 시 지운다. 44.1/48kHz·110~880Hz, A442 ±15cents, 무음·reset과 recorder service stream fixture의 경계를 검사한다. 사전 기준은 clean tone ±5cents와 window+최대 packet 이내 sample-domain 포착이다. OS 입력 latency·실제 악기/소음/청감·장치 출력 route·sample-rate 협상은 검수하지 않았으며 pending이다. 새 앱 빌드는 없다.
