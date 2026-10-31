@@ -63,7 +63,7 @@ content:
         악보함과 연습·공연 도구의 디자인과 사용 흐름을 정리했습니다.
 
         • PDF·이미지·공유받은 PDF는 라이브러리 저장을 마친 뒤 목록에 표시합니다. 실패하면 성공으로 안내하지 않고 앱 내부 사본만 정리합니다.
-        • 앱이 관리하던 PDF·연결 파일·파일형 주석의 사본이 현재 저장소에 남아 있으면 이전 경로를 복구해 다시 열 수 있도록 개선했습니다.
+        • 앱이 관리하던 PDF·연결 파일·파일형 주석의 사본이 현재 저장소에 남아 있으면 이전 경로를 복구해 다시 열 수 있도록 개선했습니다. 외부 URL 링크 제거 사본은 기존 출력 파일을 덮어쓰지 않도록 보완했습니다.
         • 악보함의 검색·정렬·필터·빠른 접근을 정돈했습니다. 긴 이름은 줄바꿈하고 라이브러리 전환과 관리 메뉴를 구분합니다. 정렬·분류 선택은 현재 조건과 취소를 표시하며 큰 글자·가로 화면과 긴 목록에서도 이용할 수 있습니다. 일괄 편집 실패 시 입력과 선택을 유지합니다.
         • PDF 읽기·주석 입력·연습 도구·공연 제한을 구분했습니다. 도구를 숨겨도 페이지 이동과 도구 복원을 사용할 수 있습니다.
         • 주석의 펜·색·굵기·스탬프·텍스트·레이어·undo/redo를 공통 도구로 정리하고, 저장 실패 시 다시 저장할 수 있도록 보완했습니다.
@@ -1363,6 +1363,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-31 PDF URL annotation 제거의 원본/기존 출력 보호와 mixed URI·내부 GoTo 보존은 자동 fixture 검사다. 실제 Files provider·모든 PDF action/외부 viewer 검수는 pending이다. 원본 경로와 같은 output을 UI에서 관찰했다고 주장하지 않는다.
       2026-10-30 이전 viewer가 mounted 상태로 다른 악보 아래 남아 있어도 늦은 준비 성공/실패가 새 화면의 mode/오류를 조작하지 않는 route 소유권 fixture를 추가했다. OS의 명령 실행 순서를 검증한 것은 아니다.
       2026-10-30 공연 준비 지연 저장 후 viewer 종료·channel 거부/실패·재시도는 mock 요청 기록과 PDF widget 상태로 확인한다. 이미 보낸 native 요청의 OS 실행 순서·여러 화면 간 native 소유권과 실제 시스템 바 품질은 pending이다.
       2026-10-30 공연 preset 저장/삭제 실패·재시도·pending 중 입력/Back/중복 방지는 실제 PDF와 쓰기 실패 fixture로 검사한다. 실제 디스크의 부분 저장·백업 쓰기 실패/강제 종료·기기 VoiceOver는 별도 pending이다.
@@ -1410,6 +1411,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-10-31 현재 디자인 브랜치와 origin/dev(80103707)의 기능/버전 차이를 발견해 기준 소스를 확인 중이다. 원격에는 ChordPro/패키지/폴더/iOS 오디오 코드가 있다. 현 트리의 부재를 서비스 전체 미구현이나 출시 기능 삭제로 해석하지 않는다.
       현재 작업트리 pubspec/main은 1.0.0+14, Android applicationId는 com.mannlab.inc, iOS Runner bundle은 com.mannlab.inc.clef다. YAML의 1.0.3+30 및 com.mannlab.inc.clefandstaff와 다르므로 이 UI 검증 결과로 출시 소스/식별자 일치를 주장하지 않는다. 값은 임의 변경하지 않았으며 출시 전 정확한 제품 checkpoint 대조가 필요하다.
       2026-10-25 R1 제품 checkpoint는 c1ced3125055d9eaec930d4c76545fb8c086c371이다. 캡처 당시 미커밋 상태와 기존 검증 기록은 보존하며 기존 1.0.3+30 촬영/빌드 근거를 재사용하지 않는다. 버전 증가·새 빌드·업로드는 수행하지 않음. source는 출시 식별자 대조 전까지 pending으로 유지한다.
       2026-10-24 공통 컴포넌트·악보함 적용 후 재검수 필요. docs/brand/ddirori-design-system/adoption-pilot.md의 자동/위젯 검증 범위 참고. 실제 iOS VoiceOver·한글 IME·후보 빌드·스토어 촬영은 미검증이며 별도 확인.

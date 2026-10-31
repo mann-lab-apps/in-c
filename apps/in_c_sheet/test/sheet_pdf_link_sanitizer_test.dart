@@ -7,6 +7,70 @@ void main() {
   const linkFixturePath = 'test-fixtures/pdfs/link-annotation-score.pdf';
   const shortFixturePath = 'test-fixtures/pdfs/short-score.pdf';
 
+  for (final alias in ['same', 'normalized', 'symlink']) {
+    test('refuses $alias output alias without changing the original', () async {
+      final dir = await Directory.systemTemp.createTemp('score-link-alias-');
+      addTearDown(() => dir.delete(recursive: true));
+      final input = await File(linkFixturePath)
+          .copy('${dir.path}/original.pdf');
+      final bytes = await input.readAsBytes();
+      final String output;
+      if (alias == 'symlink') {
+        output = '${dir.path}/alias.pdf';
+        await Link(output).create(input.path);
+      } else if (alias == 'normalized') {
+        await Directory('${dir.path}/nested').create();
+        output = '${dir.path}/nested/../original.pdf';
+      } else {
+        output = input.path;
+      }
+      final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
+        inputPath: input.path,
+        outputPath: output,
+      );
+      expect(result.didWrite, isFalse);
+      expect(result.failureReason, isNotNull);
+      expect(await input.readAsBytes(), bytes);
+      expect(
+        (await SheetPdfLinkSanitizer.inspectFile(input.path)).urlLinkCount,
+        greaterThan(0),
+      );
+    });
+  }
+
+  test('malformed aliased input is not deleted by failure cleanup', () async {
+    final dir = await Directory.systemTemp.createTemp(
+      'score-link-invalid-alias-',
+    );
+    addTearDown(() => dir.delete(recursive: true));
+    final input = File('${dir.path}/broken.pdf');
+    final bytes = '%PDF-1.7\nbroken'.codeUnits;
+    await input.writeAsBytes(bytes);
+    final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
+      inputPath: input.path,
+      outputPath: input.path,
+    );
+    expect(result.didWrite, isFalse);
+    expect(await input.readAsBytes(), bytes);
+  });
+
+  test(
+    'existing destination remains untouched on a valid copy request',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('score-link-existing-');
+      addTearDown(() => dir.delete(recursive: true));
+      final output = await File(shortFixturePath)
+          .copy('${dir.path}/existing.pdf');
+      final bytes = await output.readAsBytes();
+      final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
+        inputPath: linkFixturePath,
+        outputPath: output.path,
+      );
+      expect(result.didWrite, isFalse);
+      expect(await output.readAsBytes(), bytes);
+    },
+  );
+
   test('inspects URL link annotations in fixture PDF', () async {
     final inspection = await SheetPdfLinkSanitizer.inspectFile(linkFixturePath);
 
@@ -143,46 +207,43 @@ void main() {
     expect(File(outputPath).existsSync(), isFalse);
   });
 
-  test(
-    'removes partial output when sanitizer fails after opening input',
-    () async {
-      final tempDir = await Directory.systemTemp.createTemp(
-        'clef-link-sanitizer-partial-',
-      );
-      addTearDown(() async {
-        if (tempDir.existsSync()) {
-          await tempDir.delete(recursive: true);
-        }
-      });
-      final inputPath = '${tempDir.path}/broken-camscanner.pdf';
-      final outputPath = '${tempDir.path}/broken-links-disabled.pdf';
-      await File(inputPath).writeAsBytes(<int>[
-        0x25,
-        0x50,
-        0x44,
-        0x46,
-        0x2d,
-        0x31,
-        0x2e,
-        0x37,
-        0x0a,
-        0x62,
-        0x72,
-        0x6f,
-        0x6b,
-        0x65,
-        0x6e,
-      ]);
-      await File(outputPath).writeAsString('partial output');
+  test('preserves an existing destination when input parsing fails', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-link-sanitizer-partial-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final inputPath = '${tempDir.path}/broken-camscanner.pdf';
+    final outputPath = '${tempDir.path}/broken-links-disabled.pdf';
+    await File(inputPath).writeAsBytes(<int>[
+      0x25,
+      0x50,
+      0x44,
+      0x46,
+      0x2d,
+      0x31,
+      0x2e,
+      0x37,
+      0x0a,
+      0x62,
+      0x72,
+      0x6f,
+      0x6b,
+      0x65,
+      0x6e,
+    ]);
+    await File(outputPath).writeAsString('partial output');
 
-      final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
-        inputPath: inputPath,
-        outputPath: outputPath,
-      );
+    final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
+      inputPath: inputPath,
+      outputPath: outputPath,
+    );
 
-      expect(result.didWrite, isFalse);
-      expect(result.failureReason, isNotNull);
-      expect(File(outputPath).existsSync(), isFalse);
-    },
-  );
+    expect(result.didWrite, isFalse);
+    expect(result.failureReason, isNotNull);
+    expect(await File(outputPath).readAsString(), 'partial output');
+  });
 }

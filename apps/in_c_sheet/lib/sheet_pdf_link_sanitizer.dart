@@ -74,7 +74,16 @@ class SheetPdfLinkSanitizer {
     required String outputPath,
   }) async {
     final outputFile = File(outputPath);
+    Directory? stagingDirectory;
     try {
+      // A copy must never replace an existing file, including an alias of the
+      // input. Cleanup owns only the staging directory created by this request.
+      if (await FileSystemEntity.type(outputPath, followLinks: false) !=
+          FileSystemEntityType.notFound) {
+        throw StateError(
+          'The output path already exists; choose a new copy path.',
+        );
+      }
       final inputFile = File(inputPath);
       if (!inputFile.existsSync()) {
         return SheetPdfLinkSanitizationResult(
@@ -129,8 +138,6 @@ class SheetPdfLinkSanitizer {
       }
 
       final sanitizedBytes = editor.save();
-      await outputFile.parent.create(recursive: true);
-      await outputFile.writeAsBytes(sanitizedBytes, flush: true);
       final after = inspectBytes(sanitizedBytes);
       if (after.pageCount != before.pageCount) {
         throw StateError(
@@ -139,6 +146,15 @@ class SheetPdfLinkSanitizer {
         );
       }
       final removedUrlLinkCount = before.urlLinkCount - after.urlLinkCount;
+      await outputFile.parent.create(recursive: true);
+      stagingDirectory = await outputFile.parent.createTemp('.clef-link-copy-');
+      final staged = File('${stagingDirectory.path}/copy.pdf');
+      await staged.writeAsBytes(sanitizedBytes, flush: true);
+      if (await FileSystemEntity.type(outputPath, followLinks: false) !=
+          FileSystemEntityType.notFound) {
+        throw StateError('The output path appeared while preparing the copy.');
+      }
+      await staged.rename(outputPath);
       return SheetPdfLinkSanitizationResult(
         inputPath: inputPath,
         outputPath: outputPath,
@@ -149,7 +165,6 @@ class SheetPdfLinkSanitizer {
         didWrite: true,
       );
     } catch (error) {
-      await _deletePartialOutput(outputFile);
       return SheetPdfLinkSanitizationResult(
         inputPath: inputPath,
         outputPath: null,
@@ -160,6 +175,14 @@ class SheetPdfLinkSanitizer {
         didWrite: false,
         failureReason: error.toString(),
       );
+    } finally {
+      if (stagingDirectory != null) {
+        try {
+          await stagingDirectory.delete(recursive: true);
+        } catch (_) {
+          // Best effort, limited to this request's private staging directory.
+        }
+      }
     }
   }
 
@@ -216,15 +239,5 @@ class SheetPdfLinkSanitizer {
       }
     }
     return false;
-  }
-
-  static Future<void> _deletePartialOutput(File outputFile) async {
-    try {
-      if (await outputFile.exists()) {
-        await outputFile.delete();
-      }
-    } catch (_) {
-      // Best-effort cleanup only; preserve the sanitizer failure reason.
-    }
   }
 }
