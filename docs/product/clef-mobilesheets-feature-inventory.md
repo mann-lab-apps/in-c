@@ -7,7 +7,7 @@
 - 현재 디자인 작업트리: `feature/chromatics-expanded-v1-checkpoint-20260913`, 시작 `2b23caeb`, pubspec `1.0.0+14`. 이번 도입의 코드·widget 검증은 이 작업트리 기준이다.
 - 원격 기능 기준 후보: `origin/dev` = `80103707a186586a5140031196ea27d6f8328fa7`, pubspec `1.0.2+29`. 현재 HEAD와 고유 커밋은 78/480이었다. `origin/main` = `c26dcc0d4189604e2f1b2c6121f1da89cafc9293`, 고유 커밋 78/575.
 - 원격에는 현재 트리에 없는 ChordPro/패키지/폴더/동기화와 iOS 오디오 코드가 있다. **현 트리에서 찾지 못함을 Score 전체 미구현으로 해석하지 않는다.** 원격 진입점 존재와 기기에서 동작 완료도 구분한다.
-- 이후 기준 선택은 사용자에게 확인 중이다. 기존 디자인·다른 앱·공통 패키지 변경을 보존하고 승인 없는 병합/광범위 복사를 하지 않는다. 안전 수정은 양쪽 코드에서 동일 결함이 있는지 대조한다.
+- 사용자 결정: origin/dev 최신 기능을 기준으로 비교하고 디자인 통합 범위부터 정리한다. 별도 `/private/tmp/score-mobilesheets-20261031` (`feature/score-reference-gap-20261031`)을 만들었다. 기존 디자인·다른 앱·공통 패키지 변경은 보존하며 전체 병합/광범위 복사를 하지 않는다. 이 root 대응표는 디자인 트리 감사 이력으로 보존하고 최신 기능 worktree의 기존 inventory와 `clef-reference-integration-plan-20261031.md`를 이어서 갱신한다.
 - 상태: 제품 연결 완료 / 부분 구현 / 기반만 있음 / 미구현 / 검증 미완료 / 의도적 차이. 아래는 현재 트리 상태이며 원격 차이는 별도 열이다. 저장소 전체·원격 앱의 최종 평가가 아니다.
 - `adb devices -l`에 연결 기기가 없어 MobileSheets/TonalEnergy의 설치 버전·실행 화면을 이번에 직접 관찰하지 않았다. 공식 설명은 확인했고 실제 기기 조작은 미검수다. 버전을 추측하지 않는다.
 - metadata의 출시 식별자와 현재 소스 불일치는 기존 `manual.build_selection`대로 유지하며 임의 변경하지 않는다.
@@ -80,7 +80,7 @@ TonalEnergy에서 채택할 것은 cents/입력/신호 상태·시간축·기준
 
 ## 다음 로컬 작업
 
-1. 기준 소스 답변 전에도 양쪽에 동일하게 남은 tuner input의 지연 start/stop/dispose와 스트림 오류·재시작을 재현할 수 있다.
-2. 소스 확정 후 중복된 기능을 다시 만들지 말고 기존 구현에 디자인/회귀를 연결한다.
+1. 기준 소스가 정해졌으므로 최신 기능 worktree에서 tuner input의 지연 start/stop/dispose와 스트림 오류·재시작을 재현한다.
+2. 중복된 기능을 다시 만들지 말고 기존 구현에 디자인/회귀를 연결한다. source state pending과 현재 root의 metadata check를 유지하되 새 binary/source 일치 검증과 구분한다.
 3. 실제 PCM 정답 benchmark와 drone 생성/출력 소유권을 검증한다. 기존 debug/DSP 기반을 읽은 뒤 필요한 부분만 보강한다.
 4. 고급 기능은 transport/권한/복구·실제 사용자 진입을 기준으로 상태를 정리한다. 계정·장비가 없는 동안에는 다른 로컬 경로를 계속 진행한다.
