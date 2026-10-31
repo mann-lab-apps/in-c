@@ -1365,6 +1365,8 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-10-31 최신 기능 기준 악보함은 공통 flat Item 행 adapter로 이행하며 파일 형식·metadata·선택 ID와 길게 눌러 선택·즐겨찾기/핀/편집/공유를 보존한다. 선택 개수는 별도 줄, 정보 보강 작업은 내용 높이로 배치한다. 기존/새 검증 결과와 실제 기기 촬영을 구분하고 모든 화면 공통화 완료로 표시하지 않는다.
+      2026-10-31 최신 기능 기준 Score가 committed 공통 UI의 명시적 blue light/dark 테마를 상속하도록 이행했다. 홈 390/840px·100/200% widget 검증과 실제 기기/촬영을 구분한다. 원본 악보·저장된 주석색·기능 엔진은 변경하지 않았으며 화면별 공통 컴포넌트 통합은 별도다.
       2026-10-31 최신 기능 후보의 튜너 측정/표시 미리보기 분리는 widget fixture 대상이다. 중앙 디자인 소스/촬영과 통합 전이며 캡처로 실제 입력 정확도나 신호 강도를 증명하지 않는다.
       2026-10-31 최신 기능 기준 튜너의 지연 permission/startStream/stop·실패·retry·종료를 자동 recorder fixture로 검사한다. 실제 권한 대기 중 닫기·OS 마이크 표시·자원 해제·주변 소음·음정/출력 품질은 새 빌드에서 pending이다. 중앙 디자인 YAML과 최신 기능 소스의 통합·촬영은 아직 확정되지 않았다.
       2026-10-31 PDF URL annotation 제거의 원본/기존 출력 보호와 mixed URI·내부 GoTo 보존은 자동 fixture 검사다. 실제 Files provider·모든 PDF action/외부 viewer 검수는 pending이다. 원본 경로와 같은 output을 UI에서 관찰했다고 주장하지 않는다.
