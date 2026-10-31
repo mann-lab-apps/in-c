@@ -2169,10 +2169,11 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> _replaceSetlist(SheetSetlist updated) async {
-    _setlists = _setlists
+    final next = _setlists
         .map((setlist) => setlist.id == updated.id ? updated : setlist)
         .toList(growable: false);
-    await store.saveSetlists(_setlists);
+    await store.saveSetlists(next);
+    _setlists = next;
     notifyListeners();
   }
 

@@ -5,6 +5,7 @@ import 'dart:ui' as ui show Canvas;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -32,6 +33,7 @@ import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
 import 'presentation/score_library_choices.dart';
 import 'presentation/score_share_choices.dart';
+import 'presentation/score_setlist_preparation.dart';
 import 'presentation/score_global_viewer_settings.dart';
 import 'presentation/score_viewer_components.dart';
 import 'presentation/score_pdf_search_sheet.dart';
@@ -3259,37 +3261,33 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _addScore() async {
-    final availableScores = controller.scoresAvailableForSetlist(setlist);
+    final initial = setlist;
+    final libraryId = controller.activeLibraryProfile.id;
+    final availableScores = controller.scoresAvailableForSetlist(initial);
     if (availableScores.isEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('추가할 수 있는 악보가 없습니다.')));
       return;
     }
-
-    var query = '';
-    final selected = await showModalBottomSheet<SheetScore>(
+    await showScoreViewerDraftSheet<bool>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return SafeArea(
-            child: _ScorePickerSheet(
-              scores: availableScores,
-              query: query,
-              onQueryChanged: (value) {
-                setModalState(() {
-                  query = value;
-                });
-              },
-            ),
-          );
+      child: ScoreSetlistPicker(
+        scores: availableScores,
+        descriptionFor: _scoreIdentitySubtitle,
+        onAdd: (selected) async {
+          final current = controller.setlistByIdOrNull(initial.id);
+          final score = controller.scoreByIdOrNull(selected.id);
+          if (!mounted ||
+              controller.activeLibraryProfile.id != libraryId ||
+              current == null ||
+              score == null ||
+              current.scoreIds.contains(score.id)) {
+            throw StateError('Setlist selection is no longer current');
+          }
+          await controller.addScoreToSetlist(current, score);
         },
       ),
     );
-    if (selected == null) {
-      return;
-    }
-    await controller.addScoreToSetlist(setlist, selected);
   }
 
   Future<void> _openFirstScore() async {
@@ -3319,27 +3317,41 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _showRehearsalSettings() async {
-    final updated = await showModalBottomSheet<SheetSetlist>(
+    final initial = setlist;
+    final libraryId = controller.activeLibraryProfile.id;
+    await showScoreViewerDraftSheet<bool>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _SetlistRehearsalSheet(
-        setlist: setlist,
-        scores: controller.scoresForSetlist(setlist),
+      child: ScoreSetlistRehearsal(
+        setlist: initial,
+        scores: controller.scoresForSetlist(initial),
+        pageScales: {
+          for (final scale in _SheetViewerPageScale.values)
+            scale.settingValue: scale.label,
+        },
+        pedalMappings: {
+          for (final mapping in _SheetPedalMapping.values)
+            mapping.settingValue: mapping.label,
+        },
+        onSave: (updated) async {
+          final current = controller.setlistByIdOrNull(initial.id);
+          if (!mounted ||
+              controller.activeLibraryProfile.id != libraryId ||
+              current == null ||
+              !listEquals(current.scoreIds, initial.scoreIds)) {
+            throw StateError('Setlist preparation is no longer current');
+          }
+          await controller.updateSetlistRehearsalSettings(
+            current,
+            rehearsalMode: updated.rehearsalMode,
+            transitionSeconds: updated.transitionSeconds,
+            scoreStartPages: updated.scoreStartPages,
+            scoreNotes: updated.scoreNotes,
+            scoreDurations: updated.scoreDurations,
+            viewerSettingsOverride: updated.viewerSettingsOverride,
+            clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+          );
+        },
       ),
-    );
-    if (updated == null) {
-      return;
-    }
-    await controller.updateSetlistRehearsalSettings(
-      setlist,
-      rehearsalMode: updated.rehearsalMode,
-      transitionSeconds: updated.transitionSeconds,
-      scoreStartPages: updated.scoreStartPages,
-      scoreNotes: updated.scoreNotes,
-      scoreDurations: updated.scoreDurations,
-      viewerSettingsOverride: updated.viewerSettingsOverride,
-      clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
     );
   }
 
@@ -3458,348 +3470,6 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 itemCount: scores.length,
               ),
       ),
-    );
-  }
-}
-
-class _ScorePickerSheet extends StatelessWidget {
-  const _ScorePickerSheet({
-    required this.scores,
-    required this.query,
-    required this.onQueryChanged,
-  });
-
-  final List<SheetScore> scores;
-  final String query;
-  final ValueChanged<String> onQueryChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredScores = scores
-        .where((score) => score.matches(query))
-        .toList(growable: false);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: TextField(
-            onChanged: onQueryChanged,
-            decoration: const InputDecoration(
-              hintText: '추가할 악보 검색',
-              prefixIcon: Icon(Icons.search),
-            ),
-          ),
-        ),
-        Flexible(
-          child: filteredScores.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 24, 16, 32),
-                  child: Text('검색 결과가 없습니다.'),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  itemBuilder: (context, index) {
-                    final score = filteredScores[index];
-                    return ListTile(
-                      leading: const Icon(Icons.description_outlined),
-                      title: Text(score.title),
-                      subtitle: Text(_scoreIdentitySubtitle(score)),
-                      onTap: () => Navigator.of(context).pop(score),
-                    );
-                  },
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1),
-                  itemCount: filteredScores.length,
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SetlistRehearsalSheet extends StatefulWidget {
-  const _SetlistRehearsalSheet({required this.setlist, required this.scores});
-
-  final SheetSetlist setlist;
-  final List<SheetScore> scores;
-
-  @override
-  State<_SetlistRehearsalSheet> createState() => _SetlistRehearsalSheetState();
-}
-
-class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
-  late bool _rehearsalMode = widget.setlist.rehearsalMode;
-  late int _transitionSeconds = widget.setlist.transitionSeconds;
-  late bool _useViewerOverride = widget.setlist.viewerSettingsOverride != null;
-  late SheetViewerSettings _viewerOverride =
-      widget.setlist.viewerSettingsOverride ??
-      SheetViewerSettings.defaultSettings;
-  late final Map<String, TextEditingController> _pageControllers = {
-    for (final score in widget.scores)
-      score.id: TextEditingController(
-        text: (widget.setlist.scoreStartPages[score.id] ?? score.lastPage)
-            .toString(),
-      ),
-  };
-  late final Map<String, TextEditingController> _noteControllers = {
-    for (final score in widget.scores)
-      score.id: TextEditingController(
-        text: widget.setlist.scoreNotes[score.id] ?? '',
-      ),
-  };
-  late final Map<String, TextEditingController> _durationControllers = {
-    for (final score in widget.scores)
-      score.id: TextEditingController(
-        text: (widget.setlist.scoreDurations[score.id] ?? 0).toString(),
-      ),
-  };
-
-  @override
-  void dispose() {
-    for (final controller in _pageControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _noteControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _durationControllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-        ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              '세트리스트 리허설',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('리허설 모드'),
-              value: _rehearsalMode,
-              onChanged: (value) => setState(() => _rehearsalMode = value),
-            ),
-            Slider(
-              value: _transitionSeconds.toDouble(),
-              min: 0,
-              max: 120,
-              divisions: 12,
-              label: '전환 $_transitionSeconds초',
-              onChanged: (value) =>
-                  setState(() => _transitionSeconds = value.round()),
-            ),
-            const Divider(),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('공연 보기 preset'),
-              subtitle: const Text('세트리스트로 열 때 곡별 보기 설정보다 우선 적용'),
-              value: _useViewerOverride,
-              onChanged: (value) => setState(() {
-                _useViewerOverride = value;
-              }),
-            ),
-            if (_useViewerOverride) ...[
-              DropdownButtonFormField<String>(
-                initialValue: _globalViewerDisplayModeValue(_viewerOverride),
-                decoration: const InputDecoration(labelText: '보기 모드'),
-                items: const [
-                  DropdownMenuItem<String>(value: 'auto', child: Text('자동')),
-                  DropdownMenuItem<String>(
-                    value: 'singlePage',
-                    child: Text('1페이지'),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'twoPage',
-                    child: Text('2페이지'),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'continuousVertical',
-                    child: Text('세로 스크롤'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _viewerOverride = _viewerOverride.copyWith(
-                        displayMode: value,
-                      );
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _viewerOverride.pageScale,
-                decoration: const InputDecoration(labelText: '페이지 맞춤'),
-                items: _SheetViewerPageScale.values
-                    .map(
-                      (scale) => DropdownMenuItem<String>(
-                        value: scale.settingValue,
-                        child: Text(scale.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _viewerOverride = _viewerOverride.copyWith(
-                        pageScale: value,
-                      );
-                    });
-                  }
-                },
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('반 페이지 넘김'),
-                value: _viewerOverride.halfPageTurn,
-                onChanged: (value) => setState(() {
-                  _viewerOverride = _viewerOverride.copyWith(
-                    halfPageTurn: value,
-                  );
-                }),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('곡 전환 전 확인'),
-                value: _viewerOverride.confirmSetlistTransition,
-                onChanged: (value) => setState(() {
-                  _viewerOverride = _viewerOverride.copyWith(
-                    confirmSetlistTransition: value,
-                  );
-                }),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('곡 끝에서 자동 이동'),
-                value: _viewerOverride.autoAdvanceSetlist,
-                onChanged: (value) => setState(() {
-                  _viewerOverride = _viewerOverride.copyWith(
-                    autoAdvanceSetlist: value,
-                  );
-                }),
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _viewerOverride.pedalMapping,
-                decoration: const InputDecoration(labelText: '페달 매핑'),
-                items: _SheetPedalMapping.values
-                    .map(
-                      (mapping) => DropdownMenuItem<String>(
-                        value: mapping.settingValue,
-                        child: Text(mapping.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _viewerOverride = _viewerOverride.copyWith(
-                        pedalMapping: value,
-                      );
-                    });
-                  }
-                },
-              ),
-              const Divider(),
-            ],
-            for (final score in widget.scores)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      score.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 96,
-                          child: TextField(
-                            controller: _pageControllers[score.id],
-                            decoration: const InputDecoration(labelText: '시작쪽'),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 104,
-                          child: TextField(
-                            controller: _durationControllers[score.id],
-                            decoration: const InputDecoration(labelText: '초'),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _noteControllers[score.id],
-                            decoration: const InputDecoration(labelText: '메모'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(_buildSetlist()),
-                icon: const Icon(Icons.check),
-                label: const Text('저장'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  SheetSetlist _buildSetlist() {
-    final startPages = <String, int>{};
-    final notes = <String, String>{};
-    final durations = <String, int>{};
-    for (final score in widget.scores) {
-      final startPage = int.tryParse(_pageControllers[score.id]?.text ?? '');
-      if (startPage != null && startPage > 0) {
-        startPages[score.id] = startPage;
-      }
-      final note = _noteControllers[score.id]?.text.trim() ?? '';
-      if (note.isNotEmpty) {
-        notes[score.id] = note;
-      }
-      final duration = int.tryParse(_durationControllers[score.id]?.text ?? '');
-      if (duration != null && duration > 0) {
-        durations[score.id] = duration.clamp(1, 24 * 60 * 60).toInt();
-      }
-    }
-    return widget.setlist.copyWith(
-      rehearsalMode: _rehearsalMode,
-      transitionSeconds: _transitionSeconds,
-      scoreStartPages: Map<String, int>.unmodifiable(startPages),
-      scoreNotes: Map<String, String>.unmodifiable(notes),
-      scoreDurations: Map<String, int>.unmodifiable(durations),
-      viewerSettingsOverride: _useViewerOverride ? _viewerOverride : null,
-      clearViewerSettingsOverride: !_useViewerOverride,
     );
   }
 }

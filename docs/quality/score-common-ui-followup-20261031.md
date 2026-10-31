@@ -27,6 +27,39 @@
 
 ## 후속 순서
 
+### 세트리스트 준비
+
+- `ScoreSetlistPicker`/`ScoreSetlistRehearsal`을 앱 presentation에 분리해 기존 공통 draft form과 Section/SettingsRow/Choices/Input/Item/Accordion/Button을 합성한다. 악보 선택은 미리 선택 후 `추가`로 확정한다. 검색 밖 선택도 명시하고 대량 목록은 bounded lazy list로 유지한다. 실제 모델/후보/저장은 controller와 화면 adapter 소유다.
+- 저장은 await 뒤 닫고 pending 동안 수정·취소·Back·중복 요청을 막는다. 실패 시 선택/검색/메모를 유지하고 재시도한다. `_replaceSetlist`는 실제 store 성공 뒤 memory 목록을 publish한다. create/delete/duplicate나 전역 concurrent 쓰기·강제 종료·자동 백업과의 원자성까지 고친 것은 아니다.
+- 리허설의 시작쪽/초/메모는 곡별로 펼친다. 접어도 draft를 유지하고 화면에 없는 곡 데이터·viewer override 필드를 보존한다. 기존 숫자 파싱/양수 처리·24시간 clamp는 유지한다. 기존 데이터의 전환 180초는 slider 표시 위치만 기존 UI 범위 0~120으로 제한하고, 조작하지 않으면 원래 180을 저장한다.
+- red `/private/tmp/score-setlist-red-20261031.log`: 리허설 지연 성공/실패에서 기존 창이 먼저 닫힌 실제 문제. 추가의 red는 새 확정 행동/공통 Input 부재이며 기존 저장 실패를 테스트 끝까지 검증한 red로 표현하지 않는다.
+- focused/capture 10 PASS (`/private/tmp/score-setlist-captures-20261031.log`): 지연 추가/리허설 저장의 성공·실패·retry·Back, 300개 lazy 목록/마지막 선택/필터 밖 선택, 사라진 후보 안전 실패와 복구 재시도, 곡별 펼침/기존 override/다른 곡 보존, 세 viewport·200%·light/dark·fake keyboard/safe-area의 취소. 초기 펼침 테스트는 공통 Accordion의 ± 접미사를 무시한 finder 오류였으며 수정했다.
+- `/private/tmp/score-setlist-captures-20261031/rehearsal-{390x1000,840x1000,840x390}.png`는 실제 widget의 blue/200%·MaterialIcons, fake keyboard inset 240/100 및 viewPadding 24 캡처다. 최초 AppleGothic 시험 글꼴의 minus가 사각형으로 보여 Arial Unicode로 3 viewport를 재촬영했고 모두 PASS (`/private/tmp/score-setlist-unicode-captures-20261031.log`). 최종 세 PNG의 기호·줄바꿈·행동을 직접 확인했다. 제품 글꼴/공통 소스는 변경하지 않았다. 스크롤된 일부 화면이며 실제 OS 키보드/기기 검수가 아니다.
+- 최종 format/analyze·전체 682 tests PASS, metadata check PASS (`/private/tmp/score-setlist-{rc,metadata}-20261031.log`). RC exit 1은 unrelated `experiments/piano-performance/data/README.md:63` EOF 빈 줄뿐이다. 이 파일은 보존하며 이번 staged 공백 검사와 분리한다.
+
+현재 검증은 기존 공통 패키지 변경을 포함한 작업트리 기준이다. 깨끗한 checkout만의 독립 재현이나 릴리즈 검증을 수행했다는 뜻이 아니다. 제품/주요 공통 소비 소스 SHA-256:
+
+| 소스 | SHA-256 |
+| --- | --- |
+| apps/in_c_sheet/lib/main.dart | 51da79e7732df21410e7ffde253835a29efe87999aa3a2b8a232d1d53dba0239 |
+| apps/in_c_sheet/lib/presentation/score_setlist_preparation.dart | 069a0eb5ee1e96b024b0ec019f7eb02a6e7efbab728453eef421b968157234de |
+| apps/in_c_sheet/lib/sheet_library_controller.dart | a983e6dc353f74ec6fe4062aaa2ffe977ecc314a534567c43145e1ab78812745 |
+| packages/ddirori_ui/lib/src/components.dart | d806b3bcee0e48d2022a42c6cb03163e43901d1232433ec1dda36f801120fa3f |
+| packages/ddirori_ui/lib/src/basic.dart | 9d23e01c422f29c1da5764e94a767ef6e2184963208f8198d47ab219164a4cbc |
+
+### 현재 적용 상태
+
+| 구역 | 현재 구현 | 미검수/남은 경계 |
+| --- | --- | --- |
+| 악보함 공유·뷰어 공유 선택 | 공통 Sheet/행/취소, 앱 후보/비동기 adapter | OS 공유·iPad popover·native focus |
+| 전역 보기/입력 기본값 | 공통 draft form·선택·저장·retry, import 회귀 | 실제 페달·새 PDF의 기기 표시 |
+| 세트리스트 악보 선택 | 공통 검색/행·명시 추가·저장·retry, lazy 목록 | 실제 터치·스크린리더 |
+| 리허설 메모·공연 override | 공통 곡별 펼침/입력·draft 저장 | 실제 키보드/폰트·공연 장비 |
+| draft modal host | 앱의 native modal + 공통 표시 조합 | 공통 Sheet에 dismissal API가 없어 의도적으로 앱 소유 |
+| metadata 편집·복원/삭제 확인·테스트 정보 등 | 기존 native Dialog/앱 전용 UI가 남음 | 이번 지정 범위 밖의 후속 조사; 전체 디자인 이행 완료 아님 |
+
+현재 지정된 공유/기본값/세트리스트 준비 범위만 검증한다. MobileSheets와의 전체 기능 동등성, 실제 파일 provider/오디오·codec·페달·펜·외부 PDF viewer 품질을 완료했다고 표시하지 않는다. 새 빌드·번호 변경·push/merge·스토어 업로드는 하지 않는다.
+
 ### 전역 기본값 회귀
 
 - 기존 제품 구현을 재구현하지 않고 4개 회귀를 추가했다. 공통 Choices에서 보기/맞춤/직접 매핑을 실제 탭하고 현재 선택을 다시 눌러도 값이 비워지지 않는지, 저장/재열기와 화면에 없는 효과·렌더링·공연 옵션 및 기존 악보가 보존되는지 검사한다.
@@ -36,6 +69,6 @@
 
 - 공유 slice 검증: 전체 668 tests PASS (`/private/tmp/score-share-rc-20261031.log`), 최종 analyze PASS (`score-share-final-analyze-20261031.log`), metadata check PASS (`score-share-metadata-20261031.log`, 모두 `/private/tmp/`). RC 최초 analyze의 명시적 mounted guard/unused import 경고는 수정했다. RC 전체 exit 1은 초기 경고와 unrelated README:63 EOF 공백 실패로 기록하며 RC PASS라고 표시하지 않는다. 선택적 diff 공백 검사는 별도로 통과했다.
 
-1. 전역 기본값의 보기/맞춤/직접 입력 매핑 저장·현재 선택 재클릭·기존 필드 보존 회귀와 실제 import controller 경로 적용 범위를 확인한다.
-2. 세트리스트 악보 선택/공연 메모의 긴 목록·취소·저장 pending/오류를 조사해 실제 gap만 처리한다.
-3. 적용 상태표와 metadata/QA를 최신화한다. 대형 엔진·cloud·새 저장 형식은 시작하지 않는다.
+1. 완료: 전역 기본값의 저장·현재 선택 재클릭·기존 필드 보존과 import controller 적용 회귀.
+2. 완료: 세트리스트 선택/리허설의 긴 목록·취소·저장 pending/실패·재시도와 기존 설정 보존.
+3. 완료: 적용 상태표·metadata·QA 갱신. 다음 별도 후보는 metadata 편집·복원/삭제 확인·테스트 정보의 공통 UI 조사다. 버전/식별자 불일치와 기존 공통 패키지 변경의 통합·릴리즈 검증은 배포 작업에서 다시 확인해야 한다. 대형 엔진·cloud·새 저장 형식은 이번에 시작하지 않았다.

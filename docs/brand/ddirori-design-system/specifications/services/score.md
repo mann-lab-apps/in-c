@@ -8,6 +8,8 @@
 
 ## 표시 API와 상태 소유권
 
+세트리스트 준비는 앱의 `ScoreSetlistPicker`/`ScoreSetlistRehearsal`이 공통 draft form·검색·행·곡별 펼침·입력을 합성한다. 미리 선택 후 추가를 확정하며 실제 저장 await 전에는 닫지 않는다. pending 동안 수정/취소를 막고 실패 시 draft/retry를 유지한다. 순서·기존 악보·숫자 파싱·viewer override 의미는 모델/controller 소유이고 `_replaceSetlist`는 store 성공 뒤 memory를 publish한다. 전역 transaction/복원 원자성을 추가한 것이 아니다.
+
 악보함과 뷰어 공유 선택은 앱의 `showScoreShareChoices`가 공통 Sheet/Stack/Banner/Item/Button을 합성한다. 역할과 파일명을 표시하고 절대 경로는 숨긴다. 후보 policy·파일·MIME는 기존 store 소유이며 선택만 반환한다. 악보함은 라이브러리 변화/새 요청/현재 route와 후보를 재검증하고, 이미 보낸 native 공유 취소나 OS 전송 성공까지 보장하지 않는다. [후속 검증](../../../../quality/score-common-ui-followup-20261031.md).
 
 악보함 정렬은 공통 Sheet/Stack/flat Item/Button으로 현재 정렬과 선택/취소를 표시한다. 스크롤이 하단 항목 접근을 보장하며 선택이 돌아올 때 mounted와 라이브러리 ID를 확인한다. 검색/필터·자료·정렬 저장 정책은 기존 controller가 소유한다.

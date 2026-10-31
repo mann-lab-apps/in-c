@@ -71,7 +71,7 @@ content:
         • 여백 제안·자르기·회전·숨김·페이지 순서와 사본 생성 안내를 정리했습니다. 메모·자르기·공연 설정·전역 보기 기본값은 저장 완료 후에만 닫히고, 실패하면 입력을 유지해 재시도합니다.
         • 메트로놈·튜너·드론·연결 음원 화면을 정리했습니다. 연결 음원과 반복 구간 저장·재생·정지의 중복 조작, 늦은 응답과 정지 실패 재시도를 보완했습니다.
         • 자동 스크롤의 시간·쪽별 속도·시작 큐·범위·반복 설정을 정리했습니다. 일시정지·재개·정지가 현재 상태를 반영하며, 닫기와 재진입 중 이전 저장이 최신 설정을 덮지 않도록 개선했습니다.
-        • 공연 준비 안내를 큰 글자·가로 화면에서도 읽을 수 있도록 정리했습니다. 공연 설정과 preset 저장·삭제 실패를 안내하고, 종료된 뷰어의 늦은 준비 응답과 전환 오류를 처리합니다.
+        • 공연 준비 안내를 큰 글자·가로 화면에서도 읽을 수 있도록 정리했습니다. 세트리스트의 악보 추가와 리허설 메모는 저장을 기다리고 실패 시 선택·입력을 유지합니다. 공연 설정과 preset 저장·삭제 실패를 안내하고, 종료된 뷰어의 늦은 준비 응답과 전환 오류를 처리합니다.
         • 파트·연결 파일·공유 대상·입력 진단·페달 매핑·렌더링 옵션의 이름과 보조 행동을 정리했습니다. 악보함과 뷰어의 공유 파일 선택을 통일하고 라이브러리 전환 뒤 오래된 선택을 차단합니다. Studio PDF와 Play 등에서 내보낸 음원은 사용자가 선택한 악보에 사본으로 가져올 수 있습니다.
 declarations:
   reviewed: false
@@ -204,6 +204,26 @@ screenshots:
     height: 2752
     locale: ko
   scenes:
+  - id: score-setlist-rehearsal
+    purpose: 실제 세트리스트의 리허설 진행·공연 보기·곡별 메모와 저장/취소 진입을 보여준다. 지연/실패 저장이나 실제 공연 장비 검수의 증거가 아니다.
+    route: 악보함 → 세트리스트 → Evening Practice → 리허설 모드
+    fixture: 기존 setlist scene과 같은 자가 제작 악보 3개의 Evening Practice. 첫 곡만 펼치며 실제 fixture 값만 표시한다.
+    must_show:
+    - 세트리스트 리허설 제목과 진행·공연 보기 구분
+    - 곡별 펼침과 시작쪽·초·메모 진입
+    - 저장·취소 행동 (작은 화면에서는 스크롤)
+    exclude:
+    - 저장 성공·오디오/페달·실제 화면 유지 검수를 만들어 표시, ErrorWidget
+    steps:
+    - {action: tap, by: tooltip, value: 세트리스트}
+    - {action: tap, by: text, value: Evening Practice}
+    - {action: tap, by: tooltip, value: 리허설 모드}
+    assertions:
+    - {by: text, value: 세트리스트 리허설, present: true}
+    - {by: text, value: 메모, present: true}
+    - {by: text, value: 저장, present: true}
+    - {by: text, value: 취소, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-share-choices
     purpose: 악보함과 뷰어가 재사용하는 공통 공유 선택을 실제 PDF에서 보여준다. 취소는 공유하지 않으며 실제 OS 공유 성공 검수 장면이 아니다.
     route: 자가 제작 PDF → 모든 도구 → 보기 옵션 → PDF 공유
@@ -1217,11 +1237,12 @@ screenshots:
     - {by: text, value: 페달 직접 설정, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: setlist
-    purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
+    purpose: 실제 UI로 진입한 세 곡의 연습 세트리스트와 악보 추가/리허설 진입을 보여준다. 새 선택창의 검색·추가 저장/실패는 widget/manual QA이며 이 목록 촬영만으로 증명하지 않는다.
     route: 세트리스트 → 연습 목록
     fixture: 자가 제작 악보 3개를 연습 순서대로 배치
     must_show:
     - 세트리스트 이름과 악보 순서
+    - 악보 추가와 리허설 모드 진입 (이미 포함된 곡은 추가 후보에서 제외)
     - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
     - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
     exclude:
@@ -1276,6 +1297,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-31 세트리스트 추가/리허설을 공통 draft form/검색/행/곡별 펼침으로 정리했다. 큰 글자·가로·fake keyboard inset과 저장 대기/실패/retry는 widget 검사다. 실제 OS 키보드·VoiceOver/focus·장비 동작은 pending이다.
       2026-10-31 공유 파일 선택의 긴 이름·200%·가로·취소를 공통 sheet로 정리했다. library 전환/오래된 native 결과는 widget 회귀로 확인하며 OS 공유창·iPad popover·VoiceOver·focus는 pending이다.
       2026-10-30 전역 보기/입력 기본값을 공통 draft form/section/choices로 정리하고 저장 중 잠금·실패 재시도와 200%·가로 취소를 widget으로 확인한다. 실제 기기 VoiceOver·페달·화면 유지와 포커스는 pending이다.
       2026-10-30 태그·컬렉션·그룹·별점의 공통 선택과 개별 해제·취소, 긴 이름/200%·가로와 lazy 목록을 widget으로 검사한다. 실제 기기의 VoiceOver·중첩 스크롤·포커스 복귀는 pending이다.
