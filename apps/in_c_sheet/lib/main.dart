@@ -31,6 +31,7 @@ import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'presentation/score_library_components.dart';
 import 'presentation/score_library_choices.dart';
+import 'presentation/score_share_choices.dart';
 import 'presentation/score_global_viewer_settings.dart';
 import 'presentation/score_viewer_components.dart';
 import 'presentation/score_pdf_search_sheet.dart';
@@ -131,12 +132,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   final _bulkEditFocus = FocusNode(debugLabel: 'Score bulk edit');
   bool _isBulkSelecting = false;
   bool _showFacets = false;
+  int _shareGeneration = 0;
+  late String _shareLibraryId;
 
   SheetLibraryController get controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _shareLibraryId = controller.activeLibraryProfile.id;
     controller.addListener(_handleControllerChanged);
     _sharedImportChannel.setMethodCallHandler(_handleSharedImportCall);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -154,6 +158,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   void _handleControllerChanged() {
+    final libraryId = controller.activeLibraryProfile.id;
+    if (libraryId != _shareLibraryId) {
+      _shareLibraryId = libraryId;
+      _shareGeneration++;
+    }
     if (mounted) {
       setState(() {});
     }
@@ -379,30 +388,57 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _shareScore(SheetScore score) async {
+    final owner = controller;
+    final generation = ++_shareGeneration;
+    final libraryId = owner.activeLibraryProfile.id;
     final candidate = await _selectShareCandidate(score);
-    if (candidate == null || !mounted) {
+    if (candidate == null) {
       return;
     }
+    bool current() {
+      if (!mounted ||
+          !identical(controller, owner) ||
+          generation != _shareGeneration ||
+          owner.activeLibraryProfile.id != libraryId ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return false;
+      }
+      final latest = owner.scoreByIdOrNull(score.id);
+      return latest != null &&
+          owner
+              .shareCandidates(latest)
+              .any(
+                (file) =>
+                    file.path == candidate.path &&
+                    file.fileName == candidate.fileName &&
+                    file.mimeType == candidate.mimeType,
+              );
+    }
 
-    final exists = await File(candidate.path).exists();
-    if (!exists) {
-      if (mounted) {
+    if (!current()) {
+      return;
+    }
+    try {
+      final exists = await File(candidate.path).exists();
+      if (!mounted || !current()) {
+        return;
+      }
+      if (!exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              '공유할 파일을 찾지 못했습니다. '
-              '다시 가져오거나 전체 백업을 복원해주세요.',
-            ),
+            content: Text('공유할 파일을 찾지 못했습니다. 다시 가져오거나 전체 백업을 복원해주세요.'),
           ),
         );
+        return;
       }
-      return;
-    }
-
-    try {
+      final box = context.findRenderObject();
+      final origin = box is RenderBox && box.hasSize
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
       await SharePlus.instance.share(
         ShareParams(
           subject: score.title,
+          sharePositionOrigin: origin,
           files: [
             XFile(
               candidate.path,
@@ -413,40 +449,19 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ),
       );
     } catch (_) {
-      if (mounted) {
+      if (mounted && current()) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('파일을 공유하지 못했습니다.')));
       }
     }
   }
 
-  Future<SheetScoreShareCandidate?> _selectShareCandidate(
-    SheetScore score,
-  ) async {
-    final candidates = controller.shareCandidates(score);
-    if (candidates.length == 1) {
-      return candidates.single;
-    }
-    return showModalBottomSheet<SheetScoreShareCandidate>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            for (final candidate in candidates)
-              ListTile(
-                leading: Icon(_shareCandidateIcon(candidate)),
-                title: Text(candidate.label),
-                subtitle: Text(candidate.fileName),
-                onTap: () => Navigator.of(context).pop(candidate),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<SheetScoreShareCandidate?> _selectShareCandidate(SheetScore score) =>
+      showScoreShareChoices(
+        context: context,
+        candidates: controller.shareCandidates(score),
+        iconFor: _shareCandidateIcon,
+      );
 
   Future<dynamic> _handleSharedImportCall(MethodCall call) async {
     if (call.method != 'sharedFiles') {
@@ -8114,29 +8129,11 @@ setlist=$setlistLabel
 
   Future<SheetScoreShareCandidate?> _selectViewerShareCandidate(
     SheetScore currentScore,
-  ) async {
-    final candidates = widget.controller.shareCandidates(currentScore);
-    if (candidates.length == 1) {
-      return candidates.single;
-    }
-    return showDdiroriSheet<SheetScoreShareCandidate>(
-      context: context,
-      title: '공유할 파일 선택',
-      child: DdiroriStack(
-        children: [
-          const DdiroriBanner(message: '공유할 파일을 선택해 주세요.'),
-          for (final candidate in candidates)
-            DdiroriItem(
-              leading: Icon(_shareCandidateIcon(candidate)),
-              title: candidate.label,
-              subtitle: candidate.fileName,
-              flat: true,
-              onTap: () => Navigator.of(context).pop(candidate),
-            ),
-        ],
-      ),
-    );
-  }
+  ) => showScoreShareChoices(
+    context: context,
+    candidates: widget.controller.shareCandidates(currentScore),
+    iconFor: _shareCandidateIcon,
+  );
 
   void _toggleAnnotationMode() {
     if (!_documentReady && !_isAnnotationMode) return;

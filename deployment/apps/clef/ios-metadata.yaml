@@ -72,7 +72,7 @@ content:
         • 메트로놈·튜너·드론·연결 음원 화면을 정리했습니다. 연결 음원과 반복 구간 저장·재생·정지의 중복 조작, 늦은 응답과 정지 실패 재시도를 보완했습니다.
         • 자동 스크롤의 시간·쪽별 속도·시작 큐·범위·반복 설정을 정리했습니다. 일시정지·재개·정지가 현재 상태를 반영하며, 닫기와 재진입 중 이전 저장이 최신 설정을 덮지 않도록 개선했습니다.
         • 공연 준비 안내를 큰 글자·가로 화면에서도 읽을 수 있도록 정리했습니다. 공연 설정과 preset 저장·삭제 실패를 안내하고, 종료된 뷰어의 늦은 준비 응답과 전환 오류를 처리합니다.
-        • 파트·연결 파일·공유 대상·입력 진단·페달 매핑·렌더링 옵션의 이름과 보조 행동을 정리했습니다. Studio PDF와 Play 등에서 내보낸 음원은 사용자가 선택한 악보에 사본으로 가져올 수 있습니다.
+        • 파트·연결 파일·공유 대상·입력 진단·페달 매핑·렌더링 옵션의 이름과 보조 행동을 정리했습니다. 악보함과 뷰어의 공유 파일 선택을 통일하고 라이브러리 전환 뒤 오래된 선택을 차단합니다. Studio PDF와 Play 등에서 내보낸 음원은 사용자가 선택한 악보에 사본으로 가져올 수 있습니다.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -204,6 +204,26 @@ screenshots:
     height: 2752
     locale: ko
   scenes:
+  - id: score-share-choices
+    purpose: 악보함과 뷰어가 재사용하는 공통 공유 선택을 실제 PDF에서 보여준다. 취소는 공유하지 않으며 실제 OS 공유 성공 검수 장면이 아니다.
+    route: 자가 제작 PDF → 모든 도구 → 보기 옵션 → PDF 공유
+    fixture: linked-files와 동일한 자가 제작 PDF와 소유한 연결 PDF 1개. 복수 후보가 실제 존재해야 한다.
+    must_show:
+    - 공유할 파일 선택 제목과 현재 PDF·연결 파일의 역할/파일명
+    - 취소 행동
+    exclude:
+    - 앱 sandbox 절대 경로, OS 공유/전송 성공을 증명한다는 문구, ErrorWidget
+    steps:
+    - {action: tap, by: text, value: Prelude}
+    - {action: wait, milliseconds: 5000}
+    - {action: tap, by: text, value: 모든 도구}
+    - {action: tap, by: text, value: 보기 옵션}
+    - {action: tap, by: text, value: PDF 공유}
+    assertions:
+    - {by: text, value: 공유할 파일 선택, present: true}
+    - {by: text, value: 현재 PDF, present: true}
+    - {by: text, value: 취소, present: true}
+    - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-global-viewer-defaults
     purpose: 전역 보기·입력 기본값의 읽기/공연/입력 구분과 저장·취소를 보여준다. 실제 설정 저장 성공·페달 입력·화면 유지 검수 장면이 아니다.
     route: 악보함 → 전역 보기/입력 기본값
@@ -1256,6 +1276,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-10-31 공유 파일 선택의 긴 이름·200%·가로·취소를 공통 sheet로 정리했다. library 전환/오래된 native 결과는 widget 회귀로 확인하며 OS 공유창·iPad popover·VoiceOver·focus는 pending이다.
       2026-10-30 전역 보기/입력 기본값을 공통 draft form/section/choices로 정리하고 저장 중 잠금·실패 재시도와 200%·가로 취소를 widget으로 확인한다. 실제 기기 VoiceOver·페달·화면 유지와 포커스는 pending이다.
       2026-10-30 태그·컬렉션·그룹·별점의 공통 선택과 개별 해제·취소, 긴 이름/200%·가로와 lazy 목록을 widget으로 검사한다. 실제 기기의 VoiceOver·중첩 스크롤·포커스 복귀는 pending이다.
       2026-10-30 정렬의 공통 스크롤·현재 상태·취소와 필터 유지·이전 라이브러리 선택 거부를 widget으로 검사한다. 실제 기기의 VoiceOver/포커스 복귀·터치 스크롤은 pending이다.

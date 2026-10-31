@@ -8,6 +8,8 @@
 
 ## 표시 API와 상태 소유권
 
+악보함과 뷰어 공유 선택은 앱의 `showScoreShareChoices`가 공통 Sheet/Stack/Banner/Item/Button을 합성한다. 역할과 파일명을 표시하고 절대 경로는 숨긴다. 후보 policy·파일·MIME는 기존 store 소유이며 선택만 반환한다. 악보함은 라이브러리 변화/새 요청/현재 route와 후보를 재검증하고, 이미 보낸 native 공유 취소나 OS 전송 성공까지 보장하지 않는다. [후속 검증](../../../../quality/score-common-ui-followup-20261031.md).
+
 악보함 정렬은 공통 Sheet/Stack/flat Item/Button으로 현재 정렬과 선택/취소를 표시한다. 스크롤이 하단 항목 접근을 보장하며 선택이 돌아올 때 mounted와 라이브러리 ID를 확인한다. 검색/필터·자료·정렬 저장 정책은 기존 controller가 소유한다.
 
 라이브러리 전환은 공통 Sheet/Stack/Banner의 flat Item으로 전체 이름과 현재 상태를 표시한다. 각 관리 Menu는 전환과 별개이고, 생성/취소는 Button으로 구분한다. metadata 비우기 확인은 공통 경고 Dialog를 사용하며, 저장소 전환·검색 초기화·자료 보존 정책은 기존 controller/store가 소유한다.
