@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 북마크 목록의 긴 이름과 이동·이름 변경·삭제를 정리하고, 라이브러리가 바뀐 뒤 이전 목록의 행동이 다른 악보를 바꾸지 않도록 보완했습니다.
         • 자동 스크롤 설정을 공통 화면으로 묶고 긴 큐 안내·반복 구간을 읽기 쉬운 행으로 정리했습니다. 사용자 지정 대기 시간과 쪽별 속도·반복 설정은 유지합니다.
         • 자동 스크롤 도구가 일시정지·재개·정지와 시작 대기 상태를 바로 반영합니다. 시작을 기다리는 중에도 도구에서 큐를 취소할 수 있습니다.
         • 자동 스크롤을 자동 시작할 때의 저장 실패를 안내합니다. 다른 화면으로 이동했거나 닫힌 뷰어에는 이전 요청의 늦은 안내를 표시하지 않습니다.
@@ -182,7 +183,7 @@ testflight:
     모든 도구 → 보기 옵션 → 파트/버전에서 현재 PDF와 연결 파일의 파일명·역할·상태를 확인해 주세요. 파일이 없거나 열 수 없는 형식이면 열기만 비활성이고 역할 변경·연결 제거는 가능해야 하며, 파일 전환 뒤 원본 PDF와 기존 metadata가 보존되어야 합니다.
     모든 도구 → 보기 옵션 → 악보 메모에서 공연/리허설/조율/편성 메모를 입력한 뒤 취소와 저장을 확인해 주세요. 취소 시에는 원본 metadata가 바뀌지 않고, 저장 뒤 다시 열면 내용이 남아야 합니다. 큰 글씨와 키보드에서 저장·취소까지 접근 가능한지도 확인해 주세요.
     악보 메모 저장 중에는 입력·취소·Back·바깥 탭·아래로 끌기로 닫히지 않고, 완료 후에만 저장 안내가 나와야 합니다. 저장 실패 시 입력과 선택한 악보를 유지하며 다시 시도할 수 있어야 합니다.
-    모든 도구 → 보기 옵션 → 북마크 목록에서 항목 또는 이동을 눌러 대상 쪽으로 이동하고, 더보기의 이름 변경·삭제가 각각 해당 bookmark만 바꾸는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·이동·더보기 순서도 기록해 주세요.
+    악보 도구 → 북마크 목록에서 항목 또는 이동을 눌러 대상 쪽으로 이동하고, 별도 이름 변경·삭제가 각각 해당 bookmark만 바꾸는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·각 행동·취소 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 숨김 페이지 관리에서 숨긴 쪽의 숨김 해제 후 해당 쪽으로 이동하는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll·행·숨김 해제 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 페이지 순서/복제에서 위/아래/복제/기본값 복원 뒤 원본 PDF와 기존 주석이 보존되는지 확인해 주세요. 큰 글씨와 VoiceOver에서 목록 scroll과 각 행동 순서도 기록해 주세요.
     모든 도구 → 페이지 정리 → 점프 포인트에서 현재 쪽의 추가, 대상 페이지 선택, 이동·이름 변경·삭제를 확인해 주세요. 숨긴 쪽을 포함한 항목은 이동만 막히고 수정·삭제는 가능한지, 큰 글씨와 VoiceOver에서 목록 scroll·행·더보기 순서도 기록해 주세요.
@@ -946,10 +947,10 @@ screenshots:
       present: false
   - id: score-bookmarks
     purpose: 실제 PDF의 북마크 목록에서 이동과 이름 변경·삭제 행동을 구분해 보여준다. 실제 iOS VoiceOver 또는 저장 실패 검증 장면이 아니다.
-    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 북마크 목록
+    route: 라이브러리 → 자가 제작 악보 열기 → 악보 도구 → 북마크 목록. 넓은 화면의 북마크 목록 버튼도 같은 진입
     fixture: 자가 제작 3쪽 PDF, 첫 쪽 bookmark 1개. PDF·주석·연습 상태는 변경 없음.
     must_show:
-    - 북마크 목록 제목, 대상 쪽 정보, 이동과 더보기 행동
+    - 북마크 목록 제목, 대상 쪽 정보, 별도 이동·이름 변경·삭제·취소 행동
     - 큰 글씨에서도 스크롤로 접근 가능한 sheet
     exclude:
     - 실제 iOS VoiceOver·긴 목록 scroll·이름 변경 IME 또는 저장 실패가 통과했다는 문구
@@ -961,11 +962,8 @@ screenshots:
     - action: wait
       milliseconds: 5000
     - action: tap
-      by: text
-      value: 모든 도구
-    - action: tap
-      by: text
-      value: 보기 옵션
+      by: tooltip
+      value: 악보 도구
     - action: tap
       by: text
       value: 북마크 목록
@@ -975,6 +973,15 @@ screenshots:
       present: true
     - by: text
       value: 이동
+      present: true
+    - by: widget_type
+      value: ScoreBookmarkChoices
+      present: true
+    - by: text
+      value: 이름 변경
+      present: true
+    - by: text
+      value: 삭제
       present: true
     - by: widget_type
       value: ErrorWidget
@@ -1349,6 +1356,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-11-03 bookmarks: 최신 기능 소스의 공통 Sheet/flat Item·이름 있는 이동/이름 변경/삭제/취소와 320/390/840·가로·200% light/dark를 host widget으로 검사한다. 실제 PDF에서 예전 목록/이름 입력 뒤 library 전환, 취소·현재 쪽·원본 byte 보존을 확인한다. iOS VoiceOver·IME·실제 touch·대형 목록 비용과 저장 실패 뒤 이름 draft 보존은 아직 별도 확인 대상이다.
       2026-10-31 세트리스트 추가/리허설을 공통 draft form/검색/행/곡별 펼침으로 정리했다. 큰 글자·가로·fake keyboard inset과 저장 대기/실패/retry는 widget 검사다. 실제 OS 키보드·VoiceOver/focus·장비 동작은 pending이다.
       2026-10-31 공유 파일 선택의 긴 이름·200%·가로·취소를 공통 sheet로 정리했다. library 전환/오래된 native 결과는 widget 회귀로 확인하며 OS 공유창·iPad popover·VoiceOver·focus는 pending이다.
       2026-10-30 전역 보기/입력 기본값을 공통 draft form/section/choices로 정리하고 저장 중 잠금·실패 재시도와 200%·가로 취소를 widget으로 확인한다. 실제 기기 VoiceOver·페달·화면 유지와 포커스는 pending이다.
@@ -1415,6 +1423,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-11-03 bookmarks: 최신 기능 소스의 공통 Sheet/flat Item·이름 있는 이동/이름 변경/삭제/취소와 320/390/840·가로·200% light/dark를 host widget으로 검사한다. 실제 PDF에서 예전 목록/이름 입력 뒤 library 전환, 취소·현재 쪽·원본 byte 보존을 확인한다. iOS VoiceOver·IME·실제 touch·대형 목록 비용과 저장 실패 뒤 이름 draft 보존은 아직 별도 확인 대상이다.
       2026-11-02 tuner/drone reference: 새 제품 기능이나 기기 검수 추가 없이 자동 회귀를 보강했다. 415/432/440/442/466 Hz에서 Dart tone payload→합성 root PCM→실제 input service를 독립 정답으로 검사한다. 약한 기본음·2/3배음·seeded noise·±20 cents·기준 A live 변경은 fixture 범위이며 native 합성/마이크/스피커 정확도·route·음량·실제 latency/VoiceOver는 pending이다.
       2026-10-31 최신 기능 브랜치의 관리 파일 경로 복구는 checkpoint 초안이다. text-scores·현재/과거 annotation 파일명·동시 metadata 편집을 고려하고 실제 host PDF 복구/열기를 포함한 focused 13 tests를 검사했다. 소유 경로 판정 범위·symlink/경합/쓰기 실패 및 sanitizedFromPath 보존 범위는 재검토 대상이며 iOS 실제 업데이트/복원·기기 캡처를 통과로 쓰지 않는다.
       2026-10-31 최신 기능 후보의 공통 악보 행에서 파일 아이콘/여백도 기본 열기·선택 행동을 유지하도록 보완한다. 제목/체크박스/즐겨찾기/메뉴와 중복 호출되지 않는 gesture fixture를 검사한다. 실제 손가락·펜/VoiceOver hit 검수는 pending이며 기존 이미지가 행동을 증명한다고 쓰지 않는다.
