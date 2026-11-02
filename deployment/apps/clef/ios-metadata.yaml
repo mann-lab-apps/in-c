@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 악보 메모를 공통 입력 화면으로 정리했습니다. 저장 중 중복 조작·닫기를 막고 저장 실패 시 입력을 유지해 재시도하며, 저장 성공 뒤에만 완료를 안내합니다.
         • 튜너가 지속된 옥타브 이동을 이전 음으로 계속 표시하던 문제를 보완했습니다. 순간적인 배음 오류 억제는 유지하며 실제 악기·마이크 환경은 별도로 확인합니다.
         • ChordPro 붙여넣기 대기 중 라이브러리를 전환했다가 돌아와도 이전 요청의 결과나 오류가 새 화면을 덮지 않도록 보완했습니다. 이미 저장된 자료는 보존합니다.
         • 입력 진단을 공통 화면으로 정리하고 로그 복사 대기·실패·재시도를 안내합니다. 빈 입력과 직접 설정 진입을 구분하고, 닫은 화면의 늦은 복사 안내를 표시하지 않습니다.
@@ -885,11 +886,11 @@ screenshots:
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: score-notes
     purpose: 실제 PDF에서 공통 메모 입력·취소/저장과 저장 완료를 기다리는 폼을 보여준다. 이 기본 입력 장면은 저장 성공·실패 복구나 실제 iOS 키보드 검증 증거가 아니다.
-    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 보기 옵션 → 악보 메모
+    route: 라이브러리 → 자가 제작 악보 열기 → 악보 도구 → 악보 메모. 넓은 화면의 악보 메모 버튼도 동일 진입
     fixture: 자가 제작 3쪽 PDF와 비어 있는 악보 메모. 저장 전에는 원본 metadata 변경 없음.
     must_show:
     - 악보 메모 제목, 네 메모 입력과 취소/저장 행동
-    - 입력이 큰 글씨에서도 스크롤로 접근 가능한 sheet
+    - 입력이 큰 글씨에서도 스크롤로 접근 가능한 sheet. 네 필드와 취소/저장에 접근 가능
     - PDF·주석·연습 상태를 성공으로 표시하지 않는 메모 draft
     - 저장 전 draft 입력과 취소/저장 행동. 저장 중·실패/재시도는 별도 QA로 기록
     exclude:
@@ -902,15 +903,21 @@ screenshots:
     - action: wait
       milliseconds: 5000
     - action: tap
-      by: text
-      value: 모든 도구
-    - action: tap
-      by: text
-      value: 보기 옵션
+      by: tooltip
+      value: 악보 도구
     - action: tap
       by: text
       value: 악보 메모
     assertions:
+    - by: widget_type
+      value: DdiroriInput
+      present: true
+    - by: widget_type
+      value: ScoreViewerDraftForm<bool>
+      present: true
+    - by: text
+      value: 취소
+      present: true
     - by: widget_type
       value: PopScope<bool>
       present: true
@@ -1451,6 +1458,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-11-02 notes draft: 최신 feature의 실제 PDF에서 저장 대기 중 sheet 조기 종료와 실패 후 입력/retry 누락을 재현해 수정한다. 공통 입력/행동·앱 draft adapter로 저장 완료를 기다리고 pending 중 dismiss/Back/중복 저장을 막는다. 실패·늦은 응답·대상/route 변경은 성공으로 표시하지 않고 최신 score에 notes만 병합한다. viewport/키보드 inset은 widget fixture이며 OS 한글 IME·VoiceOver/focus·기기 저장소 오류·강제 종료는 pending이다. 중앙 root와 통합/새 binary/기기 촬영은 미완료다.
       2026-11-02 tuner transition: 합성 mono PCM16 44.1kHz를 실제 input service/detector/stabilizer에 넣어 지속 옥타브·저음의 3배 주파수 전환 고정을 재현했다. 연속 후보 확인 뒤 이전 median을 비우고 새 음을 허용하며 순간 오류·무음/weak/reset은 확인 상태를 초기화한다. 자동 기준은 50ms 입력 8frame 이내 ±5cents이며 실제 마이크 latency나 악기 배음/잡음·기준음/드론 출력을 증명하지 않는다. 새 binary·기기 검수·중앙 source 통합은 미완료, source pending/reviewed false 유지.
       2026-11-02 ChordPro selection context: 명시적인 library 생성/전환 요청은 이전 paste 수명을 끝낸다. A-B-A 이후 늦은 copy/save 성공·실패와 pre-copy 오류가 현재 UI에 성공/오류를 반영하지 않는 실제 파일 fixture를 검사했다. passive load는 취소하지 않고 이미 원래 library에 저장된 파일/metadata는 삭제하지 않는다. 다른 import 경로의 수명이나 controller 전체 저장 원자성을 해결했다고 표현하지 않는다. 실제 provider/강제 종료는 pending이며 feature worktree와 중앙 root 통합·새 binary/기기 촬영은 미완료다.
       2026-11-02 input diagnostic: 최신 feature의 악보 도구 → 입력 진단에 공통 Sheet/SettingsRow/Item/Button을 연결한다. key/action capture와 복사 payload는 기존 viewer/app adapter가 소유한다. 320/390/840·가로·200%·light/dark, immutable snapshot·복사 pending/중복·실패/retry·닫기 뒤 응답, 실제 PDF의 PageDown/복사/직접 설정 취소·page/metadata/byte 보존은 자동 fixture다. 실제 HID/페달·VoiceOver/focus/OS clipboard 실패·기기 캡처는 pending이며 source pending/reviewed false를 유지한다.
