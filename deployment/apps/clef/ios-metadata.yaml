@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • PDF 파트를 전환할 때 최신 즐겨찾기와 다른 연결 정보를 유지합니다. 이미 현재인 파일이나 없는 악보는 전환 성공으로 알리지 않습니다.
         • 파트와 연결 파일을 공통 목록으로 정리했습니다. 경로 대신 파일 이름을 보여주고 열기·역할 변경·연결 제거를 구분하며, 긴 정보와 빈 목록에서도 취소할 수 있습니다.
         • 파트·연결 파일의 예전 선택이 다른 라이브러리에 적용되지 않도록 보완했습니다. 역할 변경은 최근 A–B 구간을 유지하고, 저장 실패 시 다시 시도할 수 있습니다.
         • 연결 파일 정보를 바꾸거나 연결을 제거할 때 최근 즐겨찾기와 다른 연결 파일 정보를 유지합니다. 이미 없는 대상은 저장 성공으로 알리지 않습니다.
@@ -1478,6 +1479,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-11-03 PDF switch snapshot: 전환 직전 최신 score를 조회한다. stale favorite/다른 참조·없는 score·현재 파일 중복·실패/retry와 원문 byte는 controller/store/file 자동 검사다. 화면 배치와 원본 쓰기는 바꾸지 않았다. 일반 optimistic cache·다른 쓰기와의 원자성, picker 대기와 실제 PDF 전환 widget/provider 검수는 별도 pending이다.
       2026-11-03 common parts: 최신 기능의 파트/연결 파일을 실제 공통 Sheet/flat Item·이름 있는 행동과 별도 역할 선택으로 이행한다. 모델·파일·요청 수명·저장/retry는 앱 adapter/controller에 유지한다. 320/390/840·가로·200% light/dark, 파일 없음/미지원·역할/제거 분리·빈 목록·취소·sandbox 경로 비노출은 host fixture 범위다. 실제 파일/codec/provider 열기, VoiceOver·IME·기기 성능·후보/스토어 캡처는 pending이다.
       2026-11-03 parts request: 최신 기능 후보에서 파트 선택의 controller/문서/library·요청 세대와 route, 최신 linkedFile metadata를 확인한다. 실제 PDF·소유한 WAV/store로 역할 변경 중 새 A-B·실패/retry·폐기/새 picker의 늦은 결과를 자동 검사했다. 이번은 표시 공통화가 아니며 과거 root 캡처를 현재 feature 화면 검수로 재사용하지 않는다. raw 표시/절대 경로·PDF 교체 전체·실제 provider/codec/오디오 출력/VoiceOver는 pending이다.
       2026-11-03 linked snapshot: controller의 연결 파일 update/remove를 최신 score 기준으로 수행한다. stale snapshot·다른 reference/favorite·없는 대상·실패/retry와 소유한 실제 파일 byte 보존을 자동 검사한다. UI 화면 변경은 없으며 picker의 library 수명·이미 보낸 동시 저장/강제 종료·실제 provider 검수는 별도 pending이다.
