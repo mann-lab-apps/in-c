@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 입력 진단을 공통 화면으로 정리하고 로그 복사 대기·실패·재시도를 안내합니다. 빈 입력과 직접 설정 진입을 구분하고, 닫은 화면의 늦은 복사 안내를 표시하지 않습니다.
         • ChordPro 붙여넣기 저장 실패나 라이브러리 전환으로 남은 미저장 사본을 정리합니다. 기존 원본과 다른 라이브러리가 참조하는 자료는 보존합니다.
         • 공유할 파일의 역할·파일명을 공통 선택 화면으로 정리하고 링크 제거 사본을 명시했습니다. 취소·라이브러리 전환·오래된 응답을 구분하고 파일 누락과 공유 실패 후 재시도를 보완했습니다.
         • 가져오기 저장에 실패하고 목록을 다시 읽을 수 없어도, 같은 요청이 소유한 목록은 직전 상태로 복구해 미저장 악보 카드가 남지 않도록 보완했습니다.
@@ -1097,11 +1098,11 @@ screenshots:
       present: false
   - id: score-input-diagnostic
     purpose: 실제 PDF에서 입력 진단의 빈 상태, viewer 요약과 로그 복사 행동을 보여준다. 실제 HID/Bluetooth 장비 또는 VoiceOver 검증 장면이 아니다.
-    route: 라이브러리 → 자가 제작 악보 열기 → 모든 도구 → 페이지 정리 → 입력 진단
+    route: 라이브러리 → 자가 제작 악보 열기 → 악보 도구 → 입력 진단
     fixture: 자가 제작 3쪽 PDF, 진단 입력 없음. PDF·주석·연습 상태는 변경 없음.
     must_show:
     - 입력 진단 제목, 최근 입력 수와 viewer 요약
-    - 빈 입력 안내와 진단 로그 복사 행동
+    - 빈 입력 안내와 진단 로그 복사·닫기 행동; 실제 입력이 있으면 직접 설정에 사용 행동
     exclude:
     - 실제 Bluetooth/USB 페달·키보드 해석, VoiceOver 또는 재시작 뒤 입력 설정이 통과했다는 문구
     - 개인정보·실제 공연 계획, 시스템 디자인 예제, ErrorWidget
@@ -1112,11 +1113,8 @@ screenshots:
     - action: wait
       milliseconds: 5000
     - action: tap
-      by: text
-      value: 모든 도구
-    - action: tap
       by: tooltip
-      value: 페이지 정리
+      value: 악보 도구
     - action: tap
       by: text
       value: 입력 진단
@@ -1126,6 +1124,9 @@ screenshots:
       present: true
     - by: text
       value: 진단 로그 복사
+      present: true
+    - by: text
+      value: 닫기
       present: true
     - by: widget_type
       value: ErrorWidget
@@ -1448,6 +1449,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-11-02 input diagnostic: 최신 feature의 악보 도구 → 입력 진단에 공통 Sheet/SettingsRow/Item/Button을 연결한다. key/action capture와 복사 payload는 기존 viewer/app adapter가 소유한다. 320/390/840·가로·200%·light/dark, immutable snapshot·복사 pending/중복·실패/retry·닫기 뒤 응답, 실제 PDF의 PageDown/복사/직접 설정 취소·page/metadata/byte 보존은 자동 fixture다. 실제 HID/페달·VoiceOver/focus/OS clipboard 실패·기기 캡처는 pending이며 source pending/reviewed false를 유지한다.
       2026-11-02 ChordPro paste: 실제 임시 파일과 기존 store의 미참조 정리 경로로 metadata 실패/recovery read 실패·지연 copy/save·library 전환·다른 library/후속 편집 참조 보존을 검사한다. 원문·조성/박자/capo·표시 이조 저장값과 viewer routing 회귀를 함께 확인한다. 저장 전에 반환되지 않은 내부 사본 정리이며 OS 강제 종료나 Files provider의 실제 오류 원자성을 보장하지 않는다. feature worktree와 중앙 source pending 통합 중이며 새 binary/촬영·실기기 검수는 없다.
       2026-10-31 사용자 일단락: 최신 제품 checkpoint 4ad7ad5d(feature/score-reference-gap-20261031, /private/tmp/score-mobilesheets-20261031)는 format/analyze·전체 1,971 tests·RC exit 0, 공유 흐름 20 tests와 실제 widget/PDF 캡처 검사를 통과했다. 버전 1.0.2+29, 새 binary·push/merge·물리기기 검수는 없다. 중앙 root의 기존 디자인·배포 YAML·브랜드 변경과의 전체 통합 완료나 출시 승인은 아니다. source pending/reviewed false 유지.
       2026-10-31 최신 기능 후보 공유 UI: 악보함 더보기 → PDF 공유/인쇄, 실제 PDF 악보 도구 → PDF 공유/인쇄에서 공통 Sheet로 역할·파일명·취소를 표시한다. 이전 root의 모든 도구/보기 옵션 경로와 혼합하지 않는다. source pending인 별도 feature worktree 통합 중이며 중앙 root 바이너리 촬영 완료가 아니다. 자동 widget에서 320/390/840·가로·200%·light/dark, stale 선택/응답·실패/retry와 실제 PDF page/byte 보존을 검사한다. 실제 iOS OS 공유창/iPad popover·VoiceOver/focus·기기 캡처는 pending이다.
