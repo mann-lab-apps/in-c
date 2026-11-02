@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 연결 파일 정보를 바꾸거나 연결을 제거할 때 최근 즐겨찾기와 다른 연결 파일 정보를 유지합니다. 이미 없는 대상은 저장 성공으로 알리지 않습니다.
         • 북마크와 PDF 목차의 큰 목록은 화면 근처의 항목부터 표시합니다. 제목과 취소는 유지하며 목록을 스크롤하고, 다른 악보로 바뀐 뒤 예전 목차가 페이지를 이동하지 않도록 보완했습니다.
         • 북마크 목록의 긴 이름과 이동·이름 변경·삭제를 정리하고, 라이브러리가 바뀐 뒤 이전 목록의 행동이 다른 악보를 바꾸지 않도록 보완했습니다. 이름 저장은 완료를 기다리며, 실패하면 입력을 유지해 다시 시도할 수 있습니다.
         • 자동 스크롤 설정을 공통 화면으로 묶고 긴 큐 안내·반복 구간을 읽기 쉬운 행으로 정리했습니다. 사용자 지정 대기 시간과 쪽별 속도·반복 설정은 유지합니다.
@@ -1450,6 +1451,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-11-03 linked snapshot: controller의 연결 파일 update/remove를 최신 score 기준으로 수행한다. stale snapshot·다른 reference/favorite·없는 대상·실패/retry와 소유한 실제 파일 byte 보존을 자동 검사한다. UI 화면 변경은 없으며 picker의 library 수명·이미 보낸 동시 저장/강제 종료·실제 provider 검수는 별도 pending이다.
       2026-11-03 lazy sheets: 공통 Sheet의 scrollBody=false를 북마크와 PDF 목차 두 소비처에 적용한다. 기존 폼의 기본값은 유지하며 앱이 목록·모델·navigation을 소유한다. 북마크 1000개 처음/끝의 생성 행 수와 공통 1000항목 viewport/keyboard inset을 자동 검사했다. 실제 PDF 목차 parse·취소·이동·library 변경은 host fixture 범위다. root 공통 패키지의 기존 사용자 수정은 보존했고 최신 기능 후보와의 통합·기기 성능·VoiceOver·실제 keyboard/OS 촬영은 pending이다.
       2026-11-03 bookmark name: 기존 Score draft form으로 이름 입력·실제 저장 대기·Back/중복 제출 차단·실패 시 입력 유지와 재시도를 검사한다. 저장 중 폐기/다른 route로 덮임과 library 변경의 결과 소유권도 검사한다. 실제 기기의 IME·키보드 inset·VoiceOver·디스크/복구 실패·강제 종료와 저장 원자성은 pending이다.
       2026-11-03 bookmarks: 최신 기능 소스의 공통 Sheet/flat Item·이름 있는 이동/이름 변경/삭제/취소와 320/390/840·가로·200% light/dark를 host widget으로 검사한다. 실제 PDF에서 예전 목록/이름 입력 뒤 library 전환, 취소·현재 쪽·원본 byte 보존을 확인한다. iOS VoiceOver·IME·실제 touch·대형 목록 비용과 저장 실패 뒤 이름 draft 보존은 아직 별도 확인 대상이다.
