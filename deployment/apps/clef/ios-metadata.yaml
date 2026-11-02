@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 자동 스크롤의 중복 시작과 도구·악보를 닫은 뒤 늦게 시작되는 경로를 보완했습니다. PDF 보기 전환 후 지면 준비를 기다리고 실패 시 재시도하며, 큰 글자의 보조 행동·쪽 표시·최근 악보 표시를 조정했습니다.
         • 악보 메모를 공통 입력 화면으로 정리했습니다. 저장 중 중복 조작·닫기를 막고 저장 실패 시 입력을 유지해 재시도하며, 저장 성공 뒤에만 완료를 안내합니다.
         • 튜너가 지속된 옥타브 이동을 이전 음으로 계속 표시하던 문제를 보완했습니다. 순간적인 배음 오류 억제는 유지하며 실제 악기·마이크 환경은 별도로 확인합니다.
         • ChordPro 붙여넣기 대기 중 라이브러리를 전환했다가 돌아와도 이전 요청의 결과나 오류가 새 화면을 덮지 않도록 보완했습니다. 이미 저장된 자료는 보존합니다.
@@ -590,12 +591,12 @@ screenshots:
       value: ErrorWidget
       present: false
   - id: auto-scroll
-    purpose: 실제 PDF 위에서 자동 스크롤의 공통 sheet·section·시작 행동과 시간·속도·페이지 범위·cue 설정을 보여준다. 실행 시 실제 pause/resume/stop·큐 상태와 저장 오류를 표시하지만 이 기본 진입 장면은 실행·저장 실패·연주 품질의 증명이 아니다.
-    route: 라이브러리 → 자가 제작 악보 열기 → 연습 → 자동 스크롤
+    purpose: 최신 기능 후보의 실제 PDF 위에서 공통 제목·시작/실패 행동과 적응형 marker 행을 보여준다. 기존 시간·페이지·cue·반복 설정은 유지하며 전체 도구가 공통 컴포넌트로 이행됐다고 표현하지 않는다. 기본 장면은 실제 스크롤·저장 실패·연주 품질의 증명이 아니다.
+    route: 라이브러리 → 자가 제작 악보 열기 → 악보 도구 → 자동 스크롤. 넓은 화면의 자동 스크롤 버튼도 동일 진입
     fixture: 자가 제작 3쪽 PDF, 기본 자동 스크롤 설정. 자동 스크롤 실행 중이 아님.
     must_show:
     - 자동 스크롤 제목, 시작 버튼, 연주 시간과 시작 페이지 표시
-    - 공통 sheet의 단일 스크롤 안에서 시간·쪽별 속도·시작 큐·페이지 범위를 구분한 section
+    - 앱 도구의 스크롤 안에서 기존 시간·쪽별 속도·시작 큐·페이지 범위와 공통 제목/행동을 구분
     - pause marker·반복 구간·cue point 설정과 긴 동작이 작은 폭에서 넘치지 않는 배치
     - PDF와 앱의 다른 기능을 성공으로 표시하지 않는 연습 도구 sheet
     - 기본 진입의 시작 버튼. 실행·큐·오류 상태를 가짜로 채우지 않음
@@ -611,8 +612,8 @@ screenshots:
     - action: wait
       milliseconds: 5000
     - action: tap
-      by: text
-      value: 연습
+      by: tooltip
+      value: 악보 도구
     - action: tap
       by: text
       value: 자동 스크롤
@@ -624,13 +625,13 @@ screenshots:
       value: 시작
       present: true
     - by: text
-      value: 연주 시간
+      value: 연주 시간 4분
       present: true
     - by: text
       value: 시작 1쪽
       present: true
     - by: widget_type
-      value: DdiroriSection
+      value: DdiroriPageHeader
       present: true
     - by: widget_type
       value: ErrorWidget
@@ -1458,6 +1459,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-11-02 auto-scroll start: 최신 기능 후보의 도구/뷰어 종료 뒤 늦은 save 성공·실패와 시작 연타를 실제 PDF에서 재현해 보호한다. PDF controller isReady는 pages만 뜻하므로 보기 key의 onViewerReady를 기다린 뒤 페이지 위치를 사용하며 15초 대기 후에는 실패/retry로 돌아간다. 320/390/840·가로·200%의 marker 행동·최근 악보 rail·loading 배치와 하단 쪽 표시의 가변 폭을 점검한다. 전체 raw 설정 도구 공통화나 설정 저장 queue는 이번 완료 범위가 아니다. 실제 속도/연주 cue·페달/펜/VoiceOver·OS 저장소·기기 촬영은 pending이며 source pending/reviewed false를 유지한다.
       2026-11-02 notes draft: 최신 feature의 실제 PDF에서 저장 대기 중 sheet 조기 종료와 실패 후 입력/retry 누락을 재현해 수정한다. 공통 입력/행동·앱 draft adapter로 저장 완료를 기다리고 pending 중 dismiss/Back/중복 저장을 막는다. 실패·늦은 응답·대상/route 변경은 성공으로 표시하지 않고 최신 score에 notes만 병합한다. viewport/키보드 inset은 widget fixture이며 OS 한글 IME·VoiceOver/focus·기기 저장소 오류·강제 종료는 pending이다. 중앙 root와 통합/새 binary/기기 촬영은 미완료다.
       2026-11-02 tuner transition: 합성 mono PCM16 44.1kHz를 실제 input service/detector/stabilizer에 넣어 지속 옥타브·저음의 3배 주파수 전환 고정을 재현했다. 연속 후보 확인 뒤 이전 median을 비우고 새 음을 허용하며 순간 오류·무음/weak/reset은 확인 상태를 초기화한다. 자동 기준은 50ms 입력 8frame 이내 ±5cents이며 실제 마이크 latency나 악기 배음/잡음·기준음/드론 출력을 증명하지 않는다. 새 binary·기기 검수·중앙 source 통합은 미완료, source pending/reviewed false 유지.
       2026-11-02 ChordPro selection context: 명시적인 library 생성/전환 요청은 이전 paste 수명을 끝낸다. A-B-A 이후 늦은 copy/save 성공·실패와 pre-copy 오류가 현재 UI에 성공/오류를 반영하지 않는 실제 파일 fixture를 검사했다. passive load는 취소하지 않고 이미 원래 library에 저장된 파일/metadata는 삭제하지 않는다. 다른 import 경로의 수명이나 controller 전체 저장 원자성을 해결했다고 표현하지 않는다. 실제 provider/강제 종료는 pending이며 feature worktree와 중앙 root 통합·새 binary/기기 촬영은 미완료다.
