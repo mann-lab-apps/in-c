@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        • 튜너가 지속된 옥타브 이동을 이전 음으로 계속 표시하던 문제를 보완했습니다. 순간적인 배음 오류 억제는 유지하며 실제 악기·마이크 환경은 별도로 확인합니다.
         • ChordPro 붙여넣기 대기 중 라이브러리를 전환했다가 돌아와도 이전 요청의 결과나 오류가 새 화면을 덮지 않도록 보완했습니다. 이미 저장된 자료는 보존합니다.
         • 입력 진단을 공통 화면으로 정리하고 로그 복사 대기·실패·재시도를 안내합니다. 빈 입력과 직접 설정 진입을 구분하고, 닫은 화면의 늦은 복사 안내를 표시하지 않습니다.
         • ChordPro 붙여넣기 저장 실패나 라이브러리 전환으로 남은 미저장 사본을 정리합니다. 기존 원본과 다른 라이브러리가 참조하는 자료는 보존합니다.
@@ -1450,6 +1451,7 @@ manual:
   build_selection:
     status: pending
     evidence: >-
+      2026-11-02 tuner transition: 합성 mono PCM16 44.1kHz를 실제 input service/detector/stabilizer에 넣어 지속 옥타브·저음의 3배 주파수 전환 고정을 재현했다. 연속 후보 확인 뒤 이전 median을 비우고 새 음을 허용하며 순간 오류·무음/weak/reset은 확인 상태를 초기화한다. 자동 기준은 50ms 입력 8frame 이내 ±5cents이며 실제 마이크 latency나 악기 배음/잡음·기준음/드론 출력을 증명하지 않는다. 새 binary·기기 검수·중앙 source 통합은 미완료, source pending/reviewed false 유지.
       2026-11-02 ChordPro selection context: 명시적인 library 생성/전환 요청은 이전 paste 수명을 끝낸다. A-B-A 이후 늦은 copy/save 성공·실패와 pre-copy 오류가 현재 UI에 성공/오류를 반영하지 않는 실제 파일 fixture를 검사했다. passive load는 취소하지 않고 이미 원래 library에 저장된 파일/metadata는 삭제하지 않는다. 다른 import 경로의 수명이나 controller 전체 저장 원자성을 해결했다고 표현하지 않는다. 실제 provider/강제 종료는 pending이며 feature worktree와 중앙 root 통합·새 binary/기기 촬영은 미완료다.
       2026-11-02 input diagnostic: 최신 feature의 악보 도구 → 입력 진단에 공통 Sheet/SettingsRow/Item/Button을 연결한다. key/action capture와 복사 payload는 기존 viewer/app adapter가 소유한다. 320/390/840·가로·200%·light/dark, immutable snapshot·복사 pending/중복·실패/retry·닫기 뒤 응답, 실제 PDF의 PageDown/복사/직접 설정 취소·page/metadata/byte 보존은 자동 fixture다. 실제 HID/페달·VoiceOver/focus/OS clipboard 실패·기기 캡처는 pending이며 source pending/reviewed false를 유지한다.
       2026-11-02 ChordPro paste: 실제 임시 파일과 기존 store의 미참조 정리 경로로 metadata 실패/recovery read 실패·지연 copy/save·library 전환·다른 library/후속 편집 참조 보존을 검사한다. 원문·조성/박자/capo·표시 이조 저장값과 viewer routing 회귀를 함께 확인한다. 저장 전에 반환되지 않은 내부 사본 정리이며 OS 강제 종료나 Files provider의 실제 오류 원자성을 보장하지 않는다. feature worktree와 중앙 source pending 통합 중이며 새 binary/촬영·실기기 검수는 없다.
