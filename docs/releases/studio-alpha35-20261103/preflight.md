@@ -15,3 +15,11 @@ macOS의 Developer ID/공증 설정은 공개 alpha.34의 workflow를 기준으�
 로컬 packaged 검사는 임시 userData, 별도 앱 복제본과 음소거를 사용한다. 피아노 검사는 12초 오프라인 자산/오디오 그래프 검사이며 실제 청음이나 605초 내구 검사를 대신하지 않는다. 설치 파일의 최종 universal 서명/공증은 원격 workflow에서 확인한다.
 
 staged 신규 파일까지 검사한 결과 제품/fixture 다섯 파일의 EOF 빈 줄만 정리했다. pinned 원본 MusicXML XSD의 CRLF 및 upstream whitespace는 해시 검증 계약 때문에 바꾸지 않았다. scoped whitespace gate는 이 vendor schema 디렉터리만 제외한다. 원본 Studio 소스와의 차이는 보안 의존성, smoke adapter, EOF 정리와 배포 설정이며, 후보의 전체 검사를 별도로 수행한다.
+
+## alpha.35 최종 로컬 결과
+
+태그 소스는 `20db5a6c1063ca490ccad081e4cdb97be2bdb2b0`다. 최종 fresh npm ci 이후 `npm run test:all`은 exit 0, Vitest 352파일/3767검사 PASS 및 외부 opt-in 1파일/1검사 skip, Node-native 5검사 PASS다. Vitest 실행은 527.70초였으며 타입 검사/production build, Studio R3 profile, fixed-canvas가 통과했다. 기준 이미지는 변경하지 않았다.
+
+Electron 42.11.18을 포함한 alpha.35 arm64 패키지로 native lifecycle/backup/part/PDF/MIDI/autosave smoke와 12초 오프라인 피아노를 다시 통과했다. 임시 userData와 음소거를 사용했으며 실제 청음·물리 장치 승인으로 해석하지 않는다. 패키지 Info.plist의 버전은 0.1.0-alpha.35다. 파일별 실행 로그 해시는 `local-validation.json`에 있다.
+
+태그는 푸시됐으며 원격 Release run은 https://github.com/mann-lab-apps/in-c/actions/runs/41572769737 이다. 이 기록 시점에는 세 플랫폼 모두 전체 테스트 단계였다. Linux 부분 로그에서 App.test.tsx 170개 등 파일 통과와 대량의 빈 Canvas 계측 진단을 확인했으나 최종 완료로 계산하지 않았다. 같은 첫 사례는 로컬 CI=true 조건에서 1.76초에 통과했다. 진단을 위해 받은 중복 로그 요청만 종료했으며 원격 job을 중단하거나 assertion/timeout을 변경하지 않았다. 게시·다운로드·서명/공증의 실제 최종 결과는 후속 publication 기록에서 구분한다.

@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-11-03T03:32:24.721015+00:00",
+  "sourceCommit": "20db5a6c1063ca490ccad081e4cdb97be2bdb2b0",
+  "branch": "release/studio-alpha35-20261103",
+  "version": "0.1.0-alpha.35",
+  "worktreeCleanAfterChecks": true,
+  "testAll": {
+    "exitCode": 0,
+    "vitestFilesPassed": 352,
+    "vitestTestsPassed": 3767,
+    "externalOptInFilesSkipped": 1,
+    "externalOptInTestsSkipped": 1,
+    "nodeNativePassed": 5,
+    "durationSeconds": 527.7
+  },
+  "electron": "42.11.18",
+  "zod": "4.6.7",
+  "typecheckBuild": "passed",
+  "studioProfile": "passed; baseline unchanged",
+  "fixedCanvas": "passed; baseline unchanged",
+  "localPackaging": {
+    "platform": "macOS arm64",
+    "signed": false,
+    "notarized": false,
+    "packagedSmoke": "passed; all native bridge/backup/part/PDF/MIDI/autosave assertions retained",
+    "piano": "passed; 12 seconds offline, muted, isolated userData; not listening/endurance approval"
+  },
+  "originalWorktree": "preserved; original uncommitted changes not staged or committed here",
+  "releaseWorkflow": "tag pushed; remote packaging/signing/publication pending at report creation",
+  "logs": [
+    {
+      "path": "out/release-qa/npm-ci-final.log",
+      "bytes": 1083,
+      "sha256": "51a1a162156fd98040b1b0a0bfc81a930acd7e833d8142ed9794122fc4d1e40c"
+    },
+    {
+      "path": "out/release-qa/test-all-final.log",
+      "bytes": 1537905,
+      "sha256": "e6c82ae5c6a0988b27492150359b76ac76c816d5b8323c3179fb315959371645"
+    },
+    {
+      "path": "out/release-qa/build-alpha35-final.log",
+      "bytes": 2034,
+      "sha256": "b5accd557ad555dc49314e523f6c67ad7dd1fdff71e2891228ccbfccf780167f"
+    },
+    {
+      "path": "out/release-qa/profile-alpha35-final.log",
+      "bytes": 108,
+      "sha256": "0ae22a673a637028dbd10a3df2f0398cd2299861981148f368e60ccadde17e37"
+    },
+    {
+      "path": "out/release-qa/fixed-alpha35-final.log",
+      "bytes": 204,
+      "sha256": "93e827d4e025c0d7a818b1ef88983015ec127f2f5575b30f08e9b1ff1d86830f"
+    },
+    {
+      "path": "out/release-qa/package-alpha35-final.log",
+      "bytes": 2138,
+      "sha256": "760542cf94d3a8a55c86fe8eabe94c200a764a384ddc4b3337f4bb578c92fa96"
+    },
+    {
+      "path": "out/release-qa/packaged-smoke-alpha35-final.log",
+      "bytes": 1794,
+      "sha256": "9b9ea2cb479997b27d6f74e3a98971bc84f294ae4321df769a7f2eda5457bbf7"
+    },
+    {
+      "path": "out/release-qa/piano-alpha35-final.log",
+      "bytes": 659,
+      "sha256": "4c75ba8b2a674f22f2199aed737d95b580959b7d5c81997b854f19d34c02f263"
+    }
+  ]
+}
