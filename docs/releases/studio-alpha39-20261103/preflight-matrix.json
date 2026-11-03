@@ -1,0 +1,167 @@
+{
+  "runId": 41654893255,
+  "url": "https://github.com/mann-lab-apps/in-c/actions/runs/41654893255",
+  "source": "d9990fd16b5ced39c28f67f35c681f55b9daba65",
+  "result": "success",
+  "scope": "Linux/Windows package:dir and native packaged smoke; no publication; not a full release suite",
+  "jobs": [
+    {
+      "id": 125982473244,
+      "name": "Packaged Windows preflight (no publication)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41654893255,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-node@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Run npm run piano:verify",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Run npm run package:dir",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Run npm run verify:package",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Post Run actions/setup-node@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15
+        }
+      ]
+    },
+    {
+      "id": 125982473636,
+      "name": "Packaged Linux preflight (no publication)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41654893255,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-node@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Run npm run piano:verify",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Run npm run package:dir",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Run xvfb-run --auto-servernum npm run verify:package",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Post Run actions/setup-node@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15
+        }
+      ]
+    },
+    {
+      "id": 125982475508,
+      "name": "Package ${{ matrix.platform }}",
+      "status": "completed",
+      "conclusion": "skipped",
+      "run_id": 41654893255,
+      "logs_url": null,
+      "steps": null
+    },
+    {
+      "id": 125982476596,
+      "name": "Publish GitHub prerelease",
+      "status": "completed",
+      "conclusion": "skipped",
+      "run_id": 41654893255,
+      "logs_url": null,
+      "steps": null
+    }
+  ]
+}
