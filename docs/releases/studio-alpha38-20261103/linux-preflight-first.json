@@ -1,0 +1,25 @@
+{
+  "run": 41580714825,
+  "job": 125734645028,
+  "conclusion": "success",
+  "sourceCommit": "839c42c0dfb2e65a53b9b296ec0959360469b78a",
+  "scope": "Linux package/native smoke only; full release gate and publication skipped",
+  "deadlineSeconds": 20,
+  "rawLog": "out/release-qa/alpha38-linux-preflight.log",
+  "sha256": "37f6ecb82054e1c9cc9820f056049988069d08ec39d1bc54b2c51dd5d62ce06f",
+  "stages": [
+    "2026-11-03T04:54:25.2105783Z PACKAGED_APP_SMOKE_STAGE renderer-loaded",
+    "2026-11-03T04:54:25.2621273Z PACKAGED_APP_SMOKE_STAGE renderer-ready/visible 284",
+    "2026-11-03T04:54:25.4134230Z PACKAGED_APP_SMOKE_STAGE wizard 435",
+    "2026-11-03T04:54:26.3622342Z PACKAGED_APP_SMOKE_STAGE score-created 1384",
+    "2026-11-03T04:54:26.3860496Z PACKAGED_APP_SMOKE_STAGE format-roundtrip 1408",
+    "2026-11-03T04:54:26.9442062Z PACKAGED_APP_SMOKE_STAGE part-pdf 1966",
+    "2026-11-03T04:54:27.0064626Z PACKAGED_APP_SMOKE_STAGE native-project 2028",
+    "2026-11-03T04:54:28.7611669Z PACKAGED_APP_SMOKE_STAGE native-pdf 3782",
+    "2026-11-03T04:54:29.1507478Z PACKAGED_APP_SMOKE_STAGE renderer-complete 4172",
+    "2026-11-03T04:54:29.1530349Z PACKAGED_APP_SMOKE_STAGE file-validation",
+    "2026-11-03T04:54:29.1546703Z PACKAGED_APP_SMOKE_STAGE backup-viewports",
+    "2026-11-03T04:54:30.0348401Z PACKAGED_APP_SMOKE_OK {\"appName\":\"in-C\",\"hasMusicXmlBridge\":true,\"hasPdfBridge\":true,\"hasMidiBridge\":true,\"hasAutosaveBridge\":true,\"hasRecentBridge\":true,\"hasPromotionsBridge\":true,\"hasStartScreen\":true,\"hasStartActions\":true,\"partViewPdfTarget\":{\"labels\":[],\"pagePartId\":\"cello\",\"pageViewMode\":\"part\",\"pdfPageMarginMm\":\"6\",\"pdfPageOrientation\":\"portrait\",\"pdfPageSize\":\"a4\",\"pdfStaffSizePercent\":\"90\",\"pdfSystemSpacingPercent\":\"90\",\"partTitle\":\"Cello\",\"partTitlePartId\":\"cello\",\"status\":true,\"visiblePartIds\":[\"cello\"]},\"hasScoreWorkspace\":true,\"hasScoreTitle\":true,\"hasNotationSvg\":true,\"hasMusicXmlFileWrite\":true,\"hasRecentOpenRoundTrip\":true,\"hasMxlRoundTrip\":true,\"hasExportCopyRoundTrip\":true,\"hasNativeProjectRoundTrip\":true,\"hasNativeRecoveryRoundTrip\":true,\"hasNativeBackupUiRecovery\":true,\"hasNativePartLayout\":true,\"hasNativePartTitleEdit\":true,\"hasPartXmlLayout\":true,\"hasScoreWideMeasureEdit\":true,\"hasPdfFileWrite\":true,\"hasPartViewPdfTarget\":true,\"hasPartViewPdfFileWrite\":true,\"hasMidiFileWrite\":true,\"hasAutosaveRoundTrip\":true}",
+    "2026-11-03T04:54:30.1270593Z Packaged app smoke test passed: /home/runner/work/in-c/in-c/release/linux-unpacked/in-c"
+  ]
+}

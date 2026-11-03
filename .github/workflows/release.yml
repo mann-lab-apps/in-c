@@ -32,9 +32,19 @@ concurrency:
 
 jobs:
   preflight:
-    name: Packaged Linux preflight (no publication)
+    name: Packaged ${{ matrix.platform }} preflight (no publication)
     if: github.event_name == 'workflow_dispatch' && inputs.tag == 'preflight'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            os: ubuntu-latest
+            smoke: xvfb-run --auto-servernum npm run verify:package
+          - platform: Windows
+            os: windows-latest
+            smoke: npm run verify:package
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,7 +56,7 @@ jobs:
       - run: npm ci
       - run: npm run piano:verify
       - run: npm run package:dir
-      - run: xvfb-run --auto-servernum npm run verify:package
+      - run: ${{ matrix.smoke }}
 
   package:
     name: Package ${{ matrix.platform }}
