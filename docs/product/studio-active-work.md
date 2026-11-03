@@ -1,5 +1,7 @@
 # Studio 현재 작업
 
+2026-11-03 릴리즈 체크포인트: 사용자 승인으로 별도 `release/studio-alpha38-final-20261103` 브랜치의 소스 `7732441ca6586672f3f1ad12794d6b3f6d6c5ce1`을 `v0.1.0-alpha.38` prerelease로 게시했다. 현재 태그의 세 OS 전체 CI·패키지·native smoke와 게시 파일 전체 체크섬, 다운로드한 macOS 앱의 서명·공증·Gatekeeper·격리 실행을 확인했다. 사이트 변경은 draft PR #790이며 별도 머지 전에는 배포하지 않는다. 원본 worktree의 미커밋 변경은 보존했고 아래 기존 작업/목표 상태는 당시 기록이다. 상세 결과와 잔여 제한은 `docs/releases/studio-alpha38-20261103/handoff.md` 참조. 이번 게시가 전체 Studio/Commercial V1/RC 완료를 의미하지 않는다.
+
 2026-11-03 사용자 재개 요청에 따라 현재 턴의 구현을 이어간다. 목표 도구는 paused이며 재개 API는 없다. 이를 active라고 보고하지 않는다. 이전 재확인 HEAD는 `b5e0e9ce6d3d4b233d97c22d7206638e6d2a9aa6`(이전 792 검증 기준은 `3e4bd8d3bef89d6f92b317ebac60182b48b5580b`; 사이의 별도 Score 문서 커밋은 이번 성과가 아님), 브랜치는 `feature/chromatics-expanded-v1-checkpoint-20260913`, 버전은 `0.1.0-alpha.14`다. 이번 변경은 미커밋이며 커밋·푸시·머지·릴리즈·버전·사이트 갱신 승인은 없다. 다른 작업과 worktree, 브랜드·모바일 변경, 원래 Electron PID 88653을 보존한다. env/secret 및 iOS metadata는 작업 대상이 아니다.
 
 반환 경로는 `docs/brand/ddirori-design-system/returns/studio-continuous-2026-10-28/`다. 실제 앱 검증은 해시를 고정한 `.codex/recovery/studio-validation-20261101-<id>` 복제본과 자체 IPC·임시 파일을 사용한다. 물리 OS 파일 대화상자·IME·스크린리더 검사와 구분한다.

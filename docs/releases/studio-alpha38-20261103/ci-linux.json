@@ -1,0 +1,14 @@
+{
+  "run": 41581664095,
+  "job": 125737677740,
+  "platform": "Linux",
+  "conclusion": "success",
+  "summary": [
+    "2026-11-03T05:24:18.0066395Z  Test Files  352 passed | 1 skipped (353)",
+    "2026-11-03T05:24:18.0086042Z       Tests  3745 passed | 23 skipped (3768)",
+    "2026-11-03T05:24:18.3019293Z # pass 5"
+  ],
+  "packagedSmoke": "passed",
+  "rawLog": "out/release-qa/ci-linux.log",
+  "sha256": "93ae3de36a2bc9aefe323a83146eeb21441dddcb3f36221aa4397f6f90502d71"
+}

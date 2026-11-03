@@ -1,0 +1,50 @@
+{
+  "version": "0.1.0-alpha.38",
+  "artifact": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-final-20261103/out/release-qa/published-alpha38/in-C-0.1.0-alpha.38-mac-universal.dmg",
+  "checks": [
+    {
+      "name": "attach",
+      "exitCode": 0,
+      "seconds": 3.429
+    },
+    {
+      "name": "architectures",
+      "exitCode": 0,
+      "seconds": 0.017
+    },
+    {
+      "name": "codesign",
+      "exitCode": 0,
+      "seconds": 2.312
+    },
+    {
+      "name": "stapler",
+      "exitCode": 0,
+      "seconds": 1.729
+    },
+    {
+      "name": "gatekeeper",
+      "exitCode": 0,
+      "seconds": 3.446
+    },
+    {
+      "name": "smoke",
+      "exitCode": 0,
+      "seconds": 10.42
+    },
+    {
+      "name": "piano",
+      "exitCode": 0,
+      "seconds": 13.988
+    }
+  ],
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "bundleIdentifier": "com.mannlab.inc",
+  "automatedNativeSmoke": "passed; generated fixtures and isolated userData",
+  "piano": "passed; muted 12-second offline graph/sample QA; not listening/endurance approval",
+  "interactiveInstallationOrOsDialogs": "not performed",
+  "detached": true
+}

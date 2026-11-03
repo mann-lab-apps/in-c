@@ -1,0 +1,71 @@
+{
+  "artifacts": [
+    {
+      "path": "out/release-qa/published-mac/architectures.log",
+      "bytes": 13,
+      "sha256": "9cb483fd3739db2602d4c5bf672f4af954dc6dad82b36e8642b034af58f11c11"
+    },
+    {
+      "path": "out/release-qa/published-mac/attach.log",
+      "bytes": 1187,
+      "sha256": "2e6a9951ae1eaaf7dc3e92c221e9d2231f02fd7ff02fbfb1ae43609fad703164"
+    },
+    {
+      "path": "out/release-qa/published-mac/codesign.log",
+      "bytes": 3268,
+      "sha256": "2f6e1d889ccdc0b9884b0eac4f28201b547b4485b01e5159731401bb6a8a1736"
+    },
+    {
+      "path": "out/release-qa/published-mac/gatekeeper.log",
+      "bytes": 132,
+      "sha256": "218da9f6b5b6ca2f3990c79d1f78352352be40947507bf9eb47b237ded354dd3"
+    },
+    {
+      "path": "out/release-qa/published-mac/piano.log",
+      "bytes": 661,
+      "sha256": "dcdf3943f759f1319b197897f696a8f2d239a57a7bb24a0463101dcdf85cf789"
+    },
+    {
+      "path": "out/release-qa/published-mac/smoke.log",
+      "bytes": 2088,
+      "sha256": "34db9b5e516154741406ebb0c655cef5e60ff65902b8a297a2710e67ed8b392d"
+    },
+    {
+      "path": "out/release-qa/published-mac/stapler.log",
+      "bytes": 132,
+      "sha256": "90d838bceafc1c9a8bc875e50da155df13f44b4c8fa2861f5d026a5f4c1452f5"
+    },
+    {
+      "path": "out/release-qa/published-mac/piano/results-12s.json",
+      "bytes": 1540,
+      "sha256": "0407889ba2f7c18c930d69087b8abf2c03e0e2b60a4065583afb5d13f17dc3b7"
+    },
+    {
+      "path": "out/release-qa/published-mac/piano/packaged-12s.png",
+      "bytes": 187951,
+      "sha256": "f33bc677b629246e6f46f0ab1b6aaf4cc134c56dcad5322c86a7aebbaad4d350"
+    },
+    {
+      "path": "out/release-qa/published-mac/piano/process-12s.log",
+      "bytes": 98,
+      "sha256": "119c163e0ac747867e116f427ea90902140c4d20205c5ce791c2e84d9ed7b07b"
+    }
+  ],
+  "site": {
+    "commit": "b098bdca9a39774a652fc484e559f1ca88267aab",
+    "draftPR": "https://github.com/mann-lab-apps/in-c/pull/790",
+    "merged": false,
+    "deployed": false,
+    "checks": [
+      "npm run site:build",
+      "node scripts/verify-site-content.mjs",
+      "git diff --check"
+    ]
+  },
+  "finalDocumentationChecks": [
+    "roadmap verifier passed",
+    "work-queue verifier passed",
+    "git diff --check passed"
+  ],
+  "review": "Published muted piano screenshot reviewed: generated score, palette, playback note ink visible; not physical input/listening approval."
+}

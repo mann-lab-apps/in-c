@@ -1,0 +1,46 @@
+{
+  "tag": "v0.1.0-alpha.38",
+  "url": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.38",
+  "publishedAt": "2026-11-03T05:33:26Z",
+  "prerelease": true,
+  "draft": false,
+  "allDownloadsAndChecksumsVerified": true,
+  "assets": [
+    {
+      "name": "in-C-0.1.0-alpha.38-linux-x86_64.AppImage",
+      "bytes": 160088056,
+      "sha256": "564cb7b23544fb6855d73bdee501e8fe98bd6c5d263fc5923213c4c6adfb2f03",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/in-C-0.1.0-alpha.38-linux-x86_64.AppImage"
+    },
+    {
+      "name": "in-C-0.1.0-alpha.38-mac-universal.dmg",
+      "bytes": 252384475,
+      "sha256": "fd4e5f33b7dad23d2b19d79e119c2d721467a6adf68f117a44b8099eee9cba21",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/in-C-0.1.0-alpha.38-mac-universal.dmg"
+    },
+    {
+      "name": "in-C-0.1.0-alpha.38-mac-universal.zip",
+      "bytes": 251788242,
+      "sha256": "d067f9665edea252ffd4a23ce2b74b8c1af89c0059cc504e059a1030226d7cca",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/in-C-0.1.0-alpha.38-mac-universal.zip"
+    },
+    {
+      "name": "in-C-0.1.0-alpha.38-windows-x64-portable.exe",
+      "bytes": 130590578,
+      "sha256": "c1fcbfd258cc5f04203a27b0ad9ce3031879929c2c9f0cde5f32842f38b59fb9",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/in-C-0.1.0-alpha.38-windows-x64-portable.exe"
+    },
+    {
+      "name": "in-C-0.1.0-alpha.38-windows-x64-setup.exe",
+      "bytes": 130817976,
+      "sha256": "0a7cb5117f553d642423a1d4412578f3d1e8d2df0927a0a286f8fa6ba265195c",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/in-C-0.1.0-alpha.38-windows-x64-setup.exe"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 535,
+      "sha256": "537ab36f01ab159601077f35cbebc57299e812d541334c0d04c7ba1cc2f772d7",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.38/SHA256SUMS.txt"
+    }
+  ]
+}

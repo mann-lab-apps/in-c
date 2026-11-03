@@ -1,0 +1,66 @@
+{
+  "sourceCommit": "7732441ca6586672f3f1ad12794d6b3f6d6c5ce1",
+  "run": 41581664095,
+  "url": "https://github.com/mann-lab-apps/in-c/actions/runs/41581664095",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Package Windows",
+      "conclusion": "success"
+    },
+    {
+      "name": "Package macOS",
+      "conclusion": "success"
+    },
+    {
+      "name": "Package Linux",
+      "conclusion": "success"
+    },
+    {
+      "name": "Packaged ${{ matrix.platform }} preflight (no publication)",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Publish GitHub prerelease",
+      "conclusion": "success"
+    }
+  ],
+  "platforms": [
+    {
+      "platform": "linux",
+      "testSummary": [
+        "2026-11-03T05:24:18.0066395Z  Test Files  352 passed | 1 skipped (353)",
+        "2026-11-03T05:24:18.0086042Z       Tests  3745 passed | 23 skipped (3768)",
+        "2026-11-03T05:24:18.3019293Z # pass 5"
+      ],
+      "packagedSmoke": "passed",
+      "rawLog": "out/release-qa/ci-linux.log",
+      "sha256": "93ae3de36a2bc9aefe323a83146eeb21441dddcb3f36221aa4397f6f90502d71"
+    },
+    {
+      "platform": "macos",
+      "testSummary": [
+        "2026-11-03T05:27:19.2543680Z  Test Files  352 passed | 1 skipped (353)",
+        "2026-11-03T05:27:19.2568440Z       Tests  3767 passed | 1 skipped (3768)",
+        "2026-11-03T05:27:19.8523260Z # pass 5"
+      ],
+      "packagedSmoke": "passed",
+      "rawLog": "out/release-qa/ci-macos.log",
+      "sha256": "7cf3469d6493b87a072b37761f17d004573e6f4092b27cd4bd5346053e28363f",
+      "codesignAndStapler": "passed in Developer ID verification step"
+    },
+    {
+      "platform": "windows",
+      "testSummary": [
+        "2026-11-03T05:30:16.4258078Z  Test Files  352 passed | 1 skipped (353)",
+        "2026-11-03T05:30:16.4299166Z       Tests  3767 passed | 1 skipped (3768)",
+        "2026-11-03T05:30:17.0454066Z # pass 5"
+      ],
+      "packagedSmoke": "passed",
+      "rawLog": "out/release-qa/ci-windows.log",
+      "sha256": "e067ab4f9388000be2ce2789b446beda6a98a7d5e6e8eaf3ce6d52df1550f9fd"
+    }
+  ],
+  "scope": "Current tag full tests, package build/artifact checks, packaged native smoke; physical input/listening/external MuseScore not approved by this run"
+}
