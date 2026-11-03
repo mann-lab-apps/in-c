@@ -1,0 +1,24 @@
+{
+  "head": "776edfe22b422fb94ac748adc651981d14b0f39b",
+  "state": "uncommitted",
+  "version": "0.1.0-alpha.14",
+  "policyApproved": true,
+  "liveApplied": true,
+  "goalToolStatus": "paused",
+  "resumeApiAvailable": false,
+  "ownedValidationProcessesRunning": false,
+  "sourceCount": 2914,
+  "wholeSuite": {
+    "vitestFilesPassed": 352,
+    "vitestTestsPassed": 3767,
+    "externalOptInFilesSkipped": 1,
+    "externalOptInTestsSkipped": 1,
+    "nodeNativeTestsPassed": 5,
+    "seconds": 590.28
+  },
+  "nativeScenesPassed": 12,
+  "nativeWrites": 36,
+  "protectedHashesUnchanged": true,
+  "baselineChanged": false,
+  "unresolved": "829 nested touch no document motion at 1400px: separate contract, original failure retained"
+}

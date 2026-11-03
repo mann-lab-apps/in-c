@@ -9,6 +9,7 @@ import { decodeNativeProject, encodeNativeProject } from '../project/schema'
 import { AutosaveFileStore, type AutosaveSnapshot } from './autosave-files'
 import { RecentFileStore } from './recent-files'
 import { NativeProjectBackupStore } from './project-backups'
+import { savePngExport } from './png-export'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
@@ -26,9 +27,24 @@ const getConcertPostersChannel = 'promotions:get-concert-posters'
 const productionConcertPostersApiUrl =
   'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
+// The packaged audit uses a separate profile; never read/write the user's projects/recovery.
+if (process.argv.includes('--piano-audit') && process.env.DDIRORI_PIANO_QA_DATA) {
+  app.setPath('userData', process.env.DDIRORI_PIANO_QA_DATA)
+}
 const musicXmlFiles = new MusicXmlFileSession(backupExistingMusicXmlFile)
 const nativeBackups = new NativeProjectBackupStore(() => join(app.getPath('userData'), 'native-project-backups'))
 const nativeFiles = new NativeProjectFileSession(filePath => nativeBackups.create(filePath))
+
+ipcMain.handle('png:save', (_event, value: unknown) => savePngExport(value, {
+  async chooseFile(defaultPath) {
+    const chosen = await dialog.showSaveDialog({ title: 'PNG 페이지 저장', defaultPath, filters: [{ name: 'PNG', extensions: ['png'] }] })
+    return chosen.canceled ? null : chosen.filePath ?? null
+  },
+  async chooseFolder() {
+    const chosen = await dialog.showOpenDialog({ title: 'PNG 출력 위치 선택 · 새 폴더에 모든 페이지 저장', properties: ['openDirectory', 'createDirectory'] })
+    return chosen.canceled ? null : chosen.filePaths[0] ?? null
+  }
+}))
 
 ipcMain.handle('project:list-backups', () => nativeBackups.list())
 ipcMain.handle('project:read-backup', async (_event, id: string) => ({ contents: await nativeBackups.read(id) }))
@@ -476,7 +492,8 @@ const createWindow = (): void => {
       contextIsolation: true,
       nodeIntegration: false,
       // Hidden smoke windows still need animation frames for the PDF print layout.
-      backgroundThrottling: !isSmokeTest,
+      // Sample playback uses a bounded lookahead queue even when the window is backgrounded.
+      backgroundThrottling: false,
       sandbox: false
     }
   })
@@ -572,12 +589,12 @@ const createWindow = (): void => {
           const hasPromotionsBridge =
             typeof window.inC?.promotions?.getConcertPosters === 'function'
           const hasStartScreen = Boolean(document.querySelector('.start-screen'))
-          const hasStartActions = document.querySelectorAll('.start-action').length >= 3
+          const hasStartActions = document.querySelectorAll('.start-actions button').length >= 3
 
-          document.querySelector('.start-action')?.click()
+          document.querySelector('.start-actions button[aria-label="새 악보 만들기"]')?.click()
           await new Promise((resolve) => setTimeout(resolve, 150))
 
-          const setInputValue = (input, value) => {
+          const setInputValue = async (input, value) => {
             if (!input) {
               throw new Error('Packaged smoke new score input not found.')
             }
@@ -587,19 +604,37 @@ const createWindow = (): void => {
               'value'
             ).set
             setter.call(input, value)
+            input.focus({preventScroll:true})
             input.dispatchEvent(new Event('input', { bubbles: true }))
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
           }
-          const setSelectValue = (select, value) => {
-            if (!select) {
-              throw new Error('Packaged smoke new score select not found.')
+          const namedControl = (name) => [...document.querySelectorAll('input,select,button[role="combobox"]')]
+            .find(node => node.checkVisibility() && (node.getAttribute('aria-label') === name || [...(node.labels || [])].some(label => label.textContent.trim() === name)))
+          const menuCommand = async (name, command) => {
+            const trigger = [...document.querySelectorAll('.studio-application-menu [aria-haspopup="menu"]')].find(node => node.textContent.trim() === name)
+            if (!trigger || trigger.disabled) throw new Error('Packaged smoke menu unavailable: ' + name)
+            trigger.click()
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+            const item = [...document.querySelectorAll('[role="menu"] button')].find(node => node.checkVisibility() && !node.disabled && node.textContent.trim().startsWith(command))
+            if (!item) throw new Error('Packaged smoke command unavailable: ' + command)
+            item.click()
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+          }
+          const setSelectValue = async (select, value) => {
+            if (!select || !select.checkVisibility() || select.disabled) throw new Error('Packaged smoke visible select unavailable.')
+            if (select instanceof HTMLSelectElement) {
+              const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set
+              setter.call(select, value)
+              select.dispatchEvent(new Event('change', { bubbles: true }))
+            } else {
+              select.click()
+              await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+              const list = document.getElementById(select.getAttribute('aria-controls'))
+              const option = [...(list?.querySelectorAll('[role="option"]') || [])].find(node => node.getAttribute('data-value') === value)
+              if (!list?.checkVisibility() || !option || option.getAttribute('aria-disabled') === 'true') throw new Error('Packaged smoke option unavailable: ' + value)
+              option.click()
             }
-
-            const setter = Object.getOwnPropertyDescriptor(
-              HTMLSelectElement.prototype,
-              'value'
-            ).set
-            setter.call(select, value)
-            select.dispatchEvent(new Event('change', { bubbles: true }))
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
           }
           const waitForCondition = async (predicate, message, timeoutMs = 1000) => {
             const deadline = performance.now() + timeoutMs
@@ -613,18 +648,17 @@ const createWindow = (): void => {
               '; visibility=' + document.visibilityState +
               '; printing=' + !!document.querySelector('.app-shell--pdf-export'))
           }
-          const labels = [...document.querySelectorAll('.new-score-form label')]
+          const labels = [...document.querySelectorAll('.studio-new-score-form label')]
           const field = (name) =>
-            labels.find((label) => label.textContent?.includes(name))
-              ?.querySelector('input, select')
+            (() => { const label=labels.find(label => label.textContent?.trim() === name);return label?.control || (label?.htmlFor ? document.getElementById(label.htmlFor) : null) || namedControl(name) })()
 
-          setInputValue(field('제목'), 'Packaged Smoke Score')
-          setInputValue(field('작곡가'), 'Codex QA')
-          setSelectValue(field('악보 구성'), 'string-quartet')
-          setSelectValue(field('조표'), 'c-major')
-          setSelectValue(field('박자표'), '4-4')
-          setInputValue(field('마디 수'), '4')
-          setInputValue(field('빠르기'), '96')
+          await setInputValue(field('제목'), 'Packaged Smoke Score')
+          await setInputValue(field('작곡가'), 'Codex QA')
+          await setSelectValue(field('악보 구성'), 'string-quartet')
+          await setSelectValue(field('조표'), 'c-major')
+          await setSelectValue(field('박자표'), '4-4')
+          await setInputValue(field('마디 수'), '4')
+          await setInputValue(field('빠르기'), '96')
           document
             .querySelector('form[aria-label="새 악보 만들기"]')
             ?.dispatchEvent(
@@ -680,26 +714,26 @@ const createWindow = (): void => {
             filePath: smokePdfPath,
             suggestedName: 'packaged-smoke.pdf'
           })
-          ;[...document.querySelectorAll('.toolbar-tabs button')]
-            .find((button) => button.textContent?.trim() === '악보')
-            ?.click()
+          await menuCommand('형식', '악보 설정')
           await new Promise((resolve) => setTimeout(resolve, 100))
-          setSelectValue(
-            document.querySelector('select[aria-label="악보 보기"]'),
+          await menuCommand('보기', '총보·파트보 보기')
+          await setSelectValue(
+            namedControl('악보 보기'),
             'part'
           )
           await waitForCondition(
             () =>
-              document.querySelector('select[aria-label="파트보 선택"]')
+              namedControl('파트보 선택')
                 ?.disabled === false,
             'Packaged smoke part view select did not become enabled.'
           )
-          setSelectValue(
-            document.querySelector('select[aria-label="파트보 선택"]'),
+          await setSelectValue(
+            namedControl('파트보 선택'),
             'cello'
           )
-          setSelectValue(
-            document.querySelector('select[aria-label="PDF 설정 프리셋"]'),
+          await menuCommand('형식', 'PDF 페이지 설정')
+          await setSelectValue(
+            namedControl('PDF 설정 프리셋'),
             'compact-parts'
           )
           await waitForCondition(
@@ -762,39 +796,41 @@ const createWindow = (): void => {
             suggestedName: 'packaged-smoke.mid',
             contents: smokeMidiContents
           })
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="파트보 제목 수정"]')?.click()
           await waitForCondition(() => document.querySelector('[aria-label="파트보 제목 입력"]'), 'Part title editor did not open')
           const partTitleInput = document.querySelector('[aria-label="파트보 제목 입력"]')
-          setInputValue(partTitleInput, 'Cello Rehearsal')
+          await setInputValue(partTitleInput, 'Cello Rehearsal')
           await new Promise(resolve => setTimeout(resolve, 50))
           partTitleInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
           await waitForCondition(() => document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal', 'Part title edit did not commit')
-          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await menuCommand('파일', '프로젝트 저장')
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native UI save did not complete')
           const nativeRecent = (await window.inC.recentMusicXml.list()).find(file => file.format === 'native')
           if (!nativeRecent) throw new Error('Native recent entry was not persisted')
           const nativeDisk = await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })
           let nativeData = JSON.parse(nativeDisk.contents)
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '악보')?.click()
+          await menuCommand('형식', '악보 설정')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('.notation-event[data-part-id="cello"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+          await menuCommand('형식', '악보 설정')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="마디 추가"]')?.click()
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('새 마디를 추가했습니다.'), 'Score-wide measure insertion did not complete')
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
-          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await menuCommand('파일', '프로젝트 저장')
           await new Promise(resolve => setTimeout(resolve, 50))
-          await waitForCondition(() => !document.querySelector('[aria-label="프로젝트 저장"]')?.disabled, 'Inserted score save did not finish')
+          await waitForCondition(() => document.querySelector('.studio-document__state')?.textContent !== '저장 중', 'Inserted score save did not finish')
           const insertedData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           const hasScoreWideMeasureEdit = insertedData.score.parts.length === 4 && insertedData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 5))
           window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }))
           await new Promise(resolve => setTimeout(resolve, 50))
-          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await menuCommand('파일', '프로젝트 저장')
           await new Promise(resolve => setTimeout(resolve, 50))
-          await waitForCondition(() => !document.querySelector('[aria-label="프로젝트 저장"]')?.disabled, 'Measure undo save did not finish')
+          await waitForCondition(() => document.querySelector('.studio-document__state')?.textContent !== '저장 중', 'Measure undo save did not finish')
           nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           if (!nativeData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 4))) throw new Error('Score-wide measure undo did not restore all parts')
           const celloLayout = nativeData.partLayouts.find(part => part.partId === 'cello')
@@ -802,43 +838,45 @@ const createWindow = (): void => {
           const hasNativePartTitleEdit = celloLayout.title === 'Cello Rehearsal' &&
             nativeData.score.parts.find(part => part.id === 'cello').name === 'Cello' &&
             nativeData.score.title === 'Packaged Smoke Score'
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '악보')?.click()
+          await menuCommand('형식', '악보 설정')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('.notation-event[data-measure-id="' + celloSecondMeasure + '"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+          await menuCommand('형식', '악보 설정')
           await waitForCondition(() => {
             const button = document.querySelector('[aria-label="페이지 나누기 추가"]')
             return button && !button.disabled
           }, 'Part page break command was not enabled')
           document.querySelector('[aria-label="페이지 나누기 추가"]')?.click()
           await waitForCondition(() => document.querySelector('[aria-label="페이지 나누기 해제"]'), 'Part page break was not inserted')
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
-          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await menuCommand('파일', '프로젝트 저장')
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Part page break save did not complete')
           nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           if (!nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageBreakBeforeMeasureIds?.includes(celloSecondMeasure) || nativeData.score.layout?.pageBreakBeforeMeasureIds?.length) throw new Error('Part page break leaked into full score or was not saved')
-          document.querySelector('[aria-label="프로젝트 열기"]')?.click()
+          await menuCommand('파일', '프로젝트 열기')
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics을 열었습니다.'), 'Native UI reopen did not complete')
           const hasNativeProjectRoundTrip = nativeData.format === 'chromatics-project' &&
             nativeData.score.parts.length === 4 && nativeData.score.title === 'Packaged Smoke Score' &&
             nativeData.view.mode === 'part' && nativeData.view.partId === 'cello' &&
             nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageSetup.staffSizePercent === 90 &&
             document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
-          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await menuCommand('파일', '프로젝트 저장')
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native second save did not complete')
           const backupEntry = (await window.inC.project.listBackups()).find(entry => entry.fileName.endsWith('in-c-packaged-smoke-${process.pid}.chromatics'))
           if (!backupEntry || backupEntry.error) throw new Error('Native backup was not discoverable')
-          document.querySelector('[aria-label="프로젝트 백업"]')?.click()
+          await menuCommand('파일', '프로젝트 백업')
           await waitForCondition(() => [...document.querySelectorAll('[data-backup-id]')].some(row => row.getAttribute('data-backup-id') === backupEntry.id), 'Backup UI did not list saved revision')
           const backupRow = [...document.querySelectorAll('[data-backup-id]')].find(row => row.getAttribute('data-backup-id') === backupEntry.id)
           backupRow.querySelector('button')?.click()
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('백업을 복구했습니다.'), 'Native backup UI recovery did not complete')
-          const hasNativeBackupUiRecovery = !document.querySelector('[role="dialog"][aria-label="프로젝트 백업"]') &&
+          const hasNativeBackupUiRecovery = !document.querySelector('.studio-backups dialog[open]') &&
             document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
           const partSystems = [...document.querySelectorAll('[data-measure-id][data-system-index]')]
           const hasNativePartLayout = document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal' &&
             partSystems.some(element => element.getAttribute('data-measure-id') === celloSecondMeasure && Number(element.getAttribute('data-system-index')) > 0)
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '내보내기')?.click()
+          await menuCommand('파일', '내보내기 설정')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="PDF 변환"]')?.click()
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('로 PDF를 만들었습니다.'), 'Native part PDF export did not complete', 10000)
@@ -852,7 +890,7 @@ const createWindow = (): void => {
             partXml.querySelector('score-partwise > part')?.getAttribute('id') === 'cello' &&
             partXml.querySelector('part > measure[number="2"] > print')?.getAttribute('new-page') === 'yes'
           await window.inC.recentMusicXml.remove({ filePath: ${JSON.stringify(smokePartExportPath)} })
-          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
           await window.inC.autosave.write({ score: nativeData.score, project: nativeData, title: nativeData.score.title })
           const nativeRecovery = await window.inC.autosave.read()
@@ -989,7 +1027,7 @@ const createWindow = (): void => {
         mainWindow.setSize(width, 900)
         await new Promise(resolve => setTimeout(resolve, 400))
         const fits = await mainWindow.webContents.executeJavaScript(`(() => {
-          const dialog = document.querySelector('[role="dialog"][aria-label="프로젝트 백업"]')
+          const dialog = document.querySelector('.studio-backups dialog[open]')
           if (!dialog || !dialog.querySelector('[data-backup-id]')) return false
           const box = dialog.getBoundingClientRect()
           return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight &&

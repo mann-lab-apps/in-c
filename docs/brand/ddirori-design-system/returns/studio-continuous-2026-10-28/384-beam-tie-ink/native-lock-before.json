@@ -1,0 +1,2274 @@
+{
+  "files": [
+    {
+      "path": "electron.vite.config.ts",
+      "sha256": "4c69ce0b1dd4cbe55254a119b03c4a559b4d8e3aa1d4863e93dd58abe1090c6b"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/far-c-meta.json",
+      "sha256": "670c3572f7c57ee3f51184d0b99c11bf341cb79621e86c99b90aed67eec4cd2f"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/far-c.chromatics",
+      "sha256": "da57eaae46f6694fb335969da2fde47f1c5a088af54bb2a1b167e2ad41958d2c"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/far-c.mid",
+      "sha256": "5aefef7fb4062b6b5f931b26d0b07f594aadba6129ddf96c8f05913d62e468ce"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/far-c.musicxml",
+      "sha256": "7a789b9c56998b669f2dd18c456358d469408b03279d18b7f36451b83b859f73"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-e-meta.json",
+      "sha256": "7b212d95d48c59b21f970bcdbc4bcddb8a02c8c1f061f8104a61e650c058f969"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-e.chromatics",
+      "sha256": "411f4f9973cc81e1345a7f3bf8a1f336a11d46d7bc7d07b729e63beb643d95a7"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-e.mid",
+      "sha256": "7bb6bc34e1222e05eac916515edb423720101965beb7a712ea6e85df1ef6f98d"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-e.musicxml",
+      "sha256": "98763114104ab6e5b17b46a5c4f6e1191766fe4682f36dd4baeaa90aeb8b69b9"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-f-meta.json",
+      "sha256": "df41baa6101e3ed157a30e484f11f76b9ced64a95f8f070d4b1e3471a2773383"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-f.chromatics",
+      "sha256": "a0d2ba1474b98f7454d11242b315ac797258149a2843cd82f723fb6277a72c63"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-f.mid",
+      "sha256": "76d7eb1b3937aec3dd9a40dcc4577aa5fd7d0f47de12c6091ba454e45b0c5938"
+    },
+    {
+      "path": "out/ddirori/continuous-379-source/near-f.musicxml",
+      "sha256": "54147e67327ccde158469cf2144ea7d2174c8a89588c808d300d9580a5c3911b"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/crossing-c5.chromatics",
+      "sha256": "2ad1d95ae34fb8be94de3200cb0762e73c043912d1e67bf2ccac1a8c247adb62"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/crossing-c5.mid",
+      "sha256": "094dbc69bc02e71fe7cbe0b188e4a83d6ca96c28e78f3f68569dfcefd97c7eb3"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/crossing-c5.musicxml",
+      "sha256": "788cc3cbcb7478471d40f63de05bde47ffa916928495e7993591674e38526995"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/far-c3.chromatics",
+      "sha256": "2d11935e01b2df00491cc681e29b9382bc72de05365b38a83eaeada2b8f1f4ed"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/far-c3.mid",
+      "sha256": "5aefef7fb4062b6b5f931b26d0b07f594aadba6129ddf96c8f05913d62e468ce"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/far-c3.musicxml",
+      "sha256": "c6c670a31389c917160988dd015e4876a96b1939badc3037533906c7f49b2e3f"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/near-d5.chromatics",
+      "sha256": "f01ad7929e0a83d9c7b0dc873fc43ca0d6ded536ad63d0a90168b731fb67a144"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/near-d5.mid",
+      "sha256": "800ef9fdb7c11c1722447bff62ed390a2ce66a86fe9a021ceb6d79621cdd4ec4"
+    },
+    {
+      "path": "out/ddirori/continuous-382-source/near-d5.musicxml",
+      "sha256": "fd25c6e7965d69373328e1fbb6e72b9bfa356f52e6b377bf515c1dc49126f8d6"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-eight-meta.json",
+      "sha256": "46c6c16d9cdcc92eb4e4d3b49066419653899003576bc21b6f1e97fff5ac39c5"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-eight.chromatics",
+      "sha256": "f62e544fbc958ba366bb96139c07bad529834647bdebe5093d48c570a9c62778"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-eight.mid",
+      "sha256": "bd38e144e329ac241227d857e6bb4b3acee47c18fb10d8e5191a1c6a06ee2d84"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-eight.musicxml",
+      "sha256": "df15b35c86f646fa4cd4dd9bf1a9bd1cbfa3668fd5e749e91d8cf03a9a89fb80"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-far-meta.json",
+      "sha256": "da0300e3879489edeb9f2aca85ddad8aed2ed93603efc96bea476345062cb436"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-far.chromatics",
+      "sha256": "814e465d4d688cbbc99a3eaefd4cf07d8cf56c3960ddced494ad866f8fd328ed"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-far.mid",
+      "sha256": "65ba84fc0fa334b99d288155df2bc098ea6cf64ed932d721b1ac734d7ba7d2ba"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-far.musicxml",
+      "sha256": "b41cf0390cc78a1c82c7f2865b8d2303b077108a59f503e2ca217c2f5c863b3b"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-mixed-meta.json",
+      "sha256": "b5c4b51f2a0d7bc034e16a6a8b73ecf2369ed312678b17c6ff0350e7eb9d2fff"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-mixed.chromatics",
+      "sha256": "6d8d0bd98d1ff8b32ce8f5d878a115c5fc493b248d6be45b98e334ffec327de3"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-mixed.mid",
+      "sha256": "93195af2f370dc25a360fbd755d96edaf087d4e83ab59c3206d2f4d9150f693e"
+    },
+    {
+      "path": "out/ddirori/continuous-384-source/beam-mixed.musicxml",
+      "sha256": "72850c4ba5ff85f75ae41308f58e2b4c30b52575cd56a30eb800cab34b3ece93"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "22517bd7d38078693803958de573e01420e7df7c8e08eb056e2670c3f58f0258"
+    },
+    {
+      "path": "package.json",
+      "sha256": "cff15dfd2dc9929f3f78696d45c04dc7534da5f44d9a1343a5c0c06e75a7d064"
+    },
+    {
+      "path": "packages/ddirori_web/README.md",
+      "sha256": "d47ebdf668099ba8721d709f9897738efd4ae53cca62496f609e09fdadd4bc93"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/basic-set.css",
+      "sha256": "fee901face71d4794a6aee03042ce6b86372f96fe61a2c2aa810d4f186b1b1a0"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/basic-set.tsx",
+      "sha256": "7440f2e164ed11eed3f81dacec7f20017e519856bd80d8757c5a663e8688fee0"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/catalog.css",
+      "sha256": "334020d09fccf7e4329e9c75b219715ce8ce7c13187f341d402238c495b85f3a"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/foundations.css",
+      "sha256": "41dcedb7b0aef01c863b8d1ce3c6c6e57d921b522b64932da9d757ff5a9aaa4c"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/foundations.tsx",
+      "sha256": "b79219cf1444422c4d847da5fd7192a2b501807f99300bd106e86b6470f59fed"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/item-states.html",
+      "sha256": "25d7535585baee4515b8e6fa424e0ee21f30593c0cf90ecc3e0f7746e2081a5c"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/item-states.tsx",
+      "sha256": "d1fad932639b50b83f662176bb1de6b474316252df3dce631e9fcb9d34b3fef6"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/main.tsx",
+      "sha256": "bc2c5291e918c248ef632886a41c2af4096995b52a0b3d189357446526a0ba1b"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/palette-comparison.css",
+      "sha256": "941a39400ffe5be335e81b79ef861ab2f87c844a657e3a44cd4394d9b2382502"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/palette-comparison.tsx",
+      "sha256": "9c9a401400b483f283fe562d9915404e1f791806c2c500c22ae03c299992c31b"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r2.css",
+      "sha256": "1c9315c0113a49941aded0f7fc09e7deb1c7ba1b3e7fc0ccfa58186db090e117"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r2.html",
+      "sha256": "dcd01611e613d980d004c488eeb4d6a1b640124dcf79c152543f9f460c6cd13a"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r2.tsx",
+      "sha256": "46a39276fcf6181820e990c4d89a6b06ad1ecc2554cd4ff1e88c480dbedce884"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r3.css",
+      "sha256": "662b25dee83f67653704faf898f6c939569fcd901c96f69ef4b658814707f6b7"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r3.html",
+      "sha256": "36a2929f687251c1b3de95845ff51850ca6b2e69dd08c75215676441cea98e2f"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-r3.tsx",
+      "sha256": "0b33b524b0b32c4b7dd90f342e11bff3a46e673488756a5bbd91efb3a40de97c"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-review.css",
+      "sha256": "25be53b9119cd6cbf9bf4880e0beff02b29c9d730974cdaf4446cf501a0504cc"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/product-review.tsx",
+      "sha256": "01cabd8d05e0d59a0c629df6520af9f11e4170bd01dcd642515abd96506172c9"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/starter.tsx",
+      "sha256": "1baa3ce9ecdb838d3ee93374dac08bf02386fac7a13bcf9aa075ccf5e613a2fb"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/Flows.tsx",
+      "sha256": "5bbae4e464fbd9a09d7732e7b9bd4898f7445d3cdff179af0fb2fbeefe6c2f30"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/Inspector.tsx",
+      "sha256": "5c61b601763a7e0b9b274123d52c62ebae3c5b0b0b944b0498b7535de1a35c92"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/Palette.tsx",
+      "sha256": "838544958da6484e2f8e39bf3b0c83bfa4b4da2ed9d8abf71f226da5f70e49fb"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/Score.tsx",
+      "sha256": "9d8707d72cb59b1f73a95e76c79760b4fbe09a47185d8428d41b229d55e1c02e"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/Studio.tsx",
+      "sha256": "8a845eec658e24f0dc0f010fb71437f881edc2dd6effebc0fca68e1a1850b505"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/main.tsx",
+      "sha256": "b3218e851bafa78415f92467454b857d87a46c056c51e50c5a8390dd579de178"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/model.ts",
+      "sha256": "46cbfcf7f491cb53035f416d31961783bd32d788d5a4941a7c568230bbc26961"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/studio.css",
+      "sha256": "28b0d72254a64640d2e247179359bd1699dbc8f692ee83222f89ca49f5afe2e2"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/studio/verify-browser.mjs",
+      "sha256": "c4897caab3cae0d71d690da8f63dcb7009888d53af5716e33714b88ac1b02a92"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/theme-recipes.css",
+      "sha256": "662e9596e6dd3bc3c450c3ba1d2353ab966979ee706cb25768f8158a07815012"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/theme-recipes.tsx",
+      "sha256": "dc74f272fe7c3f8310df9981ba81e5fb10e9227cde5959d0826848f944383523"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/theme-reference.css",
+      "sha256": "6bd22a292ffb3f26abf0b6fe68c32d142f04eed7f4b606d0d7a5817ee81a1660"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/theme-reference.html",
+      "sha256": "a8c1d83aeae66bcdcbd1b446615d4537b7c318e99e9a2c0992a1071b57da7685"
+    },
+    {
+      "path": "packages/ddirori_web/catalog/theme-reference.tsx",
+      "sha256": "fef8e9891fe0a2c4c8755148d844bf55ffb0b8f8c6a75b27fd2af627a714001d"
+    },
+    {
+      "path": "packages/ddirori_web/index.html",
+      "sha256": "ece3c5c04779d5f632fdaa35a44dda1e11e31b0248e1939a2a0238a5ad062e63"
+    },
+    {
+      "path": "packages/ddirori_web/package.json",
+      "sha256": "7daff8acc6932d432ac5172b7f4d1e39eb487be9b8ec16ac19638a5f54380e15"
+    },
+    {
+      "path": "packages/ddirori_web/product-r2.config.ts",
+      "sha256": "7924d67876b09a5286250a0343e7d3d084db08081b807243e134f99fa25b3b84"
+    },
+    {
+      "path": "packages/ddirori_web/product-r3.config.ts",
+      "sha256": "eeec1baf3807b681526cfec0a1407e1953372e3633501ba30d15fe7da6aed259"
+    },
+    {
+      "path": "packages/ddirori_web/src/adoption.test.tsx",
+      "sha256": "b8cf4b4aedcb491f775f20e971111a92496613ac440f40d0055111f9502b8c0a"
+    },
+    {
+      "path": "packages/ddirori_web/src/basic.test.tsx",
+      "sha256": "e3744a9498f4ce23f2146def922337ea218714e38a18b29d17932861cc28c903"
+    },
+    {
+      "path": "packages/ddirori_web/src/basic.tsx",
+      "sha256": "72dd8151261f581cc83b3733808b37207ad64d60fb802e43e703c77ae2253b39"
+    },
+    {
+      "path": "packages/ddirori_web/src/components.test.tsx",
+      "sha256": "fa0f5b8cd27ba2b4cef867c5e27e4dcd6298524cfe953b70dc41c3afa42df474"
+    },
+    {
+      "path": "packages/ddirori_web/src/index.tsx",
+      "sha256": "369a8076ed9f5964acca87dcfc720d1ee6e1c597b64b89ad13b16d6be3ba78ca"
+    },
+    {
+      "path": "packages/ddirori_web/src/item.test.tsx",
+      "sha256": "0c71a6880e5ae82c14aff6ff70d4ba550fa62b3cb9821408cf9017e002c10313"
+    },
+    {
+      "path": "packages/ddirori_web/src/popover-trigger.test.tsx",
+      "sha256": "111e5d73e5e2861fa8df4805f0e50a9fa9364ddbafc03caad8c86e81a540f8ea"
+    },
+    {
+      "path": "packages/ddirori_web/src/starter.test.tsx",
+      "sha256": "df2dd1b91b79524225a923bf0ea795d827094ca5fa4c79cf91751428c07c5da7"
+    },
+    {
+      "path": "packages/ddirori_web/src/studio.test.tsx",
+      "sha256": "b105cc859d9341a4170238ce24e4427d66d586e6f45524871dbc40f4288a9a5a"
+    },
+    {
+      "path": "packages/ddirori_web/src/styles.css",
+      "sha256": "26be4eec70481e0da8c3d81806d2d622fa6a8d541fd5471e9f8c93f117d369c7"
+    },
+    {
+      "path": "packages/ddirori_web/src/tooltip-lifetime.test.tsx",
+      "sha256": "d1fd0f4ddcc2246ac0c0fdbcb1e527d8bd0d1db982d528f50ea00ef1267cf7e1"
+    },
+    {
+      "path": "packages/ddirori_web/src/tooltip-pointer.test.tsx",
+      "sha256": "5a6e9df9795dcb71c446e96a860f176c96bc89d94b10b4bdd2e0ae2e044f45cf"
+    },
+    {
+      "path": "packages/ddirori_web/studio.config.ts",
+      "sha256": "fb2bb330eee8ea4b258e085f69ccf3fcbdbc6f3800d668f3786aaf7a1cb1130c"
+    },
+    {
+      "path": "packages/ddirori_web/studio.html",
+      "sha256": "9f0bc4ddb1a56557e279ca6cef116ab59941b3a81672a6d4aaefc8ba980476c0"
+    },
+    {
+      "path": "packages/ddirori_web/theme-reference.config.ts",
+      "sha256": "5cf41305cfc49051d48bd903f9d0b58cbb66a70c2d67551207e1ba12fd7424dd"
+    },
+    {
+      "path": "packages/ddirori_web/tsconfig.json",
+      "sha256": "730a4ec5012647cb876309d39fde43b04d82690cefd5a2186e4e82fd11d15382"
+    },
+    {
+      "path": "packages/ddirori_web/vite.config.ts",
+      "sha256": "7a8326180ca945f00d26bb40ec069f6b54fe70be9254b6671bedb5a9876e4131"
+    },
+    {
+      "path": "packages/ddirori_web/vitest.config.ts",
+      "sha256": "bb5605f4b44b9b7c079dc7f085a3cb83299288d691bf1204013dce9a258ffd36"
+    },
+    {
+      "path": "scripts/audit-notation-reference-apps.mjs",
+      "sha256": "06dd1462cea8048e917e7205fd7f85436de92ea39b619ca1ab1f933e79626020"
+    },
+    {
+      "path": "scripts/generate-columns-seo.mjs",
+      "sha256": "3ccbe5eb8969d7da334e7e31ef08d2f0edc40acc4644f5628f41b29b14f7191d"
+    },
+    {
+      "path": "scripts/notation-snapshot-options.cjs",
+      "sha256": "ae08513e21f1ef47f2e80c3c33ebb9e90a176dcc5b8bd1dc954cacab25598e1c"
+    },
+    {
+      "path": "scripts/notation-snapshot-options.test.mjs",
+      "sha256": "11c205198cb4617bc9c89bbfc1d0d051ecd3db35f21caa9a1d640131dced1f04"
+    },
+    {
+      "path": "scripts/prepare-classic-quiz-audio.mjs",
+      "sha256": "a52b84e6b3517c7d4d02e388b1dba537c5b071e33ab01580dc1a651f4b0dfca6"
+    },
+    {
+      "path": "scripts/prepare-piano-assets.py",
+      "sha256": "f53c47a311cd4cce20cc01cdc935f98514c6b92454c95eaf60b5b694cdc36858"
+    },
+    {
+      "path": "scripts/studio-multivoice-tie-ink.cjs",
+      "sha256": "b8662af9627c79edee4638afd5481e3af5a4f03fb178d8bafa60d6537021030b"
+    },
+    {
+      "path": "scripts/studio-recent-warning-focus.cjs",
+      "sha256": "ecba2a325e4dc1c4f7bbdd7f19a0c57c3086113dc09381bc811167815e645b2f"
+    },
+    {
+      "path": "scripts/studio-text-scale.cjs",
+      "sha256": "f611653f2b43037079feb1cfdfd6ff5ffe78b4f644d8addc9768c177f8a5692b"
+    },
+    {
+      "path": "scripts/studio-tie-stem-ink.cjs",
+      "sha256": "fe35c04b733d6cbd86eda731b53bfca1cadf761a8e6ae957c2204c45897359f8"
+    },
+    {
+      "path": "scripts/summarize-validation-ops.mjs",
+      "sha256": "05feb33f5138f26bf10cfd4a7fc4c3ebb3022c6c9cda07d80f3f278b06d39e86"
+    },
+    {
+      "path": "scripts/summarize-validation-ops.test.mjs",
+      "sha256": "1a0b68f8ddcb41ee8761ab120e0c2fce955016063fe84261ddf00b0d865f69a4"
+    },
+    {
+      "path": "scripts/verify-analytics.cjs",
+      "sha256": "54affdf03a147bf2d2e5a17a447ff66a79d4560aad191a2dac293101d71cfb0b"
+    },
+    {
+      "path": "scripts/verify-chromatics-musescore-parity-roadmap.mjs",
+      "sha256": "3d5831482458fddb9057f8911753ce59e14bfcdd142d0c427491469f595fe26b"
+    },
+    {
+      "path": "scripts/verify-chromatics-v1-save-policy.mjs",
+      "sha256": "5263ace14e14aeda520a50f5814fa86b61ccce7a93b1b5ebd6629e62ae8ca731"
+    },
+    {
+      "path": "scripts/verify-chromatics-v1-work-queue.mjs",
+      "sha256": "6aa6c6c3ed2983a06ccdce648ad381d5f1dda3f3a2340c7b483113bf43836607"
+    },
+    {
+      "path": "scripts/verify-classic-quiz.mjs",
+      "sha256": "cdeba16712177d88c9101f1f7720a20d2398fcbd3147eead8de42ec73be5b4c9"
+    },
+    {
+      "path": "scripts/verify-ddirori-studio.cjs",
+      "sha256": "a091da385e2a437dd38bd6d7132a5d64b0995df9c3477ba66cec0c657da26918"
+    },
+    {
+      "path": "scripts/verify-feature-map-paths.mjs",
+      "sha256": "e49e6dc37abb850ec6a72632ed9ce3b43305c5e6d8022c04a7bf7b3fd698a40e"
+    },
+    {
+      "path": "scripts/verify-feature-map-paths.test.mjs",
+      "sha256": "570b085f09b0157b386a698978b7ed4e6ef74ffc9ac0557eec7c0e08b7d86543"
+    },
+    {
+      "path": "scripts/verify-musescore-cli-fixtures.mjs",
+      "sha256": "27a9a4c9cf69b704e1b4f8558e0268d211df9df2ca565f2277c543b81e363dfd"
+    },
+    {
+      "path": "scripts/verify-notation-snapshots.cjs",
+      "sha256": "2b71aa4f840d10815e48acf7382cc010e72161c5b446ba6afdc6c0cb9b20105f"
+    },
+    {
+      "path": "scripts/verify-packaged-app.cjs",
+      "sha256": "d1482acac39634755ff14c099f3dd887e440d3e596869dac77c9e9eb5a0362b9"
+    },
+    {
+      "path": "scripts/verify-piano-assets.mjs",
+      "sha256": "bc1f721246c0b925d74225b6e044c1f4cfdc4fbd0e54a053fe3f1a8346eed768"
+    },
+    {
+      "path": "scripts/verify-piano-package.mjs",
+      "sha256": "09ecfb45df878c94934a8a68065b533c9b67e20ed7ac4358986cf1ed0f43bf3c"
+    },
+    {
+      "path": "scripts/verify-piano-performance.cjs",
+      "sha256": "f3edf29ded6a4a25c8a03dc6f5f33ddbbedbc26d9ff43b765255efd55e1c245d"
+    },
+    {
+      "path": "scripts/verify-piano-sampler.cjs",
+      "sha256": "e1500a5c0e495ee2a0cc8dd125feabe6d530a168de78a4de08d24db659337e98"
+    },
+    {
+      "path": "scripts/verify-production-site.cjs",
+      "sha256": "65ec2e3abab4fcb7b888b8369d2978a9341012264f76a9d5f94fc8acfda7f5ff"
+    },
+    {
+      "path": "scripts/verify-release-artifacts.cjs",
+      "sha256": "d8bae3ffa59f8a476ab8c26c3db5aeb1cb219973e7380ae1d21fd6fd57e83c3f"
+    },
+    {
+      "path": "scripts/verify-release-tag.cjs",
+      "sha256": "8c4b7b3b234bfb799e46f243858e2907987a35d30c833656e0fe75fe64116c75"
+    },
+    {
+      "path": "scripts/verify-rest-hairpin.cjs",
+      "sha256": "f9218daf96d2b885c5f4b52f9d2fb56e4941884c9f5c41dd47eb8dc75f2b47b5"
+    },
+    {
+      "path": "scripts/verify-single-voice-mvp.cjs",
+      "sha256": "4ad6f63c04dc143bcd25e976ff95692b19d0405b5959314c4083fb555f5dc15d"
+    },
+    {
+      "path": "scripts/verify-site-content.mjs",
+      "sha256": "b3b0bb0db740cfcbee2623d8e1104cf1afc17db8432705454b33b18b2ce92668"
+    },
+    {
+      "path": "scripts/verify-site-seo.cjs",
+      "sha256": "2652ac6d7510dbccfe2d05e936432fcc98ac49ef347901aa12180d0938c63556"
+    },
+    {
+      "path": "scripts/verify-studio-backups.cjs",
+      "sha256": "a1196a18aafc900be3e00a23be468ec2c23c31b3f01eb441839432b6d6af62d5"
+    },
+    {
+      "path": "scripts/verify-studio-chord-memory.cjs",
+      "sha256": "d2ab17afde06ae675dae08a9d9caedf46d9691cc9afabae989a7745bd9c95843"
+    },
+    {
+      "path": "scripts/verify-studio-chord-pitch.cjs",
+      "sha256": "d43bea617b4742efd1034e976858c3878270446e0f8a69efc4f7f1695fd5dd0a"
+    },
+    {
+      "path": "scripts/verify-studio-chord-ties.cjs",
+      "sha256": "72210f34481c9537f07a2a79329bf32a195975c3cfcaa08f594f124cbe93787d"
+    },
+    {
+      "path": "scripts/verify-studio-compact-workspace.cjs",
+      "sha256": "08bd8e8f2917fe1e6bca2b46c7e6d4915c3f3e5d2dae8e5bd5bd2fcb8fa36487"
+    },
+    {
+      "path": "scripts/verify-studio-continuous-editing.cjs",
+      "sha256": "fa00435f9da2bd3c6f6550daaba1dfcdae2af9c908b9a0d5bf735b217ee4e2b0"
+    },
+    {
+      "path": "scripts/verify-studio-dock-resize.cjs",
+      "sha256": "c41be8d12540a0ca7673d4c983958555fe32f7822b8be880deeb0b824f0572ec"
+    },
+    {
+      "path": "scripts/verify-studio-first-use.cjs",
+      "sha256": "a55bc0765dc82c052b85c889e39dafb6d8e3b01e981d9adb0ef9e79fb28920e4"
+    },
+    {
+      "path": "scripts/verify-studio-import-results.cjs",
+      "sha256": "2e58e5b8010b97da0693d27f22a4723d853c94ea87627ada85aa85ddde9704ad"
+    },
+    {
+      "path": "scripts/verify-studio-input-events.cjs",
+      "sha256": "b4b46613436c2103ab7a12d18f652f452e3c93114d9b68361d645316024809c1"
+    },
+    {
+      "path": "scripts/verify-studio-measure-context.cjs",
+      "sha256": "7fdf63bbb69c20daec6a562dcf98f70bb5440dbd42e60f9bc1275c746b2a3967"
+    },
+    {
+      "path": "scripts/verify-studio-midi-ordering.cjs",
+      "sha256": "35eba6e2093c1dea0e1441100259a43dce42c68edee7a9162c1f6e2fd8e47227"
+    },
+    {
+      "path": "scripts/verify-studio-midi-results.cjs",
+      "sha256": "f7322f54a8936a140ad16ffc67827f0f1e925583e04fb0f01c38523b544342f4"
+    },
+    {
+      "path": "scripts/verify-studio-midi-warning.cjs",
+      "sha256": "46f611fd76a1cbed7727e799e6fa21ee44dc4eee2184e0246e4871b3c76d0d2d"
+    },
+    {
+      "path": "scripts/verify-studio-musical-workflow.cjs",
+      "sha256": "6eba30fdca5e7e38619a9b2a030a1d8940e4eb41ff69bd746b2be0703d936b90"
+    },
+    {
+      "path": "scripts/verify-studio-native-long-files.cjs",
+      "sha256": "ce1ccc2cf2a5124587721faa0723af226f0c448b6bac3b59b6a64a6dbd94c2ad"
+    },
+    {
+      "path": "scripts/verify-studio-navigation-contexts.cjs",
+      "sha256": "b75fcdb30e87ebcecda01c1998a898a34dea0ae83d7f7c5e64b9d9cd9806add5"
+    },
+    {
+      "path": "scripts/verify-studio-object-filters.cjs",
+      "sha256": "a85edef57db099425a021b3889b4b138e220a1bef931bda72b4e52f70eb2102e"
+    },
+    {
+      "path": "scripts/verify-studio-output-ink.cjs",
+      "sha256": "cae1ef3691ab3c2f99101ebfeabe7ce72d80a7ef733616c898bb8f10a40d26fc"
+    },
+    {
+      "path": "scripts/verify-studio-part-selection.cjs",
+      "sha256": "a89ecab9ce4d2c6f6df6c2283cede182cb20a3bf6be6e7f556061bd4215e640c"
+    },
+    {
+      "path": "scripts/verify-studio-partial-tie-import.cjs",
+      "sha256": "dc59007c1e81849648e5845f38d65a51505a63ff99830cd6308853612f2b757a"
+    },
+    {
+      "path": "scripts/verify-studio-pdf-snapshot.cjs",
+      "sha256": "d6918adde09d083e1128a863665866719213eb6f4799e161f590fff84f9acc1e"
+    },
+    {
+      "path": "scripts/verify-studio-piano.cjs",
+      "sha256": "67b75945d8bf56f02a486268ac31ea6fa998c74fa262c109410b62443ba9a881"
+    },
+    {
+      "path": "scripts/verify-studio-playback-viewport.cjs",
+      "sha256": "e63de10a07a84b41ba717011ed0e1da2ce5308314f4b185b01fc79e4762715ac"
+    },
+    {
+      "path": "scripts/verify-studio-responsive-workspace.cjs",
+      "sha256": "9d4f78e9a1abc065b8e87ddb63655c0a739dc16bb9f621006b9e441f1d2800ed"
+    },
+    {
+      "path": "scripts/verify-studio-score-authors.cjs",
+      "sha256": "4fcb6cee47b5339c472479b31fe74b7f98fd98738fb1a0af33021996bb4a3d54"
+    },
+    {
+      "path": "scripts/verify-studio-slur-attachment.cjs",
+      "sha256": "b4b7efd4910253e6100e540307a137c2d140d6b58ecfd4b89e558defc0908c15"
+    },
+    {
+      "path": "scripts/verify-studio-stored-dynamics.cjs",
+      "sha256": "b457640bac4b79c27c8ac06ca03578519785b46ea8507a4799a5ef73da01b688"
+    },
+    {
+      "path": "scripts/verify-studio-stored-save.cjs",
+      "sha256": "8270335ac2f8a568cbf6fca2c92df6db46466cfe4340cbbe43328f1474735035"
+    },
+    {
+      "path": "scripts/verify-studio-system-toolbar.cjs",
+      "sha256": "1968adfbf7645017f7ee416c90a564fb4308f1a582c94daf7e1ba1d664cd933b"
+    },
+    {
+      "path": "scripts/verify-studio-tie-pages.cjs",
+      "sha256": "a6f8731130b73bd39dc6d5cb2c544896d48c43b713db951205e3e8d1f6b32f29"
+    },
+    {
+      "path": "scripts/verify-studio-tie-time.cjs",
+      "sha256": "191c61c6562c9495bffc35efee4865c9ccf193ba9f1daf38604284ee3ed6fb1b"
+    },
+    {
+      "path": "scripts/verify-studio-tooltip-lifetime.cjs",
+      "sha256": "997ddd0d4999b35c4a24dbe88b44f9b5483cecab64c5e4201734dc2cf764e176"
+    },
+    {
+      "path": "scripts/verify-studio-unattached-tie.cjs",
+      "sha256": "01519de73c8c239bbc924531ab556654056ef25ebeb65214b6fe0b5861c0a24f"
+    },
+    {
+      "path": "scripts/verify-studio-warning-workflow.cjs",
+      "sha256": "24796d10c09fe7f4ba1eae85c5cea4e39e34e7221f275396e85696fad6d8c041"
+    },
+    {
+      "path": "scripts/verify-studio-welcome-keyboard.cjs",
+      "sha256": "a935e5762efbb3ecbbeab166e95963562488f750e6ce877b54307177b3e16813"
+    },
+    {
+      "path": "scripts/verify-studio-xml-report.cjs",
+      "sha256": "1d9bebd4d5feccf901180267b38c4f740f62666779a5aa8c5809906727f9ad64"
+    },
+    {
+      "path": "src/main/autosave-files.test.ts",
+      "sha256": "504093f0b3d30c4a07e1a5349511da126dab089b896079007ea6b6fc1ef1e4ee"
+    },
+    {
+      "path": "src/main/autosave-files.ts",
+      "sha256": "e8766691c13fbe76e2ac64ae6331bdc32f9a1a68e8c9d4297520ddb04b8ef786"
+    },
+    {
+      "path": "src/main/index.ts",
+      "sha256": "abbb21ceaf71eea696768443c5ec2cbbc6f4519ecb6d794c4c4409e81a96e36a"
+    },
+    {
+      "path": "src/main/musicxml-files.test.ts",
+      "sha256": "37180a042f0c1acba0be9db4368a6742c550a6589fa0b79e3f3d37d3c4870459"
+    },
+    {
+      "path": "src/main/musicxml-files.ts",
+      "sha256": "5b99ea1c62b6cef001a527a8deb06bf0823f00dba5ebe48f0a3086c4462c179f"
+    },
+    {
+      "path": "src/main/native-long-file-names.test.ts",
+      "sha256": "7db6ade48309e37816901560b6328aebb389d17dd877b713c6fe941abbbe6ae2"
+    },
+    {
+      "path": "src/main/project-backups.test.ts",
+      "sha256": "553e0f1dd4458466ecfa7d7456794cd3deed13e29b8b7bbeb964b923be27ad78"
+    },
+    {
+      "path": "src/main/project-backups.ts",
+      "sha256": "8552018428643eb0451655b016e002f810ee613897e3910ae591612449d4a969"
+    },
+    {
+      "path": "src/main/project-files.test.ts",
+      "sha256": "d75fec77323212904f6e2ba2930f0ea85e3cdbbd1d515dbb9d93fad16cff8431"
+    },
+    {
+      "path": "src/main/project-files.ts",
+      "sha256": "17d29d8887fe69dd5c3e78a11d08fc88f39340bb6531eb46e3713f17eeb56d52"
+    },
+    {
+      "path": "src/main/recent-files.test.ts",
+      "sha256": "446597234b8e90164cd4b6dce76a6ddd12ae016f746b1722c7dc3cda62b0f076"
+    },
+    {
+      "path": "src/main/recent-files.ts",
+      "sha256": "2818dcf403b23d4863519c1919cf59ed8d8d88f500ab33177ed79a7becd042a8"
+    },
+    {
+      "path": "src/musicxml/articulation-order.test.ts",
+      "sha256": "2b80528da8ece79de4940c0076f55e46786efb203a1aa5fec51f8c06bccfddf9"
+    },
+    {
+      "path": "src/musicxml/barline-scope.ts",
+      "sha256": "ea11881813b8aad43b9ce8573b6017644883431979e08b867dd7b4b09219d534"
+    },
+    {
+      "path": "src/musicxml/conditional-ties.test.ts",
+      "sha256": "5fe9f73a1b370fc26a3d16e43112e258afed8cf693c1b08a1377d18cca61e7b1"
+    },
+    {
+      "path": "src/musicxml/container.test.ts",
+      "sha256": "fd68c698ce92bb20c1a1b279b67ecc462eecad85c122f5fb28f58073b9d60e4f"
+    },
+    {
+      "path": "src/musicxml/container.ts",
+      "sha256": "2d9597a622b00cf02e740e203561e1fb604f290ecb41076ac607f7fdc14db14a"
+    },
+    {
+      "path": "src/musicxml/direction-spans.test.ts",
+      "sha256": "86104c13ad205426d516024f3f1af8e3931a708eb8d36beedf9514cbf81cc16f"
+    },
+    {
+      "path": "src/musicxml/element-order.test.ts",
+      "sha256": "0c64a8a995124026c80487b165df23a0b000e9b8e1b2b7b90d6b8b00190d3b0e"
+    },
+    {
+      "path": "src/musicxml/empty-voices.test.ts",
+      "sha256": "88f379f5fb4edee87e64915600f88787e3c014ac43d0edbb8141c0e9693c4e97"
+    },
+    {
+      "path": "src/musicxml/fixtures/expanded-v1-part-export.musicxml",
+      "sha256": "969c416cd5e16cae7d2a7b0716a66bd993bbb5ff39eaa9f7c40a38b761600ee8"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/dorico-unsupported-directions.musicxml",
+      "sha256": "012f99290eb54d817eea15cf554e78d3de095075a6f9a1aadb05a638b5b418d7"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/finale-string-duet-basic.musicxml",
+      "sha256": "02b3deabfd4182021fb0a1c9b6b81b384656779c74ae4fc8e5b7c5b35b5b8d5d"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/manifest.json",
+      "sha256": "f427b9f76cdd30d153c96884f52329155eea089fc7bf927ca20395812365e656"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/musescore-4-7-5-cli-grand-staff-export.musicxml",
+      "sha256": "1b086c6137b1daeba049bf541cae6d0bf3760e87f5fb33840e36eed48d3f375c"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/musescore-grand-staff-basic.musicxml",
+      "sha256": "5fc062ab59cce6f3fa64934460822074617fba20f683e58349d01aeb90bab125"
+    },
+    {
+      "path": "src/musicxml/fixtures/external-apps/sibelius-multi-voice-basic.musicxml",
+      "sha256": "2c6f484833f45da2456018bb583452db0b23c77407aae154f322e1428819bb57"
+    },
+    {
+      "path": "src/musicxml/fixtures/release-qa.musicxml",
+      "sha256": "8e97686950b09773f3e890b66149e857ce8d1f215691599e96208bac7c6e352f"
+    },
+    {
+      "path": "src/musicxml/fixtures/rest-hairpin-input.musicxml",
+      "sha256": "3b44a2de98b24be0663659862ceee0320936af2fd8c92de2b31f4f2c280308be"
+    },
+    {
+      "path": "src/musicxml/fixtures/single-part-treble.musicxml",
+      "sha256": "399faf0cc83aecf90be10e9e90bbc16d5c00c8314de9938c9d3655142351dd0b"
+    },
+    {
+      "path": "src/musicxml/fixtures/tuplet-input-progress.musicxml",
+      "sha256": "87cf672c3cbeab801cd16bbabab9521bd5dc70b7268c82e2cb04d566efcf8737"
+    },
+    {
+      "path": "src/musicxml/harmony-display.test.ts",
+      "sha256": "7a38a4a0571329c356a40ba3f250e699b04efffd75b248b0af3f58388120faa6"
+    },
+    {
+      "path": "src/musicxml/harmony-schema.test.ts",
+      "sha256": "f513fee1986a81e857121b39beda4527eb17442beb3e9ed30a5b068bc4c4307e"
+    },
+    {
+      "path": "src/musicxml/harmony-text.ts",
+      "sha256": "a22b31ebf95133ecbe3ecbc1af0874146185004d85d1ab6ed9c45993cb8dbeff"
+    },
+    {
+      "path": "src/musicxml/harmony-timing.test.ts",
+      "sha256": "8a80ee14bcfa8b3b9d9e4f49260ebbb0d6a0cca2e05e982926a4a1ef6e202f8d"
+    },
+    {
+      "path": "src/musicxml/import-warning-fixture.test.ts",
+      "sha256": "656909fcd5805b5485041332fcf2a5072a3d71549b30721060b9aba9a15a0bd7"
+    },
+    {
+      "path": "src/musicxml/index.ts",
+      "sha256": "0d40150f56263ea5666aabd5dd2a1597244d09e70e6decc63930efc71781ed9b"
+    },
+    {
+      "path": "src/musicxml/layout-breaks.test.ts",
+      "sha256": "5c08d6049bf2146561e4ba3f12629f76123473945568e2afaa291915c3453a24"
+    },
+    {
+      "path": "src/musicxml/let-ring.test.ts",
+      "sha256": "6bfb181eed1e2a5ef9baecd937b4a586f7428ddba2dec1a3afd908783a358ee9"
+    },
+    {
+      "path": "src/musicxml/musescore-mxl.test.ts",
+      "sha256": "f4c594dceae31cbfceda6d29f30220bc4c4f7ef8e0da21876955da74b1de8596"
+    },
+    {
+      "path": "src/musicxml/musicxml.test.ts",
+      "sha256": "2a6f92dec79824da6f32be0ce80e36e0e7d1ed3a8e5f9286ff95a29b15c04cca"
+    },
+    {
+      "path": "src/musicxml/octave-pitch.test.ts",
+      "sha256": "8883d46c70fb52fe3a1d53424415eeab54e8ab823269551d1348b2afc74be495"
+    },
+    {
+      "path": "src/musicxml/octave-range.test.ts",
+      "sha256": "ac72b3d4c7c4fdadda491a3a729c0b9749b9899397c9603f73b9aab7982632f4"
+    },
+    {
+      "path": "src/musicxml/page-layout.test.ts",
+      "sha256": "b1c1835cc265d90329aaf1f33f548cbd31967d126a814cef7585344ed61b4302"
+    },
+    {
+      "path": "src/musicxml/page-layout.ts",
+      "sha256": "5660305c810665d9a8e6e771a231b3b507a7d5598ff8c882a4cf57d7329e95ba"
+    },
+    {
+      "path": "src/musicxml/parse.ts",
+      "sha256": "6475ae8ad5ec21e24c9777705cbaa326d52699d3a415ef66e0aa7fda04a11f4c"
+    },
+    {
+      "path": "src/musicxml/part-markings.test.ts",
+      "sha256": "ffddfe941ba354a381f76a9ae3076e4653b379424d63c65a2bb321b8914d3117"
+    },
+    {
+      "path": "src/musicxml/partial-chord-ties.test.ts",
+      "sha256": "95a2a221a06f2d020af117325851ae9d55048beb9dbf756403259f62e078ac3d"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/README.md",
+      "sha256": "03d33e97e7acec5ed1ad2bbcfa1c9ee965d29766e8e893b50ee890b2cd0ade58"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/SOURCE.json",
+      "sha256": "5fe076637e0aa1dfc3908ad83226c54fc5711c49c2c64ee38d33b2287a004ddf"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/catalog.xml",
+      "sha256": "605526573623336f81f908b677c1c8e9cc3ed1e4b803f2eb63540068ab5efa53"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/musicxml.xsd",
+      "sha256": "bfe37ed25a9ec00e6f2591d53df260b84efe12aed209ba3ac0a76f9287665a99"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/xlink.xsd",
+      "sha256": "6e601f8eeb41618b50e4c7f944dff754e57ea43b602755470dda24c9c2f6df92"
+    },
+    {
+      "path": "src/musicxml/schema/musicxml-4.0/xml.xsd",
+      "sha256": "616a3077df5cfc954ac74a75abe9697b95eef7a85dbe09367d995a483e840eb5"
+    },
+    {
+      "path": "src/musicxml/secondary-repeat.test.ts",
+      "sha256": "12b10299d46cf2051f872ed036ff589a6a5ec44737c270e260352a95708d3653"
+    },
+    {
+      "path": "src/musicxml/serialize.ts",
+      "sha256": "e57d2eb658f47f03847c9440ec725606438a77d225642c66363f9a01687cea94"
+    },
+    {
+      "path": "src/musicxml/shared.ts",
+      "sha256": "8d4cea1e26b47611436be391f9d53b6a2f0b0aa55be3135bdda0b8ef4f4602af"
+    },
+    {
+      "path": "src/musicxml/span-endpoint-order.test.ts",
+      "sha256": "0701a5432e8062ece9bddb589f1484f747e3275768948cdeef6b6f60f8428839"
+    },
+    {
+      "path": "src/musicxml/staff-attributes.test.ts",
+      "sha256": "24da4d989ed398815962254cf778c64e5b868927fba942ec6bd9c8aaccf99697"
+    },
+    {
+      "path": "src/musicxml/tempo-label.test.ts",
+      "sha256": "e0fe0e8c21080b98646eaa30ae486b6638965018bd2fcbf9dcf8352fa8e5fc11"
+    },
+    {
+      "path": "src/musicxml/tempo-position.test.ts",
+      "sha256": "83d607060d4784362668589886c99238129746873a54328a67f7c93da98cca37"
+    },
+    {
+      "path": "src/musicxml/tempo-sound.test.ts",
+      "sha256": "a14d184fc822fc2cc072e2821dcfc840194956510444131fb4eeb8bd1357f77f"
+    },
+    {
+      "path": "src/musicxml/tie-representation.test.ts",
+      "sha256": "4af35364c3f41e9cdbc5b9bc51569e7cfc65cc68823e871044ba1a2ba8ef1360"
+    },
+    {
+      "path": "src/musicxml/transposition.test.ts",
+      "sha256": "c544bc2bce7bb79b793dc779cbe821c54ab166bda6c707b1725a1ca6ff3d8590"
+    },
+    {
+      "path": "src/musicxml/unattached-ties.test.ts",
+      "sha256": "18aadae44b96dd663a83d494504462fec9540126327ce6471be57eab97fd4d90"
+    },
+    {
+      "path": "src/preload/index.ts",
+      "sha256": "61ddbd3b43afd3bbf967bfaca2f165d1275d56421018eeb0f449573800a0a76e"
+    },
+    {
+      "path": "src/project/backups.ts",
+      "sha256": "89b3f5b95a849c6ced45c6d979f11d93024600f1213f53dc8ac1808964b5f09d"
+    },
+    {
+      "path": "src/project/empty-span-engraving.test.ts",
+      "sha256": "52d67e72ef476c8e876570616ad6816d0c6e2ce00f0099aeb229a82010177f5e"
+    },
+    {
+      "path": "src/project/expression-clearance.test.ts",
+      "sha256": "234d77c5b31c0bf6c5e5b9a17b53c8f3517ef1aafaea1b6c64c6b802f1af6328"
+    },
+    {
+      "path": "src/project/header-pagination.test.ts",
+      "sha256": "b07d8a79d12967db86f0666562b50bc9e7b6ad873a0feff07dbcfeb2bcb33e8b"
+    },
+    {
+      "path": "src/project/high-fermata-ties.test.ts",
+      "sha256": "23433091b7443521f2af21a2ba31fc3f710822577335a2ebec48c4e3dd8f6bf3"
+    },
+    {
+      "path": "src/project/interior-fermata-slur.test.ts",
+      "sha256": "649a3e9003f69896298bd34de7e06137c5fb9249bef301d7200886adc5e64bb1"
+    },
+    {
+      "path": "src/project/interior-hairpin.test.ts",
+      "sha256": "b826710506d2a8f51aec40a2ee6e8800fd11578c441482193ade36d96c051f51"
+    },
+    {
+      "path": "src/project/narrow-print-header.test.ts",
+      "sha256": "feda2e8993abd5d5441ff1ae100a5273a703274418fdd88b067ff757d2019118"
+    },
+    {
+      "path": "src/project/open-wizard-intent-fixture.test.ts",
+      "sha256": "b3a603b83d538257de3990f3f30849cb3e8e028a685a6f661d6e478dde22174f"
+    },
+    {
+      "path": "src/project/part-layout.test.ts",
+      "sha256": "e21d0a4832f4e0d38134753ea8eb57d7a6a88bba9a4221bccf220365b4cf5963"
+    },
+    {
+      "path": "src/project/part-layout.ts",
+      "sha256": "4bd55aa92946342d55e89b5bf061a44c9eecc700ba6fdd9725f5ef48048aac17"
+    },
+    {
+      "path": "src/project/part-print-header.test.ts",
+      "sha256": "9c09d13ab413e25ee24d13cbfa9003468bf46ff8c52bce633364bd09a7365884"
+    },
+    {
+      "path": "src/project/print-header-fixture.test.ts",
+      "sha256": "3f751c419e71cb05254dc6629441bd58e26a6c553e7708a63df1f92e69b58866"
+    },
+    {
+      "path": "src/project/schema.test.ts",
+      "sha256": "b0d6b0a8523ff2203cd228c8bc30f23852387b259c94b97282e1d875350cfee4"
+    },
+    {
+      "path": "src/project/schema.ts",
+      "sha256": "037f0a71212825f351cf01d82eac2513ebefcee041add1afe4cbd2039d90f69a"
+    },
+    {
+      "path": "src/project/span-engraving.ts",
+      "sha256": "e7b1db13c36ee0bee2a207f5a10121dda9324cc9bd713ed08e41ea1e449a2b13"
+    },
+    {
+      "path": "src/project/stem-expression-hairpin.test.ts",
+      "sha256": "57b0ef744ba4b52cdab50a4f1d9aabc0f8281d4f086df8e990054da604e0bf79"
+    },
+    {
+      "path": "src/project/structural-part-layout.test.ts",
+      "sha256": "9fae50f3360fdffe3a02ea835542b1bd5b9e42b58c506e40a0d026ddfecdd9ed"
+    },
+    {
+      "path": "src/project/tie-clef-change.test.ts",
+      "sha256": "72e0fb11836f8ed77e1e485c5ab3a1009bce62ce17e2b6653263a6e24d8d21c8"
+    },
+    {
+      "path": "src/project/tie-part-pages.test.ts",
+      "sha256": "4c5d11aa654dc2be862e81d570974dd85e6362525a8d14531663ae3fa68de1e2"
+    },
+    {
+      "path": "src/renderer/index.html",
+      "sha256": "599caf34d9c0263d2dbd65274cc4a521bfcbe2be30fd05963969d9a37fa241a2"
+    },
+    {
+      "path": "src/renderer/public/piano/.gitignore",
+      "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d"
+    },
+    {
+      "path": "src/renderer/src/App.backup-reopen-ownership.test.tsx",
+      "sha256": "5fa8b0113d4b35d64f4e388c6f02b2ceaf5c02da2c4579851091064f8f108eb0"
+    },
+    {
+      "path": "src/renderer/src/App.commit-keyboard.test.tsx",
+      "sha256": "bc12262d572fbc5e5e5cc2fcd33531a234a8d98221716a4d16c410f38597c07a"
+    },
+    {
+      "path": "src/renderer/src/App.native-page-setup.test.tsx",
+      "sha256": "da9d9bd867b25fd09ace3eda7dda7f6977a33e88acf5a94575c7fabff15805bc"
+    },
+    {
+      "path": "src/renderer/src/App.notation-exchange.test.tsx",
+      "sha256": "5838fb4974003bc048cc1503c265f3eafec0a4acaf193126ab9996af3bc3ee39"
+    },
+    {
+      "path": "src/renderer/src/App.open-wizard-intent.test.tsx",
+      "sha256": "efd2877c1a9bd7f725653b2185e2d08adcca293ec6c29cc2fdfc34a6d0151a58"
+    },
+    {
+      "path": "src/renderer/src/App.properties.test.tsx",
+      "sha256": "bee68cba165d43b8d5c8430c9d9a92bad7268af47428ecbbd321ddffdb46d4bc"
+    },
+    {
+      "path": "src/renderer/src/App.search-focus.test.tsx",
+      "sha256": "57b6d5b9586c9dba3b1408cbecb97426fb8c26adc4b5b5ae40bd3cd2ff93e194"
+    },
+    {
+      "path": "src/renderer/src/App.test-harness.tsx",
+      "sha256": "fc99a904331f2941ce84b86c81229a97db88a18e181fcb10c75aa8404d779bab"
+    },
+    {
+      "path": "src/renderer/src/App.test.tsx",
+      "sha256": "cd7ba9a4e48aec20dd001733739738249cec4573d6132d5556c5e80b5fc825df"
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "30dbeea7b3e7576628170ccea2ea01cde3ad675983d905a7a0d40e1555a07663"
+    },
+    {
+      "path": "src/renderer/src/App.wizard-focus.test.tsx",
+      "sha256": "63a975806fdb24a861e4c5c850f14d960954e0a6a231e33a715f0b377ca22b8c"
+    },
+    {
+      "path": "src/renderer/src/App.workspace.test.tsx",
+      "sha256": "a620afd3dd6f0e5992e2f96750b941c288e08018edb715a7e541a459a711ce13"
+    },
+    {
+      "path": "src/renderer/src/NativeBackupsDialog.tsx",
+      "sha256": "4a94e8f5e51566b005ad68b01ae36ac3e41f409bf349257fe71ff4587b654bb2"
+    },
+    {
+      "path": "src/renderer/src/NativeBackupsDialog.validation.test.tsx",
+      "sha256": "0c99899bb1ba773bdf78f3103f773eed4ca3b124c4d396d629b719248f1dd6e6"
+    },
+    {
+      "path": "src/renderer/src/PdfSnapshot.test.tsx",
+      "sha256": "fdc092a9f5b42df258b86e3f683388845c92fa2124457cb80019fa80d56c919f"
+    },
+    {
+      "path": "src/renderer/src/PdfSnapshot.tsx",
+      "sha256": "8a3c7f614b69daaee7af9dea797a7c1a19ba757be3f8683673ea4b51b6651673"
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.test.tsx",
+      "sha256": "0cbdf12edd3c0755868d09e6469fbc7c42b77dabf0e5ec806a75aa73abb7d728"
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.tsx",
+      "sha256": "66b6d6ad98748ecf2e2388466f2d19db284ba0e40399a360496096b6951fac95"
+    },
+    {
+      "path": "src/renderer/src/StudioApplicationMenu.focus.test.tsx",
+      "sha256": "bd91de710b6a608cae5baa2adef98de0fa70fdf92b3053bf842af5a23385fa3e"
+    },
+    {
+      "path": "src/renderer/src/StudioApplicationMenu.tsx",
+      "sha256": "2ad3470c155e641abf2655d703e35ba11ded0128680c02b3261f37b0126bb01e"
+    },
+    {
+      "path": "src/renderer/src/StudioChordProperties.tsx",
+      "sha256": "09e93e560e96c65134c97f0871fbda57c7a9794a3557dd26c687bc4cd2a867de"
+    },
+    {
+      "path": "src/renderer/src/StudioCommandSearch.test.tsx",
+      "sha256": "1030669ff82bdea12be689106e53e93f09170ac52925f1b630b5702846c2c45b"
+    },
+    {
+      "path": "src/renderer/src/StudioCommandSearch.tsx",
+      "sha256": "0949f4a61dc72ac402f1991c52f0ae96abdb4ce860877e9ea4ec3b4aedf38560"
+    },
+    {
+      "path": "src/renderer/src/StudioDockHeader.tsx",
+      "sha256": "b74a2b80ccc612d6212f9c795dd5f924cf9440da26025180ec879e46b9a2d6a3"
+    },
+    {
+      "path": "src/renderer/src/StudioDockResizeHandle.test.tsx",
+      "sha256": "cea10afd7569ab75b4b63a4a443b6056ab9fec8b72e8588b7cce6345041aa47a"
+    },
+    {
+      "path": "src/renderer/src/StudioDockResizeHandle.tsx",
+      "sha256": "8d277897ff1fdc25882e2d6d305d6d61d16c0e689a6095d2ac883974d59d1575"
+    },
+    {
+      "path": "src/renderer/src/StudioEventMarks.tsx",
+      "sha256": "4a9952401f89954dc1a31f9c4470ede44d688cf6d8bdb3aa1858414be5e47be6"
+    },
+    {
+      "path": "src/renderer/src/StudioExportTools.tsx",
+      "sha256": "23376346dafe4347337c232e1f76e41e211257c64895b28584860d931ac2ce95"
+    },
+    {
+      "path": "src/renderer/src/StudioFileTools.tsx",
+      "sha256": "37dc1f83eb83d9cd73813bd04052fbc32ce309e04df54038da42748dc01a1839"
+    },
+    {
+      "path": "src/renderer/src/StudioInputTarget.test.tsx",
+      "sha256": "7c4f935bebae0d06a5fea995158b83cf84d18f5090a18cf16ff0ae7db1a2169f"
+    },
+    {
+      "path": "src/renderer/src/StudioInputTarget.tsx",
+      "sha256": "debc7c668d861358b7f82a8f1c050687bf459637dd0759946fdafb9e31010c1c"
+    },
+    {
+      "path": "src/renderer/src/StudioLyricTools.tsx",
+      "sha256": "1a9e2c8baffaab8b369c59bda49e09b3359254999203e9d05dd5449a678c7a4f"
+    },
+    {
+      "path": "src/renderer/src/StudioMeasureContextMenu.tsx",
+      "sha256": "da75b36e87749fa600c13d257ba6bbfc76fb73936218d9647443cc350b69aa12"
+    },
+    {
+      "path": "src/renderer/src/StudioMeasureNotation.tsx",
+      "sha256": "c303546cf3ac142d0a1086abebcba47eec7c5d09c750c69b2041ea6a94919322"
+    },
+    {
+      "path": "src/renderer/src/StudioMeasureTools.tsx",
+      "sha256": "6b6b1d896a2dcafb955c6b6b4aaf5327639843a707d67e893115edf91db7badb"
+    },
+    {
+      "path": "src/renderer/src/StudioMetadataActions.tsx",
+      "sha256": "f9b26a54f7e7c4bf4f2a0f4c67de90cc88e6503c02c8509e728ba7cb3fca9533"
+    },
+    {
+      "path": "src/renderer/src/StudioMetadataInput.tsx",
+      "sha256": "98c228ba946ebf366090e5026e08cd6b00f8444f5eb9404697202edbdf1cd2f0"
+    },
+    {
+      "path": "src/renderer/src/StudioNotationPalette.tsx",
+      "sha256": "f2a43c1cc98f903c78fa05a71f85d8bb9bf31b04191efea3b3778a64e48fcd61"
+    },
+    {
+      "path": "src/renderer/src/StudioNoteDecorations.tsx",
+      "sha256": "7b17020d05279a49683e886778cf8c668e9f548431d320bade07eee209634d1f"
+    },
+    {
+      "path": "src/renderer/src/StudioNoteToolbar.tsx",
+      "sha256": "765b9a1c3fd3108553ca57a63a45bdf97255cf5f3c8d2c6220f664ede08ef0b3"
+    },
+    {
+      "path": "src/renderer/src/StudioPageSetup.tsx",
+      "sha256": "cf7fdd84f0d5b4cab201fcf9730214bf2844132f0dbf28a039152de559275571"
+    },
+    {
+      "path": "src/renderer/src/StudioPartLabels.tsx",
+      "sha256": "6899d8a59a2ca74d962678504959015489fee164294bf5191609c76884b5afc9"
+    },
+    {
+      "path": "src/renderer/src/StudioPartSetup.tsx",
+      "sha256": "5688a633f404bd02df7ca2a0ac87c33e2e3ed302617288fe71231996d0f0631e"
+    },
+    {
+      "path": "src/renderer/src/StudioPiano.tsx",
+      "sha256": "2dbe4218fc38382e623389c2727751a45a3892501c849aa06ebf43331707f86d"
+    },
+    {
+      "path": "src/renderer/src/StudioPlayback.test.tsx",
+      "sha256": "e052bb20916d1a2464fef0c9f91125b2cd798f7e37ab88d0c0d20750b191a7de"
+    },
+    {
+      "path": "src/renderer/src/StudioPlayback.tsx",
+      "sha256": "e96b81fbbb3239a54c5815ae00bbc48e7ddd295bcd2f828a1d828a67930a61a8"
+    },
+    {
+      "path": "src/renderer/src/StudioPropertyDisclosure.tsx",
+      "sha256": "f0d615de4ffa138388cd836c4b92d10a584631c925e28193175ef63803169131"
+    },
+    {
+      "path": "src/renderer/src/StudioRangeTools.tsx",
+      "sha256": "fe10ffa4a6d3c696a5f1ad64b3091bab85cff9913a6aeb179463714f41694a60"
+    },
+    {
+      "path": "src/renderer/src/StudioRepeatTools.tsx",
+      "sha256": "7de3f8f268650ef2e973d21b9ff487c2d24179a4ac3a488c641adc5752433496"
+    },
+    {
+      "path": "src/renderer/src/StudioScoreView.test.tsx",
+      "sha256": "a96b4472a00ba30533005c812ba1f4829c8424deb852215a0a1cc1792d18e3dc"
+    },
+    {
+      "path": "src/renderer/src/StudioScoreView.tsx",
+      "sha256": "6d0e3e09208e2afe444f5e238e9b2bfe6021b4fcc5b461fb71832bee8a160c46"
+    },
+    {
+      "path": "src/renderer/src/StudioSelectedProperties.tsx",
+      "sha256": "7fa34fc4da570cdc152fb4aa72c372104b8d20c652def78b7abc5982fc0dcf36"
+    },
+    {
+      "path": "src/renderer/src/StudioStatusBar.tsx",
+      "sha256": "08989c419dc013d7c67d08a4ced45e32669f2ef41b7b1c4fc2b899834952a06f"
+    },
+    {
+      "path": "src/renderer/src/StudioStructureActions.tsx",
+      "sha256": "91388494a518c8321bff35a712c064a8dc00e961a77dd1f680a4d0ba075da713"
+    },
+    {
+      "path": "src/renderer/src/StudioTempoEventInput.tsx",
+      "sha256": "64a00a303ab010121d5fb7df77d448eb89554a76baf679be06925782c45d31f2"
+    },
+    {
+      "path": "src/renderer/src/StudioTempoTools.tsx",
+      "sha256": "0cceb8be2f9bc98aaab84db68c4c53d050494fdd9d8b14e8a1d56d0694bd2ee3"
+    },
+    {
+      "path": "src/renderer/src/StudioWarningReport.tsx",
+      "sha256": "ccc8e7fd5fedabb1c8ce240774ab16ea8cbe2dde3bae2b5c259f4c4ecb60110e"
+    },
+    {
+      "path": "src/renderer/src/editor/editor-state.test.ts",
+      "sha256": "9741d6782aeddb769a1cb1ae8092976673670b0e29509eba639a0d6278b50e96"
+    },
+    {
+      "path": "src/renderer/src/editor/editor-state.ts",
+      "sha256": "d347c88218dbd7e03b09dff37d3d22fc7dc287f92e98027638c90a6c3b32ba3c"
+    },
+    {
+      "path": "src/renderer/src/editor/file-lifecycle.test.ts",
+      "sha256": "5863ad4a432496513c91df92ae24dffb61bee528923028cae5244b9133642529"
+    },
+    {
+      "path": "src/renderer/src/editor/file-lifecycle.ts",
+      "sha256": "885122f6a1f3ce99549959d9bc0d70abb59dcad32e31b86088cee644247756d9"
+    },
+    {
+      "path": "src/renderer/src/editor/global-measure-reference.test.ts",
+      "sha256": "ae323e6cd7f7e9796958d95758c1aceb0b9513eda3604b646f0ea98389b0da85"
+    },
+    {
+      "path": "src/renderer/src/editor/global-measure-reference.ts",
+      "sha256": "a6c71dbf1fbfb6f07cb94e97c71307deafe7d6e044747cd46541b17eabd10d61"
+    },
+    {
+      "path": "src/renderer/src/editor/input-position.test.ts",
+      "sha256": "260a878b3cf1247e204bb77ca1f0d003cce113756ea1567fa150c0a7d1a1a3ee"
+    },
+    {
+      "path": "src/renderer/src/editor/input-position.ts",
+      "sha256": "e25a5618f72b8c2b798872a38b62400a983a11ef885aadd88481c397a8baf7a6"
+    },
+    {
+      "path": "src/renderer/src/editor/instrument-transposition.test.ts",
+      "sha256": "058e5ead40b914af8423992d592dd4e3f6297f864e709b005808b4eac23734ba"
+    },
+    {
+      "path": "src/renderer/src/editor/instrument-transposition.ts",
+      "sha256": "68b4c0e8631e59a6c689f3056543e171755d4a123426e097c266aa703005850d"
+    },
+    {
+      "path": "src/renderer/src/editor/key-signature-chords.test.ts",
+      "sha256": "87fdcb91c39c2327ded6aff71a61bbfbee12619b6f06c3e4c66f921f2790a5d3"
+    },
+    {
+      "path": "src/renderer/src/editor/key-signature.ts",
+      "sha256": "398c444d7ff1ba28c773e0daa312fc09a0cfdd4372b58830ab8d3469b77d89c6"
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.test.ts",
+      "sha256": "5e07980f477a8224d3c03d5e022298c65e5cd9d4558128b78a6962364b99687f"
+    },
+    {
+      "path": "src/renderer/src/editor/keyboard-input.ts",
+      "sha256": "cd8ea5fe4094e7e8f906312ef6bf71ce72567d4c814287a38005abc5be94aeda"
+    },
+    {
+      "path": "src/renderer/src/editor/korean-music-terms.test.ts",
+      "sha256": "1de026cc5c59dbd5548cf4de8724c06c15565b342903fc6617b572a9b2d02e3e"
+    },
+    {
+      "path": "src/renderer/src/editor/korean-music-terms.ts",
+      "sha256": "a2784458df8c930d61d4b5e001b9d17c85951517749a6c86f9c36ad3de69fe51"
+    },
+    {
+      "path": "src/renderer/src/editor/lyric-editing.ts",
+      "sha256": "b7c34adab467eddb6183f8253f4e2ef961b144a1cb5e3f1045a5d8e16098df2d"
+    },
+    {
+      "path": "src/renderer/src/editor/marking-save-order.test.ts",
+      "sha256": "9fd857f7dbb807818c160822aec99d36d9fb2f1c93248ac2466bcbe17de44612"
+    },
+    {
+      "path": "src/renderer/src/editor/marking-save-order.ts",
+      "sha256": "012d12b312dfbaee6dc2153bce287d8ea5a11219ab60cf78320a7c2102057ef2"
+    },
+    {
+      "path": "src/renderer/src/editor/measure-management.test.ts",
+      "sha256": "04a7581df8c9bb9351835795a95251e3e81da746b37a0a54c80d1b7eefb8b334"
+    },
+    {
+      "path": "src/renderer/src/editor/measure-management.ts",
+      "sha256": "10d19b279b9b7be24f49ab4d35471dd935922eac9033b2c7908ad86bd459f410"
+    },
+    {
+      "path": "src/renderer/src/editor/measure-markings.test.ts",
+      "sha256": "9dfcb62dc9084bb031c5e9ab625cd6eabc615b7780d06e20eb47f30e574e949e"
+    },
+    {
+      "path": "src/renderer/src/editor/measure-markings.ts",
+      "sha256": "dfe08e9f8fdf3013553a1740337470bf42c3ae21fa3f528833f572ec73d331e9"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-empty-measure.test.ts",
+      "sha256": "8df934dca5d45578067e1681d61c76ef82f6f73c5c84082720d8f55481cf30ec"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-empty-measure.ts",
+      "sha256": "595423a8a07ba924968c08b1b17d93bb54fbaae3d7b9a015d1e568b57f95f3ea"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-metadata-conflicts.test.ts",
+      "sha256": "0d555905d26157b4996606d49c38446df558e56012998daed03f008f1577a649"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-metadata-conflicts.ts",
+      "sha256": "b4bde09ec5623409cbbb81bad8fad55ad5638fde81bfb13b4205510416490f60"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-repeat-conflicts.test.ts",
+      "sha256": "f55b7e653e1d669cc9fa0a6ba6d673412ed1c73fec37bd561e1c835d0f8f2a46"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-repeat-conflicts.ts",
+      "sha256": "4661864203f6761a1a1ca8092854fd8ed1e72388ad45433937e26088213053b8"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-signature-conflicts.test.ts",
+      "sha256": "3322aa5a6ef7e78f9f794431ff9f4cfbdac2b3b350be353d425f442276ea473f"
+    },
+    {
+      "path": "src/renderer/src/editor/musicxml-signature-conflicts.ts",
+      "sha256": "59aaf61e0bd4c473cadf2c07a957080f4baf410db4f4b5d5b2abc46816e36eb1"
+    },
+    {
+      "path": "src/renderer/src/editor/new-score.test.ts",
+      "sha256": "e06606a724caf1bd5850bae3cc60c2fbedd71ef9e12634bd2c019d3630d5ebd7"
+    },
+    {
+      "path": "src/renderer/src/editor/new-score.ts",
+      "sha256": "c6005ab40d49d5c7757931a8898ce46f6b6314420e86f334527f7f34a7059dbc"
+    },
+    {
+      "path": "src/renderer/src/editor/note-input-state.test.ts",
+      "sha256": "9694c77a01c3a85f59ab35717c7cb0f3f0c6f3236236bd00957194065fa728b8"
+    },
+    {
+      "path": "src/renderer/src/editor/note-input-state.ts",
+      "sha256": "3d5d512a019f3034e80d7ae9149e8979bc68b301861e3fe995c05c2ef8a31a2e"
+    },
+    {
+      "path": "src/renderer/src/editor/part-option-labels.ts",
+      "sha256": "c757adb7b3c75bef17e7f594fb73990202ba62a3b0b554d9ba5414d8609eff80"
+    },
+    {
+      "path": "src/renderer/src/editor/pitch-editing.test.ts",
+      "sha256": "6c5c97c708c1a75017855c392aa582630db01eede86bde761aff87a1f94e01bd"
+    },
+    {
+      "path": "src/renderer/src/editor/pitch-editing.ts",
+      "sha256": "5cab6cf37a24c4fd421e21706081847d24a9ed38e58b5e6a1f62f48ef30cff0c"
+    },
+    {
+      "path": "src/renderer/src/editor/pitch-range.ts",
+      "sha256": "efb7d3a4a032e382a779fd38b429adda705d50f853d2f87a21749f764aa0a082"
+    },
+    {
+      "path": "src/renderer/src/editor/repeat-scope.test.ts",
+      "sha256": "310ef5c18ae43d95a1dd0a287662d73d20c7bfefd1b4013e6dbab3a5f1bb37a5"
+    },
+    {
+      "path": "src/renderer/src/editor/repeat-scope.ts",
+      "sha256": "e72fef5233712a86dca364c4b46a5944c434513a7a16ec5c91676501d502dd7b"
+    },
+    {
+      "path": "src/renderer/src/editor/single-dynamic-clipboard.test.ts",
+      "sha256": "5071d14b5ae8493a7a63531551776b19f9e08b1dac0fde29a31dafdc27993d3e"
+    },
+    {
+      "path": "src/renderer/src/editor/single-harmony-clipboard.test.ts",
+      "sha256": "8c66c0c33c3d20c7cf2b831fd1f5ed3daebb31f3eccac95ec059001ddb2aca2d"
+    },
+    {
+      "path": "src/renderer/src/editor/span-editing.test.ts",
+      "sha256": "c3d32635b2dd27eb53eb98296b0ae2e9d9a26f171b54046d000db7ab5f6a226f"
+    },
+    {
+      "path": "src/renderer/src/editor/span-editing.ts",
+      "sha256": "b9312d8910425bc4e496ba63c8ed05945fa8fa30e4f128d79b9dff251b99e307"
+    },
+    {
+      "path": "src/renderer/src/editor/time-signature.ts",
+      "sha256": "837103511b277ebc647aa175096dc41557ba1f4a22404ead53998c59c9dd35ab"
+    },
+    {
+      "path": "src/renderer/src/editor/tuplet-feedback.test.ts",
+      "sha256": "a02a625db722da8caa80c3b8d0f5c6f7ad24b82548f80a8346ad46b317bda743"
+    },
+    {
+      "path": "src/renderer/src/editor/tuplet-feedback.ts",
+      "sha256": "844b43dfe030865906df9d1189f7a4be214e65b36f7ba867ac5bd9164fdcbba1"
+    },
+    {
+      "path": "src/renderer/src/midi/serialize-midi.test.ts",
+      "sha256": "42589c4b562907727d7915d404f871da5a1bd38bbb6fecc7b55235136c936b55"
+    },
+    {
+      "path": "src/renderer/src/midi/serialize-midi.ts",
+      "sha256": "ec56fa02b0a89fbe55df5e1eaf2a86ffbe758ffbc925c70986cc604c04b9f031"
+    },
+    {
+      "path": "src/renderer/src/midi/warning-policy.test.ts",
+      "sha256": "1302be9ba40f47c12b9a9aec194c99bd769b1d8037c8fcf4e088e7be15e2f596"
+    },
+    {
+      "path": "src/renderer/src/notation/NotationPreview.tsx",
+      "sha256": "5bf1e49d1f1e5374b85443b48a2629a3dfbfeee7814e88b81871a689c404901e"
+    },
+    {
+      "path": "src/renderer/src/notation/StudioInlineLyricInput.test.tsx",
+      "sha256": "e841c8c8b4eddd331e35595f5da1306e6161f4cd5c47dd2978674dab5583fc83"
+    },
+    {
+      "path": "src/renderer/src/notation/StudioInlineLyricInput.tsx",
+      "sha256": "f51f99ece2041378eef4ed2b51c307eb5c33933e861467b8bdf8b7efd65918a7"
+    },
+    {
+      "path": "src/renderer/src/notation/annotation-lanes.test.ts",
+      "sha256": "431b7945e0955d19e02cff0f796fa2a8399d50a28e8a702f8694ae9be2416d03"
+    },
+    {
+      "path": "src/renderer/src/notation/annotation-lanes.ts",
+      "sha256": "45aed2820f13ea24785cbe1743a716ed22aa1abc36cdf1c6e9f442ee9064c73e"
+    },
+    {
+      "path": "src/renderer/src/notation/beam-groups.test.ts",
+      "sha256": "0cbc5639377ae90c25f21e3a7312b57bb6f700213d9cdfad38afb8a2a2dea741"
+    },
+    {
+      "path": "src/renderer/src/notation/beam-groups.ts",
+      "sha256": "f1c88f4e1b63f5ab5daf09268ec8202593f29e5537f78a8f31c5d11fea8e2089"
+    },
+    {
+      "path": "src/renderer/src/notation/chord-accidental-memory.test.ts",
+      "sha256": "9cf20e5aee4420a3ff6f1649189388ac59f27764ee695afdf2f8f0ce185d9307"
+    },
+    {
+      "path": "src/renderer/src/notation/chord-accidentals.test.ts",
+      "sha256": "6ef3c16921e90117616d610cb01d4d00cdd20e12c44aa4c443a1af660f28d6ef"
+    },
+    {
+      "path": "src/renderer/src/notation/chord-ties.test.ts",
+      "sha256": "2c04f25fd3d5344df8e1e9f45f2bba477b8562be309fdc0b07766dbbda9a1a97"
+    },
+    {
+      "path": "src/renderer/src/notation/demo-score.ts",
+      "sha256": "47a2b7d43f09d39bb6509310db919aa564c765490e0c770284292383bc564a94"
+    },
+    {
+      "path": "src/renderer/src/notation/dynamic-ink-spacing.test.ts",
+      "sha256": "be0d4e20fc17b8827b81470886756efd19046ff305e9dcc045330fc566644155"
+    },
+    {
+      "path": "src/renderer/src/notation/dynamic-ink-spacing.ts",
+      "sha256": "f4744a64080b93a83a917adb74ff080198013d1d48a3f9a64a84e6477a72c0b6"
+    },
+    {
+      "path": "src/renderer/src/notation/expression-ink-spacing.test.ts",
+      "sha256": "91756bc0cf75e23416abfbde965c104ac708a37d39d009f510b4cabc1bf1af53"
+    },
+    {
+      "path": "src/renderer/src/notation/expression-ink-spacing.ts",
+      "sha256": "47e12ef28da929ec01fe3e8594cd00e66d55fa934c6820bba2713d387c4d9f61"
+    },
+    {
+      "path": "src/renderer/src/notation/fermata-ink-spacing.test.ts",
+      "sha256": "8de1906cc4f72c69d58e3228be594ddd21185e1c0e204640a410f836304ce24d"
+    },
+    {
+      "path": "src/renderer/src/notation/fermata-ink-spacing.ts",
+      "sha256": "579eef81182e9a5797fa33237a7e96721249b10724748c9c0b05198c5a18ca5b"
+    },
+    {
+      "path": "src/renderer/src/notation/format-voices.test.ts",
+      "sha256": "b30e06436a39e3bf688cf5541df1ab33ce7a76cb4d0c69a756e8491a898babf4"
+    },
+    {
+      "path": "src/renderer/src/notation/format-voices.ts",
+      "sha256": "37cf6b30469fd1addf7cd12fb7828544fe8d14c3682d4517be40b35a4a585259"
+    },
+    {
+      "path": "src/renderer/src/notation/grace-notes.test.ts",
+      "sha256": "089001f7d6e35f31c1cdf9b5a71f923b4471aa5a2dbe67ae799fc130ceca931f"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-annotation-lanes.test.ts",
+      "sha256": "794e1fa7f27aa519ae4fd342230d227ed383bb8412f45977913e436fdd418079"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-annotation-lanes.ts",
+      "sha256": "7206c8dcca93b63d7947f8b316995b5c533c3cd882602db35fd532340cbff4cc"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-ink-spacing.test.ts",
+      "sha256": "795e3c9f079196d80e59e7a6b841fb8ca7735e9f4e61b382054bccc5165d0815"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-ink-spacing.ts",
+      "sha256": "4ee391a6a11577d4939799b16a84c1be400e1f65b2e9cce8ef116f263341c7f9"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-rendering.test.ts",
+      "sha256": "7e2da62f31ded52edfa270d5a0951ccb1ce53541fb1839e4a7ce568b1232f66c"
+    },
+    {
+      "path": "src/renderer/src/notation/hairpin-rendering.ts",
+      "sha256": "5aedb486f4bedc151492d319a1043032e23767ed37dbf60768e98f3a95d69880"
+    },
+    {
+      "path": "src/renderer/src/notation/harmony-held-spacing.test.ts",
+      "sha256": "58283713449ce28c6a309ed7a886d2c6e37f9f0668c84cfee453a0e86c370aeb"
+    },
+    {
+      "path": "src/renderer/src/notation/harmony-overflow.test.ts",
+      "sha256": "98fa7a46e85f836b31a043e8bc12f133d86cb832fe6aec0018928df128baca7c"
+    },
+    {
+      "path": "src/renderer/src/notation/harmony-rest-spacing.test.ts",
+      "sha256": "c265a65b98936e341b9e2ba1a426f0b84f17e9726812de4bb36fee34d04c8aec"
+    },
+    {
+      "path": "src/renderer/src/notation/harmony-spacing.test.ts",
+      "sha256": "09721776af2a8be54d8dde1df577741fe3531896d0997a5d893b7c3f2177d233"
+    },
+    {
+      "path": "src/renderer/src/notation/harmony-spacing.ts",
+      "sha256": "398d570d31f564eadf5e2407b5e5ce7f6210b8c84dd8503f20b99277a7c2ca62"
+    },
+    {
+      "path": "src/renderer/src/notation/implicit-chords.test.ts",
+      "sha256": "d51a3127f68348428722676110788c095c1de1623c04cfa0826df0bc191f4d4b"
+    },
+    {
+      "path": "src/renderer/src/notation/input-viewport-ink.test.ts",
+      "sha256": "1ac804358061cec4626be3d7672e2657c2e0309d2588fdae220d47374700d44a"
+    },
+    {
+      "path": "src/renderer/src/notation/input-viewport-ink.ts",
+      "sha256": "5c8a1ed3e0d1519e3e992c6c175a04fae71345b530ab250720a24481163c5099"
+    },
+    {
+      "path": "src/renderer/src/notation/key-signature-header.test.ts",
+      "sha256": "e3888e857d246f8d8864f892cf6ba4be394e090121f82a8bae718c27620ca6d0"
+    },
+    {
+      "path": "src/renderer/src/notation/key-signature-header.ts",
+      "sha256": "ecef4047853d2079e214524e78b0583c98979a64ddf40ab514e7b793e5ef6043"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-editor-state.test.ts",
+      "sha256": "055b6e1860af8d5191a24cea2918606cfaa30b7ad138dd84f528c05a0eaa37c8"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-editor-state.ts",
+      "sha256": "a581e5da73b97d53055aeac2acf927810e00abb906f1935b7eaf837adf52e79f"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-ink-spacing.test.ts",
+      "sha256": "b4ce0c9f02fc890fd5e7801eb1827047100bbca100852a4a9b1fa491911a13da"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-ink-spacing.ts",
+      "sha256": "e2f45ebc88b7eca88be621b6997e7305b74730615bcae9f21aa5ba89a725e938"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-overlap.test.ts",
+      "sha256": "54db49fd246782ed9e561711ad9a11ac8a6292f64d52242a53c55ed2480eeaf2"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-overlap.ts",
+      "sha256": "87e9350d710b26a40890b8feac45a37a13f006eb1444e846a5f8af232e367345"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-spacing.ts",
+      "sha256": "e1050900531ed60b71ed8c4830efdd76ba0b384b73961f79ba799cc0a3f4292f"
+    },
+    {
+      "path": "src/renderer/src/notation/lyric-text.ts",
+      "sha256": "1cfb88b0717d7a536e6c4c3ee3ce7bf06b563efb25b0b51b267381c09434649e"
+    },
+    {
+      "path": "src/renderer/src/notation/measure-dynamics.test.ts",
+      "sha256": "59b2018cc10e99165d4208f90a02c40e0b9056c20acd49ef248c5292b959f46b"
+    },
+    {
+      "path": "src/renderer/src/notation/measure-dynamics.ts",
+      "sha256": "9217e696542a367bfcdee6ee300f28ce328fabff87f4fe07652d3e6eeda26078"
+    },
+    {
+      "path": "src/renderer/src/notation/measure-selection-target.test.ts",
+      "sha256": "27a9366a743154f844b63f13d4b81c90d753ed2cf3ae1e570ec06b5bca7053a2"
+    },
+    {
+      "path": "src/renderer/src/notation/octave-ink-spacing.test.ts",
+      "sha256": "39a769364a87e466a3945297a9d6b288a2cf2b51184738ca4720f9eee59a3f53"
+    },
+    {
+      "path": "src/renderer/src/notation/octave-ink-spacing.ts",
+      "sha256": "f2844349136a429944f108179706c5cd4d96b07d124994ea5e677f5569b54651"
+    },
+    {
+      "path": "src/renderer/src/notation/part-label-layout.test.ts",
+      "sha256": "1040bd21bf65ba542a94ec8da90a031e304401fd1a3d55fb711a4a1fe25966b0"
+    },
+    {
+      "path": "src/renderer/src/notation/part-label-layout.ts",
+      "sha256": "1bcf49dd142834362476e8dca42aae72dc2c5ca394b2b67335c9ad20d257a9b0"
+    },
+    {
+      "path": "src/renderer/src/notation/print-header-spacing.test.ts",
+      "sha256": "8d7c0854a08dce742b93b5b4a69bad5c2bcc54ac463fa2773e1e96725e75eaa1"
+    },
+    {
+      "path": "src/renderer/src/notation/print-header-spacing.ts",
+      "sha256": "5c5db4a18d1a1062604ef3104828e1981fd716296e8d7775d4bf1e6916ce0156"
+    },
+    {
+      "path": "src/renderer/src/notation/print-layout.test.ts",
+      "sha256": "056c15bb7417233a225eb244cefcf385c13e3e4b9291c9c73a77382b049507b6"
+    },
+    {
+      "path": "src/renderer/src/notation/print-layout.ts",
+      "sha256": "86e3780fb4761a06c8e86e8e69079a6954214830df7f441df7b171189c8a8f58"
+    },
+    {
+      "path": "src/renderer/src/notation/range-selection-bands.test.ts",
+      "sha256": "7ee8cd641760f86ef0e1af2de67b816d3e8f2d5b16d8558440022fc5eb5025e0"
+    },
+    {
+      "path": "src/renderer/src/notation/range-selection-bands.ts",
+      "sha256": "382f8a0d585b374329b9aa6c98178b4a3be9199f91697a786daab0bfb733d047"
+    },
+    {
+      "path": "src/renderer/src/notation/repeat-barlines.test.ts",
+      "sha256": "e0880951c7c59f38782afed79412df2823e413beb20baba0c0bcc781de17da52"
+    },
+    {
+      "path": "src/renderer/src/notation/repeat-barlines.ts",
+      "sha256": "3969d7825b46d5baf0835c8a093cb87ffc3572020fa60b02707256ac0592467a"
+    },
+    {
+      "path": "src/renderer/src/notation/shared-rhythm-layout.test.ts",
+      "sha256": "85682a6c6fc6d372b988c4032ccdbee049710ef8a571e128062cd22607439b0c"
+    },
+    {
+      "path": "src/renderer/src/notation/shared-rhythm-layout.ts",
+      "sha256": "5398afde0200ea52afc9d5129c1daaa9a159d7f3f4731851a8380fb518c4875f"
+    },
+    {
+      "path": "src/renderer/src/notation/slur-fermata-spacing.test.ts",
+      "sha256": "a50aabb476cdde17cd3d39ba2208ce21ba3535aff01e51d8ef93ac3e4213fa37"
+    },
+    {
+      "path": "src/renderer/src/notation/slur-fermata-spacing.ts",
+      "sha256": "707c4182be1834a96f381e9b48bb3fe2bad4ebdc23af9b6b23fbaed9d5317837"
+    },
+    {
+      "path": "src/renderer/src/notation/slur-stem-attachment.test.ts",
+      "sha256": "1f835f7556744262f96cd40c18d17dd466acd7ed2fe0fd451d8701c7779cd73e"
+    },
+    {
+      "path": "src/renderer/src/notation/span-viewport.test.ts",
+      "sha256": "e290270904ed61835317324c455c1c31d12824c0514cf9ebd20ac1ccaff5ab99"
+    },
+    {
+      "path": "src/renderer/src/notation/span-viewport.ts",
+      "sha256": "3210bd05298b932788cb9d1da2d74ba715f3f8f195651dda8c28230c38d5ba76"
+    },
+    {
+      "path": "src/renderer/src/notation/staff-annotation-spacing.test.ts",
+      "sha256": "2d0ccfd60b5c27f407b68a6f1ec90af7e1f57247a2d1a6774f1ec344852f9349"
+    },
+    {
+      "path": "src/renderer/src/notation/staff-annotation-spacing.ts",
+      "sha256": "649e6ccfac9ffd42945ce5ca45926299ddb96f789526513a42df4fc145709858"
+    },
+    {
+      "path": "src/renderer/src/notation/staff-ink-spacing.test.ts",
+      "sha256": "998dd5f739b6319aa9f26b1800f40c426a4b5cf11379ef1293340e5a1a0abe29"
+    },
+    {
+      "path": "src/renderer/src/notation/staff-ink-spacing.ts",
+      "sha256": "2c37a9a338ff6bae431f081418c69d7b78412425250dc405a6052fcb818b95a3"
+    },
+    {
+      "path": "src/renderer/src/notation/system-ink-spacing.test.ts",
+      "sha256": "c0d40dcd5ab0871ad2e383dccf6c6a47ff42d5e691a9f9e66771996fa6606b75"
+    },
+    {
+      "path": "src/renderer/src/notation/system-ink-spacing.ts",
+      "sha256": "3cfb8ee13aaa92521cc4bda7f1529ac055be43a6865d3e2dd483349e39cf30b6"
+    },
+    {
+      "path": "src/renderer/src/notation/system-layout.test.ts",
+      "sha256": "dd6bf03edbabafd27700eb1eb054b4a00e8d35781dd55779683f233dd15fd923"
+    },
+    {
+      "path": "src/renderer/src/notation/system-layout.ts",
+      "sha256": "9f5b27de64f0fca979282fb6c5c70639ab981dafddf4eff0d3c04a2133d06b66"
+    },
+    {
+      "path": "src/renderer/src/notation/system-meter-headers.test.ts",
+      "sha256": "a7c7cc2c305f7d17c0269a94ed9a913da6862c9d081d344f5bd315202d27b463"
+    },
+    {
+      "path": "src/renderer/src/notation/system-music-envelope.test.ts",
+      "sha256": "1b537fce01f0c06b76e32edf29e6d8dbacad6b2a4246d68890c92dfbd9fa2c7e"
+    },
+    {
+      "path": "src/renderer/src/notation/system-music-envelope.ts",
+      "sha256": "67be5f82025eae6f561a5d9f375ed06eab2577b17f2ea7c20a490ebc316fc352"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-modifier-clearance.test.ts",
+      "sha256": "bae0cff76bdfcd6030f44dc1e5691ee66d1be02ccbb4a951934c6cc16975fa25"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-modifier-clearance.ts",
+      "sha256": "9262a2c8fe38e743addb40f90e92da95459338831f72df4175d26ef123b4218b"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-voice-ink.test.ts",
+      "sha256": "7ff1cac6b99356f6eb3ed2d797567fc5b9e30ba4683436b033202dfb5976a498"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-voice-ink.ts",
+      "sha256": "8a7e927bd604189f6e2758b9c9a5e909d8daeeddf4012a322b5d4308b833af45"
+    },
+    {
+      "path": "src/renderer/src/notation/timed-annotation-position.test.ts",
+      "sha256": "cd8bf3bb655a2394acc21bf7a2814e58caf056883683af5eafac50971aa33a04"
+    },
+    {
+      "path": "src/renderer/src/notation/timed-annotation-position.ts",
+      "sha256": "91158ed38bc599cc165763c9fcb098e43b06392b1e455f24022af4f79be89cc2"
+    },
+    {
+      "path": "src/renderer/src/notation/tuplet-spacing.test.ts",
+      "sha256": "ac364d9b841a9da2c99f326d96ea974b6cfbe852751903bb546ed5a9f927267d"
+    },
+    {
+      "path": "src/renderer/src/notation/tuplet-spacing.ts",
+      "sha256": "e00ebafc2c6ca9f827a44855399a72b254eabbd4a0b0bb0f7433dad542160324"
+    },
+    {
+      "path": "src/renderer/src/notation/use-lyric-layout.test.tsx",
+      "sha256": "a28f5f22330199666805faa2dde93d23b931872c8a1e827231d6798e46d000c4"
+    },
+    {
+      "path": "src/renderer/src/notation/use-lyric-layout.ts",
+      "sha256": "0827b03fcd335c09a8ceb889e93b6887a5b0e2ae86157d4bbaf718ba96c4e17f"
+    },
+    {
+      "path": "src/renderer/src/notation/vexflow-adapter.test.ts",
+      "sha256": "17c4fb638f1187dfe73fb8779a68a476812fe27db72de4e836bde26c26ce120f"
+    },
+    {
+      "path": "src/renderer/src/notation/vexflow-adapter.ts",
+      "sha256": "a11ba62aa48e03d1561c9e883386730067994c4ec00af790cf2aebd5a4e76b7c"
+    },
+    {
+      "path": "src/renderer/src/notation/visual-state.test.ts",
+      "sha256": "79b42229f6a5b65c1129f98f3d8be506b8f518d6838dda532a22f2af2769b019"
+    },
+    {
+      "path": "src/renderer/src/notation/visual-state.ts",
+      "sha256": "384c129c3d410fa0de77f6d43fee1367c78d6101aba25d8a74050999cd14740d"
+    },
+    {
+      "path": "src/renderer/src/playback/PerformanceLab.test.tsx",
+      "sha256": "839fe9cad370cb87a4a84f2ef634ac00abde9f8da706c4442b584a29ef58e766"
+    },
+    {
+      "path": "src/renderer/src/playback/PerformanceLab.tsx",
+      "sha256": "26d84d2bfe2f9d16e6296f967b131dbe8f7b5387e3de22fe65db8761c1eb1d0d"
+    },
+    {
+      "path": "src/renderer/src/playback/expression-profile.test.ts",
+      "sha256": "d51fa09a249d6ffcff65a19d096761046dd77757378375468188256d206811f0"
+    },
+    {
+      "path": "src/renderer/src/playback/expression-profile.ts",
+      "sha256": "7b763aa251e2c1bcd4640da502f618b2c8864713ed19aa09d51b054603f85199"
+    },
+    {
+      "path": "src/renderer/src/playback/performance-lab.css",
+      "sha256": "0cb38009873892c84637955603fbe4748f521a2916eaef301858d775d0108ff4"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-expression.test.ts",
+      "sha256": "44fcbf040a16fe09ea9183e1b7a560eec0fa60cb786fc67a60edd3675eb0ce7d"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-expression.ts",
+      "sha256": "913f06b1a6f677f31688c76a6818a58aa27464326e87663e9b4027d7e32a2cc7"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-expression.worker.ts",
+      "sha256": "3ba8d149b08b17136c8bb132f5c29c443ee69a1b038a9cbec2f486513ddfa5e0"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-sampler.test.ts",
+      "sha256": "ec2f31b3dea8be177cddd53f08800b5c28f6ec30f083de14907293616364dfca"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-sampler.ts",
+      "sha256": "889b365752e93a44806575fdc4fbb24f103cfbba8b6bc6fb5db0276b85101d43"
+    },
+    {
+      "path": "src/renderer/src/playback/piano-transport.ts",
+      "sha256": "d7be823b02456bd448f9487c8ee6be92ed9aa5a9dd1d819df2d140c9570bb580"
+    },
+    {
+      "path": "src/renderer/src/playback/repeat-ties.test.ts",
+      "sha256": "17c687c0cc6b6ed8eb8276ac75e27cd685ab808999c936894719b02abe1added"
+    },
+    {
+      "path": "src/renderer/src/playback/start-from-selection.test.ts",
+      "sha256": "0761a92d55913e8903b4dc6589e28435bf91ac40006a22306f1ab0040713882b"
+    },
+    {
+      "path": "src/renderer/src/playback/tie-owner-controls.test.ts",
+      "sha256": "35826c959442e9dfa747a31fa7da41614207ef09d114832cec099e4bc6b2346d"
+    },
+    {
+      "path": "src/renderer/src/playback/timeline.test.ts",
+      "sha256": "8a00ebf60aaacca2679611d659330352a8ba7ff9d998d31ffcb3e96562d86316"
+    },
+    {
+      "path": "src/renderer/src/playback/timeline.ts",
+      "sha256": "dd895ff53c23baa384f5d1ac61871f194612ae7c34e89c0359b31f68ea28493c"
+    },
+    {
+      "path": "src/renderer/src/playback/usePianoExpression.test.tsx",
+      "sha256": "849b39a806af29eb03a9ad95b5cb15a610d3a1c3d2e58c7831e3ab2bd522fcd2"
+    },
+    {
+      "path": "src/renderer/src/playback/usePianoExpression.ts",
+      "sha256": "f42e6313ad35733375bdacfd9e8afcd0acb4f4bce012f48ae80e46f49c99bf83"
+    },
+    {
+      "path": "src/renderer/src/playback/usePlaybackViewport.test.tsx",
+      "sha256": "011e10fe024c5a45115646d9402060577d5a0e43a161f314de709f0c91349279"
+    },
+    {
+      "path": "src/renderer/src/playback/usePlaybackViewport.ts",
+      "sha256": "bde9b7cc0cdd462390f70bc4413d06300c7e781685194c91ec49afc7a2feabec"
+    },
+    {
+      "path": "src/renderer/src/playback/useScorePlayback.test.ts",
+      "sha256": "0b1eb93eeaffe509cf1f79ec1895672db34995981190bb04b138afa89bf4764a"
+    },
+    {
+      "path": "src/renderer/src/playback/useScorePlayback.ts",
+      "sha256": "0bc03851133463f584467ef057d525e7c190c7e90a8757f728d98b8468112d6c"
+    },
+    {
+      "path": "src/renderer/src/studio-application-menu.css",
+      "sha256": "74bc6a69b3db89ccb60f15f6871167550343f527a51d5ca8abe5c16d1acc0fa0"
+    },
+    {
+      "path": "src/renderer/src/studio-backups.css",
+      "sha256": "bf0d80f111b1b467b959ccfc830da5e9328eb0e177aa1f6e299e6cdc27e080ce"
+    },
+    {
+      "path": "src/renderer/src/studio-chord-properties.css",
+      "sha256": "483cc7be2fa9b50ff41601bbb4b8a2a2b1c9a93b93a804eecf223622d0b49afb"
+    },
+    {
+      "path": "src/renderer/src/studio-command-search.css",
+      "sha256": "ef1c5f3ae1ab996425f855ca0e6cf0e9691a6f1c9e9427c49486f52f50a6268c"
+    },
+    {
+      "path": "src/renderer/src/studio-dock-header.css",
+      "sha256": "a7d9955b78ee9ee55f0fe2980d088b0e65d4d1dd5e2c838c0328e7fb2d716924"
+    },
+    {
+      "path": "src/renderer/src/studio-dock-resize.css",
+      "sha256": "6b4c2736bf08efb334368fd81ea95ea1cfcc32bdfbaacb1e025b871250d7c406"
+    },
+    {
+      "path": "src/renderer/src/studio-event-marks.css",
+      "sha256": "d057b20289643af0b5c5ead2141c96dc828c5266a8746fe59b2c7daaa447031c"
+    },
+    {
+      "path": "src/renderer/src/studio-export-tools.css",
+      "sha256": "f0fecf201239444fd372f278faefc704da3f5b1dbc7cf9930683a5c02926f5b9"
+    },
+    {
+      "path": "src/renderer/src/studio-file-tools.css",
+      "sha256": "712c9e3ff1f7fc60f63d4c39d268c520038342fe46a161857293b9de194d1c0f"
+    },
+    {
+      "path": "src/renderer/src/studio-inline-lyric-input.css",
+      "sha256": "c764bef78bf9ef648069d90c0785215130eadaae23f82d6adc12a3252400e972"
+    },
+    {
+      "path": "src/renderer/src/studio-input-target.css",
+      "sha256": "cb24cbc7edd8271781b94470028cf03daaf5effdf5bc08d3e858d96cbfd08db9"
+    },
+    {
+      "path": "src/renderer/src/studio-lyric-tools.css",
+      "sha256": "62dd53e15e6fb91d0809b91dcaae4a8454ef049ee2d2e3aceb6ead661a391f9d"
+    },
+    {
+      "path": "src/renderer/src/studio-measure-context-menu.css",
+      "sha256": "0cf8b549823a429c5a4f44d171b161bf007a60b7c64c1d61a45166d58ddf9427"
+    },
+    {
+      "path": "src/renderer/src/studio-measure-notation.css",
+      "sha256": "73b268d7019243a2e6af721f18478c340e2e9062cdcf5b1695302ba15d9476ce"
+    },
+    {
+      "path": "src/renderer/src/studio-measure-tools.css",
+      "sha256": "5e0046177f4b95de6c41d0e17b929b195a5923a00f937dde7ed3229c0223b64d"
+    },
+    {
+      "path": "src/renderer/src/studio-metadata-actions.css",
+      "sha256": "82a6f4e266f54bd9e3d346a26547c902022e70ef4d2a4b3f3a3447669bb007eb"
+    },
+    {
+      "path": "src/renderer/src/studio-metadata-editor.css",
+      "sha256": "907d2fb84308e215f01072f8b3f8f844838cdfa7af62247c4428298ba234d2e4"
+    },
+    {
+      "path": "src/renderer/src/studio-notation-palette.css",
+      "sha256": "926b8be938a5d51d920eb1527d52d1778a8cd20c617bba790b11769e8297d3be"
+    },
+    {
+      "path": "src/renderer/src/studio-note-decorations.css",
+      "sha256": "b37424d50b785859edf78b738e24cf4c39f8448136963db2fbd3b9df26fd1533"
+    },
+    {
+      "path": "src/renderer/src/studio-note-toolbar.css",
+      "sha256": "a668d913aa90e85bccff52eb28e1bef69b1b536d52ddbb5dedce6436552ebdcb"
+    },
+    {
+      "path": "src/renderer/src/studio-page-setup.css",
+      "sha256": "76d6f31aaff4ad96e5bc3f32c29755d89ccb5569cc0b030d07b59d5f8278454b"
+    },
+    {
+      "path": "src/renderer/src/studio-part-labels.css",
+      "sha256": "d0942648c6213ae751ad2b5dbaf7c6bed7ddb5c8de290972ce391c745fa7644b"
+    },
+    {
+      "path": "src/renderer/src/studio-part-setup.css",
+      "sha256": "2aefb3fa8f79b64f8880f4aeba709ccf15ac25c490796740bad65c78cace70c5"
+    },
+    {
+      "path": "src/renderer/src/studio-pdf.css",
+      "sha256": "256d0be284fe94ada08a4d3fd44b1740772fc1a874f3656720f5613a697ccebe"
+    },
+    {
+      "path": "src/renderer/src/studio-piano.css",
+      "sha256": "628ae81bc4a7b799c3e06f51cd731d84179c2fa8756be2d79306fc57ba5fc3d8"
+    },
+    {
+      "path": "src/renderer/src/studio-playback.css",
+      "sha256": "45aa6e5abdc15d727324cec3ad64e83298ed7f035887ef23cbc4a7e4ec8c830c"
+    },
+    {
+      "path": "src/renderer/src/studio-r1.css",
+      "sha256": "84dfea0ec3b86dac580c38de4655df7fc1f487f298e40611dcff3c4ec9de26c6"
+    },
+    {
+      "path": "src/renderer/src/studio-r2.css",
+      "sha256": "6a931463b404245164a7da62ae5dcc9997478199020817ffa43f8afa30b8d9f7"
+    },
+    {
+      "path": "src/renderer/src/studio-r3.css",
+      "sha256": "d73108f663cb97a93b56a51b7f5a975ffc4a3c2ea4666f3edf64fe0a2e0efc25"
+    },
+    {
+      "path": "src/renderer/src/studio-range-tools.css",
+      "sha256": "23634206e70c843637ea6e20c37971e58a236ab6f087aff1f0ef798be7c765c7"
+    },
+    {
+      "path": "src/renderer/src/studio-repeat-tools.css",
+      "sha256": "4b91acbd908d2c22bfb6c6c9ea489356c7278e14ea882a8f7d2a4d4b9010accc"
+    },
+    {
+      "path": "src/renderer/src/studio-score-view.css",
+      "sha256": "54fcffe2be82290005ff98830bf75491505c3537300b03f10080ee614e4ed668"
+    },
+    {
+      "path": "src/renderer/src/studio-selected-properties.css",
+      "sha256": "2a8a9e704672a013a2f3cf3077fe60208d0bac1248e99c11bda03db6a7867fd9"
+    },
+    {
+      "path": "src/renderer/src/studio-span-properties.css",
+      "sha256": "7dd78268a87bae86a7c6c2dacf2c29a94bb04b14f29bab7686978bfb0e371510"
+    },
+    {
+      "path": "src/renderer/src/studio-status-bar.css",
+      "sha256": "74b7aa0f1a5135fb698408506afa1fa518e2b5b3ebed24b5109f09f4f61d910c"
+    },
+    {
+      "path": "src/renderer/src/studio-structure-actions.css",
+      "sha256": "8ec17789b7e2b28da9c871c3ca7c2f4f3bf37a84cef520e4a5a34498d28f9393"
+    },
+    {
+      "path": "src/renderer/src/studio-tempo-event.css",
+      "sha256": "a9b700716c9d489678397516252c44ab471525c3624d19465cd09c89be64300b"
+    },
+    {
+      "path": "src/renderer/src/studio-tempo-tools.css",
+      "sha256": "3fbc947c3c2493773b3f19daadcf7c1005488ba10706dc1871eb9367f83c51c6"
+    },
+    {
+      "path": "src/renderer/src/studio-warning-report.css",
+      "sha256": "13aecdf7c17943e87d111ff209a468c915e90fec673e4e0be0e86dcd8ac0f762"
+    },
+    {
+      "path": "src/renderer/src/studio-workspace-tools.css",
+      "sha256": "fe0a2d5bf8694d7937d14a3ff5136123e1b1281210809b196882085a9bf1ca98"
+    },
+    {
+      "path": "src/renderer/src/styles.css",
+      "sha256": "f5b4f892c0e13293046cff6e58734410c9eba921b7ae0c65f8af3cd3925ffa51"
+    },
+    {
+      "path": "src/renderer/src/vite-env.d.ts",
+      "sha256": "32540e97cb22bffa4adba3ba23b794b296436b4bba13034a22304e0fdb53c8b8"
+    },
+    {
+      "path": "src/score-core/commands.ts",
+      "sha256": "802e9890b1e347c77f6299fa81ef0d576b108e9fcde3d845cfb6a8fee0c447bb"
+    },
+    {
+      "path": "src/score-core/factories.ts",
+      "sha256": "d6a80f4ffc3f89cf0e120fb114c9258ca3a0c2d292a1c4c86f43cd3cffdede74"
+    },
+    {
+      "path": "src/score-core/index.ts",
+      "sha256": "11bb87c4a959dfd4c61bb4f5f06796296a30f99fa4078a572110ad9711bf3945"
+    },
+    {
+      "path": "src/score-core/octave-shifts.ts",
+      "sha256": "837e704a1406ed549dd3d153179f72e9e9a79797262f38fd0b76d1e0adde6f2e"
+    },
+    {
+      "path": "src/score-core/pitch.test.ts",
+      "sha256": "e8243b25e3fe3991730655016870aae6ed7c848fb9daba873a576afeae1c0683"
+    },
+    {
+      "path": "src/score-core/pitch.ts",
+      "sha256": "9b8cc93b44ae1aa6bb498a6aeb3531349c367278d73f95b8941019aa705a43b0"
+    },
+    {
+      "path": "src/score-core/repeats.ts",
+      "sha256": "d019e29749c9e47ef2f2987f5d8b7f9e51a895d5bf638035ea9313ffa75ae96f"
+    },
+    {
+      "path": "src/score-core/rhythm-editing.test.ts",
+      "sha256": "ff1a1f75a7f36fef9c91e8d259b7980ce262e6cef0c952936d5b3b37925dc177"
+    },
+    {
+      "path": "src/score-core/rhythm-editing.ts",
+      "sha256": "271f0c3474429877a988f0bf990add61475a061a71bd021b5271de1f450a8da0"
+    },
+    {
+      "path": "src/score-core/score-core.test.ts",
+      "sha256": "7c3f2e165a281d249d1b8b5c2a17be6007705b723e9875e9e2d74ceafa873541"
+    },
+    {
+      "path": "src/score-core/ties.test.ts",
+      "sha256": "51c1a705682d6dc2931b085db732d95a8f92ec29a32d91cbd7515eb917dcfd53"
+    },
+    {
+      "path": "src/score-core/ties.ts",
+      "sha256": "9418bc0eecce1af8329ee672e02c6959147b278352ae7e4f46d18c7e26cda6ce"
+    },
+    {
+      "path": "src/score-core/timing.test.ts",
+      "sha256": "52e25ed8946307d224419308bb6bcbd768a723f1969fbd0070a6226f810a25ff"
+    },
+    {
+      "path": "src/score-core/timing.ts",
+      "sha256": "e7d08bde44f1f74e55f90a7b8d0c2cc5f95ff69df2e10245fcd7e31a0916263c"
+    },
+    {
+      "path": "src/score-core/tuplets.test.ts",
+      "sha256": "47f592459ff380599108932126360cd2f15a8f525116cd975f8f31c1f222f9af"
+    },
+    {
+      "path": "src/score-core/tuplets.ts",
+      "sha256": "703bd845a234d62c164d960e231d5b127b008c82745575cb5fce6a219ea778f9"
+    },
+    {
+      "path": "src/score-core/types.ts",
+      "sha256": "25dc2bc082875803417f3657128826c5060c53526cdca6b1fa8fcfdc2a22cebb"
+    },
+    {
+      "path": "src/testing/acceptance-traceability.test.ts",
+      "sha256": "a85001cd5a26fa001464332a042f2bc57019a6a998ff36d3ae6c3b33ab3a08b5"
+    },
+    {
+      "path": "src/testing/chord-accidental-memory-fixture.ts",
+      "sha256": "e73d6c41fa115314f037191d84a8c449c0bb7c5debbbed6867b9809880513899"
+    },
+    {
+      "path": "src/testing/chord-tie-fixture.ts",
+      "sha256": "301443848522b1a8f624461f5651fe8cfccf3e5f9e51bb9b2e57118c29456527"
+    },
+    {
+      "path": "src/testing/conditional-tie-fixture.ts",
+      "sha256": "5ad6585041a066a8a63a743a27fc5023eefd824052b6633530a2d08b84239096"
+    },
+    {
+      "path": "src/testing/implicit-chord-fixture.ts",
+      "sha256": "3000ad23baf4e773846e026d97936bab889bfc306edcfd1b8f03275182ac69c9"
+    },
+    {
+      "path": "src/testing/import-warning-fixture.ts",
+      "sha256": "6fe62493dc5d4dd3ee0029cffedc780a9238104257f05da0f94601b158f840f9"
+    },
+    {
+      "path": "src/testing/interior-hairpin-fixture.ts",
+      "sha256": "af14c5465722a37816039414ec3c6d378a3fda17c3a0283be877f2f8ed988b49"
+    },
+    {
+      "path": "src/testing/legacy-span-order-fixture.ts",
+      "sha256": "7c18e504c57d8a01abcb69ddcac19cfed67731b0419c7f45ca69c69586fb97bf"
+    },
+    {
+      "path": "src/testing/let-ring-fixture.ts",
+      "sha256": "54b819d1b64d697e258f6f19a54478cf909715316bd25c269c6a85ba3d95bfec"
+    },
+    {
+      "path": "src/testing/measure-dynamics-fixture.ts",
+      "sha256": "7d354778bfecb5fa7a52f7f0ef08f10d4b7628e7b43e3bee05389473cae109c1"
+    },
+    {
+      "path": "src/testing/midi-warning-fixture.ts",
+      "sha256": "daecb0b6d4fee179f46840e20556a41a1ef860bf45aa32e14d3e1775292614af"
+    },
+    {
+      "path": "src/testing/musicxml-order-fixture.ts",
+      "sha256": "dc5953182c8e6d017eb8c0ef340ec23998d5848f6ec5a108459fa6c25cbe29ee"
+    },
+    {
+      "path": "src/testing/musicxml-signature-conflict-fixture.ts",
+      "sha256": "063d2c41b1061bdbad6daa0300c1dd366d6b1fe99b436fa58d657bcbc1b1f8d8"
+    },
+    {
+      "path": "src/testing/partial-chord-tie-fixture.ts",
+      "sha256": "6fa4d754d84a2f38166edd91b8d2178f4dca96634a44288c1950f7eb1e31a22f"
+    },
+    {
+      "path": "src/testing/piano-stress-fixture.ts",
+      "sha256": "3f21c280b7dce688875669524a22dab1526672ca67a055ab267fb14e94164626"
+    },
+    {
+      "path": "src/testing/print-header-fixture.ts",
+      "sha256": "b6e112ced86304f5daaa31bf6bb01ed4f3741748d75aa1e9e0c843c27702a4a5"
+    },
+    {
+      "path": "src/testing/repeat-tie-fixture.ts",
+      "sha256": "b12e53c78e5846bf42e42e47e07b72a04bbad59753479afd5b74ef3af7cd368f"
+    },
+    {
+      "path": "src/testing/secondary-repeat-fixture.ts",
+      "sha256": "f28c7aa5209e6b9a69d39464f33d097bd0e1c0a97687f5ac1ea2dcf2716941e4"
+    },
+    {
+      "path": "src/testing/shared-lyric-fixture.ts",
+      "sha256": "61b7b32a11a5fbe7b3700ef94962bfaa941e0ad13ebe6f4dd57f44529bceab6a"
+    },
+    {
+      "path": "src/testing/single-harmony-fixture.ts",
+      "sha256": "1991578831617aefea5ebb50c5f61002d0a6337800a7be2f3248f52b60e717c7"
+    },
+    {
+      "path": "src/testing/single-voice-mvp-fixture.ts",
+      "sha256": "69966b3788a2674dce1dcc657b3a3824aa15222eab767fbf7dcd0af0c28f0f04"
+    },
+    {
+      "path": "src/testing/single-voice-mvp-regression.test.ts",
+      "sha256": "e000feac95e0eae3d0e558834619720c0dfaa616fc45535d42a8608bd31f0236"
+    },
+    {
+      "path": "src/testing/stem-expression-hairpin-fixture.ts",
+      "sha256": "7da5236154aed0aa0f90cd708286ece13ff26199f8dede861b6146728555d9b7"
+    },
+    {
+      "path": "src/testing/structural-part-layout-fixture.ts",
+      "sha256": "ba608838b21ace675ec51ce1b5afb341fd9cc4057ba03cdefcf40c1d09f4452b"
+    },
+    {
+      "path": "src/testing/tempo-label-fixture.ts",
+      "sha256": "e71fda9181d1686d91efdf5e9371061359bf12d97e9c8dacc8c0907b34a38402"
+    },
+    {
+      "path": "src/testing/tie-representation-fixture.ts",
+      "sha256": "1f90798388f0369cb7635757aa45d9c0ce10a8b329fbd4617558628ddf19978a"
+    },
+    {
+      "path": "src/testing/unattached-tie-fixture.ts",
+      "sha256": "45f3380b5db2726c4abee6d295d9ce08dc5eaed33f7ee4db738787f0531eed60"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "d0fad14b5cb4e72016bc960a72f0974f229ca7cd7d1495c018d774337ccc08d1"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "8357d2259e52cb268abeb5e1af90d5cc2caf81585d2fdde43195dda9bc730802"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "out/renderer/assets/PretendardVariable-CJuje-Rk.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+    },
+    {
+      "path": "out/renderer/assets/index-BVpFehNE.css",
+      "sha256": "477c7af22392d9e029b2c2e352ba078b69ee3b964659ec3f0ff0685da7ee7f5e"
+    },
+    {
+      "path": "out/renderer/assets/index-D1dPX5Cj.js",
+      "sha256": "bf15fd45ab85ab7a575dcc42b3a3b7869e3eff09b104140e4c72d8b3c1cd044c"
+    },
+    {
+      "path": "out/renderer/assets/piano-expression.worker-B1lZU1yp.js",
+      "sha256": "8e3198d11b4cb1faf0aa36effe83564e8daf2c7ff83480b58bef988ef45f7134"
+    },
+    {
+      "path": "out/renderer/index.html",
+      "sha256": "167c63f10d23e54ab84d1bb6cb5580948b3f864c62ce82667e61e7fcaadcfa5a"
+    },
+    {
+      "path": "out/main/index.js",
+      "sha256": "0ef6c325dab5f2fffae01f375d21914ee480612117caa1424f41bc82cf96f335"
+    },
+    {
+      "path": "out/preload/index.js",
+      "sha256": "90b764e9a8664f85254774caf0ca7a7f7b9d12762d4a6c4f948a1c342771fff6"
+    }
+  ]
+}

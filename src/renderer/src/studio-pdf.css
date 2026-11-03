@@ -1,0 +1,54 @@
+/* The requested score stays renderable while native PDF saving is asynchronous.
+   It is inert and outside the screen viewport, never an alternate editing UI. */
+:is(.studio-pdf-snapshot, .studio-image-snapshot) {
+  position: fixed;
+  top: 0;
+  left: -30000px;
+  pointer-events: none;
+  color-scheme: light;
+}
+:is(.studio-pdf-snapshot, .studio-image-snapshot) > .score-page {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  box-shadow: none;
+}
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .metadata-display { display: block; }
+/* Measure the exact paper header before the native print request. Screen editor
+   typography remains independent; these match the existing print rules. */
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .score-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  gap: 2px;
+  margin: 0;
+  pointer-events: none;
+}
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .metadata-display { min-height: 0; }
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .metadata-display--title { font-size: 11pt; line-height: 1.2; }
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .metadata-display--composer { font-size: 7pt; line-height: 1.2; }
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .score-part-title { font-size: 8pt; line-height: 1.2; }
+:is(.studio-pdf-snapshot, .studio-image-snapshot) .score-part-title .metadata-display { font: inherit; }
+@media print {
+  .studio-image-snapshot { display: none !important; }
+  .app-shell:has(> .studio-pdf-snapshot) > :not(.studio-pdf-snapshot) {
+    display: none !important;
+  }
+  .studio-pdf-snapshot {
+    position: static;
+    width: 100% !important;
+  }
+  /* Fit the notation viewport, not the fixed HTML title/author typography.
+     PNG already maps its measured surface to physical paper independently. */
+  .studio-pdf-snapshot[data-fit-print-width="true"] .notation-preview,
+  .studio-pdf-snapshot[data-fit-print-width="true"] .notation-preview svg {
+    width: 100% !important;
+  }
+  .studio-pdf-snapshot[data-fit-print-width="true"] .notation-preview svg {
+    height: auto !important;
+  }
+}

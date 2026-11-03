@@ -71,7 +71,7 @@ export interface TremoloMark {
   marks: 1 | 2 | 3
 }
 
-export type Ornament = 'trill' | 'mordent' | 'turn'
+export type Ornament = 'trill' | 'mordent' | 'inverted-mordent' | 'turn'
 
 export interface GraceNote {
   pitch: Pitch
@@ -176,6 +176,18 @@ export interface TempoEvent extends TempoMarking {
   id: string
   measureId: MeasureId
   tick: Tick
+}
+
+/** Right damper pedal, owned by one instrument. Value is MIDI CC64 (0–127).
+ * The current sampler uses the MIDI switch threshold; half pedal is retained
+ * for export without claiming a continuous damper model. */
+export interface PedalEvent {
+  id: string
+  partId: PartId
+  staffId: StaffId
+  measureId: MeasureId
+  tick: Tick
+  value: number
 }
 
 export type RhythmFeelUnit = 'eighth' | '16th'
@@ -296,6 +308,7 @@ export interface Score {
   composer?: string
   tempo?: TempoMarking
   tempoEvents?: TempoEvent[]
+  pedalEvents?: PedalEvent[]
   rhythmFeel?: RhythmFeelMarking
   octaveShifts?: OctaveShift[]
   harmonies?: HarmonyMark[]
@@ -352,6 +365,10 @@ export type ScoreCommand =
   | {
       type: 'score-tempo-events.update'
       tempoEvents?: TempoEvent[]
+    }
+  | {
+      type: 'score-pedal-events.update'
+      pedalEvents?: PedalEvent[]
     }
   | {
       type: 'score-rhythm-feel.update'

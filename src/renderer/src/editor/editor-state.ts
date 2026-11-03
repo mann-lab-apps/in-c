@@ -1,3 +1,4 @@
+import { collectSpanEndpointIds, inspectSpanEndpointChanges, isRestBoundary } from '../../../score-core/span-references'
 import type {
   Duration,
   DurationValue,
@@ -21,6 +22,7 @@ import {
   createTimePosition,
   decomposeDurationTicks,
   durationToTicks,
+  effectiveAlterAt,
   measureDurationTicks,
   sortVoiceEvents,
   validateMeasureRhythm,
@@ -54,6 +56,12 @@ export type EditorSelection =
       address?: VoiceAddress
     }
 
+interface RangeEditResult {
+  command?: ScoreCommand
+  blockedByOctaveEndpoint?: boolean
+  blockedBySpanAnchor?: boolean
+}
+
 export interface EventLocation {
   address: VoiceAddress
   event: VoiceEvent
@@ -72,6 +80,10 @@ export interface MeasureLocation {
 export interface RangeClipboardEvent {
   relativeTick: number
   event: VoiceEvent
+  sourceAccidentals?: {
+    pitch: Note['pitch']['alter']
+    pitches?: Note['pitch']['alter'][]
+  }
 }
 
 export interface RangeClipboard {
@@ -388,7 +400,10 @@ export function buildRangeClipboard(
     eventCount: range.events.length,
     events: range.events.map((event) => ({
       relativeTick: event.position.tick - startTick,
-      event
+      event,
+      ...(event.type === 'note' ? {
+        sourceAccidentals: clipboardAccidentals(range.measure, range.voice, event)
+      } : {})
     }))
   }
 }
@@ -411,6 +426,15 @@ export function buildRangePasteCommand(
   clipboard: RangeClipboard,
   createId: () => string
 ): ScoreCommand | undefined {
+  return buildRangePasteResult(score, selection, clipboard, createId).command
+}
+
+export function buildRangePasteResult(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: RangeClipboard,
+  createId: () => string
+): RangeEditResult {
   const range = locateSelectionRange(score, selection)
 
   if (
@@ -418,22 +442,41 @@ export function buildRangePasteCommand(
     !isSimpleRange(range.events, { allowFullMeasureRest: true }) ||
     range.voice.tuplets?.length
   ) {
-    return undefined
+    return {}
   }
 
   const startTick = range.events[0].position.tick
   const endTick = eventEndTick(range.events[range.events.length - 1])
 
   if (endTick - startTick !== clipboard.durationTicks) {
-    return undefined
+    return {}
   }
 
   const selectedIds = new Set(range.events.map((event) => event.id))
-  const pastedEvents = clipboard.events.map(({ event, relativeTick }) =>
-    cloneClipboardEvent(event, startTick + relativeTick, createId)
-  )
+  const remainingEvents = range.voice.events.filter((event) => !selectedIds.has(event.id))
+  const pastedEvents: VoiceEvent[] = []
+  for (const { event, relativeTick, sourceAccidentals } of clipboard.events) {
+    const pasted = cloneClipboardEvent(event, startTick + relativeTick, createId)
+    if (pasted.type === 'note' && sourceAccidentals) {
+      // Earlier pasted notes establish accidentals for the following notes.
+      const voice = { ...range.voice, events: [...remainingEvents, ...pastedEvents] }
+      const preserve = (pitch: Note['pitch'], alter: Note['pitch']['alter']) => {
+        const destinationAlter = effectiveAlterAt({
+          measure: range.measure, voice, step: pitch.step, octave: pitch.octave,
+          tick: pasted.position.tick, override: pitch.alter
+        })
+        return alter === undefined || destinationAlter === alter ? pitch : { ...pitch, alter }
+      }
+      pasted.pitch = preserve(pasted.pitch, sourceAccidentals.pitch)
+      if (pasted.pitches) {
+        pasted.pitches = pasted.pitches.map((pitch, index) =>
+          preserve(pitch, sourceAccidentals.pitches?.[index]))
+      }
+    }
+    pastedEvents.push(pasted)
+  }
   const nextEvents = sortVoiceEvents([
-    ...range.voice.events.filter((event) => !selectedIds.has(event.id)),
+    ...remainingEvents,
     ...pastedEvents
   ])
   const nextMeasure = {
@@ -455,15 +498,11 @@ export function buildRangePasteCommand(
       events: nextEvents
     }).length > 0
   ) {
-    return undefined
+    return {}
   }
 
-  return {
-    type: 'voice-events.replace',
-    target: range.address,
-    events: nextEvents,
-    editedEventId: pastedEvents[0]?.id
-  }
+  const editedEventId = pastedEvents[0]?.id
+  return editedEventId ? finishRangeEdit(score, range.address, range.voice.events, nextEvents, editedEventId) : {}
 }
 
 export function buildFilteredRangePasteCommand(
@@ -473,25 +512,36 @@ export function buildFilteredRangePasteCommand(
   createId: () => string,
   filter: SelectionFilter
 ): ScoreCommand | undefined {
-  const filteredSelection = filterSelectionEvents(score, selection, filter)
-
-  return filteredSelection
-    ? buildRangePasteCommand(score, filteredSelection, clipboard, createId)
-    : undefined
+  return buildFilteredRangePasteResult(score, selection, clipboard, createId, filter).command
 }
 
-export function buildRangeRestCommand(
+export function buildFilteredRangePasteResult(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: RangeClipboard,
+  createId: () => string,
+  filter: SelectionFilter
+): RangeEditResult {
+  const filteredSelection = filterSelectionEvents(score, selection, filter)
+  return filteredSelection ? buildRangePasteResult(score, filteredSelection, clipboard, createId) : {}
+}
+
+export function buildRangeRestCommand(score: Score, selection: EditorSelection): ScoreCommand | undefined {
+  return buildRangeRestResult(score, selection).command
+}
+
+export function buildRangeRestResult(
   score: Score,
   selection: EditorSelection
-): ScoreCommand | undefined {
+): RangeEditResult {
   if (selection.type !== 'range') {
-    return undefined
+    return {}
   }
 
   const range = locateSameMeasureRange(score, selection)
 
   if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
-    return undefined
+    return {}
   }
 
   const selectedIds = new Set(range.events.map((event) => event.id))
@@ -502,7 +552,7 @@ export function buildRangeRestCommand(
   )
 
   if (changedEventIds.size === 0) {
-    return undefined
+    return {}
   }
 
   const nextEvents = sortVoiceEvents(
@@ -538,15 +588,18 @@ export function buildRangeRestCommand(
       events: nextEvents
     }).length > 0
   ) {
-    return undefined
+    return {}
   }
 
-  return {
-    type: 'voice-events.replace',
-    target: range.address,
-    events: nextEvents,
-    editedEventId: range.events[0].id
-  }
+  return finishRangeEdit(score, range.address, range.voice.events, nextEvents, range.events[0].id)
+}
+
+function finishRangeEdit(score: Score, target: VoiceAddress, before: VoiceEvent[], after: VoiceEvent[], editedEventId: string): RangeEditResult {
+  const changes = inspectSpanEndpointChanges(score, before, after)
+  if (changes.blockedByOctaveEndpoint) return { blockedByOctaveEndpoint: true }
+  if (changes.blockedBySpanAnchor) return { blockedBySpanAnchor: true }
+  const command: ScoreCommand = { type: 'voice-events.replace', target, events: after, editedEventId }
+  return { command: changes.slursChanged ? { type: 'score.batch', commands: [command, { type: 'score-slurs.update', slurs: changes.slurs }] } : command }
 }
 
 export function buildNoteEntryCommand(
@@ -1038,6 +1091,49 @@ export function buildTupletGroupCommand(
   actualNotes = 3,
   normalNotes = 2
 ): ScoreCommand | undefined {
+  return buildTupletGroupCommandResult(
+    score, selection, createId, actualNotes, normalNotes
+  ).command
+}
+
+export function buildTupletGroupCommandResult(
+  score: Score,
+  selection: EditorSelection,
+  createId: () => string,
+  actualNotes = 3,
+  normalNotes = 2
+): { command?: ScoreCommand; blockedByRestNotation?: boolean; blockedBySpanAnchor?: boolean } {
+  const command = buildTupletGroupCandidate(
+    score, selection, createId, actualNotes, normalNotes
+  )
+  if (command?.type === 'voice-content.replace' && selection.type === 'event') {
+    const location = locateEvent(score, selection.eventId, selection.address)
+    const voice = location?.measure.voices.find(v => v.id === location.address.voiceId)
+    const after = new Map(command.events.map(event => [event.id, event]))
+    const losesRestNotation = voice?.events.some(event => {
+      if (event.type !== 'rest' || (!event.fermata && !event.breathMark)) return false
+      const next = after.get(event.id)
+      return next?.type !== 'rest' ||
+        (event.fermata && !next.fermata) ||
+        (event.breathMark && event.breathMark !== next.breathMark)
+    })
+    if (losesRestNotation) return { blockedByRestNotation: true }
+    const removedIds = new Set(voice?.events.filter(event => !after.has(event.id)).map(event => event.id))
+    if ([...(score.hairpins ?? []), ...(score.slurs ?? []), ...(score.octaveShifts ?? [])]
+      .some(span => removedIds.has(span.startEventId) || removedIds.has(span.endEventId))) {
+      return { blockedBySpanAnchor: true }
+    }
+  }
+  return { command }
+}
+
+function buildTupletGroupCandidate(
+  score: Score,
+  selection: EditorSelection,
+  createId: () => string,
+  actualNotes = 3,
+  normalNotes = 2
+): ScoreCommand | undefined {
   if (selection.type !== 'event') {
     return undefined
   }
@@ -1181,15 +1277,10 @@ function buildTupletFromAvailableSpan(
     const event = memberEvents[index]
     const position = createTimePosition(startTick + tupletTicks * index)
 
-    return event?.type === 'note'
-      ? createNote({
-          id: event.id,
-          position,
-          duration: tupletDuration,
-          pitch: event.pitch
-        })
+    return event
+      ? resizeTupletMember(event, position.tick, tupletDuration)
       : createRest({
-          id: event?.id ?? createId(),
+          id: createId(),
           position,
           duration: tupletDuration
         })
@@ -1222,7 +1313,7 @@ export function buildDeleteCommand(
   selection: EditorSelection
 ): ScoreCommand | undefined {
   if (selection.type === 'range') {
-    return buildRangeDeleteCommand(score, selection)
+    return buildRangeDeleteResult(score, selection).command
   }
 
   if (selection.type !== 'event') {
@@ -1242,37 +1333,41 @@ export function buildDeleteCommand(
   )
 }
 
-export function buildFilteredDeleteCommand(
+export function buildFilteredDeleteCommand(score: Score, selection: EditorSelection, filter: SelectionFilter): ScoreCommand | undefined {
+  return buildFilteredDeleteResult(score, selection, filter).command
+}
+
+export function buildFilteredDeleteResult(
   score: Score,
   selection: EditorSelection,
   filter: SelectionFilter
-): ScoreCommand | undefined {
+): RangeEditResult {
   if (!filter.eventTypes || filter.eventTypes === 'notes-and-rests') {
-    return buildDeleteCommand(score, selection)
+    return selection.type === 'range' ? buildRangeDeleteResult(score, selection) : { command: buildDeleteCommand(score, selection) }
   }
 
   const filteredEventIds = getFilteredSelectedEventIds(score, selection, filter)
 
   if (filteredEventIds.length === 0) {
-    return undefined
+    return {}
   }
 
   if (selection.type === 'event') {
-    return buildDeleteCommand(score, selection)
+    return { command: buildDeleteCommand(score, selection) }
   }
 
   if (selection.type !== 'range') {
-    return undefined
+    return {}
   }
 
   if (filter.eventTypes === 'notes') {
-    return buildRangeRestCommand(score, {
+    return buildRangeRestResult(score, {
       ...selection,
       eventIds: filteredEventIds
     })
   }
 
-  return buildRangeDeleteCommand(score, {
+  return buildRangeDeleteResult(score, {
     ...selection,
     eventIds: filteredEventIds
   })
@@ -1309,14 +1404,14 @@ function filterSelectionEvents(
   }
 }
 
-function buildRangeDeleteCommand(
+function buildRangeDeleteResult(
   score: Score,
   selection: Extract<EditorSelection, { type: 'range' }>
-): ScoreCommand | undefined {
+): RangeEditResult {
   const range = locateSameMeasureRange(score, selection)
 
   if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
-    return undefined
+    return {}
   }
 
   const events = sortVoiceEvents(range.voice.events)
@@ -1326,16 +1421,18 @@ function buildRangeDeleteCommand(
   const lastIndex = events.findIndex((event) => event.id === lastEvent.id)
 
   if (firstIndex === -1 || lastIndex === -1) {
-    return undefined
+    return {}
   }
 
   const removeIds = new Set(range.events.map((event) => event.id))
   let endTick = eventEndTick(lastEvent)
 
+  const spanEndpointIds = collectSpanEndpointIds(score)
   for (const event of events.slice(lastIndex + 1)) {
     if (
       event.type !== 'rest' ||
       event.duration.tuplet ||
+      isRestBoundary(event, spanEndpointIds) ||
       event.position.tick !== endTick
     ) {
       break
@@ -1354,7 +1451,7 @@ function buildRangeDeleteCommand(
   )
 
   if (restEvents.length === 0) {
-    return undefined
+    return {}
   }
 
   const nextEvents = sortVoiceEvents([
@@ -1380,15 +1477,10 @@ function buildRangeDeleteCommand(
       events: nextEvents
     }).length > 0
   ) {
-    return undefined
+    return {}
   }
 
-  return {
-    type: 'voice-events.replace',
-    target: range.address,
-    events: nextEvents,
-    editedEventId: restEvents[0].id
-  }
+  return finishRangeEdit(score, range.address, range.voice.events, nextEvents, restEvents[0].id)
 }
 
 export function getAdjacentEventId(
@@ -1610,33 +1702,33 @@ function isContiguousRange(events: VoiceEvent[]): boolean {
   })
 }
 
+function clipboardAccidentals(
+  measure: Measure,
+  voice: Measure['voices'][number],
+  event: Note
+): NonNullable<RangeClipboardEvent['sourceAccidentals']> {
+  const resolve = (pitch: Note['pitch']) => effectiveAlterAt({
+    measure, voice, step: pitch.step, octave: pitch.octave,
+    tick: event.position.tick, override: pitch.alter
+  })
+  return {
+    pitch: resolve(event.pitch),
+    ...(event.pitches ? { pitches: event.pitches.map(resolve) } : {})
+  }
+}
+
 function cloneClipboardEvent(
   event: VoiceEvent,
   tick: number,
   createId: () => string
 ): VoiceEvent {
-  if (event.type === 'rest') {
-    return {
-      type: 'rest',
-      id: createId(),
-      position: createTimePosition(tick),
-      duration: {
-        ...event.duration
-      }
-    } satisfies Rest
-  }
-
+  // The simple-range guard handles unsupported ties/tuplets. Preserve all
+  // supported event contents, with no shared chord/attachment draft objects.
   return {
-    type: 'note',
+    ...structuredClone(event),
     id: createId(),
-    position: createTimePosition(tick),
-    pitch: {
-      ...event.pitch
-    },
-    duration: {
-      ...event.duration
-    }
-  } satisfies Note
+    position: createTimePosition(tick)
+  }
 }
 
 function eventEndTick(event: VoiceEvent): number {
@@ -1779,20 +1871,7 @@ function buildCompactUntupletGroupCommand(
       continue
     }
 
-    converted.push(
-      event.type === 'rest'
-        ? createRest({
-            id: event.id,
-            position: createTimePosition(tick),
-            duration: baseDuration
-          })
-        : createNote({
-            id: event.id,
-            position: createTimePosition(tick),
-            duration: baseDuration,
-            pitch: event.pitch
-          })
-    )
+    converted.push(resizeTupletMember(event, tick, baseDuration))
     tick += baseTicks
   }
 
@@ -1826,23 +1905,27 @@ function createUntupledMembers(
 
   return members.map((event, index) => {
     const duration = baseDurations[index]
-    const converted =
-      event.type === 'rest'
-        ? createRest({
-            id: event.id,
-            position: createTimePosition(tick),
-            duration
-          })
-        : createNote({
-            id: event.id,
-            position: createTimePosition(tick),
-            duration,
-            pitch: event.pitch
-          })
+    const converted = resizeTupletMember(event, tick, duration)
 
     tick += durationToTicks(duration)
     return converted
   })
+}
+
+function resizeTupletMember(
+  event: VoiceEvent,
+  tick: number,
+  duration: Duration
+): VoiceEvent {
+  // Rhythm changes keep the existing chord and attached notation, without
+  // sharing nested drafts or carrying a full-measure rest into a shorter slot.
+  const converted = {
+    ...structuredClone(event),
+    position: createTimePosition(tick),
+    duration: structuredClone(duration)
+  }
+  if (converted.type === 'rest') delete converted.fullMeasure
+  return converted
 }
 
 function consumeRestSpan(

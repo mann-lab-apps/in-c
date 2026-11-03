@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 
 import react from '@vitejs/plugin-react'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { studioExportFontsPlugin } from './src/build/studio-export-fonts'
 
 export default defineConfig({
   main: {
@@ -12,6 +13,6 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/renderer'),
-    plugins: [react()]
+    plugins: [react(), studioExportFontsPlugin()]
   }
 })

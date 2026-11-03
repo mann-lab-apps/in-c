@@ -1,16 +1,17 @@
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { buildMuseScoreConversionArgs, invokeMuseScoreConversion } from './musescore-invocation.mjs'
 
-const rootDir = resolve(new URL('..', import.meta.url).pathname)
+const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const defaultMuseScoreBin = '/Applications/MuseScore 4.app/Contents/MacOS/mscore'
 const museScoreBin = process.env.MUSESCORE_BIN ?? defaultMuseScoreBin
 const requireMuseScore = process.env.REQUIRE_MUSESCORE_CLI === '1'
-const outputRoot =
-  process.env.MUSESCORE_CLI_QA_OUTPUT_DIR ??
-  (await mkdtemp(join(tmpdir(), 'chromatics-musescore-cli-')))
+const outputRoot = resolve(process.env.MUSESCORE_CLI_QA_OUTPUT_DIR ??
+  (await mkdtemp(join(tmpdir(), 'chromatics-musescore-cli-'))))
 
 const fixtures = [
   {
@@ -50,10 +51,6 @@ if (selectedFixtures.length === 0) {
   )
 }
 
-function sleep(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
-}
-
 function fail(message) {
   throw new Error(message)
 }
@@ -89,51 +86,30 @@ function runMuseScoreExport(fixture, outputPath) {
     fail(`Missing fixture ${fixture.id}: ${inputPath}`)
   }
 
-  const attempts = []
-
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const result = spawnSync(
-      museScoreBin,
-      ['-F', '--musicxml-use-default-font', '-o', outputPath, inputPath],
-      {
-        encoding: 'utf8',
-        timeout: 90_000
-      }
-    )
-
-    const attemptResult = {
-      attempt,
-      status: result.status,
-      signal: result.signal,
-      stdout: result.stdout.trim(),
-      stderr: result.stderr.trim()
-    }
-    attempts.push(attemptResult)
-
-    if (!result.error && result.status === 0 && existsSync(outputPath)) {
-      verifyPdf(outputPath, fixture.minBytes)
-
-      return {
-        fixtureId: fixture.id,
-        input: fixture.path,
-        output: outputPath,
-        bytes: statSync(outputPath).size,
-        attempts
-      }
-    }
-
-    if (attempt < 3) {
-      sleep(500)
-    }
+  if (existsSync(outputPath)) {
+    fail(`Choose a fresh output directory; existing artifact was preserved: ${outputPath}`)
   }
+  const args = buildMuseScoreConversionArgs(inputPath, outputPath)
+  const result = invokeMuseScoreConversion({ binary: museScoreBin, inputPath, outputPath })
+  const attempts = [{ attempt: 1, status: result.status, signal: result.signal,
+    stdout: (result.stdout ?? '').trim(), stderr: (result.stderr ?? '').trim(),
+    ...(result.error ? { error: result.error.message } : {}) }]
+  let validationError
+  if (!result.error && result.status === 0) {
+    try {
+      if (!existsSync(outputPath)) fail('The converter returned without a new output file.')
+      verifyPdf(outputPath, fixture.minBytes)
+    } catch (error) { validationError = error instanceof Error ? error.message : String(error) }
+  }
+  const passed = !result.error && result.status === 0 && !validationError
+  const receipt = join(outputRoot, `${fixture.id}-${Date.now()}-${process.pid}-attempt.json`)
+  writeFileSync(receipt, JSON.stringify({ fixtureId: fixture.id, input: inputPath,
+    output: outputPath, binary: museScoreBin, args, attempts, passed,
+    ...(validationError ? { validationError } : {}) }, null, 2) + '\n', { flag: 'wx' })
+  if (passed) return { fixtureId: fixture.id, input: fixture.path, output: outputPath,
+    bytes: statSync(outputPath).size, attempts, receipt }
+  fail(`${fixture.id} MuseScore CLI export failed after one bounded attempt. Artifacts retained: ${receipt}\n${JSON.stringify(attempts, null, 2)}${validationError ? `\n${validationError}` : ''}`)
 
-  fail(
-    `${fixture.id} MuseScore CLI export failed after ${attempts.length} attempts:\n${JSON.stringify(
-      attempts,
-      null,
-      2
-    )}`
-  )
 }
 
 function main() {
@@ -166,6 +142,13 @@ function main() {
     encoding: 'utf8',
     timeout: 30_000
   })
+  const versionReceipt = join(outputRoot, `musescore-${Date.now()}-${process.pid}-version.json`)
+  writeFileSync(versionReceipt, JSON.stringify({ binary: museScoreBin, args: ['--version'],
+    status: version.status, signal: version.signal, stdout: version.stdout, stderr: version.stderr,
+    ...(version.error ? { error: version.error.message } : {}) }, null, 2) + '\n', { flag: 'wx' })
+  if (version.error || version.status !== 0) {
+    fail(`MuseScore version probe did not complete normally; conversion was not started. Artifacts retained: ${versionReceipt}`)
+  }
 
   const results = selectedFixtures.map((fixture) =>
     runMuseScoreExport(fixture, join(outputRoot, fixture.outputName))
@@ -177,7 +160,8 @@ function main() {
         checkedAt: new Date().toISOString(),
         status: 'passed',
         museScoreBin,
-        museScoreVersion: version.stdout.trim() || version.stderr.trim() || null,
+        museScoreVersion: (version.stdout ?? '').trim() || (version.stderr ?? '').trim() || null,
+        versionReceipt,
         outputRoot,
         skippedFixtures: fixtures
           .filter((fixture) => !selectedFixtures.includes(fixture))

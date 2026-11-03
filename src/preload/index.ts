@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { NativeProject } from '../project/schema'
 import type { NativeBackupEntry } from '../project/backups'
+import type { PngExportInput, PngExportResult } from '../image-export/png'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
@@ -25,6 +26,9 @@ interface RecentMusicXmlFile {
 
 const api = {
   appName: 'in-C',
+  png: {
+    save: (input: PngExportInput) => ipcRenderer.invoke('png:save', input) as Promise<PngExportResult | null>
+  },
   project: {
     listBackups: () => ipcRenderer.invoke('project:list-backups') as Promise<NativeBackupEntry[]>,
     readBackup: (id: string) => ipcRenderer.invoke('project:read-backup', id) as Promise<{ contents: string }>,

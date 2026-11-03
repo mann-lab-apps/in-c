@@ -74,15 +74,16 @@ export function Button({ children, onClick, kind = 'primary', busy = false, sele
 export function IconButton({ label, children, className = '', ...props }: ButtonProps & {
     label: string;
 }) { return <Button {...props} kind={props.kind ?? 'quiet'} aria-label={label} title={label} className={`dd-icon-button ${className}`}>{children}</Button>; }
-export function Input({ label, error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {
+export function Input({ label, labelVisibility = 'visible', error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {
     label: string;
+    labelVisibility?: 'visible' | 'sr-only';
     error?: string;
     help?: string;
     clearable?: boolean;
     onClear?: () => void;
 }) {
     const id = useId(), description = error || help;
-    return <div className="dd-field"><label htmlFor={id}>{label}</label><div className="dd-input-row"><input {...props} id={id} aria-invalid={!!error} aria-describedby={description ? id + '-help' : undefined}/>{clearable && String(props.value ?? '') !== '' ? <IconButton label={label + ' 지우기'} onClick={onClear} disabled={props.disabled || props.readOnly}>×</IconButton> : null}</div>{description ? <p id={id + '-help'} className={error ? 'dd-error' : 'dd-help'}>{description}</p> : null}</div>;
+    return <div className="dd-field"><label htmlFor={id} className={labelVisibility === 'sr-only' ? 'dd-input-label--sr-only' : undefined}>{label}</label><div className="dd-input-row"><input {...props} id={id} aria-invalid={!!error} aria-describedby={description ? id + '-help' : undefined}/>{clearable && String(props.value ?? '') !== '' ? <IconButton label={label + ' 지우기'} onClick={onClear} disabled={props.disabled || props.readOnly}>×</IconButton> : null}</div>{description ? <p id={id + '-help'} className={error ? 'dd-error' : 'dd-help'}>{description}</p> : null}</div>;
 }
 export function Search({ value, onChange, label = '검색' }: {
     value: string;
@@ -172,6 +173,100 @@ export function Dialog({ open, title, children, onClose, actions, sheet = false,
         el.close(); return () => { if (el.open)
         el.close(); if (open)
         previous?.focus(); }; }, [open]);
+    useEffect(() => {
+        const el = ref.current;
+        if (!open || !el) return;
+        const owner = () => {
+            const current = document.activeElement as HTMLElement | null;
+            if (!el.open || !current || current.closest('dialog') !== el ||
+                current.closest('[popover]')?.matches(':popover-open')) return;
+            return current;
+        };
+        const reveal = () => {
+            // Keep the current editor visible without refocusing or committing
+            // its draft. Manual scrolling does not request this adjustment.
+            owner()?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        };
+        const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(reveal);
+        let observed: HTMLElement | undefined;
+        const track = () => {
+            const current = owner(), next = current === el ? undefined : current;
+            if (next === observed) return;
+            if (observed) observer?.unobserve(observed);
+            observed = next;
+            if (observed) observer?.observe(observed);
+        };
+        observer?.observe(el);
+        el.addEventListener('focusin', track);
+        track();
+        window.addEventListener('resize', reveal);
+        return () => { observer?.disconnect(); el.removeEventListener('focusin', track); window.removeEventListener('resize', reveal); };
+    }, [open]);
+    useEffect(() => {
+        const el = ref.current;
+        if (!open || !el) return;
+        const outsideBorder = (x: number, y: number) => {
+            const bounds = el.getBoundingClientRect();
+            if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return true;
+            // The native backdrop also owns the cut-out rounded corners.
+            // Resolve the existing CSS radii, including CSS overlap reduction,
+            // rather than changing the surface or blocking its inner padding.
+            const style = getComputedStyle(el);
+            const length = (value: string, size: number) =>
+                Math.max(0, (parseFloat(value) || 0) * (value.endsWith('%') ? size / 100 : 1));
+            const radii = [style.borderTopLeftRadius, style.borderTopRightRadius,
+                style.borderBottomRightRadius, style.borderBottomLeftRadius].map(value => {
+                const [horizontal = '', vertical = horizontal] = value.trim().split(/\s+/);
+                return { x: length(horizontal, bounds.width), y: length(vertical, bounds.height) };
+            });
+            const fit = (size: number, sum: number) => sum > 0 ? size / sum : 1;
+            const scale = Math.min(1,
+                fit(bounds.width, radii[0].x + radii[1].x), fit(bounds.width, radii[3].x + radii[2].x),
+                fit(bounds.height, radii[0].y + radii[3].y), fit(bounds.height, radii[1].y + radii[2].y));
+            return radii.some((radius, corner) => {
+                const rx = radius.x * scale, ry = radius.y * scale;
+                const dx = corner === 0 || corner === 3 ? x - bounds.left : bounds.right - x;
+                const dy = corner < 2 ? y - bounds.top : bounds.bottom - y;
+                return rx > 0 && ry > 0 && dx < rx && dy < ry && (1 - dx / rx) ** 2 + (1 - dy / ry) ** 2 > 1;
+            });
+        };
+        const backdropWheel = (event: WheelEvent) => {
+            if (!el.open || event.target !== el || event.deltaY === 0 ||
+                event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+            // Native backdrop input targets the dialog outside its rendered border.
+            // Descendant popovers and ordinary inner scrolling keep ownership.
+            if (outsideBorder(event.clientX, event.clientY)) event.preventDefault();
+        };
+        let backdropContact: number | undefined;
+        const touchStart = (event: TouchEvent) => {
+            backdropContact = undefined;
+            if (!el.open || event.target !== el || event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            if (outsideBorder(touch.clientX, touch.clientY)) backdropContact = touch.identifier;
+        };
+        const touchMove = (event: TouchEvent) => {
+            if (el.open && event.target === el && event.touches.length === 1 &&
+                event.touches[0].identifier === backdropContact) event.preventDefault();
+        };
+        const touchEnd = () => { backdropContact = undefined; };
+        // The backdrop lies outside the element's compositor wheel region.
+        // Capture while open so its event is cancelable; the predicate above
+        // leaves inner controls, descendants and other dialogs untouched.
+        window.addEventListener('wheel', backdropWheel, { capture: true, passive: false });
+        // Keep the start owner: inner pans may leave the border, and backdrop
+        // pans may enter it. A second contact releases ownership for pinch.
+        window.addEventListener('touchstart', touchStart, { capture: true, passive: true });
+        window.addEventListener('touchmove', touchMove, { capture: true, passive: false });
+        window.addEventListener('touchend', touchEnd, true);
+        window.addEventListener('touchcancel', touchEnd, true);
+        return () => {
+            window.removeEventListener('wheel', backdropWheel, true);
+            window.removeEventListener('touchstart', touchStart, true);
+            window.removeEventListener('touchmove', touchMove, true);
+            window.removeEventListener('touchend', touchEnd, true);
+            window.removeEventListener('touchcancel', touchEnd, true);
+        };
+    }, [open]);
     return <dialog ref={ref} className={`dd-dialog ${sheet ? 'dd-dialog--sheet' : ''}`} aria-labelledby={titleId} onKeyDown={e => {
       if (e.key !== 'Tab') return;
       const controls = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')).filter(n => n.getClientRects().length && !n.closest('[hidden],[inert]'));

@@ -1,3 +1,5 @@
+import type { MeasuredPrintLayout } from './measured-print-pages'
+import { keySignatureCancellation } from './key-signature-header'
 import {
   TICKS_PER_QUARTER,
   voiceEventDurationTicks,
@@ -23,8 +25,20 @@ export interface SystemLayout {
   systemCount: number
 }
 
+/** Ephemeral formatter minima. Existing plain width maps remain supported. */
+export interface MeasureWidthRequirements extends ReadonlyMap<string, number> {
+  readonly systemStart?: ReadonlyMap<string, number>
+}
+
 export interface SystemLayoutOptions {
+  /** Ephemeral, actual-ink page repair for immutable output only. */
+  measuredPrintLayout?: MeasuredPrintLayout
+  /** Measured print header clearance, in SVG units, on the first page only. */
+  firstSystemOffset?: number
+  /** Measured inter-system ink clearance; not stored in the score. */
+  additionalSystemSpacing?: ReadonlyMap<number, number>
   compactSpacing?: boolean
+  minimumMeasureWidths?: MeasureWidthRequirements
   layout?: ScoreLayout
   lyricScale?: number
   pageHeight?: number
@@ -59,6 +73,7 @@ const LYRIC_BOTTOM_PADDING = 8
 interface SystemVerticalSpace {
   below: number
   above: number
+  noteBelow: number
 }
 
 interface SystemPitchExtremes {
@@ -74,6 +89,8 @@ interface SystemBreakPlan {
 
 interface LayoutSpacing {
   minSparseMeasureWidth: number
+  minimumMeasureWidths?: MeasureWidthRequirements
+  previousMeasures: ReadonlyMap<Measure, Measure | undefined>
 }
 
 interface LayoutMetrics {
@@ -97,6 +114,8 @@ export function createSystemLayout(
 
   const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2)
   const spacing = {
+    minimumMeasureWidths: options.minimumMeasureWidths,
+    previousMeasures: new Map(measures.map((measure, index) => [measure, measures[index - 1]])),
     minSparseMeasureWidth: options.compactSpacing
       ? COMPACT_SPARSE_MEASURE_WIDTH
       : MIN_SPARSE_MEASURE_WIDTH
@@ -124,7 +143,8 @@ export function createSystemLayout(
   const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
   const pageBreaks = new Set(options.layout?.pageBreakBeforeMeasureIds ?? [])
-  let verticalCursor = metrics.systemTop
+  const firstOffset = options.firstSystemOffset ?? 0
+  let verticalCursor = metrics.systemTop + (Number.isFinite(firstOffset) ? Math.max(0, firstOffset) : 0)
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
     const systemMeasures = systemMeasuresList[systemIndex]
@@ -138,12 +158,14 @@ export function createSystemLayout(
       const nextPageTop = (Math.floor(previousY / options.pageHeight) + 1) * options.pageHeight
       verticalCursor = Math.max(verticalCursor, nextPageTop + metrics.systemTop)
     }
-    const y = alignSystemToPage(
+    const naturalY = alignSystemToPage(
       verticalCursor + verticalSpace.above,
       verticalSpace.below,
       options.pageHeight,
       metrics
     )
+    const measuredY = options.measuredPrintLayout?.origins.get(systemIndex)
+    const y = measuredY !== undefined && Number.isFinite(measuredY) && measuredY >= 0 ? measuredY : naturalY
     const widths = distributeSystemWidths(
       systemMeasures,
       availableWidth,
@@ -167,11 +189,13 @@ export function createSystemLayout(
       placements.push(placement)
     })
 
-    verticalCursor = y + metrics.systemHeight + verticalSpace.below
+    const additional = options.additionalSystemSpacing?.get(systemIndex) ?? 0
+    verticalCursor = y + metrics.systemHeight + verticalSpace.below +
+      (systemIndex < systemCount - 1 && Number.isFinite(additional) ? Math.max(0, additional) : 0)
   }
 
   return {
-    height: Math.max(MIN_RENDER_HEIGHT, verticalCursor),
+    height: Math.max(MIN_RENDER_HEIGHT, options.measuredPrintLayout?.height ?? verticalCursor),
     measuresPerSystem,
     placements,
     systemCount
@@ -187,6 +211,11 @@ function alignSystemToPage(
   if (!pageHeight) {
     return y
   }
+
+  // Moving a system that cannot fit any empty page only creates blank space.
+  // Keep its natural position and preserve manual geometry; page breaks above
+  // already handle the user's explicit requests.
+  if (metrics.systemHeight + below > pageHeight - metrics.systemTop) return y
 
   const pageTop = Math.floor(y / pageHeight) * pageHeight
   const pageBottom = pageTop + pageHeight
@@ -337,7 +366,7 @@ function compareSystemBreakPlans(
   return left.cost - right.cost
 }
 
-function systemVerticalSpace(
+export function systemVerticalSpace(
   measures: Measure[],
   lyricScale: number,
   metrics: Pick<LayoutMetrics, 'systemHeight'>
@@ -357,7 +386,8 @@ function systemVerticalSpace(
       0,
       highestLine + STEM_SPACE_LINES - MAX_LINE_WITHOUT_EXTRA_SPACE
     ) * STAFF_LINE_SPACING,
-    below: Math.max(noteBelow, lyricBelow)
+    below: Math.max(noteBelow, lyricBelow),
+    noteBelow
   }
 }
 
@@ -488,7 +518,9 @@ function measureMinimumWidth(
   spacing: LayoutSpacing
 ): number {
   const rhythmWeight = measureSpacingWeight(measure)
-  const voiceCount = Math.max(1, measure.voices.length)
+  // Authored empty voices have no tickables or collision lanes. Match the
+  // formatter's populated-voice contract without modifying the native score.
+  const voiceCount = Math.max(1, measure.voices.filter(voice => voice.events.length > 0).length)
   const maxEventCount = Math.max(
     0,
     ...measure.voices.map((voice) => voice.events.length)
@@ -497,16 +529,22 @@ function measureMinimumWidth(
   const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
+  const previousMeter = spacing.previousMeasures.get(measure)
   const leadingModifierWidth = leadingNotationPadding(measure, {
     showsClef:
       isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
     showsKeySignature:
       isSystemStart || !previousMeasure || !sameKeySignature(previousMeasure, measure),
+    cancelledKeyAccidentals:keySignatureCancellation(measure.keySignature,previousMeter?.keySignature)?.count,
     showsTimeSignature:
-      isSystemStart || !previousMeasure || !sameTimeSignature(previousMeasure, measure)
+      !previousMeter || !sameTimeSignature(previousMeter, measure)
   })
 
-  return (
+  const measuredWidth = spacing.minimumMeasureWidths?.get(measure.id)
+  const systemStartWidth = isSystemStart ? spacing.minimumMeasureWidths?.systemStart?.get(measure.id) : undefined
+  return Math.max(
+    measuredWidth && Number.isFinite(measuredWidth) ? measuredWidth : 0,
+    systemStartWidth && Number.isFinite(systemStartWidth) ? systemStartWidth : 0,
     baseWidth +
     leadingModifierWidth +
     eventCrowdingWidth +
@@ -521,6 +559,7 @@ export function leadingNotationPadding(
     showsClef: boolean
     showsKeySignature: boolean
     showsTimeSignature: boolean
+    cancelledKeyAccidentals?: number
   }
 ): number {
   if (
@@ -532,7 +571,7 @@ export function leadingNotationPadding(
   }
 
   const keyAccidentalCount = leadingNotation.showsKeySignature
-    ? Math.min(7, Math.abs(measure.keySignature.fifths))
+    ? Math.min(7, Math.abs(measure.keySignature.fifths)+(leadingNotation.cancelledKeyAccidentals??0))
     : 0
   const padding =
     LEADING_NOTATION_BASE_PADDING +

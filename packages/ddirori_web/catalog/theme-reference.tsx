@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Choices, Input, Mark, Text } from '../src';
+import { Banner, Button, Choices, Input, Mark, Text } from '../src';
 import { Density, Select, Stack } from '../src/basic';
 import { ExcerptRowExample, PropertyGroupExample } from './theme-recipes';
 import '../src/styles.css';
@@ -24,7 +24,7 @@ function candidateVariables(accent: string, theme: 'light' | 'dark'): CSSPropert
 export function ThemeReference() {
   const params = new URLSearchParams(location.search);
   const [theme, setTheme] = useState<'light' | 'dark'>(params.get('theme') === 'dark' ? 'dark' : 'light');
-  const [accent, setAccent] = useState(candidates.variants.some(p => p.key === params.get('accent')) ? params.get('accent')! : 'violet');
+  const [accent, setAccent] = useState(candidates.variants.some(p => p.key === params.get('accent')) ? params.get('accent')! : candidates.recommended);
   const [saved, setSaved] = useState(false);
   const [secondSaved, setSecondSaved] = useState(false);
   const [name, setName] = useState('연습 구간 A');
@@ -38,7 +38,7 @@ export function ThemeReference() {
       <div className="theme-intro"><Text as="h1" variant="display">화면은 자유롭게, 문법은 같게.</Text><Text as="p" variant="body" className="theme-muted">서비스는 각자의 작업에 맞게 설계해요.<br/>글자, 여백, 표면, 조작 상태는 같은 기준으로 연결합니다.</Text></div>
       <div className="theme-settings">
         <Select label="테마" options={[{value:'light',label:'라이트'},{value:'dark',label:'다크'}]} value={theme} onChange={v => setTheme(v as 'light' | 'dark')}/>
-        <Select label="강조색 후보 · 대표색 미확정" options={[{value:'violet',label:'바이올렛'},{value:'blue',label:'블루'},{value:'teal',label:'틸'},{value:'coral',label:'코럴'},{value:'yellow',label:'옐로'},{value:'lime',label:'라임 · 기존 임시값'}]} value={accent} onChange={setAccent}/>
+        <Select label="공통 테마 · 다른 색은 비교 전용" options={[{value:'violet',label:'바이올렛'},{value:'blue',label:'블루 · 공통 기본값'},{value:'teal',label:'틸'},{value:'coral',label:'코럴'},{value:'yellow',label:'옐로'},{value:'lime',label:'라임 · 이전 비교안'}]} value={accent} onChange={setAccent}/>
       </div>
       <section className="theme-specimen" aria-labelledby="row-heading">
         <div className="theme-explanation"><Text variant="caption" className="theme-muted">01 / 목록</Text><Text as="h2" variant="sectionTitle" id="row-heading">내용부터 읽히게</Text><Text as="p" variant="description" className="theme-muted">반복되는 항목은 평평한 행으로 묶어요. 제목은 16/600, 부가 정보는 14/400. 개별 저장은 별도 버튼으로 구분합니다.</Text><Text as="p" variant="caption" className="theme-muted">공통 Item · IconButton + 서비스의 데이터·동작</Text></div>
@@ -55,7 +55,7 @@ export function ThemeReference() {
       </section>
       <section className="theme-specimen" aria-labelledby="state-heading">
         <div className="theme-explanation"><Text variant="caption" className="theme-muted">03 / 상태와 위계</Text><Text as="h2" variant="sectionTitle" id="state-heading">색만으로 구분하지 않기</Text><Text as="p" variant="description" className="theme-muted">선택에는 체크, 오류에는 문장, 포커스에는 별도 윤곽이 있어요. Tab으로 실제 포커스를 확인하세요.</Text></div>
-        <Stack gap="xl"><div className="theme-actions theme-actions--start"><Button onClick={() => setMessage('주요 동작 예제')}>주요 동작</Button><Button kind="secondary" onClick={() => setMessage('보조 동작 예제')}>보조 동작</Button><Button disabled>사용 불가</Button></div><Input label="표시 이름" defaultValue="" error="표시할 이름을 입력해주세요."/><Choices label="선택과 포커스 예제" options={[{value:'selected',label:'선택한 항목'},{value:'other',label:'다른 항목'}]} selected={stateSelection} onChange={setStateSelection}/><Text variant="numeric">12:48 · 120 BPM</Text></Stack>
+        <Stack gap="xl"><Banner>파일 가져오기가 취소되었습니다.</Banner><div className="theme-actions theme-actions--start"><Button onClick={() => setMessage('주요 동작 예제')}>주요 동작</Button><Button kind="secondary" onClick={() => setMessage('보조 동작 예제')}>보조 동작</Button><Button disabled>사용 불가</Button></div><Input label="표시 이름" defaultValue="" error="표시할 이름을 입력해주세요."/><Choices label="선택과 포커스 예제" options={[{value:'selected',label:'선택한 항목'},{value:'other',label:'다른 항목'}]} selected={stateSelection} onChange={setStateSelection}/><Text variant="numeric">12:48 · 120 BPM</Text></Stack>
       </section>
       <footer className="theme-footer"><Text as="p" variant="description">이 화면은 공통 문법의 기준 예제입니다. 앱의 탐색 구조와 주요 UX는 각 서비스에서 설계합니다.</Text><Text as="p" variant="caption" className="theme-muted">중립 UI · 당근의 정보 위계 · Excalidraw의 조용한 도구 표현 · MUI의 테마 확장 원리</Text></footer>
     </div>

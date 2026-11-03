@@ -1,0 +1,8 @@
+.studio-workspace-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--dd-spacing-sm); margin-inline-start: auto; min-width: 0; background: var(--dd-surface); }
+.studio-workspace-tools__anchor { display: inline-flex; }
+.studio-workspace-tools__readout { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--dd-spacing-xs); min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.studio-workspace-tools__label { color: var(--dd-muted); }
+@media print { .studio-workspace-tools { display: none; } }
+.studio-document.studio-document--system { padding: var(--dd-spacing-sm) var(--dd-spacing-xl); gap: var(--dd-spacing-sm) var(--dd-spacing-lg); align-items: center; background: var(--dd-surface); border-color: var(--dd-border); }
+.studio-document--system > h1 { margin: 0; color: inherit; overflow-wrap: anywhere; min-width: 0; }
+.studio-document__state { color: var(--dd-muted); }

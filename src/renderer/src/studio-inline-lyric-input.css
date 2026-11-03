@@ -1,0 +1,4 @@
+/* Private placement only; public Input owns field typography, states and target size. */
+.studio-inline-lyric-editor { width: 148px; box-sizing: border-box; padding: var(--dd-spacing-xs); transform-origin: top left; }
+/* VexFlow's SVG disables pointer events; this editor is an intentional input surface. */
+.notation-lyric-editor { pointer-events: auto; }

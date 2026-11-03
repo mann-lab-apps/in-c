@@ -1,0 +1,16 @@
+/* Service-owned composition; public Input/Text retain all control styling. */
+.studio-part-labels {
+  display: grid;
+  flex: 1 1 28rem;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--dd-spacing-sm);
+}
+.studio-part-labels > h3, .studio-part-labels > p { margin: 0; }
+.studio-part-labels__fields {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--dd-spacing-md);
+  min-width: 0;
+}

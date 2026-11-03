@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { validateMeasureRhythm, validateTieRelations, validateVoiceTuplets, type Score } from '../score-core'
+import { measureDurationTicks, validateMeasureRhythm, validateTieRelations, validateVoiceTuplets, type Score } from '../score-core'
 
 export const NATIVE_FORMAT = 'chromatics-project'
 export const NATIVE_VERSION = 2
@@ -29,7 +29,7 @@ const event = z.discriminatedUnion('type', [
     tremolo: z.strictObject({ type: z.literal('single'), marks: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).optional(),
     lyrics: z.array(z.strictObject({ number: positive.optional(), syllabic: z.enum(['single', 'begin', 'middle', 'end']).optional(), text, extend: z.boolean().optional() })).max(100).optional(),
     graceNotes: z.array(z.strictObject({ pitch, slash: z.boolean().optional() })).max(128).optional(),
-    ornaments: z.array(z.enum(['trill', 'mordent', 'turn'])).max(3).optional()
+    ornaments: z.array(z.enum(['trill', 'mordent', 'inverted-mordent', 'turn'])).max(4).optional()
   }),
   z.strictObject({ ...eventBase, type: z.literal('rest'), fullMeasure: z.boolean().optional() })
 ])
@@ -71,6 +71,8 @@ const layoutSchema = z.strictObject({
 export const scoreSchema: z.ZodType<Score> = z.strictObject({
   id, title: text, composer: text.optional(), tempo: tempo.optional(),
   tempoEvents: z.array(tempo.extend({ id, measureId: id, tick })).max(10000).optional(),
+  pedalEvents: z.array(z.strictObject({ id, partId: id, staffId: id, measureId: id,
+    tick, value: integer.min(0).max(127) })).max(10000).optional(),
   rhythmFeel: z.strictObject({ unit: z.enum(['eighth', '16th']), text: text.optional() }).optional(),
   octaveShifts: z.array(z.strictObject({ ...span, type: z.enum(['8va', '8vb', '15ma', '15mb']) })).max(10000).optional(),
   harmonies: z.array(measureMark.extend({ tick, root: harmonyPitch.optional(), bass: harmonyPitch.optional(), kind: text.optional() })).max(10000).optional(),
@@ -185,6 +187,12 @@ function validateReferences(project: NativeProject): void {
   score.parts[0]?.staves[0]?.measures.forEach(measure => refs.add(`measure-${measure.number}`))
   const requireMeasure = (reference: string, allowed = refs) => { if (!allowed.has(reference)) throw new Error(`Dangling measure reference: ${reference}`) }
   const markingIds = new Set<string>()
+  for (const pedal of score.pedalEvents ?? []) {
+    add(markingIds, pedal.id)
+    const owner = score.parts.find(part => part.id === pedal.partId)?.staves.find(staff => staff.id === pedal.staffId)
+    const measure = owner?.measures.find(measure => measure.id === pedal.measureId)
+    if (!measure || pedal.tick > measureDurationTicks(measure)) throw new Error(`Invalid project pedal anchor: ${pedal.id}`)
+  }
   for (const marks of [score.tempoEvents, score.harmonies, score.rehearsalMarks, score.staffTexts, score.systemTexts, score.expressionTexts, score.dynamics]) {
     for (const mark of marks ?? []) { add(markingIds, mark.id); requireMeasure(mark.measureId) }
   }

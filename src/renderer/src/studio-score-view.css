@@ -1,0 +1,14 @@
+.studio-score-view {
+  display: grid;
+  flex: 1 1 24rem;
+  gap: var(--dd-spacing-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-score-view > h3 { margin: 0; }
+.studio-score-view__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  gap: var(--dd-spacing-md);
+  min-width: 0;
+}

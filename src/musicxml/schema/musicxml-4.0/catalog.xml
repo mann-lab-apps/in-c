@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ns0:catalog xmlns:ns0="urn:oasis:names:tc:entity:xmlns:xml:catalog"><ns0:system systemId="http://www.musicxml.org/xsd/musicxml.xsd" uri="musicxml.xsd" /><ns0:uri name="http://www.musicxml.org/xsd/musicxml.xsd" uri="musicxml.xsd" /><ns0:system systemId="http://www.musicxml.org/xsd/xml.xsd" uri="xml.xsd" /><ns0:uri name="http://www.musicxml.org/xsd/xml.xsd" uri="xml.xsd" /><ns0:system systemId="http://www.musicxml.org/xsd/xlink.xsd" uri="xlink.xsd" /><ns0:uri name="http://www.musicxml.org/xsd/xlink.xsd" uri="xlink.xsd" /></ns0:catalog>

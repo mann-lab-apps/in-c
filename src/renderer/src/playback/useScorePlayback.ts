@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Score } from '../../../score-core'
+import { applyExpressionProfile, createScoreRequest } from './expression-profile'
+import { applyVoicingProfile, createVoicingRequest, type AnyExpressionProfile } from './voicing-profile'
+import { PianoSampler } from './piano-sampler'
+import { PianoTransport } from './piano-transport'
+import { collectPianoPitches } from './piano-cache-plan'
 import {
   beatDeltaToSeconds,
   createPlaybackTimeline,
   elapsedSecondsToBeat,
   findPlaybackEvent,
+  findPlaybackStartBeat,
   tempoMarkingToQuarterBpm,
   type PlaybackTimeline,
   type PlaybackEvent
@@ -41,17 +47,40 @@ const TRILL_BEAT_INTERVAL = 0.125
 
 export function useScorePlayback(
   score: Score,
-  partMixer: PlaybackPartMixerMap = EMPTY_PART_MIXER
+  partMixer: PlaybackPartMixerMap = EMPTY_PART_MIXER,
+  expressionProfile?: AnyExpressionProfile,
+  pianoTimeline?: PlaybackTimeline
 ) {
-  const timeline = useMemo(() => createPlaybackTimeline(score), [score])
+  const timeline = useMemo(() => {
+    const basic = pianoTimeline ?? createPlaybackTimeline(score)
+    if (!expressionProfile) return basic
+    try {
+      return expressionProfile.version === 2
+        ? applyVoicingProfile(basic, createVoicingRequest(score), expressionProfile)
+        : applyExpressionProfile(basic, createScoreRequest(score), expressionProfile)
+    }
+    catch { return basic }
+  }, [score, expressionProfile, pianoTimeline])
   const [status, setStatus] = useState<PlaybackStatus>('stopped')
-  const scoreTempo = normalizeTempo(
-    score.tempo ? tempoMarkingToQuarterBpm(score.tempo) : DEFAULT_TEMPO
-  )
+  // The authoring range applies to the marked beat, not its quarter-note rate.
+  const scoreTempo = score.tempo
+    ? tempoMarkingToQuarterBpm(score.tempo)
+    : DEFAULT_TEMPO
   const [tempo, setTempoState] = useState(scoreTempo)
   const [positionBeat, setPositionBeat] = useState(0)
   const [activeEvent, setActiveEvent] = useState<PlaybackEvent | undefined>()
   const audioContextRef = useRef<AudioContext | undefined>(undefined)
+  const detachAudioObserverRef = useRef<(() => void) | undefined>(undefined)
+  const pianoRef = useRef<PianoSampler | undefined>(undefined)
+  const transportRef = useRef<PianoTransport | undefined>(undefined)
+  const generationRef = useRef(0)
+  const [audioState, setAudioState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [audioProgress, setAudioProgress] = useState(0)
+  const [audioError, setAudioError] = useState('')
+  const [sustain, setSustainState] = useState(false)
+  const sustainRef = useRef(false)
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [previewing, setPreviewing] = useState(false)
   const sourcesRef = useRef<OscillatorNode[]>([])
   const frameRef = useRef<number | undefined>(undefined)
   const startContextTimeRef = useRef(0)
@@ -83,6 +112,11 @@ export function useScorePlayback(
   }, [status])
 
   const stopSources = useCallback(() => {
+    generationRef.current += 1
+    if (previewTimer.current) clearTimeout(previewTimer.current)
+    previewTimer.current = undefined
+    transportRef.current?.stop()
+    pianoRef.current?.stopAll()
     sourcesRef.current.forEach((source) => {
       try {
         source.stop()
@@ -118,6 +152,52 @@ export function useScorePlayback(
       )
     )
   }, [])
+
+  const acquireAudioContext = useCallback((AudioContextClass: typeof AudioContext) => {
+    if (audioContextRef.current?.state === 'closed') {
+      detachAudioObserverRef.current?.()
+      pianoRef.current?.dispose()
+      audioContextRef.current = undefined
+      pianoRef.current = undefined
+      transportRef.current = undefined
+    }
+    if (audioContextRef.current) return audioContextRef.current
+    const context = new AudioContextClass({ latencyHint: 'interactive', sampleRate: 48000 })
+    audioContextRef.current = context
+    const onStateChange = () => {
+      if (audioContextRef.current !== context) return
+      const state = String(context.state)
+      if (state === 'running') return
+      const wasPlaying = statusRef.current === 'playing'
+      const wasPaused = statusRef.current === 'paused'
+      if (state !== 'closed' && (!wasPlaying && previewTimer.current === undefined)) return
+      const beat = Math.min(readCurrentBeat(), timelineRef.current.totalBeats)
+      stopSources()
+      cancelFrame()
+      startBeatRef.current = beat
+      statusRef.current = wasPlaying || wasPaused ? 'paused' : 'stopped'
+      setStatus(statusRef.current)
+      setPositionBeat(beat)
+      setActiveEvent(statusRef.current === 'paused'
+        ? findPlaybackEvent(timelineRef.current, beat) : undefined)
+      setPreviewing(false)
+      setAudioState('error')
+      setAudioProgress(0)
+      setAudioError(state === 'closed'
+        ? '오디오 장치 연결이 종료되었습니다.' : '오디오 장치가 중단되어 일시정지했습니다.')
+      if (state === 'closed') {
+        detachAudioObserverRef.current?.()
+        detachAudioObserverRef.current = undefined
+        pianoRef.current?.dispose()
+        pianoRef.current = undefined
+        transportRef.current = undefined
+        audioContextRef.current = undefined
+      }
+    }
+    context.addEventListener?.('statechange', onStateChange)
+    detachAudioObserverRef.current = () => context.removeEventListener?.('statechange', onStateChange)
+    return context
+  }, [cancelFrame, readCurrentBeat, stopSources])
 
   const scheduleAudio = useCallback(
     (
@@ -191,7 +271,7 @@ export function useScorePlayback(
       const currentTimeline = timelineRef.current
 
       if (beat >= currentTimeline.totalBeats) {
-        stopSources()
+        transportRef.current?.finish()
         setPositionBeat(0)
         setActiveEvent(undefined)
         setStatus('stopped')
@@ -223,33 +303,116 @@ export function useScorePlayback(
         return
       }
 
-      const context =
-        audioContextRef.current ?? new AudioContextClass({ latencyHint: 'interactive' })
-      audioContextRef.current = context
-      await context.resume()
       stopSources()
+      const generation = generationRef.current
+      let context: AudioContext, piano: PianoSampler
+      setPreviewing(false)
+      setAudioError('')
+      try {
+        context = acquireAudioContext(AudioContextClass)
+        piano = pianoRef.current ?? new PianoSampler(context)
+        pianoRef.current = piano
+        const pitches = collectPianoPitches(timelineRef.current)
+        if (!piano.hasPitches(pitches)) setAudioState('loading')
+        await context.resume()
+        await piano.preparePitches(pitches, fraction => {
+          if (generation === generationRef.current) setAudioProgress(fraction)
+        })
+        if (context.state && context.state !== 'running') {
+          throw new Error('오디오 장치를 다시 시작하지 못했습니다.')
+        }
+      } catch (error) {
+        if (generation === generationRef.current) {
+          stopSources()
+          cancelFrame()
+          setStatus('stopped')
+          statusRef.current = 'stopped'
+          setPositionBeat(startBeatRef.current)
+          setActiveEvent(undefined)
+          setAudioState('error')
+          setAudioError(error instanceof Error ? error.message : '피아노 음원을 준비하지 못했습니다.')
+        }
+        return
+      }
+      if (generation !== generationRef.current) return
+      setAudioState('ready')
 
       startBeatRef.current =
         beat >= timelineRef.current.totalBeats ? 0 : Math.max(0, beat)
-      startContextTimeRef.current = context.currentTime + 0.03
-      scheduleAudio(
-        context,
-        timelineRef.current,
-        startBeatRef.current,
-        bpm
-      )
+      const transport = transportRef.current ?? new PianoTransport(piano)
+      transportRef.current = transport
+      try {
+        startContextTimeRef.current = transport.start(
+          timelineRef.current, startBeatRef.current, bpm, partMixerRef.current, sustainRef.current)
+      } catch (error) {
+        stopSources()
+        cancelFrame()
+        setStatus('stopped')
+        statusRef.current = 'stopped'
+        setPositionBeat(startBeatRef.current)
+        setActiveEvent(undefined)
+        setAudioState('error')
+        setAudioError(error instanceof Error ? error.message : '피아노 재생을 준비하지 못했습니다.')
+        return
+      }
       setStatus('playing')
       statusRef.current = 'playing'
       setPositionBeat(startBeatRef.current)
       setActiveEvent(findPlaybackEvent(timelineRef.current, startBeatRef.current))
       startTicker()
     },
-    [scheduleAudio, startTicker, stopSources]
+    [acquireAudioContext, cancelFrame, startTicker, stopSources]
   )
 
   const play = useCallback(() => {
     void startFromBeat(startBeatRef.current, tempoRef.current)
   }, [startFromBeat])
+
+  const previewNote = useCallback(async (pitch = 60, velocity = 84) => {
+    const AudioContextClass = window.AudioContext
+    if (!AudioContextClass) {
+      setAudioState('error')
+      setAudioError('이 환경에서는 피아노 소리를 재생할 수 없습니다.')
+      return
+    }
+    stopSources()
+    const generation = generationRef.current
+    setAudioError('')
+    try {
+      const context = acquireAudioContext(AudioContextClass)
+      const piano = pianoRef.current ?? new PianoSampler(context)
+      pianoRef.current = piano
+      if (!piano.hasPitches([pitch])) setAudioState('loading')
+      await context.resume()
+      await piano.preparePitches([pitch], fraction => {
+        if (generation === generationRef.current) setAudioProgress(fraction)
+      })
+      if (generation !== generationRef.current) return
+      if (context.state && context.state !== 'running') {
+        throw new Error('오디오 장치를 다시 시작하지 못했습니다.')
+      }
+      setAudioState('ready')
+      setPreviewing(true)
+      const at = context.currentTime + .03, id = `preview-${generation}`
+      piano.noteOn(id, pitch, velocity, at)
+      piano.noteOff(id, at + .45)
+      previewTimer.current = setTimeout(() => {
+        if (generation === generationRef.current) {
+          previewTimer.current = undefined
+          setPreviewing(false)
+        }
+      }, 750)
+    } catch (error) {
+      if (generation !== generationRef.current) return
+      setAudioState('error')
+      setAudioError(error instanceof Error ? error.message : '피아노 소리를 준비하지 못했습니다.')
+    }
+  }, [acquireAudioContext, stopSources])
+
+  const playFromEvent = useCallback((eventId:string,address?:Partial<Pick<PlaybackEvent,'partId'|'staffId'|'measureId'|'voiceId'>>) => {
+    const beat=findPlaybackStartBeat(timelineRef.current,eventId,address)
+    void startFromBeat(beat??startBeatRef.current,tempoRef.current)
+  },[startFromBeat])
 
   const pause = useCallback(() => {
     if (statusRef.current !== 'playing') {
@@ -268,16 +431,25 @@ export function useScorePlayback(
 
   const stop = useCallback(() => {
     stopSources()
+    setPreviewing(false)
     cancelFrame()
     startBeatRef.current = 0
     setPositionBeat(0)
     setActiveEvent(undefined)
     setStatus('stopped')
     statusRef.current = 'stopped'
+    setAudioState(pianoRef.current?.ready ? 'ready' : 'idle')
+    setAudioError('')
+    setAudioProgress(0)
   }, [cancelFrame, stopSources])
 
   const jumpToStart = useCallback(() => {
     const wasPlaying = statusRef.current === 'playing'
+
+    if (!wasPlaying) {
+      stop()
+      return
+    }
 
     stopSources()
     cancelFrame()
@@ -285,14 +457,8 @@ export function useScorePlayback(
     setPositionBeat(0)
     setActiveEvent(undefined)
 
-    if (wasPlaying) {
-      void startFromBeat(0, tempoRef.current)
-      return
-    }
-
-    setStatus('stopped')
-    statusRef.current = 'stopped'
-  }, [cancelFrame, startFromBeat, stopSources])
+    void startFromBeat(0, tempoRef.current)
+  }, [cancelFrame, startFromBeat, stop, stopSources])
 
   const setTempo = useCallback(
     (nextTempo: number) => {
@@ -331,16 +497,29 @@ export function useScorePlayback(
 
   useEffect(() => {
     stop()
-  }, [score, stop])
+  }, [score, expressionProfile, pianoTimeline, stop])
 
   useEffect(
     () => () => {
       stopSources()
       cancelFrame()
+      detachAudioObserverRef.current?.()
+      detachAudioObserverRef.current = undefined
+      pianoRef.current?.dispose()
       void audioContextRef.current?.close()
     },
     [cancelFrame, stopSources]
   )
+
+  // Cursor projection only: audio continues to use the complete ensemble timeline.
+  const getActiveEventForPart = useCallback((partId: string) => activeEvent
+    ? findPlaybackEvent(timeline, positionBeat, partId) : undefined,
+  [activeEvent, timeline, positionBeat])
+
+  // Mixer activity follows each part's note interval, not the single score cursor.
+  const isPartPlaying = useCallback((partId: string) => status === 'playing'
+    && isPlaybackPartActive(timeline, positionBeat, partId, partMixer),
+  [status, timeline, positionBeat, partMixer])
 
   return {
     status,
@@ -350,15 +529,20 @@ export function useScorePlayback(
     totalBeats: timeline.totalBeats,
     activeEvent,
     activeEventId: activeEvent?.eventId,
+    getActiveEventForPart,
+    isPartPlaying,
     play,
+    playFromEvent,
     pause,
     stop,
-    jumpToStart
+    jumpToStart,
+    audioState, audioProgress, audioError, sustain, previewing, previewNote,
+    setSustain: (down: boolean) => {
+      sustainRef.current = down
+      setSustainState(down)
+      pianoRef.current?.setSustain(down)
+    }
   }
-}
-
-function normalizeTempo(value: number): number {
-  return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(value)))
 }
 
 function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number {
@@ -576,6 +760,18 @@ export function resolvePartMixerGain(
   }
 
   return clampVolume(partSettings?.volume ?? 1)
+}
+
+export function isPlaybackPartActive(
+  timeline: PlaybackTimeline,
+  beat: number,
+  partId: string,
+  partMixer: PlaybackPartMixerMap
+): boolean {
+  if (resolvePartMixerGain(partId, partMixer) <= 0) return false
+  return timeline.events.some(event => event.partId === partId
+    && beat >= event.startBeat && beat < event.startBeat + event.durationBeats
+    && (event.frequencies?.length ?? (event.frequency ? 1 : 0)) > 0)
 }
 
 export function resolvePlaybackScheduledEvents(

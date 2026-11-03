@@ -104,11 +104,12 @@ export const printLayoutCandidates: PrintLayoutCandidate[] = [
 
 export function resolvePrintLayoutPlan(
   score: Score,
-  targetPages: PrintPageTarget
+  targetPages: PrintPageTarget,
+  minimumMeasureWidths?: ReadonlyMap<string, number>
 ): PrintLayoutPlan {
   const pageSetup = normalizePrintPageSetup(score.layout?.pageSetup)
   const evaluated = printLayoutCandidates.map((candidate) =>
-    evaluatePrintLayoutCandidate(score, candidate, pageSetup)
+    evaluatePrintLayoutCandidate(score, candidate, pageSetup, minimumMeasureWidths)
   )
 
   if (targetPages === 'auto') {
@@ -129,14 +130,16 @@ export function resolvePrintLayoutPlan(
     score,
     tightestCandidate,
     targetPages,
-    pageSetup
+    pageSetup,
+    minimumMeasureWidths
   )
 }
 
 function evaluatePrintLayoutCandidate(
   score: Score,
   candidate: PrintLayoutCandidate,
-  pageSetup: Required<ScorePageSetup>
+  pageSetup: Required<ScorePageSetup>,
+  minimumMeasureWidths?: ReadonlyMap<string, number>
 ): PrintLayoutPlan {
   const normalizedCandidate = normalizePrintLayoutCandidate(
     candidate,
@@ -144,6 +147,7 @@ function evaluatePrintLayoutCandidate(
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const layout = createSystemLayout(measures, normalizedCandidate.renderWidth, {
+    minimumMeasureWidths,
     compactSpacing: normalizedCandidate.compactSpacing,
     layout: score.layout,
     lyricScale: Math.max(0.82, normalizedCandidate.scale),
@@ -169,12 +173,14 @@ function resolveForcedPrintLayoutPlan(
   score: Score,
   baseCandidate: PrintLayoutCandidate,
   targetPages: number,
-  pageSetup: Required<ScorePageSetup>
+  pageSetup: Required<ScorePageSetup>,
+  minimumMeasureWidths?: ReadonlyMap<string, number>
 ): PrintLayoutPlan {
   const mostCompactPlan = evaluatePrintLayoutCandidate(
     score,
     createForcedPrintLayoutCandidate(baseCandidate, MIN_FORCED_SCALE),
-    pageSetup
+    pageSetup,
+    minimumMeasureWidths
   )
 
   if (mostCompactPlan.pageCount > targetPages) {
@@ -190,7 +196,8 @@ function resolveForcedPrintLayoutPlan(
     const plan = evaluatePrintLayoutCandidate(
       score,
       createForcedPrintLayoutCandidate(baseCandidate, scale),
-      pageSetup
+      pageSetup,
+      minimumMeasureWidths
     )
 
     if (plan.pageCount <= targetPages) {
@@ -335,7 +342,7 @@ export function formatPrintPageCssSize(
   return `${pageSize} ${setup.orientation}`
 }
 
-function resolvePageSizeMm(setup: Required<ScorePageSetup>): {
+export function resolvePageSizeMm(setup: Required<ScorePageSetup>): {
   width: number
   height: number
 } {

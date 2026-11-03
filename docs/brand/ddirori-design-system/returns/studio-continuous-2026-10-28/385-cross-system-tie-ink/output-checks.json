@@ -1,0 +1,981 @@
+{
+  "cases": [
+    {
+      "case": "960-cross-low",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          65,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          69,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "4b4f2b05ec9cd8ac6ea44494d7e4d1810e691feb9479ef31f21e6062e6cbb985",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/960-cross-low"
+    },
+    {
+      "case": "960-cross-eight",
+      "wholeNativeExact": true,
+      "historyExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "5cd99d4472e8eb46e5c3e7852c432c3776fa0ac7d86e55ead2f77b459e0c32c6",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/960-cross-eight"
+    },
+    {
+      "case": "960-cross-mixed",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          120
+        ],
+        [
+          0,
+          1080,
+          74,
+          75,
+          120
+        ],
+        [
+          0,
+          1200,
+          76,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "c9707a7741646fe7d4680e952c3f8816db0e497e27c881b3444047e33c8911d7",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/960-cross-mixed"
+    },
+    {
+      "case": "960-cross-far",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "a8e1f9c5e8f994ede52ea288046e411b20e16707881adf23e50ee432cb0f567c",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/960-cross-far"
+    },
+    {
+      "case": "960-cross-clear",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ],
+        [
+          0,
+          1440,
+          48,
+          75,
+          480
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": null,
+      "comparison": "new analytic default-geometry control",
+      "imageSha256": "08190708207924b057dbe8eaf4850680a2e4046c52664378020021f32fb25ce5",
+      "prior": null
+    },
+    {
+      "case": "960-cross-single",
+      "wholeNativeExact": true,
+      "historyExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "f11e2ab3866850701cab0bc97310931cc511ba4c15c3b75194944a4571aace1e",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/960-cross-single"
+    },
+    {
+      "case": "960-cross-symbols",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          4800
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          4800
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ],
+        [
+          0,
+          1920,
+          74,
+          75,
+          480
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        24.72
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "844b90bfd92921d8310e286917c6b81197feb6a9099996ef75cdf67ee1356112",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/960-cross-symbols"
+    },
+    {
+      "case": "960-view-score",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "11000343ff38ececc38dfab865defa6e36af2c5e89c979e9a8ab4b540197e525",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/960-view-score"
+    },
+    {
+      "case": "960-view-part",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 1,
+      "incomingWidths": [],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "45e37b38e4267beb077d7117e0022402d68cf4d241cdb1f173de55b5b2b6badb",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/960-view-part"
+    },
+    {
+      "case": "1400-cross-low",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          65,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          69,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "4b4f2b05ec9cd8ac6ea44494d7e4d1810e691feb9479ef31f21e6062e6cbb985",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/1400-cross-low"
+    },
+    {
+      "case": "1400-cross-eight",
+      "wholeNativeExact": true,
+      "historyExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "5cd99d4472e8eb46e5c3e7852c432c3776fa0ac7d86e55ead2f77b459e0c32c6",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/1400-cross-eight"
+    },
+    {
+      "case": "1400-cross-mixed",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          120
+        ],
+        [
+          0,
+          1080,
+          74,
+          75,
+          120
+        ],
+        [
+          0,
+          1200,
+          76,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "c9707a7741646fe7d4680e952c3f8816db0e497e27c881b3444047e33c8911d7",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/1400-cross-mixed"
+    },
+    {
+      "case": "1400-cross-far",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "a8e1f9c5e8f994ede52ea288046e411b20e16707881adf23e50ee432cb0f567c",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/1400-cross-far"
+    },
+    {
+      "case": "1400-cross-clear",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ],
+        [
+          0,
+          1440,
+          48,
+          75,
+          480
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": null,
+      "comparison": "new analytic default-geometry control",
+      "imageSha256": "08190708207924b057dbe8eaf4850680a2e4046c52664378020021f32fb25ce5",
+      "prior": null
+    },
+    {
+      "case": "1400-cross-single",
+      "wholeNativeExact": true,
+      "historyExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "f11e2ab3866850701cab0bc97310931cc511ba4c15c3b75194944a4571aace1e",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/1400-cross-single"
+    },
+    {
+      "case": "1400-cross-symbols",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          4800
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          4800
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ],
+        [
+          0,
+          1920,
+          74,
+          75,
+          480
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        24.72
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": true,
+      "comparison": "before/after",
+      "imageSha256": "844b90bfd92921d8310e286917c6b81197feb6a9099996ef75cdf67ee1356112",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-observe-v2/1400-cross-symbols"
+    },
+    {
+      "case": "1400-view-score",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 2,
+      "incomingWidths": [
+        12.0
+      ],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0.0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "11000343ff38ececc38dfab865defa6e36af2c5e89c979e9a8ab4b540197e525",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/1400-view-score"
+    },
+    {
+      "case": "1400-view-part",
+      "wholeNativeExact": true,
+      "historyExact": false,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "XMLExact": true,
+      "systems": 1,
+      "incomingWidths": [],
+      "glyphRowYTranslations": {
+        "bar-1": [
+          0.0
+        ],
+        "bar-2": [
+          0
+        ]
+      },
+      "pdfPixelChanged": false,
+      "comparison": "before/after",
+      "imageSha256": "45e37b38e4267beb077d7117e0022402d68cf4d241cdb1f173de55b5b2b6badb",
+      "prior": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-385-shared-depth-red/1400-view-part"
+    }
+  ],
+  "actualNative": 18,
+  "actualXML": 18,
+  "actualMIDI": 18,
+  "actualPDF": 18,
+  "sourceXML": 9,
+  "offlineXSD": 27,
+  "actualHistoryPaths": 4,
+  "minimumOutgoingToNextStaffGap": 67.2449951171875,
+  "score2Part1SameProject": true,
+  "xsdSha256": "bfe37ed25a9ec00e6f2591d53df260b84efe12aed209ba3ac0a76f9287665a99",
+  "catalogSha256": "605526573623336f81f908b677c1c8e9cc3ed1e4b803f2eb63540068ab5efa53",
+  "baselineChanged": false,
+  "limits": [
+    "12/24.72-unit clear incoming pieces retained;no arbitrary lengthening",
+    "Low-note native case passed before shared-depth algorithm correction;that correction is coordinate-level evidence",
+    "DOM-only tests are not physicalIME/OSdialog/SR/listening/externalapp verification"
+  ]
+}

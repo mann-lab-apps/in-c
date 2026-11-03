@@ -1,0 +1,9 @@
+/* Private composition; no shared component internals or notation metrics. */
+.studio-repeat-tools {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: var(--dd-spacing-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-repeat-tools > h3 { margin: 0; }

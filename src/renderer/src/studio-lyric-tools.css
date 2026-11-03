@@ -1,0 +1,19 @@
+.studio-lyrics-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--dd-spacing-md);
+  min-width: 0;
+  padding: var(--dd-spacing-md);
+  background: var(--dd-surface);
+}
+.studio-lyric-tools, .studio-harmony-entry {
+  display: grid;
+  flex: 1 1 20rem;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--dd-spacing-sm);
+}
+.studio-lyric-tools > :is(h3, p), .studio-harmony-entry > :is(h3, p) { margin: 0; }
+
+@media print { .studio-lyrics-tools { display: none; } }

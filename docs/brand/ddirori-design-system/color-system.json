@@ -1,7 +1,8 @@
 {
   "schemaVersion": "1.0",
-  "active": "lime",
-  "status": "neutral foundation trial; accent selection remains open",
+  "active": "blue",
+  "status": "unified blue working theme; alternative accents are comparison-only",
+  "updated": "2026-10-26",
   "references": {
     "excalidraw": "https://github.com/excalidraw/excalidraw/blob/master/packages/common/src/colors.ts",
     "excalidrawUI": "https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/css/theme.scss",

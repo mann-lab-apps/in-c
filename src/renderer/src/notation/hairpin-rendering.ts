@@ -10,6 +10,7 @@ interface SystemBounds {
 }
 
 interface HairpinSegment {
+  systemIndex: number
   x1: number
   x2: number
   staffY: number
@@ -60,7 +61,7 @@ export function resolveHairpinSegments(
     const x2 = isLast ? Math.max(x1 + 24, end.x + 22) : bounds.x2 - 18
 
     if (x2 > x1 + 8) {
-      segments.push({ x1, x2, staffY: bounds.y, isFirst, isLast })
+      segments.push({ systemIndex, x1, x2, staffY: bounds.y, isFirst, isLast })
     }
   }
 

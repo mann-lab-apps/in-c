@@ -1,10 +1,29 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseMusicXml } from '../musicxml/parse'
-import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from './part-layout'
+import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors, unresolvedRemovedStaffLayoutAnchors } from './part-layout'
 import { resolvePrintLayoutPlan } from '../renderer/src/notation/print-layout'
 
 describe('portable part layout rendering', () => {
+  it('reports only concrete breaks that a removed staff cannot safely transfer', () => {
+    const score = parseMusicXml(readFileSync('src/musicxml/fixtures/expanded-v1-part-export.musicxml', 'utf8'))
+    const part = score.parts[1]!, upper = part.staves[0]!, lower = part.staves[1]!
+    const layout = { pageBreakBeforeMeasureIds: [lower.measures[1]!.id], systemBreakBeforeMeasureIds: [lower.measures[1]!.id] }
+    const next = { ...part, staves: [upper] }
+    expect(unresolvedRemovedStaffLayoutAnchors(layout, [part], [next])).toEqual([])
+    const unequal = { ...part, staves: [upper, { ...lower, measures: [lower.measures[0]!] }] }
+    const anchored = { systemBreakBeforeMeasureIds: [lower.measures[0]!.id], pageBreakBeforeMeasureIds: [lower.measures[0]!.id, upper.measures[1]!.id] }
+    const before = structuredClone(unequal)
+    expect(unresolvedRemovedStaffLayoutAnchors(anchored, [unequal], [next])).toEqual([lower.measures[0]!.id])
+    expect(unresolvedRemovedStaffLayoutAnchors(undefined, [unequal], [next])).toEqual([])
+    expect(unresolvedRemovedStaffLayoutAnchors({ pageBreakBeforeMeasureIds: [upper.measures[1]!.id] }, [unequal], [next])).toEqual([])
+    // Ordinary measure removal and intentional whole-part removal remain distinct.
+    const shortened = { ...part, staves: part.staves.map(staff => ({ ...staff, measures: staff.measures.slice(0, 1) })) }
+    expect(unresolvedRemovedStaffLayoutAnchors(layout, [part], [shortened])).toEqual([])
+    expect(unresolvedRemovedStaffLayoutAnchors(layout, [part], [])).toEqual([])
+    expect(unequal).toEqual(before)
+  })
+
   it('rebinds removed staff breaks to the same surviving measure without moving deleted-measure breaks', () => {
     const full = parseMusicXml(readFileSync('src/musicxml/fixtures/expanded-v1-part-export.musicxml', 'utf8'))
     const piano = full.parts[1]!

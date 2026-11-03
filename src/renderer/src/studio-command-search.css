@@ -1,0 +1,5 @@
+/* Service layout only. Public controls own typography, targets, surfaces and focus. */
+.studio-command-search { min-width: 0; }
+.studio-command-search__results { display: grid; gap: var(--dd-spacing-xs); max-block-size: 45vh; overflow-y: auto; min-width: 0; padding: calc(var(--dd-spacing-sm) + var(--dd-control-focus-width) + var(--dd-control-focus-offset)); }
+.studio-command-search__result { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--dd-spacing-sm); text-align: start; }
+.studio-command-search__result > span { min-width: 0; overflow-wrap: anywhere; }

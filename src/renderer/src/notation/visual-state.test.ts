@@ -7,6 +7,25 @@ import {
 } from './visual-state'
 
 describe('notation visual state priority', () => {
+  it('range-selection.cross-measure resolves each selected event address without widening duplicate IDs', () => {
+    const anchor = { partId: 'p', staffId: 's', measureId: 'm1', voiceId: 'v' }
+    const end = { ...anchor, measureId: 'm2' }
+    const addresses = new Map([['a', anchor], ['b', end]])
+    const ids = new Set(['a', 'b'])
+    expect(resolveNotationEventTone('a', ids, 'b', false, anchor, anchor, addresses)).toBe('selected')
+    expect(resolveNotationEventTone('b', ids, 'b', true, end, anchor, addresses)).toBe('selected')
+    for (const unrelated of [
+      { ...end, partId: 'other' }, { ...end, staffId: 'lower' },
+      { ...end, voiceId: 'other' }, { ...end, measureId: 'm3' }
+    ]) expect(resolveNotationEventTone('b', ids, 'b', false, unrelated, anchor, addresses)).toBe('default')
+    expect([...addresses]).toEqual([['a', anchor], ['b', end]])
+  })
+
+  it('range-selection.cross-measure does not paint an unresolved projected event', () => {
+    const address = { partId: 'p', staffId: 's', measureId: 'm1', voiceId: 'v' }
+    expect(resolveNotationEventTone('a', new Set(['a']), 'a', false, address, address, new Map())).toBe('default')
+  })
+
   it('keeps selection tone when the selected event is also playing', () => {
     expect(
       resolveNotationEventTone(

@@ -1,0 +1,6 @@
+/* Private domain layout only; public control internals and notation untouched. */
+.studio-note-decorations { min-width: 0; display: grid; gap: var(--dd-spacing-md); padding-top: var(--dd-spacing-md); background: var(--dd-surface); border-top: var(--dd-control-border-width) solid var(--dd-border); }
+.studio-note-decorations > h3, .studio-note-decorations__row > h4, .studio-note-decorations__help { margin: 0; }
+.studio-note-decorations__row { min-width: 0; display: grid; gap: var(--dd-spacing-sm); }
+.studio-note-decorations__help { color: var(--dd-muted); overflow-wrap: anywhere; }
+.studio-note-decorations__glyph { display: block; flex: none; }

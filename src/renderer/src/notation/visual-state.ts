@@ -15,14 +15,17 @@ export function resolveNotationEventTone(
   selectedEventId?: string,
   isPlaybackEvent = false,
   eventAddress?: VoiceAddress,
-  selectedEventAddress?: VoiceAddress
+  selectedEventAddress?: VoiceAddress,
+  selectedEventAddresses?: ReadonlyMap<string, VoiceAddress>
 ): NotationEventTone {
   const matchesSelectedEventId =
     selectedEventIds.has(eventId) || eventId === selectedEventId
+  const ownedAddress = selectedEventAddresses
+    ? selectedEventAddresses.get(eventId)
+    : selectedEventAddress
   const matchesSelectedAddress =
-    !selectedEventAddress ||
-    !eventAddress ||
-    sameVoiceAddress(eventAddress, selectedEventAddress)
+    (!selectedEventAddresses || Boolean(ownedAddress)) &&
+    (!ownedAddress || !eventAddress || sameVoiceAddress(eventAddress, ownedAddress))
 
   if (matchesSelectedEventId && matchesSelectedAddress) {
     return 'selected'

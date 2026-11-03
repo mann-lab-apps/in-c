@@ -1,6 +1,11 @@
 import {
   TICKS_PER_QUARTER,
+  createRepeatPlaybackPlan,
+  createScoreRepeatPlaybackPlan,
+  createPerformedPedalPlan,
+  type RepeatPlaybackPlan,
   durationToTicks,
+  collectTiePairs,
   measureDurationTicks,
   pitchToMidi,
   effectiveAlterAt,
@@ -16,6 +21,7 @@ import {
   type Score,
   type TempoMarking
 } from '../../../score-core'
+import { createGlobalMeasureResolver } from '../editor/global-measure-reference'
 
 const DEFAULT_VELOCITY = 0.16
 const DYNAMIC_VELOCITY = {
@@ -40,6 +46,8 @@ export interface PlaybackEvent {
   staffId: string
   voiceId: string
   measureId: string
+  // Source anchors merged into this sustained event; not part of the score schema.
+  tiedEvents?: { eventId: string; measureId: string }[]
   startBeat: number
   durationBeats: number
   frequency?: number
@@ -63,6 +71,7 @@ export interface PlaybackTempoEvent {
 export interface PlaybackTimeline {
   events: PlaybackEvent[]
   tempoEvents: PlaybackTempoEvent[]
+  pedalEvents?: { id: string; partId: string; startBeat: number; value: number }[]
   totalBeats: number
 }
 
@@ -70,22 +79,12 @@ type StaffMeasures = NonNullable<
   Score['parts'][number]['staves'][number]['measures']
 >
 
-interface RepeatPlaybackPlanEntry {
-  measureIndex: number
-  outputBeat: number
-  pass: number
-}
-
-interface RepeatPlaybackPlan {
-  entries: RepeatPlaybackPlanEntry[]
-  totalBeats: number
-}
-
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   score = convertOctaveShiftPitches(score, 'performed')
   const events: PlaybackEvent[] = []
   let totalBeats = 0
   const scoreRepeatPlaybackPlan = createScoreRepeatPlaybackPlan(score)
+  const tieTargets = new Map(collectTiePairs(score).map(pair => [pair.fromEventId, pair.toEventId]))
 
   for (const part of score.parts) {
     for (const staff of part.staves) {
@@ -94,7 +93,8 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         part.id,
         staff.id,
         staff.measures,
-        scoreRepeatPlaybackPlan
+        scoreRepeatPlaybackPlan,
+        tieTargets
       )
 
       events.push(...staffTimeline.events)
@@ -105,11 +105,14 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   const holdMap = createFermataHoldMap(score, scoreRepeatPlaybackPlan)
   const performedBeat = (beat: number) => beat + [...holdMap].reduce(
     (offset, [endBeat, hold]) => endBeat <= beat + 1e-9 ? offset + hold : offset, 0)
+  const pedalEvents = createPlaybackPedalEvents(score, scoreRepeatPlaybackPlan)
+    .map(event => ({ ...event, startBeat: performedBeat(event.startBeat) }))
 
   return {
     events: applyHairpinVelocity(
       score,
-      events.sort((left, right) => left.startBeat - right.startBeat)
+      events.sort((left, right) => left.startBeat - right.startBeat),
+      scoreRepeatPlaybackPlan
     ).map((event) => ({
       ...event,
       startBeat: performedBeat(event.startBeat),
@@ -118,8 +121,13 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
     tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan).map((event) => ({
       ...event, startBeat: performedBeat(event.startBeat)
     })),
+    ...(pedalEvents.length ? { pedalEvents } : {}),
     totalBeats: performedBeat(totalBeats)
   }
+}
+
+function createPlaybackPedalEvents(score: Score, plan?: RepeatPlaybackPlan): NonNullable<PlaybackTimeline['pedalEvents']> {
+  return createPerformedPedalPlan(score, plan).map(({ id, partId, startBeat, value }) => ({ id, partId, startBeat, value }))
 }
 
 // A hold is shared by all parts at its ending beat, including every repeat pass.
@@ -154,11 +162,11 @@ function createStaffPlaybackEvents(
   partId: string,
   staffId: string,
   measures: StaffMeasures,
-  scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
+  scoreRepeatPlaybackPlan: RepeatPlaybackPlan | undefined,
+  tieTargets: ReadonlyMap<string, string>
 ): PlaybackTimeline {
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
-  const pendingTieEventByVoiceId = new Map<string, PlaybackEvent>()
 
   for (const measure of measures) {
     for (const voice of measure.voices) {
@@ -192,30 +200,7 @@ function createStaffPlaybackEvents(
           velocityStart: resolveMeasureVelocity(score, measure.id),
           velocityEnd: resolveMeasureVelocity(score, measure.id)
         }
-        const pendingTieEvent = pendingTieEventByVoiceId.get(voice.id)
-        const continuesPendingTie =
-          event.type === 'note' &&
-          event.ties?.stop &&
-          pendingTieEvent &&
-          pendingTieEvent.frequency === playbackEvent.frequency &&
-          pendingTieEvent.startBeat + pendingTieEvent.durationBeats ===
-            playbackEvent.startBeat
-
-        if (continuesPendingTie) {
-          pendingTieEvent.durationBeats += playbackEvent.durationBeats
-          pendingTieEvent.velocityEnd = playbackEvent.velocityEnd
-        } else {
-          events.push(playbackEvent)
-        }
-
-        if (event.type === 'note' && event.ties?.start) {
-          pendingTieEventByVoiceId.set(
-            voice.id,
-            continuesPendingTie ? pendingTieEvent : playbackEvent
-          )
-        } else {
-          pendingTieEventByVoiceId.delete(voice.id)
-        }
+        events.push(playbackEvent)
 
       }
     }
@@ -231,10 +216,47 @@ function createStaffPlaybackEvents(
   )
 
   return {
-    events: repeatedTimeline.events,
+    events: mergePerformedTies(repeatedTimeline.events, tieTargets),
     tempoEvents: [],
     totalBeats: repeatedTimeline.totalBeats
   }
+}
+
+// Expand the performed traversal before sustaining ties. A repeat jump can
+// interrupt a notated chain or revisit a continuation without its predecessor.
+// Each pending chain must reach its original next event at the actual ending beat.
+function mergePerformedTies(events: PlaybackEvent[], tieTargets: ReadonlyMap<string, string>): PlaybackEvent[] {
+  const result: PlaybackEvent[] = []
+  const pendingByVoice = new Map<string, { event: PlaybackEvent; nextEventId: string }>()
+  for (const event of events) {
+    const pending = pendingByVoice.get(event.voiceId)
+    const continues = pending?.nextEventId === event.eventId &&
+      (pending.event.frequency === event.frequency ||
+        sameChordFrequencies(pending.event.frequencies, event.frequencies)) &&
+      pending.event.startBeat + pending.event.durationBeats === event.startBeat
+    const sustained = continues ? pending.event : event
+    if (continues) {
+      sustained.durationBeats += event.durationBeats
+      sustained.velocityEnd = event.velocityEnd
+      sustained.tiedEvents ??= []
+      sustained.tiedEvents.push({ eventId: event.eventId, measureId: event.measureId })
+    } else {
+      result.push(event)
+    }
+    const nextEventId = tieTargets.get(event.eventId)
+    if (nextEventId) pendingByVoice.set(event.voiceId, { event: sustained, nextEventId })
+    else pendingByVoice.delete(event.voiceId)
+  }
+  return result
+}
+
+// Compare copies: preserving authored member order also preserves native data
+// and the first event's MIDI ordering. Legacy unequal-primary semantics remain.
+function sameChordFrequencies(left?: number[], right?: number[]): boolean {
+  if (!left?.length || !right || left.length !== right.length) return false
+  const sortedLeft = [...left].sort((a, b) => a - b)
+  const sortedRight = [...right].sort((a, b) => a - b)
+  return sortedLeft.every((frequency, index) => frequency === sortedRight[index])
 }
 
 function applyRepeatPlayback(
@@ -268,146 +290,10 @@ function applyRepeatPlayback(
   }
 }
 
-function createScoreRepeatPlaybackPlan(
-  score: Score
-): RepeatPlaybackPlan | undefined {
-  const canonicalStaff = scoreRepeatSource(score)
-  return canonicalStaff
-    ? createRepeatPlaybackPlan(canonicalStaff.measures)
-    : undefined
-}
-
 function hasRepeatPlaybackMarks(measures: StaffMeasures): boolean {
   return measures.some(
     (measure) => measure.repeat?.start || measure.repeat?.end || measure.volta
   )
-}
-
-function createRepeatPlaybackPlan(measures: StaffMeasures): RepeatPlaybackPlan {
-  const voltaNumberByMeasureId = createMeasureVoltaNumberMap(measures)
-  const entries: RepeatPlaybackPlanEntry[] = []
-  let repeatStartIndex = 0
-  let outputBeat = 0
-  let repeatPass = 1
-
-  const appendMeasure = (measureIndex: number, pass: number) => {
-    const measure = measures[measureIndex]
-
-    if (!measure) {
-      return
-    }
-
-    if (
-      shouldSkipVoltaMeasure(
-        voltaNumberByMeasureId.get(measure.id),
-        pass
-      )
-    ) {
-      return
-    }
-
-    entries.push({
-      measureIndex,
-      outputBeat,
-      pass
-    })
-    outputBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
-  }
-
-  for (let measureIndex = 0; measureIndex < measures.length; measureIndex += 1) {
-    const measure = measures[measureIndex]
-
-    if (measure.repeat?.start) {
-      repeatStartIndex = measureIndex
-      repeatPass = 1
-    }
-
-    appendMeasure(measureIndex, repeatPass)
-
-    if (!measure.repeat?.end) {
-      continue
-    }
-
-    const repeatCount = Math.max(2, measure.repeat.times ?? 2)
-
-    for (let repeatIndex = 1; repeatIndex < repeatCount; repeatIndex += 1) {
-      const repeatedPass = repeatIndex + 1
-
-      for (
-        let repeatedMeasureIndex = repeatStartIndex;
-        repeatedMeasureIndex <= measureIndex;
-        repeatedMeasureIndex += 1
-      ) {
-        appendMeasure(repeatedMeasureIndex, repeatedPass)
-      }
-    }
-
-    repeatStartIndex = measureIndex + 1
-    repeatPass = repeatCount
-  }
-
-  return {
-    entries,
-    totalBeats: outputBeat
-  }
-}
-
-function shouldSkipVoltaMeasure(
-  voltaNumber: 1 | 2 | undefined,
-  repeatPass: number
-): boolean {
-  if (!voltaNumber) {
-    return false
-  }
-
-  if (voltaNumber === 1) {
-    return repeatPass !== 1
-  }
-
-  return repeatPass === 1
-}
-
-function createMeasureVoltaNumberMap(
-  measures: StaffMeasures
-): Map<string, 1 | 2> {
-  const voltaNumbers = new Map<string, 1 | 2>()
-  let activeVoltaNumber: 1 | 2 | undefined
-
-  for (let index = 0; index < measures.length; index += 1) {
-    const measure = measures[index]
-
-    if (measure.volta?.start) {
-      activeVoltaNumber = hasLaterVoltaEnd(measures, index, measure.volta.number)
-        ? measure.volta.number
-        : undefined
-    }
-
-    const voltaNumber = measure.volta?.number ?? activeVoltaNumber
-
-    if (voltaNumber) {
-      voltaNumbers.set(measure.id, voltaNumber)
-    }
-
-    if (measure.volta?.end) {
-      activeVoltaNumber = undefined
-    }
-  }
-
-  return voltaNumbers
-}
-
-function hasLaterVoltaEnd(
-  measures: StaffMeasures,
-  startIndex: number,
-  number: 1 | 2
-): boolean {
-  for (let index = startIndex + 1; index < measures.length; index += 1) {
-    if (measures[index].volta?.number === number && measures[index].volta?.end) {
-      return true
-    }
-  }
-
-  return false
 }
 
 function createStaffMeasureStartBeatMap(
@@ -430,7 +316,7 @@ function eventFrequencies(
   event: Note
 ): number[] {
   const pitches = event.pitches?.length
-    ? event.pitches
+    ? event.pitches.map(pitch => resolveNotePitch(measure, voice, { ...event, pitch }))
     : [resolveNotePitch(measure, voice, event)]
 
   const offset = (measure.transposition?.chromatic ?? 0) +
@@ -473,54 +359,59 @@ function createPlaybackTempoEvents(
 ): PlaybackTempoEvent[] {
   const measureStarts = createMeasureStartBeatMap(score)
   const measureIndices = createMeasureIndexMap(score)
-  const tempoEvents: PlaybackTempoEvent[] = []
-
-  for (const event of score.tempoEvents ?? []) {
-    const measureStart = measureStarts.get(event.measureId)
-
-    if (measureStart === undefined) {
-      continue
-    }
-
-    if (!scoreRepeatPlaybackPlan) {
-      tempoEvents.push({
+  const resolveMeasure = createGlobalMeasureResolver(score)
+  const sourceEvents = (score.tempoEvents ?? []).flatMap(event => {
+    const measureId = resolveMeasure(event.measureId)
+    const measureStart = measureId === undefined ? undefined : measureStarts.get(measureId)
+    const measureIndex = measureId === undefined ? undefined : measureIndices.get(measureId)
+    if (measureStart === undefined || measureIndex === undefined) return []
+    return [{ event, measureStart, measureIndex, playback: {
         id: event.id,
         measureId: event.measureId,
         startBeat: measureStart + event.tick / TICKS_PER_QUARTER,
         bpm: event.bpm,
         quarterBpm: tempoMarkingToQuarterBpm(event),
         text: event.text
-      })
-      continue
-    }
+      } }]
+  }).sort((a, b) => a.playback.startBeat - b.playback.startBeat)
+  if (!scoreRepeatPlaybackPlan) return sourceEvents.map(item => item.playback)
 
-    const measureIndex = measureIndices.get(event.measureId)
-
-    if (measureIndex === undefined) {
-      continue
-    }
-
-    for (const entry of scoreRepeatPlaybackPlan.entries) {
-      if (entry.measureIndex !== measureIndex) {
-        continue
+  const initialTempo: TempoMarking = score.tempo ?? { bpm: 120, beatUnit: 'quarter' }
+  const initial = { bpm: initialTempo.bpm, quarterBpm: tempoMarkingToQuarterBpm(initialTempo), text: initialTempo.text }
+  let activeQuarterBpm = initial.quarterBpm
+  const tempoEvents: PlaybackTempoEvent[] = []
+  const measures = scoreRepeatSource(score)?.measures ?? []
+  scoreRepeatPlaybackPlan.entries.forEach((entry, index, entries) => {
+    const measure = measures[entry.measureIndex]
+    const events = sourceEvents.filter(item => item.measureIndex === entry.measureIndex)
+    const jumped = index ? entry.measureIndex !== entries[index - 1].measureIndex + 1 : entry.measureIndex !== 0
+    if (jumped && measure && !events.some(item => item.event.tick === 0)) {
+      const sourceBeat = measureStarts.get(measure.id) ?? 0
+      let restored = initial
+      for (const item of sourceEvents) {
+        if (item.playback.startBeat > sourceBeat) break
+        restored = item.playback
       }
-
+      if (activeQuarterBpm !== restored.quarterBpm) {
+        // Performed state only: leave the original/native/XML markings intact.
+        tempoEvents.push({ id: `playback-tempo-return-${index}`, measureId: measure.id,
+          startBeat: entry.outputBeat, bpm: restored.bpm, quarterBpm: restored.quarterBpm, text: restored.text })
+        activeQuarterBpm = restored.quarterBpm
+      }
+    }
+    for (const { event, measureStart, playback } of events) {
       const isOriginalOccurrence =
         entry.pass === 1 && entry.outputBeat === measureStart
-
       tempoEvents.push({
+        ...playback,
         id: isOriginalOccurrence
           ? event.id
           : `${event.id}-repeat-${entry.pass}-${entry.outputBeat}`,
-        measureId: event.measureId,
-        startBeat: entry.outputBeat + event.tick / TICKS_PER_QUARTER,
-        bpm: event.bpm,
-        quarterBpm: tempoMarkingToQuarterBpm(event),
-        text: event.text
+        startBeat: entry.outputBeat + event.tick / TICKS_PER_QUARTER
       })
+      activeQuarterBpm = playback.quarterBpm
     }
-  }
-
+  })
   return tempoEvents.sort((left, right) => left.startBeat - right.startBeat)
 }
 
@@ -693,13 +584,30 @@ export function pitchToFrequency(pitch: Note['pitch']): number {
 
 export function findPlaybackEvent(
   timeline: PlaybackTimeline,
-  beat: number
+  beat: number,
+  partId?: string
 ): PlaybackEvent | undefined {
   return timeline.events.find(
     (event) =>
+      (partId === undefined || event.partId === partId) &&
       beat >= event.startBeat &&
       beat < event.startBeat + event.durationBeats
   )
+}
+
+// First performed occurrence. A tied continuation starts with its sustained chain.
+export function findPlaybackStartBeat(
+  timeline: PlaybackTimeline,
+  eventId: string,
+  address: Partial<Pick<PlaybackEvent,'partId'|'staffId'|'measureId'|'voiceId'>> = {}
+): number | undefined {
+  return timeline.events.find(event =>
+    (address.partId===undefined||event.partId===address.partId) &&
+    (address.staffId===undefined||event.staffId===address.staffId) &&
+    (address.voiceId===undefined||event.voiceId===address.voiceId) &&
+    [{eventId:event.eventId,measureId:event.measureId},...(event.tiedEvents??[])].some(source=>
+      source.eventId===eventId&&(address.measureId===undefined||source.measureId===address.measureId))
+  )?.startBeat
 }
 
 function resolveMeasureVelocity(score: Score, measureId: string): number {
@@ -710,17 +618,29 @@ function resolveMeasureVelocity(score: Score, measureId: string): number {
 
 function applyHairpinVelocity(
   score: Score,
-  events: PlaybackEvent[]
+  events: PlaybackEvent[],
+  scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
 ): PlaybackEvent[] {
   const nextEvents = events.map((event) => ({ ...event }))
 
   for (const hairpin of score.hairpins ?? []) {
     const starts = nextEvents.filter((event) => event.eventId === hairpin.startEventId)
+    const first = starts[0]
+    if (!first) continue
+    const staff = score.parts.find(part => part.id === first.partId)?.staves.find(staff => staff.id === first.staffId)
+    if (!staff) continue
+    // Use the same performed plan as event expansion, including repeats owned
+    // by a secondary aligned staff. No source-event or project schema mutation.
+    const plan = scoreRepeatPlaybackPlan ?? createRepeatPlaybackPlan(staff.measures)
+    const repeatBoundaries = plan.entries.filter((entry, index) => index > 0 &&
+      entry.measureIndex <= plan.entries[index - 1].measureIndex).map(entry => entry.outputBeat)
     for (const [index, startEvent] of starts.entries()) {
-      // Pair within this traversal; a missing stop must not spill into the next repeat.
+      // A skipped stop must not spill across a backward (or same-bar) repeat,
+      // even when the start itself appears only in the first ending.
       const nextStartBeat = starts[index + 1]?.startBeat ?? Infinity
+      const nextRepeatBeat = repeatBoundaries.find(beat => beat > startEvent.startBeat) ?? Infinity
       const endEvent = nextEvents.find((event) => event.eventId === hairpin.endEventId &&
-        event.startBeat >= startEvent.startBeat && event.startBeat < nextStartBeat)
+        event.startBeat >= startEvent.startBeat && event.startBeat < Math.min(nextStartBeat, nextRepeatBeat))
 
       if (!endEvent) continue
 

@@ -1,0 +1,22 @@
+/* Private composition only; public controls own density, focus and typography. */
+.studio-notation-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  min-width: 0;
+  gap: var(--dd-spacing-lg);
+  padding: var(--dd-spacing-sm) var(--dd-spacing-xl);
+  border-bottom: var(--dd-control-border-width) solid var(--dd-border);
+  background: var(--dd-surface);
+}
+.studio-range-tools {
+  display: flex;
+  flex: 1 1 24rem;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--dd-spacing-sm) var(--dd-spacing-md);
+}
+.studio-range-tools > h3 { flex-basis: 100%; margin: 0; }
+@media print { .studio-notation-tools { display: none; } }

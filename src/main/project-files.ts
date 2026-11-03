@@ -56,7 +56,9 @@ export class NativeProjectFileSession {
     }
     const expected = this.revisions.get(path)
     if (expected !== undefined && expected !== existing) throw new Error('Native project changed on disk. Reopen it or save to another file.')
-    const temporary = join(dirname(path), `.${basename(path)}.${randomUUID()}.tmp`)
+    // The selected filename can already fill the filesystem's component limit.
+    // Keep the atomic temporary file in the same directory without appending to it.
+    const temporary = join(dirname(path), `.chromatics-${randomUUID()}.tmp`)
     try {
       const handle = await open(temporary, 'wx', mode)
       try { await handle.writeFile(contents, 'utf8'); await handle.sync() } finally { await handle.close() }

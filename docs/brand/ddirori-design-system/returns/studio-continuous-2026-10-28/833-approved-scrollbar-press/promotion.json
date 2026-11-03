@@ -1,0 +1,15 @@
+{
+  "approved": true,
+  "source": "822 policy answer: immediate native scrollbar press ownership",
+  "helperBeforeSha256": "c7ab05528dc71a8de056fb55fe9f6b79819cdaefeefc5f40e77e6b58b905e776",
+  "helperAfterSha256": "4cb4cbbca44c09dead363cd85c17dda5ea01a6e9b73881419c8d3d1003436545",
+  "trackerPrefixSha256": "7ad4f058a5d2168ea8f9a152a06bb566f243e80b72a666601fd66bd6f422c127",
+  "trackerPrefixPreserved": true,
+  "protectedUnchanged": {
+    "src/renderer/src/App.tsx": "3487373a9e078d354d90bf0fd6702466bd58887669dc987bdcc52000cfa06558",
+    "packages/ddirori_web/src/basic.tsx": "bc89535e46e11b8d542bcb2765bec9a95b2fae2ead635272a7fbe951f8531525",
+    "src/renderer/src/notation/playback-ink.ts": "8e733d32023fb59e18d69aadc5ec453342d2ee74f890f22aeb7d0aee8ac21c8f",
+    "src/renderer/src/notation/focus-viewport.ts": "83b97299d1feea401d44c9ae5da1b15dc8c44d2ba8cb5226c23cde334e0966d8"
+  },
+  "wholePrototypeNotCopied": true
+}

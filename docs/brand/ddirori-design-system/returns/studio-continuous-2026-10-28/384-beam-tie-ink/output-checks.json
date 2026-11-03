@@ -1,0 +1,636 @@
+{
+  "cases": [
+    {
+      "case": "beams/960-beam-eight",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": true,
+      "imageSha256": "2b3acf9fd64b467f7dee5661d85e3a1dc824f021d9714ad4d4f9041430386b40"
+    },
+    {
+      "case": "beams/960-beam-mixed",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          120
+        ],
+        [
+          0,
+          1080,
+          74,
+          75,
+          120
+        ],
+        [
+          0,
+          1200,
+          76,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": true,
+      "imageSha256": "25852b42fe4864908e25fc15f490ff4ea59b4f05b175f3124623b47aacb9952b"
+    },
+    {
+      "case": "beams/960-beam-far",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "b71f3da3994296860472f28a3fa326498def84aa96ce73668701f2c00cc765bb"
+    },
+    {
+      "case": "beams/1400-beam-eight",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          74,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": true,
+      "imageSha256": "2b3acf9fd64b467f7dee5661d85e3a1dc824f021d9714ad4d4f9041430386b40"
+    },
+    {
+      "case": "beams/1400-beam-mixed",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          120
+        ],
+        [
+          0,
+          1080,
+          74,
+          75,
+          120
+        ],
+        [
+          0,
+          1200,
+          76,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": true,
+      "imageSha256": "25852b42fe4864908e25fc15f490ff4ea59b4f05b175f3124623b47aacb9952b"
+    },
+    {
+      "case": "beams/1400-beam-far",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          240
+        ],
+        [
+          0,
+          1200,
+          50,
+          75,
+          240
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "b71f3da3994296860472f28a3fa326498def84aa96ce73668701f2c00cc765bb"
+    },
+    {
+      "case": "stems/960-crossing-c5",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "e48a0da335733187e473af8d57d0f86e285e1207204596dc86f4e595d8ba647a"
+    },
+    {
+      "case": "stems/960-near-d5",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          74,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "916c45af1af75234d1968592b4c9e645b7944571856915b084bc499ef14a66f7"
+    },
+    {
+      "case": "stems/960-far-c3",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "03971f2b2148dc42bc747cea9ddb1d3c8f6548876963afe629e3813008aabc16"
+    },
+    {
+      "case": "stems/1400-crossing-c5",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          72,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "e48a0da335733187e473af8d57d0f86e285e1207204596dc86f4e595d8ba647a"
+    },
+    {
+      "case": "stems/1400-near-d5",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          74,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "916c45af1af75234d1968592b4c9e645b7944571856915b084bc499ef14a66f7"
+    },
+    {
+      "case": "stems/1400-far-c3",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "03971f2b2148dc42bc747cea9ddb1d3c8f6548876963afe629e3813008aabc16"
+    },
+    {
+      "case": "glyphs/960-near-e",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          64,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "25cf3f541ad40114d3ea6ef47252a81bf1de1e84fee614d227f473237eeda5be"
+    },
+    {
+      "case": "glyphs/960-near-f",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          65,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "5a7679675474bc82ca6498f01ab4e7a77c592fa554f5a093f5f05e886856c31f"
+    },
+    {
+      "case": "glyphs/960-far-c",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "40d54a0ca923c12686983417115e15f1d3a45639d5782dc88c8a5c2f872c71a9"
+    },
+    {
+      "case": "glyphs/1400-near-e",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          64,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "25cf3f541ad40114d3ea6ef47252a81bf1de1e84fee614d227f473237eeda5be"
+    },
+    {
+      "case": "glyphs/1400-near-f",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          65,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "5a7679675474bc82ca6498f01ab4e7a77c592fa554f5a093f5f05e886856c31f"
+    },
+    {
+      "case": "glyphs/1400-far-c",
+      "nativeExact": true,
+      "independentMIDI": [
+        [
+          0,
+          0,
+          67,
+          75,
+          3840
+        ],
+        [
+          0,
+          0,
+          71,
+          75,
+          3840
+        ],
+        [
+          0,
+          960,
+          48,
+          75,
+          960
+        ]
+      ],
+      "actualXMLExact": true,
+      "PDFPages": 1,
+      "pdfPixelChangedAsExpected": false,
+      "imageSha256": "40d54a0ca923c12686983417115e15f1d3a45639d5782dc88c8a5c2f872c71a9"
+    }
+  ],
+  "actualNative": 18,
+  "actualXML": 18,
+  "actualMIDI": 18,
+  "actualPDF": 18,
+  "sourceXML": 9,
+  "offlineXSD": 27,
+  "positiveShapePixels": {
+    "stem": 136920,
+    "beam": 342756
+  },
+  "xsdSha256": "bfe37ed25a9ec00e6f2591d53df260b84efe12aed209ba3ac0a76f9287665a99",
+  "catalogSha256": "605526573623336f81f908b677c1c8e9cc3ed1e4b803f2eb63540068ab5efa53",
+  "baselineChanged": false,
+  "limits": [
+    "Same-system complete ties;partial pieces remain separate",
+    "Ownership unit controls are DOM classification coverage,not added native fixtures",
+    "No physicalIME/OSdialog/SR/listening/external app certification"
+  ]
+}

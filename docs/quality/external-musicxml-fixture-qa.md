@@ -28,7 +28,7 @@ the named applications.
 | `musescore-4-7-5-cli-grand-staff-export.musicxml` | MuseScore Studio 4.7.5 | app export | app-export collected by CLI | [2026-09-11 MuseScore CLI app-export fixture](#2026-09-11-musescore-cli-app-export-fixture) | MuseScore-exported uncompressed MusicXML, grand staff, staff-specific clefs, MuseScore lower-staff voice numbering, supported `mf` dynamic and staccato articulation without warnings, Chromatics round-trip. |
 | `finale-string-duet-basic.musicxml` | Finale | compatibility seed | seed placeholder | this section | Two-part score, part names/abbreviations, treble and bass clefs, round-trip import/export. |
 | `sibelius-multi-voice-basic.musicxml` | Sibelius | compatibility seed | seed placeholder | this section | Same-staff voice 1/2 streams with MusicXML backup, round-trip import/export. |
-| `dorico-unsupported-directions.musicxml` | Dorico | compatibility seed | seed placeholder | this section | Supported note import plus unsupported technical notation and pedal direction warnings. |
+| `dorico-unsupported-directions.musicxml` | Dorico | compatibility seed | seed placeholder | this section | Supported note and damper pedal start import, plus unsupported technical notation warning. Pedal playback support added 2026-10-30; this remains a hand-authored seed. |
 
 Run:
 
@@ -202,3 +202,9 @@ two primary references. Current local result: MuseScore Studio 4.7.5 is installe
 and its CLI app-export fixture is collected; Dorico, Sibelius, and Finale are not
 installed locally and remain `manual-collection-required` / external-file
 blockers before public RC.
+
+## Studio continuous 31–32 · 전체 gate와 외부 단일 실행
+
+31최신test:all:84files/1skip、Vitest1309passed/1skip+Node5passed、359.08초exit0、329소스/HEAD직접잠금유지. 실행중제품/테스트수정·build/Electron병행없음. 기존1외부opt-in skip은새localXSDskip이아니다. 두문서verifier/diff와별도실제QA결과를함께보되전체parity완료로확대하지않는다.
+
+32는수정된실제export XML의완전한첫파트만임시문서로추출(그파트harmony하위트리불변)하고전체XSD를확인했다. 기존사용자MuseScore프로세스가없는지확인하고설정초기화flag/자동retry없이`mscore -o 임시PDF 임시XML`을한번실행했다. bundle4.7.5、ownedPID47201、1.07초/exit-6(SIGABRT)、stderr mutex lock failed다. source/임시XML SHA가그대로이며정상종료PDF/GUI/MIDI/시각승인은없다. malformed XML만이종료원인이라는가설을입증하지못했고같은실행을반복하지않는다. 기존-F/retry스크립트는이번에실행하지않았다. 근거:누적반환31-suite/32-external-harmony(result/runner/로그/해시). 목표active·미커밋·배포/버전/iOS변경없음. 다음은독립적인harmony offset의divisions/cursor가져오기계약이다.

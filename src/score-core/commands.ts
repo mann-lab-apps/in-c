@@ -20,6 +20,9 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreTempo(score, command.tempo)
     case 'score-tempo-events.update':
       return updateScoreTempoEvents(score, command.tempoEvents)
+    case 'score-pedal-events.update':
+      return { score: { ...score, pedalEvents: command.pedalEvents },
+        undo: { type: 'score-pedal-events.update', pedalEvents: score.pedalEvents } }
     case 'score-rhythm-feel.update':
       return updateScoreRhythmFeel(score, command.rhythmFeel)
     case 'score-octave-shifts.update':

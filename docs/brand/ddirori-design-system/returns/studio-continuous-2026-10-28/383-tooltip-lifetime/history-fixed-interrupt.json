@@ -1,0 +1,6 @@
+{
+  "ownedElectronPid": 93795,
+  "action": "SIGTERM owned QA process only",
+  "reason": "Native window.blur followed by requestAnimationFrame settle can pause rendering indefinitely;history files already produced. Retry changes QA scheduling,not product assertions.",
+  "otherPianoProcessPreserved": 90461
+}

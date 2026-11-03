@@ -1,0 +1,5 @@
+/* Private composition slots;shared control internals and notation metrics untouched. */
+.studio-chord-properties { min-width: 0; display: grid; gap: var(--dd-spacing-md); padding-block: var(--dd-spacing-md); border-top: var(--dd-control-border-width) solid var(--dd-border); background: var(--dd-surface); }
+.studio-chord-properties > h3, .studio-chord-properties > p { margin: 0; overflow-wrap: anywhere; }
+.studio-chord-properties__members { min-width: 0; display: grid; gap: var(--dd-spacing-sm); }
+.studio-chord-properties__member { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--dd-spacing-sm); }

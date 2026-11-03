@@ -1,0 +1,9 @@
+/* Local layout only; controls, focus, typography and density come from the public UI. */
+.studio-input-target { display: flex; align-items: end; flex-wrap: wrap; flex: 0 1 max-content; max-width: 100%; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); min-width: 0; }
+.studio-input-target__staff { flex: 1 1 12rem; width: 12rem; min-width: min(100%, 12rem); max-width: 100%; }
+/* Keep all four voice tools beside a wrapping staff name. The minimum retains
+   the short-name layout and follows the public control size for coarse input. */
+.studio-input-target--multiple { display: grid; grid-template-columns: minmax(0, 1fr) max-content; min-width: min(100%, calc(12rem + var(--dd-spacing-lg) + 4 * var(--dd-control) + 3 * var(--dd-spacing-sm))); }
+.studio-input-target--multiple .studio-input-target__staff { width: auto; min-width: 0; }
+.studio-input-target__staff--single { display: grid; gap: var(--dd-layout-label-gap); flex: 0 1 auto; width: auto; min-width: 0; overflow-wrap: anywhere; }
+.studio-input-target__voices { display: grid; gap: var(--dd-layout-label-gap); min-width: 0; }

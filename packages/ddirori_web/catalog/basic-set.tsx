@@ -87,7 +87,7 @@ function Spec({
 export function BasicSet() {
   const [theme, setTheme] = useState<Theme>("light"),
     [density, setDensity] = useState("comfortable"),
-    [accent, setAccent] = useState("lime"),
+    [accent, setAccent] = useState(palettes.recommended),
     [query, setQuery] = useState(""),
     [category, setCategory] = useState("전체");
   const [text, setText] = useState("오늘의 연습"),

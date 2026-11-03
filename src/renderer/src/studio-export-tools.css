@@ -1,0 +1,14 @@
+.studio-export-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--dd-spacing-lg);
+  min-width: 0;
+  padding: var(--dd-spacing-sm) var(--dd-spacing-xl);
+  border-bottom: var(--dd-control-border-width) solid var(--dd-border);
+  background: var(--dd-surface);
+}
+.studio-export-tools__command { display: inline-flex; align-items: center; gap: var(--dd-control-choice-gap); vertical-align: middle; max-width: 100%; }
+.studio-export-tools__command > svg { flex: none; }
+.studio-export-tools__page-count { flex: 0 1 12rem; min-width: 0; max-width: 100%; }
+@media print { .studio-export-tools { display: none; } }

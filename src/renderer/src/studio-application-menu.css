@@ -1,0 +1,9 @@
+.studio-application-menu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--dd-spacing-xs); padding: var(--dd-spacing-sm) var(--dd-spacing-xl); border-bottom: var(--dd-control-border-width) solid var(--dd-border); background: var(--dd-surface); }
+.studio-application-menu__entry { min-width: 0; }
+.studio-application-menu__command { width: 100%; text-align: start; }
+.studio-application-menu__command:focus-visible { scroll-margin-block: calc(var(--dd-spacing-sm) + var(--dd-control-focus-width) + var(--dd-control-focus-offset)); }
+.studio-application-menu__content { display: flex; min-width: 0; align-items: center; gap: var(--dd-spacing-sm); }
+.studio-application-menu__label { min-width: 0; }
+.studio-application-menu__check { display: inline-flex; flex: 0 0 var(--dd-icon-tool); align-items: center; justify-content: center; }
+.studio-application-menu__separator { margin: var(--dd-spacing-sm) 0; border: 0; border-top: var(--dd-control-border-width) solid var(--dd-border); }
+@media print { .studio-application-menu { display: none; } }

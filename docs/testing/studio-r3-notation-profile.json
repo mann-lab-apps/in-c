@@ -1,0 +1,206 @@
+{
+  "contract": {
+    "id": "studio-r3-default-workspace-v3",
+    "fixture": "release-test",
+    "viewports": [
+      [
+        960,
+        1000
+      ],
+      [
+        1400,
+        1000
+      ]
+    ],
+    "theme": "light",
+    "dockWidths": {
+      "palette": 280,
+      "properties": 280
+    },
+    "dockVisibility": {
+      "palette": true,
+      "properties": true
+    },
+    "dockLayout": {
+      "compact": "shared",
+      "desktop": "shared",
+      "active": "palette"
+    },
+    "notationView": {
+      "mode": "fit-width",
+      "zoom": 100
+    },
+    "noteDetailsOpen": false,
+    "inputActive": false
+  },
+  "metrics": {
+    "960": {
+      "dynamicMarks": [
+        {
+          "box": {
+            "height": 23,
+            "width": 31.7,
+            "x": 131.6,
+            "y": 264.9
+          },
+          "id": "measure-1",
+          "index": 0
+        }
+      ],
+      "eventCount": 33,
+      "fermatas": [
+        {
+          "box": {
+            "height": 25,
+            "width": 14.8,
+            "x": 130.2,
+            "y": 166.9
+          },
+          "id": "𝄐",
+          "index": 0
+        }
+      ],
+      "hairpins": [
+        {
+          "box": {
+            "height": 20,
+            "width": 101.2,
+            "x": 143.6,
+            "y": 295.4
+          },
+          "id": "",
+          "index": 0
+        }
+      ],
+      "rehearsalMarks": [
+        {
+          "box": {
+            "height": 60,
+            "width": 24,
+            "x": 22,
+            "y": 70
+          },
+          "id": "A",
+          "index": 0
+        }
+      ],
+      "slurs": [
+        {
+          "box": {
+            "height": 17.9,
+            "width": 87.4,
+            "x": 143.4,
+            "y": 179.4
+          },
+          "id": "",
+          "index": 0
+        },
+        {
+          "box": {
+            "height": 11.9,
+            "width": 100,
+            "x": 287.6,
+            "y": 410.3
+          },
+          "id": "",
+          "index": 1
+        }
+      ],
+      "svg": {
+        "height": 696.78,
+        "width": 600
+      },
+      "tempo": "♩ = 75",
+      "viewportWidth": 960
+    },
+    "1400": {
+      "dynamicMarks": [
+        {
+          "box": {
+            "height": 23,
+            "width": 31.7,
+            "x": 131.6,
+            "y": 264.9
+          },
+          "id": "measure-1",
+          "index": 0
+        }
+      ],
+      "eventCount": 33,
+      "fermatas": [
+        {
+          "box": {
+            "height": 25,
+            "width": 14.8,
+            "x": 130.2,
+            "y": 166.9
+          },
+          "id": "𝄐",
+          "index": 0
+        }
+      ],
+      "hairpins": [
+        {
+          "box": {
+            "height": 20,
+            "width": 79.8,
+            "x": 143.6,
+            "y": 295.4
+          },
+          "id": "",
+          "index": 0
+        }
+      ],
+      "rehearsalMarks": [
+        {
+          "box": {
+            "height": 60,
+            "width": 24,
+            "x": 22,
+            "y": 70
+          },
+          "id": "A",
+          "index": 0
+        }
+      ],
+      "slurs": [
+        {
+          "box": {
+            "height": 17.9,
+            "width": 66,
+            "x": 143.4,
+            "y": 179.4
+          },
+          "id": "",
+          "index": 0
+        },
+        {
+          "box": {
+            "height": 8,
+            "width": 26,
+            "x": 771,
+            "y": 224
+          },
+          "id": "",
+          "index": 1
+        },
+        {
+          "box": {
+            "height": 8,
+            "width": 84.9,
+            "x": 57.8,
+            "y": 415.3
+          },
+          "id": "",
+          "index": 2
+        }
+      ],
+      "svg": {
+        "height": 510.52,
+        "width": 804
+      },
+      "tempo": "♩ = 75",
+      "viewportWidth": 1400
+    }
+  }
+}

@@ -19,12 +19,34 @@ import {
   durationToBeats,
   elapsedSecondsToBeat,
   findPlaybackEvent,
+  findPlaybackStartBeat,
   pitchToFrequency,
   resolveQuarterBpmAtBeat,
   tempoMarkingToQuarterBpm
 } from './timeline'
 
 describe('playback timeline', () => {
+  it.each([false,true])('playback.tempo-alias resolves imported ordinal anchors with repeat=%s without rewriting the score', repeat=>{
+    const score=createScore({tempo:{bpm:120},tempoEvents:[{id:'alias-tempo',measureId:'measure-2',tick:TICKS_PER_QUARTER,bpm:80,beatUnit:'half',dots:1}],parts:[createPart({staves:[createStaff({measures:[
+      createMeasure({id:'primary-one',number:1,repeat:repeat?{start:true}:undefined}),
+      createMeasure({id:'primary-two',number:2,repeat:repeat?{end:true,times:2}:undefined})
+    ]})]})]})
+    const before=structuredClone(score),timeline=createPlaybackTimeline(score)
+    expect(timeline.tempoEvents.map(item=>({measureId:item.measureId,startBeat:item.startBeat,quarterBpm:item.quarterBpm}))).toEqual(repeat
+      ? [{measureId:'measure-2',startBeat:5,quarterBpm:240},{measureId:'primary-one',startBeat:8,quarterBpm:120},{measureId:'measure-2',startBeat:13,quarterBpm:240}]
+      : [{measureId:'measure-2',startBeat:5,quarterBpm:240}])
+    expect(score).toEqual(before)
+  })
+
+  it('playback.tempo-alias prioritizes a concrete owner and rejects an ambiguous ordinal anchor',()=>{
+    const score=createScore({tempoEvents:[{id:'concrete',measureId:'measure-2',tick:TICKS_PER_QUARTER,bpm:70},{id:'ambiguous',measureId:'measure-3',tick:0,bpm:90}],parts:[
+      createPart({id:'primary',staves:[createStaff({id:'primary-staff',measures:[createMeasure({id:'primary-a',number:3}),createMeasure({id:'primary-b',number:3})]})]}),
+      createPart({id:'neighbor',staves:[createStaff({id:'neighbor-staff',measures:[createMeasure({id:'measure-2',number:8})]})]})
+    ]})
+    const before=structuredClone(score),events=createPlaybackTimeline(score).tempoEvents
+    expect(events.map(item=>({id:item.id,measureId:item.measureId,startBeat:item.startBeat}))).toEqual([{id:'concrete',measureId:'measure-2',startBeat:1}]);expect(score).toEqual(before)
+  })
+
   it('converts durations, dots, and tuplets to quarter-note beats', () => {
     expect(durationToBeats(createDuration('whole'))).toBe(4)
     expect(durationToBeats(createDuration('eighth', 1))).toBe(0.75)
@@ -320,6 +342,8 @@ describe('playback timeline', () => {
     const timeline = createPlaybackTimeline(score)
 
     expect(timeline.totalBeats).toBe(24)
+    expect(timeline.events.filter(event=>event.eventId==='repeat-end-note').length).toBeGreaterThan(1)
+    expect(findPlaybackStartBeat(timeline,'repeat-end-note')).toBe(4)
     expect(
       timeline.events
         .filter((event) => event.frequency !== undefined)
@@ -653,12 +677,16 @@ describe('playback timeline', () => {
 
     expect(timeline.tempoEvents.map((event) => event.startBeat)).toEqual([
       5,
+      8,
       13,
+      16,
       21
     ])
     expect(timeline.tempoEvents.map((event) => event.quarterBpm)).toEqual([
       92,
+      120,
       92,
+      120,
       92
     ])
   })
@@ -1150,6 +1178,23 @@ describe('playback timeline', () => {
     expect(findPlaybackEvent(timeline, 8)).toBeUndefined()
   })
 
+  it('part-view.playback-scope finds a visible part event without changing ensemble order or timing', () => {
+    const original = createPlaybackTimeline(demoScore)
+    const secondPart = original.events.map(event => ({ ...event, eventId: `second-${event.eventId}`, partId: 'second' }))
+    const timeline = { ...original, events: [...original.events, ...secondPart] }
+    const before = structuredClone(timeline)
+    for (const beat of [0, 1.5, 4.75, 6.5]) {
+      const ensemble = findPlaybackEvent(timeline, beat)!
+      const visible = findPlaybackEvent(timeline, beat, 'second')!
+      expect(visible.eventId).toBe(`second-${ensemble.eventId}`)
+      expect(visible.startBeat).toBe(ensemble.startBeat)
+      expect(visible.durationBeats).toBe(ensemble.durationBeats)
+    }
+    expect(findPlaybackEvent(timeline, 0, 'absent')).toBeUndefined()
+    expect(findPlaybackEvent(timeline, timeline.totalBeats, 'second')).toBeUndefined()
+    expect(timeline).toEqual(before)
+  })
+
   it('uses explicit event positions instead of array-duration accumulation', () => {
     const score = createScore({
       parts: [
@@ -1268,6 +1313,8 @@ describe('playback timeline', () => {
     const timeline = createPlaybackTimeline(score)
 
     expect(timeline.events).toHaveLength(1)
+    expect(findPlaybackStartBeat(timeline,'tie-stop')).toBe(0)
+    expect(timeline.events[0].tiedEvents).toEqual([{eventId:'tie-stop',measureId:score.parts[0].staves[0].measures[0].id}])
     expect(timeline.events[0]).toMatchObject({
       eventId: 'tie-start',
       startBeat: 0,
@@ -1665,7 +1712,8 @@ describe('playback timeline', () => {
         expect(timeline.events.filter((event) => event.eventId === `${partId}-${voiceId}-next`).map((event) => event.startBeat)).toEqual([1.5, 4])
       }
     }
-    expect(timeline.tempoEvents.map((event) => event.startBeat)).toEqual([1.5, 4])
+    expect(timeline.tempoEvents.map((event) => event.startBeat)).toEqual([1.5, 2.5, 4])
+    expect(timeline.tempoEvents.map((event) => event.quarterBpm)).toEqual([60,120,60])
     expect(timeline.totalBeats).toBe(5)
   })
 

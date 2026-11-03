@@ -99,6 +99,86 @@ export const keySignaturePresets = [
     id: 'c-minor',
     label: '다단조 (♭ 3개)',
     value: { fifths: -3, mode: 'minor' }
+  },
+  {
+    id: 'e-major',
+    label: '마장조 (♯ 4개)',
+    value: { fifths: 4, mode: 'major' }
+  },
+  {
+    id: 'c-sharp-minor',
+    label: '올림다단조 (♯ 4개)',
+    value: { fifths: 4, mode: 'minor' }
+  },
+  {
+    id: 'b-major',
+    label: '나장조 (♯ 5개)',
+    value: { fifths: 5, mode: 'major' }
+  },
+  {
+    id: 'g-sharp-minor',
+    label: '올림사단조 (♯ 5개)',
+    value: { fifths: 5, mode: 'minor' }
+  },
+  {
+    id: 'f-sharp-major',
+    label: '올림바장조 (♯ 6개)',
+    value: { fifths: 6, mode: 'major' }
+  },
+  {
+    id: 'd-sharp-minor',
+    label: '올림라단조 (♯ 6개)',
+    value: { fifths: 6, mode: 'minor' }
+  },
+  {
+    id: 'c-sharp-major',
+    label: '올림다장조 (♯ 7개)',
+    value: { fifths: 7, mode: 'major' }
+  },
+  {
+    id: 'a-sharp-minor',
+    label: '올림가단조 (♯ 7개)',
+    value: { fifths: 7, mode: 'minor' }
+  },
+  {
+    id: 'ab-major',
+    label: '내림가장조 (♭ 4개)',
+    value: { fifths: -4, mode: 'major' }
+  },
+  {
+    id: 'f-minor',
+    label: '바단조 (♭ 4개)',
+    value: { fifths: -4, mode: 'minor' }
+  },
+  {
+    id: 'db-major',
+    label: '내림라장조 (♭ 5개)',
+    value: { fifths: -5, mode: 'major' }
+  },
+  {
+    id: 'bb-minor',
+    label: '내림나단조 (♭ 5개)',
+    value: { fifths: -5, mode: 'minor' }
+  },
+  {
+    id: 'gb-major',
+    label: '내림사장조 (♭ 6개)',
+    value: { fifths: -6, mode: 'major' }
+  },
+  {
+    id: 'eb-minor',
+    label: '내림마단조 (♭ 6개)',
+    value: { fifths: -6, mode: 'minor' }
+  },
+  {
+    id: 'cb-major',
+    label: '내림다장조 (♭ 7개)',
+    value: { fifths: -7, mode: 'major' }
+  },
+  {
+    id: 'ab-minor',
+    label: '내림가단조 (♭ 7개)',
+    value: { fifths: -7, mode: 'minor' }
   }
 ] satisfies Array<{
   id: string
@@ -516,6 +596,8 @@ export function resolveKeySignaturePreset(
 export function resolveKeySignaturePresetId(
   keySignature: KeySignature
 ): string {
+  // A signature without a mode is supported metadata, not an explicit C major.
+  if (keySignature.mode === undefined) return 'unspecified-mode'
   return (
     keySignaturePresets.find(
       (preset) =>

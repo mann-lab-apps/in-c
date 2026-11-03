@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { afterEach, describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import {
   Input,
   Item,
@@ -36,6 +36,35 @@ const options = [
   { value: "c", label: "녹음" },
 ];
 describe("basic set behavior", () => {
+  it.each([{isComposing:true},{keyCode:229}])("Select leaves closed composition keys to the IME: %j",composition=>{
+    const change=vi.fn()
+    render(<Select label="Composition choice" value="a" options={options} onChange={change}/>);
+    const field=screen.getByRole('combobox',{name:'Composition choice'});field.focus()
+    for(const key of ['ArrowDown','Enter','c','Escape']){
+      expect(fireEvent.keyDown(field,{key,...composition})).toBe(true)
+      expect(field.getAttribute('aria-expanded')).toBe('false')
+      expect(document.activeElement).toBe(field)
+    }
+    expect(change).not.toHaveBeenCalled()
+  })
+  it.each([{isComposing:true},{keyCode:229}])("Select preserves pending choice during composition navigation, commit and cancel: %j",composition=>{
+    const change=vi.fn()
+    render(<Select label="Pending choice" value="a" options={options} onChange={change}/>);
+    const field=screen.getByRole('combobox',{name:'Pending choice'});field.focus();fireEvent.click(field)
+    fireEvent.keyDown(field,{key:'End'})
+    const pending=field.getAttribute('aria-activedescendant')
+    for(const key of ['Home','ArrowUp','a','Enter','Tab','Escape']){
+      expect(fireEvent.keyDown(field,{key,...composition})).toBe(true)
+      expect(field.getAttribute('aria-expanded')).toBe('true')
+      expect(field.getAttribute('aria-activedescendant')).toBe(pending)
+      expect(document.activeElement).toBe(field)
+      expect(change).not.toHaveBeenCalled()
+    }
+    fireEvent.keyDown(field,{key:'Enter'})
+    expect(change).toHaveBeenCalledExactlyOnceWith('c')
+    expect(field.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(field)
+  })
   it("radio-style segments rove, skip disabled, and use Home/End", () => {
     function Demo() {
       const [value, setValue] = useState("a");
@@ -61,6 +90,27 @@ describe("basic set behavior", () => {
     fireEvent.keyDown(a, { key: "End" });
     expect(document.activeElement).toBe(c);
   });
+  it.each([{isComposing:true},{keyCode:229}])('segments preserve selection and roving focus during composition: %j',composition=>{
+    const change=vi.fn()
+    function Demo(){
+      const[value,setValue]=useState('a')
+      return <SegmentedControl label="Composition view" options={options} value={value} onChange={value=>{change(value);setValue(value)}}/>
+    }
+    render(<Demo/>);
+    const first=screen.getByRole('radio',{name:'악보'}),last=screen.getByRole('radio',{name:'녹음'})
+    first.focus()
+    for(const key of ['ArrowRight','End','ArrowLeft','Home']){
+      expect(fireEvent.keyDown(first,{key,...composition})).toBe(true)
+      expect(first.getAttribute('aria-checked')).toBe('true')
+      expect(first.tabIndex).toBe(0)
+      expect(document.activeElement).toBe(first)
+      expect(change).not.toHaveBeenCalled()
+    }
+    fireEvent.keyDown(first,{key:'ArrowRight'})
+    expect(document.activeElement).toBe(last)
+    expect(last.getAttribute('aria-checked')).toBe('true')
+    expect(change).toHaveBeenCalledExactlyOnceWith('c')
+  })
   it("disabled segment group cannot select", () => {
     const fn = vi.fn();
     render(
@@ -126,6 +176,20 @@ describe("basic set behavior", () => {
     expect(fn).not.toHaveBeenCalled();
     expect(screen.getByRole("tabpanel").textContent).toBe("악보 내용");
   });
+  it.each(['visible', 'sr-only'] as const)('Input labelVisibility %s keeps the accessible label and description contract', visibility => {
+    const { rerender } = render(<Input label="선택 음표 가사" labelVisibility={visibility} value="가사" readOnly help="도움말" error="오류" />)
+    const field = screen.getByRole('textbox', { name: '선택 음표 가사' }) as HTMLInputElement
+    const label = field.labels![0]!
+    expect(label.htmlFor).toBe(field.id)
+    expect(label.classList.contains('dd-input-label--sr-only')).toBe(visibility === 'sr-only')
+    expect(field.getAttribute('labelVisibility')).toBeNull()
+    expect(document.getElementById(field.getAttribute('aria-describedby')!)?.textContent).toBe('오류')
+    expect(field.getAttribute('aria-invalid')).toBe('true')
+    rerender(<Input label="선택 음표 가사" value="가사" readOnly help="도움말" />)
+    expect(field.labels![0]!.classList.contains('dd-input-label--sr-only')).toBe(false)
+    expect(document.getElementById(field.getAttribute('aria-describedby')!)?.textContent).toBe('도움말')
+    expect(field.readOnly).toBe(true)
+  })
   it("readonly input cannot be cleared", () => {
     const clear = vi.fn();
     render(
@@ -371,6 +435,21 @@ describe("basic set behavior", () => {
       true,
     );
   });
+  it("select and accordion disclosure icons share the approved SVG weight without changing activation", () => {
+    const changed=vi.fn(),opened=vi.fn()
+    render(<><Select label="표기 배치" value="a" options={options} onChange={changed}/><Accordion title="셈여림" open={false} onOpenChange={opened}><input aria-label="기호"/></Accordion></>)
+    const select=screen.getByRole('combobox',{name:'표기 배치'})
+    const accordion=screen.getByRole('button',{name:'셈여림'})
+    for(const control of[select,accordion]){
+      const svg=control.querySelector('svg')
+      expect(svg?.getAttribute('aria-hidden')).toBe('true')
+      expect(svg?.getAttribute('width')).toBe('16')
+      expect(svg?.querySelector('path')?.getAttribute('stroke-width')).toBe('1.75')
+    }
+    fireEvent.click(accordion)
+    expect(opened).toHaveBeenCalledExactlyOnceWith(true)
+    expect(changed).not.toHaveBeenCalled()
+  })
   it("accordion collapse removes controls from keyboard and accessibility", () => {
     const fn = vi.fn();
     render(
@@ -421,6 +500,53 @@ describe("basic set behavior", () => {
     ).toBe("사본을 만듭니다");
     fireEvent.keyDown(button, { key: "Escape" });
     expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+  it.each(["재생", "프로젝트 저장"])("dismisses focus-only tooltip after %s becomes disabled but preserves hover guidance", async label => {
+    const content = (disabled: boolean) => <Tooltip text={`${label} 안내`}>
+      <Button disabled={disabled} onClick={() => {}}>{label}</Button>
+    </Tooltip>;
+    const view = render(content(false));
+    const button = screen.getByRole("button", {name:label});
+    fireEvent.focus(button);
+    expect(screen.getByRole("tooltip").textContent).toBe(`${label} 안내`);
+    // Chromium can remove focus from a newly disabled button without bubbling blur.
+    view.rerender(content(true));
+    await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
+    fireEvent.mouseEnter(button.closest(".dd-tooltip-wrap")!);
+    expect(screen.getByRole("tooltip").textContent).toBe(`${label} 안내`);
+    fireEvent.mouseLeave(button.closest(".dd-tooltip-wrap")!);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+  it("keeps an open tooltip inside the viewport when its rendered text grows", () => {
+    let notifyResize: (() => void) | undefined;
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: () => void) { notifyResize = callback; }
+      observe() {}
+      disconnect = disconnect;
+    });
+    let tipWidth = 40;
+    const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.classList.contains("dd-tooltip")
+          ? new DOMRect(0, 0, tipWidth, 40)
+          : new DOMRect(innerWidth - 70, 100, 32, 32);
+      });
+    const view = render(<Tooltip text="긴 재생 안내"><Button onClick={() => {}}>재생</Button></Tooltip>);
+    try {
+      fireEvent.focus(screen.getByRole("button"));
+      const tip = screen.getByRole("tooltip");
+      tipWidth = 180;
+      notifyResize?.();
+      expect(Number.parseFloat(tip.style.left) + tipWidth).toBeLessThanOrEqual(innerWidth - 8);
+      expect(screen.getByRole("button").getAttribute("aria-describedby")).toBe(tip.id);
+      view.unmount();
+      expect(disconnect).toHaveBeenCalledOnce();
+    } finally {
+      view.unmount();
+      bounds.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
   it("toast never takes focus and dismisses through callback", () => {
     const fn = vi.fn();

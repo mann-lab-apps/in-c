@@ -20,16 +20,22 @@ const LOWER_BOTTOM_PADDING = 18
 const UPPER_TOP_PADDING = 12
 // Rehearsal offsets anchor a 24px box; neighboring text offsets are baselines.
 const REHEARSAL_TO_TEXT_GAP = 44
+const REHEARSAL_ROW_GAP = 28
 
 export interface MeasureAnnotationLaneInput {
   expressionTextCount?: number
   harmonyCount?: number
+  harmonyTicks?: readonly number[]
+  dynamicExtraSpacing?: number
   hasDynamic?: boolean
   hasHairpin?: boolean
   hasRehearsalMark?: boolean
+  rehearsalMarkCount?: number
   hasStaffText?: boolean
+  staffTextCount?: number
   lyricLineCount?: number
   lyricScale?: number
+  lyricExtraSpacing?: number
   systemTextCount?: number
   tempoCount?: number
 }
@@ -40,9 +46,11 @@ export interface MeasureAnnotationLanes {
   hairpinYOffset?: number
   harmonyMarkYOffsets: number[]
   rehearsalMarkYOffset?: number
+  rehearsalMarkYOffsets?: number[]
   requiredAbove: number
   requiredBelow: number
   staffTextYOffset?: number
+  staffTextYOffsets?: number[]
   systemTextYOffsets: number[]
   tempoYOffsets: number[]
 }
@@ -69,36 +77,57 @@ export function countMeasureLyricLines(measure: Measure): number {
 export function resolveMeasureAnnotationLanes({
   expressionTextCount = 0,
   harmonyCount = 0,
+  harmonyTicks,
   hasDynamic = false,
+  dynamicExtraSpacing = 0,
   hasHairpin = false,
   hasRehearsalMark = false,
+  rehearsalMarkCount,
   hasStaffText = false,
+  staffTextCount,
   lyricLineCount = 0,
   lyricScale = 1,
+  lyricExtraSpacing = 0,
   systemTextCount = 0,
   tempoCount = 0
 }: MeasureAnnotationLaneInput): MeasureAnnotationLanes {
-  const systemTextYOffsets = createSystemTextYOffsets(systemTextCount)
-  const staffTextYOffset = hasStaffText
+  let systemTextYOffsets = createSystemTextYOffsets(systemTextCount)
+  const count = staffTextCount ?? (hasStaffText ? 1 : 0)
+  const staffTextYOffset = count > 0
     ? harmonyCount > 0
       ? STAFF_TEXT_Y_OFFSET + 10
       : STAFF_TEXT_Y_OFFSET
     : undefined
+  const staffTextYOffsets = Array.from({length:count},(_,index)=>
+    staffTextYOffset! - (count-1-index)*SYSTEM_TEXT_LINE_GAP)
+  const rehearsalCount = rehearsalMarkCount ?? (hasRehearsalMark ? 1 : 0)
   const harmonyMarkYOffsets = createHarmonyMarkYOffsets(
     harmonyCount,
-    hasRehearsalMark,
-    staffTextYOffset
+    rehearsalCount > 0,
+    staffTextYOffsets[0],
+    harmonyTicks
   )
+  // Extra staff-text rows occupy the same upper stack as chords/system text.
+  // Keep existing single-row geometry, and raise only a competing system stack.
+  if(count>1&&systemTextYOffsets.length){
+    const last=Math.min(SYSTEM_TEXT_Y_OFFSET,Math.min(...staffTextYOffsets,...harmonyMarkYOffsets)-SYSTEM_TEXT_LINE_GAP)
+    const shift=last-SYSTEM_TEXT_Y_OFFSET
+    systemTextYOffsets=systemTextYOffsets.map(offset=>offset+shift)
+  }
   const rehearsalMarkYOffset = resolveRehearsalMarkYOffset(
-    hasRehearsalMark,
+    rehearsalCount > 0,
     harmonyMarkYOffsets,
-    systemTextYOffsets
+    systemTextYOffsets,
+    staffTextYOffsets
   )
-  const lyricBottom = resolveLyricBottom(lyricLineCount, lyricScale)
+  const rehearsalMarkYOffsets = Array.from({length:rehearsalCount},(_,index)=>
+    rehearsalMarkYOffset! - (rehearsalCount-1-index)*REHEARSAL_ROW_GAP)
+  const extra = lyricLineCount > 0 && Number.isFinite(lyricExtraSpacing) ? Math.max(0, lyricExtraSpacing) : 0
+  const lyricBottom = resolveLyricBottom(lyricLineCount, lyricScale) + extra
   let lowerCursor = Math.max(
     DYNAMIC_MARK_Y_OFFSET,
     lyricBottom > 0 ? lyricBottom + LYRIC_TO_ANNOTATION_GAP : 0
-  )
+  ) + (hasDynamic && Number.isFinite(dynamicExtraSpacing) ? Math.max(0,dynamicExtraSpacing) : 0)
   const dynamicMarkYOffset = hasDynamic ? lowerCursor : undefined
 
   if (hasDynamic) {
@@ -120,17 +149,16 @@ export function resolveMeasureAnnotationLanes({
   )
   const upperOffsets = [
     ...systemTextYOffsets.map((offset) => offset - UPPER_TOP_PADDING),
-    rehearsalMarkYOffset,
+    ...rehearsalMarkYOffsets,
     ...harmonyMarkYOffsets.map((offset) => offset - UPPER_TOP_PADDING),
-    staffTextYOffset === undefined
-      ? undefined
-      : staffTextYOffset - UPPER_TOP_PADDING
+    ...staffTextYOffsets.map(offset=>offset-UPPER_TOP_PADDING)
   ].filter((offset): offset is number => offset !== undefined)
   const tempoYOffsets = Array.from({ length: tempoCount }, (_, index) =>
     Math.min(-42, Math.min(0, ...upperOffsets) - 16) - index * 24
   )
   upperOffsets.push(...tempoYOffsets.map((offset) => offset - 18))
   const lowerOffsets = [
+    extra > 0 ? lyricBottom : undefined,
     dynamicMarkYOffset,
     hairpinYOffset === undefined ? undefined : hairpinYOffset + 6,
     ...expressionTextYOffsets.map((offset) => offset + LOWER_BOTTOM_PADDING)
@@ -142,10 +170,12 @@ export function resolveMeasureAnnotationLanes({
     hairpinYOffset,
     harmonyMarkYOffsets,
     rehearsalMarkYOffset,
+    rehearsalMarkYOffsets,
     requiredAbove:
       upperOffsets.length > 0 ? Math.abs(Math.min(...upperOffsets)) : 0,
     requiredBelow: Math.max(SYSTEM_HEIGHT_BASELINE, ...lowerOffsets),
     staffTextYOffset,
+    staffTextYOffsets,
     systemTextYOffsets,
     tempoYOffsets
   }
@@ -235,7 +265,8 @@ function createSystemTextYOffsets(count: number): number[] {
 function createHarmonyMarkYOffsets(
   count: number,
   hasRehearsalMark: boolean,
-  staffTextYOffset: number | undefined
+  staffTextYOffset: number | undefined,
+  ticks?: readonly number[]
 ): number[] {
   if (count <= 0) {
     return []
@@ -247,6 +278,19 @@ function createHarmonyMarkYOffsets(
       : hasRehearsalMark
         ? HARMONY_MARK_Y_OFFSET + 12
         : HARMONY_MARK_Y_OFFSET
+  if (ticks?.length === count) {
+    const groups = new Map<number, number[]>()
+    ticks.forEach((tick,index) => {
+      const group = groups.get(tick)
+      if (group) group.push(index)
+      else groups.set(tick,[index])
+    })
+    const offsets = new Array<number>(count)
+    for (const indices of groups.values()) indices.forEach((index,rank) => {
+      offsets[index] = lastOffset - (indices.length - 1 - rank) * SYSTEM_TEXT_LINE_GAP
+    })
+    return offsets
+  }
   const firstOffset = lastOffset - Math.max(0, count - 1) * SYSTEM_TEXT_LINE_GAP
 
   return Array.from(
@@ -258,19 +302,24 @@ function createHarmonyMarkYOffsets(
 function resolveRehearsalMarkYOffset(
   hasRehearsalMark: boolean,
   harmonyMarkYOffsets: number[],
-  systemTextYOffsets: number[]
+  systemTextYOffsets: number[],
+  staffTextYOffsets: number[]
 ): number | undefined {
   if (!hasRehearsalMark) {
     return undefined
   }
 
-  const firstHarmonyOffset = harmonyMarkYOffsets[0]
+  const firstHarmonyOffset = harmonyMarkYOffsets.length ? Math.min(...harmonyMarkYOffsets) : undefined
 
   const harmonyAwareOffset = Math.min(
     REHEARSAL_MARK_Y_OFFSET,
     firstHarmonyOffset === undefined ? REHEARSAL_MARK_Y_OFFSET : firstHarmonyOffset - REHEARSAL_TO_TEXT_GAP
   )
-  const firstSystemTextOffset = systemTextYOffsets[0]
+  // Staff-text rows can rise into the rehearsal frame even without chords or
+  // system text. Reuse the same box-to-baseline clearance for the whole stack.
+  const firstSystemTextOffset = [...systemTextYOffsets,...staffTextYOffsets].length
+    ? Math.min(...systemTextYOffsets,...staffTextYOffsets)
+    : undefined
 
   return firstSystemTextOffset === undefined
     ? harmonyAwareOffset

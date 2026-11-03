@@ -1,3 +1,4 @@
+import { isPersistablePitch } from './pitch-range'
 import {
   buildRhythmEditCommand,
   effectiveAlterAt,
@@ -58,11 +59,20 @@ export function buildPitchStepCommand(
         : reference
   })
 
+  if (!isPersistablePitch(pitch)) return undefined
+
+  // A-G retains the existing single-note replacement policy. Preserve all
+  // other event metadata; discard only chord pitches / rest-only fullMeasure.
+  const event = { ...location.event }
+  if (event.type === 'note') delete event.pitches
+  else delete event.fullMeasure
+
   return buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
     event: {
+      ...event,
       type: 'note',
       id: location.event.id,
       position: location.event.position,
@@ -71,11 +81,6 @@ export function buildPitchStepCommand(
         location.event,
         location.event.duration
       ),
-      ...(location.event.type === 'note' && location.event.ties
-        ? {
-            ties: location.event.ties
-          }
-        : {}),
       pitch: {
         ...pitch,
         alter: effectiveAlterAt({
@@ -189,40 +194,25 @@ export function buildPitchMovementCommand(
     return undefined
   }
 
-  const currentPitch = resolveNotePitch(
-    location.measure,
-    voice,
-    location.event
-  )
-  let pitch: Pitch | undefined
-
-  switch (movement) {
-    case 'diatonic': {
-      const target = transposeDiatonic(currentPitch, direction)
-      pitch = {
-        ...target,
-        alter: effectiveAlterAt({
-          measure: location.measure,
-          voice,
-          step: target.step,
-          octave: target.octave,
-          tick: location.event.position.tick,
-          excludeEventId: location.event.id
-        })
+  // Selection identifies the entire event. Its existing vector is authoritative
+  // for notation, MusicXML and playback, including older mismatched primary data.
+  const sourcePitches = location.event.pitches?.length ? location.event.pitches : [location.event.pitch]
+  const moved = sourcePitches.map(member => {
+    const currentPitch = resolveNotePitch(location.measure, voice, { ...location.event as Note, pitch: member })
+    switch (movement) {
+      case 'diatonic': {
+        const target = transposeDiatonic(currentPitch, direction)
+        return { ...target, alter: effectiveAlterAt({
+          measure: location.measure, voice, step: target.step, octave: target.octave,
+          tick: location.event.position.tick, excludeEventId: location.event.id
+        }) }
       }
-      break
+      case 'chromatic': return transposeChromatic(currentPitch, direction)
+      case 'octave': return transposeOctave(currentPitch, direction)
     }
-    case 'chromatic':
-      pitch = transposeChromatic(currentPitch, direction)
-      break
-    case 'octave':
-      pitch = transposeOctave(currentPitch, direction)
-      break
-  }
-
-  if (!pitch) {
-    return undefined
-  }
+  })
+  if (!moved.every(isPersistablePitch)) return undefined
+  const pitch = moved[0]!
 
   return buildRhythmEditCommand(score, {
     target: location.address,
@@ -230,7 +220,8 @@ export function buildPitchMovementCommand(
     createId: createEventId,
     event: {
       ...location.event,
-      pitch
+      pitch,
+      ...(location.event.pitches?.length ? { pitches: moved } : {})
     }
   })
 }
@@ -257,16 +248,12 @@ export function buildEnharmonicRespellCommand(
     return undefined
   }
 
-  const currentPitch = resolveNotePitch(
-    location.measure,
-    voice,
-    location.event
+  const note = location.event
+  const pitches = (note.pitches?.length ? note.pitches : [note.pitch]).map(member =>
+    resolveEnharmonicRespelling(resolveNotePitch(location.measure, voice, { ...note, pitch: member }))
   )
-  const pitch = resolveEnharmonicRespelling(currentPitch)
-
-  if (!pitch) {
-    return undefined
-  }
+  if (!pitches.every(isPersistablePitch)) return undefined
+  const pitch = pitches[0]!
 
   return buildRhythmEditCommand(score, {
     target: location.address,
@@ -274,7 +261,8 @@ export function buildEnharmonicRespellCommand(
     createId: createEventId,
     event: {
       ...location.event,
-      pitch
+      pitch,
+      ...(note.pitches?.length ? { pitches } : {})
     }
   })
 }
@@ -294,16 +282,18 @@ export function buildAccidentalCommand(
     return undefined
   }
 
+  const note = location.event
+  const pitches = (note.pitches?.length ? note.pitches : [note.pitch]).map(member => ({ ...member, alter }))
+  if (!pitches.every(isPersistablePitch)) return undefined
+
   return buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
     event: {
       ...location.event,
-      pitch: {
-        ...location.event.pitch,
-        alter
-      }
+      pitch: pitches[0]!,
+      ...(note.pitches?.length ? { pitches } : {})
     }
   })
 }

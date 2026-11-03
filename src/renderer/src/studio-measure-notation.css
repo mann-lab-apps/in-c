@@ -1,0 +1,8 @@
+.studio-measure-notation {
+  display: grid;
+  flex: 1 1 20rem;
+  gap: var(--dd-spacing-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-measure-notation > :is(h3, p) { margin: 0; }

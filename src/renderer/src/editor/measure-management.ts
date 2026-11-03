@@ -222,6 +222,7 @@ function buildStructuralCommand(score: Score, nextParts: Part[]): ScoreCommand {
   const spans = <T extends { startEventId: string; endEventId: string }>(items: T[] | undefined) => items?.filter(item => eventIds.has(item.startEventId) && eventIds.has(item.endEventId))
   const commands: ScoreCommand[] = [{ type: 'score-parts.replace', parts }]
   if (score.tempoEvents) commands.push({ type: 'score-tempo-events.update', tempoEvents: markings(score.tempoEvents) })
+  if (score.pedalEvents) commands.push({ type: 'score-pedal-events.update', pedalEvents: markings(score.pedalEvents) })
   if (score.dynamics) commands.push({ type: 'score-dynamics.update', dynamics: markings(score.dynamics) })
   if (score.harmonies) commands.push({ type: 'score-harmonies.update', harmonies: markings(score.harmonies) })
   if (score.rehearsalMarks) commands.push({ type: 'score-rehearsal-marks.update', rehearsalMarks: markings(score.rehearsalMarks) })

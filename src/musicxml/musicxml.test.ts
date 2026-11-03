@@ -477,7 +477,7 @@ describe('MusicXML MVP', () => {
     const exported = serializeMusicXml(score)
     const roundTrip = parseMusicXml(exported)
 
-    expect(exported).toContain(`<offset>${TICKS_PER_QUARTER * 2}</offset>`)
+    expect(exported).toContain(`<offset sound="yes">${TICKS_PER_QUARTER * 2}</offset>`)
     expect(roundTrip.tempoEvents).toEqual([
       {
         id: 'measure-1-tempo-2',
@@ -590,7 +590,7 @@ describe('MusicXML MVP', () => {
     const exported = serializeMusicXml(score)
     const roundTrip = parseMusicXml(exported)
 
-    expect(exported).toContain('system="yes"')
+    expect(exported).toContain('system="only-top"')
     expect(exported).toContain('<words font-weight="bold">Chorus</words>')
     expect(roundTrip.systemTexts).toEqual([
       {
@@ -667,7 +667,7 @@ describe('MusicXML MVP', () => {
       {
         code: 'unsupported-layout',
         message:
-          'PDF page setup is not exported to MusicXML yet; MusicXML consumers may use their own page settings.',
+          'Staff size and system spacing percentages are preserved in projects, not MusicXML page defaults.',
         path: 'score.layout.pageSetup'
       }
     ])
@@ -849,7 +849,7 @@ describe('MusicXML MVP', () => {
     expect(exported).toContain('<staccato/>')
     expect(exported).toContain('<accent/>')
     expect(exported).toContain('<tenuto/>')
-    expect(exported).toContain('<marcato/>')
+    expect(exported).toContain('<strong-accent type="up"/>')
     expect(event).toMatchObject({
       type: 'note',
       articulations: ['staccato', 'accent', 'tenuto', 'marcato']
@@ -1414,30 +1414,25 @@ describe('MusicXML MVP', () => {
         message: 'detached-legato articulation is not imported yet.',
         measureNumber: 1,
         eventIndex: 1,
-        path: 'measure[1].note[1].notations.articulations.detached-legato'
+        path: 'part[1].measure[1].note[1].notations.articulations.detached-legato'
       }),
       expect.objectContaining({
         code: 'unsupported-notation',
         message: 'technical playing instructions are not imported yet.',
         measureNumber: 1,
         eventIndex: 1,
-        path: 'measure[1].note[1].notations.technical'
+        path: 'part[1].measure[1].note[1].notations.technical'
       }),
       expect.objectContaining({
         code: 'unsupported-notation',
         message: 'inverted-turn ornament is not imported yet.',
         measureNumber: 1,
         eventIndex: 1,
-        path: 'measure[1].note[1].notations.ornaments.inverted-turn'
-      }),
-      expect.objectContaining({
-        code: 'unsupported-direction',
-        message: 'pedal direction is not imported yet.',
-        measureNumber: 1,
-        path: 'measure[1].direction[1].direction-type[1].pedal'
+        path: 'part[1].measure[1].note[1].notations.ornaments.inverted-turn'
       })
     ]))
-    expect(report.warnings).toHaveLength(4)
+    expect(report.warnings).toHaveLength(3)
+    expect(score.pedalEvents?.[0]?.value).toBe(127)
   })
 
   it('rejects MusicXML hairpins that never stop', () => {

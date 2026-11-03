@@ -1,0 +1,7 @@
+/* UI composition stays outside the paper; public controls own their paint. */
+.studio-metadata-actions { display: inline-flex; min-width: 0; background: var(--dd-surface); }
+.studio-metadata-actions__content { display: grid; gap: var(--dd-spacing-sm); min-width: 0; }
+.studio-metadata-actions__content > h3 { margin: 0; }
+.studio-metadata-actions__button-content { display: flex; justify-content: center; align-items: center; gap: var(--dd-spacing-sm); min-width: 0; }
+.studio-metadata-actions__button-content > svg { flex: none; }
+.studio-metadata-actions__button-content > span { min-width: 0; }

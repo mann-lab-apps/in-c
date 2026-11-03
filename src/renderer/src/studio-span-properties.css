@@ -1,0 +1,14 @@
+.docked-properties.studio-properties-dock { padding: var(--dd-spacing-md); gap: var(--dd-spacing-md); background: var(--dd-surface); border-color: var(--dd-border); }
+.studio-span-properties { min-width: 0; display: grid; gap: var(--dd-spacing-lg); padding: var(--dd-spacing-md); background: var(--dd-surface); }
+.studio-span-properties > h3 { margin: 0; }
+.studio-span-properties__identity { display: grid; gap: var(--dd-spacing-sm); margin: 0; font-size: var(--dd-control-font); }
+.studio-span-properties__identity > div { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); }
+.studio-span-properties__identity dt { color: var(--dd-muted); }
+.studio-span-properties__identity dd { margin: 0; overflow-wrap: anywhere; }
+.studio-span-properties__geometry { min-width: 0; padding-top: var(--dd-spacing-md); border-top: var(--dd-control-border-width) solid var(--dd-border); }
+.studio-span-properties__automatic { display: block; margin-block: var(--dd-spacing-md); color: var(--dd-muted); overflow-wrap: anywhere; word-break: keep-all; }
+.studio-span-properties__automatic > span { display: inline-block; max-inline-size: 100%; vertical-align: top; }
+.studio-span-properties__field { margin-block: var(--dd-spacing-md); }
+.studio-span-properties__actions { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); }
+.studio-span-properties__technical { min-width: 0; color: var(--dd-muted); overflow-wrap: anywhere; }
+.studio-span-properties__empty { margin: 0; color: var(--dd-muted); }

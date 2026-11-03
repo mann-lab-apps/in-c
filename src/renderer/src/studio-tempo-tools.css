@@ -1,0 +1,8 @@
+/* Private composition only; notation and shared control internals are untouched. */
+.studio-score-settings, .studio-score-view-tools { display: flex; flex-wrap: wrap; align-items: start; gap: var(--dd-spacing-lg); padding: var(--dd-spacing-md) var(--dd-spacing-xl); background: var(--dd-surface-muted); border-bottom: var(--dd-control-border-width) solid var(--dd-border); }
+.studio-tempo-tools { min-width: 0; flex: 1 1 32rem; display: grid; gap: var(--dd-spacing-sm); }
+.studio-tempo-tools > h3, .studio-tempo-tools > p { margin: 0; }
+.studio-tempo-tools__fields { display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: var(--dd-spacing-md) var(--dd-spacing-lg); }
+.studio-tempo-tools__field { flex: 1 1 12rem; min-width: 0; max-width: 100%; }
+.studio-tempo-tools__preview { display: grid; gap: var(--dd-layout-label-gap); min-width: 0; }
+@media print { .studio-score-settings, .studio-score-view-tools { display: none; } }

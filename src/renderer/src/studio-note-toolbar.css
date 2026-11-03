@@ -1,0 +1,11 @@
+/* Service layout slots only: shared button/tooltip internals and score stay untouched. */
+.studio-note-toolbar { padding: var(--dd-spacing-sm) var(--dd-spacing-xl); border-bottom: var(--dd-control-border-width) solid var(--dd-border); background: var(--dd-surface); }
+.studio-note-toolbar__commands { display: flex; align-items: center; flex-wrap: wrap; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); }
+.studio-note-toolbar__glyph { display: block; flex: none; }
+.studio-note-toolbar__context { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); margin-top: var(--dd-spacing-sm); min-width: 0; }
+.studio-note-toolbar__target { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--dd-spacing-xs); min-width: 0; color: var(--dd-muted); }
+.studio-note-toolbar .studio-input-context { display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; gap: var(--dd-spacing-xs) var(--dd-spacing-sm); }
+.studio-input-context > h2 { margin: 0; }
+.studio-input-context output { min-width: 0; overflow-wrap: anywhere; }
+.studio-input-context__state { color: var(--dd-muted); }
+@media print { .studio-note-toolbar { display: none; } }

@@ -196,6 +196,7 @@ export function createScore(input?: {
   composer?: string
   tempo?: Score['tempo']
   tempoEvents?: Score['tempoEvents']
+  pedalEvents?: Score['pedalEvents']
   rhythmFeel?: Score['rhythmFeel']
   octaveShifts?: Score['octaveShifts']
   harmonies?: Score['harmonies']
@@ -215,6 +216,7 @@ export function createScore(input?: {
     composer: input?.composer,
     tempo: input?.tempo,
     tempoEvents: input?.tempoEvents,
+    pedalEvents: input?.pedalEvents,
     rhythmFeel: input?.rhythmFeel,
     octaveShifts: input?.octaveShifts,
     harmonies: input?.harmonies,

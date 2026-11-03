@@ -1,5 +1,5 @@
 import { resolveNotePitch } from './pitch'
-import { sortVoiceEvents } from './timing'
+import { measureDurationTicks, sortVoiceEvents, voiceEventDurationTicks } from './timing'
 import type {
   Measure,
   Note,
@@ -19,6 +19,7 @@ interface EventLocation {
   address: VoiceAddress
   event: VoiceEvent
   measure: Measure
+  measureIndex: number
   voice: Voice
 }
 
@@ -31,7 +32,7 @@ export function collectTiePairs(score: Score): TiePair[] {
       return
     }
 
-    const next = events[index + 1]
+    const next = findTieNeighbour(events, index, 1)
 
     if (
       !next ||
@@ -63,7 +64,7 @@ export function validateTieRelations(score: Score): string[] {
     }
 
     if (event.ties?.start) {
-      const next = events[index + 1]
+      const next = findTieNeighbour(events, index, 1)
 
       if (
         !next ||
@@ -76,7 +77,7 @@ export function validateTieRelations(score: Score): string[] {
     }
 
     if (event.ties?.stop) {
-      const previous = events[index - 1]
+      const previous = findTieNeighbour(events, index, -1)
 
       if (
         !previous ||
@@ -112,7 +113,7 @@ export function buildTieCommand(
     from.event.type !== 'note' ||
     to.event.type !== 'note' ||
     (enabled
-      ? !isAdjacentEqualPitch(from, to)
+      ? !isAdjacentEqualPitch(from, to) || !sameWholeChordPitches(from, to)
       : !from.event.ties?.start || !to.event.ties?.stop)
   ) {
     return undefined
@@ -162,17 +163,17 @@ function resolveTieCreationEndpoints(
     return undefined
   }
 
-  const previous = events[selectedIndex - 1]
-  const next = events[selectedIndex + 1]
+  const previous = findTieNeighbour(events, selectedIndex, -1)
+  const next = findTieNeighbour(events, selectedIndex, 1)
 
-  if (previous && isAdjacentEqualPitch(previous, selected)) {
+  if (previous && isAdjacentEqualPitch(previous, selected) && sameWholeChordPitches(previous, selected)) {
     return {
       from: previous,
       to: selected
     }
   }
 
-  return next && isAdjacentEqualPitch(selected, next)
+  return next && isAdjacentEqualPitch(selected, next) && sameWholeChordPitches(selected, next)
     ? {
         from: selected,
         to: next
@@ -221,6 +222,21 @@ function resolveTieRemovalEndpoints(
   return undefined
 }
 
+// Other voices can occur between consecutive events in the flattened score.
+// Search the same lane, while treating a missing/empty intervening measure as
+// a boundary rather than allowing a tie to jump over silent time.
+function findTieNeighbour(events: EventLocation[], index: number, direction: -1 | 1): EventLocation | undefined {
+  const selected = events[index]
+  if (!selected) return undefined
+  for (let next = index + direction; next >= 0 && next < events.length; next += direction) {
+    const candidate = events[next]
+    if (candidate.address.partId !== selected.address.partId || candidate.address.staffId !== selected.address.staffId) return undefined
+    if (candidate.address.voiceId !== selected.address.voiceId) continue
+    return Math.abs(candidate.measureIndex - selected.measureIndex) <= 1 ? candidate : undefined
+  }
+  return undefined
+}
+
 function isAdjacentEqualPitch(
   from: EventLocation,
   to: EventLocation
@@ -228,7 +244,8 @@ function isAdjacentEqualPitch(
   if (
     from.event.type !== 'note' ||
     to.event.type !== 'note' ||
-    !sameTieSequence(from.address, to.address)
+    !sameTieSequence(from.address, to.address) ||
+    !isTemporallyAdjacent(from, to)
   ) {
     return false
   }
@@ -236,11 +253,61 @@ function isAdjacentEqualPitch(
   const fromPitch = resolveNotePitch(from.measure, from.voice, from.event)
   const toPitch = resolveNotePitch(to.measure, to.voice, to.event)
 
-  return (
+  // A whole chord keeps its identity when its stored member order changes.
+  // Preserve the legacy primary-only branch for unequal shapes here; changing
+  // acceptance of old partial-looking ties needs a separate compatibility policy.
+
+  return sameWholeChordPitches(from, to) || (
     fromPitch.step === toPitch.step &&
     fromPitch.octave === toPitch.octave &&
     fromPitch.alter === toPitch.alter
   )
+}
+
+function sameWholeChordPitches(from: EventLocation, to: EventLocation): boolean {
+  if (from.event.type !== 'note' || to.event.type !== 'note') return false
+  const keys = (note: Note, location: EventLocation): string[] =>
+    (note.pitches?.length ? note.pitches : [note.pitch]).map(pitch => {
+      const resolved = resolveNotePitch(location.measure, location.voice, { ...note, pitch })
+      return `${resolved.step}/${resolved.octave}/${resolved.alter}`
+    }).sort()
+  const left = keys(from.event, from), right = keys(to.event, to)
+  return left.length === right.length && left.every((key, index) => key === right[index])
+}
+
+export interface UnsupportedChordTieWarning extends TiePair {
+  code: 'unsupported-chord-tie'
+  path: string
+  message: string
+  address: VoiceAddress
+  measureId: string
+  measureNumber: number
+}
+
+// Diagnostics preserve old files. Only creation is restricted; validation and
+// removal retain the historical event-level representation until user repair.
+export function collectUnsupportedChordTieWarnings(score: Score): UnsupportedChordTieWarning[] {
+  const locations = new Map(flattenVoiceEvents(score).map(location => [location.event.id, location]))
+  return collectTiePairs(score).flatMap(pair => {
+    const from = locations.get(pair.fromEventId), to = locations.get(pair.toEventId)
+    if (!from || !to || sameWholeChordPitches(from, to)) return []
+    return [{
+      ...pair, code: 'unsupported-chord-tie' as const,
+      path: `part[${from.address.partId}].staff[${from.address.staffId}].measure[${from.measureIndex + 1}].event[${pair.fromEventId}].ties`,
+      message: 'Unequal chord ties are not supported: playback may sustain the first chord and MusicXML may contain unmatched member ties. Original project data is preserved.',
+      address: { ...from.address }, measureId: from.measure.id, measureNumber: from.measure.number
+    }]
+  })
+}
+
+function isTemporallyAdjacent(from: EventLocation, to: EventLocation): boolean {
+  const endTick = from.event.position.tick + voiceEventDurationTicks(from.event, from.measure)
+  if (from.measureIndex === to.measureIndex) {
+    return endTick === to.event.position.tick
+  }
+  return to.measureIndex === from.measureIndex + 1 &&
+    endTick === measureDurationTicks(from.measure) &&
+    to.event.position.tick === 0
 }
 
 function sameTieSequence(
@@ -301,7 +368,7 @@ function flattenVoiceEvents(score: Score): EventLocation[] {
 
   for (const part of score.parts) {
     for (const staff of part.staves) {
-      for (const measure of staff.measures) {
+      for (const [measureIndex, measure] of staff.measures.entries()) {
         for (const voice of measure.voices) {
           sortVoiceEvents(voice.events).forEach((event) => {
             locations.push({
@@ -313,6 +380,7 @@ function flattenVoiceEvents(score: Score): EventLocation[] {
               },
               event,
               measure,
+              measureIndex,
               voice
             })
           })

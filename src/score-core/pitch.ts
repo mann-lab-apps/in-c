@@ -58,19 +58,22 @@ export function effectiveAlterAt(input: {
     return input.override
   }
 
-  const previousNote = sortVoiceEvents(input.voice.events)
+  const previousPitch = sortVoiceEvents(input.voice.events)
     .filter(
       (event): event is Note =>
         event.type === 'note' &&
         event.id !== input.excludeEventId &&
-        event.position.tick < input.tick &&
-        event.pitch.step === input.step &&
-        event.pitch.octave === input.octave &&
-        event.pitch.alter !== undefined
+        event.position.tick < input.tick
+    )
+    .flatMap((note) => note.pitches?.length ? note.pitches : [note.pitch])
+    .filter((pitch) =>
+      pitch.step === input.step &&
+      pitch.octave === input.octave &&
+      pitch.alter !== undefined
     )
     .at(-1)
 
-  return previousNote?.pitch.alter ??
+  return previousPitch?.alter ??
     keySignatureAlter(input.measure.keySignature, input.step)
 }
 

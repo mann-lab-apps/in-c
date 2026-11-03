@@ -1,4 +1,4 @@
-import type { Part, Score } from '../../../score-core'
+import { collectUnsupportedChordTieWarnings, type Part, type Score } from '../../../score-core'
 import {
   createPlaybackTimeline,
   tempoMarkingToQuarterBpm
@@ -14,14 +14,16 @@ const MIDI_PROGRAM_BY_PART_NAME: ReadonlyArray<readonly [RegExp, number]> = [
   [/violin|바이올린/i, 40],
   [/viola|비올라/i, 41],
   [/cello|violoncello|첼로/i, 42],
-  [/contrabass|double bass|bass|콘트라베이스/i, 43],
   [/flute|플루트/i, 73],
   [/clarinet|클라리넷/i, 71],
   [/alto sax|알토 색소폰/i, 65],
   [/horn|호른/i, 60],
   [/oboe|오보에/i, 68],
   [/bassoon|바순/i, 70],
-  [/voice|vocal|soprano|alto|tenor|baritone|bass voice|성악/i, 52]
+  [/voice|vocal|soprano|alto|tenor|baritone|bass voice|성악/i, 52],
+  // Resolve named families (Bassoon, bass clarinet/flute/voice) before the
+  // generic bass fallback, while preserving double-bass and unknown policies.
+  [/contrabass|double bass|bass|콘트라베이스/i, 43]
 ]
 
 interface TimedMidiMessage {
@@ -31,7 +33,9 @@ interface TimedMidiMessage {
 }
 
 export interface MidiExportWarning {
-  code: 'unsupported-midi-clef'
+  code: 'unsupported-midi-clef' | 'unsupported-chord-tie' | 'shared-midi-channel'
+  measureId?: string
+  measureNumber?: number
   path: string
   message: string
 }
@@ -68,7 +72,7 @@ export function serializeMidiWithReport(score: Score): MidiExportReport {
       createTrackChunk(tempoTrack),
       ...partTracks.map((track) => createTrackChunk(track))
     ]),
-    warnings: collectUnsupportedMidiWarnings(score)
+    warnings: [...collectUnsupportedMidiWarnings(score), ...collectUnsupportedChordTieWarnings(score), ...collectSharedMidiChannels(score)]
   }
 }
 
@@ -120,6 +124,15 @@ function createPartNoteTrack(
   ]
   let order = 2
 
+  for (const pedal of timeline.pedalEvents ?? []) {
+    if (pedal.partId !== part.id) continue
+    messages.push({ tick: beatToMidiTick(pedal.startBeat), order: order++, bytes: [0xb0 | channel, 64, pedal.value] })
+  }
+  if (timeline.pedalEvents?.some(pedal => pedal.partId === part.id)) {
+    messages.push({ tick: beatToMidiTick(timeline.totalBeats), order: Number.MAX_SAFE_INTEGER,
+      bytes: [0xb0 | channel, 64, 0] })
+  }
+
   for (const event of timeline.events.filter((candidate) => candidate.partId === part.id)) {
     if (
       unsupportedMeasureKeys.has(
@@ -158,6 +171,23 @@ function createPartNoteTrack(
   }
 
   return renderTimedMessages(messages)
+}
+
+function collectSharedMidiChannels(score: Score): MidiExportWarning[] {
+  const owners = new Map<number, number>()
+  return score.parts.flatMap((_, partIndex) => {
+    const channel = resolveMidiChannel(partIndex)
+    const owner = owners.get(channel)
+    if (owner === undefined) {
+      owners.set(channel, partIndex)
+      return []
+    }
+    return [{
+      code: 'shared-midi-channel' as const,
+      path: `part[${partIndex + 1}].midi-channel`,
+      message: `MIDI channel ${channel + 1} is shared with part ${owner + 1}; instrument programs, pedal and overlapping notes can affect each other. Keep the project and compare exported playback.`
+    }]
+  })
 }
 
 function collectUnsupportedMidiMeasureKeys(score: Score): Set<string> {

@@ -1,0 +1,235 @@
+{
+  "title": "Toccata and Fugue in D minor — BWV 565J. S. Bach",
+  "warning": null,
+  "eventGlyphs": 35,
+  "staves": 3,
+  "onsets": [
+    {
+      "tick": 0,
+      "x": 133.19998168945312,
+      "eventId": "P1-staff-1-event-1"
+    },
+    {
+      "tick": 6720,
+      "x": 183.4628644670759,
+      "eventId": "P1-staff-1-event-2"
+    },
+    {
+      "tick": 8400,
+      "x": 215.0985772269113,
+      "eventId": "P1-staff-1-event-3"
+    },
+    {
+      "tick": 9240,
+      "x": 240.45642689296176,
+      "eventId": "P1-staff-1-event-4"
+    },
+    {
+      "tick": 10080,
+      "x": 265.8142765590123,
+      "eventId": "P1-staff-1-event-5"
+    },
+    {
+      "tick": 10920,
+      "x": 291.1721262250628,
+      "eventId": "P1-staff-1-event-6"
+    },
+    {
+      "tick": 11760,
+      "x": 332.4899673461914,
+      "eventId": "P1-staff-1-event-7"
+    },
+    {
+      "tick": 13440,
+      "x": 359.40567888532365,
+      "eventId": "P1-staff-1-event-8"
+    },
+    {
+      "tick": 16800,
+      "x": 407.2371019635882,
+      "eventId": "P1-staff-1-event-9"
+    },
+    {
+      "tick": 20160,
+      "x": 444.26853724888394,
+      "eventId": "P1-staff-1-event-10"
+    },
+    {
+      "tick": 26880,
+      "x": 492.73143223353793,
+      "eventId": "P1-staff-1-event-11"
+    },
+    {
+      "tick": 33600,
+      "x": 554.7943028041295,
+      "eventId": "P1-staff-1-event-12"
+    },
+    {
+      "tick": 35280,
+      "x": 586.4300155639648,
+      "eventId": "P1-staff-1-event-13"
+    },
+    {
+      "tick": 36960,
+      "x": 615.345727103097,
+      "eventId": "P1-staff-1-event-14"
+    },
+    {
+      "tick": 38640,
+      "x": 660.2214300973075,
+      "eventId": "P1-staff-1-event-15"
+    },
+    {
+      "tick": 40320,
+      "x": 689.1371416364398,
+      "eventId": "P1-staff-1-event-16"
+    },
+    {
+      "tick": 43680,
+      "x": 736.9685647147043,
+      "eventId": "P1-staff-1-event-17"
+    },
+    {
+      "tick": 47040,
+      "x": 774,
+      "eventId": "P1-staff-1-event-18"
+    },
+    {
+      "tick": 0,
+      "x": 133.19998168945312,
+      "eventId": "P1-staff-2-event-19"
+    },
+    {
+      "tick": 26880,
+      "x": 492.73143223353793,
+      "eventId": "P1-staff-2-event-20"
+    },
+    {
+      "tick": 33600,
+      "x": 554.7943028041295,
+      "eventId": "P1-staff-2-event-21"
+    },
+    {
+      "tick": 35280,
+      "x": 586.4300155639648,
+      "eventId": "P1-staff-2-event-22"
+    },
+    {
+      "tick": 36960,
+      "x": 615.345727103097,
+      "eventId": "P1-staff-2-event-23"
+    },
+    {
+      "tick": 38640,
+      "x": 660.2214300973075,
+      "eventId": "P1-staff-2-event-24"
+    },
+    {
+      "tick": 40320,
+      "x": 689.1371416364398,
+      "eventId": "P1-staff-2-event-25"
+    },
+    {
+      "tick": 43680,
+      "x": 736.9685647147043,
+      "eventId": "P1-staff-2-event-26"
+    },
+    {
+      "tick": 47040,
+      "x": 774,
+      "eventId": "P1-staff-2-event-27"
+    }
+  ],
+  "ornaments": [
+    {
+      "text": "",
+      "font": "Bravura",
+      "eventId": "P1-staff-1-event-1",
+      "ink": {
+        "x": 126.98116302490234,
+        "y": 103.1399998664856,
+        "width": 20.30000114440918,
+        "height": 6.860000133514404
+      }
+    },
+    {
+      "text": "",
+      "font": "Bravura",
+      "eventId": "P1-staff-1-event-11",
+      "ink": {
+        "x": 486.51263427734375,
+        "y": 103.1399998664856,
+        "width": 20.30000114440918,
+        "height": 6.860000133514404
+      }
+    },
+    {
+      "text": "",
+      "font": "Bravura",
+      "eventId": "P1-staff-2-event-20",
+      "ink": {
+        "x": 486.51263427734375,
+        "y": 247.7700047492981,
+        "width": 20.30000114440918,
+        "height": 6.860000133514404
+      }
+    }
+  ],
+  "fermatas": [
+    {
+      "eventId": "P1-staff-1-event-1",
+      "ink": {
+        "x": 130.74254894256592,
+        "y": 88.37437438964844,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    },
+    {
+      "eventId": "P1-staff-1-event-10",
+      "ink": {
+        "x": 441.8110761642456,
+        "y": 109.3564453125,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    },
+    {
+      "eventId": "P1-staff-1-event-11",
+      "ink": {
+        "x": 490.27402782440186,
+        "y": 88.37437438964844,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    },
+    {
+      "eventId": "P1-staff-1-event-18",
+      "ink": {
+        "x": 771.5425519943237,
+        "y": 109.3564453125,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    },
+    {
+      "eventId": "P1-staff-2-event-20",
+      "ink": {
+        "x": 490.27402782440186,
+        "y": 233.00437927246094,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    },
+    {
+      "eventId": "P1-staff-2-event-27",
+      "ink": {
+        "x": 771.5425519943237,
+        "y": 253.9864501953125,
+        "width": 12.681012153625488,
+        "height": 8.765625
+      }
+    }
+  ],
+  "svg": "0 0 804 678.63"
+}

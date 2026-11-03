@@ -1,0 +1,32 @@
+[
+  {
+    "name": "beams",
+    "exit": 0,
+    "seconds": 5.21,
+    "output": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-384-owned-beams"
+  },
+  {
+    "name": "stems",
+    "exit": 0,
+    "seconds": 5.3,
+    "output": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-384-owned-stems"
+  },
+  {
+    "name": "glyphs",
+    "exit": 0,
+    "seconds": 5.17,
+    "output": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-384-owned-glyphs"
+  },
+  {
+    "name": "profile",
+    "exit": 0,
+    "seconds": 4.32,
+    "output": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-384-owned-profile"
+  },
+  {
+    "name": "fixed",
+    "exit": 0,
+    "seconds": 2.6,
+    "output": "/Users/jaemankim/Desktop/privates/coding/in-c/out/ddirori/continuous-384-owned-fixed"
+  }
+]

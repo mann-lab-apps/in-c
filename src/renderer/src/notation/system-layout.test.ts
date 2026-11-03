@@ -24,6 +24,58 @@ const releaseQaFixture = readFileSync(
 )
 
 describe('system layout', () => {
+  it.each([0,1,2].flatMap(populated=>[560,900].map(width=>({populated,width}))))('[empty-voice.width] keeps $populated populated voices unchanged at $width when an empty voice is authored',({populated,width})=>{
+    const measures=createMeasures(4),first=measures[0]
+    first.voices=Array.from({length:Math.max(1,populated)},(_,index)=>createVoice({id:`voice-${index+1}`,events:populated?first.voices[0].events.map(event=>({...structuredClone(event),id:`owned-${index}-${event.id}`})):[]}))
+    const geometry=(layout:ReturnType<typeof createSystemLayout>)=>({height:layout.height,systemCount:layout.systemCount,measuresPerSystem:layout.measuresPerSystem,placements:layout.placements.map(({x,y,width,systemIndex,isSystemStart})=>({x,y,width,systemIndex,isSystemStart}))})
+    const baseline=geometry(createSystemLayout(measures,width)),authored=structuredClone(measures)
+    authored[0].voices.push(createVoice({id:'voice-3',events:[]}))
+    const original=structuredClone(authored)
+    expect(geometry(createSystemLayout(authored,width))).toEqual(baseline)
+    expect(authored).toEqual(original)
+  })
+  it('does not reserve another unchanged time signature at each manual system start', () => {
+    const measures=createMeasures(6),before=structuredClone(measures)
+    const layout=createSystemLayout(measures,750,{layout:{systemBreakBeforeMeasureIds:[measures[2].id,measures[4].id]}})
+    expect(layout.systemCount).toBe(3)
+    expect(layout.placements[2].width).toBeLessThan(layout.placements[0].width)
+    expect(layout.placements[4].width).toBe(layout.placements[2].width)
+    expect(measures).toEqual(before)
+  })
+  it('reserves a measured gap after only the affected system without changing horizontal layout or score', () => {
+    const measures=createMeasures(3), before=structuredClone(measures)
+    const options={layout:{systemBreakBeforeMeasureIds:measures.slice(1).map(m=>m.id)}}
+    const original=createSystemLayout(measures,750,options)
+    const adjusted=createSystemLayout(measures,750,{...options, additionalSystemSpacing:new Map([[0,32.5]])})
+    expect(adjusted.placements.map(p=>p.y-original.placements.find(o=>o.measure.id===p.measure.id)!.y)).toEqual([0,32.5,32.5])
+    expect(adjusted.placements.map(p=>[p.x,p.width,p.systemIndex])).toEqual(original.placements.map(p=>[p.x,p.width,p.systemIndex]))
+    expect(adjusted.height-original.height).toBeCloseTo(32.5)
+    expect(measures).toEqual(before)
+  })
+
+  it('keeps measured inter-system clearance page-aligned and ignores invalid or trailing padding', () => {
+    const measures=createMeasures(3), layout={systemBreakBeforeMeasureIds:measures.slice(1).map(m=>m.id)}
+    const base=createSystemLayout(measures,750,{layout,pageHeight:400})
+    const adjusted=createSystemLayout(measures,750,{layout,pageHeight:400,additionalSystemSpacing:new Map([[0,60],[2,10000]])})
+    expect(adjusted.placements[0].y).toBe(base.placements[0].y)
+    expect(adjusted.placements[1].y).toBeGreaterThan(base.placements[1].y)
+    for(const p of adjusted.placements)expect(p.y%400+154).toBeLessThanOrEqual(400)
+    const ignored=createSystemLayout(measures,750,{layout,pageHeight:400,additionalSystemSpacing:new Map([[0,NaN],[1,-200],[2,10000]])})
+    expect(ignored).toEqual(base)
+  })
+  it('reserves measured lyric measure minima by reflowing rather than compressing adjacent words', () => {
+    const measures=createMeasures(4)
+    const minimumMeasureWidths=new Map([[measures[0].id,360],[measures[1].id,360]])
+    const original=structuredClone(measures)
+    const layout=createSystemLayout(measures,560,{minimumMeasureWidths})
+    for(const placement of layout.placements)if(minimumMeasureWidths.has(placement.measure.id)){
+      expect(placement.width).toBeGreaterThanOrEqual(minimumMeasureWidths.get(placement.measure.id)!)
+    }
+    expect(layout.placements[0].systemIndex).not.toBe(layout.placements[1].systemIndex)
+    expect(measures).toEqual(original)
+    expect(minimumMeasureWidths.size).toBe(2)
+  })
+
   it('wraps measures instead of shrinking below the minimum width', () => {
     const layout = createSystemLayout(createMeasures(9), 900)
 
@@ -89,6 +141,19 @@ describe('system layout', () => {
     expect(firstSystemPlacements[0].y + 154).toBeLessThanOrEqual(300)
     expect(secondSystemPlacements[0].y).toBeGreaterThanOrEqual(300)
     expect(secondSystemPlacements[0].y + 154).toBeLessThanOrEqual(600)
+  })
+
+  it('reserves measured print-header height only before the first system and keeps later page origins', () => {
+    const measures = createMeasures(6), before = structuredClone(measures)
+    const options = { pageHeight: 600, layout: { pageBreakBeforeMeasureIds: ['measure-4'] }, firstSystemOffset: 120 }
+    const normal = createSystemLayout(measures, 320, { ...options, firstSystemOffset: 0 })
+    const reserved = createSystemLayout(measures, 320, options)
+    expect(reserved.placements[0].y).toBe(normal.placements[0].y + 120)
+    const nextPage = reserved.placements.find(p => p.measure.id === 'measure-4')!
+    expect(nextPage.y).toBe(normal.placements.find(p => p.measure.id === 'measure-4')!.y)
+    expect(nextPage.y).toBeGreaterThanOrEqual(600)
+    expect(reserved.placements.map(p => [p.x, p.width])).toEqual(normal.placements.map(p => [p.x, p.width]))
+    expect(measures).toEqual(before)
   })
 
   it('keeps lyric descenders inside configured PDF page boundaries', () => {

@@ -1,3 +1,5 @@
+import { isPersistablePitch } from './pitch-range'
+import { buildInsertMeasureAfter } from './measure-management'
 import {
   applyScoreCommand,
   buildRhythmEditCommand,
@@ -295,6 +297,62 @@ export function buildSequentialInput(
   step: PitchStep | undefined,
   createId: (kind: 'event' | 'measure') => string
 ): SequentialInputResult | undefined {
+  // Keep normal entry and pending tuplet previews inside the native project's
+  // existing pitch contract (-1..9). Reject, rather than silently changing pitch
+  // or letting an unsavable note enter score/history/caret state.
+  const pitchLocation = locateInputVoice(score, state.target)
+  if (!pitchLocation) return undefined
+  let reference = state.lastPitch
+  let pitchTick = state.tick
+  for (const member of [...(state.tupletInput?.members ?? []), {
+    mode: state.mode, step, accidental: state.accidental, duration: state.duration
+  }]) {
+    if (member.mode === 'note' && member.step) {
+      reference = createInputPitch(pitchLocation, member.step, pitchTick, member.accidental, reference)
+      if (!isPersistablePitch(reference)) return undefined
+    }
+    pitchTick += durationToTicks(member.duration)
+  }
+  if (pitchLocation.voice.events.length === 0) {
+    if (state.tick !== 0 || state.tupletInput || state.duration.tuplet ||
+      (state.mode === 'note' && !step) ||
+      (state.mode === 'rest' && durationToTicks(state.duration) > measureDurationTicks(pitchLocation.measure))) return undefined
+
+    // Explicit entry into an authored empty voice uses the normal rhythm planner
+    // for duration/remainder/caret rules. Only the user's resulting events enter
+    // history; inserts retain an exact inverse back to the originally empty voice
+    // (a rhythm-preserving replace command cannot undo to an empty measure).
+    const seed = createFullMeasureRest({ id: createId('event') })
+    const working = replaceWorkingVoiceEvents(score, state.target, [seed])
+    // Empty peer voices still belong to the authored score. They must not block
+    // planning this explicit entry, nor be filled as a side effect. This measure
+    // is a private clone; the resulting inserts target only the requested voice.
+    const planningMeasure = locateInputVoice(working, state.target)!.measure
+    planningMeasure.voices = planningMeasure.voices.filter(voice => voice.events.length > 0)
+    const planned = buildSequentialInput(working, state, step, createId)
+    if (!planned) return undefined
+    const commands = planned.command.type === 'score.batch' ? planned.command.commands : [planned.command]
+    const preserveAppendVoices = (command: ScoreCommand): ScoreCommand => {
+      if (command.type === 'score.batch') return { ...command, commands: command.commands.map(preserveAppendVoices) }
+      if (command.type !== 'staff-measure.insert' || command.target.partId !== state.target.partId ||
+        command.target.staffId !== state.target.staffId) return command
+      return { ...command, measure: { ...command.measure, voices: pitchLocation.measure.voices.map(voice =>
+        command.measure.voices.find(next => next.id === voice.id) ?? createVoice({
+          id: voice.id, events: [createFullMeasureRest({ id: createId('event') })]
+        })) } }
+    }
+    return {
+      ...planned,
+      command: {
+        type: 'score.batch',
+        commands: commands.flatMap(command => command.type === 'voice-events.replace' &&
+          command.target.partId === state.target.partId && command.target.staffId === state.target.staffId &&
+          command.target.measureId === state.target.measureId && command.target.voiceId === state.target.voiceId
+          ? command.events.map(event => ({ type: 'voice-event.insert' as const, target: state.target, event }))
+          : [preserveAppendVoices(command)])
+      }
+    }
+  }
   if (state.tupletInput) {
     return buildTupletSequentialInput(score, state, step, createId)
   }
@@ -385,78 +443,18 @@ export function buildSequentialInput(
     }
   }
 
-  const nextMeasure = location.staff.measures[location.measureIndex + 1]
-
-  if (nextMeasure) {
-    const nextVoice =
-      nextMeasure.voices.find((voice) => voice.id === state.target.voiceId) ??
-      nextMeasure.voices[0]
-
-    if (!nextVoice) {
-      return undefined
-    }
-
-    return {
-      command: editCommand,
-      eventId: event.id,
-      nextState: {
-        ...state,
-        accidental: undefined,
-        lastPitch: pitch ?? state.lastPitch,
-        target: {
-          ...state.target,
-          measureId: nextMeasure.id,
-          voiceId: nextVoice.id
-        },
-        tick: 0
-      }
-    }
-  }
-
-  const newMeasureId = createId('measure')
-  const newMeasure = createMeasure({
-    id: newMeasureId,
-    number: location.measure.number + 1,
-    clef: { ...location.measure.clef },
-    transposition: location.measure.transposition,
-    keySignature: { ...location.measure.keySignature },
-    timeSignature: { ...location.measure.timeSignature },
-    voices: [
-      createVoice({
-        id: state.target.voiceId,
-        events: [
-          createFullMeasureRest({
-            id: createId('event')
-          })
-        ]
-      })
-    ]
-  })
-
+  const next = ensureNextInputMeasure(score, state.target, location, createId)
+  if (!next) return undefined
   return {
-    command: {
-      type: 'score.batch',
-      commands: [
-        editCommand,
-        {
-          type: 'staff-measure.insert',
-          target: {
-            partId: state.target.partId,
-            staffId: state.target.staffId
-          },
-          measure: newMeasure
-        }
-      ]
-    },
+    command: next.command
+      ? { type: 'score.batch', commands: [editCommand, next.command] }
+      : editCommand,
     eventId: event.id,
     nextState: {
       ...state,
       accidental: undefined,
       lastPitch: pitch ?? state.lastPitch,
-      target: {
-        ...state.target,
-        measureId: newMeasure.id
-      },
+      target: { ...state.target, measureId: next.measureId, voiceId: next.voiceId },
       tick: 0
     }
   }
@@ -1053,6 +1051,35 @@ function buildTiedSequentialInput(
   }
 }
 
+// The manual structural builder is also the authority for an aligned score's
+// appended column. Extract only the new measures as insert commands: existing
+// music/markings must not be replaced by the planner's pre-entry snapshot.
+function buildAlignedInputAppend(
+  score: Score,
+  target: VoiceAddress,
+  createId: (kind: 'event' | 'measure') => string
+): { command: ScoreCommand; measureId: string; voiceId: string } | undefined {
+  const edit = buildInsertMeasureAfter(score, target.measureId, createId)
+  if (!edit || edit.selection.type !== 'event' ||
+    edit.selection.address?.partId !== target.partId || edit.selection.address.staffId !== target.staffId) return undefined
+  const planned = applyScoreCommand(score, edit.command).score
+  const commands: ScoreCommand[] = []
+  let active: { measureId: string; voiceId: string } | undefined
+  for (const [partIndex, part] of planned.parts.entries()) for (const [staffIndex, staff] of part.staves.entries()) {
+    const previous = score.parts[partIndex].staves[staffIndex]
+    const measure = staff.measures[previous.measures.length]
+    if (!measure || staff.measures.length !== previous.measures.length + 1) return undefined
+    commands.push({ type: 'staff-measure.insert', target: { partId: part.id, staffId: staff.id }, measure })
+    if (part.id === target.partId && staff.id === target.staffId) {
+      if (measure.id !== edit.selection.address.measureId) return undefined
+      const voice = measure.voices.find(voice => voice.id === target.voiceId) ?? measure.voices[0]
+      if (!voice) return undefined
+      active = { measureId: measure.id, voiceId: voice.id }
+    }
+  }
+  return active ? { ...active, command: commands.length === 1 ? commands[0] : { type: 'score.batch', commands } } : undefined
+}
+
 function ensureNextInputMeasure(
   score: Score,
   target: VoiceAddress,
@@ -1078,6 +1105,10 @@ function ensureNextInputMeasure(
       : undefined
   }
 
+  const aligned = buildAlignedInputAppend(score, { ...target, measureId: location.measure.id }, createId)
+  if (aligned) return aligned
+
+  // Keep the existing unaligned-import behavior separate from aligned authoring.
   const measureId = createId('measure')
   const measure = createMeasure({
     id: measureId,

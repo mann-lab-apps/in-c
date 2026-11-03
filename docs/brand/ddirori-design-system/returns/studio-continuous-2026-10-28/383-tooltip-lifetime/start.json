@@ -1,0 +1,27 @@
+{
+  "head": "311a48b8d3b17d0112040f63c98a9413f3ccce88",
+  "files": [
+    {
+      "path": "packages/ddirori_web/src/basic.tsx",
+      "sha256": "377bf3daad36a090aaab815e165fe8605c9f70afd5e20cbcbfce8db41a9af953"
+    },
+    {
+      "path": "packages/ddirori_web/src/styles.css",
+      "sha256": "26be4eec70481e0da8c3d81806d2d622fa6a8d541fd5471e9f8c93f117d369c7"
+    },
+    {
+      "path": "packages/ddirori_web/src/tooltip-pointer.test.tsx",
+      "sha256": "5a6e9df9795dcb71c446e96a860f176c96bc89d94b10b4bdd2e0ae2e044f45cf"
+    },
+    {
+      "path": "src/renderer/src/StudioNotationPalette.tsx",
+      "sha256": "f2a43c1cc98f903c78fa05a71f85d8bb9bf31b04191efea3b3778a64e48fcd61"
+    },
+    {
+      "path": "src/renderer/src/notation/NotationPreview.tsx",
+      "sha256": "b77cfa2fab20c435657ade5228724dd75351b05b125f30908ccc837af81a5cc4"
+    }
+  ],
+  "taskCommit": "uncommitted",
+  "revisionSha256": "a61baa86bd6869b38982042aa501631881df313e3de7be08411a6cfdb4ff0f36"
+}

@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-30T13:24:00.301Z",
+  "source": "docs/brand/ddirori-brand-system/score-reference",
+  "sourceSha256": "584720ede48182535e401a062358a825a93c7429bca50ec1470a01128ab4a942",
+  "screenshotSha256": "83a16844b41ed8da71897861611f043e32c356f68665b232175f81801e3a2baf",
+  "pdfSha256": "7b1c7ccbf4aec0777e834b7aacb513a15f912fe4ca8449f81481edfaf8943411",
+  "rendererAssets": [
+    {
+      "path": "out/renderer/assets/index-BOrgxYdp.js",
+      "sha256": "3e730e6062eeb895bda47ba77e68902b21e667b6cdf7cb4065978d95735f15be"
+    },
+    {
+      "path": "out/renderer/assets/index-DUFembKd.css",
+      "sha256": "102eac9ba6f74a298e6cef845b21e5bca195ce9c80eb79a4ab02f99bf3e40b3e"
+    }
+  ],
+  "contentSize": [
+    1440,
+    1052
+  ],
+  "pixels": {
+    "width": 2880,
+    "height": 2104
+  },
+  "electron": "42.4.1",
+  "method": "BrowserWindow.webContents.capturePage; real imported score; real PDF export",
+  "limitations": [
+    "Opening measure excerpt; octave-doubled RH notes combined as chords; silent LH half-bar shown with explicit rest. No claim of full-work import or ornament playback realization."
+  ]
+}

@@ -4,6 +4,7 @@ import {
   TICKS_PER_QUARTER,
   applyScoreCommand,
   createDuration,
+  createFullMeasureRest,
   createMeasure,
   createNote,
   createPart,
@@ -33,6 +34,231 @@ const target = {
 }
 
 describe('note input state', () => {
+  it('[note-input.empty-long] splits the original dotted-whole request into an existing following bar',()=>{
+    const score=twoMeasureScore();score.parts[0].staves[0].measures[0].voices[0].events=[]
+    const input=buildSequentialInput(score,createNoteInputState({target,tick:0,duration:createDuration('whole',1),mode:'note'}),'C',idSequence())!
+    expect(input).toBeDefined()
+    const result=applyScoreCommand(score,input.command),measures=result.score.parts[0].staves[0].measures
+    expect(measures).toHaveLength(2);expect(measures[0].voices[0].events[0]).toMatchObject({type:'note',duration:createDuration('whole'),ties:{start:true}})
+    expect(measures[1].voices[0].events[0]).toMatchObject({type:'note',duration:createDuration('half'),ties:{stop:true}})
+    expect(input.nextState).toMatchObject({target:{measureId:'measure-2'},tick:2*quarter})
+    expect(measures.every(m=>validateMeasureRhythm(m).isExact)).toBe(true);expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+  it.each(['meter','pickup','dotted','short-meter','compound-meter','odd','short-multi','short-multi-existing'] as const)('[note-input.empty-long] matches normal tied entry in an empty %s measure and restores authored emptiness',async kind=>{
+    const {serializeMidi}=await import('../midi/serialize-midi'),{serializeMusicXml,parseMusicXml}=await import('../../../musicxml'),{createNativeProject,encodeNativeProject}=await import('../../../project/schema')
+    const source=createScore();source.title=`Generated empty long ${kind}`
+    const primary=source.parts[0].staves[0];primary.id='primary';primary.measures[0].id='primary-short';primary.measures[0].voices[0].events=[createFullMeasureRest({id:'primary-rest'})]
+    if(kind==='meter')primary.measures[0].timeSignature={beats:3,beatType:4}
+    else if(kind==='short-meter'||kind==='short-multi'||kind==='short-multi-existing')primary.measures[0].timeSignature={beats:3,beatType:8}
+    else if(kind==='compound-meter')primary.measures[0].timeSignature={beats:6,beatType:8}
+    else if(kind==='odd')primary.measures[0].timeSignature={beats:7,beatType:8}
+    else if(kind==='pickup')primary.measures[0].timing={type:'pickup',durationTicks:quarter}
+    const lower=structuredClone(primary);lower.id='lower';lower.measures[0].id='lower-short';lower.measures[0].clef={sign:'F',line:4};lower.measures[0].voices[0].events=[]
+    if(kind==='odd'||kind==='short-multi'||kind==='short-multi-existing'){
+      lower.measures[0].voices[0].events=[createFullMeasureRest({id:'lower-peer-rest'})]
+      lower.measures[0].voices.push(createVoice({id:'voice-2',events:[]}))
+    }
+    const other=structuredClone(source.parts[0]);other.id='violin';other.name='Violin';other.staves[0].id='other';other.staves[0].measures[0].id='other-short';other.staves[0].measures[0].voices[0].events[0].id='other-rest'
+    source.parts[0].staves.push(lower);source.parts.push(other)
+    if(kind==='short-multi-existing'){
+      for(const part of source.parts)for(const staff of part.staves){
+        const next=structuredClone(staff.measures[0]);next.id=staff.id+'-existing';next.number=2
+        for(const voice of next.voices)voice.events=[createFullMeasureRest({id:staff.id+'-existing-'+voice.id})]
+        staff.measures.push(next)
+      }
+      source.layout={systemBreakBeforeMeasureIds:['primary-existing']}
+    }
+    const voiceIndex=kind==='odd'||kind==='short-multi'||kind==='short-multi-existing'?1:0
+    const state=createNoteInputState({target:{partId:source.parts[0].id,staffId:'lower',measureId:'lower-short',voiceId:`voice-${voiceIndex+1}`},tick:0,duration:kind==='pickup'?createDuration('half',1):createDuration('whole',kind==='dotted'?1:0),mode:'note'})
+    const control=structuredClone(source);control.parts[0].staves[1].measures[0].voices[voiceIndex].events=[createFullMeasureRest({id:'control-rest'})]
+    const normal=buildSequentialInput(control,state,'C',idSequence())!,expected=applyScoreCommand(control,normal.command).score
+    if(process.env.DDIRORI_EMPTY_LONG_QA_DIR){
+      const {mkdirSync,writeFileSync}=await import('node:fs'),{join}=await import('node:path'),dir=join(process.env.DDIRORI_EMPTY_LONG_QA_DIR,kind)
+      mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'source.chromatics'),encodeNativeProject(createNativeProject(source)));writeFileSync(join(dir,'expected.mid'),serializeMidi(expected));writeFileSync(join(dir,'control-before-xml.chromatics'),encodeNativeProject(createNativeProject(expected)))
+      writeFileSync(join(dir,'expected-target.json'),JSON.stringify({voiceId:state.target.voiceId,measureCount:expected.parts[0].staves[1].measures.length,measures:expected.parts[0].staves[1].measures.map(m=>({timing:m.timing,timeSignature:m.timeSignature,events:m.voices[voiceIndex].events.map(({id,...event})=>event)}))},null,2))
+      writeFileSync(join(dir,'expected.musicxml'),serializeMusicXml(expected))
+      if(kind==='short-multi-existing'){
+        const project=createNativeProject(source)
+        project.partLayouts=[{partId:source.parts[0].id,layout:{systemBreakBeforeMeasureIds:[]}}]
+        writeFileSync(join(dir,'source-independent.chromatics'),encodeNativeProject(project))
+        writeFileSync(join(dir,'expected-part.mid'),serializeMidi({...expected,parts:[expected.parts[0]]}))
+      }
+
+    }
+    const input=buildSequentialInput(source,state,'C',idSequence())
+    expect(input).toBeDefined()
+    const result=applyScoreCommand(source,input!.command)
+    expect(result.score.parts.flatMap(p=>p.staves.map(s=>s.measures.length))).toEqual(Array(3).fill(kind==='short-meter'||kind==='short-multi'||kind==='short-multi-existing'?3:2))
+    for(const part of result.score.parts)for(const staff of part.staves)for(const measure of staff.measures)expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(serializeMidi(result.score)).toEqual(serializeMidi(expected));expect(serializeMidi(parseMusicXml(serializeMusicXml(result.score)))).toEqual(serializeMidi(expected))
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(source);expect(lower.measures[0].voices[voiceIndex].events).toEqual([])
+    if(kind==='odd'||kind==='short-multi'||kind==='short-multi-existing')expect(result.score.parts[0].staves[1].measures[0].voices[0]).toEqual(lower.measures[0].voices[0])
+    if(kind==='short-multi-existing'){
+      expect(result.score.layout).toEqual(source.layout)
+      for(const [pi,part]of source.parts.entries())for(const [si,staff]of part.staves.entries())for(const [mi,measure]of staff.measures.entries()){
+        const after=result.score.parts[pi].staves[si].measures[mi]
+        if(pi===0&&si===1)expect(after.voices[0]).toEqual(measure.voices[0])
+        else expect(after).toEqual(measure)
+      }
+    }
+
+
+  })
+  it.each(['tie','tuplet'] as const)('[note-input.boundary-exchange] preserves ensemble %s input across append and XML/native exchange',async kind=>{
+    const {measureDynamicsFixture}=await import('../../../testing/measure-dynamics-fixture')
+    const {serializeMusicXml,parseMusicXml}=await import('../../../musicxml'),{serializeMidi}=await import('../midi/serialize-midi'),{createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../../project/schema')
+    const {source}=measureDynamicsFixture();source.title=`Generated boundary ${kind}`
+    const measure=source.parts[0].staves[1].measures[3],voice=measure.voices[0]
+    if(kind==='tuplet')voice.events.splice(1,1,
+      createRest({id:'lower-bar-4-b',position:{tick:2*quarter},duration:createDuration('quarter')}),
+      createRest({id:'lower-bar-4-c',position:{tick:3*quarter},duration:createDuration('quarter')}))
+    const selected=voice.events.at(-1)!
+    const state=createNoteInputState({target:{partId:source.parts[0].id,staffId:source.parts[0].staves[1].id,measureId:measure.id,voiceId:voice.id},tick:selected.position.tick,duration:createDuration(kind==='tie'?'whole':'eighth'),mode:'note',lastPitch:selected.type==='note'?selected.pitch:undefined})
+    const ids=idSequence(),input=kind==='tie'?buildSequentialInput(source,state,'C',ids)!:(()=>{
+      const first=buildSequentialInput(source,beginTupletInput(state,'boundary-tuplet')!,'C',ids)!
+      const second=buildSequentialInput(source,first.nextState,'D',ids)!
+      expect(first.pending&&second.pending).toBe(true)
+      return buildSequentialInput(source,second.nextState,'E',ids)!
+    })()
+    const result=applyScoreCommand(source,input.command),lower=result.score.parts[0].staves[1].measures
+    expect(result.score.parts.flatMap(p=>p.staves.map(s=>s.measures.length))).toEqual([5,5,5])
+    for(const part of result.score.parts)for(const staff of part.staves)for(const bar of staff.measures)expect(validateMeasureRhythm(bar).isExact).toBe(true)
+    if(kind==='tie'){
+      expect(lower[3].voices[0].events[1]).toMatchObject({type:'note',ties:{start:true},duration:createDuration('half')})
+      expect(lower[4].voices[0].events[0]).toMatchObject({type:'note',ties:{stop:true},duration:createDuration('half')})
+    }else{
+      const group=lower[3].voices[0].tuplets![0]
+      expect(group.eventIds).toEqual(lower[3].voices[0].events.filter(e=>e.duration.tuplet).map(e=>e.id));expect(group).toMatchObject({actualNotes:3,normalNotes:2})
+    }
+    expect(result.score.slurs).toEqual(source.slurs);expect(result.score.hairpins).toEqual(source.hairpins)
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(source)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(result.score)
+    const xml=serializeMusicXml(result.score),midi=serializeMidi(result.score)
+    expect(serializeMidi(parseMusicXml(xml))).toEqual(midi)
+    if(process.env.DDIRORI_BOUNDARY_INPUT_QA_DIR){
+      const {mkdirSync,writeFileSync}=await import('node:fs'),{join}=await import('node:path'),dir=join(process.env.DDIRORI_BOUNDARY_INPUT_QA_DIR,kind)
+      mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'source.chromatics'),encodeNativeProject(createNativeProject(source)));writeFileSync(join(dir,'expected.chromatics'),encodeNativeProject(createNativeProject(result.score)));writeFileSync(join(dir,'expected.musicxml'),xml);writeFileSync(join(dir,'expected.mid'),midi)
+      writeFileSync(join(dir,'expected-part.mid'),serializeMidi({...result.score,parts:[result.score.parts[0]]}))
+    }
+  })
+  it.each([1,2])('[note-input.empty-append] preserves empty peers and all new-bar voices when entering voice %i',number=>{
+    const score=createScore(),measure=score.parts[0].staves[0].measures[0]
+    measure.voices[0].events=[];measure.voices.push(createVoice({id:'voice-2',events:[]}))
+    const input=buildSequentialInput(score,createNoteInputState({target:{...target,voiceId:`voice-${number}`},tick:0,duration:createDuration('whole'),mode:'note'}),'C',idSequence())!
+    const result=applyScoreCommand(score,input.command),measures=result.score.parts[0].staves[0].measures
+    expect(measures[0].voices[2-number].events).toEqual([])
+    expect(measures[0].voices[number-1].events).toHaveLength(1)
+    expect(measures[1].voices.map(v=>v.id)).toEqual(['voice-1','voice-2'])
+    expect(validateMeasureRhythm(measures[1]).isExact).toBe(true)
+    expect(input.nextState.target.voiceId).toBe(`voice-${number}`)
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+  it.each(['note','rest'] as const)('[note-input.ensemble-append] keeps aligned staves and parts aligned after final-bar %s entry',mode=>{
+    const score=createScore(),first=score.parts[0].staves[0],lower=structuredClone(first)
+    lower.id='lower';lower.measures[0].id='lower-bar';lower.measures[0].clef={sign:'F',line:4};lower.measures[0].transposition={diatonic:-1,chromatic:-2}
+    lower.measures[0].voices[0].events[0].id='lower-rest';lower.measures[0].voices.push(createVoice({id:'voice-2',events:[createRest({id:'lower-voice2',duration:createDuration('whole')})]}));score.parts[0].staves.push(lower)
+    const other=structuredClone(score.parts[0]);other.id='other';other.staves=[structuredClone(first)];other.staves[0].id='other-staff';other.staves[0].measures[0].id='other-bar';other.staves[0].measures[0].voices[0].events[0].id='other-rest';score.parts.push(other)
+    const state=createNoteInputState({target:{...target,staffId:'lower',measureId:'lower-bar',voiceId:'voice-2'},tick:0,duration:createDuration('whole'),mode})
+    const input=buildSequentialInput(score,state,mode==='note'?'C':undefined,idSequence())!,result=applyScoreCommand(score,input.command)
+    expect(result.score.parts.flatMap(p=>p.staves.map(s=>s.measures.length))).toEqual([2,2,2])
+    for(const [pi,part]of result.score.parts.entries())for(const [si,staff]of part.staves.entries()){
+      const previous=score.parts[pi].staves[si].measures[0],next=staff.measures[1]
+      expect(next).toMatchObject({number:2,clef:previous.clef,keySignature:previous.keySignature,timeSignature:previous.timeSignature})
+      expect(next.transposition).toEqual(previous.transposition);expect(next.voices.map(v=>v.id)).toEqual(previous.voices.map(v=>v.id));expect(validateMeasureRhythm(next).isExact).toBe(true)
+    }
+    expect(input.nextState.target).toMatchObject({partId:'part-1',staffId:'lower',voiceId:'voice-2',measureId:result.score.parts[0].staves[1].measures[1].id})
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+  it('[note-input.empty-peer] fills only the requested voice when both voices are authored empty',async()=>{
+    const score=twoMeasureScore(),measure=score.parts[0].staves[0].measures[0]
+    measure.voices[0].events=[];measure.voices.push(createVoice({id:'voice-2',events:[]}))
+    if(process.env.DDIRORI_EMPTY_MULTIVOICE_QA_DIR){
+      const {mkdirSync,writeFileSync}=await import('node:fs'),{join}=await import('node:path'),{createNativeProject,encodeNativeProject}=await import('../../../project/schema')
+      const dir=process.env.DDIRORI_EMPTY_MULTIVOICE_QA_DIR;mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'source.chromatics'),encodeNativeProject(createNativeProject(score)))
+    }
+    const ids=idSequence(),state=createNoteInputState({target,tick:0,duration:createDuration('whole'),mode:'note'})
+    const first=buildSequentialInput(score,state,'C',ids)
+    expect(first).toBeDefined()
+    const firstResult=applyScoreCommand(score,first!.command),firstMeasure=firstResult.score.parts[0].staves[0].measures[0]
+    expect(firstMeasure.voices[1]).toEqual(measure.voices[1]);expect(firstMeasure.voices[0].events).toHaveLength(1)
+    expect(validateMeasureRhythm(firstMeasure).isExact).toBe(false)
+    expect(applyScoreCommand(firstResult.score,firstResult.undo).score).toEqual(score)
+    const second=buildSequentialInput(firstResult.score,{...state,target:{...target,voiceId:'voice-2'},mode:'rest'},undefined,ids)!
+    const final=applyScoreCommand(firstResult.score,second.command)
+    expect(validateMeasureRhythm(final.score.parts[0].staves[0].measures[0]).isExact).toBe(true)
+    expect(final.score.parts[0].staves[0].measures[0].voices[0]).toEqual(firstMeasure.voices[0])
+    expect(applyScoreCommand(final.score,final.undo).score).toEqual(firstResult.score)
+    expect(measure.voices.every(v=>v.events.length===0)).toBe(true)
+  })
+  it.each(['note','rest'] as const)('[note-input.empty-voice] enters %s and restores the authored empty voice in one undo',mode=>{
+    const score=twoMeasureScore();score.parts[0].staves[0].measures[0].voices[0].events=[]
+    const before=structuredClone(score),state=createNoteInputState({target,tick:0,duration:createDuration('whole'),mode})
+    const input=buildSequentialInput(score,state,mode==='note'?'C':undefined,idSequence())
+    expect(input).toBeDefined()
+    const result=applyScoreCommand(score,input!.command)
+    expect(result.score.parts[0].staves[0].measures[0].voices[0].events).toEqual([expect.objectContaining({type:mode,duration:createDuration('whole'),position:{tick:0}})])
+    expect(input!.nextState.target.measureId).toBe('measure-2')
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(before)
+    expect(score).toEqual(before)
+  })
+
+  it('[note-input.empty-voice] uses existing remainder rests and continues into them',()=>{
+    const score=twoMeasureScore();score.parts[0].staves[0].measures[0].voices[0].events=[]
+    const state=createNoteInputState({target,tick:0,duration:createDuration('quarter'),mode:'note'}),ids=idSequence()
+    const input=buildSequentialInput(score,state,'D',ids)!
+    expect(input).toBeDefined()
+    const result=applyScoreCommand(score,input.command)
+    expect(validateMeasureRhythm(result.score.parts[0].staves[0].measures[0]).isExact).toBe(true)
+    expect(input.nextState.tick).toBe(quarter)
+    expect(buildSequentialInput(result.score,input.nextState,'E',ids)).toBeDefined()
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+
+  it('[note-input.empty-voice] preserves last-bar continuation and its exact compound inverse',()=>{
+    const score=createScore();score.parts[0].staves[0].measures[0].voices[0].events=[]
+    const input=buildSequentialInput(score,createNoteInputState({target,tick:0,duration:createDuration('whole'),mode:'note'}),'G',idSequence())!
+    const result=applyScoreCommand(score,input.command)
+    expect(result.score.parts[0].staves[0].measures).toHaveLength(2)
+    expect(input.nextState.target.measureId).toBe(result.score.parts[0].staves[0].measures[1].id)
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+
+  it('[note-input.empty-voice] respects pickup capacity and preserves sibling voices',()=>{
+    const score=twoMeasureScore(),measure=score.parts[0].staves[0].measures[0]
+    measure.timing={type:'pickup',durationTicks:quarter};measure.voices[0].events=[]
+    measure.voices.push(createVoice({id:'voice-2',events:[createRest({id:'sibling-rest',duration:createDuration('quarter')})]}))
+    const input=buildSequentialInput(score,createNoteInputState({target,tick:0,duration:createDuration('quarter'),mode:'note'}),'D',idSequence())!
+    const result=applyScoreCommand(score,input.command)
+    expect(validateMeasureRhythm(result.score.parts[0].staves[0].measures[0]).isExact).toBe(true)
+    expect(result.score.parts[0].staves[0].measures[0].voices[1]).toEqual(measure.voices[1])
+    expect(applyScoreCommand(result.score,result.undo).score).toEqual(score)
+  })
+
+  it('[note-input.empty-voice] rejects nonzero gaps, missing pitches and overlong rests before allocating IDs',()=>{
+    const score=twoMeasureScore();score.parts[0].staves[0].measures[0].voices[0].events=[]
+    const state=createNoteInputState({target,tick:quarter,duration:createDuration('quarter'),mode:'note'}),ids=()=>{throw Error('Rejected entry must not allocate an ID')}
+    expect(buildSequentialInput(score,state,'C',ids)).toBeUndefined()
+    expect(buildSequentialInput(score,{...state,tick:0},undefined,ids)).toBeUndefined()
+    expect(buildSequentialInput(score,{...state,tick:0,mode:'rest',duration:createDuration('whole',1)},undefined,ids)).toBeUndefined()
+  })
+  it.each([
+    { reference: { step: 'B' as const, octave: 9 }, next: 'C' as const },
+    { reference: { step: 'C' as const, octave: -1 }, next: 'B' as const }
+  ])('[note-input.persistable-range] rejects $next beyond $reference without changing the score or caret', ({reference, next}) => {
+    const score = createScore()
+    const state = createNoteInputState({target,tick:0,duration:createDuration('quarter'),mode:'note',lastPitch:reference})
+    const original = structuredClone({score,state})
+    expect(buildSequentialInput(score,state,next,idSequence())).toBeUndefined()
+    expect({score,state}).toEqual(original)
+  })
+  it('[note-input.persistable-range] rejects an out-of-range pending tuplet member before preview or commit', () => {
+    const score = createScore()
+    const state = beginTupletInput(createNoteInputState({target,tick:0,duration:createDuration('eighth'),mode:'note',lastPitch:{step:'B',octave:9}}),'limit')!
+    const original = structuredClone({score,state})
+    expect(buildSequentialInput(score,state,'C',idSequence())).toBeUndefined()
+    expect({score,state}).toEqual(original)
+  })
+
   it.each(['whole', 'half', 'quarter', 'eighth', '16th'] as const)(
     '[note-input.enter-selected-duration] accepts %s duration for sequential input',
     (value) => {

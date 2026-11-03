@@ -10,6 +10,78 @@ app.setPath('userData', profile)
 app.disableHardwareAcceleration()
 const r2 = process.argv.includes('--r2')
 const out = path.resolve(process.env.DDIRORI_STUDIO_QA_OUT || path.resolve(__dirname, r2 ? '../out/ddirori/studio-r2-renderer' : '../out/ddirori/product-design-r1'))
+fs.mkdirSync(out, {recursive:true})
+let stage = 'startup'
+function driver(win) {
+  const run = async (fn,arg) => {
+    await focusWindow(win)
+    const result=await win.webContents.executeJavaScript(`(async()=>{try{return{ok:true,value:await (${fn.toString()})(${JSON.stringify(arg) ?? ''})}}catch(error){return{ok:false,error:error.stack}}})()`)
+    if(!result.ok)throw Error(`${stage}: ${result.error}`)
+    return result.value
+  }
+  const settle = () => run(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
+  const rawClick = async label => {
+    stage = `command:${label}`; console.log(stage)
+    await run(label => {
+      const n=[...document.querySelectorAll('button')].find(n=>(n.getAttribute('aria-label')||n.textContent.trim())===label&&n.checkVisibility())
+      if(!n || n.disabled)throw Error(`Unavailable live command:${label}`)
+      n.scrollIntoView({block:'nearest'});n.focus();n.click()
+    },label);await settle()
+  }
+  const routes = {'파일':['파일','파일 작업 열기'],'표기 객체':['추가','표기 팔레트 열기'],'음표':['도구','선택 속성 열기'],'내보내기':['파일','내보내기 설정']}
+  const click = async label => { if(routes[label]){for(const part of routes[label])await rawClick(part)}else await rawClick(label) }
+  const change = async (label,value) => {
+    if(label==='표기 객체 선택'){await rawClick('도구');await rawClick('범위 표기 찾기')}
+    stage=`field:${label}`;console.log(stage)
+    const kind=await run(label=>{
+      const n=document.querySelector(`input[aria-label="${label}"]`)??[...document.querySelectorAll('label')].find(n=>n.textContent===label)?.control
+      if(!n?.checkVisibility()||n.disabled)throw Error('Unavailable live field:'+label)
+      n.scrollIntoView({block:'nearest'});n.focus();return n.getAttribute('role')
+    },label)
+    if(kind==='combobox'){
+      await run(label=>[...document.querySelectorAll('label')].find(n=>n.textContent===label).control.click(),label);await settle()
+      await run(value=>{
+        const n=[...document.querySelectorAll('[role="option"]')].find(n=>n.dataset.value===value&&n.checkVisibility())
+        if(!n||n.getAttribute('aria-disabled')==='true')throw Error('Unavailable live option:'+value)
+        n.scrollIntoView({block:'nearest'});n.click()
+      },value)
+    }else{
+      await run(({label,value})=>{
+        const n=document.querySelector(`input[aria-label="${label}"]`)
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(n,value)
+        n.dispatchEvent(new Event('input',{bubbles:true}));n.dispatchEvent(new Event('change',{bubbles:true}))
+      },{label,value})
+    }
+    await settle()
+  }
+  const selectHairpin=async()=>{
+    await rawClick('도구');await rawClick('범위 표기 찾기')
+    await run(()=>[...document.querySelectorAll('label')].find(n=>n.textContent==='표기 객체 선택').control.click());await settle()
+    const value=await run(()=>{const n=[...document.querySelectorAll('[role="option"]')].find(n=>n.dataset.value.startsWith('hairpin:')&&n.checkVisibility());if(!n)throw Error('Actual hairpin missing');const value=n.dataset.value;n.click();return value});await settle();return value
+  }
+  const openGeometry=async()=>{
+    await run(()=>{const n=document.querySelector('.studio-span-properties__geometry .dd-accordion >button');if(!n?.checkVisibility())throw Error('Geometry disclosure unavailable');if(n.getAttribute('aria-expanded')!=='true')n.click()});await settle()
+  }
+  const width=async(name,value)=>{
+    if(!await run(name=>document.querySelector(name==='팔레트'?'#studio-palette':'#studio-properties').checkVisibility(),name))await rawClick(name+' 표시')
+    await rawClick(name+' 도크 설정')
+    await change(name+' 도크 폭',String(value))
+  }
+  const closeSettings=async()=>{
+    await run(()=>{const n=document.activeElement;if(n?.closest('.studio-dock-header'))n.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))});await settle()
+  }
+  const scaleText=async factor=>{
+    await run(factor=>{
+      const originals=window.__r1OriginalFonts??=new Map()
+      for(const[node,size]of originals)if(node.isConnected)node.style.fontSize=size
+      if(factor===1)return
+      const nodes=[...document.querySelectorAll('.ddirori :is(button,input,select,summary,label,span,output,h1,h2,h3,p,dt,dd)')].filter(n=>!n.closest('.score-canvas,.studio-pdf-snapshot'))
+      const sizes=nodes.map(n=>parseFloat(getComputedStyle(n).fontSize))
+      nodes.forEach((n,i)=>{if(!originals.has(n))originals.set(n,n.style.fontSize);n.style.fontSize=`${sizes[i]*factor}px`})
+    },factor);await settle()
+  }
+  return {run,settle,click,change,selectHairpin,openGeometry,width,closeSettings,scaleText}
+}
 async function focusWindow(win) {
   app.focus({steal:true})
   win.focus()
@@ -22,18 +94,14 @@ async function focusWindow(win) {
 }
 app.whenReady().then(async () => {
   const win = new BrowserWindow({width:1200,height:1000,show:true,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}})
+  const deadline=setTimeout(()=>{fs.writeFileSync(path.join(out,'timeout.json'),JSON.stringify({stage,deadlineMs:180000}));app.exit(1)},180000)
   try {
     await win.loadFile(path.resolve(__dirname, '../out/renderer/index.html'), {query:{fixture:'release-test'}})
     await focusWindow(win)
-    const result = await win.webContents.executeJavaScript(`(async () => {
-      const pause = () => new Promise(r => setTimeout(r, 100));
-      const button = label => [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent.trim()) === label);
-      button('표기 객체').click(); await pause();
-      const objects = document.querySelector('[aria-label="표기 객체 선택"]');
-      const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-      set.call(objects, [...objects.options].find(o => o.value.startsWith('hairpin:')).value);
-      objects.dispatchEvent(new Event('change',{bubbles:true})); await pause();
-      document.querySelector('.span-properties__geometry summary').click();
+    const d=driver(win)
+    await d.click('표기 객체');await d.selectHairpin();await d.openGeometry()
+    const result = await d.run(async () => {
+      const pause = () => new Promise(r => requestAnimationFrame(()=>requestAnimationFrame(r)));
       const input = document.querySelector('input[aria-label="표기 세로 이동"]');
       input.focus();
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'0');
@@ -42,12 +110,12 @@ app.whenReady().then(async () => {
       input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); input.dispatchEvent(new FocusEvent('focusout',{bubbles:true})); input.blur(); await pause();
       const committed = input.value;
       window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyZ',key:'z',ctrlKey:true,bubbles:true})); await pause();
-      const panel = document.querySelector('.span-properties');
+      const panel = document.querySelector('.studio-span-properties');
       return {committed, undone:input.value, host:panel.classList.contains('ddirori'),
         font:getComputedStyle(input).fontFamily, height:input.getBoundingClientRect().height,
         popover:'showPopover' in HTMLElement.prototype, dialog:'showModal' in HTMLDialogElement.prototype,
         panelWidth:panel.getBoundingClientRect().width, overflow:panel.scrollWidth > panel.clientWidth+1};
-    })()`)
+    })
     assert.equal(result.committed, '0')
     assert.equal(result.undone, '')
     assert.equal(result.host, true)
@@ -60,38 +128,21 @@ app.whenReady().then(async () => {
     console.log('Studio Electron shared panel and single undo passed',result)
     await verifyR1(win)
     if (r2) await verifyR2(win)
+  } catch(error) {
+    fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({stage,error:String(error)},null,2))
+    fs.writeFileSync(path.join(out,'failure.png'),(await win.webContents.capturePage()).toPNG())
+    fs.writeFileSync(path.join(out,'failure-dom.html'),await win.webContents.executeJavaScript('document.body.innerHTML'))
+    throw error
   } finally {
+    clearTimeout(deadline)
     win.destroy()
     app.quit()
   }
 }).catch(error => {console.error(error);app.exit(1)})
 
 async function verifyR1(win) {
-  const run = async (fn, arg) => {
-    await focusWindow(win)
-    return win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
-  }
+  const {run,click,change,selectHairpin,openGeometry,width:dWidth,closeSettings,scaleText}=driver(win)
   const pause = () => new Promise(resolve => setTimeout(resolve, 150))
-  const click = async label => {
-    await run(label => {
-      const button = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent.trim()) === label)
-      if (!button || !button.checkVisibility() || button.disabled) throw new Error(`Unavailable command: ${label}`)
-      button.click()
-    }, label)
-    await pause()
-  }
-  const change = async (label, value) => {
-    await run(({label, value}) => {
-      const el = document.querySelector(`[aria-label="${label}"]`)
-      if (!el || !el.checkVisibility() || el.disabled) throw new Error(`Unavailable field: ${label}`)
-      el.focus()
-      const prototype = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
-      Object.getOwnPropertyDescriptor(prototype, 'value').set.call(el, value)
-      el.dispatchEvent(new Event('input', {bubbles:true}))
-      el.dispatchEvent(new Event('change', {bubbles:true}))
-    }, {label, value})
-    await pause()
-  }
   const capture = async name => {
     await run(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(resolve))))
     const frame=await win.webContents.capturePage()
@@ -130,19 +181,18 @@ async function verifyR1(win) {
     for (const width of [207, 280, 360]) {
       win.setContentSize(1400, 1000)
       await pause()
-      await change('팔레트 도크 폭', String(width))
-      await change('속성 도크 폭', String(width))
+      await dWidth('팔레트', width)
+      await dWidth('속성', width);await closeSettings()
       await click('표기 객체')
       await change('표기 객체 선택', '')
-      const reference = await run(() => [...document.querySelector('[aria-label="표기 객체 선택"]').options].find(o => o.value.startsWith('hairpin:')).value)
-      await change('표기 객체 선택', reference)
+      const reference = await selectHairpin()
       await run(() => {
-        const details = document.querySelector('.span-properties__geometry')
-        if (!details.open) details.querySelector('summary').click()
+        const details = document.querySelector('.studio-span-properties__geometry .dd-accordion >button')
+        if (details.getAttribute('aria-expanded') !== 'true') details.click()
         window.scrollTo(0, document.querySelector('.docked-workspace').offsetTop - 16)
       })
       const metrics = await run(() => {
-        const dock = document.querySelector('.docked-properties'), panel = document.querySelector('.span-properties')
+        const dock = document.querySelector('.docked-properties'), panel = document.querySelector('.studio-span-properties')
         const box = dock.getBoundingClientRect()
         return {viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,dock:box.width,theme:panel.dataset.theme,
           overflow:panel.scrollWidth > panel.clientWidth+1,documentOverflow:document.documentElement.scrollWidth > innerWidth+1,
@@ -162,11 +212,11 @@ async function verifyR1(win) {
   await click('파일')
   await run(() => window.scrollTo(0,0))
   const fileMetrics=await run(()=>{
-    const toolbar=document.querySelector('header.toolbar')
+    const toolbar=document.querySelector('.studio-file-tools')
     const read=node=>({rect:node.getBoundingClientRect().toJSON(),display:getComputedStyle(node).display,
       color:getComputedStyle(node).color,background:getComputedStyle(node).backgroundColor,
       scrollLeft:node.scrollLeft,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth})
-    return {toolbar:read(toolbar),group:read(toolbar.querySelector('.toolbar__group')),file:read(toolbar.querySelector('.file-actions')),
+    return {toolbar:read(toolbar),group:read(toolbar.querySelector('[aria-label="파일 작업"]')),file:read(toolbar.querySelector('[aria-label="파일 작업"]')),
       button:read(document.querySelector('[aria-label="프로젝트 저장"]'))}
   })
   const fileFrame=await capture('file-light-1400')
@@ -194,11 +244,10 @@ async function verifyR1(win) {
   await change('표기 객체 선택', '')
   await run(() => window.scrollTo(0, document.querySelector('.docked-workspace').offsetTop))
   await capture('no-span-selection')
-  const reference = await run(() => [...document.querySelector('[aria-label="표기 객체 선택"]').options].find(o => o.value.startsWith('hairpin:')).value)
-  await change('표기 객체 선택', reference)
+  const reference = await selectHairpin()
   await run(() => {
-    const details = document.querySelector('.span-properties__geometry')
-    if (!details.open) details.querySelector('summary').click()
+    const details = document.querySelector('.studio-span-properties__geometry .dd-accordion >button')
+    if (details.getAttribute('aria-expanded') !== 'true') details.click()
     document.querySelector('[aria-label="표기 세로 이동"]').focus()
   })
   await change('표기 세로 이동', '3')
@@ -225,6 +274,7 @@ async function verifyR1(win) {
   await change('표기 세로 이동', '0')
   await run(() => document.querySelector('[aria-label="표기 세로 이동"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})))
   await pause()
+  await click('파일')
   await run(() => {window.studioQA.fail = true; window.studioQA.hold = true; window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyS',ctrlKey:true,bubbles:true}))})
   await pause()
   assert.equal(await run(() => document.querySelector('.studio-document [role="status"]').textContent), '저장 중')
@@ -234,13 +284,24 @@ async function verifyR1(win) {
   await run(() => {window.studioQA.hold = false; window.studioQA.release()})
   await pause()
   const failed = await run(() => ({value:document.querySelector('[aria-label="표기 세로 이동"]').value,
-    selected:document.querySelector('[aria-label="표기 객체 선택"]').value,
+    selected:document.querySelector('[aria-label="선택 표기 ID"]').textContent,
     dirty:document.querySelector('.studio-document [role="status"]').textContent,
     error:document.querySelector('.editor-status').textContent}))
   assert.equal(failed.value, '0')
-  assert.equal(failed.selected, reference)
+  assert.equal(failed.selected, reference.slice(reference.indexOf(':')+1))
   assert.equal(failed.dirty, '저장하지 않은 변경')
-  assert.match(failed.error, /R1 disk unavailable/)
+  assert.match(failed.error, /프로젝트 저장을 마무리하지 못했습니다/)
+  assert.doesNotMatch(failed.error, /R1 disk unavailable/)
+  const technical=await run(()=>{
+    const root=document.querySelector('.studio-status__technical'),button=root.querySelector('button'),content=root.querySelector('.studio-warning-technical__content')
+    const before={expanded:button.getAttribute('aria-expanded'),visible:content.checkVisibility(),outside:!document.querySelector('.editor-status').contains(root)}
+    button.focus();button.click();return before
+  })
+  assert.equal(technical.expanded,'false');assert.equal(technical.visible,false);assert.equal(technical.outside,true)
+  await pause()
+  assert.equal(await run(()=>document.querySelector('.studio-status__technical button').getAttribute('aria-expanded')),'true')
+  assert.equal(await run(()=>document.querySelector('.studio-status__technical .studio-warning-technical__content').checkVisibility()),true)
+  assert.match(await run(()=>document.querySelector('.studio-status__technical').textContent),/R1 disk unavailable/)
   await run(() => window.scrollTo(0,0))
   await capture('save-failure')
   await run(() => window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyZ',ctrlKey:true,bubbles:true})))
@@ -252,6 +313,8 @@ async function verifyR1(win) {
   assert.equal(await run(() => document.querySelector('.studio-document [role="status"]').textContent), '변경 없음')
   await capture('save-retry-success')
   await click('표기 객체')
+  // Closing the inspector requires selecting its live pane in the shared dock.
+  await click('속성 표시')
   await click('속성 도크 닫기')
   assert.equal(await run(() => document.activeElement.getAttribute('aria-label')), '속성 표시')
   await click('속성 표시')
@@ -268,11 +331,7 @@ async function verifyR1(win) {
   for (const scale of [1, 2]) {
     win.setContentSize(960, 1000)
     await pause()
-    if (scale === 2) await run(() => {
-      const nodes = [...document.querySelectorAll('.studio-chrome, .studio-chrome *')]
-      const sizes = nodes.map(node => parseFloat(getComputedStyle(node).fontSize))
-      nodes.forEach((node,index) => { node.style.fontSize = `${sizes[index]*2}px` })
-    })
+    if (scale === 2) await scaleText(2)
     await run(() => window.scrollTo(0,0))
     await capture(`narrow-text-${scale}`)
     assert.equal(await run(() => document.documentElement.scrollWidth > innerWidth+1), false)
@@ -280,7 +339,7 @@ async function verifyR1(win) {
       await click('파일')
       await capture('file-text-2')
       assert.equal(await run(() => {
-        const group = document.querySelector('.file-actions'), box = group.getBoundingClientRect()
+        const group = document.querySelector('.studio-file-tools [aria-label="파일 작업"]'), box = group.getBoundingClientRect()
         return [...group.querySelectorAll('button')].every(button => {
           const b = button.getBoundingClientRect()
           return b.left >= box.left-1 && b.right <= box.right+1 && b.bottom <= box.bottom+1
@@ -294,31 +353,9 @@ async function verifyR1(win) {
 }
 
 async function verifyR2(win) {
-  const run = async (fn,arg) => {
-    await focusWindow(win)
-    return win.webContents.executeJavaScript(`(${fn.toString()})(${JSON.stringify(arg) ?? ''})`)
-  }
-  const settle = () => run(() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
-  const click = async label => {
-    await run(label=>{
-      const button=[...document.querySelectorAll('button')].find(b=>(b.getAttribute('aria-label')||b.textContent.trim())===label)
-      if (!button || button.disabled || !button.checkVisibility()) throw Error(`R2 command unavailable: ${label}`)
-      button.click()
-    },label)
-    await settle()
-  }
-  const width = async value => {
-    await run(value=>{
-      for (const label of ['팔레트 도크 폭','속성 도크 폭']) {
-        const input=document.querySelector(`[aria-label="${label}"]`)
-        input.focus()
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,String(value))
-        input.dispatchEvent(new Event('input',{bubbles:true}))
-        input.dispatchEvent(new Event('change',{bubbles:true}))
-      }
-    },value)
-    await settle()
-  }
+  const d=driver(win)
+  const {run,settle,click,change,openGeometry,closeSettings,scaleText}=d
+  const width=async value=>{await d.width('팔레트',value);await closeSettings();await d.width('속성',value)}
   const capture=async name=>fs.writeFileSync(path.join(out,`${name}.png`),(await win.webContents.capturePage()).toPNG())
   const metrics=()=>run(()=>{
     const svg=document.querySelector('.notation-preview svg'), node=document.querySelector('.notation-event.is-selected')
@@ -332,10 +369,11 @@ async function verifyR2(win) {
       focusedControl:document.activeElement?.getAttribute('aria-label'),
       focusedControlBox:document.activeElement?.getBoundingClientRect().toJSON(),
       input:document.querySelector('[aria-label="다음 입력 설정"]')?.textContent,
-      inputAddress:document.querySelector('.studio-edit-context output')?.textContent,
+      inputAddress:document.querySelector('[aria-label="작업과 선택 상태"]')?.textContent,
       inputActive:document.querySelector('[aria-label="다음 입력"]')?.dataset.inputActive,
       overflow:document.documentElement.scrollWidth>innerWidth+1}
   })
+  await scaleText(1)
   await win.loadFile(path.resolve(__dirname,'../out/renderer/index.html'),{query:{fixture:'release-test'}})
   await settle()
   await run(()=>{
@@ -372,6 +410,7 @@ async function verifyR2(win) {
     node.scrollIntoView({block:'center'}); node.focus(); return node.dataset.eventId
   })
   win.webContents.sendInputEvent({type:'keyDown',keyCode:'Enter'})
+  win.webContents.sendInputEvent({type:'char',keyCode:'\r'})
   win.webContents.sendInputEvent({type:'keyUp',keyCode:'Enter'})
   await settle()
   const before=await metrics()
@@ -386,7 +425,7 @@ async function verifyR2(win) {
   for (const mode of ['fit-width','fixed']) {
     await click(mode==='fixed'?'고정 배율':'폭 맞춤')
     if (mode==='fixed') {
-      await run(()=>document.querySelector('[role="combobox"]').click())
+      await run(()=>[...document.querySelectorAll('label')].find(n=>n.textContent==='고정 확대율').control.click())
       await settle()
       await run(()=>[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.trim()==='150%').click())
       await settle()
@@ -414,10 +453,9 @@ async function verifyR2(win) {
   await click('음표 입력 전환, 단축키 N')
   await click('8분음표, 단축키 4')
   await click('점 추가')
-  await run(()=>{
-    const details=document.querySelector('.studio-note-details')
-    if (!details.open) details.querySelector('summary').click()
-  })
+  // Rhythm commands and next-input context are persistent controls; the retired
+  // note-details wrapper is no longer a prerequisite for reading this state.
+  assert.equal(await run(()=>document.querySelector('.studio-note-toolbar [aria-label="점 개수"]').textContent),'1')
   await settle()
   const inputBefore=await metrics()
   assert.match(inputBefore.input,/8분음표.*점 1/)
@@ -427,8 +465,8 @@ async function verifyR2(win) {
   assert.equal(await run(()=>document.querySelector('.studio-input-context').getBoundingClientRect().top>=0),true,'Next-input capture must show the actual input controls')
   await capture('r2-next-input-960')
   const inputLayout=await run(()=>{
-    const toolbar=document.querySelector('[aria-label="음표 편집"]')
-    const context=toolbar.querySelector('.studio-edit-context')
+    const toolbar=document.querySelector('.studio-note-toolbar')
+    const context=toolbar.querySelector('.studio-note-toolbar__context')
     return {toolbarWidth:toolbar.clientWidth,contextWidth:context.getBoundingClientRect().width,
       toolbarScrollWidth:toolbar.scrollWidth}
   })
@@ -441,19 +479,15 @@ async function verifyR2(win) {
   assert.equal(inputAfter.inputAddress,inputBefore.inputAddress)
   assert.equal(inputAfter.inputActive,'true')
   win.setContentSize(960,1000); await settle()
-  await run(()=>{
-    const nodes=[...document.querySelectorAll('.studio-chrome, .studio-chrome *')]
-    const sizes=nodes.map(node=>parseFloat(getComputedStyle(node).fontSize))
-    nodes.forEach((node,index)=>{node.style.fontSize=`${sizes[index]*2}px`})
-  })
+  await scaleText(2)
   await settle()
   await run(()=>window.scrollTo(0,0)); await settle()
   await capture('r2-next-input-text-2')
   assert.equal(await run(()=>{
-    const toolbar=document.querySelector('[aria-label="음표 편집"]')
+    const toolbar=document.querySelector('.studio-note-toolbar')
     return toolbar.scrollWidth<=toolbar.clientWidth+1 && document.documentElement.scrollWidth<=innerWidth+1
   }),true,'Next-input groups must remain contained at 200% text size')
-  await run(()=>document.querySelectorAll('.studio-chrome, .studio-chrome *').forEach(node=>node.style.removeProperty('font-size')))
+  await scaleText(1)
   await settle()
   await click('음표 입력 전환, 단축키 N')
   await click('파일'); await click('프로젝트 저장'); await click('MusicXML로 저장')

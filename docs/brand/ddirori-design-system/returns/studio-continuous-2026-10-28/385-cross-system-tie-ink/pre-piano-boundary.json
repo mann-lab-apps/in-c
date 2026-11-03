@@ -1,0 +1,10 @@
+{
+  "head": "764e758d5ced236ff5a1057f702285994ad25fd9",
+  "scope": "current source boundary, not retrospective execution lock",
+  "sha256": {
+    "src/renderer/src/notation/NotationPreview.tsx": "9cadb3fed837bb55614bcb12f224ab670e075ed296ae336357a2341badfda17a",
+    "src/renderer/src/notation/tie-modifier-clearance.ts": "12baf95799fe375a1f1b867cb0991bcb1c8c4b7e64ea1c67c522468d64f19729",
+    "scripts/studio-multivoice-tie-ink.cjs": "8c71a6761db34a535a19eefe4675fd4a0f0e2d95789c3afa335355f52ba352f8",
+    "scripts/studio-tie-stem-ink.cjs": "9cd4ab50dad8f1e7ee8934f0f1fcd2d550fdfe155b5c3f109d02fe5eb14e8b6c"
+  }
+}

@@ -1,3 +1,4 @@
+import { collectSpanEndpointIds, inspectSpanEndpointChanges, isOctaveEndpoint, isRestBoundary } from './span-references'
 import { createFullMeasureRest, createNote, createRest } from './factories'
 import { resolveNotePitch } from './pitch'
 import {
@@ -89,6 +90,10 @@ export function buildRhythmEditCommand(
     currentEvent.id,
     startTick
   )
+  if (currentEvent.type === 'note' && replacement.type === 'rest' &&
+    isOctaveEndpoint(score, currentEvent.id)) {
+    return undefined
+  }
   const replacementEndTick =
     startTick + voiceEventDurationTicks(replacement, location.measure)
   const measureEndTick = measureDurationTicks(location.measure)
@@ -126,7 +131,8 @@ export function buildRhythmEditCommand(
       measure: location.measure,
       startTick: currentEndTick,
       endTick: replacementEndTick,
-      createId: input.createId
+      createId: input.createId,
+      spanEndpointIds: collectSpanEndpointIds(score)
     })
 
     if (!consumed) {
@@ -164,18 +170,29 @@ export function buildRhythmEditCommand(
     return undefined
   }
 
-  return {
+  const command: ScoreCommand = {
     type: 'voice-events.replace',
     target: input.target,
     events: nextEvents,
     editedEventId: replacement.id
   }
+  // Slurs require note endpoints. The rest and its invalidated slurs form one
+  // transaction so native save stays valid and undo restores manual geometry.
+  if (currentEvent.type === 'note' && replacement.type === 'rest' &&
+    score.slurs?.some(span => span.startEventId === replacement.id || span.endEventId === replacement.id)) {
+    return { type: 'score.batch', commands: [command, {
+      type: 'score-slurs.update',
+      slurs: score.slurs.filter(span => span.startEventId !== replacement.id && span.endEventId !== replacement.id)
+    }] }
+  }
+  return command
 }
 
 function compactAdjacentRests(
   events: VoiceEvent[],
   measure: Measure,
-  createId: () => string
+  createId: () => string,
+  spanEndpointIds: ReadonlySet<string>
 ): VoiceEvent[] {
   const compactedEvents: VoiceEvent[] = []
   const sortedEvents = sortVoiceEvents(events)
@@ -183,7 +200,7 @@ function compactAdjacentRests(
   for (let index = 0; index < sortedEvents.length; index += 1) {
     const event = sortedEvents[index]
 
-    if (event.type !== 'rest' || event.duration.tuplet) {
+    if (event.type !== 'rest' || event.duration.tuplet || isRestBoundary(event, spanEndpointIds)) {
       compactedEvents.push(event)
       continue
     }
@@ -195,6 +212,7 @@ function compactAdjacentRests(
       endIndex < sortedEvents.length - 1 &&
       sortedEvents[endIndex + 1].type === 'rest' &&
       !sortedEvents[endIndex + 1].duration.tuplet &&
+      !isRestBoundary(sortedEvents[endIndex + 1], spanEndpointIds) &&
       sortedEvents[endIndex + 1].position.tick === endTick
     ) {
       endIndex += 1
@@ -246,11 +264,16 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
+  if (event.type === 'note' && isOctaveEndpoint(score, event.id)) {
+    return undefined
+  }
+
   const nextEvents = replaceDeletedEventWithFollowingRestSpan({
     events,
     eventIndex,
     event,
-    measure: location.measure
+    measure: location.measure,
+    spanEndpointIds: collectSpanEndpointIds(score)
   })
 
   if (!nextEvents) {
@@ -287,6 +310,7 @@ function replaceDeletedEventWithFollowingRestSpan(input: {
   eventIndex: number
   event: VoiceEvent
   measure: Measure
+  spanEndpointIds: ReadonlySet<string>
 }): VoiceEvent[] | undefined {
   const createId = inputIdFromEvent(input.event.id)
   const deletedStartTick = input.event.position.tick
@@ -298,6 +322,7 @@ function replaceDeletedEventWithFollowingRestSpan(input: {
     if (
       event.type !== 'rest' ||
       event.duration.tuplet ||
+      isRestBoundary(event, input.spanEndpointIds) ||
       event.position.tick !== deletedEndTick
     ) {
       break
@@ -326,7 +351,8 @@ function replaceDeletedEventWithFollowingRestSpan(input: {
       ...after.slice(consumedFollowingRestCount)
     ]),
     input.measure,
-    createId
+    createId,
+    input.spanEndpointIds
   )
 }
 
@@ -391,6 +417,11 @@ function buildTieNormalizedReplaceCommand(
 
   if (validateTieRelations(normalizedScore).length > 0) {
     return undefined
+  }
+
+  const spanChanges = inspectSpanEndpointChanges(score, getVoiceEvents(score, target) ?? [], targetEvents)
+  if (spanChanges.slursChanged) {
+    commands.push({ type: 'score-slurs.update', slurs: spanChanges.slurs })
   }
 
   return commands.length === 1
@@ -590,9 +621,15 @@ function locateStaff(score: Score, target: VoiceAddress): Staff | undefined {
 }
 
 function sameEvents(left: VoiceEvent[], right: VoiceEvent[]): boolean {
+  // Native decoding and constructors can order the same JSON fields differently.
+  // Arrays keep their musical order; values (including explicit zero) stay exact.
+  const orderedFields = (_key: string, value: unknown): unknown =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))
+      : value
   return (
-    JSON.stringify(sortVoiceEvents(left)) ===
-    JSON.stringify(sortVoiceEvents(right))
+    JSON.stringify(sortVoiceEvents(left), orderedFields) ===
+    JSON.stringify(sortVoiceEvents(right), orderedFields)
   )
 }
 
@@ -622,6 +659,7 @@ function consumeFollowingRests(input: {
   startTick: Tick
   endTick: Tick
   createId: () => string
+  spanEndpointIds: ReadonlySet<string>
 }): { events: VoiceEvent[]; remainder: VoiceEvent[] } | undefined {
   let coveredUntil = input.startTick
   let consumedCount = 0
@@ -634,6 +672,12 @@ function consumeFollowingRests(input: {
     }
 
     if (event.type !== 'rest' || event.position.tick !== coveredUntil) {
+      return undefined
+    }
+
+    const eventEnd = event.position.tick + voiceEventDurationTicks(event, input.measure)
+    if (event.fermata || event.breathMark ||
+      (input.spanEndpointIds.has(event.id) && eventEnd <= input.endTick)) {
       return undefined
     }
 

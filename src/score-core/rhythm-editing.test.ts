@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createNativeProject, encodeNativeProject } from '../project/schema'
 
 import {
   TICKS_PER_QUARTER,
@@ -30,6 +31,26 @@ const target: VoiceAddress = {
 }
 
 describe('monophonic rhythm editing', () => {
+  it.each(['note-1', 'note-3', 'note-2'])(
+    'rest-span-endpoint %s removes only now-invalid slurs in the same undoable edit', eventId => {
+      const score = scoreWith([note('note-1',0,'quarter'),note('note-2',quarter,'quarter'),note('note-3',quarter*2,'quarter'),note('note-4',quarter*3,'quarter')])
+      score.slurs = [
+        {id:'affected',startEventId:'note-1',endEventId:'note-3',engraving:{offsetY:0,height:4}},
+        {id:'neighbor',startEventId:'note-2',endEventId:'note-4',engraving:{offsetY:-2}}
+      ]
+      score.hairpins = [{id:'rest-supported',startEventId:'note-1',endEventId:'note-4',type:'crescendo',engraving:{offsetY:0}}]
+      const original = structuredClone(score)
+      const event = readEvents(score).find(e=>e.id===eventId)!
+      const command = buildRhythmEditCommand(score,{target,eventId,event:rest(eventId,event.position.tick,'quarter'),createId:idSequence('rest')})!
+      const result = applyScoreCommand(score,command)
+      expect(result.score.slurs).toEqual(score.slurs.filter(s=>s.startEventId!==eventId&&s.endEventId!==eventId))
+      expect(result.score.hairpins).toEqual(original.hairpins)
+      expect(() => encodeNativeProject(createNativeProject(result.score))).not.toThrow()
+      expect(applyScoreCommand(result.score,result.undo).score).toEqual(original)
+      expect(score).toEqual(original)
+    }
+  )
+
   it('replaces part of a full-measure rest and fills the remaining span', () => {
     const score = createScore()
     const command = buildRhythmEditCommand(score, {

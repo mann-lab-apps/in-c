@@ -1,0 +1,15 @@
+.studio-part-setup {
+  display: grid;
+  flex: 1 1 32rem;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--dd-spacing-sm);
+}
+.studio-part-setup > h3 { margin: 0; }
+.studio-part-setup__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--dd-spacing-md);
+  min-width: 0;
+}
+.studio-part-setup__field { min-width: 0; }

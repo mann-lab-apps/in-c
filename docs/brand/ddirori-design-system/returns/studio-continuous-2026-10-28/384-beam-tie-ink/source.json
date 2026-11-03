@@ -1,0 +1,30 @@
+{
+  "taskCommit": "uncommitted",
+  "goalStatus": "active",
+  "files": [
+    {
+      "path": "src/renderer/src/notation/NotationPreview.tsx",
+      "sha256": "5bf1e49d1f1e5374b85443b48a2629a3dfbfeee7814e88b81871a689c404901e"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-voice-ink.ts",
+      "sha256": "8a7e927bd604189f6e2758b9c9a5e909d8daeeddf4012a322b5d4308b833af45"
+    },
+    {
+      "path": "src/renderer/src/notation/tie-voice-ink.test.ts",
+      "sha256": "7ff1cac6b99356f6eb3ed2d797567fc5b9e30ba4683436b033202dfb5976a498"
+    },
+    {
+      "path": "scripts/studio-tie-stem-ink.cjs",
+      "sha256": "fe35c04b733d6cbd86eda731b53bfca1cadf761a8e6ae957c2204c45897359f8"
+    },
+    {
+      "path": "scripts/studio-multivoice-tie-ink.cjs",
+      "sha256": "b8662af9627c79edee4638afd5481e3af5a4f03fb178d8bafa60d6537021030b"
+    },
+    {
+      "path": "scripts/verify-studio-warning-workflow.cjs",
+      "sha256": "24796d10c09fe7f4ba1eae85c5cea4e39e34e7221f275396e85696fad6d8c041"
+    }
+  ]
+}

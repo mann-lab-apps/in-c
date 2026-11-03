@@ -1,7 +1,13 @@
+import { readMusicXmlVoiceNumber, sortScoreVoices } from './voice-order'
+import { inferHarmonyStructure, musicXmlHarmonyKinds } from './harmony-text'
+import { hasManualSpanEngraving } from '../project/span-engraving'
+import {musicXmlBarlineStaff} from './barline-scope'
 import { XMLBuilder } from 'fast-xml-parser'
+import { buildMusicXmlPageDefaults } from './page-layout'
 
 import {
   resolveNotePitch,
+  collectUnsupportedChordTieWarnings,
   convertOctaveShiftPitches,
   shouldDisplayAccidental,
   sortVoiceEvents,
@@ -35,15 +41,26 @@ const defaultRhythmFeelText = {
 type SpanDirections = Map<Measure, Record<string, unknown>[]>
 type PrintBreaks = { system: Set<number>; page: Set<number> }
 
-export function serializeMusicXml(score: Score): string {
-  score = convertOctaveShiftPitches(score, 'performed')
-  const tieErrors = validateTieRelations(score)
-  const slurBoundaries = createSlurBoundaries(score)
-  const spanDirections = createSpanDirections(score)
-  const printBreaks: PrintBreaks = {
+function collectPrintBreaks(score: Score): PrintBreaks {
+  return {
     system: new Set((score.layout?.systemBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id))),
     page: new Set((score.layout?.pageBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id)))
   }
+}
+
+export function musicXmlPrintBreaksKey(score: Score): string {
+  const breaks = collectPrintBreaks(score)
+  return JSON.stringify((['system', 'page'] as const).map(kind =>
+    [...breaks[kind]].filter(index => index >= 0).sort((a, b) => a - b)))
+}
+
+export function serializeMusicXml(score: Score): string {
+  score = convertOctaveShiftPitches(score, 'performed')
+  const tieErrors = validateTieRelations(score)
+  const spanLocations = collectSpanLocations(score)
+  const slurBoundaries = createSlurBoundaries(score, spanLocations)
+  const spanDirections = createSpanDirections(score, spanLocations)
+  const printBreaks = collectPrintBreaks(score)
 
   if (tieErrors.length > 0) {
     throw new Error(`잘못된 타이 관계가 있습니다: ${tieErrors.join(', ')}`)
@@ -54,6 +71,7 @@ export function serializeMusicXml(score: Score): string {
     part.staves.forEach((staff) => staff.measures.forEach(validateMeasure))
   })
 
+  const pageDefaults = buildMusicXmlPageDefaults(score.layout?.pageSetup)
   const document = [
     xmlElement('?xml', {
       '@_version': '1.0',
@@ -73,6 +91,7 @@ export function serializeMusicXml(score: Score): string {
             })
           ]
         : []),
+      ...(pageDefaults ? [xmlElement('defaults', pageDefaults)] : []),
       xmlElement('part-list', {
         'score-part': score.parts.map((part) => ({
           '@_id': part.id,
@@ -122,7 +141,8 @@ function validatePartStructure(part: Score['parts'][number]): void {
 }
 
 export interface MusicXmlExportWarning {
-  code: 'unsupported-layout'
+  code: 'unsupported-layout' | 'unsupported-chord-tie'
+  measureNumber?: number
   message: string
   path: string
   measureId?: string
@@ -139,7 +159,7 @@ export function serializeMusicXmlWithReport(score: Score): {
   return {
     contents: serializeMusicXml(score),
     report: {
-      warnings: collectUnsupportedMusicXmlExportWarnings(score)
+      warnings: [...collectUnsupportedMusicXmlExportWarnings(score), ...collectUnsupportedChordTieWarnings(score)]
     }
   }
 }
@@ -151,7 +171,7 @@ function collectUnsupportedMusicXmlExportWarnings(
 
   for (const kind of ['slurs', 'hairpins'] as const) {
     for (const [index, span] of (score[kind] ?? []).entries()) {
-      if (!span.engraving) continue
+      if (!hasManualSpanEngraving(span.engraving)) continue
       warnings.push({ code: 'unsupported-layout', path: `score.${kind}[${index}].engraving`,
         message: 'Manual span placement and shape are preserved in Chromatics projects, not MusicXML export.' })
     }
@@ -183,11 +203,11 @@ function collectUnsupportedMusicXmlExportWarnings(
     })
   }
 
-  if (score.layout?.pageSetup) {
+  if (score.layout?.pageSetup?.staffSizePercent !== undefined || score.layout?.pageSetup?.systemSpacingPercent !== undefined) {
     warnings.push({
       code: 'unsupported-layout',
       message:
-        'PDF page setup is not exported to MusicXML yet; MusicXML consumers may use their own page settings.',
+        'Staff size and system spacing percentages are preserved in projects, not MusicXML page defaults.',
       path: 'score.layout.pageSetup'
     })
   }
@@ -210,6 +230,10 @@ function buildPartMeasureElements(
   printBreaks: PrintBreaks
 ) {
   const primaryStaff = part.staves[0]
+  // MusicXML barlines belong to the part's measure,not an individual staff.
+  // Preserve the existing aligned score's performed sequence if its owner is
+  // this part's secondary staff;do not rewrite other parts or native owners.
+  const barlineStaff=musicXmlBarlineStaff(score,part)
 
   return primaryStaff.measures.map((_measure, measureIndex) =>
     buildMeasureElement(
@@ -219,7 +243,8 @@ function buildPartMeasureElements(
       part.staves.some((staff) => staff.measures.some((measure) => measure.transposition)),
       score.parts[0]?.id === part.id,
       spanDirections,
-      { system: printBreaks.system.has(measureIndex), page: printBreaks.page.has(measureIndex) }
+      { system: printBreaks.system.has(measureIndex), page: printBreaks.page.has(measureIndex) },
+      barlineStaff.measures[measureIndex]
     )
   )
 }
@@ -231,9 +256,11 @@ function buildMeasureElement(
   hasTransposition: boolean,
   primaryPart: boolean,
   spanDirections: SpanDirections,
-  printBreak: { system: boolean; page: boolean }
+  printBreak: { system: boolean; page: boolean },
+  barlineMeasure:Measure = measures[0]
 ) {
   const primaryMeasure = measures[0]
+  const pedalOrder = new Map((score.pedalEvents ?? []).map((event, index) => [event, index]))
   const annotations = measures.flatMap((measure, staffIndex) => {
     // Generic local markings belong to the primary staff, never every part.
     const local = <T extends { measureId: string }>(items: T[] | undefined) =>
@@ -244,18 +271,49 @@ function buildMeasureElement(
       tempo: staffIndex === 0 ? score.tempo : undefined,
       rhythmFeel: staffIndex === 0 ? score.rhythmFeel : undefined,
       tempoEvents: staffIndex === 0 ? score.tempoEvents : undefined,
+      pedalEvents: local(score.pedalEvents),
       rehearsalMarks: staffIndex === 0 ? score.rehearsalMarks : undefined,
       systemTexts: staffIndex === 0 ? score.systemTexts : undefined,
       harmonies: local(score.harmonies), staffTexts: local(score.staffTexts),
       expressionTexts: local(score.expressionTexts), dynamics: local(score.dynamics)
     }
     const staff = measures.length > 1 ? { staff: staffIndex + 1 } : {}
+    const pedals = scopedScore.pedalEvents?.filter(event => event.measureId === measure.id) ?? []
+    let pedalIndex = 0
     return [
-      ...buildMeasureDirections(scopedScore, measure, spanDirections).map(direction => xmlElement('direction', { ...direction, ...staff })),
-      ...buildMeasureHarmonies(scopedScore, measure).map(harmony => xmlElement('harmony', { ...harmony, ...staff }))
+      ...buildMeasureDirections(scopedScore, measure, spanDirections).map(direction => {
+        // Direction's staff precedes sound/listening, including a tempo in a
+        // grand staff. Object insertion order is XML child order here.
+        const { sound, listening, ...body } = direction as Record<string, unknown>
+        const pedal = sound && typeof sound === 'object' && '@_damper-pedal' in sound
+          ? pedals[pedalIndex++] : undefined
+        return {
+          element: xmlElement('direction', { ...body, ...staff,
+            ...(sound ? { sound } : {}), ...(listening ? { listening } : {}) }),
+          pedal
+        }
+      }),
+      ...buildMeasureHarmonies(scopedScore, measure).map(harmony => ({
+        element: xmlElement('harmony', { ...harmony, ...staff }), pedal: undefined
+      }))
     ]
   })
-  const barlines = buildMeasureBarlines(primaryMeasure)
+  // CC64 belongs to the instrument, not its visual staff. Preserve source
+  // lift/retake order at a shared tick without moving other annotations.
+  // Every direction precedes playback elements, so offsets still start at 0.
+  const pedalSlots = new Map<number, number[]>()
+  annotations.forEach(({ pedal }, index) => {
+    if (!pedal) return
+    const slots = pedalSlots.get(pedal.tick) ?? []
+    slots.push(index)
+    pedalSlots.set(pedal.tick, slots)
+  })
+  for (const slots of pedalSlots.values()) {
+    const ordered = slots.map(index => annotations[index]).sort((a, b) =>
+      pedalOrder.get(a.pedal!)! - pedalOrder.get(b.pedal!)!)
+    slots.forEach((index, order) => { annotations[index] = ordered[order] })
+  }
+  const barlines = buildMeasureBarlines(barlineMeasure)
 
   return xmlElement(
     'measure',
@@ -265,7 +323,7 @@ function buildMeasureElement(
         ...(printBreak.page ? { '@_new-page': 'yes' } : {})
       })] : []),
       xmlElement('attributes', buildAttributes(measures, hasTransposition)),
-      ...annotations,
+      ...annotations.map(({ element }) => element),
       ...buildStaffPlaybackElements(measures, slurBoundaries),
       ...barlines.map((barline) => xmlElement('barline', barline))
     ],
@@ -343,46 +401,47 @@ function buildMeasurePlaybackElements(
 function buildMeasureHarmonies(score: Score, measure: Measure) {
   return (score.harmonies ?? [])
     .filter((harmony) => matchesMeasureReference(harmony.measureId, measure))
-    .map((harmony) => ({
-      ...(harmony.root
-        ? {
-            root: {
-              'root-step': harmony.root.step,
-              ...(harmony.root.alter !== undefined
-                ? {
-                    'root-alter': harmony.root.alter
-                  }
-                : {})
-            }
-          }
-        : {}),
-      kind: {
-        '#text': harmony.text,
-        '@_text': harmony.text,
-        ...(harmony.kind
+    .map((source) => {
+      const harmony = inferHarmonyStructure(source)
+      if (!harmony.root || !harmony.kind || !musicXmlHarmonyKinds.has(harmony.kind)) {
+        throw new Error(`코드 심벌 “${source.text}”의 화음 구조를 MusicXML로 보존할 수 없습니다. 지원하는 코드 표기로 수정하거나 프로젝트 파일로 보관해 주세요.`)
+      }
+      return {
+        ...(harmony.root
           ? {
-              '@_value': harmony.kind
+              root: {
+                'root-step': harmony.root.step,
+                ...(harmony.root.alter !== undefined
+                  ? {
+                      'root-alter': harmony.root.alter
+                    }
+                  : {})
+              }
+            }
+          : {}),
+        kind: {
+          '#text': harmony.kind,
+          '@_text': harmony.text
+        },
+        ...(harmony.bass
+          ? {
+              bass: {
+                'bass-step': harmony.bass.step,
+                ...(harmony.bass.alter !== undefined
+                  ? {
+                      'bass-alter': harmony.bass.alter
+                    }
+                  : {})
+              }
+            }
+          : {}),
+        ...(harmony.tick > 0
+          ? {
+              offset: harmony.tick
             }
           : {})
-      },
-      ...(harmony.bass
-        ? {
-            bass: {
-              'bass-step': harmony.bass.step,
-              ...(harmony.bass.alter !== undefined
-                ? {
-                    'bass-alter': harmony.bass.alter
-                  }
-                : {})
-            }
-          }
-        : {}),
-      ...(harmony.tick > 0
-        ? {
-            offset: harmony.tick
-          }
-        : {})
-    }))
+      }
+    })
 }
 
 function buildMeasureDirections(score: Score, measure: Measure, spanDirections: SpanDirections) {
@@ -399,6 +458,12 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
       ? [buildRhythmFeelDirection(score.rhythmFeel)]
       : []),
     ...tempoEventDirections,
+    ...(score.pedalEvents ?? []).filter(event => event.measureId === measure.id).map(event => ({
+      '@_placement': 'below',
+      'direction-type': { pedal: { '@_type': event.value >= 64 ? 'start' : 'stop', '@_sign': 'yes', '@_line': 'no' } },
+      ...(event.tick > 0 ? { offset: { '#text': event.tick, '@_sound': 'yes' } } : {}),
+      sound: { '@_damper-pedal': Number((event.value * 100 / 127).toFixed(6)) }
+    })),
     ...spans.filter(direction => 'octave-shift' in (direction['direction-type'] as object)),
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => matchesMeasureReference(mark.measureId, measure))
@@ -441,18 +506,14 @@ function buildTempoDirection(
 
   return {
     '@_placement': 'above',
-    ...(tempo.transparent
-      ? {
-          '@_print-object': 'no'
-        }
-      : {}),
-    'direction-type': {
-      ...(tempo.text
-        ? {
-            words: tempo.text
-          }
-        : {}),
+    'direction-type': [
+      ...(tempo.text ? [{ words: tempo.transparent
+        ? { '#text': tempo.text, '@_color': '#00000000' } : tempo.text }] : []),
+      {
       metronome: {
+        // Explicit words are the Studio display label. Keep metronome semantics
+        // without adding a second visible label in consuming applications.
+        ...(tempo.transparent || tempo.text ? { '@_print-object': 'no' } : {}),
         'beat-unit': beatUnit,
         ...(dots > 0
           ? {
@@ -461,14 +522,15 @@ function buildTempoDirection(
           : {}),
         'per-minute': tempo.bpm
       }
-    },
+      }
+    ],
     ...(offsetTicks && offsetTicks > 0
       ? {
-          offset: offsetTicks
+          offset: { '#text':offsetTicks, '@_sound':'yes' }
         }
       : {}),
     sound: {
-      '@_tempo': tempo.bpm
+      '@_tempo': tempo.bpm * durationToTicks({value:beatUnit,dots}) / divisions
     }
   }
 }
@@ -515,7 +577,7 @@ function buildStaffTextDirection(text: string) {
 function buildSystemTextDirection(text: string) {
   return {
     '@_placement': 'above',
-    '@_system': 'yes',
+    '@_system': 'only-top',
     'direction-type': {
       words: {
         '#text': text,
@@ -618,18 +680,27 @@ function buildMeasureBarlines(measure: Measure) {
   ]
 }
 
-function createSpanDirections(score: Score): SpanDirections {
-  const directions: SpanDirections = new Map()
-  const locations = new Map(score.parts.flatMap((part, partIndex) => part.staves.flatMap((staff, staffIndex) =>
+function collectSpanLocations(score: Score) {
+  return new Map(score.parts.flatMap((part, partIndex) => part.staves.flatMap((staff, staffIndex) =>
     staff.measures.flatMap((measure, measureIndex) => measure.voices.flatMap(voice =>
       voice.events.map(event => [event.id, { event, voice, measure, measureIndex, staffKey: `${partIndex}:${staffIndex}` }] as const))))))
+}
+
+function createSpanDirections(score: Score, locations: ReturnType<typeof collectSpanLocations>): SpanDirections {
+  const directions: SpanDirections = new Map()
   for (const kind of ['octaveShifts', 'hairpins'] as const) {
     const spans = (score[kind] ?? []).map(span => {
       const start = locations.get(span.startEventId)
       const end = locations.get(span.endEventId)
       if (!start || !end || (kind !== 'hairpins' && (start.event.type !== 'note' || end.event.type !== 'note')) || start.staffKey !== end.staffKey ||
-        start.measureIndex > end.measureIndex || (start.measureIndex === end.measureIndex && start.event.position.tick > end.event.position.tick)) {
+        (kind !== 'hairpins' && (start.measureIndex > end.measureIndex || (start.measureIndex === end.measureIndex && start.event.position.tick > end.event.position.tick)))) {
         throw new Error('MusicXML span endpoint는 같은 보표의 시간순 이벤트여야 하며 옥타브선은 note가 필요합니다.')
+      }
+      // A one-note octave shift includes the ending note's duration. A
+      // hairpin instead ends at the event onset and must have positive length.
+      if (kind === 'hairpins' && (start.measureIndex > end.measureIndex ||
+        (start.measureIndex === end.measureIndex && start.event.position.tick >= end.event.position.tick))) {
+        throw new Error('헤어핀 끝점은 시작점보다 뒤에 있어야 합니다. 속성에서 범위를 수정하거나 표기를 삭제한 뒤 다시 내보내세요.')
       }
       return { span, start, end }
     }).sort((a, b) => a.start.measureIndex - b.start.measureIndex)
@@ -663,21 +734,29 @@ function createSpanDirections(score: Score): SpanDirections {
 function buildAttributes(measures: Measure[], hasTransposition: boolean) {
   const primaryMeasure = measures[0]
   const clefs = measures.map((measure) => clefToMusicXml(measure.clef))
+  const sharedKey = measures.every(measure =>
+    measure.keySignature.fifths === primaryMeasure.keySignature.fifths &&
+    measure.keySignature.mode === primaryMeasure.keySignature.mode)
+  const sharedTime = measures.every(measure =>
+    measure.timeSignature.beats === primaryMeasure.timeSignature.beats &&
+    measure.timeSignature.beatType === primaryMeasure.timeSignature.beatType)
+  const key = (measure: Measure) => ({
+    fifths: measure.keySignature.fifths,
+    ...(measure.keySignature.mode ? { mode: measure.keySignature.mode } : {})
+  })
+  const time = (measure: Measure) => ({
+    beats: measure.timeSignature.beats,
+    'beat-type': measure.timeSignature.beatType
+  })
 
   return {
     divisions,
-    key: {
-      fifths: primaryMeasure.keySignature.fifths,
-      ...(primaryMeasure.keySignature.mode
-        ? {
-            mode: primaryMeasure.keySignature.mode
-          }
-        : {})
-    },
-    time: {
-      beats: primaryMeasure.timeSignature.beats,
-      'beat-type': primaryMeasure.timeSignature.beatType
-    },
+    key: sharedKey ? key(primaryMeasure) : measures.map((measure,index) => ({
+      '@_number': index + 1, ...key(measure)
+    })),
+    time: sharedTime ? time(primaryMeasure) : measures.map((measure,index) => ({
+      '@_number': index + 1, ...time(measure)
+    })),
     staves: measures.length,
     clef:
       measures.length === 1
@@ -728,10 +807,24 @@ function buildNoteElements(
 ): unknown[] {
   if (event.type === 'note') {
     const notePitches = event.pitches?.length
-      ? event.pitches
+      ? event.pitches.map(pitch => {
+          const resolved = resolveNotePitch(measure, voice, { ...event, pitch })
+          // An absent XML alter already means natural. Keep that established
+          // chord spelling when resolution is zero, while writing inherited
+          // sharps/flats explicitly so consumers hear the resolved pitch.
+          return pitch.alter === undefined && resolved.alter === 0 ? pitch : resolved
+        })
       : [resolveNotePitch(measure, voice, event)]
+    // Validate the pitches actually written, after octave-shift conversion.
+    // Native supports values that the MusicXML octave type cannot represent;
+    // reject the exchange instead of changing the document or its sound.
+    for (const pitch of [...notePitches, ...(event.graceNotes ?? []).map(note => note.pitch)]) {
+      if (!Number.isInteger(pitch.octave) || pitch.octave < 0 || pitch.octave > 9) {
+        throw new Error(`MusicXML ${measure.number}마디의 음높이가 지원 범위(옥타브 0–9)를 벗어납니다. 음높이 또는 옥타브 표시를 수정한 뒤 다시 내보내세요. 프로젝트 파일은 저장할 수 있습니다.`)
+      }
+    }
     const graceNotes = (event.graceNotes ?? []).map((graceNote) =>
-      buildGraceNote(graceNote)
+      buildGraceNote(graceNote, voiceNumber, staffNumber)
     )
     const mainNote = buildNote(
       event,
@@ -776,7 +869,7 @@ function readVoiceEndTick(measure: Measure, voice: Voice): number {
   )
 }
 
-function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number]) {
+function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number], voiceNumber: number, staffNumber?: number) {
   return {
     grace: graceNote.slash
       ? {
@@ -792,7 +885,9 @@ function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note
         : {}),
       octave: graceNote.pitch.octave
     },
-    type: 'eighth'
+    voice: voiceNumber,
+    type: 'eighth',
+    ...(staffNumber !== undefined ? { staff: staffNumber } : {})
   }
 }
 
@@ -903,29 +998,15 @@ function buildNote(
               : {}),
             octave: pitch!.octave
           },
-          ...(displaysAccidental
-            ? {
-                accidental: toMusicXmlAccidental(pitch!.alter!)
-              }
-            : {}),
-          ...(tieTypes.length > 0
-            ? {
-                tie: tieTypes.map((type) => ({
-                  '@_type': type
-                }))
-              }
-            : {})
         }),
     duration: isFullMeasureRest
       ? voiceEventDurationTicks(event, measure)
       : durationToTicks(event.duration),
+    ...(tieTypes.length > 0 ? { tie: tieTypes.map(type => ({ '@_type': type })) } : {}),
     voice: voiceNumber,
     type: event.duration.value,
-    ...(staffNumber !== undefined
-      ? {
-          staff: staffNumber
-        }
-      : {}),
+    ...(dots.length > 0 ? { dot: dots } : {}),
+    ...(displaysAccidental ? { accidental: toMusicXmlAccidental(pitch!.alter!) } : {}),
     ...(event.duration.tuplet
       ? {
           'time-modification': {
@@ -934,6 +1015,7 @@ function buildNote(
           }
         }
       : {}),
+    ...(staffNumber !== undefined ? { staff: staffNumber } : {}),
     ...(hasNotations
       ? {
           notations: {
@@ -962,7 +1044,9 @@ function buildNote(
             ...(articulationNotations.length > 0
               ? {
                   articulations: Object.fromEntries(
-                    articulationNotations.map((articulation) => [articulation, ''])
+                    articulationNotations.map((articulation) => articulation === 'marcato'
+                      ? ['strong-accent', { '@_type': 'up' }]
+                      : [articulation, ''])
                   )
                 }
               : {}),
@@ -977,11 +1061,6 @@ function buildNote(
                 }
               : {})
           }
-        }
-      : {}),
-    ...(dots.length > 0
-      ? {
-          dot: dots
         }
       : {}),
     ...(event.type === 'note' && event.lyrics?.length && !isChordTone
@@ -1036,11 +1115,17 @@ function createTupletBoundaries(
 }
 
 function createSlurBoundaries(
-  score: Score
+  score: Score,
+  locations: ReturnType<typeof collectSpanLocations>
 ): Map<string, { starts?: string[]; stops?: string[] }> {
   const boundaries = new Map<string, { starts?: string[]; stops?: string[] }>()
 
   ;(score.slurs ?? []).forEach((slur, index) => {
+    const start = locations.get(slur.startEventId), end = locations.get(slur.endEventId)
+    if (!start || !end || start.event.type !== 'note' || end.event.type !== 'note' || start.staffKey !== end.staffKey ||
+      start.measureIndex > end.measureIndex || (start.measureIndex === end.measureIndex && start.event.position.tick >= end.event.position.tick)) {
+      throw new Error('슬러 끝점은 같은 보표의 시작점보다 뒤에 있는 음표여야 합니다. 속성에서 범위를 수정하거나 표기를 삭제한 뒤 다시 내보내세요.')
+    }
     const number = String(slur.number ?? index + 1)
     const startBoundary = boundaries.get(slur.startEventId)
     const stopBoundary = boundaries.get(slur.endEventId)
@@ -1102,13 +1187,6 @@ function validateMeasure(measure: Measure): void {
   }
 }
 
-function sortScoreVoices(voices: Voice[]): Voice[] {
-  return [...voices].sort(
-    (left, right) =>
-      readMusicXmlVoiceNumber(left.id) - readMusicXmlVoiceNumber(right.id) ||
-      left.id.localeCompare(right.id)
-  )
-}
 
 function xmlElement(
   name: string,
@@ -1198,10 +1276,4 @@ function readXmlElementContent(value: unknown): {
     attributes,
     children
   }
-}
-
-function readMusicXmlVoiceNumber(voiceId: string): number {
-  const match = /^voice-(\d+)$/.exec(voiceId)
-
-  return match ? Number(match[1]) : 1
 }

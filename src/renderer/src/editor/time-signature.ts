@@ -57,6 +57,10 @@ export function buildTimeSignatureCommand(
   if (!nextMeasure) {
     return undefined
   }
+  // Keep authored pedal anchors valid. Do not silently truncate a pedal phrase
+  // when a smaller meter would put its release beyond the barline.
+  if (score.pedalEvents?.some(pedal => pedal.measureId === currentMeasure.id &&
+    pedal.tick > measureDurationTicks(nextMeasure))) return undefined
 
   const measures = staff.measures.map((measure, index) =>
     index === measureIndex ? nextMeasure : measure

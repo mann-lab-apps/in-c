@@ -5,6 +5,24 @@ module.paths.unshift(
 const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
+const os = require('node:os')
+const fileActionsOnly = process.argv.includes('--file-actions')
+const workspaceTasksOnly = process.argv.includes('--workspace-tasks')
+const propertiesDockOnly = process.argv.includes('--properties-dock')
+const partIoOnly = process.argv.includes('--part-io')
+const mixerOnly = process.argv.includes('--mixer')
+const newScoreOnly = process.argv.includes('--new-score')
+const grandStaffOnly = process.argv.includes('--grand-staff')
+const signaturesOnly = process.argv.includes('--signatures')
+const measureDeleteOnly = process.argv.includes('--measure-delete')
+const keyboardOnly = process.argv.includes('--keyboard')
+const metadataOnly = process.argv.includes('--metadata')
+const engravingOnly = process.argv.includes('--engraving')
+
+// Verification owns its workspace preferences; never reuse the user's profile.
+app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'studio-mvp-')))
+const mvpArtifacts = path.resolve(process.env.DDIRORI_MVP_QA_OUT || path.join(app.getPath('userData'), 'artifacts'))
+fs.mkdirSync(mvpArtifacts, { recursive: true })
 
 async function loadFixture(window, fixture = 'single-voice-mvp') {
   if (process.env.CHROMATICS_QA_URL) {
@@ -28,6 +46,14 @@ async function loadFixture(window, fixture = 'single-voice-mvp') {
 }
 
 async function verifyKeyboardRouting(window) {
+  let keyboardFixtureStep = 0
+  const loadKeyboardFixture = async () => {
+    console.error('Keyboard fixture step', ++keyboardFixtureStep)
+    await loadFixture(window)
+    await openStudioCommand(window, '도구', '선택 속성 열기')
+    await clickStudioButton(window, '악보로 이동', null)
+  }
+  await loadKeyboardFixture()
   const initialEventCount = await window.webContents.executeJavaScript(`
     document.querySelectorAll('.notation-event').length
   `)
@@ -98,7 +124,7 @@ async function verifyKeyboardRouting(window) {
   const cursorNoteInput = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -115,7 +141,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m8-half-rest"]'
@@ -144,7 +170,7 @@ async function verifyKeyboardRouting(window) {
   const cursorRestInput = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -161,7 +187,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m8-half-rest"]'
@@ -191,7 +217,7 @@ async function verifyKeyboardRouting(window) {
   const koreanCursorRestInput = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -208,36 +234,19 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        bubbles: true,
-        code: 'KeyC',
-        key: 'ㅊ'
-      })
-    )
-  `)
-  await new Promise((resolve) => setTimeout(resolve, 100))
-  await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        bubbles: true,
-        key: '2'
-      })
-    )
-  `)
-  await new Promise((resolve) => setTimeout(resolve, 100))
-  await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        bubbles: true,
-        code: 'KeyR',
-        key: 'ㄱ',
-        isComposing: true
-      })
-    )
-  `)
-  await new Promise((resolve) => setTimeout(resolve, 100))
+  await openStudioCommand(window, '형식', '악보 설정')
+  const fieldGuard = await window.webContents.executeJavaScript('(' + (() => {
+    const input = document.querySelector('.studio-tempo-event input[aria-label="위치별 빠르기 BPM"]')
+    if (!input || !input.checkVisibility() || input.disabled) return {error:'Visible enabled tempo text input required for shortcut guard', found:Boolean(input), visible:input?.checkVisibility(), disabled:input?.disabled,
+      selected:document.querySelector('.notation-event.is-selected')?.getAttribute('data-event-id')}
+    input.focus()
+    const before = input.value
+    for (const key of [{code:'KeyC',key:'ㅊ'}, {key:'2'}, {code:'KeyR',key:'ㄱ',isComposing:true}]) {
+      input.dispatchEvent(new KeyboardEvent('keydown', {bubbles:true,cancelable:true,...key}))
+    }
+    return {label:input.getAttribute('aria-label'), focused:document.activeElement===input, before, after:input.value}
+  }).toString() + ')()')
+  if (fieldGuard.error || !fieldGuard.focused || fieldGuard.before !== fieldGuard.after) throw Error('Text-input shortcut guard failed: ' + JSON.stringify(fieldGuard))
 
   const textInputShortcuts = await window.webContents.executeJavaScript(`
     ({
@@ -245,12 +254,12 @@ async function verifyKeyboardRouting(window) {
         .find((span) => span.textContent?.endsWith('회 수정'))
         ?.textContent,
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -264,7 +273,7 @@ async function verifyKeyboardRouting(window) {
   const restShortcutConvertsSelection = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -281,7 +290,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -296,7 +305,7 @@ async function verifyKeyboardRouting(window) {
   const koreanRestShortcutConvertsSelection = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -313,7 +322,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m3-half-rest"]'
@@ -334,7 +343,7 @@ async function verifyKeyboardRouting(window) {
   const restToNote = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -354,7 +363,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   for (const eventId of ['m1-c4', 'm1-d4', 'm1-e4', 'm1-f-sharp-4']) {
     await window.webContents.executeJavaScript(`
       document.querySelector(
@@ -395,7 +404,7 @@ async function verifyKeyboardRouting(window) {
   const fullRestToNote = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -415,7 +424,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m3-d5"]'
@@ -439,14 +448,14 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       statusMessage: [...document.querySelectorAll('.editor-status span')]
         .at(-1)?.textContent
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m8-half-rest"]'
@@ -482,13 +491,13 @@ async function verifyKeyboardRouting(window) {
         document.querySelector('.notation-input-cursor')
       ),
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       status: document.querySelector('.editor-status span')?.textContent
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m1-c4"]'
@@ -515,12 +524,12 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m6-e5"]'
@@ -541,7 +550,7 @@ async function verifyKeyboardRouting(window) {
   const durationShortcutConsumesRest = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -550,7 +559,7 @@ async function verifyKeyboardRouting(window) {
           ?.textContent,
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
-          '.duration-strip button[aria-pressed="true"]'
+          '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
         )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
@@ -562,7 +571,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m5-half-rest"]'
@@ -583,7 +592,7 @@ async function verifyKeyboardRouting(window) {
   const restDurationShrink = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -592,7 +601,7 @@ async function verifyKeyboardRouting(window) {
           ?.textContent,
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
-          '.duration-strip button[aria-pressed="true"]'
+          '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
         )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
@@ -617,7 +626,7 @@ async function verifyKeyboardRouting(window) {
   const restDeleteAfterShrink = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -635,7 +644,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m4-g4"]'
@@ -655,7 +664,7 @@ async function verifyKeyboardRouting(window) {
   const noteDeleteAbsorbsPrevious = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -673,21 +682,23 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m4-f-natural-1"]'
     )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
-  await window.webContents.executeJavaScript(`
-    document.querySelector('.tuplet-button')?.click()
+  await executeMetadataStep(window, 'activate current public tuplet button', `
+    const button = document.querySelector('.studio-note-toolbar button:has([data-music-glyph="tuplet"])')
+    if (!button || !button.checkVisibility() || button.disabled) throw Error('Visible enabled tuplet button required')
+    button.click()
   `)
   await new Promise((resolve) => setTimeout(resolve, 150))
 
   const tripletButton = await window.webContents.executeJavaScript(`
     (() => {
-      const button = document.querySelector('.tuplet-button')
+      const button = document.querySelector('.studio-note-toolbar button:has([data-music-glyph="tuplet"])')
 
       return {
         ariaLabel: button?.getAttribute('aria-label'),
@@ -696,15 +707,17 @@ async function verifyKeyboardRouting(window) {
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
         hasProgress: Boolean(document.querySelector('.tuplet-progress')),
-        shortcut: button?.querySelector('.shortcut-badge')?.textContent,
+        shortcut: button?.getAttribute('aria-label')?.split('단축키 ')[1],
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length
       }
     })()
   `)
-  await window.webContents.executeJavaScript(`
-    document.querySelector('.tuplet-button')?.click()
+  await executeMetadataStep(window, 'activate current public tuplet button', `
+    const button = document.querySelector('.studio-note-toolbar button:has([data-music-glyph="tuplet"])')
+    if (!button || !button.checkVisibility() || button.disabled) throw Error('Visible enabled tuplet button required')
+    button.click()
   `)
   await new Promise((resolve) => setTimeout(resolve, 150))
 
@@ -721,7 +734,7 @@ async function verifyKeyboardRouting(window) {
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m8-half-rest"]'
@@ -756,9 +769,7 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       progress: document.querySelector('.tuplet-progress')?.textContent,
       status: document.querySelector('.editor-status span')?.textContent,
-      tick: [...document.querySelectorAll('.editor-status span')]
-        .find((span) => span.textContent?.includes('틱'))
-        ?.textContent
+      position: document.querySelector('[aria-label="입력 위치"]')?.textContent
     })
   `)
 
@@ -806,7 +817,7 @@ async function verifyKeyboardRouting(window) {
   const tripletShortcutComplete = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -825,7 +836,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m4-g4"]'
@@ -881,7 +892,7 @@ async function verifyKeyboardRouting(window) {
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m7-dotted-half-rest"]'
@@ -904,14 +915,14 @@ async function verifyKeyboardRouting(window) {
         .find((span) => span.textContent?.endsWith('회 수정'))
         ?.textContent,
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       progress: document.querySelector('.tuplet-progress')?.textContent,
       status: document.querySelector('.editor-status span')?.textContent
     })
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m7-triplet-c5"]'
@@ -931,7 +942,7 @@ async function verifyKeyboardRouting(window) {
   const tripletBackspaceClear = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -949,7 +960,7 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
-  await loadFixture(window)
+  await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
     document.querySelector(
       '.notation-event[data-event-id="m1-c4"]'
@@ -973,7 +984,7 @@ async function verifyKeyboardRouting(window) {
   const rangeSelection = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
+        ...document.querySelectorAll('.studio-selected-properties__readouts dd')
       ].map((value) => value.textContent?.trim())
 
       return {
@@ -1072,7 +1083,7 @@ async function verifyKeyboardRouting(window) {
     tripletShortcutStart.editCount !== '1회 수정' ||
     !tripletShortcutStart.status?.startsWith('셋잇단음표 입력') ||
     tripletShortcutStart.progress !== '셋잇단음표 0/3' ||
-    !tripletShortcutStart.tick?.startsWith('M9 · ') ||
+    tripletShortcutStart.position !== '9마디 · 묶음 시작 1박 (4분음표 기준)' ||
     tripletShortcutPreview.previewEventCount < 3 ||
     tripletShortcutPreview.progress !== '셋잇단음표 2/3' ||
     tripletShortcutPreview.status !== '셋잇단음표 2/3개 입력됨. 1개 더 입력해 주세요.' ||
@@ -1155,6 +1166,7 @@ async function verifyKeyboardRouting(window) {
     restShortcutConvertsSelection,
     restToNote,
     textInputShortcuts,
+    fieldGuard,
     tripletButton,
     tripletButtonToggleOff,
     tripletAvailableSpan,
@@ -1192,15 +1204,28 @@ async function verifyOutOfStaffNotes(window) {
         '.notation-event[data-event-id="${testCase.eventId}"]'
       )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     `)
+    await openStudioCommand(window, '도구', '선택 속성 열기')
+    const readPitch = () => window.webContents.executeJavaScript(`(() => {
+      const root = document.querySelector('.studio-selected-properties')
+      if (!root?.checkVisibility()) throw Error('Visible selected properties required for octave command')
+      const row = [...root.querySelectorAll('.studio-selected-properties__readouts > div')].find(node => node.querySelector('dt')?.textContent === '음높이')
+      return { pitch:row?.querySelector('dd')?.textContent,
+        history:[...document.querySelectorAll('.editor-status span')].find(node => node.textContent.endsWith('회 수정'))?.textContent,
+        selected:document.querySelector('.notation-event.is-selected')?.getAttribute('data-event-id'),
+        events:document.querySelectorAll('.notation-event').length }
+    })()`)
+    const beforePitch = await readPitch()
 
     for (let click = 0; click < testCase.clicks; click += 1) {
-      await window.webContents.executeJavaScript(`
-        document.querySelector(
-          'button[aria-label="${testCase.buttonLabel}"]'
-        )?.click()
-      `)
+      await clickStudioButton(window, testCase.buttonLabel, '.studio-chord-properties')
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
+    const afterPitch = await readPitch()
+    const pitch = beforePitch.pitch?.match(/^([A-G][#b]*)(-?\d+)$/)
+    const expectedPitch = pitch && pitch[1] + (Number(pitch[2]) + (testCase.name === 'high' ? 1 : -1) * testCase.clicks)
+    if (!pitch || beforePitch.history !== '0회 수정' || afterPitch.pitch !== expectedPitch ||
+        afterPitch.history !== testCase.clicks + '회 수정' || afterPitch.selected !== testCase.eventId || afterPitch.events !== beforePitch.events)
+      throw Error('Actual octave commands must change only the selected pitch: ' + JSON.stringify({beforePitch,afterPitch,expectedPitch}))
 
     const result = await window.webContents.executeJavaScript(`
       (() => {
@@ -1229,7 +1254,7 @@ async function verifyOutOfStaffNotes(window) {
     const image = await window.webContents.capturePage()
     fs.writeFileSync(
       path.join(
-        app.getPath('temp'),
+        mvpArtifacts,
         `in-c-mvp-out-of-staff-${testCase.name}.png`
       ),
       image.toPNG()
@@ -1250,6 +1275,8 @@ async function verifyOutOfStaffNotes(window) {
 
     results.push({
       name: testCase.name,
+      beforePitch,
+      afterPitch,
       ...result
     })
   }
@@ -1626,9 +1653,10 @@ async function readBeamMetrics(window) {
 
 async function verifyMetadataEditing(window) {
   await loadFixture(window)
+  const beforeSelection = await window.webContents.executeJavaScript(`JSON.stringify([...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId))`)
 
-  await editMetadataField(window, 'title', '새 악보 제목', 'Enter')
-  await editMetadataField(window, 'composer', '김작곡', 'Enter')
+  const titleEntry = await editMetadataField(window, 'title', '새 악보 제목', 'Enter')
+  const composerEntry = await editMetadataField(window, 'composer', '김작곡', 'Enter')
 
   const edited = await window.webContents.executeJavaScript(`
     ({
@@ -1644,9 +1672,7 @@ async function verifyMetadataEditing(window) {
     })
   `)
 
-  await window.webContents.executeJavaScript(`
-    document.querySelector('button[aria-label="실행 취소"]')?.click()
-  `)
+  await openStudioCommand(window, '편집', '실행 취소')
   await new Promise((resolve) => setTimeout(resolve, 150))
 
   const undoneComposer = await window.webContents.executeJavaScript(`
@@ -1663,9 +1689,7 @@ async function verifyMetadataEditing(window) {
     })
   `)
 
-  await window.webContents.executeJavaScript(`
-    document.querySelector('button[aria-label="다시 실행"]')?.click()
-  `)
+  await openStudioCommand(window, '편집', '다시 실행')
   await new Promise((resolve) => setTimeout(resolve, 150))
 
   const redoneComposer = await window.webContents.executeJavaScript(`
@@ -1682,7 +1706,7 @@ async function verifyMetadataEditing(window) {
     })
   `)
 
-  await editMetadataField(window, 'title', '취소할 제목', 'Escape')
+  const cancelledEntry = await editMetadataField(window, 'title', '취소할 제목', 'Escape')
 
   const cancelled = await window.webContents.executeJavaScript(`
     ({
@@ -1692,7 +1716,7 @@ async function verifyMetadataEditing(window) {
     })
   `)
 
-  await openMetadataField(window, 'composer')
+  const draftEntry = await openMetadataField(window, 'composer')
   await window.webContents.executeJavaScript(`
     window.setInputValue(
       document.querySelector('input[aria-label="작곡가"]'),
@@ -1729,7 +1753,7 @@ async function verifyMetadataEditing(window) {
         document.querySelector('input[aria-label="작곡가"]')
       ),
       pressedDuration: document.querySelector(
-        '.duration-strip button[aria-pressed="true"]'
+        '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
@@ -1739,7 +1763,8 @@ async function verifyMetadataEditing(window) {
     edited,
     redoneComposer,
     textInputProtection,
-    undoneComposer
+    undoneComposer,
+    entries: [titleEntry, composerEntry, cancelledEntry, draftEntry]
   }
 
   if (
@@ -1762,48 +1787,75 @@ async function verifyMetadataEditing(window) {
     )
   }
 
-  return result
+  await window.webContents.executeJavaScript(`document.querySelector('input[aria-label="작곡가"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}))`)
+  await new Promise(resolve => setTimeout(resolve, 150))
+  const cancelledDraft = await window.webContents.executeJavaScript(`(() => ({
+    composer: document.querySelector('button[aria-label="작곡가 수정"]')?.textContent.trim(),
+    focus: document.activeElement?.getAttribute('aria-label'),
+    edits: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent.endsWith('회 수정'))?.textContent.trim(),
+    selection: JSON.stringify([...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId)),
+    events: document.querySelectorAll('.notation-event').length
+  }))()`)
+  if (cancelledDraft.composer !== '김작곡' || cancelledDraft.edits !== '2회 수정' || cancelledDraft.focus !== '악보 정보' ||
+      cancelledDraft.selection !== beforeSelection || cancelledDraft.events !== 33)
+    throw Error('Metadata draft cancellation/selection contract failed: ' + JSON.stringify(cancelledDraft))
+  await clickStudioButton(window, '악보로 이동', null)
+  await new Promise(resolve => setTimeout(resolve, 300))
+  const screenshot = path.join(mvpArtifacts, 'metadata-' + window.getContentSize()[0] + '.png')
+  fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+  return {...result, cancelledDraft, screenshot}
 }
 
 async function verifyFileActions(window) {
   await loadFixture(window)
 
   const result = await window.webContents.executeJavaScript(`
-    (() => {
-      const readButtons = (selector) => [
-        ...document.querySelectorAll(selector)
-      ].map((button) => ({
-        ariaLabel: button.getAttribute('aria-label'),
-        label: button.querySelector('span')?.textContent?.trim()
+    (async () => {
+      const settle = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const state = () => ({
+        selected: [...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId),
+        count: document.querySelectorAll('.notation-event').length,
+        history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent
+      })
+      const before = state()
+      const click = async (label, scope) => {
+        const root = scope ? document.querySelector(scope) : document
+        const button = [...root.querySelectorAll('button')].find(node => node.checkVisibility() && (node.getAttribute('aria-label') || node.textContent.trim()) === label)
+        if (!button || button.disabled) throw Error('Unavailable live file action: ' + label)
+        button.focus(); button.click(); await settle()
+      }
+      const readButtons = selector => [...document.querySelectorAll(selector)].filter(node => node.checkVisibility()).map(button => ({
+        ariaLabel: button.getAttribute('aria-label'), label: button.textContent.trim(),
+        common: button.classList.contains('dd-button'), disabled: button.disabled
       }))
-      const exportTab = [...document.querySelectorAll('.toolbar-tabs button')]
-        .find((button) => button.textContent.trim() === '내보내기')
-      const fileButtons = readButtons('.file-actions button')
-      const selectionFilter = document.querySelector('.selection-filter-control select')
-
-      exportTab?.click()
-      const exportButtons = readButtons('.export-actions button')
-
+      await click('파일', '.studio-application-menu')
+      await click('파일 작업 열기', '.studio-application-menu')
+      const fileAriaLabel = document.querySelector('.studio-file-tools [aria-label="파일 작업"]')?.getAttribute('aria-label')
+      const fileButtons = readButtons('.studio-file-tools [aria-label="파일 작업"] button')
+      const selectionFilter = [...document.querySelectorAll('.studio-file-tools button[role="combobox"]')].find(node => node.labels?.[0]?.textContent.trim() === '선택 필터')
+      if (!selectionFilter?.checkVisibility() || selectionFilter.disabled) throw Error('Visible public selection filter required')
+      selectionFilter.focus(); selectionFilter.click(); await settle()
+      const list = document.getElementById(selectionFilter.getAttribute('aria-controls'))
+      if (!list?.checkVisibility() || list.getAttribute('role') !== 'listbox') throw Error('Visible public selection options required')
+      const filter = {
+        accessibleName: selectionFilter.labels?.[0]?.textContent.trim(),
+        value: list.querySelector('[role="option"][aria-selected="true"]')?.getAttribute('data-value'),
+        options: [...list.querySelectorAll('[role="option"]')].map(option => option.textContent.trim())
+      }
+      selectionFilter.click(); await settle()
+      if (selectionFilter.getAttribute('aria-expanded') !== 'false') throw Error('Selection filter must close without changing its value')
+      await click('파일', '.studio-application-menu')
+      await click('내보내기 설정', '.studio-application-menu')
+      const exportButtons = readButtons('.studio-export-tools [aria-label="파일 형식"] button')
       return {
-        fileAriaLabel: document
-          .querySelector('.file-actions')
-          ?.getAttribute('aria-label'),
-        exportAriaLabel: document
-          .querySelector('.export-actions')
-          ?.getAttribute('aria-label'),
+        fileAriaLabel,
+        exportAriaLabel: document.querySelector('.studio-export-tools')?.getAttribute('aria-label'),
         fileButtons,
         exportButtons,
         fileLabels: fileButtons.map((button) => button.label),
         exportLabels: exportButtons.map((button) => button.label),
-        selectionFilter: selectionFilter
-          ? {
-              ariaLabel: selectionFilter.getAttribute('aria-label'),
-              value: selectionFilter.value,
-              options: [...selectionFilter.querySelectorAll('option')].map(
-                (option) => option.textContent.trim()
-              )
-            }
-          : null
+        selectionFilter: filter,
+        before, after: state()
       }
     })()
   `)
@@ -1826,13 +1878,16 @@ async function verifyFileActions(window) {
     !fileButtonAriaLabels.includes('MusicXML 가져오기') ||
     !fileButtonAriaLabels.includes('MusicXML로 저장') ||
     !result.selectionFilter ||
-    result.selectionFilter.ariaLabel !== '선택 필터' ||
+    result.selectionFilter.accessibleName !== '선택 필터' ||
     result.selectionFilter.value !== 'notes-and-rests' ||
     result.selectionFilter.options.join('|') !== '전체|음표만|쉼표만' ||
     !exportButtonLabels.includes('PDF 변환') ||
     !exportButtonLabels.includes('MIDI') ||
     !exportButtonAriaLabels.includes('PDF 변환') ||
-    !exportButtonAriaLabels.includes('MIDI 내보내기')
+    !exportButtonAriaLabels.includes('MIDI 내보내기') ||
+    !result.fileButtons.every(button => button.common) ||
+    !result.exportButtons.every(button => button.common) ||
+    JSON.stringify(result.before) !== JSON.stringify(result.after)
   ) {
     throw new Error(`파일 작업 verification failed: ${JSON.stringify(result)}`)
   }
@@ -1840,744 +1895,505 @@ async function verifyFileActions(window) {
   return result
 }
 
-async function verifyCompactToolbarModes(window) {
-  await loadFixture(window, 'release-test')
-  window.setSize(960, 1000)
-  await new Promise((resolve) => setTimeout(resolve, 600))
+const studioWorkspaceTasks = [
+  { label: '파일', menu: '파일', command: '파일 작업 열기', surface: '.studio-file-tools' },
+  { label: '악보', menu: '형식', command: '악보 설정', surface: '.studio-score-settings' },
+  { label: '음표', menu: '도구', command: '선택 속성 열기', surface: '.studio-selected-properties' },
+  { label: '표기 객체', menu: '추가', command: '표기 팔레트 열기', surface: '.studio-notation-palette' },
+  { label: '가사', menu: '추가', command: '가사 및 코드', surface: '.studio-lyric-tools' },
+  { label: '내보내기', menu: '파일', command: '내보내기 설정', surface: '.studio-export-tools' },
+  { label: '재생', menu: '도구', command: '재생 도구', surface: '.studio-part-mixer' }
+]
 
-  const result = await window.webContents.executeJavaScript(`
-    (async () => {
-      const wait = () => new Promise((resolve) => setTimeout(resolve, 80))
-      const modeLabels = [
-        '파일',
-        '악보',
-        '음표',
-        '표기 객체',
-        '가사',
-        '내보내기',
-        '재생'
-      ]
-      const readVisibleText = (selector) =>
-        [...document.querySelectorAll(selector)]
-          .filter((element) => {
-            const style = window.getComputedStyle(element)
-            const box = element.getBoundingClientRect()
-            return (
-              style.display !== 'none' &&
-              style.visibility !== 'hidden' &&
-              box.width > 0 &&
-              box.height > 0
-            )
-          })
-          .map((element) => ({
-            ariaLabel: element.getAttribute('aria-label'),
-            className:
-              typeof element.className === 'string'
-                ? element.className
-                : element.getAttribute('class'),
-            text: element.textContent.trim()
-          }))
-      const readVisibleAriaLabels = () =>
-        [
-          ...document.querySelectorAll(
-            'button, input, select, textarea, output, div[aria-label], section[aria-label], nav[aria-label], header[aria-label]'
-          )
-        ]
-          .filter((element) => {
-            const style = window.getComputedStyle(element)
-            const box = element.getBoundingClientRect()
-            return (
-              style.display !== 'none' &&
-              style.visibility !== 'hidden' &&
-              box.width > 0 &&
-              box.height > 0
-            )
-          })
-          .map((element) => element.getAttribute('aria-label'))
-          .filter(Boolean)
-      const readOverflow = () => {
-        const toolbar = document.querySelector('.toolbar')
-        const tabs = document.querySelector('.toolbar-tabs')
-        const context = document.querySelector('.editor-context-strip')
-        const visibleControls = [
-          ...document.querySelectorAll(
-            '.toolbar button, .toolbar select, .toolbar input, .toolbar output, .toolbar label'
-          )
-        ].filter((element) => {
-          const style = window.getComputedStyle(element)
-          const box = element.getBoundingClientRect()
-          return (
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            box.width > 0 &&
-            box.height > 0
-          )
-        })
-        const textOverflow = visibleControls
-          .map((element) => {
-            const box = element.getBoundingClientRect()
-            return {
-              ariaLabel: element.getAttribute('aria-label'),
-              className:
-                typeof element.className === 'string'
-                  ? element.className
-                  : element.getAttribute('class'),
-              tagName: element.tagName,
-              text: element.textContent.trim(),
-              clientWidth: element.clientWidth,
-              scrollWidth: element.scrollWidth,
-              box: {
-                left: box.left,
-                right: box.right,
-                width: box.width
-              }
-            }
-          })
-          .filter(
-            (entry) =>
-              entry.text &&
-              entry.scrollWidth > entry.clientWidth + 1 &&
-              entry.box.width > 0
-          )
-
-        return {
-          documentOverflow:
-            document.documentElement.scrollWidth > window.innerWidth + 1,
-          toolbarOverflow:
-            toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : false,
-          tabsOverflow:
-            tabs ? tabs.scrollWidth > tabs.clientWidth + 1 : false,
-          contextOverflow:
-            context ? context.scrollWidth > context.clientWidth + 1 : false,
-          textOverflow
-        }
-      }
-      const modes = []
-
-      for (const label of modeLabels) {
-        const tab = [...document.querySelectorAll('.toolbar-tabs button')]
-          .find((button) => button.textContent.trim() === label)
-
-        if (!tab) {
-          modes.push({ label, missing: true })
-          continue
-        }
-
-        tab.click()
-        await wait()
-
-        modes.push({
-          label,
-          active:
-            document
-              .querySelector('.toolbar-tabs button[aria-pressed="true"]')
-              ?.textContent.trim(),
-          visibleAriaLabels: readVisibleAriaLabels(),
-          buttons: readVisibleText('.toolbar button'),
-          controls: readVisibleText('.toolbar input, .toolbar select, .toolbar output'),
-          overflow: readOverflow()
-        })
-      }
-
-      return {
-        modeLabels,
-        modes,
-        width: window.innerWidth
-      }
-    })()
-  `)
-
-  const byLabel = new Map(result.modes.map((mode) => [mode.label, mode]))
-  const file = byLabel.get('파일')
-  const note = byLabel.get('음표')
-  const notation = byLabel.get('표기 객체')
-  const lyrics = byLabel.get('가사')
-  const exportMode = byLabel.get('내보내기')
-  const playback = byLabel.get('재생')
-  const visibleButtonLabels = (mode) => mode?.buttons.map((button) => button.text) ?? []
-  const visibleAriaLabels = (mode) => mode?.visibleAriaLabels ?? []
-  const modeFailures = result.modes.filter(
-    (mode) =>
-      mode.missing ||
-      mode.active !== mode.label ||
-      mode.overflow.documentOverflow ||
-      mode.overflow.contextOverflow ||
-      mode.overflow.textOverflow.length > 0
-  )
-
-  if (
-    result.width !== 960 ||
-    modeFailures.length > 0 ||
-    visibleButtonLabels(file).includes('PDF 변환') ||
-    visibleButtonLabels(file).includes('MIDI') ||
-    visibleAriaLabels(note).includes('코드 심벌') ||
-    visibleAriaLabels(notation).includes('코드 심벌') ||
-    !visibleAriaLabels(lyrics).includes('코드 심벌') ||
-    !visibleAriaLabels(notation).includes('마디 표기') ||
-    !visibleButtonLabels(exportMode).includes('PDF 변환') ||
-    !visibleButtonLabels(exportMode).includes('MIDI') ||
-    !playback ||
-    !visibleAriaLabels(playback).includes('재생 컨트롤')
-  ) {
-    throw new Error(
-      `Compact toolbar mode verification failed: ${JSON.stringify(result)}`
-    )
+// This function is serialized into the actual renderer. It uses no Node closure.
+async function probeStudioWorkspaceTask(task) {
+  const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  const visible = node => Boolean(node && node.checkVisibility() && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0)
+  const snapshot = () => ({
+    selected: [...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId),
+    events: document.querySelectorAll('.notation-event').length,
+    history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent
+  })
+  const click = async (label, scope) => {
+    const node = [...(scope ? document.querySelector(scope) : document).querySelectorAll('button')]
+      .find(node => visible(node) && (node.getAttribute('aria-label') || node.textContent.trim()) === label)
+    if (!node || node.disabled) throw Error('Unavailable workspace command: ' + label)
+    node.focus(); node.click(); await wait()
   }
+  const before = snapshot()
+  await click(task.menu, '.studio-application-menu')
+  await click(task.command, '.studio-application-menu')
+  const surface = document.querySelector(task.surface)
+  if (!visible(surface)) throw Error('Live workspace surface required: ' + task.label)
+  const labels = [...document.querySelectorAll('[aria-label]')].filter(visible).map(node => node.getAttribute('aria-label'))
+  const buttons = [...surface.querySelectorAll('button')].filter(visible).map(node => ({
+    text: node.textContent.trim(), label: node.getAttribute('aria-label'),
+    common: node.matches('.dd-button,.dd-select') || Boolean(node.closest('.dd-accordion,.dd-segments,.dd-tab-list'))
+  }))
+  const controls = [...document.querySelectorAll('.ddirori button,.ddirori input,.ddirori select,.ddirori textarea,.ddirori output,.ddirori label')]
+    .filter(node => visible(node) && !node.closest('.score-canvas,.studio-pdf-snapshot,.performance-lab'))
+  const textOverflow = controls.filter(node => node.textContent.trim() && node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1)
+    .map(node => ({tag: node.tagName, label: node.getAttribute('aria-label'), text: node.textContent.trim(), client: node.clientWidth, scroll: node.scrollWidth}))
+  const containers = [...document.querySelectorAll('.studio-application-menu,.studio-command-bars,.studio-workspace-tools,.studio-status,' + task.surface)].filter(visible)
+  const containerOverflow = containers.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.className)
+  const page = document.querySelector('.score-page')
+  const entryPage = page.getBoundingClientRect()
+  const entryPageVisible = entryPage.bottom > 0 && entryPage.top < innerHeight
+  const entryFocus = { tag: document.activeElement?.tagName, label: document.activeElement?.getAttribute('aria-label'), text: document.activeElement?.textContent?.trim().slice(0, 80), insideSurface: surface.contains(document.activeElement) }
+  const transportVisible = visible(document.querySelector('.studio-playback'))
+  const harmonyEntryVisible = visible(document.querySelector('.studio-harmony-entry'))
+  const families = [...document.querySelectorAll('.studio-notation-palette .dd-accordion >button')].filter(visible).map(node => node.textContent.trim())
+  const documentOverflow = document.documentElement.scrollWidth > innerWidth + 1
+  // Opening a long form may scroll the page away. Verify the explicit return
+  // through the same visible action available to users, not a forced DOM scroll.
+  await click('악보로 이동')
+  const selected = document.querySelector('.notation-event.is-selected')
+  const text = selected?.querySelector('.vf-notehead text')
+  if (!text) throw Error('Selected fixture note ink required after workspace return')
+  const style = getComputedStyle(text), ctx = document.createElement('canvas').getContext('2d')
+  ctx.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ')
+  const ink = ctx.measureText(text.textContent), start = text.getStartPositionOfChar(0), matrix = text.getScreenCTM()
+  const top = new DOMPoint(start.x - ink.actualBoundingBoxLeft, start.y - ink.actualBoundingBoxAscent).matrixTransform(matrix)
+  const bottom = new DOMPoint(start.x + ink.actualBoundingBoxRight, start.y + ink.actualBoundingBoxDescent).matrixTransform(matrix)
+  const footer = document.querySelector('.studio-status').getBoundingClientRect(), limit = Math.min(innerHeight, footer.top)
+  const returnedPage = page.getBoundingClientRect()
+  return {
+    label: task.label, surface: task.surface, available: visible(surface), labels, buttons, families,
+    transportVisible, harmonyEntryVisible, documentOverflow, containerOverflow, textOverflow,
+    before, after: snapshot(), entryPageVisible, entryFocus,
+    returnToScore: {
+      pageVisible: returnedPage.bottom > 0 && returnedPage.top < innerHeight,
+      selectedFocused: document.activeElement === selected, ink: {top: top.y, bottom: bottom.y},
+      limit, inkVisible: top.y >= 0 && bottom.y <= limit
+    }
+  }
+}
 
-  return result
+function assertStudioWorkspaceTask(task) {
+  if (!task.available || !task.transportVisible || task.documentOverflow || task.containerOverflow.length ||
+      task.textOverflow.length || !task.buttons.every(button => button.common) ||
+      JSON.stringify(task.before) !== JSON.stringify(task.after) ||
+      !task.returnToScore.pageVisible || !task.returnToScore.selectedFocused || !task.returnToScore.inkVisible)
+    throw Error('Workspace task invariant failed: ' + JSON.stringify(task))
+}
+
+async function verifyStudioWorkspaceTasks(window, viewport) {
+  window.setContentSize(viewport.width, viewport.height)
+  await loadFixture(window, 'release-test')
+  const tasks = []
+  for (const task of studioWorkspaceTasks) {
+    const result = await window.webContents.executeJavaScript('(' + probeStudioWorkspaceTask.toString() + ')(' + JSON.stringify(task) + ')')
+    tasks.push(result)
+    assertStudioWorkspaceTask(result)
+  }
+  const byLabel = new Map(tasks.map(task => [task.label, task]))
+  const labels = label => byLabel.get(label).labels
+  const buttons = label => byLabel.get(label).buttons.map(button => button.text)
+  if (buttons('파일').includes('PDF 변환') || buttons('파일').includes('MIDI') ||
+      byLabel.get('음표').harmonyEntryVisible || byLabel.get('표기 객체').harmonyEntryVisible ||
+      !byLabel.get('가사').harmonyEntryVisible || !labels('가사').includes('코드 심벌 속성') ||
+      !byLabel.get('표기 객체').families.includes('음자리표·조표·박자표') ||
+      !buttons('내보내기').includes('PDF 변환') || !buttons('내보내기').includes('MIDI') ||
+      !labels('재생').includes('재생 컨트롤'))
+    throw Error('Workspace role mapping failed: ' + JSON.stringify(tasks))
+  return { ...viewport, tasks }
+}
+
+async function verifyCompactToolbarModes(window) {
+  return verifyStudioWorkspaceTasks(window, {name: 'compact-tall', width: 960, height: 1000})
 }
 
 async function verifyCommercialHeadlessViewports(window) {
-  await loadFixture(window, 'release-test')
-
-  const viewports = [
+  const results = []
+  for (const viewport of [
     { name: 'compact-short', width: 960, height: 720 },
     { name: 'compact-tall', width: 960, height: 1000 },
     { name: 'desktop-short', width: 1400, height: 760 }
-  ]
-  const result = []
-
-  for (const viewport of viewports) {
-    window.setSize(viewport.width, viewport.height)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    result.push(
-      await window.webContents.executeJavaScript(`
-        (async () => {
-          const wait = () => new Promise((resolve) => setTimeout(resolve, 70))
-          const modeLabels = [
-            '파일',
-            '악보',
-            '음표',
-            '표기 객체',
-            '가사',
-            '내보내기',
-            '재생'
-          ]
-          const isVisible = (element) => {
-            const style = window.getComputedStyle(element)
-            const box = element.getBoundingClientRect()
-            return (
-              style.display !== 'none' &&
-              style.visibility !== 'hidden' &&
-              box.width > 0 &&
-              box.height > 0
-            )
-          }
-          const readMode = (label) => {
-            const toolbar = document.querySelector('.toolbar')
-            const context = document.querySelector('.editor-context-strip')
-            const page = document.querySelector('.score-page')
-            const pageBox = page?.getBoundingClientRect()
-            const controls = [
-              ...document.querySelectorAll(
-                '.toolbar button, .toolbar select, .toolbar input, .toolbar output, .toolbar label'
-              )
-            ].filter(isVisible)
-            const textOverflow = controls
-              .map((element) => ({
-                ariaLabel: element.getAttribute('aria-label'),
-                tagName: element.tagName,
-                text: element.textContent.trim(),
-                clientWidth: element.clientWidth,
-                scrollWidth: element.scrollWidth
-              }))
-              .filter(
-                (entry) =>
-                  entry.text &&
-                  entry.scrollWidth > entry.clientWidth + 1
-              )
-            const ariaLabels = [
-              ...document.querySelectorAll(
-                'button, input, select, textarea, output, div[aria-label], section[aria-label], nav[aria-label], header[aria-label]'
-              )
-            ]
-              .filter(isVisible)
-              .map((element) => element.getAttribute('aria-label'))
-              .filter(Boolean)
-
-            return {
-              label,
-              active:
-                document
-                  .querySelector('.toolbar-tabs button[aria-pressed="true"]')
-                  ?.textContent.trim(),
-              ariaLabels,
-              documentOverflow:
-                document.documentElement.scrollWidth > window.innerWidth + 1,
-              toolbarOverflow:
-                toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : false,
-              contextOverflow:
-                context ? context.scrollWidth > context.clientWidth + 1 : false,
-              textOverflow,
-              pageVisible:
-                Boolean(pageBox) &&
-                pageBox.bottom > 0 &&
-                pageBox.top < window.innerHeight
-            }
-          }
-          const modes = []
-
-          for (const label of modeLabels) {
-            const tab = [...document.querySelectorAll('.toolbar-tabs button')]
-              .find((button) => button.textContent.trim() === label)
-
-            if (!tab) {
-              modes.push({ label, missing: true })
-              continue
-            }
-
-            tab.click()
-            await wait()
-            modes.push(readMode(label))
-          }
-
-          return {
-            height: window.innerHeight,
-            modes,
-            name: ${JSON.stringify(viewport.name)},
-            width: window.innerWidth
-          }
-        })()
-      `)
-    )
-  }
-
-  const failures = result.flatMap((viewport) =>
-    viewport.modes
-      .filter(
-        (mode) =>
-          mode.missing ||
-          mode.active !== mode.label ||
-          mode.documentOverflow ||
-          mode.contextOverflow ||
-          mode.textOverflow.length > 0 ||
-          !mode.pageVisible
-      )
-      .map((mode) => ({
-        viewport: viewport.name,
-        mode
-      }))
-  )
-  const desktop = result.find((viewport) => viewport.name === 'desktop-short')
-  const desktopFile = desktop?.modes.find((mode) => mode.label === '파일')
-  const desktopExport = desktop?.modes.find((mode) => mode.label === '내보내기')
-
-  if (
-    failures.length > 0 ||
-    desktopFile?.ariaLabels.includes('PDF 변환') ||
-    desktopFile?.ariaLabels.includes('MIDI 내보내기') ||
-    !desktopExport?.ariaLabels.includes('PDF 변환') ||
-    !desktopExport?.ariaLabels.includes('MIDI 내보내기')
-  ) {
-    throw new Error(
-      `Commercial headless viewport verification failed: ${JSON.stringify({
-        failures,
-        result
-      })}`
-    )
-  }
-
-  return result
+  ]) results.push(await verifyStudioWorkspaceTasks(window, viewport))
+  return results
 }
 
 async function verifyPropertiesDockEditing(window) {
-  await loadFixture(window, 'release-test')
   const captures = []
   for (const width of [1400, 960]) {
-    window.setSize(width, 900)
-    await new Promise((resolve) => setTimeout(resolve, 250))
-    const result = await window.webContents.executeJavaScript(`
-      (async () => {
-        const wait = () => new Promise((resolve) => setTimeout(resolve, 100))
-        document.querySelector('.notation-event[data-event-id="m1-d4"]')
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-        await wait()
-        for (const [label, value] of [['선택 요약 코드', 'Dm7'], ['선택 요약 보표 글자', 'cantabile']]) {
-          const input = document.querySelector('input[aria-label="' + label + '"]')
-          if (!input || input.disabled) throw new Error('Missing editable property: ' + label)
-          input.focus()
-          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
-          input.dispatchEvent(new Event('input', { bubbles: true }))
-          input.blur()
-          input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
-          await wait()
-        }
-        const dock = document.querySelector('.docked-properties')
-        const box = dock.getBoundingClientRect()
-        const preview = document.querySelector('.notation-preview')
-        const tempo = preview.querySelector('.notation-tempo-marking').getBoundingClientRect()
-        const rehearsal = preview.querySelector('.notation-rehearsal-mark').getBoundingClientRect()
-        const rehearsalFrame = preview.querySelector('.notation-rehearsal-mark rect').getBoundingClientRect()
-        const harmony = preview.querySelector('.notation-harmony-mark').getBoundingClientRect()
-        const beforeWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
-        document.querySelector('button[aria-label="팔레트 표시"]').click()
-        document.querySelector('button[aria-label="속성 표시"]').click()
-        await wait()
-        const expandedWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
-        const panelsHidden = ['.docked-palette', '.docked-properties'].every((selector) => getComputedStyle(document.querySelector(selector)).display === 'none')
-        document.querySelector('button[aria-label="팔레트 표시"]').click()
-        document.querySelector('button[aria-label="속성 표시"]').click()
-        await wait()
-        return {
-          panelsHidden,
-          canvasExpands: expandedWidth > beforeWidth,
-          chord: document.querySelector('input[aria-label="선택 요약 코드"]').value,
-          staffText: document.querySelector('input[aria-label="선택 요약 보표 글자"]').value,
-          renderedText: document.querySelector('.notation-preview').textContent,
-          overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-          dockWidth: box.width,
-          scoreOverflow: preview.scrollWidth > preview.clientWidth + 1,
-          tempoRehearsalOverlap: tempo.left < rehearsal.right && tempo.right > rehearsal.left && tempo.top < rehearsal.bottom && tempo.bottom > rehearsal.top,
-          rehearsalHarmonyOverlap: rehearsalFrame.left < harmony.right && rehearsalFrame.right > harmony.left && rehearsalFrame.top < harmony.bottom && rehearsalFrame.bottom > harmony.top,
-          inputOverflow: [...dock.querySelectorAll('input, select')].some((input) => input.getBoundingClientRect().right > box.right + 1)
-        }
-      })()
-    `)
-    if (result.chord !== 'Dm7' || result.staffText !== 'cantabile' ||
-        !result.renderedText.includes('cantabile') || !result.panelsHidden || !result.canvasExpands || result.overflow || result.inputOverflow || result.scoreOverflow || result.tempoRehearsalOverlap || result.rehearsalHarmonyOverlap) {
-      throw new Error(`Properties dock workflow failed: ${JSON.stringify(result)}`)
-    }
-    const screenshot = path.join(app.getPath('temp'), `chromatics-v1-properties-${width}.png`)
+    window.setContentSize(width, 900)
+    await loadFixture(window, 'release-test')
+    const result = await window.webContents.executeJavaScript('(' + (async () => {
+      window.__mvpPropertiesTrace = []
+      const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const visible = node => Boolean(node && node.checkVisibility() && node.getBoundingClientRect().width > 0)
+      const click = async (name, scope) => {
+        const root = scope ? document.querySelector(scope) : document
+        const node = [...root.querySelectorAll('button')].find(node => visible(node) && (node.getAttribute('aria-label') || node.textContent.trim()) === name)
+        if (!node || node.disabled) throw Error('Unavailable live properties action: ' + name + JSON.stringify(window.__mvpPropertiesTrace))
+        node.focus(); node.click(); await wait()
+      }
+      const menu = async (name, command) => {
+        await click(name, '.studio-application-menu')
+        await click(command, '.studio-application-menu')
+      }
+      const note = document.querySelector('.notation-event[data-event-id="m1-d4"]')
+      if (!visible(note)) throw Error('Actual fixture note required')
+      note.dispatchEvent(new MouseEvent('click', { bubbles: true })); await wait()
+      await menu('도구', '선택 속성 열기')
+      const field = label => {
+        const input = document.querySelector('.studio-selected-properties input[aria-label="' + label + '"]')
+        if (!visible(input) || input.disabled || !input.closest('.dd-input-row')) throw Error('Visible public property required: ' + label)
+        return input
+      }
+      const read = () => ({
+        chord: field('선택 요약 코드').value,
+        staffText: field('선택 요약 보표 글자').value,
+        history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent,
+        selected: [...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId),
+        events: document.querySelectorAll('.notation-event').length
+      })
+      const before = read(), commits = []
+      for (const [label, value, enter] of [['선택 요약 코드', 'Dm7', false], ['선택 요약 보표 글자', 'cantabile', true]]) {
+        const input = field(label)
+        input.scrollIntoView({ block: 'nearest' }); input.focus()
+        window.__mvpPropertiesTrace.push({ phase: 'focus', label, active: document.activeElement === input, value: input.value })
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true })); await wait()
+        if (enter) input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }))
+        else input.blur()
+        input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+        await wait(); commits.push(read());window.__mvpPropertiesTrace.push({phase:'commit',...read()})
+      }
+      const changed = read(), history = []
+      for (const command of ['실행 취소', '실행 취소', '다시 실행', '다시 실행']) {
+        await menu('편집', command); history.push(read())
+      }
+      const dock = document.querySelector('.docked-properties')
+      if (!visible(dock)) throw Error('Properties dock must be visible before measuring it')
+      const box = dock.getBoundingClientRect(), widthsBefore = localStorage.getItem('chromatics.dock-widths.v1')
+      const preview = document.querySelector('.notation-preview')
+      const tempo = preview.querySelector('.notation-tempo-marking').getBoundingClientRect()
+      const rehearsal = preview.querySelector('.notation-rehearsal-mark').getBoundingClientRect()
+      const rehearsalFrame = preview.querySelector('.notation-rehearsal-mark rect').getBoundingClientRect()
+      const harmony = preview.querySelector('.notation-harmony-mark').getBoundingClientRect()
+      const beforeWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
+      // Shared sidebar: close the currently active properties pane, then the
+      // fallback palette. Switching to an inactive pane is not a close action.
+      await click('속성 표시'); await click('팔레트 표시')
+      const expandedWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
+      const panelsHidden = ['.docked-palette', '.docked-properties'].every(selector => !visible(document.querySelector(selector)))
+      await click('팔레트 표시'); await click('속성 표시')
+      const restored = read(), restoredWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
+      const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      const inputOverflow = [...dock.querySelectorAll('input,[role="combobox"]')].filter(visible).some(input => {
+        const b = input.getBoundingClientRect()
+        return b.left < box.left - 1 || b.right > box.right + 1
+      })
+      field('선택 요약 보표 글자').focus(); await wait()
+      return {
+        before, commits, changed, history, restored, panelsHidden,
+        canvasExpands: expandedWidth > beforeWidth, canvasWidthRestored: Math.abs(restoredWidth - beforeWidth) < 1,
+        widthsPreserved: widthsBefore === localStorage.getItem('chromatics.dock-widths.v1'),
+        renderedText: preview.textContent, dockWidth: box.width,
+        overflow: document.documentElement.scrollWidth > innerWidth + 1,
+        scoreOverflow: preview.scrollWidth > preview.clientWidth + 1,
+        tempoRehearsalOverlap: overlap(tempo, rehearsal),
+        rehearsalHarmonyOverlap: overlap(rehearsalFrame, harmony), inputOverflow
+      }
+    }).toString() + ')()')
+    fs.writeFileSync(path.join(mvpArtifacts, 'properties-' + width + '.json'), JSON.stringify(result, null, 2))
+    const {before, commits, changed, history, restored} = result
+    const sameSelection = row => JSON.stringify(row.selected) === JSON.stringify(before.selected) && row.events === before.events
+    const originalValues = row => row.chord === before.chord && row.staffText === before.staffText
+    const changedValues = row => row.chord === 'Dm7' && row.staffText === 'cantabile'
+    if (before.history !== '0회 수정' || commits[0].history !== '1회 수정' || commits[1].history !== '2회 수정' ||
+        !changedValues(changed) || !changedValues(restored) ||
+        history.map(row => row.history).join('|') !== '1회 수정|0회 수정|1회 수정|2회 수정' ||
+        history[0].chord !== 'Dm7' || history[0].staffText !== before.staffText ||
+        !originalValues(history[1]) || !changedValues(history[3]) ||
+        ![...commits, changed, ...history, restored].every(sameSelection) ||
+        !result.renderedText.includes('cantabile') || !result.panelsHidden || !result.canvasExpands ||
+        !result.canvasWidthRestored || !result.widthsPreserved || result.dockWidth < 200 || result.dockWidth > 360 ||
+        result.overflow || result.inputOverflow || result.scoreOverflow ||
+        result.tempoRehearsalOverlap || result.rehearsalHarmonyOverlap)
+      throw Error('Properties dock workflow failed: ' + JSON.stringify(result))
+    const screenshot = path.join(mvpArtifacts, 'properties-' + width + '.png')
     fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
-    captures.push({ width, screenshot, ...result, renderedText: undefined })
+    captures.push({width, screenshot, ...result, renderedText: undefined})
   }
   return captures
 }
 
+async function clickStudioButton(window, label, scope = '.studio-application-menu') {
+  return window.webContents.executeJavaScript('(' + (async ({label, scope}) => {
+    const root = scope ? document.querySelector(scope) : document
+    const node = [...root.querySelectorAll('button')].find(node =>
+      node.checkVisibility() && (node.getAttribute('aria-label') || node.textContent.trim()) === label)
+    if (!node || node.disabled) throw Error('Unavailable live command: ' + label)
+    node.focus(); node.click()
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  }).toString() + ')(' + JSON.stringify({label, scope}) + ')')
+}
+
+async function openStudioCommand(window, menu, command) {
+  await clickStudioButton(window, menu)
+  await clickStudioButton(window, command)
+}
+
+async function chooseStudioValue(window, label, value, scope = 'main') {
+  return window.webContents.executeJavaScript('(' + (async ({label, value, scope}) => {
+    const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const root = document.querySelector(scope)
+    const control = [...root.querySelectorAll('button[role="combobox"]')].find(node =>
+      node.checkVisibility() && (node.getAttribute('aria-label') || node.labels?.[0]?.textContent.trim()) === label)
+    if (!control || control.disabled || control.getAttribute('aria-disabled') === 'true') throw Error('Unavailable public Select: ' + label)
+    control.focus(); control.click(); await wait()
+    const list = document.getElementById(control.getAttribute('aria-controls'))
+    if (!list?.checkVisibility()) throw Error('Visible public listbox required: ' + label)
+    const option = [...list.querySelectorAll('[role="option"]')].find(node => node.dataset.value === value)
+    if (!option || option.disabled || option.getAttribute('aria-disabled') === 'true') throw Error('Unavailable option: ' + label + ':' + value)
+    const chosen = option.textContent.trim(); option.click(); await wait()
+    if (control.isConnected && control.getAttribute('aria-expanded') !== 'false') throw Error('Select must close after commitment: ' + label)
+    if (control.isConnected && control.textContent.trim() !== chosen) throw Error('Controlled Select label must reflect committed option: ' + label)
+    return {label, value, chosen}
+  }).toString() + ')(' + JSON.stringify({label, value, scope}) + ')')
+}
+
+async function readStudioValue(window, label, scope) {
+  return window.webContents.executeJavaScript('(' + (async ({label, scope}) => {
+    const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const control = [...document.querySelector(scope).querySelectorAll('button[role="combobox"]')].find(node =>
+      (node.getAttribute('aria-label') || node.labels?.[0]?.textContent.trim()) === label)
+    if (!control || !control.checkVisibility() || control.disabled) throw Error('Visible readable public Select required: ' + label)
+    control.focus(); control.click(); await wait()
+    const list = document.getElementById(control.getAttribute('aria-controls'))
+    if (!list?.checkVisibility()) throw Error('Visible selected-value list required: ' + label)
+    const selected = list.querySelector('[role="option"][aria-selected="true"]')
+    if (!selected || selected.textContent.trim() !== control.textContent.trim()) throw Error('Selected option must match controlled display: ' + label)
+    const result = {value: selected.dataset.value, text: selected.textContent.trim()}
+    control.click(); await wait()
+    return result
+  }).toString() + ')(' + JSON.stringify({label, scope}) + ')')
+}
+
+async function fillStudioInput(window, label, value, scope) {
+  return window.webContents.executeJavaScript('(' + (async ({label, value, scope}) => {
+    const input = [...document.querySelector(scope).querySelectorAll('input')].find(node =>
+      (node.getAttribute('aria-label') || node.labels?.[0]?.textContent.trim()) === label)
+    if (!input || !input.checkVisibility() || input.disabled) throw Error('Visible enabled public Input required: ' + label)
+    input.focus()
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+    input.dispatchEvent(new Event('input', {bubbles: true}))
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    // Headless Electron does not consistently emit the browser focusout event.
+    // This is a renderer adapter check, not native keyboard/blur approval.
+    input.dispatchEvent(new FocusEvent('focusout', {bubbles: true}))
+    input.blur()
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    if (input.value !== value) throw Error('Public Input did not retain value: ' + label)
+  }).toString() + ')(' + JSON.stringify({label, value, scope}) + ')')
+}
+
 async function verifyPartViewHeadlessExportState(window) {
+  window.setContentSize(1400, 900)
   await loadFixture(window)
-  window.setSize(1400, 900)
-  await new Promise((resolve) => setTimeout(resolve, 500))
-
-  const result = await window.webContents.executeJavaScript(`
-    (async () => {
-      const wait = () => new Promise((resolve) => setTimeout(resolve, 120))
-      const setSelectValue = (select, value) => {
-        if (!select) {
-          throw new Error('Select control not found.')
-        }
-
-        const setter = Object.getOwnPropertyDescriptor(
-          HTMLSelectElement.prototype,
-          'value'
-        ).set
-        setter.call(select, value)
-        select.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-      const clickToolbar = async (label) => {
-        const button = [...document.querySelectorAll('.toolbar-tabs button')]
-          .find((candidate) => candidate.textContent.trim() === label)
-
-        if (!button) {
-          throw new Error(\`Toolbar tab not found: \${label}\`)
-        }
-
-        button.click()
-        await wait()
-      }
-      const openNewScore = async () => {
-        document
-          .querySelector('button[aria-label="새 악보 만들기"]')
-          ?.click()
-        await wait()
-
-        setSelectValue(
-          [...document.querySelectorAll('.new-score-form label')]
-            .find((label) => label.textContent?.includes('악보 구성'))
-            ?.querySelector('select'),
-          'string-quartet'
-        )
-        document
-          .querySelector('form[aria-label="새 악보 만들기"]')
-          ?.dispatchEvent(
-            new SubmitEvent('submit', {
-              bubbles: true,
-              cancelable: true
-            })
-          )
-        await new Promise((resolve) => setTimeout(resolve, 350))
-      }
-
-      await openNewScore()
-      await clickToolbar('악보')
-      setSelectValue(
-        document.querySelector('select[aria-label="악보 보기"]'),
-        'part'
-      )
-      await wait()
-      setSelectValue(
-        document.querySelector('select[aria-label="파트보 선택"]'),
-        'viola'
-      )
-      await wait()
-      await clickToolbar('내보내기')
-      setSelectValue(
-        document.querySelector('select[aria-label="PDF 설정 프리셋"]'),
-        'compact-parts'
-      )
-      await wait()
-
-      const page = document.querySelector('.score-page')
-      const partTitle = document.querySelector('[aria-label="파트보 제목"]')
-      const partIds = [
-        ...new Set(
-          [...document.querySelectorAll('.notation-event')]
-            .map((event) => event.getAttribute('data-part-id'))
-            .filter(Boolean)
-        )
-      ]
-      const staffLabels = [
-        ...document.querySelectorAll('.notation-staff-label')
-      ].map((label) => ({
-        partId: label.getAttribute('data-part-id'),
-        staffId: label.getAttribute('data-staff-id'),
-        text: label.textContent?.trim()
-      }))
-
-      return {
-        exportButtons: [
-          ...document.querySelectorAll('.export-actions button')
-        ].map((button) => ({
-          ariaLabel: button.getAttribute('aria-label'),
-          title: button.getAttribute('title'),
-          text: button.textContent.trim()
-        })),
-        page: {
-          margin: page?.getAttribute('data-pdf-page-margin-mm'),
-          orientation: page?.getAttribute('data-pdf-page-orientation'),
-          partId: page?.getAttribute('data-part-id'),
-          size: page?.getAttribute('data-pdf-page-size'),
-          staffSize: page?.getAttribute('data-pdf-staff-size-percent'),
-          systemSpacing: page?.getAttribute(
-            'data-pdf-system-spacing-percent'
-          ),
-          viewMode: page?.getAttribute('data-view-mode')
-        },
-        partIds,
-        partTitle: {
-          partId: partTitle?.getAttribute('data-part-id'),
-          text: partTitle?.textContent?.trim()
-        },
-        staffLabels,
-        status: [...document.querySelectorAll('.editor-status span')]
-          .map((value) => value.textContent?.trim())
-          .at(-1),
-        toolbarActive:
-          document
-            .querySelector('.toolbar-tabs button[aria-pressed="true"]')
-            ?.textContent.trim()
-      }
-    })()
-  `)
-
-  const exportAriaLabels = result.exportButtons.map((button) => button.ariaLabel)
-
-  if (
-    result.toolbarActive !== '내보내기' ||
-    result.page.viewMode !== 'part' ||
-    result.page.partId !== 'viola' ||
-    result.page.margin !== '6' ||
-    result.page.staffSize !== '90' ||
-    result.page.systemSpacing !== '90' ||
-    result.partTitle.text !== 'Viola' ||
-    result.partTitle.partId !== 'viola' ||
-    result.partIds.join('|') !== 'viola' ||
-    !result.staffLabels.every((label) => label.partId === 'viola') ||
-    !exportAriaLabels.includes('PDF 변환') ||
-    !exportAriaLabels.includes('MIDI 내보내기')
-  ) {
-    throw new Error(
-      `Part view headless export state verification failed: ${JSON.stringify(result)}`
-    )
-  }
-
+  await openStudioCommand(window, '파일', '새 악보 만들기')
+  await chooseStudioValue(window, '악보 구성', 'string-quartet', '.studio-new-score-form')
+  await clickStudioButton(window, '만들기', '.studio-new-score-form')
+  await openStudioCommand(window, '형식', '악보 설정')
+  await chooseStudioValue(window, '악보 보기', 'part', '.studio-score-view')
+  await chooseStudioValue(window, '파트보 선택', 'viola', '.studio-score-view')
+  await openStudioCommand(window, '파일', '내보내기 설정')
+  await chooseStudioValue(window, 'PDF 설정 프리셋', 'compact-parts', '.studio-page-setup')
+  const result = await window.webContents.executeJavaScript('(' + (() => {
+    const page = document.querySelector('.score-page'), partTitle = document.querySelector('[aria-label="파트보 제목"]')
+    const exports = document.querySelector('.studio-export-tools')
+    return {
+      exportVisible: exports?.checkVisibility(),
+      exportButtons: [...exports.querySelectorAll('button')].filter(node => node.checkVisibility()).map(node => ({
+        ariaLabel: node.getAttribute('aria-label'), title: node.getAttribute('title'),
+        text: node.textContent.trim(), common: node.classList.contains('dd-button')
+      })),
+      page: {
+        margin: page.getAttribute('data-pdf-page-margin-mm'), orientation: page.getAttribute('data-pdf-page-orientation'),
+        partId: page.getAttribute('data-part-id'), size: page.getAttribute('data-pdf-page-size'),
+        staffSize: page.getAttribute('data-pdf-staff-size-percent'), systemSpacing: page.getAttribute('data-pdf-system-spacing-percent'),
+        viewMode: page.getAttribute('data-view-mode')
+      },
+      partIds: [...new Set([...document.querySelectorAll('.notation-event')].map(node => node.dataset.partId).filter(Boolean))],
+      partTitle: {partId: partTitle?.dataset.partId, text: partTitle?.textContent.trim()},
+      staffLabels: [...document.querySelectorAll('.notation-staff-label')].map(node => ({partId: node.dataset.partId, staffId: node.dataset.staffId, text: node.textContent.trim()})),
+      history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent,
+      status: document.querySelector('.editor-status').textContent
+    }
+  }).toString() + ')()')
+  fs.writeFileSync(path.join(mvpArtifacts, 'part-view.json'), JSON.stringify(result, null, 2))
+  const exportAriaLabels = result.exportButtons.map(button => button.ariaLabel)
+  if (!result.exportVisible || !result.exportButtons.every(button => button.common) ||
+      result.page.viewMode !== 'part' || result.page.partId !== 'viola' || result.page.margin !== '6' ||
+      result.page.staffSize !== '90' || result.page.systemSpacing !== '90' || result.partTitle.text !== 'Viola' ||
+      result.partTitle.partId !== 'viola' || result.partIds.join('|') !== 'viola' ||
+      !result.staffLabels.every(label => label.partId === 'viola') ||
+      !exportAriaLabels.includes('PDF 변환') || !exportAriaLabels.includes('MIDI 내보내기'))
+    throw Error('Part view export state verification failed: ' + JSON.stringify(result))
+  await clickStudioButton(window, '악보로 이동', null)
+  fs.writeFileSync(path.join(mvpArtifacts, 'part-view.png'), (await window.webContents.capturePage()).toPNG())
   return result
 }
 
 async function verifyPartXmlExportRoundTrip(window) {
-  // The preceding workflow leaves a Viola part view. Intercept only file I/O;
-  // App projection, serializer, parser and notation renderer remain real.
-  const exported = await window.webContents.executeJavaScript(`
-    (async () => {
-      let request
-      window.inC = {
-        musicXml: { exportCopy: async input => {
-          request = input
-          return { fileName: input.suggestedName, filePath: '/headless/viola.musicxml' }
-        } }
-      }
-      document.querySelector('button[aria-label="MusicXML 내보내기"]').click()
-      await new Promise(resolve => setTimeout(resolve, 250))
-      if (!request) throw new Error('Part XML request missing: ' + document.querySelector('.editor-status').textContent)
-      const xml = new DOMParser().parseFromString(request.contents, 'application/xml')
-      return {
-        ...request,
-        partNames: [...xml.querySelectorAll('score-part > part-name')].map(node => node.textContent),
-        partCount: xml.querySelectorAll('score-partwise > part').length,
-        noteCount: xml.querySelectorAll('note').length,
-        parseError: Boolean(xml.querySelector('parsererror'))
-      }
-    })()
-  `)
-  if (exported.parseError || exported.partCount !== 1 ||
-      exported.partNames.join('|') !== 'Viola' || exported.noteCount !== 8 ||
-      !exported.suggestedName.endsWith('-viola.musicxml') || exported.filePath) {
-    throw new Error('Selected part XML export failed: ' + JSON.stringify(exported))
-  }
-  const artifact = path.join(app.getPath('temp'), 'chromatics-headless-part-export.musicxml')
+  // Only file I/O is supplied by the harness; App projection, serializer, parser
+  // and renderer remain real. No score object is injected.
+  const exported = await window.webContents.executeJavaScript('(' + (async () => {
+    const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const history = () => [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent
+    const beforeHistory = history()
+    let request
+    window.inC = {musicXml: {exportCopy: async input => {
+      request = input
+      return {fileName: input.suggestedName, filePath: '/headless/viola.musicxml'}
+    }}}
+    const button = document.querySelector('.studio-export-tools button[aria-label="MusicXML 내보내기"]')
+    if (!button?.checkVisibility() || button.disabled) throw Error('Visible part XML export action required')
+    button.focus(); button.click()
+    const started = performance.now()
+    while (!request) {
+      if (performance.now() - started > 4000) throw Error('Part XML request missing')
+      await wait()
+    }
+    await wait()
+    const xml = new DOMParser().parseFromString(request.contents, 'application/xml')
+    return {
+      ...request, beforeHistory, afterHistory: history(),
+      partNames: [...xml.querySelectorAll('score-part > part-name')].map(node => node.textContent),
+      partCount: xml.querySelectorAll('score-partwise > part').length, noteCount: xml.querySelectorAll('note').length,
+      parseError: Boolean(xml.querySelector('parsererror'))
+    }
+  }).toString() + ')()')
+  if (exported.parseError || exported.partCount !== 1 || exported.partNames.join('|') !== 'Viola' ||
+      exported.noteCount !== 8 || !exported.suggestedName.endsWith('-viola.musicxml') || exported.filePath ||
+      exported.beforeHistory !== exported.afterHistory)
+    throw Error('Selected part XML export failed: ' + JSON.stringify(exported))
+  const artifact = path.join(mvpArtifacts, 'selected-viola.musicxml')
   fs.writeFileSync(artifact, exported.contents)
   const contents = fs.readFileSync(artifact, 'utf8')
-  const reopened = await window.webContents.executeJavaScript(`
-    (async () => {
-      window.inC.musicXml.open = async () => ({
-        filePath: ${JSON.stringify(artifact)},
-        fileName: 'chromatics-headless-part-export.musicxml',
-        contents: ${JSON.stringify(contents)}
-      })
-      window.inC.recentMusicXml = { add: async () => [] }
-      window.inC.autosave = { clear: async () => {}, write: async () => {} }
-      document.querySelector('button[aria-label="MusicXML 가져오기"]').click()
-      await new Promise(resolve => setTimeout(resolve, 400))
-      return {
-        parts: [...document.querySelectorAll('select[aria-label="파트보 선택"] option')].map(node => node.textContent),
-        events: document.querySelectorAll('.notation-event').length
-      }
-    })()
-  `)
-  if (reopened.parts.join('|') !== 'Viola' || reopened.events !== 8) {
-    throw new Error('Part XML renderer reopen failed: ' + JSON.stringify(reopened))
-  }
-  return { artifact, partNames: exported.partNames, noteCount: exported.noteCount, reopened }
+  await window.webContents.executeJavaScript('(' + (({artifact, contents}) => {
+    window.inC.musicXml.open = async () => ({filePath: artifact, fileName: 'selected-viola.musicxml', contents})
+    window.inC.recentMusicXml = {add: async () => []}
+    window.inC.autosave = {clear: async () => {}, write: async () => {}}
+  }).toString() + ')(' + JSON.stringify({artifact, contents}) + ')')
+  await openStudioCommand(window, '파일', 'MusicXML 가져오기')
+  await openStudioCommand(window, '형식', '악보 설정')
+  await chooseStudioValue(window, '악보 보기', 'part', '.studio-score-view')
+  const reopened = await window.webContents.executeJavaScript('(' + (async () => {
+    const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const control = [...document.querySelectorAll('.studio-score-view [role="combobox"]')].find(node => node.labels?.[0]?.textContent.trim() === '파트보 선택')
+    if (!control?.checkVisibility() || control.disabled) throw Error('Visible reopened part selector required')
+    control.focus(); control.click(); await wait()
+    const list = document.getElementById(control.getAttribute('aria-controls'))
+    if (!list?.checkVisibility()) throw Error('Visible reopened part choices required')
+    const parts = [...list.querySelectorAll('[role="option"]')].map(node => node.textContent.trim())
+    control.click(); await wait()
+    return {parts, events: document.querySelectorAll('.notation-event').length}
+  }).toString() + ')()')
+  if (reopened.parts.join('|') !== 'Viola' || reopened.events !== 8)
+    throw Error('Part XML renderer reopen failed: ' + JSON.stringify(reopened))
+  fs.writeFileSync(path.join(mvpArtifacts, 'part-xml-round-trip.json'), JSON.stringify({...exported, contents: undefined, reopened}, null, 2))
+  return {artifact, partNames: exported.partNames, noteCount: exported.noteCount, beforeHistory: exported.beforeHistory, afterHistory: exported.afterHistory, reopened}
 }
 
 async function verifyPlaybackMixerHeadlessState(window) {
+  window.setContentSize(1280, 900)
   await loadFixture(window)
-  window.setSize(1280, 900)
-  await new Promise((resolve) => setTimeout(resolve, 400))
-
-  const result = await window.webContents.executeJavaScript(`
-    (async () => {
-      const wait = () => new Promise((resolve) => setTimeout(resolve, 120))
-      const clickToolbar = async (label) => {
-        const button = [...document.querySelectorAll('.toolbar-tabs button')]
-          .find((candidate) => candidate.textContent.trim() === label)
-
-        if (!button) {
-          throw new Error(\`Toolbar tab not found: \${label}\`)
-        }
-
-        button.click()
-        await wait()
-      }
-
-      await clickToolbar('재생')
-
-      const volume = document.querySelector('input[aria-label="Melody 볼륨"]')
-      if (volume) {
-        const setter = Object.getOwnPropertyDescriptor(
-          HTMLInputElement.prototype,
-          'value'
-        ).set
-        setter.call(volume, '75')
-        volume.dispatchEvent(new Event('input', { bubbles: true }))
-        volume.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-      document.querySelector('button[aria-label="재생"]')?.click()
-      await new Promise((resolve) => setTimeout(resolve, 600))
-
-      const activity = document.querySelector(
-        '[aria-label="Melody 재생 상태"]'
-      )
-      const row = activity?.closest('.part-mixer__row')
-
-      return {
-        activity: activity?.textContent?.trim(),
-        active: row?.getAttribute('data-playback-active'),
-        mixerStorage: JSON.parse(
-          window.localStorage.getItem('chromatics.part-mixer.v1') ?? '{}'
-        ),
-        toolbarActive:
-          document
-            .querySelector('.toolbar-tabs button[aria-pressed="true"]')
-            ?.textContent.trim(),
-        volumeText: row?.querySelector('.part-mixer__volume output')
-          ?.textContent?.trim()
-      }
-    })()
-  `)
-
-  if (
-    result.toolbarActive !== '재생' ||
-    result.volumeText !== '75%' ||
-    result.mixerStorage['part-1']?.volume !== 0.75 ||
-    !['재생 중', '대기'].includes(result.activity) ||
-    !['true', 'false'].includes(result.active)
-  ) {
-    throw new Error(
-      `Playback mixer headless state verification failed: ${JSON.stringify(result)}`
-    )
-  }
-
-  return result
+  await openStudioCommand(window, '도구', '재생 도구')
+  const result = await window.webContents.executeJavaScript('(' + (async () => {
+    const wait = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const mixer = document.querySelector('.studio-part-mixer')
+    if (!mixer?.checkVisibility()) throw Error('Visible mixer required')
+    const volume = [...mixer.querySelectorAll('input[type="range"]')].find(node => node.labels?.[0]?.textContent.trim().startsWith('Melody 볼륨'))
+    if (!volume?.checkVisibility() || volume.disabled || !volume.closest('.dd-field')) throw Error('Visible public volume slider required')
+    const documentState = () => ({
+      selected: [...document.querySelectorAll('.notation-event.is-selected')].map(node => node.dataset.eventId),
+      events: document.querySelectorAll('.notation-event').length,
+      history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent
+    })
+    const before = documentState()
+    volume.focus()
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(volume, '75')
+    volume.dispatchEvent(new Event('input', { bubbles: true }))
+    volume.dispatchEvent(new Event('change', { bubbles: true }))
+    await wait()
+    const afterVolume = documentState()
+    const play = document.querySelector('.studio-playback button[aria-label="재생"]')
+    if (!play?.checkVisibility() || play.disabled) throw Error('Visible transport play action required')
+    play.click(); await new Promise(resolve => setTimeout(resolve, 600))
+    const activity = document.querySelector('[aria-label="Melody 재생 상태"]'), row = activity?.closest('.studio-part-mixer__row')
+    const value = {
+      activity: activity?.textContent.trim(), active: row?.getAttribute('data-playback-active'),
+      mixerStorage: JSON.parse(localStorage.getItem('chromatics.part-mixer.v1') ?? '{}'),
+      volumeText: volume.labels?.[0]?.querySelector('.dd-numeric')?.textContent.trim(),
+      accessibleValue: volume.getAttribute('aria-valuetext'),
+      min: volume.min, max: volume.max, step: volume.step, mixerVisible: mixer.checkVisibility(),
+      transportVisible: document.querySelector('.studio-playback').checkVisibility()
+    }
+    const stop = document.querySelector('.studio-playback button[aria-label="정지"]')
+    if (!stop.disabled) stop.click()
+    await wait()
+    const afterStop = documentState()
+    const toggle = document.querySelector('.studio-playback button[aria-label="믹서 표시"]')
+    toggle.click(); await wait()
+    const hidden = !mixer.checkVisibility()
+    toggle.click(); await wait()
+    return {
+      ...value, before, afterVolume, afterStop, after: documentState(), hiddenAndReopened: hidden && mixer.checkVisibility(),
+      reopenedVolume: volume.getAttribute('aria-valuetext'),
+      reopenedStoredVolume: JSON.parse(localStorage.getItem('chromatics.part-mixer.v1') ?? '{}')['part-1']?.volume
+    }
+  }).toString() + ')()')
+  fs.writeFileSync(path.join(mvpArtifacts, 'mixer.json'), JSON.stringify(result, null, 2))
+  if (!result.mixerVisible || !result.transportVisible || result.volumeText !== '75%' || result.accessibleValue !== '75%' ||
+      result.mixerStorage['part-1']?.volume !== 0.75 || result.min !== '0' || result.max !== '150' || result.step !== '5' ||
+      !['재생 중', '대기'].includes(result.activity) || !['true', 'false'].includes(result.active) ||
+      !result.hiddenAndReopened || result.reopenedVolume !== '75%' || result.reopenedStoredVolume !== 0.75 ||
+      JSON.stringify(result.before) !== JSON.stringify(result.afterVolume) ||
+      JSON.stringify(result.afterStop) !== JSON.stringify(result.after) ||
+      result.before.events !== result.after.events || result.before.history !== result.after.history)
+    throw Error('Playback mixer state verification failed: ' + JSON.stringify(result))
+  // Playback follows score selection and may scroll the independent panel away.
+  // Capture the real menu return, not an offscreen checkVisibility() claim.
+  await openStudioCommand(window, '도구', '재생 도구')
+  const viewport = await window.webContents.executeJavaScript('(' + (() => {
+    const panel = document.querySelector('.studio-part-mixer'), b = panel.getBoundingClientRect()
+    const footer = document.querySelector('.studio-status').getBoundingClientRect()
+    return {panel: b.toJSON(), activeInside: panel.contains(document.activeElement), viewport: [innerWidth, innerHeight], limit: Math.min(innerHeight, footer.top)}
+  }).toString() + ')()')
+  fs.writeFileSync(path.join(mvpArtifacts, 'mixer-viewport.json'), JSON.stringify(viewport, null, 2))
+  fs.writeFileSync(path.join(mvpArtifacts, 'mixer.png'), (await window.webContents.capturePage()).toPNG())
+  return {...result, viewport}
 }
 
 async function verifyNewScoreWizard(window) {
   await loadFixture(window)
 
-  await executeMetadataStep(
-    window,
-    'open new score wizard',
-    `
-    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  await executeMetadataStep(
-    window,
-    'fill new score wizard',
-    `
-    const setInputValue = (input, value) => {
-      if (!input) {
-        throw new Error('New score input not found.')
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value'
-      ).set
-      setter.call(input, value)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    }
-    const setSelectValue = (select, value) => {
-      if (!select) {
-        throw new Error('New score select not found.')
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value'
-      ).set
-      setter.call(select, value)
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-    const labels = [...document.querySelectorAll('.new-score-form label')]
-    const field = (name) =>
-      labels.find((label) => label.textContent?.includes(name))
-        ?.querySelector('input, select')
-
-    setInputValue(field('제목'), '새 출발')
-    setInputValue(field('작곡가'), '김작곡')
-    setSelectValue(field('조표'), 'd-major')
-    setSelectValue(field('박자표'), '3-4')
-    setInputValue(field('마디 수'), '3')
-    setInputValue(field('빠르기'), '96')
-    document
-      .querySelector('form[aria-label="새 악보 만들기"]')
-      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  await openStudioCommand(window, '파일', '새 악보 만들기')
+  const choices = []
+  for (const [label, value] of [['제목', '새 출발'], ['작곡가', '김작곡'], ['마디 수', '3'], ['빠르기', '96']]) {
+    await window.webContents.executeJavaScript('(' + (async ({label, value}) => {
+      const input = [...document.querySelectorAll('.studio-new-score-form input')].find(node =>
+        node.labels?.[0]?.textContent.trim() === label)
+      if (!input || !input.checkVisibility() || input.disabled) throw Error('Visible enabled wizard Input required: ' + label)
+      input.focus()
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', {bubbles: true}))
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      input.blur()
+      if (input.value !== value) throw Error('Wizard input did not retain draft: ' + label)
+    }).toString() + ')(' + JSON.stringify({label, value}) + ')')
+  }
+  for (const [label, value] of [['조표', 'd-major'], ['박자표', '3-4']]) {
+    choices.push(await chooseStudioValue(window, label, value, '.studio-new-score-form'))
+  }
+  const wizardImage = path.join(mvpArtifacts, 'new-score-wizard-' + window.getContentSize()[0] + '.png')
+  fs.writeFileSync(wizardImage, (await window.webContents.capturePage()).toPNG())
+  await clickStudioButton(window, '만들기', '.studio-new-score-form')
+  await new Promise(resolve => setTimeout(resolve, 150))
+  await openStudioCommand(window, '형식', '악보 설정')
 
   const result = await window.webContents.executeJavaScript(`
     (() => {
@@ -2638,9 +2454,11 @@ async function verifyNewScoreWizard(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         selectedEvent,
         selectedMeasure,
-        tempo: document
-          .querySelector('section[aria-label="빠르기"] output')
-          ?.textContent?.trim(),
+        history: statusValues.find(value => value?.endsWith('회 수정')),
+        tempo: Number(document.querySelector('.studio-tempo-tools input[type="range"]')?.value),
+        tempoValueText: document.querySelector('.studio-tempo-tools input[type="range"]')?.getAttribute('aria-valuetext'),
+        tempoVisible: document.querySelector('.studio-tempo-tools input[type="range"]')?.checkVisibility(),
+        tempoPreview: document.querySelector('.studio-tempo-tools output')?.textContent?.trim(),
         fullRestCenterDelta,
         status: statusValues.at(-1),
         dialogOpen: Boolean(
@@ -2657,7 +2475,11 @@ async function verifyNewScoreWizard(window) {
     result.eventCount !== 3 ||
     result.selectedEvent !== 'measure-1-full-measure-rest' ||
     result.selectedMeasure !== '1' ||
-    result.tempo !== '96 BPM' ||
+    result.history !== '0회 수정' ||
+    result.tempo !== 96 ||
+    result.tempoValueText !== '96 BPM' ||
+    !result.tempoVisible ||
+    result.tempoPreview !== '♩ = 96' ||
     typeof result.fullRestCenterDelta !== 'number' ||
     result.fullRestCenterDelta > 12 ||
     result.status !== '새 악보를 만들었습니다.' ||
@@ -2668,7 +2490,23 @@ async function verifyNewScoreWizard(window) {
     )
   }
 
-  return result
+  await clickStudioButton(window, '악보로 이동', null)
+  // A hidden BrowserWindow can return layout coordinates before compositor
+  // capture catches up with the document scroll. Keep that QA boundary explicit.
+  await new Promise(resolve => setTimeout(resolve, 300))
+  const returnedToScore = await window.webContents.executeJavaScript(`(() => {
+    const selected = document.querySelector('.notation-event.is-selected')
+    const rect = selected?.getBoundingClientRect()
+    const footer = document.querySelector('.studio-status').getBoundingClientRect()
+    return { focused: document.activeElement === selected, event: selected?.dataset.eventId,
+      top: rect?.top, bottom: rect?.bottom, footerTop: footer.top, visible: selected?.checkVisibility() }
+  })()`)
+  if (!returnedToScore.visible || !returnedToScore.focused || returnedToScore.event !== result.selectedEvent ||
+      returnedToScore.top < 0 || returnedToScore.bottom > returnedToScore.footerTop)
+    throw Error('New score return target must be visible and focused: ' + JSON.stringify(returnedToScore))
+  const screenshot = path.join(mvpArtifacts, 'new-score-created-' + window.getContentSize()[0] + '.png')
+  fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+  return { ...result, choices, screenshot, wizardImage, returnedToScore }
 }
 
 async function verifyGrandStaffPreview(window) {
@@ -2676,56 +2514,12 @@ async function verifyGrandStaffPreview(window) {
   // layout.multi-staff-notation-object-anchoring
   await loadFixture(window)
 
-  await executeMetadataStep(
-    window,
-    'open grand staff new score wizard',
-    `
-    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  await executeMetadataStep(
-    window,
-    'fill grand staff new score wizard',
-    `
-    const setInputValue = (input, value) => {
-      if (!input) {
-        throw new Error('Grand staff input not found.')
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value'
-      ).set
-      setter.call(input, value)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    }
-    const setSelectValue = (select, value) => {
-      if (!select) {
-        throw new Error('Grand staff select not found.')
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value'
-      ).set
-      setter.call(select, value)
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-    const labels = [...document.querySelectorAll('.new-score-form label')]
-    const field = (name) =>
-      labels.find((label) => label.textContent?.includes(name))
-        ?.querySelector('input, select')
-
-    setInputValue(field('제목'), 'Grand Staff Smoke')
-    setSelectValue(field('악보 구성'), 'piano-grand-staff')
-    setInputValue(field('마디 수'), '3')
-    document
-      .querySelector('form[aria-label="새 악보 만들기"]')
-      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 450))
+  await openStudioCommand(window, '파일', '새 악보 만들기')
+  await fillStudioInput(window, '제목', 'Grand Staff Smoke', '.studio-new-score-form')
+  await fillStudioInput(window, '마디 수', '3', '.studio-new-score-form')
+  await chooseStudioValue(window, '악보 구성', 'piano-grand-staff', '.studio-new-score-form')
+  await clickStudioButton(window, '만들기', '.studio-new-score-form')
+  await new Promise(resolve => setTimeout(resolve, 300))
 
   const result = await window.webContents.executeJavaScript(`
     (() => {
@@ -2871,7 +2665,7 @@ async function verifyGrandStaffPreview(window) {
   if (
     selectedLowerStaff.partId !== 'part-1' ||
     selectedLowerStaff.staffId !== 'staff-2' ||
-    lowerStaffInput.editCount === '0회 수정' ||
+    lowerStaffInput.editCount !== '1회 수정' ||
     lowerStaffInput.eventCount < 6 ||
     lowerStaffInput.lowerStaffEventCount < 3 ||
     lowerStaffInput.selectedPartId !== 'part-1' ||
@@ -2886,58 +2680,12 @@ async function verifyGrandStaffPreview(window) {
     )
   }
 
-  await executeMetadataStep(
-    window,
-    'add lower staff anchored text',
-    `
-    const setInputByLabel = (label, value) => {
-      const input = document.querySelector(\`input[aria-label="\${label}"]\`)
+  await openStudioCommand(window, '도구', '선택 속성 열기')
+  await fillStudioInput(window, '선택 요약 보표 글자', 'lower dolce', '.studio-selected-properties')
+  await chooseStudioValue(window, '입력 마디 셈여림', 'mf', '.studio-selected-properties')
+  await new Promise(resolve => setTimeout(resolve, 200))
 
-      if (!input) {
-        throw new Error(\`Input not found: \${label}\`)
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value'
-      ).set
-      input.focus()
-      setter.call(input, value)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-      input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
-      input.blur()
-    }
-
-    setInputByLabel('보표 글자', 'lower dolce')
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  await executeMetadataStep(
-    window,
-    'add lower staff anchored dynamic',
-    `
-    const setSelectByLabel = (label, value) => {
-      const select = document.querySelector(\`select[aria-label="\${label}"]\`)
-
-      if (!select) {
-        throw new Error(\`Select not found: \${label}\`)
-      }
-
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value'
-      ).set
-      setter.call(select, value)
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-
-    setSelectByLabel('셈여림', 'mf')
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  const lowerStaffAnnotations = await window.webContents.executeJavaScript(`
+  const readAnnotations = () => window.webContents.executeJavaScript(`
     (() => {
       const lowerMeasureId = 'part-1-staff-2-measure-1'
       const lowerStaffLabelY = Number(
@@ -2958,6 +2706,10 @@ async function verifyGrandStaffPreview(window) {
       }
 
       return {
+        history: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent?.endsWith('회 수정'))?.textContent.trim(),
+        selected: document.querySelector('.notation-event.is-selected')?.getAttribute('data-event-id'),
+        eventCount: document.querySelectorAll('.notation-event').length,
+        upperAnnotations: document.querySelectorAll('.notation-staff-text:not([data-measure-id="' + lowerMeasureId + '"]), .notation-dynamic-mark:not([data-measure-id="' + lowerMeasureId + '"])').length,
         dynamic: read(
           '.notation-dynamic-mark[data-measure-id="' + lowerMeasureId + '"]'
         ),
@@ -2968,8 +2720,11 @@ async function verifyGrandStaffPreview(window) {
       }
     })()
   `)
+  const lowerStaffAnnotations = await readAnnotations()
 
   if (
+    lowerStaffAnnotations.history !== '3회 수정' ||
+    lowerStaffAnnotations.upperAnnotations !== 0 ||
     lowerStaffAnnotations.staffText?.text !== 'lower dolce' ||
     lowerStaffAnnotations.dynamic?.text !== 'mf' ||
     !lowerStaffAnnotations.staffText ||
@@ -2982,141 +2737,82 @@ async function verifyGrandStaffPreview(window) {
     )
   }
 
+  const annotationHistory = []
+  for (const command of ['실행 취소', '실행 취소', '다시 실행', '다시 실행']) {
+    await openStudioCommand(window, '편집', command)
+    annotationHistory.push(await readAnnotations())
+  }
+  if (annotationHistory.map(row => row.history).join('|') !== '2회 수정|1회 수정|2회 수정|3회 수정' ||
+      annotationHistory[0].dynamic || annotationHistory[0].staffText?.text !== 'lower dolce' ||
+      annotationHistory[1].staffText || annotationHistory[1].dynamic ||
+      annotationHistory[2].dynamic || annotationHistory[2].staffText?.text !== 'lower dolce' ||
+      annotationHistory[3].dynamic?.text !== 'mf' || annotationHistory[3].staffText?.text !== 'lower dolce' ||
+      !annotationHistory.every(row => row.selected === lowerStaffInput.selectedEventId && row.eventCount === 7 && row.upperAnnotations === 0))
+    throw Error('Grand staff annotation undo/redo contract failed: ' + JSON.stringify(annotationHistory))
+  await clickStudioButton(window, '악보로 이동', null)
+  await new Promise(resolve => setTimeout(resolve, 300))
+  const screenshot = path.join(mvpArtifacts, 'grand-staff-' + window.getContentSize()[0] + '.png')
+  fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+
   return {
     ...result,
     selectedLowerStaff,
     lowerStaffInput,
-    lowerStaffAnnotations
+    lowerStaffAnnotations,
+    annotationHistory,
+    screenshot
   }
 }
 
 async function verifyKeySignatureControl(window) {
-  await loadFixture(window)
-
-  await executeMetadataStep(
-    window,
-    'change key signature from selected measure',
-    `
-    document
-      .querySelector('.notation-measure[data-measure-id="measure-2"]')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-
-    const select = document.querySelector('select[aria-label="조표"]')
-
-    if (!select) {
-      throw new Error('조표 select not found.')
-    }
-
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLSelectElement.prototype,
-      'value'
-    ).set
-    setter.call(select, 'c-major')
-    select.dispatchEvent(new Event('change', { bubbles: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 250))
-
-  const result = await window.webContents.executeJavaScript(`
-    (() => {
-      const statusValues = [
-        ...document.querySelectorAll('.editor-status span')
-      ].map((value) => value.textContent?.trim())
-
-      return {
-        editCount: statusValues.find((value) => value?.endsWith('회 수정')),
-        selectedMeasure: document
-          .querySelector('.notation-measure.is-selected')
-          ?.getAttribute('data-measure-id')
-          ?.match(/^measure-(\\d+)/)?.[1],
-        status: statusValues.at(-1),
-        value: document.querySelector('select[aria-label="조표"]')
-          ?.value
-      }
-    })()
-  `)
-
-  if (
-    result.editCount !== '1회 수정' ||
-    result.selectedMeasure !== '2' ||
-    result.status !== '선택한 마디부터 조표를 바꿨습니다.' ||
-    result.value !== 'c-major'
-  ) {
-    throw new Error(
-      `Key signature control verification failed: ${JSON.stringify(result)}`
-    )
-  }
-
-  return result
+  return verifySignatureControl(window, {label: '조표', measure: 'measure-2', value: 'c-major',
+    status: '선택한 마디부터 조표를 바꿨습니다.'})
 }
 
 async function verifyTimeSignatureControl(window) {
+  return verifySignatureControl(window, {label: '박자표', measure: 'measure-3', value: '2-4',
+    status: '선택한 마디의 박자표를 바꿨습니다.', events: 32})
+}
+
+async function verifySignatureControl(window, expected) {
   await loadFixture(window)
-
-  await executeMetadataStep(
-    window,
-    'select measure for time signature change',
-    `
-    document
-      .querySelector('.notation-measure[data-measure-id="measure-3"]')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 150))
-
-  await executeMetadataStep(
-    window,
-    'change time signature for selected measure',
-    `
-    const select = document.querySelector('select[aria-label="박자표"]')
-
-    if (!select) {
-      throw new Error('박자표 select not found.')
-    }
-
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLSelectElement.prototype,
-      'value'
-    ).set
-    setter.call(select, '2-4')
-    select.dispatchEvent(new Event('change', { bubbles: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 250))
-
-  const result = await window.webContents.executeJavaScript(`
-    (() => {
-      const statusValues = [
-        ...document.querySelectorAll('.editor-status span')
-      ].map((value) => value.textContent?.trim())
-
-      return {
-        editCount: statusValues.find((value) => value?.endsWith('회 수정')),
-        eventCount: document.querySelectorAll('.notation-event').length,
-        selectedMeasure: document
-          .querySelector('.notation-measure.is-selected')
-          ?.getAttribute('data-measure-id')
-          ?.match(/^measure-(\\d+)/)?.[1],
-        status: statusValues.at(-1),
-        value: document.querySelector('select[aria-label="박자표"]')
-          ?.value
-      }
-    })()
-  `)
-
-  if (
-    result.editCount !== '1회 수정' ||
-    result.eventCount !== 32 ||
-    result.selectedMeasure !== '3' ||
-    result.status !== '선택한 마디의 박자표를 바꿨습니다.' ||
-    result.value !== '2-4'
-  ) {
-    throw new Error(
-      `Time signature control verification failed: ${JSON.stringify(result)}`
-    )
+  await window.webContents.executeJavaScript('(' + ((measure) => {
+    const target = document.querySelector('.notation-measure[data-measure-id="' + measure + '"]')
+    if (!target) throw Error('Measure target required: ' + measure)
+    target.dispatchEvent(new MouseEvent('click', {bubbles: true}))
+  }).toString() + ')(' + JSON.stringify(expected.measure) + ')')
+  await openStudioCommand(window, '형식', '악보 설정')
+  const read = async () => {
+    const state = await window.webContents.executeJavaScript('(' + (() => {
+      const status = [...document.querySelectorAll('.editor-status span')].map(node => node.textContent.trim())
+      return { editCount: status.find(value => value.endsWith('회 수정')), status: status.at(-1),
+        selectedMeasure: document.querySelector('.notation-measure.is-selected')?.getAttribute('data-measure-id'),
+        events: document.querySelectorAll('.notation-event').length,
+        measures: document.querySelectorAll('.notation-measure').length }
+    }).toString() + ')()')
+    return {...state, ...await readStudioValue(window, expected.label, '.studio-measure-tools')}
   }
-
-  return result
+  const before = await read()
+  const choice = await chooseStudioValue(window, expected.label, expected.value, '.studio-measure-tools')
+  const changed = await read()
+  if (before.editCount !== '0회 수정' || changed.editCount !== '1회 수정' ||
+      changed.selectedMeasure !== expected.measure || changed.status !== expected.status || changed.value !== expected.value ||
+      (expected.events !== undefined && changed.events !== expected.events))
+    throw Error('Signature command contract failed: ' + JSON.stringify({expected, before, changed}))
+  const history = []
+  for (const command of ['실행 취소', '다시 실행']) {
+    await openStudioCommand(window, '편집', command)
+    history.push(await read())
+  }
+  if (history[0].editCount !== '0회 수정' || history[0].value !== before.value || history[0].events !== before.events ||
+      history[1].editCount !== '1회 수정' || history[1].value !== changed.value || history[1].events !== changed.events ||
+      !history.every(row => row.selectedMeasure === expected.measure && row.measures === before.measures))
+    throw Error('Signature undo/redo contract failed: ' + JSON.stringify(history))
+  await clickStudioButton(window, '악보로 이동', null)
+  await new Promise(resolve => setTimeout(resolve, 300))
+  const screenshot = path.join(mvpArtifacts, 'signature-' + expected.value + '-' + window.getContentSize()[0] + '.png')
+  fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+  return {before, changed, history, choice, screenshot}
 }
 
 async function verifyMeasureDeletion(window) {
@@ -3171,49 +2867,27 @@ async function verifyMeasureDeletion(window) {
     })()
   `)
 
+  const deletionHistory = []
+  for (const command of ['실행 취소', '다시 실행']) {
+    await openStudioCommand(window, '편집', command)
+    deletionHistory.push(await window.webContents.executeJavaScript(`(() => ({
+      edits: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent.endsWith('회 수정'))?.textContent.trim(),
+      events: document.querySelectorAll('.notation-event').length,
+      measures: document.querySelectorAll('.notation-measure').length,
+      selected: document.querySelector('.notation-measure.is-selected')?.getAttribute('data-measure-id')
+    }))()`))
+  }
+  if (deletionHistory[0].edits !== '0회 수정' || deletionHistory[0].events !== 33 || deletionHistory[0].measures !== 8 ||
+      deletionHistory[0].selected !== 'measure-3' || deletionHistory[1].edits !== '1회 수정' ||
+      deletionHistory[1].events !== 30 || deletionHistory[1].measures !== 7 || deletionHistory[1].selected !== 'measure-4')
+    throw Error('Measure deletion undo/redo contract failed: ' + JSON.stringify(deletionHistory))
+
   await loadFixture(window)
-  await executeMetadataStep(
-    window,
-    'create one-measure score',
-    `
-    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  await executeMetadataStep(
-    window,
-    'submit one-measure score',
-    `
-    const labels = [...document.querySelectorAll('.new-score-form label')]
-    const field = (name) =>
-      labels.find((label) => label.textContent?.includes(name))
-        ?.querySelector('input, select')
-    const input = field('마디 수')
-
-    if (!input) {
-      throw new Error('Measure count input not found.')
-    }
-
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      'value'
-    ).set
-    setter.call(input, '1')
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    document
-      .querySelector('form[aria-label="새 악보 만들기"]')
-      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 250))
-  await executeMetadataStep(
-    window,
-    'try deleting final measure',
-    `
-    document.querySelector('button[aria-label="마디 삭제"]')?.click()
-  `
-  )
-  await new Promise((resolve) => setTimeout(resolve, 150))
+  await openStudioCommand(window, '파일', '새 악보 만들기')
+  await fillStudioInput(window, '마디 수', '1', '.studio-new-score-form')
+  await clickStudioButton(window, '만들기', '.studio-new-score-form')
+  await openStudioCommand(window, '형식', '악보 설정')
+  await clickStudioButton(window, '마디 삭제', '.studio-measure-tools')
 
   const finalMeasure = await window.webContents.executeJavaScript(`
     (() => {
@@ -3251,12 +2925,13 @@ async function verifyMeasureDeletion(window) {
 
   return {
     deleted,
-    finalMeasure
+    finalMeasure,
+    deletionHistory
   }
 }
 
 async function editMetadataField(window, field, value, key) {
-  await openMetadataField(window, field)
+  const entry = await openMetadataField(window, field)
   const label = field === 'title' ? '악보 제목' : '작곡가'
 
   await executeMetadataStep(
@@ -3275,18 +2950,23 @@ async function editMetadataField(window, field, value, key) {
   `
   )
   await new Promise((resolve) => setTimeout(resolve, 150))
+  const returnFocus = await window.webContents.executeJavaScript('document.activeElement?.getAttribute("aria-label")')
+  if (returnFocus !== '악보 정보') throw Error('Metadata edit must return focus to common entry: ' + returnFocus)
+  return {...entry, returnFocus, key}
 }
 
 async function openMetadataField(window, field) {
-  const label = field === 'title' ? '악보 제목 수정' : '작곡가 수정'
-
-  await executeMetadataStep(
-    window,
-    `open ${field}`,
-    `
-    document.querySelector('button[aria-label="${label}"]')?.click()
-  `
-  )
+  const label = field === 'title' ? '악보 제목 편집' : '작곡가 편집'
+  await openStudioCommand(window, '형식', '악보 정보 편집')
+  const entry = await window.webContents.executeJavaScript('(' + (label => {
+    const button = document.querySelector('button[aria-label="' + label + '"]')
+    const rect = button?.getBoundingClientRect()
+    return {label, common: button?.classList.contains('dd-button'), visible:button?.checkVisibility(),
+      enabled:button && !button.disabled, width:rect?.width, height:rect?.height}
+  }).toString() + ')(' + JSON.stringify(label) + ')')
+  if (!entry.common || !entry.visible || !entry.enabled || entry.width < 48 || entry.height < 48)
+    throw Error('Metadata editing requires a common 48px action: ' + JSON.stringify(entry))
+  await clickStudioButton(window, label, null)
   await new Promise((resolve) => setTimeout(resolve, 100))
   await executeMetadataStep(
     window,
@@ -3306,6 +2986,7 @@ async function openMetadataField(window, field) {
     }
   `
   )
+  return entry
 }
 
 async function executeMetadataStep(window, label, body) {
@@ -3389,12 +3070,17 @@ async function inspect(window, width, output) {
         selectedInspectorEvent: selectedEvent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length,
         tieCount: document.querySelectorAll('.vf-stavetie').length,
-        toolbarOverflow:
-          document.querySelector('.toolbar').scrollWidth >
-          document.querySelector('.toolbar').clientWidth
+        toolbarOverflow: [...document.querySelectorAll('.studio-application-menu,.studio-command-bars,.studio-note-toolbar,.studio-workspace-tools,.studio-status')]
+          .filter(node => node.checkVisibility()).some(node => node.scrollWidth > node.clientWidth)
       }
     })()
   `)
+}
+
+function assertMvpInspection(result) {
+  if (result.measureCount !== 8 || result.eventCount !== 33 || !result.eventMappingIsValid || !result.systemsFillWidth ||
+      result.selectedInspectorEvent !== 'm4-g4' || result.tupletCount !== 1 || result.tieCount < 1 || result.toolbarOverflow)
+    throw Error('MVP renderer verification failed: ' + JSON.stringify(result))
 }
 
 app.whenReady().then(async () => {
@@ -3408,6 +3094,46 @@ app.whenReady().then(async () => {
     }
   })
 
+  if (fileActionsOnly || workspaceTasksOnly || propertiesDockOnly || partIoOnly || mixerOnly || newScoreOnly || grandStaffOnly || signaturesOnly || measureDeleteOnly || keyboardOnly || metadataOnly || engravingOnly) {
+    const deadline = setTimeout(() => { console.error('Scoped MVP verification deadline'); app.exit(1) }, workspaceTasksOnly || propertiesDockOnly || partIoOnly || keyboardOnly || engravingOnly ? 60000 : 30000)
+    try {
+      let result
+      if (engravingOnly) {
+        result = {}
+        for (const [label, verify] of [['beams',verifyBeamRendering],['ties',verifyTieEditing],['outOfStaffNotes',verifyOutOfStaffNotes],['releaseScenarioBounds',verifyReleaseScenarioBounds]]) {
+          console.error('Engraving step:', label)
+          result[label] = await verify(window)
+          fs.writeFileSync(path.join(mvpArtifacts, 'engraving-steps.json'), JSON.stringify(result, null, 2))
+        }
+        await loadFixture(window)
+        result.desktop = await inspect(window, 1400, path.join(mvpArtifacts, 'mvp-desktop.png'))
+        result.minimum = await inspect(window, 1100, path.join(mvpArtifacts, 'mvp-minimum.png'))
+        result.compact = await inspect(window, 960, path.join(mvpArtifacts, 'mvp-compact.png'))
+        for (const inspection of [result.desktop, result.minimum, result.compact]) assertMvpInspection(inspection)
+      }
+      else if (keyboardOnly) { await loadFixture(window); result = {keyboard: await verifyKeyboardRouting(window)} }
+      else if (newScoreOnly || grandStaffOnly || signaturesOnly || measureDeleteOnly || metadataOnly) {
+        const cases = []
+        for (const width of [1400, 960]) {
+          window.setContentSize(width, 900)
+          if (metadataOnly) cases.push({width, ...await verifyMetadataEditing(window)})
+          else if (measureDeleteOnly) cases.push({width, ...await verifyMeasureDeletion(window)})
+          else if (signaturesOnly) cases.push({width, keySignature: await verifyKeySignatureControl(window), timeSignature: await verifyTimeSignatureControl(window)})
+          else cases.push({width, ...await (grandStaffOnly ? verifyGrandStaffPreview(window) : verifyNewScoreWizard(window))})
+        }
+        result = metadataOnly ? {metadata: cases} : measureDeleteOnly ? {measureDeletion: cases} : signaturesOnly ? {signatures: cases} : grandStaffOnly ? {grandStaff: cases} : {newScore: cases}
+      } else result = mixerOnly ? { playbackMixerHeadlessState: await verifyPlaybackMixerHeadlessState(window) } : partIoOnly ? { partViewHeadlessExportState: await verifyPartViewHeadlessExportState(window), partXmlExportRoundTrip: await verifyPartXmlExportRoundTrip(window) } : propertiesDockOnly ? { propertiesDockEditing: await verifyPropertiesDockEditing(window) } : workspaceTasksOnly ? { compactToolbarModes: await verifyCompactToolbarModes(window), commercialHeadlessViewports: await verifyCommercialHeadlessViewports(window) } : { fileActions: await verifyFileActions(window) }
+      console.log(JSON.stringify({ ...result, scope: 'Owned headless renderer/menu/public controls;not OS dialogs or native keyboard' }, null, 2))
+    } finally {
+      clearTimeout(deadline)
+      window.destroy()
+      app.quit()
+    }
+    return
+  }
+
+  const overallDeadline = setTimeout(() => { console.error('Full MVP verification deadline'); app.exit(1) }, 120000)
+  overallDeadline.unref()
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
@@ -3435,28 +3161,17 @@ app.whenReady().then(async () => {
   const desktop = await inspect(
     window,
     1400,
-    path.join(app.getPath('temp'), 'in-c-mvp-desktop.png')
+    path.join(mvpArtifacts, 'in-c-mvp-desktop.png')
   )
   const minimum = await inspect(
     window,
     1100,
-    path.join(app.getPath('temp'), 'in-c-mvp-minimum.png')
+    path.join(mvpArtifacts, 'in-c-mvp-minimum.png')
   )
   const results = [desktop, minimum]
 
   for (const result of results) {
-    if (
-      result.measureCount !== 8 ||
-      result.eventCount !== 33 ||
-      !result.eventMappingIsValid ||
-      !result.systemsFillWidth ||
-      result.selectedInspectorEvent !== 'm4-g4' ||
-      result.tupletCount !== 1 ||
-      result.tieCount < 1 ||
-      result.toolbarOverflow
-    ) {
-      throw new Error(`MVP renderer verification failed: ${JSON.stringify(result)}`)
-    }
+    assertMvpInspection(result)
   }
 
   console.log(
@@ -3487,6 +3202,7 @@ app.whenReady().then(async () => {
       2
     )
   )
+  clearTimeout(overallDeadline)
   window.close()
   app.quit()
 }).catch((error) => {

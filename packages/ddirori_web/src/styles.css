@@ -17,7 +17,10 @@
 .ddirori .dd-button--secondary:hover:not(:disabled),.ddirori .dd-button--danger:hover:not(:disabled),.ddirori .dd-button--quiet:hover:not(:disabled){background:var(--dd-surface-muted)}
 .ddirori .dd-button[aria-pressed="true"]{border-color:var(--dd-border);background:var(--dd-selection);color:var(--dd-on-selection)}
 .ddirori .dd-button:disabled{background:var(--dd-disabled);color:var(--dd-on-disabled);cursor:default;border-color:var(--dd-border)}
-.ddirori .dd-icon-button{min-width:var(--dd-control);padding:var(--dd-control-icon-padding);font-size:var(--dd-icon-default);border-radius:var(--dd-control-tool-radius)}
+.ddirori .dd-icon-button{display:inline-flex;align-items:center;justify-content:center;min-width:var(--dd-control);padding:var(--dd-control-icon-padding);font-size:var(--dd-icon-default);border-radius:var(--dd-control-tool-radius)}
+/* Fine-pointer compact SVG tools reserve the largest approved icon slot within32px.
+   Text-only children and wrapped content may grow;coarse keeps its48px target. */
+@media(pointer:fine){.ddirori[data-density="compact"] .dd-icon-button{padding:max(0px,calc((var(--dd-control) - var(--dd-icon-large) - 2 * var(--dd-control-border-width)) / 2))}}
 /* Filters use a quiet pill, not the primary-action button's visual weight. */
 .ddirori .dd-button.dd-choice{display:inline-flex;align-items:center;justify-content:center;gap:var(--dd-control-choice-gap);min-height:var(--dd-choice-min-height);padding:var(--dd-choice-padding-y) var(--dd-control-choice-padding-x);border-radius:var(--dd-radius-pill);border-color:var(--dd-border);background:var(--dd-surface);color:var(--dd-text);font-size:var(--dd-type-label);font-weight:var(--dd-type-label-weight);line-height:var(--dd-type-control-line-height);box-shadow:none}
 .ddirori .dd-choice-check{display:inline-flex;flex:none;width:var(--dd-control-choice-icon);height:var(--dd-control-choice-icon);opacity:0}
@@ -33,6 +36,7 @@
 .ddirori .dd-toolbar{padding:var(--dd-spacing-sm);background:var(--dd-surface-muted);border-radius:var(--dd-control-tool-radius)}
 .ddirori .dd-field{min-width:0;display:grid;gap:var(--dd-control-field-gap)}
 .ddirori .dd-field label{font-size:var(--dd-type-label);font-weight:var(--dd-type-label-weight)}
+.ddirori .dd-field label.dd-input-label--sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .ddirori .dd-input-row{display:flex;align-items:center;gap:6px}
 .ddirori .dd-input-row input{width:100%;min-width:0;min-height:var(--dd-control);padding:12px;border:1px solid var(--dd-control-border);border-radius:10px;background:var(--dd-surface);color:var(--dd-text)}
 .ddirori .dd-input-row input[aria-invalid="true"]{border:2px solid var(--dd-error)}
@@ -56,8 +60,9 @@
 .ddirori .dd-progress progress{width:min(260px,100%)}.ddirori .dd-progress .dd-mark{color:var(--dd-action)}
 .ddirori .dd-settings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center;padding:12px 0}
 .ddirori .dd-settings p{font-size:.875rem;color:var(--dd-muted);margin:4px 0}
-.ddirori .dd-dialog{position:fixed;background:var(--dd-surface);color:var(--dd-text);border:1px solid var(--dd-control-border);border-radius:var(--dd-radius-panel);width:min(var(--dd-layout-dialog-width),calc(100% - 2 * var(--dd-layout-page-gutter)));max-height:calc(100dvh - 2 * var(--dd-layout-page-gutter));padding:var(--dd-layout-dialog-padding);overflow:auto}
+.ddirori .dd-dialog{position:fixed;background:var(--dd-surface);color:var(--dd-text);border:1px solid var(--dd-control-border);border-radius:var(--dd-radius-panel);width:min(var(--dd-layout-dialog-width),calc(100% - 2 * var(--dd-layout-page-gutter)));max-height:calc(100dvh - 2 * var(--dd-layout-page-gutter));padding:var(--dd-layout-dialog-padding);overflow:auto;overscroll-behavior-y:contain}
 .ddirori .dd-dialog::backdrop{background:#20202099}
+.ddirori .dd-dialog :focus-visible{scroll-margin-block:calc(var(--dd-spacing-sm) + var(--dd-control-focus-width) + var(--dd-control-focus-offset))}
 .ddirori .dd-dialog--sheet{margin:auto auto 0;width:min(var(--dd-layout-sheet-width),100%);border-radius:var(--dd-radius-panel) var(--dd-radius-panel) 0 0;max-height:85dvh}
 .ddirori .dd-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ddirori .dd-dialog-head h2{margin:0}
 .ddirori .dd-dialog-body{padding:var(--dd-spacing-xl) 0}.ddirori .dd-dialog-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
@@ -119,10 +124,10 @@
 .ddirori .dd-radio-group{border:0;margin:0;padding:0;min-width:0}.ddirori .dd-radio-group legend{font-size:var(--dd-type-label);font-weight:var(--dd-type-label-weight);margin-bottom:var(--dd-spacing-sm)}
 .ddirori .dd-segments,.ddirori .dd-tab-list{display:flex;flex-wrap:wrap;gap:var(--dd-spacing-xs)}
 .ddirori .dd-segments{border-radius:var(--dd-control-tool-radius);padding:var(--dd-spacing-xs);background:var(--dd-surface-muted)}
-.ddirori .dd-segments button,.ddirori .dd-tab-list button,.ddirori .dd-popover button[role="menuitem"]{font:inherit;color:var(--dd-text);background:transparent;border:1px solid transparent;border-radius:var(--dd-control-tool-radius);padding:var(--dd-spacing-sm) var(--dd-spacing-md);min-height:var(--dd-control);cursor:pointer;text-align:start;overflow-wrap:anywhere}
+.ddirori .dd-segments button,.ddirori .dd-tab-list button,.ddirori .dd-popover button:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]){font:inherit;color:var(--dd-text);background:transparent;border:1px solid transparent;border-radius:var(--dd-control-tool-radius);padding:var(--dd-spacing-sm) var(--dd-spacing-md);min-height:var(--dd-control);cursor:pointer;text-align:start;overflow-wrap:anywhere}
 .ddirori .dd-segments button[aria-checked="true"],.ddirori .dd-tab-list button[aria-selected="true"]{background:var(--dd-selection);color:var(--dd-on-selection);font-weight:600;border-color:var(--dd-border)}
-.ddirori .dd-segments button:hover:not(:disabled):not([aria-checked="true"]),.ddirori .dd-tab-list button:hover:not(:disabled):not([aria-selected="true"]),.ddirori .dd-popover button[role="menuitem"]:hover:not(:disabled){background:var(--dd-interaction-hover)}
-.ddirori .dd-segments button:disabled,.ddirori .dd-tab-list button:disabled,.ddirori .dd-popover button[role="menuitem"]:disabled{color:var(--dd-on-disabled);cursor:default}
+.ddirori .dd-segments button:hover:not(:disabled):not([aria-checked="true"]),.ddirori .dd-tab-list button:hover:not(:disabled):not([aria-selected="true"]),.ddirori .dd-popover button:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):hover:not(:disabled){background:var(--dd-interaction-hover)}
+.ddirori .dd-segments button:disabled,.ddirori .dd-tab-list button:disabled,.ddirori .dd-popover button:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):disabled{color:var(--dd-on-disabled);cursor:default}
 .ddirori .dd-tab-list{border-bottom:1px solid var(--dd-border);padding-bottom:var(--dd-spacing-sm)}
 .ddirori [role="tabpanel"]{padding-top:var(--dd-spacing-lg)}
 .ddirori .dd-icon{display:inline-flex;align-items:center;justify-content:center;width:var(--dd-icon-default);height:var(--dd-icon-default);flex:none}
@@ -148,13 +153,16 @@
 .ddirori .dd-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--dd-spacing-md);padding:var(--dd-spacing-md);border:1px solid var(--dd-control-border);border-radius:var(--dd-radius-card);background:var(--dd-surface);color:var(--dd-text)}.ddirori .dd-toast>span{flex:1 1 160px}
 .ddirori .dd-skeleton{display:grid;gap:var(--dd-spacing-sm)}.ddirori .dd-skeleton>span{display:block;background:var(--dd-surface-muted);border-radius:var(--dd-control-tool-radius);height:1em}.ddirori .dd-skeleton>span:last-child{width:65%}
 .ddirori .dd-navigation{display:flex;flex-wrap:wrap;gap:var(--dd-spacing-sm)}.ddirori .dd-navigation-item{display:flex;align-items:center;gap:var(--dd-spacing-sm);text-decoration:none;color:var(--dd-text);min-height:var(--dd-control);padding:var(--dd-spacing-sm) var(--dd-spacing-md);border-radius:var(--dd-control-tool-radius)}.ddirori .dd-navigation-item[aria-current="page"]{background:var(--dd-selection);color:var(--dd-on-selection);font-weight:600}
-.ddirori .dd-popover{position:fixed;inset:auto;margin:0;padding:var(--dd-spacing-md);overflow:auto;border:1px solid var(--dd-control-border);border-radius:var(--dd-radius-panel);background:var(--dd-surface);color:var(--dd-text);font:inherit;box-shadow:0 4px 16px #0002}
-.ddirori .dd-popover button[role="menuitem"]{display:block;width:100%}
+.ddirori .dd-popover{position:fixed;inset:auto;margin:0;padding:var(--dd-spacing-md);overflow:auto;overscroll-behavior-y:contain;border:1px solid var(--dd-control-border);border-radius:var(--dd-radius-panel);background:var(--dd-surface);color:var(--dd-text);font:inherit;box-shadow:0 4px 16px #0002}
+.ddirori .dd-popover button:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]){display:block;width:100%}
 .ddirori .dd-popover-anchor{display:inline-block;max-width:100%}
 .ddirori .dd-tooltip-wrap{display:inline-flex;position:relative;max-width:100%}.ddirori .dd-tooltip-wrap>span:first-child{display:inline-flex;align-items:center;min-height:var(--dd-control)}
 .ddirori .dd-tooltip{position:fixed;inset:auto;margin:0;z-index:var(--dd-layer-tooltip);width:max-content;max-width:min(240px,80vw);padding:var(--dd-spacing-sm);border:1px solid var(--dd-border);border-radius:var(--dd-control-tool-radius);background:var(--dd-surface);color:var(--dd-text);font-size:var(--dd-type-label);overflow-wrap:anywhere}
+/* Informational text never consumes an underlying control's click. Tooltip
+   tracks trigger/text geometry to preserve hover readability. */
+.ddirori .dd-tooltip{pointer-events:none}
 .ddirori .dd-numeric{font-variant-numeric:tabular-nums}
-@media(pointer:coarse){.ddirori .dd-check,.ddirori .dd-segments button,.ddirori .dd-tab-list button,.ddirori .dd-popover button[role="menuitem"],.ddirori .dd-navigation-item{min-height:var(--dd-control-touch-target)}}
+@media(pointer:coarse){.ddirori .dd-check,.ddirori .dd-segments button,.ddirori .dd-tab-list button,.ddirori .dd-popover button:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]),.ddirori .dd-navigation-item{min-height:var(--dd-control-touch-target)}}
 .ddirori .dd-density[data-density="compact"]{--dd-control:var(--dd-density-control);--dd-control-font:var(--dd-density-font);--dd-choice-min-height:var(--dd-control-choice-compact-height);--dd-choice-padding-y:var(--dd-control-choice-compact-padding-y)}
 .ddirori .dd-density[data-density="comfortable"]{--dd-control:var(--dd-density-control);--dd-control-font:var(--dd-density-font);--dd-choice-min-height:var(--dd-control-choice-height);--dd-choice-padding-y:var(--dd-control-choice-padding-y)}
 @media(pointer:coarse){.ddirori .dd-density[data-density]{--dd-control:var(--dd-control-touch-target);--dd-choice-min-height:var(--dd-control-touch-target)}}

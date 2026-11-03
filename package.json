@@ -15,16 +15,19 @@
   "private": true,
   "scripts": {
     "dev": "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
-    "build": "tsc --noEmit && electron-vite build",
+    "build": "node scripts/verify-piano-assets.mjs && tsc --noEmit && electron-vite build",
+    "piano:prepare": "uv run --project experiments/piano-performance --extra transcription python scripts/prepare-piano-assets.py",
+    "piano:verify": "node scripts/verify-piano-assets.mjs",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview",
     "test": "vitest run",
     "test:tools": "node --test \"docs/brand/ddirori-design-system/tools/*.test.mjs\"",
-    "test:all": "npm test && npm run test:tools",
+    "test:all": "npm test -- --maxWorkers=2 && npm run test:tools",
     "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
     "verify:e2e": "npm run verify:mvp",
     "verify:rest-hairpin": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-rest-hairpin.cjs",
     "verify:notation-snapshots": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs",
+    "verify:studio-notation-profile": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --profile=studio-r3",
     "verify:notation-snapshots:update": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --update",
     "verify:visual-regression": "npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts && npm run verify:notation-snapshots",
     "verify:musicxml-fixtures": "npm test -- src/musicxml/musicxml.test.ts -t external-app-fixture-qa",
@@ -53,9 +56,10 @@
     "verify:classic-quiz": "node scripts/verify-classic-quiz.mjs",
     "verify:site-production": "node scripts/verify-production-site.cjs",
     "validation:ops": "node scripts/summarize-validation-ops.mjs",
-    "test:components": "vitest run src/renderer/src/App.test.tsx"
+    "test:components": "vitest run src/renderer/src/App.test.tsx src/renderer/src/App.workspace.test.tsx src/renderer/src/App.properties.test.tsx src/renderer/src/App.notation-exchange.test.tsx"
   },
   "dependencies": {
+    "@ddirori/ui": "file:packages/ddirori_web",
     "@supabase/supabase-js": "^2.110.9",
     "fast-xml-parser": "^5.9.2",
     "fflate": "0.8.3",
@@ -63,8 +67,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "vexflow": "^5.0.0",
-    "zod": "4.6.2",
-    "@ddirori/ui": "file:packages/ddirori_web"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -73,7 +76,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^42.4.1",
+    "electron": "^42.11.18",
     "electron-builder": "^26.15.3",
     "electron-vite": "^4.0.0",
     "jsdom": "^29.1.1",
@@ -90,14 +93,15 @@
       "buildResources": "build"
     },
     "files": [
-      "out/**/*",
+      "out/main/**/*",
+      "out/preload/**/*",
+      "out/renderer/**/*",
       "package.json"
     ],
     "asar": true,
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.music",
-      "identity": null,
       "icon": "build/icon.icns",
       "target": [
         {
@@ -112,10 +116,11 @@
             "universal"
           ]
         }
-      ]
+      ],
+      "notarize": true
     },
     "dmg": {
-      "sign": false
+      "sign": true
     },
     "win": {
       "icon": "build/icon.png",

@@ -1,0 +1,12 @@
+{
+  "goalStatus": "active",
+  "slice": "383tooltip",
+  "commonTests": 88,
+  "nativePointerOnlyPaths": 16,
+  "nativeFullHistoryPaths": 16,
+  "sourceAndBuildStableDuringNative": true,
+  "publicAPIChanged": false,
+  "cssTokensChanged": false,
+  "fullSuite": "pending after4slices",
+  "nextSlice": "384 beam-owned ink"
+}

@@ -1,9 +1,9 @@
 {
-  "key": "lime",
-  "name": "라임",
+  "key": "blue",
+  "name": "블루",
   "brand": {
-    "primary": "#D5ED70",
-    "onPrimary": "#263125"
+    "primary": "#A5D8FF",
+    "onPrimary": "#202020"
   },
   "light": {
     "background": "#FFFFFF",
@@ -13,11 +13,11 @@
     "muted": "#616161",
     "border": "#E5E5E5",
     "controlBorder": "#808080",
-    "primary": "#52651A",
-    "primaryHover": "#435514",
-    "primaryPressed": "#35440F",
+    "primary": "#1971C2",
+    "primaryHover": "#1864AB",
+    "primaryPressed": "#155592",
     "onPrimary": "#FFFFFF",
-    "tint": "#F3F8DD",
+    "tint": "#E7F5FF",
     "sky": "#A8D4E5",
     "peach": "#F3BB9B",
     "success": "#246145",
@@ -32,11 +32,11 @@
     "muted": "#B8B8B8",
     "border": "#424242",
     "controlBorder": "#888888",
-    "primary": "#D5ED70",
-    "primaryHover": "#E3EDBC",
-    "primaryPressed": "#F3F8DD",
+    "primary": "#A5D8FF",
+    "primaryHover": "#D0EBFF",
+    "primaryPressed": "#E7F5FF",
     "onPrimary": "#202020",
-    "tint": "#303624",
+    "tint": "#233344",
     "sky": "#A8D4E5",
     "peach": "#F3BB9B"
   },
@@ -44,7 +44,7 @@
     "background": "#FFFFFF",
     "notation": "#202020"
   },
-  "status": "neutral foundation trial; accent selection remains open",
+  "status": "unified blue working theme; alternative accents are comparison-only",
   "source": "color-system.json",
-  "date": "2026-10-23"
+  "date": "2026-10-26"
 }

@@ -1,0 +1,38 @@
+[
+  {
+    "path": "packages/ddirori_web/src/basic.tsx",
+    "sha256": "72dd8151261f581cc83b3733808b37207ad64d60fb802e43e703c77ae2253b39"
+  },
+  {
+    "path": "packages/ddirori_web/src/tooltip-lifetime.test.tsx",
+    "sha256": "d1fd0f4ddcc2246ac0c0fdbcb1e527d8bd0d1db982d528f50ea00ef1267cf7e1"
+  },
+  {
+    "path": "scripts/verify-studio-tooltip-lifetime.cjs",
+    "sha256": "997ddd0d4999b35c4a24dbe88b44f9b5483cecab64c5e4201734dc2cf764e176"
+  },
+  {
+    "path": "out/renderer/index.html",
+    "sha256": "55493ccec89fb848e0d7091121761da04a3d622891cbc7b5016337aaa52d5beb"
+  },
+  {
+    "path": "out/preload/index.js",
+    "sha256": "90b764e9a8664f85254774caf0ca7a7f7b9d12762d4a6c4f948a1c342771fff6"
+  },
+  {
+    "path": "out/renderer/assets/piano-expression.worker-B1lZU1yp.js",
+    "sha256": "8e3198d11b4cb1faf0aa36effe83564e8daf2c7ff83480b58bef988ef45f7134"
+  },
+  {
+    "path": "out/renderer/assets/PretendardVariable-CJuje-Rk.woff2",
+    "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+  },
+  {
+    "path": "out/renderer/assets/index-BVpFehNE.css",
+    "sha256": "477c7af22392d9e029b2c2e352ba078b69ee3b964659ec3f0ff0685da7ee7f5e"
+  },
+  {
+    "path": "out/renderer/assets/index-BHIPMClD.js",
+    "sha256": "b60fb34f4c76fd7418964ffe608f4c907af5f97ee91a980d3a64004c4f9cece6"
+  }
+]

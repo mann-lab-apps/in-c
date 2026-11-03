@@ -1,0 +1,15 @@
+.studio-file-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--dd-spacing-lg);
+  padding: var(--dd-spacing-sm) var(--dd-spacing-xl);
+  border-bottom: var(--dd-control-border-width) solid var(--dd-border);
+  background: var(--dd-surface);
+  min-width: 0;
+}
+.studio-file-tools__filters { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); min-width: 0; max-width: 100%; flex: 0 1 22rem; }
+.studio-file-tools__filter { flex: 1 1 9rem; min-width: 0; }
+.studio-file-tools__button-content { display: inline-flex; align-items: center; gap: var(--dd-control-choice-gap); max-width: 100%; vertical-align: middle; }
+.studio-file-tools__button-icon { display: inline-flex; flex: none; }
+@media print { .studio-file-tools { display: none; } }

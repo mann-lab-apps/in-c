@@ -18,7 +18,7 @@ export class NativeProjectBackupStore {
       throw error
     }
     await mkdir(this.directory(), { recursive: true })
-    const destination = join(this.directory(), `${Date.now()}-${randomUUID()}-${basename(filePath)}`)
+    const destination = join(this.directory(), backupFileName(filePath))
     const temporary = `${destination}.tmp`
     try {
       const handle = await open(temporary, 'wx', 0o600)
@@ -61,4 +61,19 @@ export class NativeProjectBackupStore {
       return await handle.readFile('utf8')
     } finally { await handle.close() }
   }
+}
+
+function backupFileName(filePath: string): string {
+  const prefix = `${Date.now()}-${randomUUID()}-`, extension = '.chromatics'
+  // Reserve the four-byte .tmp suffix within a 255-byte filename component.
+  // Only this internal backup name is shortened; source path/title/data stay intact.
+  let remaining = 251 - Buffer.byteLength(prefix) - Buffer.byteLength(extension)
+  let stem = ''
+  for (const character of basename(filePath).replace(/\.chromatics$/i, '')) {
+    const bytes = Buffer.byteLength(character)
+    if (bytes > remaining) break
+    stem += character
+    remaining -= bytes
+  }
+  return `${prefix}${stem || 'project'}${extension}`
 }

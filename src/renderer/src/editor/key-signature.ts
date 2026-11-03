@@ -5,6 +5,7 @@ import {
   type KeySignature,
   type Measure,
   type Note,
+  type Pitch,
   type Score,
   type ScoreCommand,
   type Voice,
@@ -144,26 +145,28 @@ function preserveVoicePitches(
       return
     }
 
-    const resolvedPitch = resolveNotePitch(previousMeasure, voice, event)
-    const nextImplicitAlter = effectiveAlterAt({
-      measure: nextMeasure,
-      voice: {
-        ...voice,
-        events: nextEvents
-      },
-      step: event.pitch.step,
-      octave: event.pitch.octave,
-      tick: event.position.tick
-    })
+    const preservePitch = (pitch: Pitch): Pitch => {
+      const resolvedPitch = resolveNotePitch(previousMeasure, voice, { ...event, pitch })
+      const nextImplicitAlter = effectiveAlterAt({
+        measure: nextMeasure,
+        voice: { ...voice, events: nextEvents },
+        step: pitch.step,
+        octave: pitch.octave,
+        tick: event.position.tick
+      })
+      return {
+        ...pitch,
+        alter: resolvedPitch.alter === nextImplicitAlter ? undefined : resolvedPitch.alter
+      }
+    }
+    // The chord array is authoritative for playback/notation. Keep its first
+    // member and the compatibility pitch field identical,and let all members
+    // contribute their explicit accidental memory to later events.
+    const pitches = event.pitches?.length ? event.pitches.map(preservePitch) : undefined
     const nextNote: Note = {
       ...event,
-      pitch: {
-        ...event.pitch,
-        alter:
-          resolvedPitch.alter === nextImplicitAlter
-            ? undefined
-            : resolvedPitch.alter
-      }
+      pitch: pitches?.[0] ?? preservePitch(event.pitch),
+      ...(pitches ? { pitches } : {})
     }
 
     nextEvents.push(nextNote)

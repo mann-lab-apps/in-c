@@ -1,10 +1,12 @@
 import { resolve } from 'node:path'
 import { configDefaults, defineConfig } from 'vitest/config'
+import { studioExportFontsPlugin } from './src/build/studio-export-fonts'
 
 export default defineConfig({
   test: {
     projects: [
       {
+        plugins: [studioExportFontsPlugin()],
         test: {
           name: 'studio',
           include: configDefaults.include.flatMap(pattern =>

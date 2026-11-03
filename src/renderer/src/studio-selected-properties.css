@@ -1,0 +1,14 @@
+.studio-selected-properties { min-width: 0; display: grid; gap: var(--dd-spacing-lg); padding: var(--dd-spacing-md); background: var(--dd-surface); }
+.studio-selected-properties > h3 { margin: 0; }
+.studio-selected-properties__readouts { margin: 0; display: grid; gap: var(--dd-spacing-sm); font-size: var(--dd-control-font); }
+.studio-selected-properties__readouts > div { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); }
+.studio-selected-properties__readouts dt { flex: 0 0 auto; max-inline-size: 100%; color: var(--dd-muted); overflow-wrap: anywhere; word-break: keep-all; }
+.studio-selected-properties__readouts dd { flex: 1 1 auto; min-width: 0; margin: 0; overflow-wrap: anywhere; word-break: keep-all; }
+.studio-selected-properties__group { min-width: 0; display: grid; gap: var(--dd-spacing-md); padding-top: var(--dd-spacing-md); border-top: var(--dd-control-border-width) solid var(--dd-border); }
+.studio-selected-properties__group > h4, .studio-selected-properties__scope { margin: 0; }
+.studio-selected-properties__scope, .studio-selected-properties__technical { color: var(--dd-muted); overflow-wrap: anywhere; }
+.studio-selected-properties__scope { word-break: keep-all; }
+.studio-selected-properties__text-field { display: contents; }
+
+/* Private domain composition: keep selected-event commands ahead of optional text. */
+.studio-selected-properties > .studio-event-marks { padding-inline: 0; padding-bottom: 0; }

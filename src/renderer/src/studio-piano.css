@@ -1,0 +1,6 @@
+.studio-piano { display: flex; align-items: center; flex-wrap: wrap; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); padding: var(--dd-spacing-sm) var(--dd-spacing-xl); width: 100%; }
+.studio-piano__credits { font-size: var(--dd-font-size-caption, 12px); max-width: 36rem; }
+.studio-piano__credits > summary { cursor: pointer; }
+.studio-piano__credits p { margin-block: var(--dd-spacing-sm); }
+.studio-piano [role="alert"] { color: var(--dd-danger); flex-basis: 100%; }
+@media print { .studio-piano { display: none; } }

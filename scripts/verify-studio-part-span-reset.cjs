@@ -1,0 +1,42 @@
+// Actual menus/shared inspector and native keys. Owned disk-backed IPC, not OS dialogs.
+const {app,BrowserWindow,ipcMain,nativeTheme}=require('electron')
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict')
+const source=path.resolve(process.env.DDIRORI_PART_SPAN_RESET_QA_DIR),out=path.resolve(process.env.DDIRORI_PART_SPAN_RESET_OUT)
+assert(!fs.existsSync(out));fs.mkdirSync(out,{recursive:true});app.disableHardwareAcceleration();app.on('window-all-closed',()=>{})
+app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'studio-part-span-reset-')))
+let win,scene,opened,pdfName='part.pdf',xmlName='actual.musicxml',midiName='actual.mid'
+const result=p=>({filePath:p,fileName:path.basename(p)}),original=JSON.parse(fs.readFileSync(path.join(source,'source.chromatics'))),edited=JSON.parse(fs.readFileSync(path.join(source,'edited.chromatics'))),reset=JSON.parse(fs.readFileSync(path.join(source,'reset.chromatics')))
+for(const n of ['recent-musicxml:list','recent-musicxml:add','project:list-backups'])ipcMain.handle(n,()=>[])
+for(const n of ['autosave:read','autosave:write','autosave:clear'])ipcMain.handle(n,()=>null)
+ipcMain.handle('project:open',()=>({...result(opened),contents:fs.readFileSync(opened,'utf8')}))
+ipcMain.handle('project:save',(_,v)=>{opened=path.join(scene,'current.chromatics');fs.writeFileSync(opened,v.contents);return result(opened)})
+ipcMain.handle('midi:save',(_,v)=>{const p=path.join(scene,midiName);fs.writeFileSync(p,Buffer.from(v.contents));return result(p)})
+ipcMain.handle('musicxml:export',(_,v)=>{const p=path.join(scene,xmlName);fs.writeFileSync(p,v.contents);return result(p)})
+ipcMain.handle('pdf:save',async()=>{const p=path.join(scene,pdfName);fs.writeFileSync(p,await win.webContents.printToPDF({preferCSSPageSize:true}));return result(p)})
+const run=async(fn,arg)=>{const r=await win.webContents.executeJavaScript(`(async()=>{try{return{value:await (${fn})(${JSON.stringify(arg)??''})}}catch(e){return{error:String(e.stack||e)}}})()`);if(r.error)throw Error(r.error);return r.value}
+const settle=()=>run(()=>document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))))
+const wait=async(fn,arg)=>{const until=Date.now()+12000;while(!await run(fn,arg)){assert(Date.now()<until,'Finite public UI deadline');await settle()}}
+const click=async label=>{await run(label=>{const n=[...document.querySelectorAll('button')].find(n=>n.checkVisibility()&&(n.getAttribute('aria-label')||n.textContent.trim())===label);if(!n||n.disabled)throw Error('Unavailable public control '+label);n.scrollIntoView({block:'nearest'});n.focus();n.click()},label);await settle()}
+const key=async(keyCode,modifiers=[])=>{app.focus({steal:true});win.focus();win.webContents.focus();await wait(()=>document.hasFocus());win.webContents.sendInputEvent({type:'keyDown',keyCode,modifiers});if(keyCode==='Enter')win.webContents.sendInputEvent({type:'char',keyCode:'\r',modifiers});win.webContents.sendInputEvent({type:'keyUp',keyCode,modifiers});await settle()}
+const selectSpan=async()=>{await run(()=>{const n=document.querySelector('.score-canvas .notation-span-target[data-span-id="shared-reset-slur"]');if(!n)throw Error('Actual shared span required');n.scrollIntoView({block:'center'});n.focus()});await key('Enter');await wait(()=>document.querySelector('.studio-span-properties')?.checkVisibility());if(await run(()=>document.querySelector('.studio-span-properties__geometry button[aria-expanded]')?.getAttribute('aria-expanded')!=='true'))await click('배치 · 형상')}
+const save=async(name,expected,mode='part')=>{await click('파일');await click('프로젝트 저장');await wait(()=>document.querySelector('.studio-document').textContent.includes('변경 없음'));const p=JSON.parse(fs.readFileSync(opened));assert.deepEqual(p.score,expected.score);assert.deepEqual(p.partLayouts,expected.partLayouts);assert.deepEqual(p.view,mode==='part'?{mode:'part',partId:'P2'}:{mode:'score'});fs.copyFileSync(opened,path.join(scene,name+'.chromatics'));return p}
+const changeView=async value=>{await click('형식');await click('악보 설정');await run(()=>{const n=[...document.querySelectorAll('label')].find(n=>n.textContent.trim()==='악보 보기')?.control;if(!n?.checkVisibility()||n.disabled)throw Error('Visible score-view control required');n.scrollIntoView({block:'nearest'});n.focus();n.click()});await settle();await run(value=>{const n=[...document.querySelectorAll('[role="option"]')].find(n=>n.dataset.value===value&&n.checkVisibility());if(!n)throw Error('Available score-view option required');n.click()},value);await settle()}
+const exportFiles=async name=>{await click('파일');await click('내보내기 설정');pdfName=name+'.pdf';midiName=name+'.mid';xmlName=name+'.musicxml';await click('MIDI 내보내기');await wait(n=>document.querySelector('.editor-status').textContent.includes(n),midiName);await click('MusicXML 내보내기');await wait(n=>document.querySelector('.editor-status').textContent.includes(n),xmlName);await click('PDF 변환');await wait(n=>document.querySelector('[aria-label="PDF 출력 결과"]')?.textContent.includes(n),pdfName);assert(fs.statSync(path.join(scene,pdfName)).size>1000)}
+app.whenReady().then(async()=>{const deadline=setTimeout(()=>app.exit(124),120000),rows=[]
+try{for(const width of [960,1400]){
+ console.log('START',width);scene=path.join(out,String(width));fs.mkdirSync(scene,{recursive:true});opened=path.join(source,'source.chromatics');nativeTheme.themeSource=width===960?'dark':'light'
+ win=new BrowserWindow({width,height:800,show:true,webPreferences:{preload:path.resolve('out/preload/index.js'),contextIsolation:true,sandbox:false,backgroundThrottling:false}});win.setContentSize(width,800);await win.loadFile(path.resolve('out/renderer/index.html'));await settle();await click('프로젝트 열기');await wait(()=>document.querySelector('.editor-status').textContent.includes('을 열었습니다.'))
+ await selectSpan();assert.equal(await run(()=>[...document.querySelectorAll('.studio-span-properties .dd-text')].some(n=>n.textContent==='총보·해당 파트보 공통')),true)
+ await run(()=>{const n=document.querySelector('input[aria-label="표기 높이"]');if(!n?.checkVisibility()||n.disabled)throw Error('Actual height field required');n.scrollIntoView({block:'nearest'});n.focus();Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(n,'4');n.dispatchEvent(new Event('input',{bubbles:true}))});await key('Enter');await save('span-edited',edited)
+ await exportFiles('part-before-reset')
+ await click('파트보 조판 초기화');await save('layout-reset',reset)
+ for(const [name,expected]of [['undo-layout',edited],['undo-span',original]]){await click('악보로 이동');await key('Z',['control']);await save(name,expected)}
+ for(const [name,expected]of [['redo-span',edited],['redo-layout',reset]]){await click('악보로 이동');await key('Z',['control','shift']);await save(name,expected)}
+ await click('파일');await click('프로젝트 열기');await wait(()=>document.querySelector('.editor-status').textContent.includes('current.chromatics을 열었습니다.'));await save('reopened',reset)
+ await exportFiles('part-after-reset');assert.deepEqual(fs.readFileSync(path.join(scene,'part-before-reset.mid')),fs.readFileSync(path.join(scene,'part-after-reset.mid')))
+ await selectSpan();assert.equal(await run(()=>document.querySelector('input[aria-label="표기 높이"]').value),'4')
+ await click('표기 자동 배치 복원');const auto=structuredClone(reset);delete auto.score.slurs.find(s=>s.id==='shared-reset-slur').engraving;await save('span-auto',auto);await click('악보로 이동');await key('Z',['control']);await save('span-auto-undo',reset)
+ await changeView('score');await save('score-view',reset,'score');await exportFiles('full-score')
+ const geometry=await run(()=>({mode:document.querySelector('[aria-label="악보 페이지"]').dataset.viewMode,pieces:document.querySelectorAll('.notation-span-target[data-span-id="shared-reset-slur"]').length,overflow:document.documentElement.scrollWidth>innerWidth+1}));assert(!geometry.overflow);assert(geometry.pieces>=1)
+ fs.writeFileSync(path.join(scene,'score.png'),(await win.webContents.capturePage()).toPNG());rows.push({width,geometry,sharedSpanExact:true,neighborLayoutExact:true,independentUndoRedo:true,reopen:true,partMidiPreserved:true});fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(rows,null,2));win.destroy();win=undefined
+}console.log('PASS shared span / independent layout reset',rows.length)}finally{clearTimeout(deadline);win?.destroy();app.quit()}}).catch(e=>{console.error(e);app.exit(1)})

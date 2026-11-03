@@ -143,7 +143,7 @@
           "id": "tuplets.report-input-progress",
           "tag": "@scenario-tuplets-report-input-progress",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
@@ -209,7 +209,7 @@
           "id": "range-editing.same-staff-voice-copy-paste",
           "tag": "@scenario-range-editing-same-staff-voice-copy-paste",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/renderer/src/editor/editor-state.test.ts"
           ]
         },
@@ -296,7 +296,7 @@
           "tag": "@scenario-import-export-export-unsupported-musicxml-report",
           "tests": [
             "src/musicxml/musicxml.test.ts",
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
@@ -347,21 +347,22 @@
           "id": "import-export.distinguish-musicxml-save-from-autosave",
           "tag": "@scenario-import-export-distinguish-musicxml-save-from-autosave",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
           "id": "import-export.save-pdf",
           "tag": "@scenario-import-export-save-pdf",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.workspace.test.tsx",
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
           "id": "import-export.export-midi",
           "tag": "@scenario-import-export-export-midi",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.workspace.test.tsx",
             "src/renderer/src/midi/serialize-midi.test.ts"
           ]
         },
@@ -369,7 +370,7 @@
           "id": "import-export.report-pdf-result",
           "tag": "@scenario-import-export-report-pdf-result",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         }
       ]
@@ -473,7 +474,7 @@
           "id": "note-input.edit-selected-event-in-inspector",
           "tag": "@scenario-note-input-edit-selected-event-in-inspector",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/renderer/src/editor/editor-state.test.ts",
             "src/renderer/src/editor/pitch-editing.test.ts"
           ]
@@ -482,7 +483,7 @@
           "id": "note-input.apply-accidental",
           "tag": "@scenario-note-input-apply-accidental",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/renderer/src/editor/pitch-editing.test.ts"
           ]
         },
@@ -504,28 +505,28 @@
           "id": "note-input.switch-same-staff-voice",
           "tag": "@scenario-note-input-switch-same-staff-voice",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
           "id": "note-input.cycle-same-staff-voice",
           "tag": "@scenario-note-input-cycle-same-staff-voice",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
           "id": "note-input.switch-staff-target",
           "tag": "@scenario-note-input-switch-staff-target",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
           "id": "note-input.switch-part-target",
           "tag": "@scenario-note-input-switch-part-target",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.properties.test.tsx"
           ]
         },
         {
@@ -612,7 +613,7 @@
           "id": "playback.cursor-selection-sync",
           "tag": "@scenario-playback-cursor-selection-sync",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.workspace.test.tsx",
             "src/renderer/src/notation/visual-state.test.ts",
             "src/renderer/src/playback/timeline.test.ts"
           ]
@@ -621,7 +622,7 @@
           "id": "playback.part-mixer",
           "tag": "@scenario-playback-part-mixer",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.workspace.test.tsx",
             "src/renderer/src/playback/useScorePlayback.test.ts"
           ]
         }
@@ -650,7 +651,8 @@
           "id": "layout.page-setup",
           "tag": "@scenario-layout-page-setup",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.workspace.test.tsx",
+            "src/renderer/src/App.properties.test.tsx",
             "src/renderer/src/notation/print-layout.test.ts"
           ]
         },
@@ -665,7 +667,7 @@
           "id": "layout.rehearsal-mark",
           "tag": "@scenario-layout-rehearsal-mark",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -673,7 +675,7 @@
           "id": "layout.staff-text",
           "tag": "@scenario-layout-staff-text",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -681,7 +683,7 @@
           "id": "layout.system-text",
           "tag": "@scenario-layout-system-text",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -689,7 +691,7 @@
           "id": "layout.expression-text",
           "tag": "@scenario-layout-expression-text",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -697,7 +699,7 @@
           "id": "layout.dynamics",
           "tag": "@scenario-layout-dynamics",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -713,7 +715,7 @@
           "id": "layout.hairpin-toggle",
           "tag": "@scenario-layout-hairpin-toggle",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
@@ -734,7 +736,7 @@
           "id": "layout.fermata",
           "tag": "@scenario-layout-fermata",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         },
@@ -742,7 +744,7 @@
           "id": "layout.breath-marks",
           "tag": "@scenario-layout-breath-marks",
           "tests": [
-            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/App.notation-exchange.test.tsx",
             "src/musicxml/musicxml.test.ts"
           ]
         }
@@ -883,7 +885,7 @@
           "id": "tremolo.apply-selected-note",
           "tag": "@scenario-tremolo-apply-selected-note",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
@@ -912,21 +914,21 @@
           "id": "ornaments.add-selected-note",
           "tag": "@scenario-ornaments-add-selected-note",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
           "id": "ornaments.remove-selected-note",
           "tag": "@scenario-ornaments-remove-selected-note",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
           "id": "ornaments.keep-multiple",
           "tag": "@scenario-ornaments-keep-multiple",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.notation-exchange.test.tsx"
           ]
         },
         {
@@ -947,14 +949,14 @@
           "id": "clef.change-selected-measure",
           "tag": "@scenario-clef-change-selected-measure",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.workspace.test.tsx"
           ]
         },
         {
           "id": "clef.change-current-staff",
           "tag": "@scenario-clef-change-current-staff",
           "tests": [
-            "src/renderer/src/App.test.tsx"
+            "src/renderer/src/App.workspace.test.tsx"
           ]
         },
         {

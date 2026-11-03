@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
+import { useMemo } from 'react'
 import {
   act,
   cleanup,
@@ -11,703 +12,22 @@ import {
   within
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
 import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
 import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
 import richPartExportMusicXml from '../../musicxml/fixtures/expanded-v1-part-export.musicxml?raw'
 import restHairpinMusicXml from '../../musicxml/fixtures/rest-hairpin-input.musicxml?raw'
 import { parseMusicXml } from '../../musicxml'
 import { TICKS_PER_QUARTER } from '../../score-core'
+import { listSpans, spanEndpointOptions } from './editor/span-editing'
 import { unsavedScoreChangesMessage } from './editor/file-lifecycle'
 import { demoScore } from './notation/demo-score'
-
-const withPercussionClef = (musicXml: string) =>
-  musicXml.replace(
-    /<clef>\s*<sign>G<\/sign>\s*<line>2<\/line>\s*<\/clef>/,
-    `<clef>
-          <sign>percussion</sign>
-          <line>2</line>
-        </clef>`
-  )
-
-const twoPartMusicXmlWithPrimaryAnnotations = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work>
-    <work-title>Imported Duo</work-title>
-  </work>
-  <part-list>
-    <score-part id="P1">
-      <part-name>Violin</part-name>
-    </score-part>
-    <score-part id="P2">
-      <part-name>Cello</part-name>
-    </score-part>
-  </part-list>
-  <part id="P1">
-    <measure number="1">
-      <attributes>
-        <divisions>1</divisions>
-        <key>
-          <fifths>0</fifths>
-        </key>
-        <time>
-          <beats>4</beats>
-          <beat-type>4</beat-type>
-        </time>
-        <clef>
-          <sign>G</sign>
-          <line>2</line>
-        </clef>
-      </attributes>
-      <direction placement="above">
-        <direction-type>
-          <rehearsal>Reh-One</rehearsal>
-        </direction-type>
-      </direction>
-      <direction placement="above">
-        <direction-type>
-          <words>PrimaryOnlyText</words>
-        </direction-type>
-      </direction>
-      <direction placement="below">
-        <direction-type>
-          <dynamics>
-            <mf/>
-          </dynamics>
-        </direction-type>
-      </direction>
-      <harmony>
-        <root>
-          <root-step>C</root-step>
-        </root>
-        <kind text="maj7">major-seventh</kind>
-      </harmony>
-      <note>
-        <pitch>
-          <step>C</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>4</duration>
-        <type>whole</type>
-      </note>
-    </measure>
-  </part>
-  <part id="P2">
-    <measure number="1">
-      <attributes>
-        <divisions>1</divisions>
-        <key>
-          <fifths>0</fifths>
-        </key>
-        <time>
-          <beats>4</beats>
-          <beat-type>4</beat-type>
-        </time>
-        <clef>
-          <sign>F</sign>
-          <line>4</line>
-        </clef>
-      </attributes>
-      <note>
-        <pitch>
-          <step>C</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>4</duration>
-        <type>whole</type>
-      </note>
-    </measure>
-  </part>
-</score-partwise>`
-
-const playbackMockState = vi.hoisted(() => ({
-  jumpToStart: vi.fn(),
-  lastPartMixer: {} as Record<
-    string,
-    {
-      muted: boolean
-      solo: boolean
-      volume: number
-    }
-  >,
-  pause: vi.fn(),
-  play: vi.fn(),
-  stop: vi.fn(),
-  value: {
-    activeEvent: undefined as
-      | {
-          eventId: string
-          partId: string
-          staffId: string
-          measureId: string
-          voiceId: string
-        }
-      | undefined,
-    activeEventId: undefined as string | undefined,
-    positionBeat: 0,
-    status: 'stopped' as 'stopped' | 'playing' | 'paused',
-    totalBeats: 16
-  }
-}))
-
-vi.mock('./notation/NotationPreview', () => ({
-  NotationPreview: ({
-    score,
-    inlineLyricEditor,
-    onSelectEvent,
-    onSelectEventRange,
-    onSelectLyric,
-    onOpenMeasureContextMenu,
-    onSelectMeasure,
-    selectedEventAddress,
-    selectedEventId,
-    selectedEventIds,
-    selectedMeasureId,
-    playbackEventId,
-    playbackEventAddress,
-    printLayout,
-    printLayoutPlan,
-  }: {
-    score: typeof demoScore
-    inlineLyricEditor?: {
-      number: number
-      value: string
-      syllabic: 'single' | 'begin' | 'middle' | 'end'
-      extend?: boolean
-      onCommit: (
-        text: string,
-        options?: {
-          syllabic?: 'single' | 'begin' | 'middle' | 'end'
-          extend?: boolean
-          moveNext?: boolean
-        }
-      ) => void
-      onMoveVerse: (direction: 1 | -1) => void
-    }
-    onSelectEvent: (
-      eventId: string,
-      extendRange?: boolean,
-      address?: {
-        partId: string
-        staffId: string
-        measureId: string
-        voiceId: string
-      }
-    ) => void
-    onSelectEventRange: (
-      anchorEventId: string,
-      focusEventId: string,
-      address?: {
-        partId: string
-        staffId: string
-        measureId: string
-        voiceId: string
-      }
-    ) => void
-    onSelectLyric: (eventId: string, verse: number) => void
-    onOpenMeasureContextMenu: (
-      measureId: string,
-      position: { x: number; y: number }
-    ) => void
-    onSelectMeasure: (measureId: string) => void
-    selectedEventId?: string
-    selectedEventIds?: string[]
-    selectedMeasureId?: string
-    selectedEventAddress?: {
-      partId: string
-      staffId: string
-      measureId: string
-      voiceId: string
-    }
-    playbackEventId?: string
-    playbackEventAddress?: {
-      partId: string
-      staffId: string
-      measureId: string
-      voiceId: string
-    }
-    printLayout?: boolean
-    printLayoutPlan?: {
-      estimatedPageCount: number
-      id: string
-      overflowedTarget: boolean
-      pageCount: number
-      pageCssSize?: string
-      pageMarginMm: number
-      renderWidth: number
-      scale: number
-      targetPages?: number
-    }
-  }) => (
-    <div
-      aria-label="악보 미리보기 테스트 더블"
-      data-event-count={score.parts[0]?.staves[0]?.measures.reduce(
-        (count, measure) =>
-          count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
-        0
-      )}
-      data-event-durations={score.parts[0]?.staves[0]?.measures
-        .flatMap((measure) =>
-          measure.voices.flatMap((voice) =>
-            voice.events.map((event) =>
-              [
-                event.id,
-                event.duration.value,
-                event.duration.tuplet
-                  ? `${event.duration.tuplet.actualNotes}:${event.duration.tuplet.normalNotes}`
-                  : 'regular'
-              ].join(':')
-            )
-          )
-        )
-        .join(',')}
-      data-event-pitches={score.parts[0]?.staves[0]?.measures
-        .flatMap((measure) =>
-          measure.voices.flatMap((voice) =>
-            voice.events.map((event) =>
-              event.type === 'note'
-                ? `${event.id}:${event.pitch.step}${event.pitch.alter ?? ''}${event.pitch.octave}`
-                : `${event.id}:rest`
-            )
-          )
-        )
-        .join(',')}
-      data-all-event-pitches={score.parts
-        .flatMap((part) =>
-          part.staves.flatMap((staff) =>
-            staff.measures.flatMap((measure) =>
-              measure.voices.flatMap((voice) =>
-                voice.events.map((event) =>
-                  [
-                    part.id,
-                    staff.id,
-                    measure.id,
-                    voice.id,
-                    event.id,
-                    event.type === 'note'
-                      ? `${event.pitch.step}${event.pitch.alter ?? ''}${event.pitch.octave}`
-                      : 'rest'
-                  ].join(':')
-                )
-              )
-            )
-          )
-        )
-        .join(',')}
-      data-global-tempo={score.tempo?.bpm}
-      data-rhythm-feel={score.rhythmFeel?.unit ?? ''}
-      data-part-structure={score.parts
-        .map((part) => `${part.id}:${part.name}:${part.staves.length}`)
-        .join('|')}
-      data-staff-clefs={score.parts
-        .flatMap((part) =>
-          part.staves.map((staff) =>
-            [
-              part.id,
-              staff.id,
-              `${staff.measures[0]?.clef.sign}${staff.measures[0]?.clef.line}`,
-              staff.measures.length
-            ].join(':')
-          )
-        )
-        .join('|')}
-      data-measure-clefs={score.parts[0]?.staves[0]?.measures
-        .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
-        .join(',')}
-      data-voice-ids={score.parts[0]?.staves[0]?.measures
-        .map(
-          (measure) =>
-            `${measure.id}:${measure.voices.map((voice) => voice.id).join('/')}`
-        )
-        .join('|')}
-      data-all-voice-ids={score.parts
-        .flatMap((part) =>
-          part.staves.flatMap((staff) =>
-            staff.measures.map((measure) =>
-              [
-                part.id,
-                staff.id,
-                measure.id,
-                measure.voices.map((voice) => voice.id).join('/')
-              ].join(':')
-            )
-          )
-        )
-        .join('|')}
-      data-lyrics={score.parts[0]?.staves[0]?.measures
-        .flatMap((measure) =>
-          measure.voices.flatMap((voice) =>
-            voice.events.flatMap((event) =>
-              event.type === 'note'
-                ? (event.lyrics ?? []).map(
-                    (lyric) =>
-                      `${event.id}:${lyric.number ?? 1}:${lyric.syllabic ?? ''}:${lyric.text}`
-                  )
-                : []
-            )
-          )
-        )
-        .join('|')}
-      data-measure-count={score.parts[0]?.staves[0]?.measures.length ?? 0}
-      data-measure-marks={score.parts[0]?.staves[0]?.measures
-        .map((measure) =>
-          [
-            measure.number,
-            `${measure.repeat?.start ? 'S' : ''}${measure.repeat?.end ? 'E' : ''}`,
-            measure.repeat?.times ?? '',
-            measure.volta
-              ? `${measure.volta.number}:${measure.volta.start ? 'S' : ''}${
-                  measure.volta.end ? 'E' : ''
-                }`
-              : ''
-          ].join(':')
-        )
-        .join('|')}
-      data-selected-event-id={selectedEventId ?? ''}
-      data-selected-event-ids={(selectedEventIds ?? []).join(',')}
-      data-selected-event-address={
-        selectedEventAddress
-          ? [
-              selectedEventAddress.partId,
-              selectedEventAddress.staffId,
-              selectedEventAddress.measureId,
-              selectedEventAddress.voiceId
-            ].join(':')
-          : ''
-      }
-      data-selected-measure-id={selectedMeasureId ?? ''}
-      data-playback-event-id={playbackEventId ?? ''}
-      data-playback-event-address={
-        playbackEventAddress
-          ? [
-              playbackEventAddress.partId,
-              playbackEventAddress.staffId,
-              playbackEventAddress.measureId,
-              playbackEventAddress.voiceId
-            ].join(':')
-          : ''
-      }
-      data-print-layout={printLayout ? 'true' : 'false'}
-      data-page-breaks={(score.layout?.pageBreakBeforeMeasureIds ?? []).join(',')}
-      data-system-breaks={(score.layout?.systemBreakBeforeMeasureIds ?? []).join(',')}
-      data-print-layout-id={printLayoutPlan?.id ?? ''}
-      data-print-layout-margin={printLayoutPlan?.pageMarginMm ?? ''}
-      data-print-page-css-size={printLayoutPlan?.pageCssSize ?? ''}
-      data-print-layout-overflowed={printLayoutPlan?.overflowedTarget ? 'true' : 'false'}
-      data-print-layout-pages={printLayoutPlan?.pageCount ?? ''}
-      data-print-layout-scale={printLayoutPlan?.scale ?? ''}
-      data-print-layout-target={printLayoutPlan?.targetPages ?? ''}
-      data-print-layout-width={printLayoutPlan?.renderWidth ?? ''}
-      data-testid="notation-preview"
-    >
-      {inlineLyricEditor ? (
-        <input
-          aria-label="선택 음표 가사"
-          defaultValue={inlineLyricEditor.value}
-          onBlur={(event) =>
-            inlineLyricEditor.onCommit(event.currentTarget.value, {
-              syllabic: inlineLyricEditor.syllabic,
-              extend: inlineLyricEditor.extend
-            })
-          }
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-              event.preventDefault()
-              inlineLyricEditor.onCommit(event.currentTarget.value, {
-                syllabic: inlineLyricEditor.syllabic,
-                extend: inlineLyricEditor.extend
-              })
-              inlineLyricEditor.onMoveVerse(
-                event.key === 'ArrowDown' ? 1 : -1
-              )
-            } else if (event.key === 'Enter') {
-              event.preventDefault()
-              inlineLyricEditor.onCommit(event.currentTarget.value, {
-                syllabic: inlineLyricEditor.syllabic,
-                extend: inlineLyricEditor.extend,
-                moveNext: true
-              })
-            }
-          }}
-        />
-      ) : null}
-      {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
-      {score.parts[0]?.staves[0]?.measures.map((measure) => (
-        <button
-          aria-label={`${measure.number}마디 선택`}
-          key={`${measure.id}-select`}
-          onClick={() => onSelectMeasure(measure.id)}
-          onContextMenu={(event) => {
-            event.preventDefault()
-            onOpenMeasureContextMenu(measure.id, {
-              x: event.clientX,
-              y: event.clientY
-            })
-          }}
-          type="button"
-        />
-      ))}
-      {score.parts.flatMap((part) =>
-        part.staves.flatMap((staff) =>
-          staff.measures.flatMap((measure) =>
-            measure.voices.flatMap((voice) =>
-              voice.events.map((event) => (
-                <button
-                  aria-label={`${event.id} 선택`}
-                  key={`${event.id}-select`}
-                  onClick={(clickEvent) =>
-                    onSelectEvent(event.id, clickEvent.shiftKey, {
-                      partId: part.id,
-                      staffId: staff.id,
-                      measureId: measure.id,
-                      voiceId: voice.id
-                    })
-                  }
-                  type="button"
-                />
-              ))
-            )
-          )
-        )
-      )}
-      {score.parts.flatMap((part) =>
-        part.staves.flatMap((staff) =>
-          staff.measures.flatMap((measure) =>
-            measure.voices.flatMap((voice) =>
-              voice.events.flatMap((event) =>
-                event.type === 'note'
-                  ? (event.lyrics ?? []).map((lyric) => (
-                      <button
-                        aria-label={`${event.id} ${
-                          lyric.number ?? 1
-                        }절 가사 선택`}
-                        key={`${event.id}-${lyric.number ?? 1}-lyric-select`}
-                        onClick={() =>
-                          onSelectLyric(event.id, lyric.number ?? 1)
-                        }
-                        type="button"
-                      />
-                    ))
-                  : []
-              )
-            )
-          )
-        )
-      )}
-      {(score.hairpins ?? []).map((hairpin) => (
-        <span data-hairpin-type={hairpin.type} key={hairpin.id}>
-          {hairpin.startEventId}–{hairpin.endEventId}
-        </span>
-      ))}
-      {(score.slurs ?? []).map((slur) => (
-        <span data-slur="true" key={slur.id}>
-          slur:{slur.startEventId}–{slur.endEventId}
-        </span>
-      ))}
-      {(score.rehearsalMarks ?? []).map((mark) => (
-        <span data-measure-id={mark.measureId} key={mark.id}>
-          {mark.text}
-        </span>
-      ))}
-      {(score.staffTexts ?? []).map((text) => (
-        <span data-measure-id={text.measureId} key={text.id}>
-          {text.text}
-        </span>
-      ))}
-      {(score.systemTexts ?? []).map((text) => (
-        <span data-measure-id={text.measureId} key={text.id}>
-          {text.text}
-        </span>
-      ))}
-      {(score.expressionTexts ?? []).map((text) => (
-        <span data-measure-id={text.measureId} data-tick={text.tick} key={text.id}>
-          {text.text}
-        </span>
-      ))}
-      {(score.dynamics ?? []).map((dynamic) => (
-        <span data-measure-id={dynamic.measureId} key={dynamic.id}>
-          {dynamic.value}
-        </span>
-      ))}
-      {(score.harmonies ?? []).map((harmony) => (
-        <span
-          data-measure-id={harmony.measureId}
-          data-tick={harmony.tick}
-          key={harmony.id}
-        >
-          {harmony.text}
-        </span>
-      ))}
-      {score.parts.flatMap((part) =>
-        part.staves.flatMap((staff) =>
-          staff.measures.flatMap((measure) =>
-            measure.voices.flatMap((voice) =>
-              voice.events.flatMap((event) => [
-                event.fermata ? (
-                  <span data-event-id={event.id} key={`${event.id}-fermata`}>
-                    페르마타 표시
-                  </span>
-                ) : null,
-                event.breathMark ? (
-                  <span data-event-id={event.id} key={`${event.id}-breath-mark`}>
-                    {event.breathMark === 'caesura' ? '중지표 표시' : '숨표 표시'}
-                  </span>
-                ) : null,
-                event.type === 'note' && event.tremolo ? (
-                  <span data-event-id={event.id} key={`${event.id}-tremolo`}>
-                    트레몰로 {event.tremolo.marks}줄 표시
-                  </span>
-                ) : null,
-                event.type === 'note' && event.ornaments?.length ? (
-                  <span data-event-id={event.id} key={`${event.id}-ornaments`}>
-                    {event.ornaments
-                      .map((ornament) =>
-                        ornament === 'trill'
-                          ? 'tr'
-                          : ornament === 'mordent'
-                            ? 'mord.'
-                            : 'turn'
-                      )
-                      .join(' ')}
-                  </span>
-                ) : null
-              ])
-            )
-          )
-        )
-      )}
-    </div>
-  )
-}))
-
-vi.mock('./playback/useScorePlayback', () => ({
-  useScorePlayback: (
-    _score: unknown,
-    partMixer?: typeof playbackMockState.lastPartMixer
-  ) => {
-    playbackMockState.lastPartMixer = partMixer ?? {}
-
-    return {
-      activeEvent: playbackMockState.value.activeEvent,
-      activeEventId: playbackMockState.value.activeEventId,
-      jumpToStart: playbackMockState.jumpToStart,
-      pause: playbackMockState.pause,
-      play: playbackMockState.play,
-      positionBeat: playbackMockState.value.positionBeat,
-      setTempo: vi.fn(),
-      status: playbackMockState.value.status,
-      stop: playbackMockState.stop,
-      tempo: 120,
-      totalBeats: playbackMockState.value.totalBeats
-    }
-  }
-}))
-
-const installPreloadStub = () => {
-  window.inC = {
-    appName: 'in-C',
-    project: { open: vi.fn().mockResolvedValue(null), save: vi.fn().mockResolvedValue(null), listBackups: vi.fn().mockResolvedValue([]), readBackup: vi.fn() },
-    autosave: {
-      clear: vi.fn().mockResolvedValue(undefined),
-      read: vi.fn().mockResolvedValue(undefined),
-      write: vi.fn().mockResolvedValue(undefined)
-    },
-    musicXml: {
-      open: vi.fn().mockResolvedValue(undefined),
-      exportCopy: vi.fn().mockResolvedValue(undefined),
-      save: vi.fn().mockResolvedValue(undefined)
-    },
-    pdf: {
-      save: vi.fn().mockResolvedValue(undefined)
-    },
-    midi: {
-      save: vi.fn().mockResolvedValue(undefined)
-    },
-    promotions: {
-      getConcertPosters: vi.fn().mockResolvedValue({ posters: [] })
-    },
-    recentMusicXml: {
-      add: vi.fn().mockResolvedValue([]),
-      list: vi.fn().mockResolvedValue([]),
-      open: vi.fn().mockResolvedValue(undefined),
-      remove: vi.fn().mockResolvedValue([])
-    },
-    versions: {
-      chrome: 'test',
-      electron: 'test',
-      node: 'test'
-    }
-  }
-}
-
-const installLocalStorageStub = () => {
-  try {
-    if (window.localStorage) {
-      return
-    }
-  } catch {
-    // jsdom can expose localStorage as unavailable for opaque origins.
-  }
-
-  const store = new Map<string, string>()
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: {
-      clear: () => store.clear(),
-      getItem: (key: string) => store.get(key) ?? null,
-      key: (index: number) => Array.from(store.keys())[index] ?? null,
-      removeItem: (key: string) => {
-        store.delete(key)
-      },
-      setItem: (key: string, value: string) => {
-        store.set(key, String(value))
-      },
-      get length() {
-        return store.size
-      }
-    }
-  })
-}
-
-const expandNoteDetails = () => {
-  const tabs = screen.getByRole('navigation', { name: '편집 도구 카테고리' })
-  const category = within(tabs).getByRole('button', { name: '음표' })
-  if (category.getAttribute('aria-pressed') !== 'true') fireEvent.click(category)
-  const summary = screen.getByText('음표 상세 설정', { selector: 'summary' })
-  if (!summary.closest('details')!.open) fireEvent.click(summary)
-  expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
-}
+import { partPresets, scoreStructurePresets } from './editor/new-score'
+import { instrumentTranspositionPresets } from './editor/instrument-transposition'
+import { createPlaybackTimeline, findPlaybackEvent } from './playback/timeline'
+import { withPercussionClef, twoPartMusicXmlWithPrimaryAnnotations, playbackMockState, installPreloadStub, installLocalStorageStub, choosePageSetup, chooseNewScoreTemplate, printingPreview, focusTestBody, openStudioWorkspace, openNotationSettings, openSpanFinder, chooseSelectionFilter, openHarmonyProperties, chooseInspectorDynamic, choosePartSetup, chooseScoreView, staffTargetLabel, chooseStaffTarget, expectStaffTarget, selectedSpanReference, chooseSpanReference, chooseSpanEndpoint, expectSpanEndpoint, expandNoteDetails, installCompactDockMedia, asciiBytes, registerAppTestHooks } from './App.test-harness'
 
 describe('App component shell', () => {
-  afterEach(() => {
-    cleanup()
-  })
-
-  beforeEach(() => {
-    Object.defineProperty(HTMLDialogElement.prototype,'showModal',{configurable:true,value(this:HTMLDialogElement){this.setAttribute('open','')}})
-    Object.defineProperty(HTMLDialogElement.prototype,'close',{configurable:true,value(this:HTMLDialogElement){this.removeAttribute('open')}})
-    // jsdom has no Popover API; real popup placement is checked in Electron.
-    Object.defineProperty(HTMLElement.prototype,'showPopover',{configurable:true,value(this:HTMLElement){this.style.display='block'}})
-    Object.defineProperty(HTMLElement.prototype,'hidePopover',{configurable:true,value(){}})
-    vi.resetModules()
-    playbackMockState.value = {
-      activeEvent: undefined,
-      activeEventId: undefined,
-      positionBeat: 0,
-      status: 'stopped',
-      totalBeats: 16
-    }
-    playbackMockState.lastPartMixer = {}
-    playbackMockState.jumpToStart.mockReset()
-    playbackMockState.pause.mockReset()
-    playbackMockState.play.mockReset()
-    playbackMockState.stop.mockReset()
-    window.history.replaceState({}, '', '/')
-    window.confirm = vi.fn(() => true)
-    installLocalStorageStub()
-    window.localStorage.clear()
-    installPreloadStub()
-  })
+  registerAppTestHooks()
 
   it('start-recovery.show-start-screen renders the start screen with Korean entry actions', async () => {
     const { App } = await import('./App')
@@ -719,6 +39,51 @@ describe('App component shell', () => {
     expect(screen.getByRole('button', { name: /새 악보 만들기/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /MusicXML 가져오기/ })).toBeInTheDocument()
     expect(screen.getByLabelText('최근 악보 파일')).toBeInTheDocument()
+    expect(screen.getByRole('heading',{name:'새 악보를 만들어 볼까요?'}).closest('.studio-chrome')).toBeNull()
+    for(const button of within(screen.getByLabelText('시작 작업')).getAllByRole('button')) expect(button).toHaveClass('dd-button')
+  })
+
+  it.each(['space', 'input-sequence', 'selected-pitch', 'pitch-arrow', 'save'] as const)(
+    'start.keyboard-scope %s leaves the uncreated document and native button defaults alone', async action => {
+      const { App } = await import('./App'); render(<App />)
+      const button = screen.getByRole('button', { name: '새 악보 만들기' }), before = structuredClone(playbackMockState.lastScore)
+      const keys = action === 'space' ? [{ key: ' ', code: 'Space' }]
+        : action === 'input-sequence' ? [{ key: 'n', code: 'KeyN' }, { key: 'c', code: 'KeyC' }]
+        : action === 'selected-pitch' ? [{ key: 'a', code: 'KeyA' }]
+        : action === 'pitch-arrow' ? [{ key: 'ArrowUp', code: 'ArrowUp', altKey: true }]
+        : [{ key: 's', code: 'KeyS', ctrlKey: true }]
+      const defaults = keys.map(event => fireEvent.keyDown(button, event))
+      await act(async () => {})
+      expect(playbackMockState.lastScore).toEqual(before)
+      expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+      expect(window.inC.musicXml.save).not.toHaveBeenCalled(); expect(window.inC.project.save).not.toHaveBeenCalled()
+      expect(defaults).toEqual(keys.map(() => true))
+      expect(screen.getByRole('heading', { name: '새 악보를 만들어 볼까요?' })).toBeInTheDocument()
+    }
+  )
+
+  it('start.keyboard-scope existing wizard propagation keeps background score intact', async () => {
+    const { App } = await import('./App'); render(<App />)
+    const before = structuredClone(playbackMockState.lastScore)
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+    const button = within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getAllByRole('button', { name: /템플릿/ })[0]!
+    for (const event of [{ key: 'n', code: 'KeyN' }, { key: 'c', code: 'KeyC' }, { key: 's', code: 'KeyS', ctrlKey: true }, { key: ' ', code: 'Space' }]) fireEvent.keyDown(button, event)
+    await act(async () => {})
+    expect(playbackMockState.lastScore).toEqual(before); expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    expect(window.inC.musicXml.save).not.toHaveBeenCalled(); expect(window.inC.project.save).not.toHaveBeenCalled()
+  })
+
+  it.each([undefined, '직접 입력한 작곡가'] as const)('new-score.author default is empty and explicit author %s survives native saving', async composer => {
+    const { decodeNativeProject } = await import('../../project/schema')
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+    const dialog = within(screen.getByRole('dialog', { name: '새 악보 만들기' })), input = dialog.getByRole('textbox', { name: '작곡가' })
+    expect(input).toHaveValue('')
+    if (composer) fireEvent.change(input, { target: { value: composer } })
+    fireEvent.click(dialog.getByRole('button', { name: '만들기' }))
+    openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score.composer).toBe(composer)
   })
 
   it('start-recovery.no-autosave keeps primary start actions available without a recovery snapshot', async () => {
@@ -759,9 +124,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreTemplate('piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -780,9 +143,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreTemplate('piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     fireEvent.click(
@@ -803,22 +164,20 @@ describe('App component shell', () => {
       )
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    fireEvent.change(screen.getByRole('textbox', { name: '보표 글자' }), {
+    openStudioWorkspace('음표')
+    fireEvent.change(screen.getByRole('textbox', { name: '선택 요약 보표 글자' }), {
       target: { value: 'dolce lower' }
     })
-    fireEvent.blur(screen.getByRole('textbox', { name: '보표 글자' }))
-    fireEvent.change(screen.getByRole('textbox', { name: '표현 텍스트' }), {
+    fireEvent.blur(screen.getByRole('textbox', { name: '선택 요약 보표 글자' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '선택 요약 표현 텍스트' }), {
       target: { value: 'sotto voce' }
     })
-    fireEvent.blur(screen.getByRole('textbox', { name: '표현 텍스트' }))
-    fireEvent.change(screen.getByRole('combobox', { name: '셈여림' }), {
-      target: { value: 'mf' }
-    })
-    fireEvent.change(screen.getByLabelText('코드 심벌'), {
+    fireEvent.blur(screen.getByRole('textbox', { name: '선택 요약 표현 텍스트' }))
+    chooseInspectorDynamic('mf')
+    fireEvent.change(openHarmonyProperties(), {
       target: { value: 'C7/G' }
     })
-    fireEvent.blur(screen.getByLabelText('코드 심벌'))
+    fireEvent.blur(screen.getByLabelText('선택 요약 코드'))
 
     const preview = screen.getByTestId('notation-preview')
     expect(within(preview).getByText('dolce lower')).toHaveAttribute(
@@ -845,9 +204,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreTemplate('string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -882,9 +239,7 @@ describe('App component shell', () => {
       })
     )
 
-    expect(within(dialog).getByLabelText('악보 구성')).toHaveValue(
-      'string-quartet'
-    )
+    expect(within(dialog).getByRole('combobox',{name:'악보 구성'})).toHaveTextContent('현악 4중주')
     expect(
       within(templateRegion).getByRole('button', {
         name: '현악 4중주 템플릿'
@@ -915,22 +270,14 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreTemplate('string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
 
-    fireEvent.change(screen.getByLabelText('악보 보기'), {
-      target: { value: 'part' }
-    })
-    fireEvent.change(screen.getByLabelText('파트보 선택'), {
-      target: { value: 'viola' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.change(screen.getByLabelText('PDF 설정 프리셋'), {
-      target: { value: 'compact-parts' }
-    })
+    chooseScoreView('악보 보기', 'part')
+    chooseScoreView('파트보 선택', 'viola')
+    openStudioWorkspace('내보내기')
+    choosePageSetup('PDF 설정 프리셋', '컴팩트 파트보')
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -957,7 +304,7 @@ describe('App component shell', () => {
       expect(screen.getByText('파트보: Viola')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
 
     await waitFor(() => {
@@ -965,35 +312,35 @@ describe('App component shell', () => {
         suggestedName: '제목-없는-악보-viola.pdf'
       })
     })
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-print-layout',
       'true'
     )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-part-structure',
       'viola:Viola:1'
     )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-all-event-pitches',
       expect.stringContaining('viola:staff-1:')
     )
-    expect(screen.getByTestId('notation-preview')).not.toHaveAttribute(
+    expect(printingPreview()).not.toHaveAttribute(
       'data-all-event-pitches',
       expect.stringContaining('violin-1:')
     )
-    expect(screen.getByTestId('notation-preview')).not.toHaveAttribute(
+    expect(printingPreview()).not.toHaveAttribute(
       'data-all-event-pitches',
       expect.stringContaining('cello:')
     )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-print-page-css-size',
       'A4 portrait'
     )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-print-layout-margin',
       '6'
     )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+    expect(printingPreview()).toHaveAttribute(
       'data-print-layout-scale',
       '0.9'
     )
@@ -1058,10 +405,8 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
 
     expect(await screen.findByText('Imported Duo')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('악보 보기'), {
-      target: { value: 'part' }
-    })
+    openStudioWorkspace('악보')
+    chooseScoreView('악보 보기', 'part')
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -1087,9 +432,7 @@ describe('App component shell', () => {
       'P1-staff-1-measure-1'
     )
 
-    fireEvent.change(screen.getByLabelText('파트보 선택'), {
-      target: { value: 'P2' }
-    })
+    chooseScoreView('파트보 선택', 'P2')
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -1112,23 +455,23 @@ describe('App component shell', () => {
     expect(celloPreview.queryByText('maj7')).not.toBeInTheDocument()
     expect(celloPreview.queryByText('mf')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
 
     await waitFor(() => {
       expect(window.inC.pdf.save).toHaveBeenCalledWith({
         suggestedName: 'imported-duo-cello.pdf'
       })
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      expect(printingPreview()).toHaveAttribute(
         'data-print-layout',
         'true'
       )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      expect(printingPreview()).toHaveAttribute(
         'data-part-structure',
         'P2:Cello:1'
       )
     })
-    const printPreview = within(screen.getByTestId('notation-preview'))
+    const printPreview = within(printingPreview())
     expect(printPreview.getByText('Reh-One')).toBeInTheDocument()
     expect(printPreview.queryByText('PrimaryOnlyText')).not.toBeInTheDocument()
     expect(printPreview.queryByText('maj7')).not.toBeInTheDocument()
@@ -1152,10 +495,10 @@ describe('App component shell', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
     await screen.findByText('Imported Duo')
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'part' } })
-    fireEvent.change(screen.getByLabelText('파트보 선택'), { target: { value: 'P2' } })
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('악보')
+    chooseScoreView('악보 보기', 'part')
+    chooseScoreView('파트보 선택', 'P2')
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
     await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(1))
     const request = vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0]![0]
@@ -1172,13 +515,558 @@ describe('App component shell', () => {
     expect(request.contents).not.toContain('PrimaryOnlyText')
     expect(window.inC.autosave.clear).not.toHaveBeenCalled()
     expect(window.inC.recentMusicXml.add).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledWith(
       expect.objectContaining({ filePath: '/scores/full.musicxml' })
     ))
     expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts).toHaveLength(2)
   })
+
+  it.each([0,1,2,3,4,5])('import-export.tempo-label case%s preserves visible defaults and raw native metadata', async index => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { tempoLabelFixture } = await import('../../testing/tempo-label-fixture')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { serializeMidi } = await import('./midi/serialize-midi')
+    const { source, expectedText } = tempoLabelFixture(index)
+    vi.mocked(window.inC.project.open).mockResolvedValue({filePath:'/scores/tempo.chromatics',fileName:'tempo.chromatics',contents:encodeNativeProject(createNativeProject(source))})
+    vi.mocked(window.inC.project.save).mockResolvedValue({filePath:'/scores/tempo.chromatics',fileName:'tempo.chromatics'})
+    vi.mocked(window.inC.musicXml.exportCopy).mockResolvedValue({filePath:'/scores/tempo.musicxml',fileName:'tempo.musicxml'})
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+    await screen.findByText(source.title)
+    await act(async () => {})
+    openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button',{name:'MusicXML 내보내기'}))
+    await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(1))
+    const parsed = parseMusicXml(vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0]![0].contents)
+    expect(parsed.tempo?.text).toBe(expectedText)
+    expect(serializeMidi(parsed)).toEqual(serializeMidi(source))
+    expect(playbackMockState.lastScore).toEqual(source)
+    fireEvent.keyDown(window,{code:'KeyS',ctrlKey:true})
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(source)
+  })
+
+  it.each(['key', 'preceding'] as const)('import-export.implicit-chord %s exports resolved pitches without mutating native data', async kind => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { implicitChordFixture } = await import('../../testing/implicit-chord-fixture')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { serializeMidi } = await import('./midi/serialize-midi')
+    const { source, explicit } = implicitChordFixture(kind)
+    vi.mocked(window.inC.project.open).mockResolvedValue({filePath:'/scores/implicit.chromatics',fileName:'implicit.chromatics',contents:encodeNativeProject(createNativeProject(source))})
+    vi.mocked(window.inC.project.save).mockResolvedValue({filePath:'/scores/implicit.chromatics',fileName:'implicit.chromatics'})
+    vi.mocked(window.inC.musicXml.exportCopy).mockResolvedValue({filePath:'/scores/implicit.musicxml',fileName:'implicit.musicxml'})
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+    await screen.findByText(source.title)
+    await act(async () => {})
+    openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button',{name:'MusicXML 내보내기'}))
+    await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(1))
+    const xml = vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0]![0].contents
+    expect(serializeMidi(parseMusicXml(xml))).toEqual(serializeMidi(explicit))
+    expect(playbackMockState.lastScore).toEqual(source)
+    fireEvent.keyDown(window,{code:'KeyS',ctrlKey:true})
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(source)
+  })
+
+  it.each(['native-open', 'recovery', 'switch-part', 'return-to-part'] as const)(
+    'part-view.selection-scope %s edits only the visible part and preserves undo', async entry => {
+      window.history.replaceState({}, '', entry === 'recovery' ? '/' : '/?fixture=single-voice-mvp')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+      project.view = entry === 'native-open' || entry === 'recovery' ? { mode: 'part', partId: 'P2' } : { mode: 'score' }
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/visible.chromatics', fileName: 'visible.chromatics', contents: encodeNativeProject(project) })
+      vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/visible.chromatics', fileName: 'visible.chromatics' })
+      if (entry === 'recovery') vi.mocked(window.inC.autosave.read).mockResolvedValue({ score: project.score, project, metadata: { title: project.score.title, updatedAt: '2026-10-26T00:00:00Z', version: 'test' } })
+      const { App } = await import('./App')
+      render(<App />)
+      if (entry === 'recovery') fireEvent.click(await screen.findByRole('button', { name: /복구본 열기/ }))
+      else {
+        openStudioWorkspace('파일')
+        fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      }
+      await screen.findByText('Expanded Part Export')
+      openStudioWorkspace('악보')
+      if (entry === 'switch-part' || entry === 'return-to-part') {
+        chooseScoreView('악보 보기', 'part')
+        chooseScoreView('파트보 선택', 'P2')
+        if (entry === 'return-to-part') {
+          chooseScoreView('악보 보기', 'score')
+          const hiddenEvent = project.score.parts[0]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+          fireEvent.click(screen.getByRole('button', { name: `${hiddenEvent.id} 선택` }))
+          chooseScoreView('악보 보기', 'part')
+        }
+      }
+      const piano = project.score.parts[1]!, staff = piano.staves[0]!, measure = staff.measures[0]!, voice = measure.voices[0]!
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address', `${piano.id}:${staff.id}:${measure.id}:${voice.id}`)
+      fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const changed = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      expect(changed.score.parts[0]).toEqual(project.score.parts[0])
+      expect(changed.score.parts[1]).not.toEqual(piano)
+      expect(changed.view).toEqual({ mode: 'part', partId: 'P2' })
+      await screen.findByText('visible.chromatics에 저장했습니다.')
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+      expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
+    }
+  )
+
+  it('part-view.selection-scope preserves visible selection/input but exits a hidden input target without an undo step', async () => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/targets.chromatics', fileName: 'targets.chromatics', contents: encodeNativeProject(project) })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    const event = project.score.parts[0]!.staves[0]!.measures[1]!.voices[0]!.events[0]!
+    fireEvent.click(screen.getByRole('button', { name: `${event.id} 선택` }))
+    fireEvent.keyDown(window, { key: 'n', code: 'KeyN' })
+    expect(document.querySelector('.studio-input-context')).toHaveAttribute('data-input-active', 'true')
+    openStudioWorkspace('악보')
+    chooseScoreView('악보 보기', 'part')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', event.id)
+    expect(document.querySelector('.studio-input-context')).toHaveAttribute('data-input-active', 'true')
+    chooseScoreView('파트보 선택', 'P2')
+    expect(document.querySelector('.studio-input-context')).toHaveAttribute('data-input-active', 'false')
+    expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(project.score)
+    expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
+  })
+
+  it('part-view.playback-scope keeps the visible part selected through ensemble play pause and stop', async () => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/play.chromatics', fileName: 'play.chromatics', contents: encodeNativeProject(project) })
+    const { App } = await import('./App')
+    const { rerender } = render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    const clarinet = project.score.parts[0]!, clarinetStaff = clarinet.staves[0]!, clarinetMeasure = clarinetStaff.measures[0]!
+    const piano = project.score.parts[1]!, pianoStaff = piano.staves[0]!, pianoMeasure = pianoStaff.measures[0]!
+    playbackMockState.value = {
+      ...playbackMockState.value, status: 'playing', positionBeat: 0,
+      activeEvent: { eventId: clarinetMeasure.voices[0]!.events[0]!.id, partId: clarinet.id, staffId: clarinetStaff.id, measureId: clarinetMeasure.id, voiceId: clarinetMeasure.voices[0]!.id },
+      activeEventId: clarinetMeasure.voices[0]!.events[0]!.id
+    }
+    rerender(<App />)
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address', `${piano.id}:${pianoStaff.id}:${pianoMeasure.id}:${pianoMeasure.voices[0]!.id}`)
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-playback-event-address', `${piano.id}:${pianoStaff.id}:${pianoMeasure.id}:${pianoMeasure.voices[0]!.id}`)
+    playbackMockState.value = { ...playbackMockState.value, status: 'paused' }
+    rerender(<App />)
+    expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
+    playbackMockState.value = { ...playbackMockState.value, status: 'stopped', activeEvent: undefined, activeEventId: undefined }
+    rerender(<App />)
+    expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
+    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score.parts[0]).toEqual(clarinet)
+    expect(saved.score.parts[1]).not.toEqual(piano)
+  })
+
+  it('studio.page-interchange explains unsupported imported margins in Korean while retaining technical diagnostics', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const {musicXmlOrderFixture}=await import('../../testing/musicxml-order-fixture')
+    const {serializeMusicXml}=await import('../../musicxml')
+    const source=musicXmlOrderFixture('system-text')
+    source.layout={pageSetup:{pageSize:'letter',orientation:'landscape',pageMarginMm:12.5}}
+    const xml=serializeMusicXml(source).replace(/<left-margin>[^<]+<\/left-margin>/,'<left-margin>40</left-margin>')
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({filePath:'/scores/margins.musicxml',fileName:'margins.musicxml',contents:xml})
+    const {App}=await import('./App');render(<App />)
+    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'MusicXML 가져오기'}))
+    const report=await screen.findByRole('region',{name:'MusicXML 경고 상세'})
+    expect(within(report).getByText('서로 다르거나 지원 범위를 벗어난 여백은 가져오지 못했습니다. 출력 전에 원본과 여백을 비교해 주세요.')).toBeVisible()
+    expect(playbackMockState.lastScore?.layout?.pageSetup).toEqual({pageSize:'letter',orientation:'landscape'})
+    expect(within(report).getByText(/Asymmetric, incomplete/)).not.toBeVisible()
+    expect(within(report).getByText(/defaults.page-layout.page-margins/)).not.toBeVisible()
+  })
+
+  it('studio.harmony-schema rejects unknown structure before file output without losing dirty selection or undo', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const {createNativeProject,encodeNativeProject}=await import('../../project/schema')
+    const source=structuredClone(demoScore)
+    source.harmonies=[{id:'unknown-analysis',measureId:source.parts[0].staves[0].measures[0].id,tick:0,text:'Unspecified analysis'}]
+    const eventId=source.parts[0].staves[0].measures[0].voices[0].events.find(event=>event.type==='note')!.id
+    vi.mocked(window.inC.project.open).mockResolvedValue({filePath:'/scores/opaque.chromatics',fileName:'opaque.chromatics',contents:encodeNativeProject(createNativeProject(source))})
+    const {App}=await import('./App');render(<App />)
+    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+    await waitFor(()=>expect(playbackMockState.lastScore).toEqual(source))
+    fireEvent.click(screen.getByRole('button',{name:`${eventId} 선택`}));fireEvent.keyDown(window,{key:'ArrowUp',code:'ArrowUp',altKey:true})
+    const before=structuredClone(playbackMockState.lastScore!)
+    expect(before).not.toEqual(source)
+    const selection=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
+    openStudioWorkspace('내보내기');fireEvent.click(screen.getByRole('button',{name:'MusicXML 내보내기'}))
+    await waitFor(()=>expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).toHaveTextContent('코드 심벌 “Unspecified analysis”의 화음 구조를 MusicXML로 보존할 수 없습니다. 지원하는 코드 표기로 수정하거나 프로젝트 파일로 보관해 주세요.'))
+    expect(window.inC.musicXml.exportCopy).not.toHaveBeenCalled()
+    expect(playbackMockState.lastScore).toEqual(before)
+    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+    expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toBe(selection)
+    fireEvent.keyDown(window,{code:'KeyZ',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(source)
+  })
+
+  it.each([
+    ['title', '악보 제목 수정', '악보 제목'],
+    ['composer', '작곡가 수정', '작곡가'],
+    ['partTitle', '파트보 제목 수정', '파트보 제목 입력']
+  ] as const)('metadata.document-scope discards a pending %s draft when another native document arrives', async (_field, action, inputLabel) => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const first = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    first.view = { mode: 'part', partId: 'P2' }
+    first.partLayouts = [{ partId: 'P2', title: 'First document piano', layout: {} }]
+    const second = structuredClone(first)
+    second.score.title = 'Second document'
+    second.score.composer = 'Second composer'
+    second.partLayouts[0]!.title = 'Second piano'
+    vi.mocked(window.inC.project.open).mockResolvedValueOnce({ filePath: '/scores/first.chromatics', fileName: 'first.chromatics', contents: encodeNativeProject(first) })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    let finish!: (value: Awaited<ReturnType<typeof window.inC.project.open>>) => void
+    vi.mocked(window.inC.project.open).mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const oldInput = screen.getByRole('textbox', { name: inputLabel })
+    fireEvent.compositionStart(oldInput)
+    fireEvent.change(oldInput, { target: { value: '이전 문서의 미확정 초안' } })
+    await act(async () => finish({ filePath: '/scores/second.chromatics', fileName: 'second.chromatics', contents: encodeNativeProject(second) }))
+    await screen.findByText('second.chromatics을 열었습니다.')
+    expect(screen.queryByRole('textbox', { name: inputLabel })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '악보 제목 수정' })).toHaveTextContent('Second document')
+    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Second piano')
+    fireEvent.compositionEnd(oldInput)
+    fireEvent.keyDown(oldInput, { key: 'Enter' })
+    fireEvent.blur(oldInput)
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score).toEqual(second.score)
+    expect(saved.partLayouts).toEqual(second.partLayouts)
+    await waitFor(() => expect(document.querySelector('.studio-document [role="status"]')).toHaveTextContent('변경 없음'))
+  })
+
+  it.each([
+    ['title', '악보 제목 수정', '악보 제목'],
+    ['composer', '작곡가 수정', '작곡가'],
+    ['partTitle', '파트보 제목 수정', '파트보 제목 입력']
+  ] as const)('metadata.commit-scope %s Enter followed by blur creates one command and one undo', async (_field, action, inputLabel) => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/commit.chromatics', fileName: 'commit.chromatics', contents: encodeNativeProject(project) })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    const trigger=screen.getByRole('button',{name:action})
+    trigger.focus();fireEvent.keyDown(trigger,{key:' ',code:'Space'})
+    expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    for(const composition of [{isComposing:true},{keyCode:229},{key:'Process'}]) {
+      expect(fireEvent.keyDown(trigger,{key:' ',code:'Space',...composition})).toBe(false)
+      expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    }
+    fireEvent.click(trigger)
+    const input = screen.getByRole('textbox', { name: inputLabel })
+    expect(input.closest('.dd-input-row')).not.toBeNull()
+    expect((input as HTMLInputElement).labels![0]).toHaveClass('dd-input-label--sr-only')
+    fireEvent.change(input, { target: { value: '조합 후 취소할 초안' } })
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229, isComposing: true })
+    fireEvent.keyDown(input, { key: 'Escape', isComposing: true })
+    expect(input).toBeInTheDocument()
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    act(() => {
+      fireEvent.keyDown(input, { key: 'Escape' })
+      fireEvent.blur(input)
+    })
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    expect(screen.getByRole('button', { name: action })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const confirmInput = screen.getByRole('textbox', { name: inputLabel })
+    fireEvent.change(confirmInput, { target: { value: '한 번만 확정할 이름' } })
+    act(() => {
+      fireEvent.keyDown(confirmInput, { key: 'Enter' })
+      fireEvent.blur(confirmInput)
+    })
+    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+    expect(screen.getByRole('button', { name: action })).toHaveFocus()
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const blurInput=screen.getByRole('textbox',{name:inputLabel})
+    fireEvent.change(blurInput,{target:{value:'다른 도구로 이동하며 확정'}})
+    const destination=screen.getByRole('button',{name:'악보로 이동'})
+    act(()=>destination.focus())
+    expect(destination).toHaveFocus()
+    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+    fireEvent.keyDown(window,{code:'KeyZ',ctrlKey:true})
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score).toEqual(project.score)
+    expect(saved.partLayouts).toEqual(project.partLayouts)
+  })
+
+  it.each([
+    ['title', '악보 제목 수정', '악보 제목'],
+    ['composer', '작곡가 수정', '작곡가'],
+    ['partTitle', '파트보 제목 수정', '파트보 제목 입력']
+  ] as const)('metadata.composition-blur %s defers confirmation and preserves one undo and next focus', async (_field, action, inputLabel) => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    vi.mocked(window.inC.project.open).mockResolvedValueOnce({ filePath: '/scores/composing.chromatics', fileName: 'composing.chromatics', contents: encodeNativeProject(project) })
+    const { App } = await import('./App'); render(<App />)
+    openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    const input = screen.getByRole('textbox', { name: inputLabel })
+    fireEvent.compositionStart(input); fireEvent.change(input, { target: { value: '조합 중인 제목' } })
+    fireEvent.keyDown(input, { key: 'Enter' }); fireEvent.keyDown(input, { key: 'Escape' })
+    expect(input).toBeInTheDocument()
+    const destination = screen.getByRole('button', { name: '악보로 이동' })
+    act(() => destination.focus())
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    expect(input).toBeInTheDocument()
+    fireEvent.compositionEnd(input)
+    await waitFor(() => expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정'))
+    expect(destination).toHaveFocus()
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score).toEqual(project.score); expect(saved.partLayouts).toEqual(project.partLayouts)
+  })
+
+  it.each(['add-part', 'vertical-navigation', 'explicit-staff', 'history'] as const)(
+    'part-view.command-scope %s keeps displayed and editing parts aligned', async action => {
+      window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+      project.view = { mode: 'part', partId: 'P2' }
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/commands.chromatics', fileName: 'commands.chromatics', contents: encodeNativeProject(project) })
+      const { App } = await import('./App')
+      render(<App />)
+      openStudioWorkspace('파일')
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('Expanded Part Export')
+      if (action === 'add-part') {
+        openStudioWorkspace('악보')
+        fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'violin:바이올린:1')
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^violin:/)
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'violin:바이올린:1')
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+      } else if (action === 'vertical-navigation') {
+        const before = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
+        fireEvent.keyDown(window, { key: 'ArrowUp' })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', before)
+        fireEvent.keyDown(window, { key: 'ArrowDown' })
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-1:.*:voice-2$/)
+        fireEvent.keyDown(window, { key: 'ArrowDown' })
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-2:/)
+        fireEvent.keyDown(window, { key: 'ArrowUp' })
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-1:/)
+      } else if (action === 'explicit-staff') {
+        expandNoteDetails()
+        fireEvent.keyDown(window, { key: 'n', code: 'KeyN' })
+        chooseStaffTarget('P1:P1-staff-1')
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P1:Clarinet:1')
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P1:/)
+        expect(document.querySelector('.studio-input-context')).toHaveAttribute('data-input-active', 'true')
+        fireEvent.keyDown(window, { key: 'Escape' })
+      } else {
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+        openStudioWorkspace('악보')
+        chooseScoreView('파트보 선택', 'P1')
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+        expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P1:Clarinet:1')
+        expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P1:/)
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      }
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(project.score)
+    }
+  )
+
+  it.each(['diatonic', 'chromatic', 'octave', 'out-of-range'] as const)(
+    'chord.pitch-movement native shortcut %s preserves the whole chord with one history command', async movement => {
+      window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+      project.view = { mode: 'part', partId: 'P2' }
+      const chord = project.score.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+      if (chord.type !== 'note' || !chord.pitches) throw Error('Expected actual imported chord')
+      if (movement === 'out-of-range') { chord.pitches[1]!.octave = 9 }
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/chord.chromatics', fileName: 'chord.chromatics', contents: encodeNativeProject(project) })
+      vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/chord.chromatics', fileName: 'chord.chromatics' })
+      const { App } = await import('./App')
+      render(<App />)
+      openStudioWorkspace('파일')
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('Expanded Part Export')
+      // Flush React's native-open render/effect boundary before synthetic window keys.
+      await act(async () => {})
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', chord.id)
+      fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, ctrlKey: movement === 'octave' || movement === 'out-of-range', shiftKey: movement === 'chromatic' })
+      expect(document.querySelector('.editor-status')).toHaveTextContent(movement === 'out-of-range' ? '0회 수정' : '1회 수정')
+      if (movement === 'out-of-range') expect(screen.getByText(/화음을 이동할 수 없습니다/)).toBeInTheDocument()
+      else expect(screen.getByText('선택한 화음의 모든 음을 이동했습니다.')).toBeInTheDocument()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      const expected = structuredClone(project.score)
+      const moved = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+      if (moved.type !== 'note') throw Error('Expected chord')
+      if (movement !== 'out-of-range') {
+        moved.pitches = movement === 'diatonic'
+          ? [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]
+          : movement === 'chromatic'
+            ? [{ step: 'C', octave: 4, alter: 1 }, { step: 'E', octave: 4, alter: 1 }]
+            : [{ step: 'C', octave: 5, alter: 0 }, { step: 'E', octave: 5, alter: 0 }]
+        moved.pitch = moved.pitches[0]!
+      }
+      expect(saved.score).toEqual(expected)
+      expect(saved.partLayouts).toEqual(project.partLayouts)
+      if (movement !== 'out-of-range') {
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+        expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+        fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+        await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+        expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
+      }
+    }
+  )
+
+  it.each(['sharp', 'natural', 'enharmonic', 'next-input'] as const)(
+    'chord.spelling context %s keeps selected-vector scope separate from next input', async operation => {
+      window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+      project.view = { mode: 'part', partId: 'P2' }
+      const chord = project.score.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+      if (chord.type !== 'note' || !chord.pitches) throw Error('Expected chord')
+      chord.pitches[0]!.alter = 1; chord.pitch = chord.pitches[0]!
+      if (operation === 'enharmonic') chord.pitches[1]!.alter = 1
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/spelling.chromatics', fileName: 'spelling.chromatics', contents: encodeNativeProject(project) })
+      const { App } = await import('./App')
+      render(<App />)
+      openStudioWorkspace('파일')
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('Expanded Part Export')
+      // Flush React's native-open render/effect boundary before synthetic window keys.
+      await act(async () => {})
+      expandNoteDetails()
+      if (operation === 'next-input') fireEvent.keyDown(window, { key: 'n', code: 'KeyN' })
+      const properties = within(screen.getByRole('group', { name: '임시표' }))
+      if (operation !== 'enharmonic' && operation !== 'next-input') {
+        for (const label of ['플랫', '샤프', '제자리표']) expect(properties.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'false')
+      }
+      if (operation === 'enharmonic') fireEvent.click(screen.getByRole('button', { name: '이명동음으로 바꾸기' }))
+      else fireEvent.click(properties.getByRole('button', { name: operation === 'natural' ? '제자리표' : '샤프' }))
+      expect(document.querySelector('.editor-status')).toHaveTextContent(operation === 'next-input' ? '0회 수정' : '1회 수정')
+      if (operation !== 'next-input') expect(screen.getByLabelText('음표 편집 대상')).toHaveTextContent('화음 전체')
+      else {
+        expect(properties.getByRole('button', { name: '샤프' })).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.keyDown(window, { key: 'Escape' })
+      }
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      const expected = structuredClone(project.score), changed = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+      if (changed.type !== 'note' || !changed.pitches) throw Error('Expected chord')
+      if (operation !== 'next-input') {
+        changed.pitches = operation === 'enharmonic' ? [{ step: 'D', octave: 4, alter: -1 }, { step: 'F', octave: 4, alter: 0 }] : changed.pitches.map(pitch => ({ ...pitch, alter: operation === 'natural' ? 0 : 1 }))
+        changed.pitch = changed.pitches[0]!
+      }
+      expect(saved.score).toEqual(expected)
+      if (operation !== 'next-input') {
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+        expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+        fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+        await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+        expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
+      }
+    }
+  )
+
+  it.each(['single-note', 'chord-to-single', 'rest'] as const)(
+    'pitch.letter-replacement App %s preserves attachments selection and one undo', async kind => {
+      window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+      project.view = { mode: 'part', partId: 'P2' }
+      const voice = project.score.parts[1]!.staves[0]!.measures[0]!.voices[0]!, old = voice.events[0]!
+      if (old.type !== 'note') throw Error('Expected note')
+      if (kind === 'single-note') delete old.pitches
+      old.fermata = true; old.breathMark = 'breath'
+      if (kind === 'rest') {
+        voice.events[0] = { type: 'rest', id: old.id, position: old.position, duration: old.duration, fullMeasure: true, fermata: true, breathMark: 'breath' }
+        project.score.slurs = []
+      }
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/letter.chromatics', fileName: 'letter.chromatics', contents: encodeNativeProject(project) })
+      const { App } = await import('./App')
+      render(<App />)
+      openStudioWorkspace('파일')
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('Expanded Part Export'); await act(async () => {})
+      if (kind === 'chord-to-single') {
+        expandNoteDetails()
+        expect(screen.getByLabelText('음표 편집 대상')).toHaveTextContent('A–G: 단음 교체')
+      }
+      fireEvent.keyDown(window, { key: 'd', code: 'KeyD' })
+      expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', old.id)
+      if (kind === 'chord-to-single') expect(screen.getByText(/화음을 단음으로 바꿨습니다/)).toBeInTheDocument()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      const expected = structuredClone(project.score), event = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+      const metadata = { ...event } as Record<string, unknown>; delete metadata.pitches; delete metadata.fullMeasure
+      expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0] = { ...metadata, type: 'note', pitch: { step: 'D', octave: 4, alter: 0 } } as typeof old
+      expect(saved.score).toEqual(expected)
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+      expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
+    }
+  )
 
   it('native project opens portable part settings and saves/resaves separately from XML', async () => {
     window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
@@ -1192,7 +1080,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/project.chromatics', fileName: 'project.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
@@ -1231,7 +1119,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/parts.chromatics', fileName: 'parts.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     fireEvent.click(screen.getByRole('button', { name: '파트보 제목 수정' }))
@@ -1262,11 +1150,11 @@ describe('App component shell', () => {
     await screen.findByText('reopened.chromatics을 열었습니다.')
     expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano rehearsal edition')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(vi.mocked(window.inC.pdf.save).mock.calls[0]![0].suggestedName).toContain('piano-rehearsal-edition')
-  })
+  }, 15_000)
 
   it.each([
     ['페이지', 'pageBreakBeforeMeasureIds', 'data-page-breaks'],
@@ -1284,11 +1172,11 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/parts.chromatics', fileName: 'parts.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     fireEvent.click(screen.getByRole('button', { name: `${lowerEvent.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     expect(screen.getByRole('button', { name: `${label} 나누기 추가` })).toBeEnabled()
     fireEvent.click(screen.getByRole('button', { name: `${label} 나누기 추가` }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(attribute, targetMeasure.id)
@@ -1300,11 +1188,11 @@ describe('App component shell', () => {
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(attribute, '')
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(attribute, targetMeasure.id)
-    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'score' } })
+    chooseScoreView('악보 보기', 'score')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(attribute, '')
-    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'part' } })
+    chooseScoreView('악보 보기', 'part')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(attribute, targetMeasure.id)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await screen.findByText('parts.chromatics에 저장했습니다.')
     const contents = vi.mocked(window.inC.project.save).mock.calls[0]![0].contents
@@ -1329,11 +1217,12 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/parts.chromatics', fileName: 'parts.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.change(screen.getByLabelText('PDF 여백 mm'), { target: { value: '17' } })
+    fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
     expect(screen.getByLabelText('PDF 여백 mm')).toHaveValue(6)
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
@@ -1347,7 +1236,7 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('PDF 여백 mm')).toHaveValue(17)
     expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Custom piano')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-page-breaks', measureId)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await screen.findByText('parts.chromatics에 저장했습니다.')
     const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -1357,7 +1246,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).partLayouts).toEqual([])
-  })
+  }, 15_000)
 
   it('native save prunes deleted part-break anchors while undo restores the original layout', async () => {
     window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
@@ -1374,14 +1263,14 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/layout.chromatics', fileName: 'layout.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Structural layout')
     fireEvent.click(screen.getByRole('button', { name: `${deleted.voices[0]!.events[0]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '마디 삭제' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-page-breaks', retained.id)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     expect(document.querySelector('.editor-status .is-error')?.textContent ?? '').toBe('')
     await screen.findByText('layout.chromatics에 저장했습니다.')
@@ -1407,11 +1296,11 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/quartet.chromatics', fileName: 'quartet.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Aligned quartet')
     fireEvent.click(screen.getByRole('button', { name: `${target.voices[0]!.events[0]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '마디 추가' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-measure-count', '4')
     expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toContain(`${part.id}:${staff.id}:`)
@@ -1419,7 +1308,7 @@ describe('App component shell', () => {
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-measure-count', '3')
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-measure-count', '4')
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await screen.findByText('quartet.chromatics에 저장했습니다.')
     const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -1428,6 +1317,47 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(project.score)
+  })
+
+  it.each(['score', 'part'] as const)('studio.structure protects %s breaks when unequal staff removal cannot preserve their anchor', async scope => {
+    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    const piano = project.score.parts[1]!, lower = piano.staves[1]!
+    const extra = structuredClone(lower.measures[1]!)
+    extra.id = 'unequal-extra'; extra.number = 3
+    for (const voice of extra.voices) for (const event of voice.events) event.id += '-extra'
+    lower.measures.push(extra)
+    project.view = { mode: 'part', partId: piano.id }
+    const layout = { pageBreakBeforeMeasureIds: [lower.measures[1]!.id], systemBreakBeforeMeasureIds: [extra.id] }
+    if (scope === 'score') project.score.layout = layout
+    project.partLayouts = [{ partId: piano.id, title: 'Keep independent layout', layout: scope === 'part' ? layout : {} }]
+    const before = structuredClone(project)
+    if (process.env.DDIRORI_UNEQUAL_STAFF_QA_DIR) {
+      const { mkdirSync, writeFileSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const directory = join(process.env.DDIRORI_UNEQUAL_STAFF_QA_DIR, scope)
+      mkdirSync(directory, { recursive: true })
+      writeFileSync(join(directory, 'source.chromatics'), encodeNativeProject(project))
+    }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/unequal.chromatics', fileName: 'unequal.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/unequal.chromatics', fileName: 'unequal.chromatics' })
+    const { App } = await import('./App'); render(<App />)
+    openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Expanded Part Export')
+    fireEvent.click(screen.getByRole('button', { name: `${lower.measures[0]!.voices[0]!.events[0]!.id} 선택` }))
+    const selected = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
+    openStudioWorkspace('악보'); fireEvent.click(screen.getByRole('button', { name: '보표 삭제' }))
+    const guard = screen.queryByText('저장된 줄·페이지 나누기를 다른 보표로 옮길 수 없습니다. 해당 나누기를 해제한 뒤 보표를 삭제해 주세요.')
+    const afterSelection = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
+    const historyWasEmpty = Boolean(screen.queryByText('0회 수정'))
+    openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score).toEqual(before.score); expect(saved.partLayouts).toEqual(before.partLayouts)
+    expect(guard).not.toBeNull(); expect(afterSelection).toBe(selected); expect(historyWasEmpty).toBe(true)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(screen.getByText('0회 수정')).toBeInTheDocument()
   })
 
   it('removing a staff preserves independent breaks and restores their original anchors on undo', async () => {
@@ -1444,13 +1374,13 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/staff.chromatics', fileName: 'staff.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     fireEvent.click(screen.getByRole('button', { name: `${lower.measures[0]!.voices[0]!.events[0]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '보표 삭제' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
     const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -1479,10 +1409,10 @@ describe('App component shell', () => {
     vi.mocked(window.inC.musicXml.exportCopy).mockResolvedValue({ filePath: '/scores/piano.musicxml', fileName: 'piano.musicxml' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
     const report = await screen.findByRole('region', { name: 'MusicXML 경고 상세' })
     expect(within(report).queryByText('score.layout.pageBreakBeforeMeasureIds[0]')).not.toBeInTheDocument()
@@ -1510,7 +1440,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve }))
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
@@ -1534,15 +1464,16 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.open).mockResolvedValueOnce({ filePath: '/scores/current.chromatics', fileName: 'current.chromatics', contents: encodeNativeProject(project) })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     let finishOpen!: (file: { filePath: string; fileName: string; contents: string }) => void
     vi.mocked(window.inC.project.open).mockImplementationOnce(() => new Promise(resolve => { finishOpen = resolve }))
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await waitFor(() => expect(window.inC.project.open).toHaveBeenCalledTimes(2))
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     fireEvent.change(screen.getByLabelText('PDF 여백 mm'), { target: { value: '17' } })
+    fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     project.score.title = 'Incoming project'
     await act(async () => { finishOpen({ filePath: '/scores/incoming.chromatics', fileName: 'incoming.chromatics', contents: encodeNativeProject(project) }) })
@@ -1568,6 +1499,83 @@ describe('App component shell', () => {
     expect(window.inC.project.open).not.toHaveBeenCalled()
   })
 
+  it.each(['recovery', 'recent'] as const)('studio.recovery-feedback keeps the %s startup diagnosis out of the primary banner', async operation => {
+    const diagnostic = `QA ${operation} storage denied /fixture/private.json`
+    if (operation === 'recovery') vi.mocked(window.inC.autosave.read).mockRejectedValueOnce(new Error(diagnostic))
+    else vi.mocked(window.inC.recentMusicXml.list).mockRejectedValueOnce(new Error(diagnostic))
+    const { App } = await import('./App'); render(<App />)
+    const summary = operation === 'recovery' ? '자동저장 복구본을 읽지 못했습니다.' : '최근 악보 목록을 불러오지 못했습니다.'
+    const text = await screen.findByText(new RegExp(summary.replace('.', '\\.')))
+    const banner = text.closest('.dd-banner')!
+    expect(banner).not.toHaveTextContent(diagnostic)
+    expect(banner).toHaveTextContent('프로젝트 파일을 직접 열거나 새 악보로 시작')
+    const technical = screen.getByRole('group', { name: operation === 'recovery' ? '자동저장 복구 기술 정보' : '최근 악보 목록 기술 정보' })
+    expect(banner).not.toContainElement(technical)
+    expect(within(technical).getByText(diagnostic)).not.toBeVisible()
+    fireEvent.click(within(technical).getByRole('button', { name: '기술 정보' }))
+    expect(within(technical).getByText(diagnostic)).toBeVisible()
+    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    expect(window.inC.project.save).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole('button', { name: '만들기' }))
+    expect(screen.queryByText(diagnostic)).not.toBeInTheDocument()
+  })
+
+  it('studio.recovery-feedback preserves edits and one undo through background failure and manual project save', async () => {
+    vi.mocked(window.inC.autosave.write).mockRejectedValueOnce(new Error('QA background write denied'))
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole('button', { name: '만들기' }))
+    fireEvent.click(screen.getByRole('button', { name: '음표 입력 전환, 단축키 N' }))
+    fireEvent.keyDown(window, { key: 'c', code: 'KeyC' })
+    const preview = screen.getByTestId('notation-preview'), pitches = preview.getAttribute('data-event-pitches'), selected = preview.getAttribute('data-selected-event-id')
+    const status = screen.getByRole('status', { name: '편집 및 파일 상태' })
+    await waitFor(() => expect(status).toHaveTextContent('자동저장에 실패했습니다.'), { timeout: 3000 })
+    expect(status).not.toHaveTextContent('QA background write denied')
+    expect(status).toHaveTextContent('프로젝트 파일로 저장해 주세요.')
+    expect(status).toHaveTextContent('1회 수정')
+    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
+    expect(preview).toHaveAttribute('data-event-pitches', pitches)
+    expect(preview).toHaveAttribute('data-selected-event-id', selected)
+    const technical = screen.getByRole('group', { name: '자동저장 기술 정보' })
+    expect(within(technical).getByText('QA background write denied')).not.toBeVisible()
+    fireEvent.click(within(technical).getByRole('button', { name: '기술 정보' }))
+    expect(within(technical).getByText('QA background write denied')).toBeVisible()
+    vi.mocked(window.inC.project.save).mockResolvedValueOnce({ fileName: 'manual.chromatics', filePath: '/fixture/manual.chromatics' })
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 파일 저장' }))
+    await waitFor(() => expect(status).toHaveTextContent('manual.chromatics에 저장했습니다.'))
+    expect(document.querySelector('.studio-document')).toHaveTextContent('변경 없음')
+    expect(screen.queryByRole('group', { name: '자동저장 기술 정보' })).not.toBeInTheDocument()
+    expect(preview).toHaveAttribute('data-event-pitches', pitches)
+    fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
+    expect(screen.getByRole('note', { name: '첫 입력 안내' })).toBeInTheDocument()
+    expect(status).toHaveTextContent('0회 수정')
+  })
+
+  it.each(['new-score', 'native-open'] as const)('studio.recovery-feedback ignores late startup recent-list failure after %s', async replacement => {
+    let fail!: (error: Error) => void
+    vi.mocked(window.inC.recentMusicXml.list).mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject }))
+    const { App } = await import('./App'); render(<App />)
+    await waitFor(() => expect(window.inC.recentMusicXml.list).toHaveBeenCalledOnce())
+    if (replacement === 'new-score') {
+      fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+      fireEvent.click(within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole('button', { name: '만들기' }))
+    } else {
+      const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+      const incoming = createNativeProject({ ...demoScore, title: '최근 응답보다 새 문서' })
+      vi.mocked(window.inC.project.open).mockResolvedValueOnce({ filePath: '/fixture/current.chromatics', fileName: 'current.chromatics', contents: encodeNativeProject(incoming) })
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('최근 응답보다 새 문서')
+    }
+    const status = screen.getByRole('status', { name: '편집 및 파일 상태' }), before = status.textContent
+    const preview = screen.getByTestId('notation-preview'), selected = preview.getAttribute('data-selected-event-id')
+    await act(async () => fail(new Error('QA obsolete startup list error')))
+    expect(status).toHaveTextContent(before!)
+    expect(screen.queryByText(/QA obsolete startup list error/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: '최근 악보 목록 기술 정보' })).not.toBeInTheDocument()
+    expect(preview).toHaveAttribute('data-selected-event-id', selected)
+  })
+
   it.each(['success', 'failure'] as const)('ignores late startup recovery %s after opening another document', async outcome => {
     window.history.replaceState({}, '', '/')
     const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
@@ -1588,6 +1596,38 @@ describe('App component shell', () => {
     expect(screen.queryByText(/Stale recovery read/)).not.toBeInTheDocument()
     expect(window.inC.autosave.clear).not.toHaveBeenCalled()
     expect(screen.getByText('Expanded Part Export')).toBeInTheDocument()
+  })
+
+  it.each(['success', 'failure'] as const)('keeps a confirmed new score after late startup recovery %s', async outcome => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.score.title = 'Previous recovery'
+    let finish!: (snapshot: Awaited<ReturnType<typeof window.inC.autosave.read>>) => void
+    let fail!: (error: Error) => void
+    vi.mocked(window.inC.autosave.read).mockReturnValue(new Promise((resolve, reject) => { finish=resolve; fail=reject }))
+    const { App } = await import('./App');render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+    const wizard=within(screen.getByRole('dialog', { name: '새 악보 만들기' }))
+    fireEvent.change(wizard.getByRole('textbox', { name: '제목' }), { target: { value: 'Current confirmed score' } })
+    fireEvent.click(wizard.getByRole('button', { name: '만들기' }))
+    const current=structuredClone(playbackMockState.lastScore)
+    const address=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
+    await act(async () => {
+      if(outcome==='success')finish({ score: project.score, project,
+        metadata: { title: 'Previous recovery', updatedAt: '2026-10-27T00:00:00Z', version: 'test' } })
+      else fail(new Error('Old startup recovery failure'))
+    })
+    expect(playbackMockState.lastScore).toEqual(current)
+    expect(screen.getByRole('button', { name: '악보 제목 수정' })).toHaveTextContent('Current confirmed score')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address',address!)
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    expect(screen.queryByRole('dialog', { name: '자동저장 복구' })).toBeNull()
+    expect(screen.queryByText(/Old startup recovery failure|Previous recovery/)).toBeNull()
+    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const { decodeNativeProject } = await import('../../project/schema')
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(current)
   })
 
   it('native recovery restores portable settings and autosaves the whole envelope', async () => {
@@ -1623,9 +1663,10 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.readBackup).mockResolvedValue({ contents: encodeNativeProject(project) })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 백업' }))
     const dialog = screen.getByRole('dialog', { name: '프로젝트 백업' })
+    expect(dialog.tagName).toBe('DIALOG');expect(dialog).toHaveClass('dd-dialog')
     expect(await within(dialog).findByRole('button', { name: 'bad.chromatics 복구' })).toBeDisabled()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Backup piano 복구' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '프로젝트 백업' })).not.toBeInTheDocument())
@@ -1636,6 +1677,26 @@ describe('App component shell', () => {
     expect(input).not.toHaveProperty('filePath')
     expect(decodeNativeProject(input.contents)).toMatchObject({ view: project.view, partLayouts: [{ partId: 'P2', title: 'Recovered piano' }] })
     expect(window.inC.recentMusicXml.add).not.toHaveBeenCalled()
+  })
+
+  it.each(['empty','error'] as const)('studio.backups public loading and %s keep cancellation and focus', async state => {
+    let resolve!: (entries:never[])=>void, reject!: (error:Error)=>void
+    vi.mocked(window.inC.project.listBackups).mockReturnValue(new Promise((a,b)=>{resolve=a;reject=b}))
+    const {App}=await import('./App');render(<App />)
+    const trigger=screen.getByRole('button',{name:'프로젝트 백업'});trigger.focus();fireEvent.click(trigger)
+    const dialog=screen.getByRole('dialog',{name:'프로젝트 백업'}),q=within(dialog)
+    expect(q.getByRole('status')).toHaveTextContent('불러오는 중')
+    await act(async()=>{if(state==='error')reject(new Error('QA unavailable'));else resolve([])})
+    if(state==='error') {
+      expect(q.getByRole('alert')).toHaveClass('dd-banner')
+      expect(q.getByText('QA unavailable')).not.toBeVisible()
+      fireEvent.click(q.getByRole('button',{name:'기술 정보'}))
+      expect(q.getByText('QA unavailable')).toBeVisible()
+    } else expect(q.getByText('백업 없음')).toHaveClass('dd-text')
+    fireEvent.click(q.getByRole('button',{name:'닫기'}))
+    await waitFor(()=>expect(trigger).toHaveFocus())
+    expect(window.inC.project.readBackup).not.toHaveBeenCalled()
+    expect(window.inC.project.save).not.toHaveBeenCalled()
   })
 
   it('studio.r3 a queued pre-recovery keyboard handler saves the current portable snapshot', async () => {
@@ -1650,7 +1711,7 @@ describe('App component shell', () => {
     const {App}=await import('./App')
     render(<App />)
     const queued=listeners.mock.calls.find(([type])=>type==='keydown')![1] as EventListener
-    fireEvent.click(screen.getByRole('button',{name:'파일'}))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button',{name:'프로젝트 백업'}))
     fireEvent.click(await screen.findByRole('button',{name:'Queued backup 복구'}))
     await waitFor(()=>expect(screen.queryByRole('dialog',{name:'프로젝트 백업'})).not.toBeInTheDocument())
@@ -1670,7 +1731,7 @@ describe('App component shell', () => {
     const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     screen.getByRole('button', { name: '프로젝트 백업' }).focus()
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 백업' }))
     const dialog = screen.getByRole('dialog', { name: '프로젝트 백업' })
@@ -1717,7 +1778,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.autosave.clear).mockImplementationOnce(() => new Promise(resolve => { finishClear = resolve }))
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     const save = screen.getByRole('button', { name: format === 'native' ? '프로젝트 저장' : 'MusicXML로 저장' })
     fireEvent.click(save)
     await waitFor(() => expect(window.inC.autosave.clear).toHaveBeenCalledOnce())
@@ -1747,7 +1808,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockReturnValue(new Promise(resolve => { finish = resolve }))
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     const button = screen.getByRole('button', { name: '프로젝트 저장' })
     fireEvent.click(button)
     fireEvent.click(button)
@@ -1770,10 +1831,10 @@ describe('App component shell', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
     await screen.findByText('Expanded Part Export')
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'part' } })
-    fireEvent.change(screen.getByLabelText('파트보 선택'), { target: { value: 'P2' } })
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('악보')
+    chooseScoreView('악보 보기', 'part')
+    chooseScoreView('파트보 선택', 'P2')
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
     await waitFor(() => {
       expect(document.querySelector('.editor-status .is-error')?.textContent ?? '').toBe('')
@@ -1802,13 +1863,218 @@ describe('App component shell', () => {
     expect(piano.rehearsalMarks?.map(mark => mark.text)).toContain('A')
     expect(staves[0]!.measures[0]!.repeat?.start).toBe(true)
     expect(staves[0]!.measures[1]!.repeat).toMatchObject({ end: true, times: 2 })
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('파트보 선택'), { target: { value: 'P1' } })
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('악보')
+    chooseScoreView('파트보 선택', 'P1')
+    openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
     await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(2))
     const clarinet = parseMusicXml(vi.mocked(window.inC.musicXml.exportCopy).mock.calls[1]![0].contents)
     expect(clarinet.parts[0]!.staves[0]!.measures[0]!.transposition).toMatchObject({ diatonic: -1, chromatic: -2 })
+  })
+
+  it.each((['project','xml','copy'] as const).flatMap(kind=>(['cancel','failure','success'] as const).map(outcome=>({kind,outcome}))))('studio.file-focus-return restores the owned $kind control after $outcome', async ({kind,outcome}) => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let finish!:(result:{filePath:string;fileName:string}|null)=>void,fail!:(error:Error)=>void,settled=false
+    const operation=kind==='project'?vi.mocked(window.inC.project.save):kind==='xml'?vi.mocked(window.inC.musicXml.save):vi.mocked(window.inC.musicXml.exportCopy)
+    operation.mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
+    const {App}=await import('./App');render(<App />);fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    const score=structuredClone(playbackMockState.lastScore!),preview=screen.getByTestId('notation-preview'),selected=preview.getAttribute('data-selected-event-id')
+    openStudioWorkspace(kind==='copy'?'내보내기':'파일')
+    const button=screen.getByRole('button',{name:kind==='project'?'프로젝트 저장':kind==='xml'?'MusicXML로 저장':'MusicXML 내보내기'})
+    button.focus();fireEvent.click(button);await waitFor(()=>expect(operation).toHaveBeenCalledOnce());expect(button).toBeDisabled()
+    // jsdom does not perform Chromium's disabled-button blur. Model that part
+    // explicitly; the production native probe supplies the independent red.
+    focusTestBody();expect(document.activeElement).toBe(document.body)
+    try{
+      await act(async()=>{settled=true;if(outcome==='failure')fail(new Error('owned focus IO failure'));else finish(outcome==='cancel'?null:{filePath:'/fixture/focused.'+(kind==='project'?'chromatics':'musicxml'),fileName:'focused.'+(kind==='project'?'chromatics':'musicxml')})})
+      await waitFor(()=>expect(button).toBeEnabled());await waitFor(()=>expect(button).toHaveFocus())
+      expect(playbackMockState.lastScore).toEqual(score);expect(preview).toHaveAttribute('data-selected-event-id',selected)
+      expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).toHaveTextContent('1회 수정')
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent(outcome==='success'&&kind!=='copy'?'변경 없음':'저장하지 않은 변경')
+      expect(operation).toHaveBeenCalledOnce()
+    }finally{if(!settled)await act(async()=>{finish(null)})}
+  })
+
+  it.each(['project-first','copy-first'] as const)('studio.file-focus-return keeps the newest live trigger during %s simultaneous completion', async order => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let endProject!:(result:null)=>void,endCopy!:(result:null)=>void,settled=false
+    vi.mocked(window.inC.project.save).mockImplementationOnce(()=>new Promise(resolve=>{endProject=resolve}))
+    vi.mocked(window.inC.musicXml.exportCopy).mockImplementationOnce(()=>new Promise(resolve=>{endCopy=resolve}))
+    const {App}=await import('./App');render(<App />);fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    const score=structuredClone(playbackMockState.lastScore!)
+    const startProject=()=>{openStudioWorkspace('파일');const button=screen.getByRole('button',{name:'프로젝트 저장'});button.focus();fireEvent.click(button);focusTestBody();return button}
+    const startCopy=()=>{openStudioWorkspace('내보내기');const button=screen.getByRole('button',{name:'MusicXML 내보내기'});button.focus();fireEvent.click(button);focusTestBody();return button}
+    let latest:HTMLElement
+    if(order==='project-first'){startProject();latest=startCopy()}else{startCopy();latest=startProject()}
+    await waitFor(()=>{expect(window.inC.project.save).toHaveBeenCalledOnce();expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce()})
+    try{
+      // Resolve the newest control first, then the now-disconnected old one in
+      // the same React batch. An invalid old request must not replace it.
+      await act(async()=>{settled=true;if(order==='project-first'){endCopy(null);endProject(null)}else{endProject(null);endCopy(null)}})
+      await waitFor(()=>expect(latest).toBeEnabled());await waitFor(()=>expect(latest).toHaveFocus())
+      expect(playbackMockState.lastScore).toEqual(score);expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).toHaveTextContent('1회 수정');expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    }finally{if(!settled)await act(async()=>{endProject(null);endCopy(null)})}
+  })
+
+  it.each(['project','xml','copy'] as const)('studio.file-focus-return preserves a newer composing field after %s completion', async kind => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let finish!:(result:{filePath:string;fileName:string}|null)=>void,settled=false
+    const operation=kind==='project'?vi.mocked(window.inC.project.save):kind==='xml'?vi.mocked(window.inC.musicXml.save):vi.mocked(window.inC.musicXml.exportCopy)
+    operation.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}))
+    const {App}=await import('./App');render(<App />);fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    const score=structuredClone(playbackMockState.lastScore!)
+    openStudioWorkspace(kind==='copy'?'내보내기':'파일')
+    const button=screen.getByRole('button',{name:kind==='project'?'프로젝트 저장':kind==='xml'?'MusicXML로 저장':'MusicXML 내보내기'})
+    button.focus();fireEvent.click(button);await waitFor(()=>expect(operation).toHaveBeenCalledOnce());focusTestBody()
+    try{
+      openStudioWorkspace('음표');const input=screen.getByRole('textbox',{name:'선택 요약 보표 글자'}),original=(input as HTMLInputElement).value
+      input.focus();fireEvent.compositionStart(input);fireEvent.change(input,{target:{value:'조합 중인 초안'}})
+      await act(async()=>{settled=true;finish({filePath:'/fixture/kept.musicxml',fileName:'kept.musicxml'})})
+      expect(input).toHaveFocus();expect(input).toHaveValue('조합 중인 초안');expect(playbackMockState.lastScore).toEqual(score)
+      fireEvent.compositionEnd(input);fireEvent.keyDown(input,{key:'Escape',code:'Escape'});fireEvent.blur(input)
+      expect(input).toHaveValue(original);expect(playbackMockState.lastScore).toEqual(score);expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).toHaveTextContent('1회 수정')
+    }finally{if(!settled)await act(async()=>{finish(null)})}
+  })
+
+  it.each(['project','xml','copy'] as const)('studio.file-focus-return rejects the old %s trigger after document replacement', async kind => {
+    window.history.replaceState({}, '', '/?fixture=release-test');vi.spyOn(window,'confirm').mockReturnValue(true)
+    let finish!:(result:{filePath:string;fileName:string}|null)=>void,settled=false
+    const operation=kind==='project'?vi.mocked(window.inC.project.save):kind==='xml'?vi.mocked(window.inC.musicXml.save):vi.mocked(window.inC.musicXml.exportCopy)
+    operation.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}))
+    const {App}=await import('./App');render(<App />);fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    openStudioWorkspace(kind==='copy'?'내보내기':'파일')
+    const button=screen.getByRole('button',{name:kind==='project'?'프로젝트 저장':kind==='xml'?'MusicXML로 저장':'MusicXML 내보내기'})
+    button.focus();fireEvent.click(button);await waitFor(()=>expect(operation).toHaveBeenCalledOnce());focusTestBody()
+    try{
+      openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
+      const wizard=within(screen.getByRole('dialog',{name:'새 악보 만들기'}));fireEvent.change(wizard.getByRole('textbox',{name:'제목'}),{target:{value:'새 포커스 문서'}});fireEvent.click(wizard.getByRole('button',{name:'만들기'}))
+      const score=structuredClone(playbackMockState.lastScore!);focusTestBody()
+      await act(async()=>{settled=true;finish({filePath:'/fixture/previous.musicxml',fileName:'previous.musicxml'})})
+      expect(button).not.toHaveFocus();expect(playbackMockState.lastScore).toEqual(score);expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경')
+      expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).not.toHaveTextContent('previous.musicxml')
+    }finally{if(!settled)await act(async()=>{finish(null)})}
+  })
+
+  it.each(['cancel','failure','success'] as const)('studio.xml-copy-progress distinguishes retry from the previous result through %s', async outcome => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const {App}=await import('./App');render(<App />)
+    fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    const score=structuredClone(playbackMockState.lastScore!),preview=screen.getByTestId('notation-preview'),selected=preview.getAttribute('data-selected-event-id')
+    const raw='EACCES /owned-qa/previous-copy.musicxml',nextRaw='EIO /owned-qa/next-copy.musicxml'
+    let finish!:(result:{filePath:string;fileName:string}|null)=>void,fail!:(error:Error)=>void,settled=false
+    vi.mocked(window.inC.musicXml.exportCopy).mockRejectedValueOnce(new Error(raw)).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
+    openStudioWorkspace('내보내기');const button=screen.getByRole('button',{name:'MusicXML 내보내기'}),status=screen.getByRole('status',{name:'편집 및 파일 상태'})
+    fireEvent.click(button);await waitFor(()=>expect(status).toHaveTextContent('MusicXML 사본 내보내기를 마무리하지 못했습니다.'));await waitFor(()=>expect(button).toBeEnabled())
+    try{
+      fireEvent.click(button);fireEvent.click(button);await waitFor(()=>expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(2))
+      expect(status).toHaveTextContent('MusicXML 사본을 내보내는 중입니다.')
+      expect(status.querySelector('.is-error')).not.toBeInTheDocument();expect(screen.queryByRole('group',{name:'MusicXML 내보내기 기술 정보'})).not.toBeInTheDocument()
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(status).toHaveTextContent('1회 수정')
+      expect(playbackMockState.lastScore).toEqual(score);expect(preview).toHaveAttribute('data-selected-event-id',selected)
+      await act(async()=>{settled=true;if(outcome==='failure')fail(new Error(nextRaw));else finish(outcome==='cancel'?null:{filePath:'/export/copied.musicxml',fileName:'copied.musicxml'})})
+      await waitFor(()=>expect(button).toBeEnabled());expect(status).not.toHaveTextContent('MusicXML 사본을 내보내는 중입니다.')
+      if(outcome==='success')expect(status).toHaveTextContent('copied.musicxml')
+      else{expect(status).toHaveTextContent('MusicXML 사본 내보내기를 마무리하지 못했습니다.');expect(within(screen.getByRole('group',{name:'MusicXML 내보내기 기술 정보'})).getByText(outcome==='failure'?nextRaw:raw)).not.toBeVisible()}
+      expect(playbackMockState.lastScore).toEqual(score);expect(preview).toHaveAttribute('data-selected-event-id',selected);expect(status).toHaveTextContent('1회 수정')
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    }finally{if(!settled)await act(async()=>{finish(null)})}
+  })
+
+  it.each(['success','failure'] as const)('studio.xml-copy-progress isolates the previous document through late %s', async outcome => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let finish!:(result:{filePath:string;fileName:string}|null)=>void,fail!:(error:Error)=>void,settled=false
+    vi.mocked(window.inC.musicXml.exportCopy).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
+    const {App}=await import('./App');render(<App />);openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button',{name:'MusicXML 내보내기'}));await waitFor(()=>expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce())
+    try{
+      const status=screen.getByRole('status',{name:'편집 및 파일 상태'})
+      expect(status).toHaveTextContent('MusicXML 사본을 내보내는 중입니다.')
+      openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
+      const wizard=within(screen.getByRole('dialog',{name:'새 악보 만들기'}));fireEvent.change(wizard.getByRole('textbox',{name:'제목'}),{target:{value:'다음 사본 문서'}});fireEvent.click(wizard.getByRole('button',{name:'만들기'}))
+      const score=structuredClone(playbackMockState.lastScore!)
+      expect(status).toHaveTextContent('새 악보를 만들었습니다.');expect(status).not.toHaveTextContent('내보내는 중')
+      await act(async()=>{settled=true;if(outcome==='failure')fail(new Error('older copy failure'));else finish({filePath:'/export/old-copy.musicxml',fileName:'old-copy.musicxml'})})
+      expect(playbackMockState.lastScore).toEqual(score);expect(status).toHaveTextContent('새 악보를 만들었습니다.');expect(status).not.toHaveTextContent(/old-copy|older copy|내보내는 중/)
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    }finally{if(!settled)await act(async()=>{finish(null)})}
+  })
+
+  it.each((['project-first','copy-first'] as const).flatMap(order=>(['project','copy'] as const).map(completes=>({order,completes}))))('studio.xml-copy-progress exposes newer $completes errors with $order concurrency', async ({order,completes}) => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let endProject!:(result:null)=>void,failProject!:(error:Error)=>void,endCopy!:(result:null)=>void,failCopy!:(error:Error)=>void,settled=false
+    vi.mocked(window.inC.project.save).mockImplementationOnce(()=>new Promise((resolve,reject)=>{endProject=resolve;failProject=reject}))
+    vi.mocked(window.inC.musicXml.exportCopy).mockImplementationOnce(()=>new Promise((resolve,reject)=>{endCopy=resolve;failCopy=reject}))
+    const {App}=await import('./App');render(<App />);fireEvent.keyDown(window,{key:'d',code:'KeyD'})
+    const score=structuredClone(playbackMockState.lastScore!)
+    const startProject=()=>{openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))}
+    const startCopy=()=>{openStudioWorkspace('내보내기');fireEvent.click(screen.getByRole('button',{name:'MusicXML 내보내기'}))}
+    if(order==='project-first'){startProject();startCopy()}else{startCopy();startProject()}
+    await waitFor(()=>{expect(window.inC.project.save).toHaveBeenCalledOnce();expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce()})
+    try{
+      const status=screen.getByRole('status',{name:'편집 및 파일 상태'})
+      expect(status).toHaveTextContent('프로젝트를 저장하는 중입니다.');expect(status).toHaveTextContent('MusicXML 사본을 내보내는 중입니다.')
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장 중')
+      await act(async()=>{if(completes==='project')failProject(new Error('current project error'));else failCopy(new Error('current copy error'))})
+      const summary=completes==='project'?'프로젝트 저장을 마무리하지 못했습니다.':'MusicXML 사본 내보내기를 마무리하지 못했습니다.'
+      expect(status).toHaveTextContent(summary);expect(status).not.toHaveTextContent('내보내는 중');expect(status).not.toHaveTextContent('저장하는 중')
+      expect(document.querySelector('.studio-document__state')).toHaveTextContent(completes==='project'?'저장하지 않은 변경':'저장 중')
+      await act(async()=>{settled=true;if(completes==='project')endCopy(null);else endProject(null)})
+      expect(status).toHaveTextContent(summary);expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경')
+      expect(playbackMockState.lastScore).toEqual(score);expect(status).toHaveTextContent('1회 수정');expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    }finally{if(!settled)await act(async()=>{endProject(null);endCopy(null)})}
+  })
+
+  it.each((['score','part'] as const).flatMap(view=>(['retry','cancel','replace-success','replace-failure'] as const).map(action=>({view,action}))))('studio.xml-copy-feedback preserves the $view source through $action', async ({view,action}) => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const {createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../project/schema')
+    const initial=parseMusicXml(twoPartMusicXmlWithPrimaryAnnotations)
+    vi.mocked(window.inC.project.open).mockResolvedValueOnce({filePath:'/scores/source.chromatics',fileName:'source.chromatics',contents:encodeNativeProject(createNativeProject(initial))})
+    const {App}=await import('./App');render(<App />);openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(initial.title)
+    fireEvent.click(screen.getByRole('button',{name:'악보 정보'}));fireEvent.click(screen.getByRole('button',{name:'악보 제목 편집'}))
+    fireEvent.change(screen.getByLabelText('악보 제목'),{target:{value:'원본 편집 유지'}});fireEvent.keyDown(screen.getByLabelText('악보 제목'),{key:'Enter',code:'Enter'})
+    if(view==='part'){openStudioWorkspace('악보');chooseScoreView('악보 보기','part');chooseScoreView('파트보 선택','P2')}
+    const score=structuredClone(playbackMockState.lastScore!),selected=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
+    vi.mocked(window.inC.autosave.clear).mockClear();vi.mocked(window.inC.recentMusicXml.add).mockClear()
+    const raw="Error invoking musicxml:export: EACCES /owned-qa/Private-copy.musicxml",summary='MusicXML 사본 내보내기를 마무리하지 못했습니다.'
+    vi.mocked(window.inC.musicXml.exportCopy).mockRejectedValueOnce(new Error(raw))
+    openStudioWorkspace('내보내기');const button=screen.getByRole('button',{name:'MusicXML 내보내기'}),status=screen.getByRole('status',{name:'편집 및 파일 상태'})
+    fireEvent.click(button);await waitFor(()=>expect(status).toHaveTextContent(summary));await waitFor(()=>expect(button).toBeEnabled())
+    expect(status).toHaveTextContent('원본 악보와 변경 사항은 유지됩니다.');expect(status).not.toHaveTextContent(raw)
+    expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(status).toHaveTextContent('1회 수정')
+    const technical=screen.getByRole('group',{name:'MusicXML 내보내기 기술 정보'});expect(status).not.toContainElement(technical)
+    const disclosure=within(technical).getByRole('button',{name:'기술 정보'})
+    expect(within(technical).getByText(raw)).not.toBeVisible();fireEvent.keyDown(disclosure,{key:'Enter',code:'Enter'});fireEvent.click(disclosure)
+    expect(within(technical).getByText(raw)).toBeVisible();fireEvent.keyDown(disclosure,{key:' ',code:'Space'});fireEvent.click(disclosure)
+    expect(disclosure).toHaveAttribute('aria-expanded','false');expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    let finish!:(value:{filePath:string;fileName:string}|null)=>void,fail!:(error:Error)=>void,settled=false
+    vi.mocked(window.inC.musicXml.exportCopy).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
+    fireEvent.click(button);fireEvent.click(button);await waitFor(()=>expect(window.inC.musicXml.exportCopy).toHaveBeenCalledTimes(2))
+    expect(button).toBeDisabled()
+    let expected=score,expectedPath='/scores/source.chromatics'
+    try{
+      if(action.startsWith('replace')){
+        expected={...initial,title:'다른 사본 문서'};expectedPath='/scores/new.chromatics'
+        vi.mocked(window.inC.project.open).mockResolvedValueOnce({filePath:expectedPath,fileName:'new.chromatics',contents:encodeNativeProject(createNativeProject(expected))})
+        openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(expected.title);await act(async()=>{})
+      }
+      const clears=vi.mocked(window.inC.autosave.clear).mock.calls.length,recents=vi.mocked(window.inC.recentMusicXml.add).mock.calls.length
+      await act(async()=>{settled=true;if(action==='replace-failure')fail(new Error('older XML export failure'));else finish(action==='cancel'?null:{filePath:'/export/copy.musicxml',fileName:'copy.musicxml'})})
+      expect(playbackMockState.lastScore).toEqual(expected)
+      expect(window.inC.autosave.clear).toHaveBeenCalledTimes(clears);expect(window.inC.recentMusicXml.add).toHaveBeenCalledTimes(recents)
+      if(action.startsWith('replace')){expect(status).not.toHaveTextContent(/copy.musicxml|older XML export failure/);expect(screen.queryByRole('group',{name:'MusicXML 내보내기 기술 정보'})).not.toBeInTheDocument()}
+      else{
+        expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(status).toHaveTextContent('1회 수정');expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address',selected)
+        if(action==='cancel'){expect(status).toHaveTextContent(summary);expect(within(screen.getByRole('group',{name:'MusicXML 내보내기 기술 정보'})).getByText(raw)).not.toBeVisible()}
+        else{expect(status).toHaveTextContent('copy.musicxml');expect(screen.queryByRole('group',{name:'MusicXML 내보내기 기술 정보'})).not.toBeInTheDocument()}
+      }
+      const requests=vi.mocked(window.inC.musicXml.exportCopy).mock.calls.map(([request])=>request)
+      expect(requests[0]).not.toHaveProperty('filePath');expect(requests[1].contents).toBe(requests[0].contents)
+      const exported=parseMusicXml(requests[0].contents);expect(exported.parts.map(part=>part.name)).toEqual(view==='part'?['Cello']:['Violin','Cello'])
+      openStudioWorkspace('파일');vi.mocked(window.inC.project.save).mockResolvedValueOnce({filePath:expectedPath,fileName:'saved.chromatics'})
+      fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalled())
+      const native=vi.mocked(window.inC.project.save).mock.calls.at(-1)![0];expect(native.filePath).toBe(expectedPath);expect(decodeNativeProject(native.contents).score).toEqual(expected)
+    }finally{if(!settled)await act(async()=>{finish(null)})}
   })
 
   it.each(['success', 'cancel', 'failure'] as const)('part XML export preserves edits while pending (%s)', async outcome => {
@@ -1821,7 +2087,7 @@ describe('App component shell', () => {
     }))
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     const button = screen.getByRole('button', { name: 'MusicXML 내보내기' })
     fireEvent.click(button)
     fireEvent.click(button)
@@ -1838,8 +2104,13 @@ describe('App component shell', () => {
     expect(screen.getByText('Edited during export')).toBeInTheDocument()
     expect(window.inC.autosave.clear).not.toHaveBeenCalled()
     expect(window.inC.recentMusicXml.add).not.toHaveBeenCalled()
-    if (outcome === 'failure') expect(screen.getByText('export disk failure')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    if (outcome === 'failure') {
+      expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).toHaveTextContent('MusicXML 사본 내보내기를 마무리하지 못했습니다.')
+      expect(screen.getByRole('status',{name:'편집 및 파일 상태'})).not.toHaveTextContent('export disk failure')
+      expect(within(screen.getByRole('group',{name:'MusicXML 내보내기 기술 정보'})).getByText('export disk failure')).not.toBeVisible()
+    }
+    if (outcome === 'success') expect(screen.getByText(/내보내기 시작 이후의 수정 내용은 포함되지 않았습니다/)).toBeInTheDocument()
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalled())
     const primary = vi.mocked(window.inC.musicXml.save).mock.calls[0]![0]
@@ -1869,31 +2140,23 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreTemplate('string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('악보 보기'), {
-      target: { value: 'part' }
-    })
-    fireEvent.change(screen.getByLabelText('파트보 선택'), {
-      target: { value: 'cello' }
-    })
+    openStudioWorkspace('악보')
+    chooseScoreView('악보 보기', 'part')
+    chooseScoreView('파트보 선택', 'cello')
 
     await waitFor(() =>
       expect(screen.getByText('파트보: Cello')).toBeInTheDocument()
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.change(screen.getByLabelText('PDF 설정 프리셋'), {
-      target: { value: 'compact-parts' }
-    })
+    openStudioWorkspace('내보내기')
+    choosePageSetup('PDF 설정 프리셋', '컴팩트 파트보')
     expect(
       screen.getByText('Cello 파트보 PDF 페이지 설정을 갱신했습니다.')
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
 
     await waitFor(() => {
@@ -1928,10 +2191,8 @@ describe('App component shell', () => {
       expect(screen.getByText('파트보: Cello')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    expect(screen.getByLabelText('PDF 설정 프리셋')).toHaveValue(
-      'compact-parts'
-    )
+    openStudioWorkspace('내보내기')
+    expect(screen.getByLabelText('PDF 설정 프리셋')).toHaveTextContent('컴팩트 파트보')
     expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
       'data-pdf-page-margin-mm',
       '6'
@@ -1948,11 +2209,9 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'duet' }
-    })
+    chooseNewScoreTemplate('duet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
 
     const partName = screen.getByLabelText('현재 파트 이름')
     fireEvent.change(partName, { target: { value: 'Lead' } })
@@ -1971,7 +2230,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
 
     await waitFor(() => {
@@ -1979,14 +2238,14 @@ describe('App component shell', () => {
         'data-part-structure',
         'piano:피아노:1|violin:바이올린:1'
       )
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('violin:staff-1')
+      expectStaffTarget('violin:staff-1')
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '보표 추가' }))
 
     await waitFor(() => {
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('violin:staff-2')
+      expectStaffTarget('violin:staff-2')
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
         'data-part-structure',
         'piano:피아노:1|violin:바이올린:2'
@@ -1997,7 +2256,7 @@ describe('App component shell', () => {
       )
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '보표 삭제' }))
 
     await waitFor(() => {
@@ -2007,7 +2266,7 @@ describe('App component shell', () => {
       )
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '파트 삭제' }))
 
     await waitFor(() => {
@@ -2015,7 +2274,7 @@ describe('App component shell', () => {
         'data-part-structure',
         'piano:피아노:1'
       )
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('piano:piano-staff')
+      expectStaffTarget('piano:piano-staff')
     })
   })
 
@@ -2024,10 +2283,8 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('추가할 악기'), {
-      target: { value: 'cello' }
-    })
+    openStudioWorkspace('악보')
+    choosePartSetup('추가할 악기', 'cello')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
 
     await waitFor(() => {
@@ -2039,16 +2296,14 @@ describe('App component shell', () => {
         'data-staff-clefs',
         expect.stringContaining('cello:staff-1:F4:2')
       )
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('cello:staff-1')
+      expectStaffTarget('cello:staff-1')
       expect(
         screen.getByText('첼로 파트를 악기 라이브러리에서 추가했습니다.')
       ).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('추가할 악기'), {
-      target: { value: 'piano' }
-    })
+    openStudioWorkspace('악보')
+    choosePartSetup('추가할 악기', 'piano')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
 
     await waitFor(() => {
@@ -2064,7 +2319,7 @@ describe('App component shell', () => {
         'data-staff-clefs',
         expect.stringContaining('piano-2:staff-2:F4:2')
       )
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('piano-2:staff-1')
+      expectStaffTarget('piano-2:staff-1')
     })
   })
 
@@ -2084,14 +2339,14 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/linked.chromatics', fileName: 'linked.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('입력 보표'), { target: { value: action === 'reorder' ? 'P2:P2-staff-1' : 'P1:P1-staff-1' } })
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
+    chooseStaffTarget(action === 'reorder' ? 'P2:P2-staff-1' : 'P1:P1-staff-1')
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: action === 'reorder' ? '파트 위로 이동' : '파트 삭제' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
     const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -2113,16 +2368,16 @@ describe('App component shell', () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     expect(screen.getByRole('button', { name: '파트 위로 이동' })).toBeDisabled()
-    fireEvent.change(screen.getByLabelText('추가할 악기'), { target: { value: 'clarinet' } })
+    choosePartSetup('추가할 악기', 'clarinet')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     expect(screen.getByRole('button', { name: '파트 아래로 이동' })).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: '파트 위로 이동' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'clarinet:클라리넷:1|piano:피아노:1')
-    expect(screen.getByLabelText('현재 파트 이조')).toHaveValue('bb')
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    expect(screen.getByRole('combobox',{name:'현재 파트 이조'})).toHaveTextContent('B♭ (장2도 아래)')
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '실행 취소' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'piano:피아노:1|clarinet:클라리넷:1')
     fireEvent.click(screen.getByRole('button', { name: '다시 실행' }))
@@ -2145,21 +2400,21 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/identity.chromatics', fileName: 'identity.chromatics' })
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Part identity')
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('입력 보표'), { target: { value: `${cello.id}:${cello.staves[0]!.id}` } })
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
+    chooseStaffTarget(`${cello.id}:${cello.staves[0]!.id}`)
+    openStudioWorkspace('악보')
     fireEvent.click(screen.getByRole('button', { name: '파트 삭제' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).partLayouts).toEqual([])
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('추가할 악기'), { target: { value: 'cello' } })
+    openStudioWorkspace('악보')
+    choosePartSetup('추가할 악기', 'cello')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
     const added = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents)
@@ -2178,14 +2433,14 @@ describe('App component shell', () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    fireEvent.change(screen.getByLabelText('추가할 악기'), { target: { value: 'clarinet' } })
+    openStudioWorkspace('악보')
+    choosePartSetup('추가할 악기', 'clarinet')
     fireEvent.click(screen.getByRole('button', { name: '파트 추가' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    expect(screen.getByLabelText('현재 파트 이조')).toHaveValue('bb')
-    fireEvent.change(screen.getByLabelText('현재 파트 이조'), { target: { value: 'f' } })
-    expect(screen.getByLabelText('현재 파트 이조')).toHaveValue('f')
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('악보')
+    expect(screen.getByRole('combobox',{name:'현재 파트 이조'})).toHaveTextContent('B♭ (장2도 아래)')
+    choosePartSetup('현재 파트 이조', 'f')
+    expect(screen.getByRole('combobox',{name:'현재 파트 이조'})).toHaveTextContent('F (완전5도 아래)')
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
     await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalled())
     const args = vi.mocked(window.inC.musicXml.save).mock.calls.at(-1)![0]
@@ -2240,10 +2495,107 @@ describe('App component shell', () => {
     fireEvent.click(recoveryButton)
 
     expect(screen.getByText('복구한 연습곡')).toBeInTheDocument()
-    expect(screen.getByLabelText('조표')).toHaveValue('g-major')
-    expect(screen.getByLabelText('박자표')).toHaveValue('3-4')
+    openStudioWorkspace('악보')
+    expect(screen.getByRole('combobox',{name:'조표'})).toHaveTextContent('사장조 (♯ 1개)')
+    expect(screen.getByRole('combobox',{name:'박자표'})).toHaveTextContent('3/4')
     expect(screen.getByTestId('notation-preview')).toHaveTextContent('note-c4')
   })
+
+  it.each(['replace-success', 'replace-error', 'edit-cancel', 'edit-accept', 'layout-cancel', 'recent-error'] as const)(
+    'import.picker-boundary %s preserves the current editing contract', async action => {
+      window.history.replaceState({}, '', '/?fixture=release-test')
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const project = createNativeProject(parseMusicXml(richPartExportMusicXml)); project.view = { mode: 'part', partId: 'P2' }
+      const next = structuredClone(project); next.score.title = '다음 가져오기 악보'
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/initial.chromatics', fileName: 'initial.chromatics', contents: encodeNativeProject(project) })
+      const { App } = await import('./App'); render(<App />)
+      openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('Expanded Part Export'); await act(async () => {})
+      type Opened = NonNullable<Awaited<ReturnType<typeof window.inC.musicXml.open>>>
+      let finish!: (file: Opened) => void, fail!: (error: Error) => void, failRecent!: (error: Error) => void
+      const incoming = { filePath: '/scores/incoming.musicxml', fileName: 'incoming.musicxml', contents: recentMusicXml }
+      if (action === 'recent-error') {
+        vi.mocked(window.inC.musicXml.open).mockResolvedValue(incoming)
+        vi.mocked(window.inC.recentMusicXml.add).mockImplementationOnce(() => new Promise((_resolve, reject) => { failRecent = reject }))
+      } else vi.mocked(window.inC.musicXml.open).mockImplementation(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
+      fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
+      await waitFor(() => expect(window.inC.musicXml.open).toHaveBeenCalledTimes(1))
+      if (action === 'recent-error') await screen.findByText('MusicXML Sketch')
+      const expected = structuredClone(project.score)
+      if (action.startsWith('replace') || action === 'recent-error') {
+        vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/next.chromatics', fileName: 'next.chromatics', contents: encodeNativeProject(next) })
+        openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+        await screen.findByText('다음 가져오기 악보'); await act(async () => {})
+      } else if (action === 'layout-cancel') {
+        openStudioWorkspace('내보내기')
+        fireEvent.change(screen.getByLabelText('PDF 여백 mm'), { target: { value: '17' } })
+        fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
+      } else {
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+        const event = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
+        if (event.type !== 'note') throw Error('Expected chord')
+        event.pitches = [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]; event.pitch = event.pitches[0]!
+      }
+      window.confirm = vi.fn(() => action === 'edit-accept')
+      const status = document.querySelector('.editor-status > span:last-child')!.textContent
+      await act(async () => {
+        if (action === 'recent-error') failRecent(new Error('Old recent list failed'))
+        else if (action === 'replace-error') fail(new Error('Old import failed'))
+        else finish(incoming)
+      })
+      if (action === 'edit-cancel' || action === 'edit-accept' || action === 'layout-cancel') {
+        expect(window.confirm).toHaveBeenCalledWith('파일 선택 중 편집한 내용을 버리고 MusicXML을 가져올까요?')
+        if (action !== 'edit-accept') expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
+      } else expect(document.querySelector('.editor-status > span:last-child')).toHaveTextContent(status!)
+      if (action === 'layout-cancel') expect(screen.getByLabelText('PDF 여백 mm')).toHaveValue(17)
+      if (action !== 'edit-accept') expect(screen.queryByText('MusicXML Sketch')).not.toBeInTheDocument()
+      openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      expect(saved.score).toEqual(action.startsWith('replace') || action === 'recent-error' ? next.score : action === 'edit-accept' ? parseMusicXml(recentMusicXml) : expected)
+      if (action === 'layout-cancel') expect(saved.partLayouts.find(part => part.partId === 'P2')?.layout.pageSetup?.pageMarginMm).toBe(17)
+      if (action === 'layout-cancel' || action === 'edit-cancel') {
+        fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true }); fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+        await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+        const undone = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents)
+        expect(undone.score).toEqual(project.score); expect(undone.partLayouts).toEqual(project.partLayouts)
+      }
+    }
+  )
+
+  it.each(['file-success', 'file-error', 'recent-error'] as const)(
+    'import.recent-boundary %s from actual welcome entry preserves a newer native document', async action => {
+      const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+      const next = createNativeProject(parseMusicXml(richPartExportMusicXml)); next.score.title = '최근 응답 이후 문서'; next.view = { mode: 'part', partId: 'P2' }
+      const entry = { filePath: '/scores/recent.musicxml', fileName: 'recent.musicxml', openedAt: '2026-10-26T00:00:00Z' }
+      vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([entry])
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/next.chromatics', fileName: 'next.chromatics', contents: encodeNativeProject(next) })
+      type Opened = Awaited<ReturnType<typeof window.inC.recentMusicXml.open>>
+      let finish!: (file: Opened) => void, fail!: (error: Error) => void, failRecent!: (error: Error) => void
+      const incoming = { ...entry, contents: recentMusicXml }
+      if (action === 'recent-error') {
+        vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue(incoming)
+        vi.mocked(window.inC.recentMusicXml.add).mockImplementationOnce(() => new Promise((_resolve, reject) => { failRecent = reject }))
+      } else vi.mocked(window.inC.recentMusicXml.open).mockImplementation(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
+      const { App } = await import('./App'); render(<App />)
+      fireEvent.click(await screen.findByRole('button', { name: /recent\.musicxml/ }))
+      await waitFor(() => expect(window.inC.recentMusicXml.open).toHaveBeenCalledWith({ filePath: entry.filePath }))
+      if (action === 'recent-error') { await screen.findByText('MusicXML Sketch'); openStudioWorkspace('파일') }
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('최근 응답 이후 문서'); await act(async () => {})
+      const status = document.querySelector('.editor-status > span:last-child')!.textContent, selected = screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
+      await act(async () => { if (action === 'recent-error') failRecent(new Error('Old recent add failed')); else if (action === 'file-error') fail(new Error('최근 파일을 찾을 수 없습니다')); else finish(incoming) })
+      expect(document.querySelector('.editor-status > span:last-child')).toHaveTextContent(status!)
+      expect(document.querySelector('.studio-document')).toHaveTextContent('최근 응답 이후 문서')
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address', selected)
+      expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+      expect(screen.queryByText('MusicXML Sketch')).not.toBeInTheDocument()
+      openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+      const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+      expect(saved.score).toEqual(next.score); expect(saved.view).toEqual(next.view); expect(saved.partLayouts).toEqual(next.partLayouts)
+    }
+  )
 
   it('start-recovery.reopen-recent-musicxml opens the score and requests recent-order refresh', async () => {
     const firstFile = {
@@ -2272,9 +2624,10 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /sketch\.musicxml/ })
-    )
+    const recent=await screen.findByRole('button', { name: /sketch\.musicxml/ })
+    expect(recent.closest('.dd-item--flat')).not.toBeNull()
+    expect(recent).toHaveClass('dd-item-title')
+    fireEvent.click(recent)
 
     expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
     await waitFor(() => {
@@ -2308,7 +2661,7 @@ describe('App component shell', () => {
     expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
     expect(
       await screen.findByText(
-        /external\.musicxml을 가져왔습니다\. MusicXML 경고 1개: measure\[1\]\.note\[1\]\.notations\.technical: technical playing instructions are not imported yet\./
+        /external\.musicxml을 가져왔습니다\. MusicXML 경고 1개: 경고 상세에서 보존되지 않은 연주 기법 표기를 확인해 주세요\./
       )
     ).toBeInTheDocument()
     const report = await screen.findByRole('region', {
@@ -2318,17 +2671,87 @@ describe('App component shell', () => {
       within(report).getByText('MusicXML 가져오기 경고 1개')
     ).toBeInTheDocument()
     expect(within(report).getByText('external.musicxml')).toBeInTheDocument()
+    expect(within(report).getByText('1번째 파트 · 1마디 · 연주 기법 표기를 가져오지 못했습니다. 원본 악보와 비교해 주세요.')).toBeVisible()
+    expect(report.closest('.studio-chrome')).toBeNull()
+    expect(report.querySelector('.dd-banner--warning')).not.toBeNull()
+    expect(within(report).getByRole('button',{name:'기술 정보'})).toHaveAttribute('aria-expanded','false')
+    const raw = within(report).getByText('technical playing instructions are not imported yet.')
+    expect(raw).not.toBeVisible()
+    fireEvent.click(within(report).getByText('기술 정보'))
+    expect(raw).toBeVisible()
+    expect(fireEvent.keyDown(within(report).getByText('기술 정보'),{key:' ',code:'Space'})).toBe(true)
+    expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
     expect(
       within(report).getByText('unsupported-notation · M1 · event 1')
     ).toBeInTheDocument()
     expect(
-      within(report).getByText('measure[1].note[1].notations.technical')
+      within(report).getByText('part[1].measure[1].note[1].notations.technical')
     ).toBeInTheDocument()
     expect(
       within(report).getByText(
         'technical playing instructions are not imported yet.'
       )
     ).toBeInTheDocument()
+  })
+
+  it('import-export.unsupported-musicxml-report keeps unfamiliar ornament diagnostics inspectable', async () => {
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({filePath:'/scores/ornament.musicxml',fileName:'ornament.musicxml',contents:recentMusicXml.replace('<type>quarter</type>','<type>quarter</type><notations><ornaments><inverted-turn/></ornaments></notations>')})
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button',{name:/MusicXML 가져오기/}))
+    const report = within(await screen.findByRole('region',{name:'MusicXML 경고 상세'}))
+    expect(report.getByText('1번째 파트 · 1마디 · 일부 표기를 가져오지 못했습니다. 원본 악보와 비교해 주세요.')).toBeVisible()
+    const raw = report.getByText('inverted-turn ornament is not imported yet.')
+    expect(raw).not.toBeVisible()
+    expect(document.querySelector('.editor-status')).not.toHaveTextContent('notations.ornaments')
+    fireEvent.click(report.getByText('기술 정보'))
+    expect(raw).toBeVisible()
+    expect(report.getByText('part[1].measure[1].note[1].notations.ornaments.inverted-turn')).toBeVisible()
+    fireEvent.click(report.getByText('기술 정보'))
+    expect(raw).not.toBeVisible()
+  })
+
+  it.each(['create','cancel','reject-dirty'] as const)('import-export.report-document-lifetime %s scopes imported diagnostics to their document', async action => {
+    window.history.replaceState({}, '', '/')
+    window.confirm=vi.fn(()=>true)
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({filePath:'/scores/warned.musicxml',fileName:'warned.musicxml',contents:recentMusicXml.replace('<type>quarter</type>','<type>quarter</type><notations><technical><up-bow/></technical></notations>')})
+    const { App } = await import('./App');render(<App />)
+    fireEvent.click(screen.getByRole('button',{name:/MusicXML 가져오기/}))
+    const report=await screen.findByRole('region',{name:'MusicXML 경고 상세'})
+    expect(within(report).getByText('warned.musicxml')).toBeVisible()
+    const shortcutDefault = fireEvent.keyDown(window,{key:'ArrowUp',altKey:true})
+    const editDiagnostic = JSON.stringify({
+      action, shortcutDefault,
+      eventId: screen.getByTestId('notation-preview').getAttribute('data-selected-event-id'),
+      address: screen.getByTestId('notation-preview').getAttribute('data-selected-event-address'),
+      status: document.querySelector('.editor-status')?.textContent,
+      activeElement: document.activeElement?.outerHTML.slice(0,400),
+      title: playbackMockState.lastScore?.title
+    })
+    expect(document.querySelector('.studio-document'), editDiagnostic).toHaveTextContent('저장하지 않은 변경')
+    const before=structuredClone(playbackMockState.lastScore)
+    const selection=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
+    if(action==='reject-dirty')window.confirm=vi.fn(()=>false)
+    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
+    if(action==='reject-dirty')expect(screen.queryByRole('dialog',{name:'새 악보 만들기'})).not.toBeInTheDocument()
+    else {
+      const wizard=within(screen.getByRole('dialog',{name:'새 악보 만들기'}))
+      fireEvent.change(wizard.getByLabelText('제목'),{target:{value:'경고 없는 새 문서'}})
+      fireEvent.click(wizard.getByRole('button',{name:action==='create'?'만들기':'취소'}))
+    }
+    if(action==='create') {
+      expect(screen.queryByRole('region',{name:'MusicXML 경고 상세'})).not.toBeInTheDocument()
+      expect(playbackMockState.lastScore?.title).toBe('경고 없는 새 문서')
+      expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    } else {
+      expect(within(screen.getByRole('region',{name:'MusicXML 경고 상세'})).getByText('warned.musicxml')).toBeVisible()
+      expect(playbackMockState.lastScore).toEqual(before)
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address',selection)
+    }
+    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
+    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1))
+    const { decodeNativeProject } = await import('../../project/schema')
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(playbackMockState.lastScore)
   })
 
   it('file-lifecycle.cancelled-unsaved-import keeps the current score open', async () => {
@@ -2349,7 +2772,7 @@ describe('App component shell', () => {
         { name: '만들기' }
       )
     )
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
 
     expect(window.confirm).toHaveBeenCalledWith(unsavedScoreChangesMessage)
@@ -2378,7 +2801,7 @@ describe('App component shell', () => {
     )
     expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
 
     expect(window.confirm).not.toHaveBeenCalled()
@@ -2411,7 +2834,7 @@ describe('App component shell', () => {
       await screen.findByRole('button', { name: /sketch\.musicxml/ })
     )
     expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
 
     await waitFor(() => {
@@ -2453,6 +2876,58 @@ describe('App component shell', () => {
     })
     expect(screen.getByText('새 온쉼표 마디를 추가했습니다.')).toBeInTheDocument()
     expect(screen.queryByText('입력 중')).not.toBeInTheDocument()
+  })
+
+  it('studio.measure-context skips disabled remove and cancels composing activation without a command', async () => {
+    const { StudioMeasureContextMenu } = await import('./StudioMeasureContextMenu')
+    const onSelect = vi.fn(), onClose = vi.fn()
+    render(<StudioMeasureContextMenu theme="dark" x={20} y={20} canRemove={false} onSelect={onSelect} onClose={onClose} />)
+    const menu = screen.getByRole('menu', { name: '마디 작업' })
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items[6]).toBeDisabled()
+    fireEvent.keyDown(items[0], { key: 'End' })
+    expect(items[5]).toHaveFocus()
+    expect(fireEvent.keyDown(items[5], { key: 'Enter', isComposing: true })).toBe(false)
+    expect(fireEvent.keyDown(items[5], { key: 'Escape', isComposing: true })).toBe(false)
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.keyDown(items[5], { key: 'Tab' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('studio.measure-context uses public controls and guards keyboard command focus and undo', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+    const preview = screen.getByTestId('notation-preview')
+    const originalCount = preview.getAttribute('data-measure-count')
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), { clientX: 1000, clientY: 700 })
+    let menu = screen.getByRole('menu', { name: '마디 작업' })
+    expect(menu.querySelector('.dd-card')).not.toBeNull()
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items).toHaveLength(7)
+    items.forEach(item => expect(item).toHaveClass('dd-button'))
+    expect(items[0]).toHaveFocus()
+    fireEvent.keyDown(items[0], { key: 'End' })
+    expect(items[6]).toHaveFocus()
+    fireEvent.keyDown(items[6], { key: 'ArrowDown' })
+    expect(items[0]).toHaveFocus()
+    fireEvent.keyDown(items[0], { key: 'Home' })
+    expect(items[0]).toHaveFocus()
+    fireEvent.keyDown(items[0], { key: 'Enter', isComposing: true })
+    expect(preview).toHaveAttribute('data-measure-count', originalCount)
+    expect(items[0]).toHaveFocus()
+    fireEvent.keyDown(items[0], { key: 'Escape' })
+    expect(screen.queryByRole('menu', { name: '마디 작업' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('악보 캔버스')).toHaveFocus()
+    expect(preview).toHaveAttribute('data-selected-measure-id', 'measure-2')
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), { clientX: 100, clientY: 100 })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '앞에 마디 추가' }))
+    expect(preview).toHaveAttribute('data-measure-count', String(Number(originalCount) + 1))
+    expect(screen.queryByRole('menu', { name: '마디 작업' })).not.toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(preview).toHaveAttribute('data-measure-count', originalCount)
   })
 
   it('measure.context-menu inserts measures before and after, then removes the target measure', async () => {
@@ -2601,7 +3076,7 @@ describe('App component shell', () => {
 
     const workspace = screen.getByRole('region', { name: '악보 편집기' })
     const toolbarTabs = screen.getByRole('navigation', {
-      name: '편집 도구 카테고리'
+      name: '앱 메뉴'
     })
     const dockedPalette = within(workspace).getByRole('complementary', {
       name: '고정 팔레트'
@@ -2618,55 +3093,46 @@ describe('App component shell', () => {
     expect(
       within(toolbarTabs)
         .getAllByRole('button')
-        .filter((button) => button.hasAttribute('aria-pressed'))
+        .filter((button) => button.hasAttribute('aria-haspopup'))
         .map((button) => button.textContent)
-    ).toEqual(['파일', '악보', '음표', '표기 객체', '가사', '내보내기', '재생'])
-    expect(
-      within(dockedPalette).getByRole('button', { name: '음표 팔레트 열기' })
-    ).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      within(dockedPalette).getByRole('button', {
-        name: '표기 객체 팔레트 열기'
-      })
-    ).toBeInTheDocument()
+    ).toEqual(['파일', '편집', '보기', '추가', '형식', '도구', '도움말'])
+    expect(within(dockedPalette).getByRole('searchbox',{name:'표기 기호 검색'})).toBeVisible()
+    expect(within(dockedPalette).queryByRole('button',{name:'파일 팔레트 열기'})).not.toBeInTheDocument()
     expect(
       within(propertiesDock).getByRole('region', { name: '선택 요약' })
     ).toBeInTheDocument()
     const contextStrip = screen.getByRole('region', {
-      name: '현재 작업 컨텍스트'
+      name: '악보 상태 및 보기'
     })
     expect(within(contextStrip).getByText('작업')).toBeInTheDocument()
     expect(within(contextStrip).getByText('입력')).toBeInTheDocument()
     expect(within(contextStrip).getByText('대상')).toBeInTheDocument()
-    expect(within(contextStrip).getByText('음가')).toBeInTheDocument()
-    expect(within(contextStrip).getByText('재생')).toBeInTheDocument()
+    expect(within(contextStrip).queryByText('음가')).not.toBeInTheDocument()
+    expect(within(contextStrip).queryByText('재생')).not.toBeInTheDocument()
     expect(within(contextStrip).getByText('음표')).toBeInTheDocument()
     expect(within(contextStrip).getByText('선택')).toBeInTheDocument()
     expect(within(contextStrip).getByText(/보표 1 · 성부 1/)).toBeInTheDocument()
     expect(within(contextStrip).getByText('4분음표')).toBeInTheDocument()
     expect(within(contextStrip).getByText('정지')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '파일' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '표기 객체' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '음표' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
-    expect(
-      within(workspace).queryByRole('button', { name: '재생' })
-    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '추가' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
+    expect(screen.getByRole('button',{name:'재생'})).toBeVisible()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
     expect(
       within(toolbarTabs).queryByRole('button', { name: '선택' })
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '가사' })).toBeInTheDocument()
-    expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
+    fireEvent.click(within(toolbarTabs).getByRole('button',{name:'추가'}))
+    expect(within(toolbarTabs).getByRole('menuitem', { name: '가사 및 코드' })).toBeVisible()
+    fireEvent.keyDown(within(toolbarTabs).getByRole('menuitem',{name:'가사 및 코드'}),{key:'Escape'})
+    expect(screen.getByRole('button',{name:'코드 심벌 편집',hidden:true})).not.toBeVisible()
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     expect(screen.getByLabelText('선택 마디 음자리표')).not.toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
+    openStudioWorkspace('가사')
     expect(within(contextStrip).getByText('가사')).toBeInTheDocument()
     expect(screen.getByLabelText('가사 절')).toBeVisible()
     const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
@@ -2675,18 +3141,20 @@ describe('App component shell', () => {
     expect(lyricInput).toBeVisible()
     expect(screen.getByLabelText('가사 음절')).toBeVisible()
     expect(screen.getByText('멜리스마')).toBeVisible()
+    fireEvent.click(screen.getByRole('combobox',{name:'가사 절'}))
     expect(
-      within(screen.getByLabelText('가사 절')).getAllByRole('option').map(
+      within(screen.getByRole('listbox',{name:'가사 절'})).getAllByRole('option').map(
         (option) => option.textContent
       )
     ).toEqual(['1절', '2절', '3절', '4절'])
+    fireEvent.keyDown(screen.getByRole('combobox',{name:'가사 절'}),{key:'Escape'})
     expect(screen.getByRole('region', { name: '코드 심벌 속성' })).toBeVisible()
-    expect(screen.getByLabelText('코드 심벌')).toBeVisible()
+    expect(screen.getByRole('button',{name:'코드 심벌 편집'})).toBeVisible()
     expect(screen.getByLabelText('코드 심벌 적용 위치')).toHaveTextContent(
-      '선택 이벤트 tick 0'
+      '1마디 · 1성부 · 1번째 표기'
     )
     fireEvent.keyDown(lyricInput, { key: 'ArrowDown' })
-    expect(screen.getByLabelText('가사 절')).toHaveValue('2')
+    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('2절')
     expect(
       screen.getByText('2절 가사 입력으로 전환했습니다.')
     ).toBeInTheDocument()
@@ -2696,7 +3164,7 @@ describe('App component shell', () => {
       ),
       { key: 'ArrowUp' }
     )
-    expect(screen.getByLabelText('가사 절')).toHaveValue('1')
+    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('1절')
     const firstVerseInput = within(
       screen.getByTestId('notation-preview')
     ).getByLabelText('선택 음표 가사')
@@ -2716,9 +3184,9 @@ describe('App component shell', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'm3-half-rest 선택' }))
-    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
+    expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
+    openStudioWorkspace('가사')
     fireEvent.keyDown(window, { key: 'Enter' })
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-selected-event-id',
@@ -2727,11 +3195,9 @@ describe('App component shell', () => {
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
-    fireEvent.change(screen.getByLabelText('가사 절'), {
-      target: { value: '4' }
-    })
+    expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
+    openStudioWorkspace('가사')
+    fireEvent.click(screen.getByRole('combobox',{name:'가사 절'}));fireEvent.click(screen.getByRole('option',{name:'4절'}))
     const fourthVerseInput = within(preview).getByLabelText('선택 음표 가사')
     fireEvent.change(fourthVerseInput, { target: { value: '한-글 두음절' } })
     fireEvent.blur(fourthVerseInput)
@@ -2745,82 +3211,73 @@ describe('App component shell', () => {
     expect(document.querySelector('.editor-status')?.textContent).toBe(
       editCountAfterLyricCommit
     )
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     fireEvent.click(
       screen.getByRole('button', { name: 'm1-c4 4절 가사 선택' })
     )
     expect(screen.getByRole('region', { name: '가사 편집' })).toBeVisible()
-    expect(screen.getByLabelText('가사 절')).toHaveValue('4')
+    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('4절')
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
-    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
+    expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
+    openStudioWorkspace('악보')
     expect(within(contextStrip).getByText('악보')).toBeInTheDocument()
     expect(screen.getByLabelText('조표')).toBeVisible()
     expect(screen.getByLabelText('박자표')).toBeVisible()
     expect(screen.getByLabelText('선택 마디 음자리표')).not.toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).toBeVisible()
-    expect(screen.getByLabelText('PDF 설정 프리셋')).not.toBeVisible()
-    const tempoInput = screen.getByRole('slider', { name: '빠르기' })
+    expect(screen.queryByLabelText('PDF 설정 프리셋')).not.toBeInTheDocument()
+    const tempoInput = screen.getByRole('slider', { name: /^빠르기/ })
     const tempoBeatUnit = screen.getByLabelText('빠르기 기준 음가')
     const tempoText = screen.getByLabelText('빠르기말')
     const rhythmFeelSelect = screen.getByLabelText('리듬 해석 표기')
     expect(tempoInput).toHaveValue('75')
-    expect(tempoBeatUnit).toHaveValue('quarter:0')
+    expect(tempoBeatUnit).toHaveTextContent('4분음표')
     expect(tempoText).toHaveTextContent('♩ = 75')
     fireEvent.change(tempoInput, { target: { value: '90' } })
     expect(tempoText).toHaveTextContent('♩ = 90')
     expect(preview).toHaveAttribute('data-global-tempo', '90')
-    fireEvent.change(tempoBeatUnit, { target: { value: 'eighth:0' } })
+    fireEvent.click(tempoBeatUnit);fireEvent.click(screen.getByRole('option',{name:'8분음표'}))
     expect(tempoText).toHaveTextContent('♪ = 90')
-    expect(rhythmFeelSelect).toHaveValue('none')
-    fireEvent.change(rhythmFeelSelect, { target: { value: 'eighth' } })
-    expect(rhythmFeelSelect).toHaveValue('eighth')
+    expect(rhythmFeelSelect).toHaveTextContent('없음')
+    fireEvent.click(rhythmFeelSelect);fireEvent.click(screen.getByRole('option',{name:'8분 셋잇단 느낌'}))
+    expect(rhythmFeelSelect).toHaveTextContent('8분 셋잇단 느낌')
     expect(preview).toHaveAttribute('data-rhythm-feel', 'eighth')
     const tempoVisibilityToggle = screen.getByLabelText('악보에 빠르기말 표기')
     expect(tempoVisibilityToggle).toBeChecked()
     fireEvent.click(tempoVisibilityToggle)
     expect(tempoVisibilityToggle).not.toBeChecked()
 
-    fireEvent.click(
-      within(dockedPalette).getByRole('button', {
-        name: '표기 객체 팔레트 열기'
-      })
-    )
+    openNotationSettings('clef')
     expect(within(contextStrip).getByText('표기 객체')).toBeInTheDocument()
-    expect(
-      within(dockedPalette).getByRole('button', {
-        name: '표기 객체 팔레트 열기'
-      })
-    ).toHaveAttribute('aria-pressed', 'true')
     const notationObjects = screen.getByRole('region', { name: '표기 객체' })
-    expect(within(notationObjects).getByLabelText('연습표')).toBeVisible()
-    expect(within(notationObjects).getByLabelText('보표 글자')).toBeVisible()
-    expect(within(notationObjects).getByLabelText('표현 텍스트')).toBeVisible()
+    expect(screen.getByLabelText('선택 요약 연습표')).toBeVisible()
+    expect(screen.getByLabelText('선택 요약 보표 글자')).toBeVisible()
+    expect(screen.getByLabelText('선택 요약 표현 텍스트')).toBeVisible()
     const dockedDynamics = within(dockedPalette).getByRole('region', {
       name: '셈여림 팔레트'
     })
     fireEvent.click(
       within(dockedDynamics).getByRole('button', { name: 'mf 셈여림 적용' })
     )
-    expect(within(notationObjects).getByLabelText('셈여림')).toHaveValue('mf')
+    expect(screen.getByRole('combobox',{name:/^(선택|입력) 마디 셈여림$/})).toHaveTextContent('mf')
     expect(within(preview).getByText('mf')).toBeInTheDocument()
     expect(
       within(notationObjects).getByLabelText('선택 마디 음자리표')
     ).toBeVisible()
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '파일' }))
+    openStudioWorkspace('파일')
     expect(within(contextStrip).getByText('파일')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('새 악보 만들기')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('MusicXML 가져오기')).toBeInTheDocument()
     const selectionFilter = within(workspace).getByLabelText('선택 필터')
     expect(selectionFilter).toBeVisible()
-    expect(selectionFilter).toHaveValue('notes-and-rests')
-    fireEvent.change(selectionFilter, { target: { value: 'rests' } })
+    expect(selectionFilter).toHaveTextContent('전체')
+    chooseSelectionFilter('선택 필터', 'rests')
     expect(within(contextStrip).getByText('쉼표만')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('음표 지우기')).toBeDisabled()
-    fireEvent.change(selectionFilter, { target: { value: 'notes' } })
+    chooseSelectionFilter('선택 필터', 'notes')
     expect(within(contextStrip).getByText('음표만')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('음표 지우기')).not.toBeDisabled()
     expect(
@@ -2838,3344 +3295,73 @@ describe('App component shell', () => {
     expect(window.confirm).not.toHaveBeenCalled()
     fireEvent.click(within(newScoreDialog).getByRole('button', { name: '취소' }))
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '내보내기' }))
+    openStudioWorkspace('내보내기')
     expect(within(contextStrip).getByText('내보내기')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: '내보내기 설정' })).toBeVisible()
+    expect(screen.getByRole('region', { name: 'PDF 페이지 설정' })).toBeVisible()
     expect(within(workspace).getByLabelText('PDF 변환')).toBeVisible()
     expect(within(workspace).getByLabelText('MIDI 내보내기')).toBeVisible()
     expect(within(workspace).getByLabelText('PDF 목표 장수')).toBeVisible()
     expect(screen.getByLabelText('PDF 설정 프리셋')).toBeVisible()
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '재생' }))
-    expect(within(contextStrip).getAllByText('재생').length).toBeGreaterThan(0)
-    expect(within(workspace).getByRole('button', { name: '재생' })).toBeVisible()
+    openStudioWorkspace('재생')
+    expect(screen.getByRole('region', { name: '재생 컨트롤' })).toBeVisible()
+    expect(within(contextStrip).getByText('정지')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '재생' })).toBeVisible()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '음표' }))
+    openStudioWorkspace('음표')
     expect(within(contextStrip).getByText('음표')).toBeInTheDocument()
-    expect(
-      within(workspace).queryByRole('button', { name: '재생' })
-    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button',{name:'재생'})).toBeVisible()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
     expect(screen.getByLabelText('선택 마디 음자리표')).not.toBeVisible()
-    expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
+    expect(screen.getByRole('button',{name:'코드 심벌 편집',hidden:true})).not.toBeVisible()
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
-  }, 15000)
-
-  it('playback.cursor-selection-sync selects the active playback event with its voice address', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    playbackMockState.value = {
-      activeEvent: {
-        eventId: 'note-g4',
-        partId: 'piano',
-        staffId: 'piano-staff',
-        measureId: 'measure-2',
-        voiceId: 'voice-1'
-      },
-      activeEventId: 'note-g4',
-      positionBeat: 4,
-      status: 'playing',
-      totalBeats: 8
-    }
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'note-g4'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-playback-event-id',
-        'note-g4'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-playback-event-address',
-        'piano:piano-staff:measure-2:voice-1'
-      )
-    })
-    expect(screen.getByRole('button', { name: '1성부' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
-  })
-
-  it('playback.cursor-selection-sync keeps editing selection stable after stop and jump-to-start', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    playbackMockState.value = {
-      activeEvent: {
-        eventId: 'note-a4',
-        partId: 'piano',
-        staffId: 'piano-staff',
-        measureId: 'measure-2',
-        voiceId: 'voice-1'
-      },
-      activeEventId: 'note-a4',
-      positionBeat: 4.5,
-      status: 'playing',
-      totalBeats: 8
-    }
-    const { App } = await import('./App')
-    const { rerender } = render(<App />)
-    const toolbarTabs = screen.getByRole('navigation', {
-      name: '편집 도구 카테고리'
-    })
-
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '재생' }))
-    fireEvent.click(screen.getByRole('button', { name: '처음으로' }))
-
-    expect(playbackMockState.jumpToStart).toHaveBeenCalledTimes(1)
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'note-a4'
-      )
-    })
-
-    playbackMockState.value = {
-      activeEvent: undefined,
-      activeEventId: undefined,
-      positionBeat: 0,
-      status: 'stopped',
-      totalBeats: 8
-    }
-    rerender(<App />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'note-a4'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-playback-event-id',
-        ''
-      )
-    })
-  })
-
-  it('playback.cursor-selection-sync keeps a multi-part playback selection after jump-to-start', async () => {
-    const { App } = await import('./App')
-    const { rerender } = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-
-    playbackMockState.value = {
-      activeEvent: {
-        eventId: 'cello-staff-1-measure-1-full-measure-rest',
-        partId: 'cello',
-        staffId: 'staff-1',
-        measureId: 'cello-staff-1-measure-1',
-        voiceId: 'voice-1'
-      },
-      activeEventId: 'cello-staff-1-measure-1-full-measure-rest',
-      positionBeat: 0,
-      status: 'playing',
-      totalBeats: 32
-    }
-    rerender(<App />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'cello-staff-1-measure-1-full-measure-rest'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-address',
-        'cello:staff-1:cello-staff-1-measure-1:voice-1'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-playback-event-address',
-        'cello:staff-1:cello-staff-1-measure-1:voice-1'
-      )
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: '재생' }))
-    fireEvent.click(screen.getByRole('button', { name: '처음으로' }))
-    expect(playbackMockState.jumpToStart).toHaveBeenCalledTimes(1)
-
-    playbackMockState.value = {
-      activeEvent: undefined,
-      activeEventId: undefined,
-      positionBeat: 0,
-      status: 'stopped',
-      totalBeats: 32
-    }
-    rerender(<App />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'cello-staff-1-measure-1-full-measure-rest'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-address',
-        'cello:staff-1:cello-staff-1-measure-1:voice-1'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-playback-event-id',
-        ''
-      )
-    })
-  })
-
-  it('playback.part-mixer sends part mute, solo, and volume settings to playback', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '재생' }))
-    const mixer = screen.getByLabelText('파트 믹서')
-    const mute = within(mixer).getByLabelText('Melody 음소거')
-    const solo = within(mixer).getByLabelText('Melody 솔로')
-    const volume = within(mixer).getByLabelText('Melody 볼륨')
-
-    expect(volume).toHaveValue('100')
-
-    fireEvent.click(mute)
-    expect(playbackMockState.lastPartMixer['part-1']).toMatchObject({
-      muted: true,
-      solo: false,
-      volume: 1
-    })
-
-    fireEvent.click(solo)
-    expect(playbackMockState.lastPartMixer['part-1']).toMatchObject({
-      muted: true,
-      solo: true,
-      volume: 1
-    })
-
-    fireEvent.change(volume, { target: { value: '65' } })
-    expect(playbackMockState.lastPartMixer['part-1']).toMatchObject({
-      muted: true,
-      solo: true,
-      volume: 0.65
-    })
-    expect(within(mixer).getByText('65%')).toBeInTheDocument()
-    expect(
-      JSON.parse(
-        window.localStorage.getItem('chromatics.part-mixer.v1') ?? '{}'
-      )['part-1']
-    ).toMatchObject({
-      muted: true,
-      solo: true,
-      volume: 0.65
-    })
-
-    cleanup()
-    playbackMockState.lastPartMixer = {}
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '재생' }))
-
-    const restoredMixer = screen.getByLabelText('파트 믹서')
-    expect(within(restoredMixer).getByLabelText('Melody 음소거')).toBeChecked()
-    expect(within(restoredMixer).getByLabelText('Melody 솔로')).toBeChecked()
-    expect(within(restoredMixer).getByLabelText('Melody 볼륨')).toHaveValue('65')
-    expect(playbackMockState.lastPartMixer['part-1']).toMatchObject({
-      muted: true,
-      solo: true,
-      volume: 0.65
-    })
-  })
-
-  it('playback.part-mixer keeps independent controls for a 4-part ensemble', async () => {
-    const { App } = await import('./App')
-    const view = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-    playbackMockState.value = {
-      ...playbackMockState.value,
-      activeEvent: {
-        eventId: 'cello-staff-1-measure-1-full-measure-rest',
-        partId: 'cello',
-        staffId: 'staff-1',
-        measureId: 'cello-staff-1-measure-1',
-        voiceId: 'voice-1'
-      },
-      activeEventId: 'cello-staff-1-measure-1-full-measure-rest',
-      status: 'playing'
-    }
-    view.rerender(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '재생' }))
-
-    const mixer = screen.getByLabelText('파트 믹서')
-    const violinMute = within(mixer).getByLabelText('Violin I 음소거')
-    const celloSolo = within(mixer).getByLabelText('Cello 솔로')
-    const violaVolume = within(mixer).getByLabelText('Viola 볼륨')
-
-    expect(within(mixer).getByText('Violin I')).toBeInTheDocument()
-    expect(within(mixer).getByText('Violin II')).toBeInTheDocument()
-    expect(within(mixer).getByText('Viola')).toBeInTheDocument()
-    expect(within(mixer).getByText('Cello')).toBeInTheDocument()
-    expect(within(mixer).getByLabelText('Cello 재생 상태')).toHaveTextContent(
-      '재생 중'
-    )
-    expect(within(mixer).getByLabelText('Viola 재생 상태')).toHaveTextContent(
-      '대기'
-    )
-    expect(
-      within(mixer).getByLabelText('Cello 재생 상태').closest('.part-mixer__row')
-    ).toHaveAttribute('data-playback-active', 'true')
-    expect(violaVolume).toHaveValue('100')
-
-    fireEvent.click(violinMute)
-    await waitFor(() => {
-      expect(playbackMockState.lastPartMixer['violin-1']).toMatchObject({
-        muted: true,
-        solo: false,
-        volume: 1
-      })
-    })
-
-    fireEvent.click(celloSolo)
-    await waitFor(() => {
-      expect(playbackMockState.lastPartMixer['cello']).toMatchObject({
-        muted: false,
-        solo: true,
-        volume: 1
-      })
-    })
-
-    fireEvent.change(violaVolume, { target: { value: '45' } })
-    await waitFor(() => {
-      expect(playbackMockState.lastPartMixer['viola']).toMatchObject({
-        muted: false,
-        solo: false,
-        volume: 0.45
-      })
-    })
-    expect(playbackMockState.lastPartMixer['violin-2']).toBeUndefined()
-    expect(within(mixer).getByText('45%')).toBeInTheDocument()
-  })
-
-  it('promotion.concert-posters does not render the deprecated toolbar banner', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    vi.mocked(window.inC.promotions.getConcertPosters).mockResolvedValue({
-      posters: [
-        {
-          id: 'concert:test-poster',
-          title: '테스트 공연 포스터',
-          meta: '2026년 8월 테스트 · 온라인',
-          description: '서버 API에서 내려온 공연 포스터입니다.',
-          imageUrl: '../assets/posters/test.svg',
-          imageAlt: '테스트 공연 포스터 이미지',
-          targetUrl: '../concerts.html',
-          theme: 'blue'
-        }
-      ],
-      sourceUrl: 'https://in-c.mannlab.app/api/concert-posters.json'
-    })
-
-    const { App } = await import('./App')
-    render(<App />)
-
-    await waitFor(() =>
-      expect(window.inC.promotions.getConcertPosters).not.toHaveBeenCalled()
-    )
-    expect(screen.queryByRole('group', {
-      name: '공연 포스터 보기'
-    })).not.toBeInTheDocument()
-    expect(screen.queryByRole('dialog', { name: '공연 포스터' })).not.toBeInTheDocument()
-  })
-
-  it('clef.change-selected-measure changes only the selected measure clef and reports the result', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    const clefSelect = screen.getByLabelText('선택 마디 음자리표')
-    const preview = screen.getByTestId('notation-preview')
-    const initialClefs = preview.getAttribute('data-measure-clefs')?.split(',')
-
-    expect(initialClefs?.length).toBeGreaterThan(1)
-    expect(clefSelect).toHaveValue('treble')
-    fireEvent.change(clefSelect, { target: { value: 'bass' } })
-
-    await waitFor(() => {
-      const changedClefs = screen
-        .getByTestId('notation-preview')
-        .getAttribute('data-measure-clefs')
-        ?.split(',')
-      const changedIndexes = changedClefs
-        ?.map((clef, index) => (clef === initialClefs?.[index] ? -1 : index))
-        .filter((index) => index >= 0)
-      expect(changedIndexes).toHaveLength(1)
-      expect(changedClefs?.[changedIndexes?.[0] ?? -1]).toBe('F4')
-    })
-    expect(
-      screen.getByText('선택한 마디의 음자리표를 바꿨습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('clef.change-current-staff changes every measure clef in the active staff', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    const staffClefSelect = screen.getByLabelText('현재 보표 음자리표')
-
-    expect(staffClefSelect).toHaveValue('treble')
-    fireEvent.change(staffClefSelect, { target: { value: 'alto' } })
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('현재 보표 음자리표')).toHaveValue('alto')
-      expect(
-        screen
-          .getByTestId('notation-preview')
-          .getAttribute('data-measure-clefs')
-          ?.split(',')
-      ).toEqual(['C3', 'C3'])
-    })
-    expect(
-      screen.getByText('피아노 음자리표를 바꿨습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('import-export.save-pdf sends the score title and keeps PDF separate from MusicXML', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.pdf.save).mockResolvedValue({
-      fileName: 'release-test.pdf'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const fileActions = screen.getByLabelText('파일 작업')
-    const musicXmlButton = within(fileActions).getByRole('button', {
-      name: 'MusicXML로 저장'
-    })
-    expect(
-      within(fileActions).queryByRole('button', { name: 'PDF 변환' })
-    ).not.toBeInTheDocument()
-    expect(
-      within(fileActions).queryByRole('button', { name: 'MIDI 내보내기' })
-    ).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const exportActions = screen.getByLabelText('내보내기 작업')
-    const pdfButton = within(exportActions).getByRole('button', {
-      name: 'PDF 변환'
-    })
-    const pageTarget = within(exportActions).getByLabelText('PDF 목표 장수')
-
-    expect(pdfButton).not.toBe(musicXmlButton)
-    expect(pageTarget).toHaveValue(2)
-    expect(pageTarget).toHaveAttribute('min', '1')
-    expect(pageTarget).toHaveAttribute('step', '1')
-    fireEvent.click(pdfButton)
-
-    await waitFor(() => {
-      expect(window.inC.pdf.save).toHaveBeenCalledWith({
-        suggestedName: 'release-test.pdf'
-      })
-    })
-    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
-  })
-
-  it('import-export.export-midi writes a Standard MIDI File separate from MusicXML and PDF', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.midi.save).mockResolvedValue({
-      fileName: 'release-test.mid'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const exportActions = screen.getByLabelText('내보내기 작업')
-    const midiButton = within(exportActions).getByRole('button', {
-      name: 'MIDI 내보내기'
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const fileActions = screen.getByLabelText('파일 작업')
-    expect(
-      within(fileActions).queryByRole('button', { name: 'MIDI 내보내기' })
-    ).not.toBeInTheDocument()
-    expect(
-      within(fileActions).queryByRole('button', { name: 'PDF 변환' })
-    ).not.toBeInTheDocument()
-    expect(midiButton).not.toBe(
-      within(fileActions).getByRole('button', { name: 'MusicXML로 저장' })
-    )
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.click(midiButton)
-
-    await waitFor(() => {
-      expect(window.inC.midi.save).toHaveBeenCalledWith({
-        suggestedName: 'release-test.mid',
-        contents: expect.any(Array)
-      })
-    })
-    const saveInput = vi.mocked(window.inC.midi.save).mock.calls[0]?.[0]
-
-    expect(asciiBytes(saveInput?.contents ?? [], 0, 4)).toBe('MThd')
-    expect(saveInput?.contents).toEqual(
-      expect.arrayContaining([0xff, 0x51, 0x03])
-    )
-    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
-    expect(window.inC.pdf.save).not.toHaveBeenCalled()
-    expect(
-      await screen.findByText('release-test.mid로 MIDI를 내보냈습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('import-export.export-midi reports the V1 percussion and tab policy', async () => {
-    vi.mocked(window.inC.musicXml.open).mockResolvedValue({
-      filePath: '/scores/percussion.musicxml',
-      fileName: 'percussion.musicxml',
-      contents: withPercussionClef(recentMusicXml)
-    })
-    vi.mocked(window.inC.midi.save).mockResolvedValue({
-      fileName: 'percussion-policy.mid'
-    })
-
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
-    expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const exportActions = screen.getByLabelText('내보내기 작업')
-    fireEvent.click(
-      within(exportActions).getByRole('button', { name: 'MIDI 내보내기' })
-    )
-
-    await waitFor(() => {
-      expect(window.inC.midi.save).toHaveBeenCalledWith({
-        suggestedName: 'musicxml-sketch.mid',
-        contents: expect.any(Array)
-      })
-    })
-    await waitFor(() => {
-      const pageText = document.body.textContent ?? ''
-
-      expect(pageText).toContain('percussion-policy.mid로 MIDI를 내보냈습니다.')
-      expect(pageText).toContain('MIDI 경고 1개')
-      expect(pageText).toContain('part[1].staff[1].measure[1].clef')
-      expect(pageText).toContain(
-        'Percussion notation is not interpreted in V1 MIDI export; notes on this staff were skipped.'
-      )
-    })
-  })
-
-  it('import-export.save-pdf hides editor selection state while printing', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
-    vi.mocked(window.inC.pdf.save).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishPdfSave = resolve
-        })
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-id',
-      'note-e4'
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-id',
-      ''
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-ids',
-      ''
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-measure-id',
-      ''
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-playback-event-id',
-      ''
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout',
-      'true'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-id',
-      'comfortable'
-    )
-
-    finishPdfSave?.({ fileName: 'demo.pdf' })
-    expect(await screen.findByText('demo.pdf로 PDF를 만들었습니다.')).toBeInTheDocument()
-    await waitFor(() =>
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'note-e4'
-      )
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout',
-      'false'
-    )
-  })
-
-  it('import-export.save-pdf applies a strict target page count when possible', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
-    vi.mocked(window.inC.pdf.save).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishPdfSave = resolve
-        })
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    const addMeasureButton = screen.getByRole('button', { name: '마디 추가' })
-
-    for (let index = 0; index < 80; index += 1) {
-      fireEvent.click(addMeasureButton)
-    }
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.change(screen.getByLabelText('PDF 목표 장수'), {
-      target: { value: '2' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-target',
-      '2'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-overflowed',
-      'false'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-pages',
-      '2'
-    )
-
-    finishPdfSave?.({ fileName: 'two-page.pdf' })
-    expect(
-      await screen.findByText('two-page.pdf로 PDF를 만들었습니다.')
-    ).toBeInTheDocument()
-  }, 10000)
-
-  it('layout.page-setup applies PDF page settings to export layout', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
-    vi.mocked(window.inC.pdf.save).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishPdfSave = resolve
-        })
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.change(screen.getByLabelText('PDF 용지'), {
-      target: { value: 'letter' }
-    })
-    fireEvent.change(screen.getByLabelText('PDF 방향'), {
-      target: { value: 'landscape' }
-    })
-    fireEvent.change(screen.getByLabelText('PDF 여백 mm'), {
-      target: { value: '12' }
-    })
-    fireEvent.change(screen.getByLabelText('PDF 보표 크기'), {
-      target: { value: '90' }
-    })
-    fireEvent.change(screen.getByLabelText('PDF 시스템 간격'), {
-      target: { value: '120' }
-    })
-
-    expect(screen.getByText('PDF 페이지 설정을 갱신했습니다.')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-page-css-size',
-      'Letter landscape'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-margin',
-      '12'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-scale',
-      '0.9'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-size',
-      'letter'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-orientation',
-      'landscape'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-margin-mm',
-      '12'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-staff-size-percent',
-      '90'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-system-spacing-percent',
-      '120'
-    )
-    expect(
-      Number(
-        screen
-          .getByTestId('notation-preview')
-          .getAttribute('data-print-layout-width')
-      )
-    ).toBeGreaterThan(900)
-
-    finishPdfSave?.({ fileName: 'letter-landscape.pdf' })
-    expect(
-      await screen.findByText('letter-landscape.pdf로 PDF를 만들었습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('layout.page-setup previews page margin guides without printing them', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
-    vi.mocked(window.inC.pdf.save).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishPdfSave = resolve
-        })
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    const scorePage = screen.getByLabelText('악보 페이지')
-
-    expect(scorePage).toHaveAttribute('data-show-page-margins', 'false')
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const marginGuideToggle = screen.getByLabelText('PDF 여백 가이드 표시')
-
-    expect(marginGuideToggle).not.toBeChecked()
-
-    fireEvent.click(marginGuideToggle)
-    fireEvent.change(screen.getByLabelText('PDF 여백 mm'), {
-      target: { value: '12' }
-    })
-
-    expect(marginGuideToggle).toBeChecked()
-    expect(scorePage).toHaveAttribute('data-show-page-margins', 'true')
-    expect(scorePage).toHaveStyle({
-      '--score-page-margin-guide-inset': '12mm'
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(scorePage).toHaveAttribute('data-show-page-margins', 'false')
-
-    finishPdfSave?.({ fileName: 'margin-guide.pdf' })
-    await screen.findByText('margin-guide.pdf로 PDF를 만들었습니다.')
-    expect(scorePage).toHaveAttribute('data-show-page-margins', 'true')
-  })
-
-  it('ui.properties-panel summarizes the selected event and measure context', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-
-    const properties = screen.getByRole('region', { name: '선택 요약' })
-    expect(properties).toHaveAttribute('data-selection-kind', 'event')
-    expect(within(properties).getByRole('heading', { name: '선택한 표기' })).toBeInTheDocument()
-    expect(within(properties).getByText('대상')).toBeInTheDocument()
-    expect(within(properties).getByText('음표')).toBeInTheDocument()
-    expect(within(properties).getByText('음가')).toBeInTheDocument()
-    expect(within(properties).getByText('4분음표')).toBeInTheDocument()
-    expect(within(properties).getByText('성부')).toBeInTheDocument()
-    expect(within(properties).getAllByText('1').length).toBeGreaterThan(0)
-
-    fireEvent.change(within(properties).getByLabelText('선택 요약 셈여림'), {
-      target: { value: 'ff' }
-    })
-
-    const dynamic = within(screen.getByTestId('notation-preview')).getByText('ff')
-    expect(dynamic).toHaveAttribute('data-measure-id', 'measure-1')
-
-    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
-
-    expect(properties).toHaveAttribute('data-selection-kind', 'measure')
-    expect(within(properties).getAllByText('마디').length).toBeGreaterThan(0)
-    expect(within(properties).getByText('음자리표')).toBeInTheDocument()
-    expect(within(properties).getByText('박자')).toBeInTheDocument()
-    expect(within(properties).getByText('4/4')).toBeInTheDocument()
-  })
-
-  it('ui.properties-edit applies text and harmony to the selected location, supports undo and disables range edits', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
-    const properties = screen.getByRole('region', { name: '선택 요약' })
-    const edit = (label: string, value: string) => {
-      const input = within(properties).getByLabelText(label)
-      fireEvent.change(input, { target: { value } })
-      fireEvent.blur(input)
-    }
-    edit('선택 요약 코드', 'C/G')
-    edit('선택 요약 보표 글자', 'cantabile')
-    const cancelled = within(properties).getByLabelText('선택 요약 연습표')
-    cancelled.focus()
-    fireEvent.change(cancelled, { target: { value: 'Cancel me' } })
-    fireEvent.keyDown(cancelled, { key: 'Escape' })
-    expect(cancelled).not.toHaveValue('Cancel me')
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }))
-    expect(within(properties).getByLabelText('선택 요약 보표 글자')).toHaveValue('dolce')
-    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }))
-    expect(within(properties).getByLabelText('선택 요약 보표 글자')).toHaveValue('cantabile')
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalled())
-    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls.at(-1)![0].contents)
-    expect(reopened.harmonies).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'C/G', measureId: 'measure-1', tick: TICKS_PER_QUARTER })]))
-    expect(reopened.staffTexts).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'cantabile', measureId: 'measure-1' })]))
-    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
-    expect(within(properties).getByLabelText('선택 요약 보표 글자')).not.toHaveValue('cantabile')
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }), { shiftKey: true })
-    expect(properties).toHaveAttribute('data-selection-kind', 'range')
-    for (const control of within(properties).getAllByRole('textbox')) expect(control).toBeDisabled()
-    expect(within(properties).getByLabelText('선택 요약 셈여림')).toBeDisabled()
-  })
-
-  it('save.async keeps edits made while a save is pending and suppresses duplicate save requests', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finish!: (value: { filePath: string; fileName: string }) => void
-    vi.mocked(window.inC.musicXml.save).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve }))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1)
-    const input = screen.getByRole('textbox', { name: '선택 요약 보표 글자' })
-    fireEvent.change(input, { target: { value: 'after-save-start' } })
-    fireEvent.blur(input)
-    finish({ filePath: '/scores/async.musicxml', fileName: 'async.musicxml' })
-    await screen.findByText(/저장 중 추가한 변경사항은 아직 저장되지 않았습니다/)
-    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0]).toMatchObject({ filePath: '/scores/async.musicxml', contents: expect.stringContaining('after-save-start') })
-  })
-
-  it.each(['success', 'failure'])('save.async ignores stale %s after switching documents', async (outcome) => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finish!: (value: { filePath: string; fileName: string }) => void
-    let fail!: (reason: Error) => void
-    vi.mocked(window.inC.musicXml.save).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
-    fireEvent.click(within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole('button', { name: '만들기' }))
-    if (outcome === 'success') finish({ filePath: '/scores/old.musicxml', fileName: 'old.musicxml' })
-    else fail(new Error('stale save failure'))
-    await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(screen.queryByText('stale save failure')).not.toBeInTheDocument()
-    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0]).not.toHaveProperty('filePath')
-  })
-
-  it('save.async restores recovery data for edits made during autosave cleanup', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValueOnce({ filePath: '/scores/cleanup.musicxml', fileName: 'cleanup.musicxml' })
-    let finishClear!: () => void
-    vi.mocked(window.inC.autosave.clear).mockImplementationOnce(() => new Promise((resolve) => { finishClear = resolve }))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const save = screen.getByRole('button', { name: 'MusicXML로 저장' })
-    fireEvent.click(save)
-    await waitFor(() => expect(window.inC.autosave.clear).toHaveBeenCalledOnce())
-    expect(save).toBeDisabled()
-    expect(save).toHaveAttribute('aria-busy', 'true')
-    const input = screen.getByRole('textbox', { name: '선택 요약 보표 글자' })
-    fireEvent.change(input, { target: { value: 'during-cleanup' } })
-    fireEvent.blur(input)
-    finishClear()
-    await screen.findByText(/저장 중 추가한 변경사항은 아직 저장되지 않았습니다/)
-    const recovery = vi.mocked(window.inC.autosave.write).mock.calls.at(-1)![0]
-    expect(recovery.score).toEqual(expect.objectContaining({ staffTexts: expect.arrayContaining([expect.objectContaining({ text: 'during-cleanup' })]) }))
-    expect(save).toBeEnabled()
-  })
-
-  it('save.async retains unsaved edits after failure and allows retry', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockRejectedValueOnce(new Error('disk unavailable'))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const input = screen.getByRole('textbox', { name: '선택 요약 보표 글자' })
-    fireEvent.change(input, { target: { value: 'retain-on-failure' } })
-    fireEvent.blur(input)
-    const save = screen.getByRole('button', { name: 'MusicXML로 저장' })
-    fireEvent.click(save)
-    await screen.findByText('disk unavailable')
-    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
-    expect(save).toBeEnabled()
-    fireEvent.click(save)
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0].contents).toContain('retain-on-failure')
-  })
-
-  it('ui.shortcut-help exposes the V1 command reference from File mode', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '단축키 도움말' }))
-
-    const dialog = screen.getByRole('dialog', { name: '단축키 도움말' })
-    expect(within(dialog).getByText('음표 입력')).toBeInTheDocument()
-    expect(within(dialog).getByText('음가 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('1-7')).toBeInTheDocument()
-    expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
-    expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
-    expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
-    expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
-
-    fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
-    expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
-  })
-
-  it('studio.r3 wizard keeps composition local and cancellation restores its trigger', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-    const trigger=screen.getByRole('button',{name:'새 악보 만들기'})
-    trigger.focus(); fireEvent.click(trigger)
-    const dialog=screen.getByRole('dialog',{name:'새 악보 만들기'})
-    const title=within(dialog).getByRole('textbox',{name:'제목'})
-    fireEvent.compositionStart(title)
-    fireEvent.change(title,{target:{value:'한글'}})
-    fireEvent.keyDown(title,{key:'Enter',code:'Enter',isComposing:true})
-    fireEvent.submit(within(dialog).getByRole('form',{name:'새 악보 만들기'}))
-    expect(dialog).toBeInTheDocument()
-    fireEvent.compositionEnd(title)
-    fireEvent.keyDown(title,{key:'s',code:'KeyS',ctrlKey:true})
-    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
-    expect(window.inC.project.save).not.toHaveBeenCalled()
-    fireEvent.click(within(dialog).getByRole('button',{name:'취소'}))
-    await waitFor(()=>expect(trigger).toHaveFocus())
-    expect(screen.getByRole('heading',{name:'새 악보를 만들어 볼까요?'})).toBeInTheDocument()
-  })
-
-  it('studio.r3 dirty replacement and wizard draft cancellation preserve notes and undo', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
-    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
-    fireEvent.click(screen.getByRole('button',{name:'음표 입력 전환, 단축키 N'}))
-    fireEvent.keyDown(window,{key:'c',code:'KeyC'})
-    const preview=screen.getByTestId('notation-preview')
-    const before=preview.getAttribute('data-event-durations')
-    fireEvent.click(screen.getByRole('button',{name:'파일'}))
-    vi.spyOn(window,'confirm').mockReturnValue(false)
-    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
-    expect(window.confirm).toHaveBeenCalledWith(unsavedScoreChangesMessage)
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(preview).toHaveAttribute('data-event-durations',before)
-    vi.mocked(window.confirm).mockReturnValue(true)
-    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
-    const dialog=screen.getByRole('dialog',{name:'새 악보 만들기'})
-    fireEvent.change(within(dialog).getByRole('textbox',{name:'제목'}),{target:{value:'discard this draft'}})
-    fireEvent.click(within(dialog).getByRole('button',{name:'취소'}))
-    expect(preview).toHaveAttribute('data-event-durations',before)
-    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
-    fireEvent.keyDown(window,{key:'z',code:'KeyZ',ctrlKey:true})
-    expect(screen.getByRole('note',{name:'첫 입력 안내'})).toBeInTheDocument()
-    expect(window.inC.project.save).not.toHaveBeenCalled()
-  })
-
-  it('studio.r3 does not celebrate an empty project or a MusicXML copy', async () => {
-    vi.mocked(window.inC.project.save).mockResolvedValue({fileName:'empty.chromatics',filePath:'/fixture/empty.chromatics'})
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button',{name:'새 악보 만들기'}))
-    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
-    fireEvent.click(screen.getByRole('button',{name:'파일'}))
-    fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
-    await waitFor(()=>expect(window.inC.autosave.clear).toHaveBeenCalled())
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button',{name:'음표 입력 전환, 단축키 N'}))
-    fireEvent.keyDown(window,{key:'c',code:'KeyC'})
-    fireEvent.click(screen.getByRole('button',{name:'파일'}))
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({fileName:'copy.musicxml',filePath:'/fixture/copy.musicxml'})
-    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
-    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalled())
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-  })
-
-  it.each([
-    ['cancel', 'retry'], ['failure', 'retry'], ['cancel', 'moved'], ['failure', 'moved']
-  ] as const)('studio.r3 keyboard retry after save %s respects %s focus', async (outcome, focusPolicy) => {
-    let finish!: (value: null) => void
-    let fail!: (reason: Error) => void
-    vi.mocked(window.inC.project.save).mockImplementationOnce(() => new Promise((resolve, reject) => {
-      finish = resolve
-      fail = reject
-    }))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
-    fireEvent.click(within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole('button', { name: '만들기' }))
-    const inputToggle = screen.getByRole('button', { name: '음표 입력 전환, 단축키 N' })
-    await waitFor(() => expect(inputToggle).toHaveFocus())
-    fireEvent.click(inputToggle)
-    fireEvent.keyDown(window, { key: 'c', code: 'KeyC' })
-    const preview = screen.getByTestId('notation-preview')
-    const before = preview.getAttribute('data-event-pitches')
-    const trigger = screen.getByRole('button', { name: '프로젝트 파일 저장' })
-    trigger.focus()
-    fireEvent.click(trigger)
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
-    const alternate = screen.getByRole('button', { name: '음표 입력 전환, 단축키 N' })
-    if (focusPolicy === 'moved') alternate.focus()
-    else trigger.blur()
-    await act(async () => outcome === 'cancel' ? finish(null) : fail(new Error('Keyboard retry disk failure')))
-    const retry = await screen.findByRole('button', { name: '프로젝트 파일 저장' })
-    await waitFor(() => expect(focusPolicy === 'retry' ? retry : alternate).toHaveFocus())
-    expect(retry).toBeEnabled()
-    expect(preview).toHaveAttribute('data-event-pitches', before)
-    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
-    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    vi.mocked(window.inC.project.save).mockResolvedValueOnce({ filePath: '/fixture/keyboard.chromatics', fileName: 'keyboard.chromatics' })
-    fireEvent.click(retry)
-    await screen.findByText('첫 악보를 파일로 저장했어요.')
-    expect(window.inC.project.save).toHaveBeenCalledTimes(2)
-    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
-    expect(preview).toHaveAttribute('data-event-pitches', before)
-    fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
-    expect(screen.getByRole('note', { name: '첫 입력 안내' })).toBeInTheDocument()
-  })
-
-  it('studio.r3 first session uses actual notes and only celebrates a current native save', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-    expect(screen.getByRole('heading', {name:'새 악보를 만들어 볼까요?'})).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
-    const dialog=screen.getByRole('dialog', {name:'새 악보 만들기'})
-    fireEvent.click(within(dialog).getByRole('button', {name:'만들기'}))
-    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
-    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toHaveTextContent('A–G')
-    fireEvent.keyDown(window, {code:'KeyC',key:'c'})
-    expect(screen.queryByRole('note', {name:'첫 입력 안내'})).not.toBeInTheDocument()
-    fireEvent.keyDown(window, {code:'KeyZ',key:'z',ctrlKey:true})
-    expect(screen.getByRole('note', {name:'첫 입력 안내'})).toBeInTheDocument()
-    fireEvent.keyDown(window, {code:'KeyZ',key:'z',ctrlKey:true,shiftKey:true})
-    fireEvent.click(screen.getByRole('button', {name:'파일'}))
-    vi.mocked(window.inC.project.save).mockResolvedValueOnce(null)
-    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
-    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1))
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    vi.mocked(window.inC.project.save).mockRejectedValueOnce(new Error('R3 disk unavailable'))
-    await waitFor(()=>expect(screen.getByRole('button', {name:'프로젝트 저장'})).toBeEnabled())
-    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
-    await screen.findByText('R3 disk unavailable')
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    vi.mocked(window.inC.project.save).mockResolvedValueOnce({filePath:'/fixture/first.chromatics',fileName:'first.chromatics'})
-    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
-    await screen.findByText('첫 악보를 파일로 저장했어요.')
-    fireEvent.click(screen.getByRole('button',{name:'첫 저장 알림 닫기'}))
-    fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
-    await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(4))
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    const {decodeNativeProject}=await import('../../project/schema')
-    const saved=decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls.at(-1)![0].contents)
-    expect(saved.score.parts[0].staves[0].measures[0].voices[0].events.some(event=>event.type==='note')).toBe(true)
-    expect(document.querySelector('.studio-document')).toHaveTextContent('변경 없음')
-  })
-
-  it.each(['new-edit','new-document'] as const)('studio.r3 suppresses first achievement for a late native save after %s', async change => {
-    let finish!: (value:{filePath:string;fileName:string})=>void
-    vi.mocked(window.inC.project.save).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
-    fireEvent.click(within(screen.getByRole('dialog', {name:'새 악보 만들기'})).getByRole('button', {name:'만들기'}))
-    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
-    fireEvent.keyDown(window, {code:'KeyC',key:'c'})
-    fireEvent.click(screen.getByRole('button', {name:'파일'}))
-    fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
-    await waitFor(()=>expect(finish).toBeTypeOf('function'))
-    if(change==='new-edit') fireEvent.keyDown(window, {code:'KeyD',key:'d'})
-    else {
-      vi.spyOn(window,'confirm').mockReturnValue(true)
-      fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
-      fireEvent.click(within(screen.getByRole('dialog', {name:'새 악보 만들기'})).getByRole('button', {name:'만들기'}))
-    }
-    await act(async()=>finish({filePath:'/fixture/first.chromatics',fileName:'first.chromatics'}))
-    expect(screen.queryByText('첫 악보를 파일로 저장했어요.')).not.toBeInTheDocument()
-    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
-  })
-
-  it('studio.r3 PDF success exposes manual Score instructions without cleaning the project', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.pdf.save).mockResolvedValueOnce({fileName:'practice.pdf'})
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.keyDown(window,{code:'KeyC',key:'c'})
-    fireEvent.click(screen.getByRole('button', {name:'내보내기'}))
-    fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
-    const guide=await screen.findByRole('button', {name:'가져오는 방법'})
-    expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
-    fireEvent.click(guide)
-    const dialog=screen.getByRole('dialog',{name:'PDF로 연습 이어가기'})
-    expect(dialog).toHaveTextContent('모바일 기기')
-    expect(dialog).toHaveTextContent('자동으로 반영되지 않습니다')
-    expect(within(dialog).queryByRole('button',{name:'Score에서 열기'})).not.toBeInTheDocument()
-    expect(window.inC.project.save).not.toHaveBeenCalled()
-  })
-
-  it.each(['success','failure'] as const)('studio.r3 ignores late PDF %s after replacing the document', async outcome=>{
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finish!: (value:{fileName:string})=>void
-    let fail!: (error:Error)=>void
-    vi.mocked(window.inC.pdf.save).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', {name:'내보내기'}))
-    fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
-    await waitFor(()=>expect(finish).toBeTypeOf('function'))
-    fireEvent.click(screen.getByRole('button', {name:'파일'}))
-    fireEvent.click(screen.getByRole('button', {name:/새 악보 만들기/}))
-    fireEvent.click(within(screen.getByRole('dialog',{name:'새 악보 만들기'})).getByRole('button',{name:'만들기'}))
-    await act(async()=>outcome==='success'?finish({fileName:'old-r3.pdf'}):fail(new Error('old-r3-failure')))
-    expect(screen.queryByText(/old-r3/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button',{name:'가져오는 방법'})).not.toBeInTheDocument()
-  })
-
-  it('studio.r3 compact note details start collapsed and persist without changing score history', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    const app = render(<App />)
-    const preview = screen.getByTestId('notation-preview')
-    const before = preview.getAttribute('data-event-durations')
-    const summary = screen.getByText('음표 상세 설정', { selector: 'summary' })
-    expect(summary.closest('details')).not.toHaveAttribute('open')
-    expect(screen.getByLabelText('입력 보표')).not.toBeVisible()
-    expect(screen.getByRole('button', { name: '음표 입력 전환, 단축키 N' })).toBeVisible()
-    expect(screen.getByRole('button', { name: '8분음표, 단축키 4' })).toBeVisible()
-    fireEvent.click(summary)
-    await waitFor(() => expect(localStorage.getItem('chromatics.note-details.v1')).toBe('true'))
-    expect(screen.getByLabelText('입력 보표')).toBeVisible()
-    expect(preview).toHaveAttribute('data-event-durations', before)
-    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
-    app.unmount()
-    render(<App />)
-    expect(screen.getByText('음표 상세 설정', { selector: 'summary' }).closest('details')).toHaveAttribute('open')
-    expect(screen.getByLabelText('입력 보표')).toBeVisible()
-    fireEvent.click(screen.getByText('음표 상세 설정', { selector: 'summary' }))
-    await waitFor(() => expect(localStorage.getItem('chromatics.note-details.v1')).toBe('false'))
-    expect(screen.getByLabelText('입력 보표')).not.toBeVisible()
+  }, 30000)
+
+  it.each(['button','space'] as const)('playback.start-from-selection starts a selected rest through %s without editing', async entry => {
+    window.history.replaceState({},'', '/?fixture=release-test')
+    const {App}=await import('./App');render(<App/>)
+    fireEvent.click(screen.getByRole('button',{name:'m8-half-rest 선택'}))
+    const source=structuredClone(playbackMockState.lastScore!),part=source.parts[0],staff=part.staves[0],measure=staff.measures.at(-1)!
+    if(entry==='button')fireEvent.click(within(screen.getByLabelText('재생 컨트롤')).getByRole('button',{name:'재생'}))
+    else fireEvent.keyDown(window,{key:' ',code:'Space'})
+    expect(playbackMockState.playFromEvent).toHaveBeenCalledExactlyOnceWith('m8-half-rest',{partId:part.id,staffId:staff.id,measureId:measure.id,voiceId:measure.voices[0].id})
+    expect(playbackMockState.play).not.toHaveBeenCalled()
+    expect(playbackMockState.lastScore).toEqual(source)
     expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
   })
 
-  it('studio.r2 separates next input from selected event edits without adding undo commands', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-    const preview = screen.getByTestId('notation-preview')
-    const original = preview.getAttribute('data-event-durations')
-    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
-    const next = screen.getByRole('region', {name:'다음 입력'})
-    expect(next).toHaveAttribute('data-input-active','true')
-    fireEvent.click(screen.getByRole('button', {name:'8분음표, 단축키 4'}))
-    fireEvent.click(screen.getByRole('button', {name:'점 추가'}))
-    expect(screen.getByLabelText('다음 입력 점 개수')).toHaveTextContent('1')
-    expect(next).toHaveTextContent('8분음표')
-    expect(preview).toHaveAttribute('data-event-durations', original)
+  it('playback.start-from-selection preserves resume and explicit rewind before a new selection', async () => {
+    window.history.replaceState({},'', '/?fixture=release-test')
+    playbackMockState.value={...playbackMockState.value,positionBeat:8,status:'paused'}
+    const {App}=await import('./App');const {rerender}=render(<App/>)
+    const play=()=>fireEvent.click(within(screen.getByLabelText('재생 컨트롤')).getByRole('button',{name:'재생'}))
+    fireEvent.click(screen.getByRole('button',{name:'m8-half-rest 선택'}));play()
+    expect(playbackMockState.play).toHaveBeenCalledOnce();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    playbackMockState.value={...playbackMockState.value,status:'stopped'};rerender(<App/>)
+    fireEvent.click(screen.getByRole('button',{name:'처음으로'}));play()
+    expect(playbackMockState.play).toHaveBeenCalledTimes(2);expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button',{name:'처음으로'}))
+    fireEvent.click(screen.getByRole('button',{name:'m8-half-rest 선택'}));play()
+    expect(playbackMockState.playFromEvent).toHaveBeenCalledOnce()
     expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
-    fireEvent.click(screen.getByRole('button', {name:'음표 입력 전환, 단축키 N'}))
-    expect(next).toHaveAttribute('data-input-active','false')
-    expect(screen.getByRole('region', {name:'음표 편집 대상'})).toHaveTextContent('선택한 음표·쉼표')
-    fireEvent.click(screen.getByRole('button', {name:'8분음표, 단축키 4'}))
-    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
-    fireEvent.keyDown(window,{code:'KeyZ',ctrlKey:true})
-    expect(preview).toHaveAttribute('data-event-durations',original)
   })
 
-  it('studio.r2 endpoint keyboard navigation stays local and preserves span selection', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button',{name:'표기 객체'}))
-    const objects=screen.getByLabelText('표기 객체 선택') as HTMLSelectElement
-    const reference=[...objects.options].find(option=>option.value.startsWith('hairpin:'))!.value
-    fireEvent.change(objects,{target:{value:reference}})
-    const end=screen.getByLabelText('표기 끝점')
-    end.focus()
-    const event=new KeyboardEvent('keydown',{key:'ArrowDown',code:'ArrowDown',bubbles:true,cancelable:true})
-    fireEvent(end,event)
-    expect(event.defaultPrevented).toBe(false)
-    fireEvent.keyDown(end,{key:'Escape',bubbles:true})
-    expect(objects).toHaveValue(reference)
-    expect(screen.getByRole('region',{name:'범위 표기 속성'})).toHaveTextContent('선택한 표기')
-    expect(screen.getByLabelText('선택 표기 ID')).toHaveTextContent(reference.split(':')[1])
-  })
-
-  it('studio.r2 stores fit/fixed view independently of score history and exported XML', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    const app=render(<App />)
-    fireEvent.click(screen.getByRole('button',{name:'파일'}))
-    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
-    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1))
-    const before=vi.mocked(window.inC.musicXml.save).mock.calls[0][0].contents
-    fireEvent.click(screen.getByRole('button',{name:'고정 배율'}))
-    const zoom=screen.getByRole('combobox',{name:'고정 확대율'})
-    fireEvent.click(zoom)
-    fireEvent.click(screen.getByRole('option',{name:'150%'}))
-    expect(screen.getByLabelText('악보 캔버스')).toHaveAttribute('data-notation-sizing','fixed')
-    expect(screen.getByLabelText('악보 캔버스')).toHaveStyle({'--studio-notation-zoom':'1.5'})
-    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
-    fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
-    await waitFor(()=>expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0].contents).toBe(before)
-    app.unmount(); render(<App />)
-    expect(screen.getByLabelText('악보 캔버스')).toHaveAttribute('data-notation-sizing','fixed')
-    expect(screen.getByRole('combobox',{name:'고정 확대율'})).toHaveTextContent('150%')
-  })
-
-  it('studio.r1 exposes document state and preserves stored dock widths and focus', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    localStorage.setItem('chromatics.dock-widths.v1', JSON.stringify({palette: 207, properties: 360}))
-    const { App } = await import('./App')
-    const app = render(<App />)
-    const documentHeader = screen.getByRole('region', {name: '문서 상태'})
-    expect(documentHeader).toHaveTextContent('변경 없음')
-    const width = screen.getByRole('spinbutton', {name: '속성 도크 폭'})
-    expect(width).toHaveValue(360)
-    fireEvent.change(width, {target: {value: '280'}})
-    expect(JSON.parse(localStorage.getItem('chromatics.dock-widths.v1')!)).toEqual({palette: 207, properties: 280})
-    fireEvent.click(screen.getByRole('button', {name: '속성 도크 닫기'}))
-    expect(screen.getByRole('button', {name: '속성 표시'})).toHaveFocus()
-    fireEvent.click(screen.getByRole('button', {name: '속성 표시'}))
-    expect(screen.getByRole('spinbutton', {name: '속성 도크 폭'})).toHaveValue(280)
-    fireEvent.click(screen.getByRole('button', {name: '파일'}))
-    expect(screen.getByRole('button', {name: '프로젝트 저장'})).toHaveClass('dd-button')
-    expect(screen.getByRole('button', {name: 'MusicXML로 저장'})).toHaveClass('dd-button')
-    app.unmount()
-    render(<App />)
-    expect(screen.getByRole('spinbutton', {name: '속성 도크 폭'})).toHaveValue(280)
-    expect(screen.getByRole('spinbutton', {name: '팔레트 도크 폭'})).toHaveValue(207)
-    fireEvent.click(screen.getByRole('button', {name: '표기 객체'}))
-    const objects = screen.getByLabelText('표기 객체 선택') as HTMLSelectElement
-    const reference = [...objects.options].find(option => option.value.startsWith('hairpin:'))!.value
-    fireEvent.change(objects, {target: {value: reference}})
-    fireEvent.click(screen.getByRole('button', {name: '파일'}))
-    expect(screen.getByLabelText('표기 객체 선택')).toHaveValue(reference)
-    expect(screen.getByLabelText('표기 끝점')).toBeVisible()
-  })
-
-  it('ui.dock-visibility persists independent panels without changing the selected score', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    const app = render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
-    const property = screen.getByRole('textbox', { name: '선택 요약 보표 글자' })
-    fireEvent.change(property, { target: { value: 'dock-edit' } })
-    fireEvent.blur(property)
-    fireEvent.click(screen.getByRole('button', { name: '팔레트 표시' }))
-    expect(screen.queryByRole('complementary', { name: '고정 팔레트' })).not.toBeInTheDocument()
-    expect(screen.getByRole('complementary', { name: '속성 도크' })).toBeVisible()
-    fireEvent.click(screen.getByRole('button', { name: '속성 표시' }))
-    expect(screen.queryByRole('complementary', { name: '속성 도크' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '속성 표시' }))
-    expect(screen.getByRole('textbox', { name: '선택 요약 보표 글자' })).toHaveValue('dock-edit')
-    expect(screen.getByRole('region', { name: '선택 요약' })).toHaveAttribute('data-selection-kind', 'event')
-    app.unmount()
-    render(<App />)
-    expect(screen.getByRole('button', { name: '팔레트 표시' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: '속성 표시' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('layout.page-setup applies V1 PDF presets to the export layout', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
-    vi.mocked(window.inC.pdf.save).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishPdfSave = resolve
-        })
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const presetSelect = screen.getByLabelText('PDF 설정 프리셋')
-
-    expect(presetSelect).toHaveValue('default-a4')
-    fireEvent.change(presetSelect, { target: { value: 'publication-a4' } })
-
-    expect(screen.getByLabelText('PDF 용지')).toHaveValue('a4')
-    expect(screen.getByLabelText('PDF 방향')).toHaveValue('portrait')
-    expect(screen.getByLabelText('PDF 여백 mm')).toHaveValue(12)
-    expect(screen.getByLabelText('PDF 보표 크기')).toHaveValue('95')
-    expect(screen.getByLabelText('PDF 시스템 간격')).toHaveValue('125')
-    expect(presetSelect).toHaveValue('publication-a4')
-    expect(screen.getByText('PDF 페이지 설정을 갱신했습니다.')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-page-css-size',
-      'A4 portrait'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-margin',
-      '12'
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-scale',
-      '0.95'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-size',
-      'a4'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-orientation',
-      'portrait'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-page-margin-mm',
-      '12'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-staff-size-percent',
-      '95'
-    )
-    expect(screen.getByLabelText('악보 페이지')).toHaveAttribute(
-      'data-pdf-system-spacing-percent',
-      '125'
-    )
-
-    finishPdfSave?.({ fileName: 'publication.pdf' })
-    expect(
-      await screen.findByText('publication.pdf로 PDF를 만들었습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('import-export.export-unsupported-musicxml-report warns when MusicXML cannot preserve page setup', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.change(screen.getByLabelText('PDF 용지'), {
-      target: { value: 'letter' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: 'release-test.musicxml',
-          contents: expect.stringContaining('<score-partwise')
-        })
-      )
-    })
-    expect(
-      await screen.findByText(
-        /release-test\.musicxml을 MusicXML로 내보냈습니다\. MusicXML 내보내기 경고 1개: score\.layout\.pageSetup/
-      )
-    ).toBeInTheDocument()
-    const report = await screen.findByRole('region', {
-      name: 'MusicXML 경고 상세'
-    })
-    expect(
-      within(report).getByText('MusicXML 내보내기 경고 1개')
-    ).toBeInTheDocument()
-    expect(within(report).getByText('release-test.musicxml')).toBeInTheDocument()
-    expect(within(report).getByText('unsupported-layout')).toBeInTheDocument()
-    expect(within(report).getByText('score.layout.pageSetup')).toBeInTheDocument()
-  })
-
-  it('import-export.save-pdf disables PDF export when the target page count is zero', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    const pageTarget = screen.getByLabelText('PDF 목표 장수')
-    const pdfButton = screen.getByRole('button', { name: 'PDF 변환' })
-
-    fireEvent.change(pageTarget, { target: { value: '0' } })
-
-    expect(pageTarget).toHaveAccessibleDescription(
-      'PDF 장수는 1 이상이어야 합니다.'
-    )
-    expect(pdfButton).toBeDisabled()
-    expect(pdfButton).toHaveAccessibleDescription(
-      'PDF 장수는 1 이상이어야 합니다.'
-    )
-    fireEvent.click(pdfButton)
-    expect(window.inC.pdf.save).not.toHaveBeenCalled()
-  })
-
-  it('import-export.distinguish-musicxml-save-from-autosave keeps file save separate from import and recovery', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    const editor = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const fileActions = screen.getByLabelText('파일 작업')
-    const importButton = within(fileActions).getByRole('button', {
-      name: 'MusicXML 가져오기'
-    })
-    const saveButton = within(fileActions).getByRole('button', {
-      name: 'MusicXML로 저장'
-    })
-
-    expect(importButton).not.toBe(saveButton)
-    expect(saveButton).toHaveAttribute(
-      'title',
-      '현재 악보를 MusicXML 파일로 저장'
-    )
-
-    editor.unmount()
-    window.history.replaceState({}, '', '/')
-    render(<App />)
-
-    const startActions = screen.getByLabelText('시작 작업')
-    const recoveryButton = within(startActions).getByRole('button', {
-      name: /복구본 없음/
-    })
-
-    expect(recoveryButton).not.toBe(importButton)
-    expect(recoveryButton).not.toBe(saveButton)
-    expect(recoveryButton).toHaveTextContent(
-      '자동저장된 작업이 있으면 여기에 표시됩니다.'
-    )
-  })
-
-  it('import-export.keyboard-save uses Ctrl+S without a current file path', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      ctrlKey: true,
-      key: 's'
-    })
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: 'release-test.musicxml',
-          contents: expect.stringContaining('<score-partwise')
-        })
-      )
-    })
-    expect(
-      vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
-    ).not.toHaveProperty('filePath')
-  })
-
-  it('import-export.blocks-save-while-tuplet-input-preview-is-active', async () => {
-    const recentFile = {
-      filePath: '/scores/tuplet-input-progress.musicxml',
-      fileName: 'tuplet-input-progress.musicxml',
-      openedAt: '2026-07-28T00:00:00.000Z'
-    }
-    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
-    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
-      ...recentFile,
-      contents: tupletInputProgressMusicXml
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: /tuplet-input-progress\.musicxml/
-      })
-    )
-    const preview = await screen.findByTestId('notation-preview')
-    const previewButtons = within(preview).getAllByRole('button')
-    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비/
-      })
-    )
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-    expect(preview.getAttribute('data-event-durations')).toContain('preview-')
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-
-    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
-    expect(document.querySelector('.editor-status')).toHaveTextContent(
-      '셋잇단음표 입력을 완료하거나 취소한 뒤 MusicXML로 저장해 주세요.'
-    )
-  })
-
-  it('import-export.new-score-save suggests a Korean title filename and valid MusicXML', async () => {
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/제목-없는-악보.musicxml',
-      fileName: '제목-없는-악보.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    fireEvent.click(
-      within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole(
-        'button',
-        { name: '만들기' }
-      )
-    )
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: '제목-없는-악보.musicxml'
-        })
-      )
-    })
-    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
-      .contents
-    const savedScore = parseMusicXml(contents!)
-
-    expect(savedScore.title).toBe('제목 없는 악보')
-    expect(
-      savedScore.parts[0].staves[0].measures[0].voices[0].events
-    ).toHaveLength(1)
-  })
-
-  it('import-export.saved-musicxml-preserves-note-pitches-after-reopen', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-    const beforePitches = screen
-      .getByTestId('notation-preview')
-      .getAttribute('data-event-pitches')
-      ?.split(',')
-      .map((value) => value.replace(/^[^:]+:/, ''))
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalled()
-    })
-    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
-      .contents
-    const savedScore = parseMusicXml(contents!)
-    const savedPitches = savedScore.parts[0].staves[0].measures
-      .flatMap((measure) => measure.voices[0].events)
-      .map((event) =>
-        event.type === 'note'
-          ? `${event.pitch.step}${event.pitch.alter ?? ''}${event.pitch.octave}`
-          : 'rest'
-      )
-
-    expect(savedPitches).toEqual(beforePitches)
-  })
-
-  it('import-export.ensemble-part-input-save-reopen preserves part-addressed notes through MusicXML', async () => {
-    window.history.replaceState({}, '', '/')
-    let savedContents = ''
-    const savedFile = {
-      filePath: '/scores/string-quartet-parts.musicxml',
-      fileName: 'string-quartet-parts.musicxml',
-      openedAt: '2026-09-03T00:00:00.000Z'
-    }
-    vi.mocked(window.inC.musicXml.save).mockImplementation(async (input) => {
-      savedContents = input.contents
-
-      return {
-        filePath: savedFile.filePath,
-        fileName: savedFile.fileName
-      }
-    })
-    vi.mocked(window.inC.recentMusicXml.add).mockResolvedValue([savedFile])
-
-    const { App } = await import('./App')
-    const { unmount } = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-
-    const entries = [
-      { target: 'violin-1:staff-1', code: 'KeyE', key: 'e', step: 'E' },
-      { target: 'violin-2:staff-1', code: 'KeyD', key: 'd', step: 'D' },
-      { target: 'viola:staff-1', code: 'KeyC', key: 'c', step: 'C' },
-      { target: 'cello:staff-1', code: 'KeyG', key: 'g', step: 'G' }
-    ]
-
-    for (const entry of entries) {
-      fireEvent.change(screen.getByLabelText('입력 보표'), {
-        target: { value: entry.target }
-      })
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('입력 보표')).toHaveValue(entry.target)
-      })
-
-      fireEvent.keyDown(window, { code: 'KeyN', key: 'n' })
-      fireEvent.keyDown(window, { code: entry.code, key: entry.key })
-      fireEvent.keyDown(window, { code: 'Escape', key: 'Escape' })
-    }
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: '제목-없는-악보.musicxml',
-          contents: expect.stringContaining('<score-partwise')
-        })
-      )
-    })
-
-    const savedScore = parseMusicXml(savedContents)
-    expect(savedScore.parts.map((part) => part.id)).toEqual([
-      'violin-1',
-      'violin-2',
-      'viola',
-      'cello'
-    ])
-    for (const entry of entries) {
-      const [partId] = entry.target.split(':')
-      const savedPart = savedScore.parts.find((part) => part.id === partId)
-      const firstEvent = savedPart?.staves[0]?.measures[0]?.voices[0]?.events[0]
-
-      expect(firstEvent).toMatchObject({
-        type: 'note',
-        pitch: expect.objectContaining({ step: entry.step })
-      })
-    }
-
-    unmount()
-    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([savedFile])
-    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
-      ...savedFile,
-      contents: savedContents
-    })
-
-    render(<App />)
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: /string-quartet-parts\.musicxml/
-      })
-    )
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-part-structure',
-        'violin-1:Violin I:1|violin-2:Violin II:1|viola:Viola:1|cello:Cello:1'
-      )
-      const pitchData =
-        screen.getByTestId('notation-preview').getAttribute('data-all-event-pitches') ??
-        ''
-
-      for (const entry of entries) {
-        const [partId] = entry.target.split(':')
-
-        expect(
-          pitchData.split(',').some(
-            (pitchEntry) =>
-              pitchEntry.startsWith(`${partId}:`) &&
-              pitchEntry.includes(':voice-1:') &&
-              new RegExp(`:${entry.step}[-#b]?[0-9]+$`).test(pitchEntry)
-          )
-        ).toBe(true)
-      }
-    })
-  })
-
-  it('lyrics.chords.save-reopen preserves edited lyrics and chord symbols through MusicXML', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    let savedContents = ''
-    const savedFile = {
-      filePath: '/scores/lyrics-chords.musicxml',
-      fileName: 'lyrics-chords.musicxml',
-      openedAt: '2026-09-02T00:00:00.000Z'
-    }
-    vi.mocked(window.inC.musicXml.save).mockImplementation(async (input) => {
-      savedContents = input.contents
-
-      return {
-        filePath: savedFile.filePath,
-        fileName: savedFile.fileName
-      }
-    })
-    vi.mocked(window.inC.recentMusicXml.add).mockResolvedValue([savedFile])
-
-    const { App } = await import('./App')
-    const { unmount } = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '가사' }))
-    const harmonyInput = screen.getByLabelText('코드 심벌')
-    fireEvent.change(harmonyInput, { target: { value: 'C7/G' } })
-    fireEvent.blur(harmonyInput)
-    expect(screen.getByText('코드 심벌을 갱신했습니다.')).toBeInTheDocument()
-
-    const lyricInput = within(
-      screen.getByTestId('notation-preview')
-    ).getByLabelText('선택 음표 가사')
-    fireEvent.change(lyricInput, { target: { value: 'Sing' } })
-    fireEvent.blur(lyricInput)
-    expect(screen.getByText('가사를 갱신했습니다.')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('가사 음절'), {
-      target: { value: 'begin' }
-    })
-    fireEvent.click(screen.getByText('멜리스마'))
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: 'release-test.musicxml',
-          contents: expect.stringContaining('<score-partwise')
-        })
-      )
-    })
-
-    const savedScore = parseMusicXml(savedContents)
-    const savedNote = savedScore.parts[0].staves[0].measures[0].voices[0]
-      .events[0]
-
-    expect(savedNote).toMatchObject({
-      type: 'note',
-      lyrics: [
-        {
-          number: 1,
-          syllabic: 'begin',
-          text: 'Sing',
-          extend: true
-        }
-      ]
-    })
-    expect(savedScore.harmonies).toEqual([
-      expect.objectContaining({
-        measureId: 'measure-1',
-        tick: 0,
-        text: 'C7/G'
-      })
-    ])
-
-    unmount()
-    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([savedFile])
-    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
-      ...savedFile,
-      contents: savedContents
-    })
-
-    window.history.replaceState({}, '', '/')
-    render(<App />)
-    fireEvent.click(
-      await screen.findByRole('button', { name: /lyrics-chords\.musicxml/ })
-    )
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-lyrics',
-        expect.stringContaining('event-1:1:begin:Sing')
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveTextContent('C7/G')
-    })
-  })
-
-  it('import-export.second-save-after-save-as reuses the first saved file path', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-    await screen.findByText(
-      'release-test.musicxml을 MusicXML로 내보냈습니다.'
-    )
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2)
-    })
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({
-        filePath: '/scores/release-test.musicxml',
-        suggestedName: 'release-test.musicxml',
-        contents: expect.stringContaining('<score-partwise')
-      })
-    )
-  })
-
-  it('import-export.remembers-the-saved-path-even-if-autosave-cleanup-fails', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    vi.mocked(window.inC.autosave.clear).mockRejectedValueOnce(
-      new Error('autosave cleanup failed')
-    )
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1)
-    })
-
-    fireEvent.keyDown(window, {
-      code: 'KeyS',
-      metaKey: true,
-      key: 's'
-    })
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2)
-    })
-    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({
-        filePath: '/scores/release-test.musicxml'
-      })
-    )
-  })
-
-  it('import-export.report-pdf-result shows success and failure but not cancellation', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    const { unmount } = render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    vi.mocked(window.inC.pdf.save).mockResolvedValue({
-      fileName: 'review.pdf'
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-    expect(
-      await screen.findByText('review.pdf로 PDF를 만들었습니다.')
-    ).toBeInTheDocument()
-
-    unmount()
-    installPreloadStub()
-    vi.mocked(window.inC.pdf.save).mockResolvedValue(null)
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
-    expect(screen.queryByText(/PDF를 만들었습니다/)).not.toBeInTheDocument()
-
-    cleanup()
-    installPreloadStub()
-    vi.mocked(window.inC.pdf.save).mockRejectedValue(
-      new Error('PDF 저장에 실패했습니다.')
-    )
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
-    expect(
-      await screen.findByText('PDF 저장에 실패했습니다.')
-    ).toBeInTheDocument()
-  }, 15000)
-
-  it('shows status terms and the notation preview mount point', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    expect(screen.getAllByText('4분음표').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('정지').length).toBeGreaterThan(0)
-    expect(screen.queryByText(/A-G로 선택한/)).not.toBeInTheDocument()
-    expect(screen.getByTestId('notation-preview')).toBeInTheDocument()
-  })
-
-  it('note-input.switch-same-staff-voice creates a same-staff voice and keeps note input targeted there', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const voiceOne = screen.getByRole('button', { name: '1성부' })
-    const voiceTwo = screen.getByRole('button', { name: '2성부' })
-
-    expect(voiceOne).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.click(voiceTwo)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '2성부' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-voice-ids',
-        expect.stringContaining('measure-1:voice-1/voice-2')
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'measure-1-voice-2-full-measure-rest'
-      )
-    })
-
-    fireEvent.keyDown(window, { code: 'KeyN', key: 'n' })
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-event-pitches',
-        expect.stringContaining('measure-1-voice-2-full-measure-rest:C')
-      )
-    })
-  })
-
-  it('note-input.switch-staff-target moves note input to the selected grand staff staff', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-
-    const staffTarget = screen.getByLabelText('입력 보표')
-    expect(staffTarget).toHaveValue('part-1:staff-1')
-
-    fireEvent.change(staffTarget, {
-      target: { value: 'part-1:staff-2' }
-    })
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('part-1:staff-2')
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'part-1-staff-2-measure-1-full-measure-rest'
-      )
-    })
-
-    fireEvent.keyDown(window, { code: 'KeyN', key: 'n' })
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-all-event-pitches',
-        expect.stringContaining(
-          'part-1:staff-2:part-1-staff-2-measure-1:voice-1:part-1-staff-2-measure-1-full-measure-rest:C04'
-        )
-      )
-    })
-  })
-
-  it('note-input.switch-part-target moves note input to the selected ensemble part', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'duet' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-
-    const staffTarget = screen.getByLabelText('입력 보표')
-    expect(staffTarget).toHaveValue('part-1:staff-1')
-
-    fireEvent.change(staffTarget, {
-      target: { value: 'part-2:staff-1' }
-    })
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('입력 보표')).toHaveValue('part-2:staff-1')
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'part-2-staff-1-measure-1-full-measure-rest'
-      )
-    })
-
-    fireEvent.keyDown(window, { code: 'KeyN', key: 'n' })
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-all-event-pitches',
-        expect.stringContaining(
-          'part-2:staff-1:part-2-staff-1-measure-1:voice-1:part-2-staff-1-measure-1-full-measure-rest:C04'
-        )
-      )
-    })
-  })
-
-  it('note-input.cycle-same-staff-voice supports V cycling and command-alt digit shortcuts', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    fireEvent.keyDown(window, { code: 'Digit3', key: '3', metaKey: true, altKey: true })
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: '3성부' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      )
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyV', key: 'v' })
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: '4성부' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      )
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyV', key: 'V', shiftKey: true })
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: '3성부' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      )
-    )
-  })
-
-  it('range-editing.same-staff-voice-copy-paste keeps navigation in the pasted voice', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    fireEvent.click(screen.getByRole('button', { name: 'note-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'note-f-sharp-4 선택' }), {
-      shiftKey: true
-    })
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c', metaKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '2성부' }))
-    fireEvent.keyDown(window, { code: 'KeyV', key: 'v', metaKey: true })
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '2성부' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      )
-    })
-
-    const pastedEventId = screen
-      .getByTestId('notation-preview')
-      .getAttribute('data-selected-event-id')
-    const eventPitches = screen
-      .getByTestId('notation-preview')
-      .getAttribute('data-event-pitches')
-    const pastedEventIds =
-      eventPitches
-        ?.match(/event-[^:]+:[A-G][^,]*/g)
-        ?.map((entry) => entry.split(':')[0]) ?? []
-
-    expect(pastedEventId).toMatch(/^event-/)
-    expect(pastedEventIds.length).toBeGreaterThanOrEqual(2)
-
-    fireEvent.click(
-      screen.getByRole('button', { name: `${pastedEventIds[1]} 선택` }),
-      { shiftKey: true }
-    )
-
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-ids',
-      pastedEventIds.slice(0, 2).join(',')
-    )
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-address',
-      expect.stringContaining(':voice-2')
-    )
-
-    fireEvent.keyDown(window, { key: 'ArrowLeft' })
-
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-id',
-      pastedEventId
-    )
-    expect(screen.getByRole('button', { name: '2성부' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
-  })
-
-  it('selection-filter.copy uses the filtered event set for same-measure ranges', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-
-    const toolbarTabs = screen.getByRole('navigation', {
-      name: '편집 도구 카테고리'
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'note-g4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'rest-half 선택' }), {
-      shiftKey: true
-    })
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '파일' }))
-    fireEvent.change(screen.getByLabelText('선택 필터'), {
-      target: { value: 'notes' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: '선택 범위 복사' }))
-
-    expect(
-      screen.getByText('4개 필터된 이벤트를 복사했습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('tuplets.report-input-progress reports 0/3 through completion in the live status', async () => {
-    const recentFile = {
-      filePath: '/scores/tuplet-input-progress.musicxml',
-      fileName: 'tuplet-input-progress.musicxml',
-      openedAt: '2026-07-28T00:00:00.000Z'
-    }
-    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
-    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
-      ...recentFile,
-      contents: tupletInputProgressMusicXml
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: /tuplet-input-progress\.musicxml/
-      })
-    )
-    const preview = await screen.findByTestId('notation-preview')
-    const previewButtons = within(preview).getAllByRole('button')
-    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비/
-      })
-    )
-
-    const liveStatus = document.querySelector('.editor-status')
-    expect(liveStatus).toHaveAttribute('aria-live', 'polite')
-    expect(liveStatus).toHaveTextContent('셋잇단음표 입력')
-    expect(liveStatus).toHaveTextContent('셋잇단음표 0/3')
-
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-    expect(liveStatus).toHaveTextContent('셋잇단음표 1/3')
-    expect(liveStatus).toHaveTextContent(
-      '셋잇단음표 1/3개 입력됨. 2개 더 입력해 주세요.'
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyD', key: 'd' })
-    expect(liveStatus).toHaveTextContent('셋잇단음표 2/3')
-    expect(liveStatus).toHaveTextContent(
-      '셋잇단음표 2/3개 입력됨. 1개 더 입력해 주세요.'
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyE', key: 'e' })
-    expect(liveStatus).toHaveTextContent('셋잇단음표 입력을 완료했습니다.')
-    expect(liveStatus).toHaveTextContent('입력 중')
-    expect(liveStatus).not.toHaveTextContent('셋잇단음표 2/3')
-  })
-
-  it('tuplets.input-mixed-duration completes an eighth-plus-quarter triplet from the toolbar', async () => {
-    const recentFile = {
-      filePath: '/scores/tuplet-input-progress.musicxml',
-      fileName: 'tuplet-input-progress.musicxml',
-      openedAt: '2026-07-28T00:00:00.000Z'
-    }
-    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
-    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
-      ...recentFile,
-      contents: tupletInputProgressMusicXml
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: /tuplet-input-progress\.musicxml/
-      })
-    )
-    const preview = await screen.findByTestId('notation-preview')
-    const previewButtons = within(preview).getAllByRole('button')
-    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비/
-      })
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
-    const quarterButton = screen.getByRole('button', {
-      name: '4분음표, 단축키 5'
-    })
-    expect(quarterButton).not.toBeDisabled()
-    fireEvent.click(quarterButton)
-    fireEvent.keyDown(window, { code: 'KeyD', key: 'd' })
-
-    await waitFor(() => {
-      expect(document.querySelector('.editor-status')).toHaveTextContent(
-        '셋잇단음표 입력을 완료했습니다.'
-      )
-    })
-  })
-
-  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter with Digit5', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'note-g4 선택' }))
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비/
-      })
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'note-a4 선택' }))
-    fireEvent.keyDown(window, {
-      code: 'Digit5',
-      key: '5'
-    })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-event-durations',
-        expect.stringContaining('note-a4:quarter:3:2')
-      )
-    })
-    expect(screen.getByTestId('notation-preview')).not.toHaveAttribute(
-      'data-event-durations',
-      expect.stringContaining('tuplet-remainder')
-    )
-    expect(
-      screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
-    ).not.toBeInTheDocument()
-
-    fireEvent.keyDown(window, {
-      code: 'Digit4',
-      key: '4'
-    })
-
-    await waitFor(() => {
-      const durations = screen
-        .getByTestId('notation-preview')
-        .getAttribute('data-event-durations')
-
-      expect(durations).toContain('note-a4:eighth:3:2')
-      expect(durations).toMatch(/event-[^,]+:eighth:3:2/)
-    })
-    expect(
-      screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
-    ).not.toBeInTheDocument()
-  })
-
-  it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const rehearsalMarkInput = screen.getByRole('textbox', { name: '연습표' })
-    const preview = screen.getByTestId('notation-preview')
-
-    fireEvent.change(rehearsalMarkInput, { target: { value: '' } })
-    fireEvent.blur(rehearsalMarkInput)
-    expect(within(preview).queryByText('A')).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByRole('textbox', { name: '연습표' }), {
-      target: { value: 'A' }
-    })
-    fireEvent.blur(screen.getByRole('textbox', { name: '연습표' }))
-
-    expect(within(preview).getByText('A')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-  })
-
-  it('layout.staff-text adds dolce without triggering a note shortcut', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const staffTextInput = screen.getByRole('textbox', { name: '보표 글자' })
-    const preview = screen.getByTestId('notation-preview')
-    const initialEventCount = preview.getAttribute('data-event-count')
-
-    fireEvent.keyDown(staffTextInput, { key: 'c' })
-    expect(preview).toHaveAttribute('data-event-count', initialEventCount)
-
-    fireEvent.change(staffTextInput, { target: { value: 'dolce' } })
-    fireEvent.blur(staffTextInput)
-
-    expect(within(preview).getByText('dolce')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-  })
-
-  it('layout.system-text adds a system-level text without triggering a note shortcut', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const systemTextInput = screen.getByRole('textbox', { name: '시스템 텍스트' })
-    const preview = screen.getByTestId('notation-preview')
-    const initialEventCount = preview.getAttribute('data-event-count')
-
-    fireEvent.keyDown(systemTextInput, { key: 'c' })
-    expect(preview).toHaveAttribute('data-event-count', initialEventCount)
-
-    fireEvent.change(systemTextInput, { target: { value: 'Chorus' } })
-    fireEvent.blur(systemTextInput)
-
-    expect(within(preview).getByText('Chorus')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-  })
-
-  it('layout.expression-text adds espressivo at the selected tick without triggering a note shortcut', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const expressionTextInput = screen.getByRole('textbox', { name: '표현 텍스트' })
-    const preview = screen.getByTestId('notation-preview')
-    const initialEventCount = preview.getAttribute('data-event-count')
-
-    fireEvent.keyDown(expressionTextInput, { key: 'c' })
-    expect(preview).toHaveAttribute('data-event-count', initialEventCount)
-
-    fireEvent.change(expressionTextInput, { target: { value: 'espressivo' } })
-    fireEvent.blur(expressionTextInput)
-
-    expect(within(preview).getByText('espressivo')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-    expect(within(preview).getByText('espressivo')).toHaveAttribute(
-      'data-tick',
-      '0'
-    )
-  })
-
-  it('keyboard.navigation-first keeps plain vertical arrows from editing pitch', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    const preview = screen.getByTestId('notation-preview')
-    const initialPitches = preview.getAttribute('data-event-pitches')
-
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
-    expect(preview).toHaveAttribute('data-event-pitches', initialPitches)
-    expect(document.querySelector('.editor-status')).toHaveTextContent(
-      '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
-    )
-
-    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' })
-
-    await waitFor(() => {
-      expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D04')
-    })
-  })
-
-  it('keyboard.navigation-first moves plain vertical arrows between grand staff lanes', async () => {
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
-    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'part-1-staff-1-measure-1-full-measure-rest 선택'
-      })
-    )
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'part-1-staff-2-measure-1-full-measure-rest'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-address',
-        'part-1:staff-2:part-1-staff-2-measure-1:voice-1'
-      )
-    })
-    expect(screen.getByText('아래 보표로 이동했습니다.')).toBeInTheDocument()
-
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'part-1-staff-1-measure-1-full-measure-rest'
-      )
-      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-address',
-        'part-1:staff-1:part-1-staff-1-measure-1:voice-1'
-      )
-    })
-    expect(screen.getByText('위 보표로 이동했습니다.')).toBeInTheDocument()
-  })
-
-  it('keyboard.enharmonic-respell changes spelling without moving the selected pitch', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }))
-    const preview = screen.getByTestId('notation-preview')
-
-    expect(preview.getAttribute('data-event-pitches')).toContain(
-      'm1-f-sharp-4:F14'
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyJ', key: 'j' })
-
-    await waitFor(() => {
-      expect(preview.getAttribute('data-event-pitches')).toContain(
-        'm1-f-sharp-4:G-14'
-      )
-    })
-    expect(screen.getByText('이명동음으로 바꿨습니다.')).toBeInTheDocument()
-
-    fireEvent.keyDown(window, { key: 'z', metaKey: true })
-
-    await waitFor(() => {
-      expect(preview.getAttribute('data-event-pitches')).toContain(
-        'm1-f-sharp-4:F14'
-      )
-    })
-  })
-
-  it('layout.dynamics adds professional dynamics to the selected measure preview', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const dynamics = screen.getByRole('combobox', { name: '셈여림' })
-    expect(within(dynamics).getByRole('option', { name: 'pp' })).toBeInTheDocument()
-    expect(within(dynamics).getByRole('option', { name: 'ff' })).toBeInTheDocument()
-    expect(within(dynamics).getByRole('option', { name: 'sfz' })).toBeInTheDocument()
-
-    fireEvent.change(dynamics, {
-      target: { value: 'ff' }
-    })
-
-    const dynamic = within(screen.getByTestId('notation-preview')).getByText('ff')
-    expect(dynamic).toHaveAttribute('data-measure-id', 'measure-1')
-    expect(dynamic).not.toHaveAttribute('data-measure-id', 'measure-2')
-  })
-
-  it('palette.measure-level-notation keeps score setup structural and edits measure markings from notation objects', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    expect(
-      within(screen.getByRole('region', { name: '음표 편집' })).queryByLabelText(
-        '셈여림'
-      )
-    ).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    const scoreSetupPanel = screen.getByRole('region', { name: '악보 편집' })
-    expect(scoreSetupPanel).toBeVisible()
-    expect(within(scoreSetupPanel).queryByLabelText('셈여림')).not.toBeInTheDocument()
-    expect(within(scoreSetupPanel).queryByLabelText('연습표')).not.toBeInTheDocument()
-    expect(within(scoreSetupPanel).queryByLabelText('보표 글자')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const notationObjects = screen.getByRole('region', { name: '표기 객체' })
-    expect(notationObjects).toBeVisible()
-    expect(screen.getByRole('region', { name: '마디 표기' })).toBeVisible()
-    expect(screen.getByRole('region', { name: '반복과 볼타' })).toBeVisible()
-
-    fireEvent.change(within(notationObjects).getByLabelText('연습표'), {
-      target: { value: 'B' }
-    })
-    fireEvent.blur(within(notationObjects).getByLabelText('연습표'))
-    fireEvent.change(within(notationObjects).getByLabelText('셈여림'), {
-      target: { value: 'sfz' }
-    })
-
-    const preview = screen.getByTestId('notation-preview')
-    expect(within(preview).getByText('B')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-    expect(within(preview).getByText('sfz')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-  })
-
-  it('palette.notation-applicability disables measure text and dynamics for range selection', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }), {
-      shiftKey: true
-    })
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-
-    const measureNotation = screen.getByRole('region', { name: '마디 표기' })
-    expect(measureNotation).toHaveAttribute(
-      'data-applicability',
-      'range-disabled'
-    )
-    expect(within(measureNotation).getByLabelText('연습표')).toBeDisabled()
-    expect(within(measureNotation).getByLabelText('보표 글자')).toBeDisabled()
-    expect(within(measureNotation).getByLabelText('시스템 텍스트')).toBeDisabled()
-    expect(within(measureNotation).getByLabelText('표현 텍스트')).toBeDisabled()
-    expect(within(measureNotation).getByLabelText('셈여림')).toBeDisabled()
-    const dockedDynamics = screen.getByRole('region', { name: '셈여림 팔레트' })
-    for (const button of within(dockedDynamics).getAllByRole('button')) {
-      expect(button).toBeDisabled()
-    }
-  })
-
-  it('palette.lyrics-chords separates lyric and chord groups and anchors measure-selected chords at tick 0', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
-
-    fireEvent.click(screen.getByRole('button', { name: '가사' }))
-    expect(screen.getByRole('region', { name: '가사 속성' })).toBeVisible()
-    expect(screen.getByRole('region', { name: '코드 심벌 속성' })).toBeVisible()
-    expect(screen.getByLabelText('가사 절')).toBeVisible()
-    expect(screen.getByLabelText('코드 심벌')).toBeVisible()
-
-    fireEvent.change(
-      within(screen.getByTestId('notation-preview')).getByLabelText(
-        '선택 음표 가사'
-      ),
-      { target: { value: 'Sing' } }
-    )
-    fireEvent.blur(
-      within(screen.getByTestId('notation-preview')).getByLabelText(
-        '선택 음표 가사'
-      )
-    )
-    fireEvent.change(screen.getByLabelText('코드 심벌'), {
-      target: { value: 'C7/G' }
-    })
-    fireEvent.blur(screen.getByLabelText('코드 심벌'))
-
-    const preview = screen.getByTestId('notation-preview')
-    expect(preview).toHaveAttribute(
-      'data-lyrics',
-      expect.stringContaining('m1-c4:1:single:Sing')
-    )
-    expect(within(preview).getByText('C7/G')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-    expect(within(preview).getByText('C7/G')).toHaveAttribute('data-tick', '0')
-
-    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '가사' }))
-    expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
-    expect(screen.getByText('음표를 선택하면 가사 입력 항목이 표시됩니다.'))
-      .toBeVisible()
-    expect(screen.getByLabelText('코드 심벌 적용 위치')).toHaveTextContent(
-      '선택 마디 시작 tick 0'
-    )
-
-    fireEvent.change(screen.getByLabelText('코드 심벌'), {
-      target: { value: 'Fmaj7' }
-    })
-    fireEvent.blur(screen.getByLabelText('코드 심벌'))
-    expect(within(preview).getByText('Fmaj7')).toHaveAttribute(
-      'data-measure-id',
-      'measure-2'
-    )
-    expect(within(preview).getByText('Fmaj7')).toHaveAttribute('data-tick', '0')
-
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    fireEvent.change(
-      within(screen.getByRole('region', { name: '표기 객체' })).getByLabelText(
-        '셈여림'
-      ),
-      { target: { value: 'ff' } }
-    )
-    expect(within(preview).getByText('ff')).toHaveAttribute(
-      'data-measure-id',
-      'measure-2'
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    fireEvent.change(
-      within(screen.getByRole('region', { name: '표기 객체' })).getByLabelText(
-        '셈여림'
-      ),
-      { target: { value: 'mf' } }
-    )
-    expect(within(preview).getByText('mf')).toHaveAttribute(
-      'data-measure-id',
-      'measure-1'
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    const objectFilter = screen.getByLabelText('표기 필터')
-    fireEvent.change(objectFilter, { target: { value: 'harmonies' } })
-    expect(objectFilter).toHaveValue('harmonies')
-    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
-    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
-    expect(within(preview).queryByText('Fmaj7')).not.toBeInTheDocument()
-    expect(
-      within(preview)
-        .getAllByText('C7/G')
-        .some((element) => element.getAttribute('data-measure-id') === 'measure-2')
-    ).toBe(true)
-
-    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.change(screen.getByLabelText('표기 필터'), {
-      target: { value: 'dynamics' }
-    })
-    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
-    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
-    expect(within(preview).queryByText('ff')).not.toBeInTheDocument()
-    expect(
-      within(preview)
-        .getAllByText('mf')
-        .some((element) => element.getAttribute('data-measure-id') === 'measure-2')
-    ).toBe(true)
-
-    fireEvent.change(screen.getByLabelText('표기 필터'), {
-      target: { value: 'harmonies' }
-    })
-    fireEvent.click(screen.getByLabelText('선택 마디 코드 지우기'))
-    expect(
-      within(preview)
-        .getAllByText('C7/G')
-        .every((element) => element.getAttribute('data-measure-id') !== 'measure-2')
-    ).toBe(true)
-
-    fireEvent.change(screen.getByLabelText('표기 필터'), {
-      target: { value: 'dynamics' }
-    })
-    fireEvent.click(screen.getByLabelText('선택 마디 셈여림 지우기'))
-    expect(
-      within(preview)
-        .getAllByText('mf')
-        .every((element) => element.getAttribute('data-measure-id') !== 'measure-2')
-    ).toBe(true)
-  })
-
-  it('palette.range-notation keeps visible commands in notation mode as selection changes', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const palette = screen.getByRole('region', { name: '범위 기호' })
-    expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toBeDisabled()
-    expect(within(palette).getByRole('button', { name: '8va' })).toBeDisabled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    expect(palette).toBeVisible()
-    expect(within(palette).getByRole('button', { name: /슬러 추가/ })).toBeEnabled()
-    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }), { shiftKey: true })
-    expect(palette).toBeVisible()
-    expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.click(within(palette).getByRole('button', { name: '디미누엔도 헤어핀' }))
-    expect(within(palette).getByRole('button', { name: '디미누엔도 헤어핀' })).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toHaveAttribute('aria-pressed', 'true')
-
-    fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    expect(screen.queryByRole('region', { name: '범위 기호' })).not.toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: '음표 편집' })).queryByLabelText('크레셴도 헤어핀')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    expect(within(palette).getByRole('button', { name: '크레셴도 헤어핀' })).toBeEnabled()
-    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    expect(palette).toBeVisible()
-    for (const button of within(palette).getAllByRole('button')) expect(button).toBeDisabled()
-  })
-
-  it('span properties edits rest endpoints without changing background notes and survives history and native save', async () => {
-    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
-    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
-    const project = createNativeProject(parseMusicXml(restHairpinMusicXml))
-    const events = project.score.parts[0]!.staves[0]!.measures[0]!.voices[1]!.events
-    project.score.hairpins = [{ id: 'test-hairpin', type: 'crescendo', startEventId: events[0]!.id, endEventId: events[3]!.id }]
-    project.score.slurs = [{ id: 'test-slur', startEventId: events[1]!.id, endEventId: events[2]!.id }]
-    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/span.chromatics', fileName: 'span.chromatics', contents: encodeNativeProject(project) })
-    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/span.chromatics', fileName: 'span.chromatics' })
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
-    await screen.findByText('Rest Hairpin Input')
-    fireEvent.click(screen.getByRole('button', { name: `${events[1]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: 'hairpin:test-hairpin' } })
-    expect(screen.getByLabelText('표기 시작점')).toHaveValue(events[0]!.id)
-    expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[3]!.id)
-    fireEvent.change(screen.getByLabelText('표기 끝점'), { target: { value: events[2]!.id } })
-    expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[2]!.id)
-    fireEvent.change(screen.getByLabelText('표기 시작점'), { target: { value: events[3]!.id } })
-    expect(screen.getByLabelText('표기 시작점')).toHaveValue(events[0]!.id)
-    fireEvent.keyDown(window, { key: '5', code: 'Digit5' })
-    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
-    fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
-    fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
-    expect(screen.queryByLabelText('표기 끝점')).not.toBeInTheDocument()
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[2]!.id)
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[3]!.id)
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
-    expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[2]!.id)
-    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
-    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
-    expect(saved.score.parts).toEqual(project.score.parts)
-    expect(saved.score.slurs).toEqual(project.score.slurs)
-    expect(saved.score.hairpins?.[0]).toMatchObject({ endEventId: events[2]!.id })
-    fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: 'slur:test-slur' } })
-    expect(within(screen.getByLabelText('표기 시작점')).queryByRole('option', { name: /쉼표/ })).not.toBeInTheDocument()
-    fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByLabelText('표기 끝점')).not.toBeInTheDocument()
-  })
-
-  it('span geometry commits numeric drafts, cancels invalid edits and resets through native history', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { decodeNativeProject } = await import('../../project/schema')
-    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/geometry.chromatics', fileName: 'geometry.chromatics' })
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/scores/geometry.musicxml', fileName: 'geometry.musicxml' })
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const objects = screen.getByLabelText('표기 객체 선택') as HTMLSelectElement
-    const reference = [...objects.options].find(option => option.value.startsWith('hairpin:'))!.value
-    fireEvent.change(objects, { target: { value: reference } })
-    fireEvent.click(screen.getByText('배치 · 형상'))
-    fireEvent.change(screen.getByLabelText('표기 배치'), { target: { value: 'above' } })
-    const offset = screen.getByLabelText('표기 세로 이동')
-    fireEvent.change(offset, { target: { value: '-1.5' } })
-    fireEvent.blur(offset)
-    // A physical Enter followed by blur is exactly one undo unit.
-    offset.focus()
-    fireEvent.change(offset, { target: { value: '0' } })
-    fireEvent.keyDown(offset, { key: 'Enter' })
-    fireEvent.blur(offset)
-    expect(offset).toHaveValue(0)
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, keyCode: 229 })
-    expect(offset).toHaveValue(0)
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, isComposing: true })
-    expect(offset).toHaveValue(0)
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(offset).toHaveValue(-1.5)
-    fireEvent.change(offset, { target: { value: '99' } })
-    fireEvent.blur(offset)
-    expect(offset).toHaveValue(-1.5)
-    fireEvent.change(offset, { target: { value: '2' } })
-    fireEvent.keyDown(offset, { key: 'Escape' })
-    expect(offset).toHaveValue(-1.5)
-    fireEvent.click(screen.getByRole('button', { name: '표기 자동 배치 복원' }))
-    expect(offset).toHaveValue(null)
-    expect(screen.getByLabelText('표기 배치')).toHaveValue('auto')
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(offset).toHaveValue(-1.5)
-    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
-    const native = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
-    expect(native.version).toBe(2)
-    expect(native.score.hairpins?.find(span => `hairpin:${span.id}` === reference)?.engraving).toEqual({ placement: 'above', offsetY: -1.5 })
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
-    expect(within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' })).getByText(/Manual span placement and shape/)).toBeInTheDocument()
-  })
-
-  it('octave range authoring preserves displayed notes through undo native and standard XML save', async () => {
-    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
-    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
-    const project = createNativeProject(parseMusicXml(restHairpinMusicXml))
-    const events = project.score.parts[0]!.staves[0]!.measures[0]!.voices[1]!.events
-    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/octave.chromatics', fileName: 'octave.chromatics', contents: encodeNativeProject(project) })
-    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/octave.chromatics', fileName: 'octave.chromatics' })
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
-    await screen.findByText('Rest Hairpin Input')
-    const originalPitches = screen.getByTestId('notation-preview').getAttribute('data-event-pitches')
-    fireEvent.click(screen.getByRole('button', { name: `${events[1]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: `${events[2]!.id} 선택` }), { shiftKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    fireEvent.click(screen.getByRole('button', { name: '8va' }))
-    expect(screen.getByRole('button', { name: '8va' })).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
-    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score.octaveShifts ?? []).toEqual([])
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
-    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score.octaveShifts?.[0]).toMatchObject({ type: '8va', startEventId: events[1]!.id, endEventId: events[2]!.id })
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
-    const xml = vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents
-    expect(xml).toContain('<octave-shift type="down" size="8"/>')
-    const reopened = parseMusicXml(xml)
-    expect(reopened.parts[0]!.staves[0]!.measures[0]!.voices[1]!.events[1]).toMatchObject({ pitch: { step: 'C', octave: 4 } })
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-event-pitches', originalPitches)
-  })
-
-  it('rest-anchored hairpin input supports undo redo native save and XML reopen', async () => {
-    window.history.replaceState({}, '', '/?fixture=single-voice-mvp')
-    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
-    const project = createNativeProject(parseMusicXml(restHairpinMusicXml))
-    const events = project.score.parts[0]!.staves[0]!.measures[0]!.voices[1]!.events
-    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/rest.chromatics', fileName: 'rest.chromatics', contents: encodeNativeProject(project) })
-    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/rest.chromatics', fileName: 'rest.chromatics' })
-    const { App } = await import('./App')
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
-    await screen.findByText('Rest Hairpin Input')
-    fireEvent.click(screen.getByRole('button', { name: `${events[0]!.id} 선택` }))
-    fireEvent.click(screen.getByRole('button', { name: `${events[3]!.id} 선택` }), { shiftKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    expect(screen.getByRole('button', { name: /슬러 추가/ })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '8va' })).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: '크레셴도 헤어핀' }))
-    const preview = screen.getByTestId('notation-preview')
-    const anchors = `${events[0]!.id}–${events[3]!.id}`
-    expect(within(preview).getByText(anchors)).toHaveAttribute('data-hairpin-type', 'crescendo')
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(within(preview).queryByText(anchors)).not.toBeInTheDocument()
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
-    expect(within(preview).getByText(anchors)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
-    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
-    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
-    expect(saved.score.hairpins?.[0]).toMatchObject({ startEventId: events[0]!.id, endEventId: events[3]!.id })
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
-    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
-    const reopenedVoice = reopened.parts[0]!.staves[0]!.measures[0]!.voices[1]!
-    expect(reopened.hairpins?.[0]).toMatchObject({ startEventId: reopenedVoice.events[0]!.id, endEventId: reopenedVoice.events[3]!.id })
-  })
-
-  it('layout.hairpin-toggle adds, replaces, and removes a hairpin for the selected range', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }), {
-      shiftKey: true
-    })
-
-    const preview = screen.getByTestId('notation-preview')
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const crescendoButton = screen.getByRole('button', {
-      name: '크레셴도 헤어핀'
-    })
-    const diminuendoButton = screen.getByRole('button', {
-      name: '디미누엔도 헤어핀'
-    })
-
-    expect(within(preview).getByText('m1-c4–m1-f-sharp-4')).toHaveAttribute(
-      'data-hairpin-type',
-      'crescendo'
-    )
-
-    fireEvent.click(crescendoButton)
-    expect(within(preview).queryByText('m1-c4–m1-f-sharp-4')).not.toBeInTheDocument()
-
-    fireEvent.click(diminuendoButton)
-    expect(within(preview).getByText('m1-c4–m1-f-sharp-4')).toHaveAttribute(
-      'data-hairpin-type',
-      'diminuendo'
-    )
-
-    fireEvent.click(diminuendoButton)
-    expect(within(preview).queryByText('m1-c4–m1-f-sharp-4')).not.toBeInTheDocument()
-  })
-
-  it('layout.slur-toggle adds and removes a slur with the range command and shortcut', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }), {
-      shiftKey: true
-    })
-
-    const preview = screen.getByTestId('notation-preview')
-    const slurLabel = 'slur:m1-c4–m1-f-sharp-4'
-    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
-    const slurButton = screen.getByRole('button', {
-      name: '슬러 추가 또는 해제, 단축키 S'
-    })
-
-    expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
-
-    fireEvent.click(slurButton)
-    expect(within(preview).queryByText(slurLabel)).not.toBeInTheDocument()
-
-    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
-    expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
-  })
-
-  it('layout.slur-keyboard-input starts a slur range and confirms it with S', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
-    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
-
-    expect(
-      screen.getByText(
-        '슬러 시작점을 선택했습니다. ←/→로 끝 음표를 고르고 S로 확정하세요.'
-      )
-    ).toBeInTheDocument()
-
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-selected-event-id',
-      'm1-e4'
-    )
-
-    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
-    expect(
-      within(screen.getByTestId('notation-preview')).getByText('slur:m1-d4–m1-e4')
-    ).toHaveAttribute('data-slur', 'true')
-  })
-
-  it('import-export.save-multiple-auto-numbered-slurs keeps MusicXML validation stable', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
-      filePath: '/scores/release-test.musicxml',
-      fileName: 'release-test.musicxml'
-    })
-    const { App } = await import('./App')
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
-    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
-    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
-
-    await waitFor(() => {
-      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          suggestedName: 'release-test.musicxml',
-          contents: expect.stringContaining('<score-partwise')
-        })
-      )
-    })
-    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
-      .contents
-    const savedScore = parseMusicXml(contents!)
-
-    expect(savedScore.slurs?.map((slur) => slur.number).sort()).toEqual([
-      1,
-      2,
-      3
-    ])
-    expect(
-      await screen.findByText('release-test.musicxml을 MusicXML로 내보냈습니다.')
-    ).toBeInTheDocument()
-  })
-
-  it('layout.fermata toggles the selected event mark in data and preview', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const fermataButton = screen.getByRole('button', { name: '페르마타' })
-    const preview = screen.getByTestId('notation-preview')
-
-    expect(fermataButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).getByText('페르마타 표시')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-
-    fireEvent.click(fermataButton)
-    expect(fermataButton).toHaveAttribute('aria-pressed', 'false')
-    expect(within(preview).queryByText('페르마타 표시')).not.toBeInTheDocument()
-
-    fireEvent.click(fermataButton)
-    expect(fermataButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).getByText('페르마타 표시')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-  })
-
-  it('note-input.edit-selected-event-in-inspector note-input.apply-accidental edits duration, dots, accidental, and event type without duplicate duration controls', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const inspector = screen.getByRole('region', { name: '음표 편집' })
-    const durationPalette = screen.getByLabelText('음가')
-    const eighthDuration = within(durationPalette).getByRole('button', {
-      name: '8분음표, 단축키 4'
-    })
-    const quarterDuration = within(durationPalette).getByRole('button', {
-      name: '4분음표, 단축키 5'
-    })
-
-    expect(within(inspector).queryByLabelText('선택 이벤트 음가')).not.toBeInTheDocument()
-
-    fireEvent.click(eighthDuration)
-    expect(eighthDuration).toHaveAttribute('aria-pressed', 'true')
-
-    fireEvent.click(within(inspector).getByRole('button', { name: '+' }))
-    expect(
-      within(inspector).getByLabelText('선택 이벤트 점 개수')
-    ).toHaveTextContent('1')
-
-    fireEvent.click(quarterDuration)
-    expect(quarterDuration).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      within(inspector).getByLabelText('선택 이벤트 점 개수')
-    ).toHaveTextContent('0')
-
-    const sharp = within(inspector).getByRole('button', { name: '샤프' })
-    fireEvent.click(sharp)
-    expect(sharp).toHaveAttribute('aria-pressed', 'true')
-
-    const convertToRest = within(inspector).getByRole('button', {
-      name: '쉼표로 변환'
-    })
-    fireEvent.click(convertToRest)
-    expect(convertToRest).toBeDisabled()
-    expect(quarterDuration).toHaveAttribute('aria-pressed', 'true')
-
-    fireEvent.keyDown(window, { code: 'KeyZ', key: 'z', metaKey: true })
-    expect(convertToRest).toBeEnabled()
-  }, 15000)
-
-  it('keyboard.duration-shortcuts use the V1 notation map and leave plain 9 unbound', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    const durationPalette = screen.getByLabelText('음가')
-
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '64분음표, 단축키 1'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '32분음표, 단축키 2'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '16분음표, 단축키 3'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '8분음표, 단축키 4'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 5'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 5'
-      })
-    ).toHaveTextContent('4')
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '2분음표, 단축키 6'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: '온음표, 단축키 7'
-      })
-    ).toBeInTheDocument()
-    expect(
-      within(durationPalette).getByRole('button', {
-        name: /셋잇단음표 적용 또는 입력 준비, 단축키 ⌘\/Ctrl\+3/
-      })
-    ).toBeInTheDocument()
-
-    fireEvent.keyDown(window, { code: 'Digit9', key: '9' })
-
-    expect(document.querySelector('.editor-status')).not.toHaveTextContent(
-      '셋잇단음표 입력'
-    )
-    expect(
-      screen.queryByRole('button', {
-        name: /단축키 9/
-      })
-    ).not.toBeInTheDocument()
-  })
-
-  it('layout.breath-marks replaces a breath mark with a caesura on the selected event', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-
-    const preview = screen.getByTestId('notation-preview')
-    const breathButton = screen.getByRole('button', { name: '숨표' })
-    const caesuraButton = screen.getByRole('button', { name: '중지표' })
-
-    fireEvent.click(breathButton)
-    expect(breathButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).getByText('숨표 표시')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-
-    fireEvent.click(caesuraButton)
-    expect(breathButton).toHaveAttribute('aria-pressed', 'false')
-    expect(caesuraButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).queryByText('숨표 표시')).not.toBeInTheDocument()
-    expect(within(preview).getByText('중지표 표시')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-  })
-
-  it('tremolo.apply-selected-note stores and displays three marks on the selected note', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const preview = screen.getByTestId('notation-preview')
-    const threeMarksButton = screen.getByRole('button', { name: '3줄' })
-
-    fireEvent.click(threeMarksButton)
-
-    expect(threeMarksButton).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('트레몰로를 추가했습니다.')).toBeInTheDocument()
-    expect(within(preview).getByText('트레몰로 3줄 표시')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-  })
-
-  it('ornaments.add-selected-note stores and displays tr on the selected note', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const preview = screen.getByTestId('notation-preview')
-    const trillButton = screen.getByRole('button', { name: 'tr' })
-
-    fireEvent.click(trillButton)
-
-    expect(trillButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).getByText('tr')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-  })
-
-  it('ornaments.remove-selected-note removes tr from the selected note', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const preview = screen.getByTestId('notation-preview')
-    const trillButton = screen.getByRole('button', { name: 'tr' })
-
-    fireEvent.click(trillButton)
-    fireEvent.click(trillButton)
-
-    expect(trillButton).not.toHaveAttribute('aria-pressed')
-    expect(within(preview).queryByText('tr')).not.toBeInTheDocument()
-  })
-
-  it('ornaments.keep-multiple keeps tr, mord. and turn together', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    const preview = screen.getByTestId('notation-preview')
-    const trillButton = screen.getByRole('button', { name: 'tr' })
-    const mordentButton = screen.getByRole('button', { name: 'mord.' })
-    const turnButton = screen.getByRole('button', { name: 'turn' })
-
-    fireEvent.click(trillButton)
-    fireEvent.click(mordentButton)
-    fireEvent.click(turnButton)
-
-    expect(trillButton).toHaveAttribute('aria-pressed', 'true')
-    expect(mordentButton).toHaveAttribute('aria-pressed', 'true')
-    expect(turnButton).toHaveAttribute('aria-pressed', 'true')
-    expect(within(preview).getByText('tr mord. turn')).toHaveAttribute(
-      'data-event-id',
-      'm1-c4'
-    )
-  })
-
-  it('runs notation extension controls through the editor command flow', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { App } = await import('./App')
-    render(<App />)
-    expandNoteDetails()
-
-    fireEvent.click(screen.getByRole('button', { name: '3도 추가' }))
-    expect(screen.getByText('화음 구성음을 추가했습니다.')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '가사' }))
-    const harmonyInput = screen.getByLabelText('코드 심벌')
-    fireEvent.change(harmonyInput, { target: { value: 'H13' } })
-    fireEvent.blur(harmonyInput)
-    expect(
-      screen.getByText(/지원하는 코드 심벌 형식/)
-    ).toBeInTheDocument()
-
-    fireEvent.change(harmonyInput, { target: { value: 'C7/G' } })
-    fireEvent.blur(harmonyInput)
-    expect(screen.getByText('코드 심벌을 갱신했습니다.')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '음표' }))
-    fireEvent.click(screen.getByRole('button', { name: 'tr' }))
-    expect(screen.getByText('장식음을 갱신했습니다.')).toBeInTheDocument()
+  it('playback.start-from-selection lets rewind override a noninitial selection even at beat zero', async () => {
+    window.history.replaceState({},'', '/?fixture=release-test')
+    const {App}=await import('./App');render(<App/>)
+    const transport=within(screen.getByLabelText('재생 컨트롤'))
+    expect(transport.getByRole('button',{name:'처음으로'})).toBeDisabled()
+    fireEvent.click(screen.getByRole('button',{name:'m8-half-rest 선택'}))
+    expect(transport.getByRole('button',{name:'처음으로'})).toBeEnabled()
+    fireEvent.click(transport.getByRole('button',{name:'처음으로'}))
+    expect(transport.getByRole('button',{name:'처음으로'})).toBeDisabled()
+    fireEvent.click(transport.getByRole('button',{name:'재생'}))
+    expect(playbackMockState.play).toHaveBeenCalledOnce();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled()
   })
 })
-
-function asciiBytes(bytes: number[], start: number, length: number): string {
-  return String.fromCharCode(...bytes.slice(start, start + length))
-}

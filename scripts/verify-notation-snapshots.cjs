@@ -2,10 +2,11 @@ module.paths.unshift(
   require('node:path').resolve(__dirname, '../node_modules')
 )
 
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, nativeTheme } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
+const assert = require('node:assert/strict')
 
 app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'chromatics-notation-snapshots-')))
 
@@ -13,8 +14,17 @@ const baselinePath = path.resolve(
   __dirname,
   '../docs/testing/notation-snapshot-baseline.json'
 )
-const shouldUpdate = process.argv.includes('--update')
-const fixedCanvas = process.argv.includes('--fixed-canvas')
+const { parseNotationSnapshotOptions } = require('./notation-snapshot-options.cjs')
+let shouldUpdate, fixedCanvas, studioProfile, captureProfile
+const profilePath = path.resolve(__dirname, '../docs/testing/studio-r3-notation-profile.json')
+const profileOut = path.resolve(process.env.DDIRORI_SNAPSHOT_QA_OUT || 'out/ddirori/studio-r3-snapshot')
+const profileContract = {
+  id: 'studio-r3-default-workspace-v3', fixture: 'release-test',
+  viewports: [[960, 1000], [1400, 1000]], theme: 'light',
+  dockWidths: { palette: 280, properties: 280 }, dockVisibility: { palette: true, properties: true },
+  dockLayout: { compact: 'shared', desktop: 'shared', active: 'palette' },
+  notationView: { mode: 'fit-width', zoom: 100 }, noteDetailsOpen: false, inputActive: false
+}
 
 async function loadFixture(window, fixture) {
   await window.loadFile(
@@ -29,7 +39,30 @@ async function loadFixture(window, fixture) {
 }
 
 async function readSnapshot(window, width) {
-  window.setSize(width, 1000)
+  if (studioProfile) {
+    window.setContentSize(width, 1000)
+    await window.webContents.executeJavaScript(`localStorage.setItem('chromatics.dock-widths.v1',${JSON.stringify(JSON.stringify(profileContract.dockWidths))});
+      localStorage.setItem('chromatics.dock-visibility.v1',${JSON.stringify(JSON.stringify(profileContract.dockVisibility))});
+      localStorage.setItem('chromatics.notation-view.v1',${JSON.stringify(JSON.stringify(profileContract.notationView))});
+      localStorage.setItem('chromatics.note-details.v1','false');localStorage.setItem('chromatics.dock-active.v1','"palette"')`)
+    await loadFixture(window, profileContract.fixture)
+    const actualWorkspace = await window.webContents.executeJavaScript(`({
+      id:'studio-r3-default-workspace-v3',fixture:'release-test',viewports:[[960,1000],[1400,1000]],
+      theme:document.querySelector('.studio-document').dataset.theme,
+      dockWidths:JSON.parse(localStorage.getItem('chromatics.dock-widths.v1')),
+      dockVisibility:JSON.parse(localStorage.getItem('chromatics.dock-visibility.v1')),
+      dockLayout:{compact:'shared',desktop:'shared',active:JSON.parse(localStorage.getItem('chromatics.dock-active.v1'))},
+      notationView:JSON.parse(localStorage.getItem('chromatics.notation-view.v1')),
+      // Historical profile flag remains false when the retired surface is absent.
+      noteDetailsOpen:Boolean(document.querySelector('.studio-note-details')?.open),
+      inputActive:document.querySelector('.studio-input-context').dataset.inputActive === 'true'
+    })`)
+    assert.equal(await window.webContents.executeJavaScript("document.querySelector('.studio-note-details')===null&&Boolean(document.querySelector('.studio-selected-properties .studio-chord-properties'))"),true,'Retired detail controls are replaced by real selected chord properties')
+    assert.deepEqual(actualWorkspace, profileContract, 'Profile must use its explicit real workspace state')
+    const visibleDocks=await window.webContents.executeJavaScript(`({palette:document.querySelector('#studio-palette').checkVisibility(),properties:document.querySelector('#studio-properties').checkVisibility(),switcher:document.querySelector('.studio-dock-switcher').checkVisibility()})`)
+    assert.deepEqual(visibleDocks,{palette:true,properties:false,switcher:true},'One shared desktop dock must match the real workspace contract')
+    assert.equal(await window.webContents.executeJavaScript('innerHeight'), 1000)
+  } else window.setSize(width, 1000)
   // Isolate engraving from intentional workspace/dock reflow, without changing baselines.
   if (fixedCanvas) {
     const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))[width]
@@ -39,7 +72,7 @@ async function readSnapshot(window, width) {
 
   const screenshot = await window.webContents.capturePage()
   const screenshotPath = path.join(
-    app.getPath('temp'),
+    studioProfile ? profileOut : app.getPath('temp'),
     `in-c-notation-snapshot-${width}.png`
   )
 
@@ -122,6 +155,8 @@ function diffSnapshots(expected, actual) {
 }
 
 async function main() {
+  // Validate before opening a window, reading fixtures or writing any baseline.
+  ;({ shouldUpdate, fixedCanvas, studioProfile, captureProfile } = parseNotationSnapshotOptions(process.argv.slice(2)))
   await app.whenReady()
 
   const window = new BrowserWindow({
@@ -135,6 +170,7 @@ async function main() {
   })
 
   try {
+    if (studioProfile) { fs.mkdirSync(profileOut, { recursive: true }); nativeTheme.themeSource = 'light' }
     await loadFixture(window, 'release-test')
 
     const snapshot = {
@@ -143,7 +179,20 @@ async function main() {
     }
     const comparable = comparableNotationMetrics(snapshot)
 
-    if (shouldUpdate && fixedCanvas) throw new Error('Fixed-canvas verification cannot update baselines')
+    if (studioProfile) {
+      const actual = { contract: profileContract, metrics: comparable }
+      fs.writeFileSync(path.join(profileOut, 'actual.json'), `${JSON.stringify(actual, null, 2)}\n`)
+      if (captureProfile) {
+        console.log('Captured Studio profile candidate; not a baseline approval or verification PASS')
+        return
+      }
+      const expected = JSON.parse(fs.readFileSync(profilePath, 'utf8'))
+      assert.deepEqual(expected.contract, profileContract, 'Reviewed profile contract must match the explicit fixture')
+      assert.deepEqual(comparable, expected.metrics, 'Studio profile notation changed; review actual.json and captures')
+      console.log('Verified Studio R3 workspace notation profile; historical baseline unchanged')
+      return
+    }
+
     if (shouldUpdate) {
       fs.mkdirSync(path.dirname(baselinePath), { recursive: true })
       fs.writeFileSync(baselinePath, `${JSON.stringify(comparable, null, 2)}\n`)

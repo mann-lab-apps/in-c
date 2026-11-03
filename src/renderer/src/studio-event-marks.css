@@ -1,0 +1,6 @@
+/* Service layout slots only; public control internals and score glyphs untouched. */
+.studio-event-marks { min-width: 0; display: grid; gap: var(--dd-spacing-md); padding: var(--dd-spacing-md); border-top: var(--dd-control-border-width) solid var(--dd-border); background: var(--dd-surface); }
+.studio-event-marks > h3, .studio-event-marks__row > h4, .studio-event-marks__scope { margin: 0; }
+.studio-event-marks__scope { color: var(--dd-muted); overflow-wrap: anywhere; word-break: keep-all; }
+.studio-event-marks__row { min-width: 0; display: grid; gap: var(--dd-spacing-sm); }
+.studio-event-marks__glyph { display: block; flex: none; }

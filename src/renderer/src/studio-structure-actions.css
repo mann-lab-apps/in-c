@@ -1,0 +1,14 @@
+.studio-structure-actions {
+  display: grid;
+  flex: 1 1 24rem;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--dd-spacing-sm);
+}
+.studio-structure-actions > h3 { margin: 0; }
+.studio-structure-actions__content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dd-control-choice-gap);
+}
+.studio-structure-actions__content > svg { flex: none; }

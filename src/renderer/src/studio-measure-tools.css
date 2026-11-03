@@ -1,0 +1,5 @@
+/* Private layout slots; shared controls own their typography, density and focus. */
+.studio-measure-tools { display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: var(--dd-spacing-md) var(--dd-spacing-lg); padding: var(--dd-spacing-sm) var(--dd-spacing-xl); background: var(--dd-surface); border-bottom: var(--dd-control-border-width) solid var(--dd-border); }
+.studio-measure-tools__signatures { display: flex; flex: 1 1 24rem; flex-wrap: wrap; align-items: end; min-width: 0; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); }
+.studio-measure-tools__signature { flex: 1 1 10rem; min-width: 0; max-width: 100%; }
+@media print { .studio-measure-tools { display: none; } }

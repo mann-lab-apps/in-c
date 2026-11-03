@@ -34,8 +34,11 @@
       "expectedRawVoiceValuesByStaff": [["1"], ["5"]],
       "expectedDynamics": ["mf"],
       "expectedArticulations": ["staccato"],
-      "expectedWarnings": [],
-      "expectedWarningPaths": []
+      "expectedWarnings": ["unsupported-direction"],
+      "expectedWarningPaths": [
+        "part-list.score-part[1].midi-instrument[1].midi-program",
+        "part[1].measure[1].direction[1].sound.dynamics"
+      ]
     },
     {
       "id": "finale-string-duet-basic",
@@ -86,10 +89,9 @@
       "expectedEventPitches": ["C4"],
       "expectedDynamics": [],
       "expectedArticulations": [],
-      "expectedWarnings": ["unsupported-notation", "unsupported-direction"],
+      "expectedWarnings": ["unsupported-notation"],
       "expectedWarningPaths": [
-        "measure[1].direction[1].direction-type[1].pedal",
-        "measure[1].note[1].notations.technical"
+        "part[1].measure[1].note[1].notations.technical"
       ]
     }
   ],

@@ -1,0 +1,20 @@
+/* Overlay the existing grid seam; no extra track or notation metrics. */
+.studio-dock-resize {
+  grid-column: 1; grid-row: 1 / span 2; justify-self: end; align-self: start;
+  position: sticky; top: 0; z-index: 3; width: var(--dd-spacing-sm);
+  height: var(--studio-shared-dock-height, 10rem); min-height: 48px;
+  transform: translateX(50%); cursor: col-resize; touch-action: none;
+  user-select: none; background: transparent;
+}
+.studio-dock-resize::after {
+  content: ''; position: absolute; inset-block: 0; left: 50%;
+  width: var(--dd-control-border-width); background: var(--dd-border);
+}
+.studio-dock-resize:focus-visible {
+  outline: var(--dd-control-focus-width) solid var(--dd-focus);
+  outline-offset: var(--dd-control-focus-offset);
+}
+.studio-dock-resize:hover::after,
+.studio-dock-resize:focus-visible::after,
+.studio-dock-resize[data-dragging]::after { background: var(--dd-focus); }
+@media print, (max-width: 1023px), (pointer: coarse) { .studio-dock-resize { display: none; } }

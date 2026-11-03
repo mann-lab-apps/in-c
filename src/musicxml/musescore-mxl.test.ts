@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { buildMuseScoreConversionArgs, invokeMuseScoreConversion } from '../../scripts/musescore-invocation.mjs'
 import { expect, it } from 'vitest'
 import { parseMusicXml, serializeMusicXml } from './index'
 import { encodeMusicXmlFile } from './container'
@@ -9,6 +10,7 @@ import { encodeMusicXmlFile } from './container'
 it.skipIf(process.env.RUN_MUSESCORE_MXL_QA !== '1')('exchanges Chromatics MXL and written transposition through the installed MuseScore CLI', async () => {
   const binary = process.env.MUSESCORE_BIN ?? '/Applications/MuseScore 4.app/Contents/MacOS/mscore'
   const directory = await mkdtemp(join(tmpdir(), 'chromatics-mxl-reference-'))
+  let passed = false
   try {
     const score = parseMusicXml(await readFile(new URL('./fixtures/single-part-treble.musicxml', import.meta.url), 'utf8'))
     for (const measure of score.parts[0]!.staves[0]!.measures) {
@@ -18,8 +20,16 @@ it.skipIf(process.env.RUN_MUSESCORE_MXL_QA !== '1')('exchanges Chromatics MXL an
     const output = join(directory, 'musescore.musicxml')
     await writeFile(input, encodeMusicXmlFile(serializeMusicXml(score), input))
     const version = spawnSync(binary, ['--version'], { encoding: 'utf8', timeout: 30_000 })
+    await writeFile(join(directory, 'version.json'), JSON.stringify({ status: version.status,
+      signal: version.signal, stdout: version.stdout, stderr: version.stderr,
+      ...(version.error ? { error: version.error.message } : {}) }, null, 2))
     expect(version.error).toBeUndefined()
-    const result = spawnSync(binary, ['-F', '--musicxml-use-default-font', '-o', output, input], { encoding: 'utf8', timeout: 90_000 })
+    expect(version.status, version.stderr).toBe(0)
+    const args = buildMuseScoreConversionArgs(input, output)
+    const result = invokeMuseScoreConversion({ binary, inputPath: input, outputPath: output })
+    await writeFile(join(directory, 'invocation.json'), JSON.stringify({ binary, args,
+      status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr,
+      ...(result.error ? { error: result.error.message } : {}) }, null, 2))
     expect(result.error, result.stderr).toBeUndefined()
     expect(result.status, result.stderr).toBe(0)
     const reopened = parseMusicXml(await readFile(output, 'utf8'))
@@ -32,8 +42,10 @@ it.skipIf(process.env.RUN_MUSESCORE_MXL_QA !== '1')('exchanges Chromatics MXL an
       event.type === 'note' ? [{ pitch: event.pitch, duration: event.duration }] : []
     )))
     expect(notes(after)).toEqual(notes(before))
-    console.log(JSON.stringify({ reference: version.stdout.trim() || version.stderr.trim(), result: 'MXL import/XML export written-note and transposition round-trip passed', humanGuiQa: 'not-run' }))
+    console.log(JSON.stringify({ reference: (version.stdout ?? '').trim() || (version.stderr ?? '').trim(), result: 'MXL import/XML export written-note and transposition round-trip passed', humanGuiQa: 'not-run' }))
+    passed = true
   } finally {
-    await rm(directory, { recursive: true, force: true })
+    if (passed) await rm(directory, { recursive: true, force: true })
+    else console.error(JSON.stringify({ outcome: 'External failure artifacts retained', directory, externalPass: false }))
   }
 }, 150_000)

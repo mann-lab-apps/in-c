@@ -1,0 +1,7 @@
+/* Editor UI only. Paper title/composer typography and print display stay separate. */
+.studio-metadata-editor { width: min(100%, 520px); min-width: 0; text-align: start; }
+@media screen {
+  .score-canvas[data-notation-sizing='fixed'] .studio-metadata-editor {
+    zoom: calc(1 / var(--studio-notation-zoom, 1));
+  }
+}

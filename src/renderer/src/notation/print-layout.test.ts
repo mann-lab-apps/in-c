@@ -4,6 +4,17 @@ import { createMeasure, createScore } from '../../../score-core'
 import { resolvePrintLayoutPlan } from './print-layout'
 
 describe('print layout planning', () => {
+  it('includes measured lyric widths when estimating automatic pages without changing native layout', () => {
+    const measures=createMeasures(24)
+    const score=createScore({parts:[{id:'p',name:'Lyric part',staves:[{id:'s',measures}]}]})
+    const original=structuredClone(score)
+    const minimumMeasureWidths=new Map(measures.map(measure=>[measure.id,800]))
+    const regular=resolvePrintLayoutPlan(score,'auto')
+    const spaced=resolvePrintLayoutPlan(score,'auto',minimumMeasureWidths)
+    expect(spaced.pageCount).toBeGreaterThan(regular.pageCount)
+    expect(score).toEqual(original)
+  })
+
   it('keeps automatic PDF layout on the balanced candidate', () => {
     const score = createScore({
       parts: [

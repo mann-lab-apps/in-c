@@ -4,7 +4,7 @@
     {
       "file": "FONT-LICENSE.txt",
       "bytes": 4418,
-      "sha256": "d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04"
+      "sha256": "85fce85e25260b03777bf10373d3bd9363b9da96d9e0ca86a280dd37ed7667a0"
     },
     {
       "file": "bach-calm-mono.svg",
@@ -39,7 +39,7 @@
     {
       "file": "banner-template.svg",
       "bytes": 3823,
-      "sha256": "acb21f7f953aae5f0fa9992055fc23f32bcd98ca7ab16342131e595178f84c02"
+      "sha256": "2ce574f17d2b420c70b95c3e46c3a9155be9f98613b5f403e8a6e68be39e26a9"
     },
     {
       "file": "glyph-chime.svg",
@@ -79,57 +79,57 @@
     {
       "file": "icon-bach.svg",
       "bytes": 872,
-      "sha256": "d0dcc0523d92ebb2ec22704d700684f117b6b02e70e31b9305520bfd814dc6f1"
+      "sha256": "8ebe5810a58212556797d84d9aff1d6c85f4985893bbd6fb4ed4ae5ce8368a01"
     },
     {
       "file": "icon-chime.svg",
       "bytes": 359,
-      "sha256": "ba44ae983105b6017eb628851244db4bde72996af43dcbd37bc6f119b75eeece"
+      "sha256": "8151f39c0800819bc15e7afd005aa3f798b515376278505ba3b83a29b5d77724"
     },
     {
       "file": "icon-click.svg",
       "bytes": 375,
-      "sha256": "cce7b1ea1a43ef13c7ee6fb85eb90d13bb45840275c68ab9b18b51cc4b459af8"
+      "sha256": "cd6d8999d308c4bec1c8a73be9a2546072cee352fe819f064d8437c7fbaa3e26"
     },
     {
       "file": "icon-master.svg",
       "bytes": 956,
-      "sha256": "4b23551734f6b3d56cf4cb6ec6e57381d8fc7683af34aa53289394f84ee506ae"
+      "sha256": "32b20df8a6b177386ae1fcbc31aad10625e11858fc3723e57dc85cf5b2fdb24f"
     },
     {
       "file": "icon-play.svg",
       "bytes": 306,
-      "sha256": "7b5fa8c4e2f2a9ae7261602acfe74c032c363dc4c30a7e938ca196f017d294e1"
+      "sha256": "05b7c1af95550a078babc478117dc3ec49b3b7c2904cf0b10272c8dd4eb537b4"
     },
     {
       "file": "icon-score.svg",
       "bytes": 667,
-      "sha256": "82d55df5fa9c81204bfcf330854e3efaaebdfa26c7355d2c32c4e0643f6d519a"
+      "sha256": "de96fe0a7594c737aec456d0da84c37d9f986d1dbe34f61b5dce6e8c84044ea0"
     },
     {
       "file": "icon-stage.svg",
       "bytes": 355,
-      "sha256": "4db34246f710df036ed0bd3adb851cdaf4cbe0584c1c44c4d741385f615d2040"
+      "sha256": "24946f241660ccb21fb0a2e989559eb7fcd13d766a930b8d80c4b4d31aa60fef"
     },
     {
       "file": "icon-studio.svg",
       "bytes": 410,
-      "sha256": "84bf8afaa06674c7a263f907e4ca54b6e3a97a3d64f5b242566092d16eab3b8e"
+      "sha256": "2e3421f000035f5a0dfa62944a5a1fc10e54a31d0921fc02485d76443cdc0085"
     },
     {
       "file": "icon-talk.svg",
       "bytes": 540,
-      "sha256": "eff286b801a6b7277990643c903eb79feff05913438291789825561ca911d585"
+      "sha256": "f52dbf4cf3c7e4d5de568a2d9cac1bc071f5a144b26efdc398eec5b70322d603"
     },
     {
       "file": "loader.svg",
       "bytes": 1338,
-      "sha256": "3c7df7dc3904d66618316c6b1e1d0d7ecd8ea9e090dd9a5753c26ee1bb615633"
+      "sha256": "0e6e8962128f4c5302d65fe9f962510a0b5cb909af87f453a63df468f0255db7"
     },
     {
       "file": "lockup-en-horizontal-blue.svg",
       "bytes": 9125,
-      "sha256": "56871508f6d4238c3eda6e43199252a95be887bf4e019e61a2bded87198ab35d"
+      "sha256": "0f3485a2835c5ac01c87770d5852364f5870150a61f121cf70d6bcc90cbe0de3"
     },
     {
       "file": "lockup-en-horizontal-ink.svg",
@@ -144,7 +144,7 @@
     {
       "file": "lockup-en-stacked-blue.svg",
       "bytes": 9131,
-      "sha256": "5db26a8f1a894bb12c98e475f800d7c874ee6531c3dea702704b775d7b9e2fc8"
+      "sha256": "842572913dce6be70db27ba5f7d745b8ca8ab68ce0c6ddf4956ebbe9a4347135"
     },
     {
       "file": "lockup-en-stacked-ink.svg",
@@ -159,7 +159,7 @@
     {
       "file": "lockup-ko-horizontal-blue.svg",
       "bytes": 3410,
-      "sha256": "e730229d4f1bfd92e52bca96179c460ea78f4a63d0f3bf9e46aa468609551c59"
+      "sha256": "b9373762745ebf0b15b3b992361ea78f89cf038dd30cbdc7f025a62b81ad472b"
     },
     {
       "file": "lockup-ko-horizontal-ink.svg",
@@ -174,7 +174,7 @@
     {
       "file": "lockup-ko-stacked-blue.svg",
       "bytes": 3416,
-      "sha256": "1e0ed9385a5e2c9f5e595c9a0c3188345624f6d7e0c519c4b955db9b0f643a49"
+      "sha256": "e4628d66b34b3f99b7545b2261ee64186c48a3509cd083387842a92091a13074"
     },
     {
       "file": "lockup-ko-stacked-ink.svg",
@@ -198,23 +198,23 @@
     },
     {
       "file": "platform/play/ios-1024.png",
-      "bytes": 11155,
-      "sha256": "d1c17df684d612a51d6b487112dee0697fe24edf7bad8444d727162c83792f94"
+      "bytes": 10977,
+      "sha256": "90d66368d2ed29fbb2ae50b4c877269e097fcca3f8225e07f95d865eff08f81c"
     },
     {
       "file": "platform/play/play-store-512.png",
-      "bytes": 4190,
-      "sha256": "193bd70be54e57b16ce3f2222a5b599fc4e86ba55ee80552e54729d61b1adcb6"
+      "bytes": 4182,
+      "sha256": "6c1dd608a1ddf60f30e1344ab54a945e6fec27d533b405a42c262b2de9ca7d9b"
     },
     {
       "file": "platform/score/ios-1024.png",
-      "bytes": 9659,
-      "sha256": "4ada55a4bcccf0faa5356d728e11d45fe32de716a4f871f22789ee2b6a5bd060"
+      "bytes": 9650,
+      "sha256": "aad43a7525c523860cdccf73ee005519c213da403e1f337d58c48842ca88b6ae"
     },
     {
       "file": "platform/score/play-store-512.png",
-      "bytes": 4601,
-      "sha256": "82791cb01fe39cd52dd90ebd53e6e5fc026a4287e5fbbfcbda253bbe7c89f61a"
+      "bytes": 4538,
+      "sha256": "c4c4f41f98216433f8cf87669dbf3bf70ab4b2504e57e90f95708960aa72d06b"
     },
     {
       "file": "png/bach-calm-mono.png",
@@ -248,8 +248,8 @@
     },
     {
       "file": "png/banner-template.png",
-      "bytes": 35839,
-      "sha256": "274aeadd6eb0b3b2b563ae949ccd437d69028ef401c76de05fe9a2ac30764bd6"
+      "bytes": 35028,
+      "sha256": "17e283a0b3aa0d958c803c2eedf2330d38d8dd6673b227d62a4e7bec55dac12c"
     },
     {
       "file": "png/glyph-chime.png",
@@ -288,53 +288,53 @@
     },
     {
       "file": "png/icon-bach.png",
-      "bytes": 34674,
-      "sha256": "4cef3974ac85c442c2232ac3c06d66c2f512efb93b762063ffc3ec95aeb7225c"
+      "bytes": 34471,
+      "sha256": "0ec4f56dc84f8eeeabe18e80d8ae99d724bdfe140bc0125c93f795a6eef7ba4c"
     },
     {
       "file": "png/icon-chime.png",
-      "bytes": 10143,
-      "sha256": "694c1c5060913a6373c1313e87e376b43efeb8076ebb2f532f56c4439635b95b"
+      "bytes": 10105,
+      "sha256": "11951da451da15d4bccaed215741de3edc2f7fa40a5ef4e84f159ce692e6114f"
     },
     {
       "file": "png/icon-click.png",
-      "bytes": 16950,
-      "sha256": "8b13794bd4369a3cbde9230954ea02de9b3480460be1fc7a53bb085a26bbe854"
+      "bytes": 16720,
+      "sha256": "461f5488402b9900ad25a23305f55e21b0a3d913371b8775ac1acba070d44c14"
     },
     {
       "file": "png/icon-master.png",
-      "bytes": 10851,
-      "sha256": "3b354cd3ef75f8c2b62bbfe2b6718f02e5b973f1e511743d437e6aa8b20c8c29"
+      "bytes": 10762,
+      "sha256": "84c2d53d3f8e379d73ead04eb6cd5224d7f292db071225c872edd6ee85e36c3f"
     },
     {
       "file": "png/icon-play.png",
-      "bytes": 11155,
-      "sha256": "d1c17df684d612a51d6b487112dee0697fe24edf7bad8444d727162c83792f94"
+      "bytes": 10977,
+      "sha256": "90d66368d2ed29fbb2ae50b4c877269e097fcca3f8225e07f95d865eff08f81c"
     },
     {
       "file": "png/icon-score.png",
-      "bytes": 9659,
-      "sha256": "4ada55a4bcccf0faa5356d728e11d45fe32de716a4f871f22789ee2b6a5bd060"
+      "bytes": 9650,
+      "sha256": "aad43a7525c523860cdccf73ee005519c213da403e1f337d58c48842ca88b6ae"
     },
     {
       "file": "png/icon-stage.png",
-      "bytes": 11413,
-      "sha256": "d6487d569b6c467680a33ead6cb0034cab5e84523332ec0d1f213f81ba9838f2"
+      "bytes": 11433,
+      "sha256": "c0549fae8104060238fdedd05bef03e828bedc2c2d10254f7a5ffcb87903f879"
     },
     {
       "file": "png/icon-studio.png",
-      "bytes": 11082,
-      "sha256": "28cc4b248b1d74a93b2e2abc8f574dc0c74192dd7cc8325fdb3485101129a278"
+      "bytes": 11072,
+      "sha256": "c5b740d05d1471002a2d7fab05907d545a3d2acf5b52e7e04c4d4904ea3c7f36"
     },
     {
       "file": "png/icon-talk.png",
-      "bytes": 8719,
-      "sha256": "c44753db02dcd48ff907ddd0b11203209eb42a9ee72e6a3f6a6737060a13e96d"
+      "bytes": 8642,
+      "sha256": "f217a616e08776887ffec18cd15cf05a5d7e49d3633d74f2296cba6fb97d2ba2"
     },
     {
       "file": "png/loader.png",
-      "bytes": 16732,
-      "sha256": "a873c988d95f3c3ebc7412a13c170f7bc78c97be9606dd7afee9d0a97e30b7fc"
+      "bytes": 16756,
+      "sha256": "a5262eebb026ef8b54e0f7e95686bf94e39bf09a0996262741d8a624e44d182e"
     },
     {
       "file": "png/motif-small.png",
@@ -348,18 +348,18 @@
     },
     {
       "file": "png/store-template.png",
-      "bytes": 21083,
-      "sha256": "03ce1146558e9cff7f34d49e6cbabdd36da900df47380a88fa8914db2489db7c"
+      "bytes": 20754,
+      "sha256": "845849dce33913e1184e9333faf1c62693ea20e03506ac33429e6b59f4ac027d"
     },
     {
       "file": "store-template.svg",
       "bytes": 730,
-      "sha256": "994d6ca22b32826d11590e41844cb1e24cf194b75ef01affcc19cb165d4b5c94"
+      "sha256": "f1d86e6b736f707dcd711dee22f62c322a925951cee70d6d998190df896752f6"
     },
     {
       "file": "wordmark-en-blue.svg",
       "bytes": 8291,
-      "sha256": "8bedf6cde89471eb70cd7593b366825f3cf50bb3566a686a5a50be542dcb73ba"
+      "sha256": "a1d2ca92dd6252088ec2a022f1a7fdbd65c6de59dbca5a1c3147220303947a08"
     },
     {
       "file": "wordmark-en-ink.svg",
@@ -374,7 +374,7 @@
     {
       "file": "wordmark-ko-blue.svg",
       "bytes": 2576,
-      "sha256": "5cc7dcf02063c1d678e95d1b42c62b5b494c7501f82ae486678f63ce37dbf95e"
+      "sha256": "4aba2aeaa469df3881f482200cfccfb738878f7576b9fd06f28c5dd25e57559d"
     },
     {
       "file": "wordmark-ko-ink.svg",

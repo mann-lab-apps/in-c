@@ -1,4 +1,6 @@
+import { formatStandardHarmonyText, musicXmlHarmonyKinds } from './harmony-text'
 import { XMLParser } from 'fast-xml-parser'
+import { readMusicXmlPageDefaults } from './page-layout'
 
 import {
   TICKS_PER_QUARTER,
@@ -57,6 +59,8 @@ interface MeasureState {
 interface PartMeasureState {
   clefs: Map<number, Clef>
   transpositions: Map<number, NonNullable<Measure['transposition']>>
+  keySignatures: Map<number, KeySignature>
+  timeSignatures: Map<number, TimeSignature>
   divisions: number
   keySignature: KeySignature
   staffCount: number
@@ -64,9 +68,11 @@ interface PartMeasureState {
 }
 
 export interface MusicXmlImportWarning {
-  code: 'unsupported-direction' | 'unsupported-notation'
+  code: 'unsupported-direction' | 'unsupported-notation' | 'unsupported-layout'
   message: string
   measureNumber?: number
+  /** Owning source part, including diagnostics outside its measures. */
+  partNumber?: number
   eventIndex?: number
   path: string
 }
@@ -84,6 +90,8 @@ const parser = new XMLParser({
 
 const orderedParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false, preserveOrder: true })
 const directionTicks = new WeakMap<XmlNode, number>()
+const soundTicks = new WeakMap<XmlNode, number>()
+const measureChildOrder = new WeakMap<XmlNode, number>()
 
 const defaultMeasureState: MeasureState = {
   clef: {
@@ -111,11 +119,12 @@ export function parseMusicXmlWithReport(xml: string): {
 } {
   const document = parseMusicXmlString(xml)
   const root = readNode(document, 'score-partwise')
+  const score = parseMusicXmlDocument(document)
 
   return {
-    score: parseMusicXmlDocument(document),
+    score,
     report: {
-      warnings: collectUnsupportedMusicXmlWarnings(root)
+      warnings: collectUnsupportedMusicXmlWarnings(root, score)
     }
   }
 }
@@ -147,19 +156,34 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
       if (!measure) return
       let cursor = 0
       const indices = new Map<string, number>()
-      for (const child of orderedMeasure.measure as XmlNode[]) {
+      for (const [order, child] of (orderedMeasure.measure as XmlNode[]).entries()) {
         const key = Object.keys(child).find(name => name !== ':@')
         if (!key) continue
         const index = indices.get(key) ?? 0
         indices.set(key, index + 1)
         const node = toArray(measure[key] as XmlNode | XmlNode[] | undefined)[index]
         if (!node || typeof node !== 'object') continue
+        if (key === 'direction' || key === 'sound') measureChildOrder.set(node, order)
         if (key === 'attributes') divisions = readDivisions(node, divisions)
-        if (key === 'direction') {
+        if (key === 'direction' || key === 'harmony') {
           const offset = Number(readOptionalString(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
           const tick = cursor + offset
-          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error('MusicXML direction offset을 유효한 tick으로 변환할 수 없습니다.')
+          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error(`MusicXML ${key} offset을 유효한 tick으로 변환할 수 없습니다.`)
           directionTicks.set(node, tick)
+          const sound = readOptionalNode(node, 'sound')
+          if (sound) {
+            const soundOffset = readOptionalNumber(sound, 'offset') ??
+              (readOptionalString(readOptionalNode(node, 'offset') ?? {}, '@_sound') === 'yes'
+                ? readOptionalNumber(node, 'offset') ?? 0 : 0)
+            const soundTick = cursor + soundOffset * TICKS_PER_QUARTER / divisions
+            if (!Number.isSafeInteger(soundTick) || soundTick < 0) throw new Error('MusicXML pedal sound offset이 유효하지 않습니다.')
+            soundTicks.set(sound, soundTick)
+          }
+        }
+        if (key === 'sound') {
+          const tick = cursor + (readOptionalNumber(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
+          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error('MusicXML sound offset이 유효하지 않습니다.')
+          soundTicks.set(node, tick)
         }
         if (key === 'backup' || key === 'forward') {
           cursor += readMusicXmlDurationTicks(node, divisions) * (key === 'backup' ? -1 : 1)
@@ -207,12 +231,15 @@ function parseMusicXmlDocument(document: XmlNode): Score {
     readOptionalString(root, 'movement-title') ??
     'Imported score'
   const composer = readComposer(root)
-  const tempo = readTempoMarking(primaryMeasureNodes)
-  const tempoEvents = readTempoEvents(primaryMeasureNodes)
+  const directTempo = readPrimaryDirectTempoState(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? [])
+  const tempo = directTempo ? directTempo.tempo : readTempoMarking(primaryMeasureNodes)
+  const tempoEvents = directTempo ? directTempo.tempoEvents : readTempoEvents(primaryMeasureNodes)
   const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes)
   const rehearsalMarks = readRehearsalMarks(primaryMeasureNodes)
   const systemTexts = readSystemTexts(primaryMeasureNodes)
   const markings = readPartStaffMarkings(parts, parsedParts)
+  const physicalPageSetup = readMusicXmlPageDefaults(root).pageSetup
+  const layoutBreaks = readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? [])
 
   const score = convertOctaveShiftPitches(createScore({
     id: 'musicxml-score',
@@ -220,16 +247,32 @@ function parseMusicXmlDocument(document: XmlNode): Score {
     composer,
     tempo,
     tempoEvents,
+    pedalEvents: readPedalEvents(parts, parsedParts),
     rhythmFeel,
     ...markings,
     rehearsalMarks,
     systemTexts,
-    layout: readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? []),
+    layout: physicalPageSetup ? { ...layoutBreaks, pageSetup:physicalPageSetup } : layoutBreaks,
     parts: parsedParts
   }), 'display')
   const tieErrors = validateTieRelations(score)
 
   if (tieErrors.length > 0) {
+    const unattached = parts.flatMap((part, partIndex) =>
+      toArray(part.measure as XmlNode | XmlNode[] | undefined).flatMap((measure, measureIndex) =>
+        toArray(measure.note as XmlNode | XmlNode[] | undefined).flatMap((note, noteIndex) => {
+          // A normal middle chain uses stop then start. The standard's reverse
+          // order, with no sound ties, describes a visual one-note tie instead.
+          const notationTypes = toArray(note.notations as XmlNode | XmlNode[] | undefined)
+            .flatMap(notations => toArray(notations.tied as XmlNode | XmlNode[] | undefined))
+            .map(tied => readOptionalString(tied, '@_type'))
+          return toArray(note.tie as XmlNode | XmlNode[] | undefined).length === 0 &&
+            notationTypes.length === 2 && notationTypes[0] === 'start' && notationTypes[1] === 'stop'
+            ? [`part[${partIndex + 1}].measure[${measureIndex + 1}].note[${noteIndex + 1}]`] : []
+        })))
+    if (unattached.length > 0) {
+      throw new Error(`한 음표에만 연결된 타이 표기는 현재 가져오기에서 지원하지 않습니다. 원본 MusicXML을 보관하고 다른 표기 방식의 사본을 사용해 주세요. ${unattached.join(', ')}; ${tieErrors.join(', ')}`)
+    }
     throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${tieErrors.join(', ')}`)
   }
 
@@ -288,6 +331,69 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
   return result
 }
 
+// Keep damper playback separate from visual span marks and from sostenuto.
+// Explicit sound CC values take precedence over the associated pedal sign.
+function readPedalEvents(nodes: XmlNode[], parts: Score['parts']): Score['pedalEvents'] {
+  const result: NonNullable<Score['pedalEvents']> = []
+  parts.forEach((part, partIndex) => {
+    const measures = toArray(nodes[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
+    const directions = measures.flatMap(node => toArray(node.direction as XmlNode | XmlNode[] | undefined))
+    const unsupportedNumbers = new Set(directions.flatMap(direction => readDirectionTypes(direction)
+      .flatMap(type => toArray(type.pedal as XmlNode | XmlNode[] | undefined))
+      .filter(pedal => readOptionalString(pedal, '@_type') === 'sostenuto')
+      .map(pedal => readOptionalInteger(pedal, '@_number') ?? 1)))
+    measures.forEach((node, index) => {
+      const append = (staffNumber: number, tick: number, value: number) => {
+        const staff = part.staves[staffNumber - 1], measure = staff?.measures[index]
+        if (!measure || tick > measureDurationTicks(measure)) throw new Error('MusicXML pedal의 staff 또는 마디 위치가 유효하지 않습니다.')
+        result.push({ id: `pedal-${result.length + 1}`, partId: part.id, staffId: staff.id,
+          measureId: measure.id, tick, value })
+      }
+      const soundValue = (sound: XmlNode | undefined) => {
+        const raw = sound ? readOptionalString(sound, '@_damper-pedal') : undefined
+        if (raw === undefined) return undefined
+        if (raw === 'yes') return 127
+        if (raw === 'no') return 0
+        const value = Number(raw)
+        if (!Number.isFinite(value) || value < 0 || value > 100) throw new Error('MusicXML damper-pedal 값은 yes/no 또는 0–100이어야 합니다.')
+        return Math.round(value * 127 / 100)
+      }
+      // The object tree groups direct sounds after directions. Restore their
+      // XML sibling order: a same-tick lift/retake has one instrument state.
+      const sources = [
+        ...toArray(node.direction as XmlNode | XmlNode[] | undefined).map(node => ({ node, direct: false })),
+        ...toArray(node.sound as XmlNode | XmlNode[] | undefined).map(node => ({ node, direct: true }))
+      ].sort((a, b) => (measureChildOrder.get(a.node) ?? 0) - (measureChildOrder.get(b.node) ?? 0))
+      for (const { node: direction, direct } of sources) {
+        const sound = direct ? direction : readOptionalNode(direction, 'sound'), value = soundValue(sound)
+        const staff = direct ? 1 : readOptionalInteger(direction, 'staff') ?? 1
+        if (value !== undefined) {
+          append(staff, soundTicks.get(sound!) ?? 0, value)
+          continue
+        }
+        if (direct) continue
+        for (const type of readDirectionTypes(direction)) for (const pedal of toArray(type.pedal as XmlNode | XmlNode[] | undefined)) {
+          const number = readOptionalInteger(pedal, '@_number') ?? 1
+          if (number !== 1 || unsupportedNumbers.has(number)) continue
+          const tick = directionTicks.get(direction) ?? 0
+          switch (readOptionalString(pedal, '@_type')) {
+            case 'start': append(staff, tick, 127); break
+            case 'stop': append(staff, tick, 0); break
+            case 'change': append(staff, tick, 0); append(staff, tick, 127); break
+          }
+        }
+      }
+    })
+  })
+  return result.length ? result : undefined
+}
+
+function findScorePartDefinition(partId: string, scoreParts: XmlNode[], partIndex: number) {
+  const found = scoreParts.findIndex(candidate => candidate['@_id'] === partId)
+  const index = found >= 0 ? found : partIndex
+  return { node: scoreParts[index], index }
+}
+
 function parseMusicXmlPart(
   partNode: XmlNode,
   scoreParts: XmlNode[],
@@ -298,9 +404,7 @@ function parseMusicXmlPart(
 ): Score['parts'][number] {
   const partId =
     readOptionalString(partNode, '@_id') ?? `part-${options.partIndex + 1}`
-  const scorePart =
-    scoreParts.find((candidate) => candidate['@_id'] === partId) ??
-    scoreParts[options.partIndex]
+  const scorePart = findScorePartDefinition(partId, scoreParts, options.partIndex).node
   const partName = scorePart
     ? readOptionalString(scorePart, 'part-name') ?? 'MusicXML Part'
     : 'MusicXML Part'
@@ -467,8 +571,8 @@ function parseMusicXmlPart(
             },
         clef: { ...(state.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
         transposition: state.transpositions.get(staffNumber),
-        keySignature: { ...state.keySignature },
-        timeSignature: { ...state.timeSignature },
+        keySignature: { ...(state.keySignatures.get(staffNumber) ?? state.keySignature) },
+        timeSignature: { ...(state.timeSignatures.get(staffNumber) ?? state.timeSignature) },
         repeat: readRepeatMark(measureNode),
         volta: readVoltaMark(measureNode),
         voices
@@ -512,21 +616,66 @@ function parseMusicXmlPart(
   })
 }
 
-function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
-  for (const measureNode of measureNodes) {
-    const directions = toArray(
-      measureNode.direction as XmlNode | XmlNode[] | undefined
-    )
+function readDirectSoundTempo(sound: XmlNode, measure: Measure | undefined): Score['tempo'] {
+  const raw = readOptionalString(sound, '@_tempo'), bpm = Number(raw)
+  const tick = soundTicks.get(sound) ?? 0
+  // Match the existing editor's range/step. Never silently normalize a newly
+  // supported source value or move an out-of-measure playback instruction.
+  if (!measure || raw === undefined || !Number.isInteger(bpm) || bpm < 40 || bpm > 240 ||
+    !Number.isSafeInteger(tick) || tick < 0 || tick > measureDurationTicks(measure)) return undefined
+  return { ...readTempoFromDirection({ sound })!, transparent: true }
+}
 
-    for (const direction of directions) {
-      const tempo = readTempoFromDirection(direction)
-
-      if (tempo) {
-        return tempo
-      }
+function readPrimaryDirectTempoState(measureNodes: XmlNode[], measures: Measure[]) {
+  type Source = { tempo: NonNullable<Score['tempo']>; measureIndex: number; measureId: string; tick: number; id: string; direct: boolean }
+  const sources: Source[] = []
+  let hasDirectTempo = false
+  measureNodes.forEach((measure, measureIndex) => {
+    const number = readOptionalInteger(measure, '@_number') ?? measureIndex + 1
+    const children = [
+      ...toArray(measure.direction as XmlNode | XmlNode[] | undefined).map((node, index) => ({ node, index, direct: false })),
+      ...toArray(measure.sound as XmlNode | XmlNode[] | undefined).map((node, index) => ({ node, index, direct: true }))
+    ].sort((a, b) => (measureChildOrder.get(a.node) ?? 0) - (measureChildOrder.get(b.node) ?? 0))
+    for (const { node, index, direct } of children) {
+      const tempo = direct ? readDirectSoundTempo(node, measures[measureIndex]) : readTempoFromDirection(node)
+      if (!tempo) continue
+      hasDirectTempo ||= direct
+      sources.push({ tempo, measureIndex, measureId: `measure-${number}`,
+        tick: (direct ? soundTicks : directionTicks).get(node) ?? 0,
+        id: `measure-${number}-${direct ? 'direct-tempo' : 'tempo'}-${index + 1}`, direct })
     }
+  })
+  // Direction-only sources retain their dedicated reader. Direct inputs use
+  // the same initial-anchor rule with hidden fallback and source-order precedence.
+  if (!hasDirectTempo) return undefined
+  const initial = sources.find(source => source.measureIndex === 0 && source.tick === 0)
+  const tempo = initial?.tempo ?? { ...readTempoFromDirection({ sound: { '@_tempo': '120' } })!, transparent: true }
+  const quarter = (mark: NonNullable<Score['tempo']>) => mark.bpm * durationToTicks({ value: mark.beatUnit ?? 'quarter', dots: mark.dots ?? 0 }) / TICKS_PER_QUARTER
+  const atAnchor = new Map([['0:0', quarter(tempo)]])
+  const tempoEvents: NonNullable<Score['tempoEvents']> = []
+  for (const source of sources) {
+    if (source === initial) continue
+    const key = `${source.measureIndex}:${source.tick}`, bpm = quarter(source.tempo)
+    // A redundant hidden instruction adds neither a new rate nor print ink.
+    if (!(source.direct && atAnchor.get(key) === bpm)) tempoEvents.push({
+      ...source.tempo, id: source.id, measureId: source.measureId, tick: source.tick
+    })
+    atAnchor.set(key, bpm)
   }
+  return { tempo, tempoEvents: tempoEvents.length ? tempoEvents : undefined }
+}
 
+function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
+  // A first encountered mark may belong to a later beat or measure. Only an
+  // actual initial anchor supplies the base tempo; otherwise keep the engine's
+  // existing default until the positioned event is reached.
+  const directions = toArray(measureNodes[0]?.direction as XmlNode | XmlNode[] | undefined)
+  for (const direction of directions) {
+    const tick = directionTicks.get(direction) ?? readOptionalInteger(direction, 'offset') ?? 0
+    if (tick !== 0) continue
+    const tempo = readTempoFromDirection(direction)
+    if (tempo) return tempo
+  }
   return undefined
 }
 
@@ -547,7 +696,7 @@ function readTempoEvents(measureNodes: XmlNode[]): Score['tempoEvents'] {
         return []
       }
 
-      const tick = readOptionalInteger(direction, 'offset') ?? 0
+      const tick = directionTicks.get(direction) ?? readOptionalInteger(direction, 'offset') ?? 0
 
       if (!skippedGlobalTempo && measureIndex === 0 && tick === 0) {
         skippedGlobalTempo = true
@@ -573,9 +722,8 @@ function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
   const metronomeDirectionType = directionTypes.find((directionType) =>
     Boolean(readOptionalNode(directionType, 'metronome'))
   )
-  const words = metronomeDirectionType
-    ? readOptionalString(metronomeDirectionType, 'words')
-    : undefined
+  const wordsDirectionType = findTempoWordsDirectionType(directionTypes, metronomeDirectionType)
+  const words = wordsDirectionType ? readOptionalString(wordsDirectionType, 'words') : undefined
   const metronome = metronomeDirectionType
     ? readOptionalNode(metronomeDirectionType, 'metronome')
     : undefined
@@ -586,7 +734,8 @@ function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
   const perMinute = metronome
     ? readOptionalNumber(metronome, 'per-minute')
     : undefined
-  const tempoValue = soundTempo ?? perMinute
+  // Metronome numbers count the displayed beat; sound tempo counts quarters.
+  const tempoValue = perMinute ?? soundTempo
 
   if (tempoValue === undefined) {
     return undefined
@@ -596,13 +745,16 @@ function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
   const beatUnit = metronome
     ? readOptionalString(metronome, 'beat-unit')
     : undefined
+  const wordsColor = wordsDirectionType ? readOptionalString(readOptionalNode(wordsDirectionType, 'words') ?? {}, '@_color') : undefined
+  const hiddenWords = !words || /^#00[0-9a-f]{6}$/i.test(wordsColor ?? '')
+  const hiddenMetronome = readOptionalString(metronome ?? {}, '@_print-object') === 'no'
 
   return {
     bpm,
     beatUnit: isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter',
     dots: metronome ? toArray(metronome['beat-unit-dot']).length : 0,
-    text: words ?? tempoLabel(bpm, beatUnit),
-    ...(readOptionalString(direction, '@_print-object') === 'no'
+    text: words ?? tempoLabel(bpm, beatUnit, metronome ? toArray(metronome['beat-unit-dot']).length : 0),
+    ...((readOptionalString(direction, '@_print-object') === 'no' || (hiddenMetronome && hiddenWords))
       ? {
           transparent: true
         }
@@ -686,8 +838,12 @@ function isTempoBeatUnit(value: string | undefined): value is DurationValue {
     value === '64th'
 }
 
-function tempoLabel(bpm: number, beatUnit: string | undefined): string {
-  return `${beatUnit === 'eighth' ? '♪' : '♩'} = ${bpm}`
+function tempoLabel(bpm: number, beatUnit: string | undefined, dots: number): string {
+  const symbols: Record<DurationValue, string> = {
+    whole: '𝅝', half: '𝅗𝅥', quarter: '♩', eighth: '♪',
+    '16th': '𝅘𝅥𝅯', '32nd': '𝅘𝅥𝅰', '64th': '𝅘𝅥𝅱'
+  }
+  return `${symbols[isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter']}${'.'.repeat(dots)} = ${bpm}`
 }
 
 function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
@@ -734,9 +890,11 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
 
     return directions.flatMap((direction, directionIndex) => {
       const directionTypes = readDirectionTypes(direction)
+      const tempoWordsType = findTempoWordsDirectionType(directionTypes,
+        directionTypes.find(type => Boolean(readOptionalNode(type, 'metronome'))))
 
       return directionTypes.flatMap((directionType, typeIndex) => {
-        if (readOptionalNode(directionType, 'metronome')) {
+        if (directionType === tempoWordsType || readOptionalNode(directionType, 'metronome')) {
           return []
         }
 
@@ -843,7 +1001,9 @@ function readExpressionTexts(
 }
 
 function isSystemTextDirection(direction: XmlNode): boolean {
-  return readOptionalString(direction, '@_system') === 'yes'
+  // Accept earlier Studio files as well as the standard system-relation value.
+  const system = readOptionalString(direction, '@_system')
+  return system === 'yes' || system === 'only-top'
 }
 
 function isExpressionTextDirection(
@@ -878,6 +1038,11 @@ function readHarmonies(measureNodes: XmlNode[]): Score['harmonies'] {
             readOptionalString(harmonyNode, 'kind')
           : readOptionalString(harmonyNode, 'kind')
 
+      const kindValue = kindNode ? readOptionalString(kindNode, '#text') : readOptionalString(harmonyNode, 'kind')
+      const kind = kindNode ? readOptionalString(kindNode, '@_value') : undefined
+      const resolvedKind = kind ?? (kindValue && musicXmlHarmonyKinds.has(kindValue) ? kindValue : undefined)
+      const displayText = kindNode ? readOptionalString(kindNode, '@_text') : undefined
+
       if (!root && !kindText) {
         return []
       }
@@ -886,10 +1051,10 @@ function readHarmonies(measureNodes: XmlNode[]): Score['harmonies'] {
         {
           id: `${measureId}-harmony-${harmonyIndex + 1}`,
           measureId,
-          tick: readOptionalInteger(harmonyNode, 'offset') ?? 0,
-          text: kindText ?? root!.step,
+          tick: directionTicks.get(harmonyNode) ?? readOptionalInteger(harmonyNode, 'offset') ?? 0,
+          text: displayText ?? formatStandardHarmonyText(root, resolvedKind, bass) ?? kindText ?? root!.step,
           root,
-          kind: kindNode ? readOptionalString(kindNode, '@_value') : undefined,
+          kind: resolvedKind,
           bass
         }
       ]
@@ -1293,6 +1458,18 @@ function readDirectionTypes(direction: XmlNode): XmlNode[] {
     )
 }
 
+function findTempoWordsDirectionType(types: XmlNode[], metronomeType?: XmlNode): XmlNode | undefined {
+  if (!metronomeType) return undefined
+  // Older Studio files combined these two choices illegally. Keep reading
+  // their label while writing separate, standard direction-type siblings.
+  if (readOptionalString(metronomeType, 'words') !== undefined) return metronomeType
+  // A mixed rehearsal/words/dynamics/metronome direction retains independent
+  // staff words; it is not the paired tempo-label shape emitted by Studio.
+  const paired = types.every(type => Object.keys(type).filter(key => !key.startsWith('@_'))
+    .every(key => key === 'words' || key === 'metronome'))
+  return paired ? types.find(type => readOptionalString(type, 'words') !== undefined) : undefined
+}
+
 function directionTypeIdSuffix(directionTypes: XmlNode[], typeIndex: number): string {
   return directionTypes.length > 1 ? `-${typeIndex + 1}` : ''
 }
@@ -1435,7 +1612,7 @@ function readOrnaments(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['or
     return undefined
   }
 
-  const values = (['trill', 'mordent', 'turn'] as const).filter(
+  const values = (['trill', 'mordent', 'inverted-mordent', 'turn'] as const).filter(
     (ornament) => ornament in ornaments || (ornament === 'trill' && 'trill-mark' in ornaments)
   )
 
@@ -1528,9 +1705,20 @@ function readArticulations(node: XmlNode): Articulation[] | undefined {
     return undefined
   }
 
-  const values = (['staccato', 'accent', 'tenuto', 'marcato'] as const).filter(
-    (articulation) => articulation in articulations
-  )
+  // The renderer stacks marks in model order, and the serializer emits that
+  // order. Keep supported source tags in place so a safe save does not reorder
+  // the stack or fail the existing round-trip signature check.
+  const values: Articulation[] = []
+  for (const name of Object.keys(articulations)) {
+    if (name === 'strong-accent') {
+      const marks = toArray(articulations[name] as XmlNode | XmlNode[] | undefined)
+      if (marks.some(mark => ['up', undefined].includes(readOptionalString(mark, '@_type'))) && !values.includes('marcato')) values.push('marcato')
+    } else if ((name === 'staccato' || name === 'accent' || name === 'tenuto' || name === 'marcato') && !values.includes(name)) {
+      // Keep the legacy nonstandard tag readable, but emit only MusicXML's
+      // strong-accent tag on the next save. Aliases must not duplicate marks.
+      values.push(name)
+    }
+  }
 
   return values.length > 0 ? values : undefined
 }
@@ -1662,6 +1850,8 @@ function createPartMeasureState(): PartMeasureState {
   return {
     clefs: new Map([[1, { ...defaultMeasureState.clef }]]),
     transpositions: new Map(),
+    keySignatures: new Map(),
+    timeSignatures: new Map(),
     divisions: defaultMeasureState.divisions,
     keySignature: { ...defaultMeasureState.keySignature },
     staffCount: 1,
@@ -1675,10 +1865,32 @@ function readPartMeasureState(
 ): PartMeasureState {
   const staffCount = readStaffCount(attributes, previous.staffCount)
   const clefNodes = toArray(attributes.clef as XmlNode | XmlNode[] | undefined)
-  const keyNode = readOptionalNode(attributes, 'key')
-  const timeNode = readOptionalNode(attributes, 'time')
   const clefs = new Map(previous.clefs)
   const transpositions = new Map(previous.transpositions)
+  const keySignatures = new Map(previous.keySignatures)
+  const timeSignatures = new Map(previous.timeSignatures)
+  // Unnumbered attributes apply to every staff,including the default for a
+  // staff introduced later. Numbered changes must not alter that default.
+  let keySignature = previous.keySignature
+  let timeSignature = previous.timeSignature
+  for (const node of toArray(attributes.key as XmlNode | XmlNode[] | undefined)) {
+    const number = readOptionalInteger(node, '@_number')
+    if (number !== undefined) validateStaffNumber(number, staffCount)
+    const value = readKeySignature(node)
+    if (number === undefined) keySignature = value
+    for (let staff = 1; staff <= staffCount; staff += 1) {
+      if (number === undefined || number === staff) keySignatures.set(staff, value)
+    }
+  }
+  for (const node of toArray(attributes.time as XmlNode | XmlNode[] | undefined)) {
+    const number = readOptionalInteger(node, '@_number')
+    if (number !== undefined) validateStaffNumber(number, staffCount)
+    const value = readTimeSignature(node)
+    if (number === undefined) timeSignature = value
+    for (let staff = 1; staff <= staffCount; staff += 1) {
+      if (number === undefined || number === staff) timeSignatures.set(staff, value)
+    }
+  }
   for (const node of toArray(attributes.transpose as XmlNode | XmlNode[] | undefined)) {
     const chromatic = readOptionalInteger(node, 'chromatic')
     if (chromatic === undefined || 'double' in node) {
@@ -1712,10 +1924,12 @@ function readPartMeasureState(
   return {
     clefs,
     transpositions,
+    keySignatures,
+    timeSignatures,
     divisions: readDivisions(attributes, previous.divisions),
     staffCount,
-    keySignature: keyNode ? readKeySignature(keyNode) : previous.keySignature,
-    timeSignature: timeNode ? readTimeSignature(timeNode) : previous.timeSignature
+    keySignature,
+    timeSignature
   }
 }
 
@@ -1956,17 +2170,27 @@ function normalizeTempo(value: number): number {
 }
 
 function collectUnsupportedMusicXmlWarnings(
-  root: XmlNode
+  root: XmlNode,
+  score: Score
 ): MusicXmlImportWarning[] {
-  const warnings: MusicXmlImportWarning[] = []
+  const warnings: MusicXmlImportWarning[] = [...readMusicXmlPageDefaults(root).warnings]
   const parts = toArray(root.part as XmlNode | XmlNode[] | undefined)
+  const partList = readOptionalNode(root, 'part-list')
+  const scoreParts = toArray(partList?.['score-part'] as XmlNode | XmlNode[] | undefined)
 
-  parts.forEach((partNode) => {
+  parts.forEach((partNode,partIndex) => {
+    const partId = readOptionalString(partNode, '@_id') ?? `part-${partIndex + 1}`
+    const definition = findScorePartDefinition(partId, scoreParts, partIndex)
+    if (definition.node) {
+      warnings.push(...collectMidiProgramWarnings(definition.node,
+        `part-list.score-part[${definition.index + 1}]`, partIndex + 1))
+    }
     const measureNodes = toArray(
       partNode.measure as XmlNode | XmlNode[] | undefined
     )
 
     measureNodes.forEach((measureNode, measureIndex) => {
+      const firstWarning = warnings.length
       const measureNumber =
         readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
       const noteNodes = toArray(
@@ -1976,7 +2200,12 @@ function collectUnsupportedMusicXmlWarnings(
         measureNode.direction as XmlNode | XmlNode[] | undefined
       )
 
+      warnings.push(...collectChordMemberTieWarnings(noteNodes, partIndex + 1, measureNumber))
+
       noteNodes.forEach((noteNode, noteIndex) => {
+        warnings.push(...collectNoteVelocityWarnings(noteNode,partIndex + 1,measureNumber,noteIndex + 1))
+        warnings.push(...collectConditionalTieWarnings(noteNode, partIndex + 1, measureNumber, noteIndex + 1))
+        warnings.push(...collectLetRingWarnings(noteNode, partIndex + 1, measureNumber, noteIndex + 1))
         warnings.push(
           ...collectUnsupportedNoteWarnings(
             noteNode,
@@ -1991,14 +2220,113 @@ function collectUnsupportedMusicXmlWarnings(
           ...collectUnsupportedDirectionWarnings(
             direction,
             measureNumber,
-            directionIndex + 1
+            directionIndex + 1,
+            partIndex + 1
           )
         )
       })
+      toArray(measureNode.sound as XmlNode | XmlNode[] | undefined).forEach((sound, soundIndex) => {
+        const tempo = readOptionalString(sound, '@_tempo')
+        const represented = partIndex === 0 && readDirectSoundTempo(sound, score.parts[0]?.staves[0]?.measures[measureIndex])
+        if (tempo !== undefined && !represented) warnings.push({
+          code: 'unsupported-direction', measureNumber,
+          path: `part[${partIndex + 1}].measure[${measureNumber}].sound[${soundIndex + 1}].tempo`,
+          message: `Direct measure sound tempo is not represented separately (${tempo} quarter BPM). Keep the original MusicXML and compare playback tempo.`
+        })
+        warnings.push(...collectSoundDynamicsWarnings(sound,
+          `part[${partIndex + 1}].measure[${measureNumber}].sound[${soundIndex + 1}]`,measureNumber))
+        warnings.push(...collectMidiProgramWarnings(sound,
+          `part[${partIndex + 1}].measure[${measureNumber}].sound[${soundIndex + 1}]`, partIndex + 1, measureNumber))
+      })
+      // Location-only legacy warnings must retain the owning part before
+      // deduplication; equal measure/note numbers in two parts are distinct.
+      for (let index = firstWarning; index < warnings.length; index++) {
+        const warning = warnings[index]
+        if (warning.path.startsWith('measure[')) {
+          warnings[index] = { ...warning, path: `part[${partIndex + 1}].${warning.path}` }
+        }
+      }
     })
   })
 
   return dedupeWarnings(warnings)
+}
+
+// The score has event-level ties. Detect valid XML whose chord members disagree
+// before callers mistake the unchanged legacy conversion for lossless import.
+function collectChordMemberTieWarnings(nodes: XmlNode[], partNumber: number, measureNumber: number): MusicXmlImportWarning[] {
+  const anchors = new Map<string, { mask: string; warned: boolean }>()
+  const warnings: MusicXmlImportWarning[] = []
+  nodes.forEach((node, index) => {
+    if ('grace' in node) return
+    const lane = `${readOptionalInteger(node, 'staff') ?? 1}:${readOptionalString(node, 'voice') ?? '1'}`
+    // Sound (<tie>) and notation (<tied>) are independent channels. Their
+    // union can hide a partial member in one channel behind a whole chord
+    // in the other. Keep conversion unchanged, but report either loss.
+    const maskFor = (value: XmlNode | XmlNode[] | undefined) => {
+      const types = toArray(value).map(tie => readOptionalString(tie, '@_type'))
+      return `${types.includes('start')}:${types.includes('stop')}`
+    }
+    const mask = `${maskFor(node.tie as XmlNode | XmlNode[] | undefined)}:${maskFor(readOptionalNode(node, 'notations')?.tied as XmlNode | XmlNode[] | undefined)}`
+    if (!('chord' in node)) {
+      anchors.set(lane, { mask, warned: false })
+      return
+    }
+    const anchor = anchors.get(lane)
+    if (!anchor || anchor.warned || anchor.mask === mask) return
+    anchor.warned = true
+    warnings.push({
+      code: 'unsupported-notation', measureNumber, eventIndex: index + 1,
+      path: `part[${partNumber}].measure[${measureNumber}].note[${index + 1}].ties`,
+      message: 'Member-specific chord ties are not represented by the event-level tie model. Keep the original MusicXML and compare imported ties and playback.'
+    })
+  })
+  return warnings
+}
+
+function collectConditionalTieWarnings(node: XmlNode, partNumber: number, measureNumber: number, eventIndex: number): MusicXmlImportWarning[] {
+  return toArray(node.tie as XmlNode | XmlNode[] | undefined).flatMap((tie, index) => {
+    const condition = readOptionalString(tie, '@_time-only')
+    return condition === undefined ? [] : [{
+      code: 'unsupported-notation' as const,
+      measureNumber, eventIndex,
+      path: `part[${partNumber}].measure[${measureNumber}].note[${eventIndex}].tie[${index + 1}].time-only`,
+      message: `Pass-specific tie time-only="${condition}" is not represented by the unconditional tie model. Keep the original MusicXML and compare repeated playback.`
+    }]
+  })
+}
+
+function collectLetRingWarnings(node: XmlNode, partNumber: number, measureNumber: number, eventIndex: number): MusicXmlImportWarning[] {
+  return toArray(node.notations as XmlNode | XmlNode[] | undefined).flatMap((notations, group) =>
+    toArray(notations.tied as XmlNode | XmlNode[] | undefined).flatMap((tied, index) =>
+      readOptionalString(tied, '@_type') !== 'let-ring' ? [] : [{
+        code: 'unsupported-notation' as const,
+        measureNumber, eventIndex,
+        path: `part[${partNumber}].measure[${measureNumber}].note[${eventIndex}].notations[${group + 1}].tied[${index + 1}]`,
+        message: 'let-ring tie notation is not imported yet.'
+      }]))
+}
+
+function collectMidiProgramWarnings(source: XmlNode | undefined, path: string, partNumber: number, measureNumber?: number): MusicXmlImportWarning[] {
+  return toArray(source?.['midi-instrument'] as XmlNode | XmlNode[] | undefined).flatMap((instrument, index) => {
+    const value = readOptionalString(instrument, 'midi-program')
+    return value === undefined ? [] : [{
+      code: 'unsupported-direction' as const,
+      partNumber,
+      ...(measureNumber === undefined ? {} : { measureNumber }),
+      path: `${path}.midi-instrument[${index + 1}].midi-program`,
+      message: `Explicit MIDI instrument program (${value}) is not imported separately. MIDI copies use the instrument inferred from the part name. Keep the original MusicXML and compare instrument sounds.`
+    }]
+  })
+}
+
+function collectNoteVelocityWarnings(note:XmlNode,partNumber:number,measureNumber:number,eventIndex:number):MusicXmlImportWarning[]{
+  return(['dynamics','end-dynamics']as const).flatMap(attribute=>{
+    const value=readOptionalString(note,`@_${attribute}`)
+    return value===undefined?[]:[{code:'unsupported-notation' as const,measureNumber,eventIndex,
+      path:`part[${partNumber}].measure[${measureNumber}].note[${eventIndex}].${attribute}`,
+      message:`Explicit note ${attribute} (${value}% of default forte) is not imported separately. Keep the original MusicXML and compare playback loudness.`}]
+  })
 }
 
 function collectUnsupportedNoteWarnings(
@@ -2029,6 +2357,7 @@ function collectUnsupportedNoteWarnings(
     'breath-mark',
     'caesura',
     'marcato',
+    'strong-accent',
     'staccato',
     'tenuto'
   ])
@@ -2045,8 +2374,36 @@ function collectUnsupportedNoteWarnings(
       })
     })
 
+  toArray(articulations?.['strong-accent'] as XmlNode | XmlNode[] | undefined).forEach((mark, index) => {
+    const direction = readOptionalString(mark, '@_type')
+    const path = `measure[${measureNumber}].note[${eventIndex}].notations.articulations.strong-accent[${index + 1}]`
+    const unsupportedOwner = 'rest' in noteNode ? 'a rest' : 'grace' in noteNode ? 'a grace note' : 'chord' in noteNode ? 'a secondary chord member' : undefined
+    if (unsupportedOwner) warnings.push({
+      code: 'unsupported-notation', message: `strong-accent on ${unsupportedOwner} is not imported yet.`,
+      measureNumber, eventIndex, path
+    })
+    if (direction !== undefined && direction !== 'up') warnings.push({
+      code: 'unsupported-notation',
+      message: direction === 'down'
+        ? 'downward strong-accent placement is not imported yet.'
+        : `strong-accent type ${direction} is not imported yet.`,
+      measureNumber, eventIndex,
+      path
+    })
+    const placement = readOptionalString(mark, '@_placement')
+    if (placement !== undefined && placement !== 'above') warnings.push({
+      code: 'unsupported-notation',
+      message: placement === 'below' ? 'below-staff strong-accent placement is not imported yet.' : `strong-accent placement ${placement} is not imported yet.`,
+      measureNumber, eventIndex, path
+    })
+    if (['default-x', 'default-y', 'relative-x', 'relative-y'].some(name => readOptionalString(mark, `@_${name}`) !== undefined)) warnings.push({
+      code: 'unsupported-notation', message: 'strong-accent manual position is not imported yet.',
+      measureNumber, eventIndex, path
+    })
+  })
+
   const ornaments = readOptionalNode(notations, 'ornaments')
-  const supportedOrnaments = new Set(['mordent', 'tremolo', 'trill', 'trill-mark', 'turn'])
+  const supportedOrnaments = new Set(['mordent', 'inverted-mordent', 'tremolo', 'trill', 'trill-mark', 'turn'])
 
   Object.keys(ornaments ?? {})
     .filter((key) => !key.startsWith('@_') && !supportedOrnaments.has(key))
@@ -2066,18 +2423,20 @@ function collectUnsupportedNoteWarnings(
 function collectUnsupportedDirectionWarnings(
   direction: XmlNode,
   measureNumber: number,
-  directionIndex: number
+  directionIndex: number,
+  partNumber: number
 ): MusicXmlImportWarning[] {
   const supportedDirectionTypes = new Set([
     'dynamics',
     'metronome',
     'octave-shift',
+    'pedal',
     'rehearsal',
     'wedge',
     'words'
   ])
 
-  return readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
+  const warnings=readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
     Object.keys(directionType)
       .filter((key) => !key.startsWith('@_') && !supportedDirectionTypes.has(key))
       .map((key) => ({
@@ -2089,6 +2448,40 @@ function collectUnsupportedDirectionWarnings(
         }].${key}`
       }))
   )
+  const pedals = readDirectionTypes(direction).flatMap(type => toArray(type.pedal as XmlNode | XmlNode[] | undefined))
+  const pedalWarnings: MusicXmlImportWarning[] = pedals.filter(pedal =>
+    !['start', 'stop', 'change'].includes(readOptionalString(pedal, '@_type') ?? '') ||
+    (readOptionalInteger(pedal, '@_number') ?? 1) !== 1 || readOptionalString(pedal, '@_line') === 'yes').map(() => ({
+      code: 'unsupported-direction', message: 'Only single damper pedal start/stop/change playback is imported; other pedal types and line geometry are not represented.',
+      measureNumber, path: `measure[${measureNumber}].direction[${directionIndex}].pedal`
+    }))
+  return [...warnings,...pedalWarnings,...collectIndependentTempoWarnings(direction,measureNumber,directionIndex,partNumber),
+    ...collectMidiProgramWarnings(readOptionalNode(direction, 'sound'),
+      `part[${partNumber}].measure[${measureNumber}].direction[${directionIndex}].sound`, partNumber, measureNumber),
+    ...collectSoundDynamicsWarnings(readOptionalNode(direction,'sound'),
+      `part[${partNumber}].measure[${measureNumber}].direction[${directionIndex}].sound`,measureNumber)]
+}
+
+function collectSoundDynamicsWarnings(sound:XmlNode|undefined,path:string,measureNumber:number):MusicXmlImportWarning[]{
+  const value=sound?readOptionalString(sound,'@_dynamics'):undefined
+  return value===undefined?[]:[{code:'unsupported-direction',measureNumber,path:path+'.dynamics',
+    message:`Explicit sound dynamics (${value}% of default forte) is not imported separately. Keep the original MusicXML and compare playback loudness.`}]
+}
+
+function collectIndependentTempoWarnings(direction:XmlNode,measureNumber:number,directionIndex:number,partNumber:number):MusicXmlImportWarning[]{
+  const sound=readOptionalNode(direction,'sound'),soundTempo=sound?readOptionalNumber(sound,'@_tempo'):undefined
+  if(!sound||soundTempo===undefined)return[]
+  const warnings:MusicXmlImportWarning[]=[],path=`part[${partNumber}].measure[${measureNumber}].direction[${directionIndex}]`
+  const metronome=readDirectionTypes(direction).map(type=>readOptionalNode(type,'metronome')).find(Boolean)
+  const perMinute=metronome?readOptionalNumber(metronome,'per-minute'):undefined,beatUnit=metronome?readOptionalString(metronome,'beat-unit'):undefined
+  if(perMinute!==undefined&&beatUnit&&isTempoBeatUnit(beatUnit)){
+    const dots=toArray(metronome?.['beat-unit-dot']).length,quarter=perMinute*durationToTicks({value:beatUnit,dots})/TICKS_PER_QUARTER
+    if(Math.abs(quarter-soundTempo)>1e-6)warnings.push({code:'unsupported-direction',measureNumber,path:path+'.sound.tempo',message:`Independent sound tempo is not represented (metronome=${quarter} quarter BPM, sound=${soundTempo} quarter BPM).`})
+  }
+  const visualOffset=readOptionalNumber(direction,'offset')??0,offsetNode=readOptionalNode(direction,'offset'),soundOffset=readOptionalNumber(sound,'offset')
+  const playbackOffset=soundOffset??(readOptionalString(offsetNode??{},'@_sound')==='yes'?visualOffset:0)
+  if(Math.abs(visualOffset-playbackOffset)>1e-6)warnings.push({code:'unsupported-direction',measureNumber,path:path+(soundOffset===undefined?'.offset':'.sound.offset'),message:`Independent tempo offset is not represented (notation=${visualOffset} divisions, playback=${playbackOffset} divisions).`})
+  return warnings
 }
 
 function dedupeWarnings(

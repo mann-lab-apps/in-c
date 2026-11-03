@@ -1,6 +1,24 @@
 import type { Score } from '../score-core'
 import type { NativeProject } from './schema'
 
+// Ask the existing remapping policy about each concrete anchor. A removed
+// measure/part is intentional; only a surviving part's removed staff is guarded.
+export function unresolvedRemovedStaffLayoutAnchors(
+  layout: Score['layout'], previousParts: Score['parts'], nextParts: Score['parts']
+): string[] {
+  if (!layout) return []
+  const removedStaffMeasures = new Set(previousParts.flatMap(part => {
+    const next = nextParts.find(candidate => candidate.id === part.id)
+    return next ? part.staves.filter(staff => !next.staves.some(candidate => candidate.id === staff.id))
+      .flatMap(staff => staff.measures.map(measure => measure.id)) : []
+  }))
+  return [...new Set([
+    ...(layout.systemBreakBeforeMeasureIds ?? []), ...(layout.pageBreakBeforeMeasureIds ?? [])
+  ].filter(id => removedStaffMeasures.has(id) &&
+    !remapRemovedStaffLayoutAnchors({ systemBreakBeforeMeasureIds: [id] }, previousParts, nextParts)
+      ?.systemBreakBeforeMeasureIds?.length))]
+}
+
 export function remapRemovedStaffLayoutAnchors(
   layout: Score['layout'], previousParts: Score['parts'], nextParts: Score['parts']
 ): Score['layout'] {

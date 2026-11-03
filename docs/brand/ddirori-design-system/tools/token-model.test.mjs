@@ -12,6 +12,21 @@ test('missing aliases and cycles fail instead of silently substituting', () => {
   assert.throws(()=>resolveTokens({a:'$b',b:'$a'},{}),/Cyclic/);
   assert.throws(()=>resolveTokens({a:'@bad'},{}),/Unresolved/);
 });
+test('working theme stays blue across generated web/native roles and brand icons', async () => {
+  const base=new URL('../',import.meta.url), read=f=>readFile(new URL(f,base),'utf8');
+  const system=JSON.parse(await read('color-system.json'));
+  const palette=JSON.parse(await read('palette-pilot.json'));
+  const resolved=JSON.parse(await read('generated/tokens.resolved.json'));
+  const dart=await read('generated/ddirori_tokens.dart');
+  assert.equal(system.active,'blue');assert.equal(palette.key,'blue');
+  assert.equal(resolved.themes.light.brand,'#A5D8FF');
+  assert.equal(resolved.themes.light.action,'#1971C2');
+  assert.equal(resolved.themes.dark.action,'#A5D8FF');
+  assert.equal(resolved.themes.light.info,'#616161');
+  assert(dart.includes("'action': 0xFF1971C2"));
+  const mark=await read('../ddirori-brand-system/assets/icon-master.svg');
+  assert(mark.includes('fill="#A5D8FF"'));
+});
 test('generated units and text roles match the validated source', async () => {
   const base=new URL('../',import.meta.url), read=f=>readFile(new URL(f,base),'utf8');
   const source=JSON.parse(await read('tokens.json')), palette=JSON.parse(await read(source.brandInput));

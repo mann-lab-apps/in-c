@@ -69,6 +69,26 @@ describe('score-core pitch context', () => {
     expect(shouldDisplayAccidental(measure, voice, continued)).toBe(false)
   })
 
+  it.each([
+    { step: 'E', alter: 1, fifths: 0 },
+    { step: 'E', alter: -1, fifths: 0 },
+    { step: 'F', alter: 0, fifths: 1 }
+  ] as const)('chord.accidental-memory carries non-primary $step $alter within the same voice/bar/octave', ({ step, alter, fifths }) => {
+    const chord = note('chord', 0, 'C', 4, 0)
+    chord.pitches = [chord.pitch, { step, octave: 4, alter }]
+    const later = note('later', 100, step, 4)
+    const voice = createVoice({ id: 'voice-1', events: [chord, later] })
+    const otherVoice = createVoice({ id: 'voice-2', events: [note('other', 100, step, 4)] })
+    const measure = createMeasure({ keySignature: { fifths }, voices: [voice, otherVoice] }), before = structuredClone(measure)
+    expect(effectiveAlterAt({ measure, voice, step, octave: 4, tick: 100 })).toBe(alter)
+    expect(shouldDisplayAccidental(measure, voice, later)).toBe(false)
+    expect(effectiveAlterAt({ measure, voice, step, octave: 5, tick: 100 })).toBe(keySignatureAlter({ fifths }, step))
+    expect(effectiveAlterAt({ measure, voice: otherVoice, step, octave: 4, tick: 100 })).toBe(keySignatureAlter({ fifths }, step))
+    expect(effectiveAlterAt({ measure, voice, step, octave: 4, tick: 100, excludeEventId: chord.id })).toBe(keySignatureAlter({ fifths }, step))
+    expect(effectiveAlterAt({ measure, voice, step, octave: 4, tick: 100, override: 0 })).toBe(0)
+    expect(measure).toEqual(before)
+  })
+
   it('chooses the nearest octave for letter-name input', () => {
     expect(
       nearestPitch({

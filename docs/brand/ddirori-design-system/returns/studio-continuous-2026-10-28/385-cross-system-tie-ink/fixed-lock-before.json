@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/renderer/src/notation/NotationPreview.tsx",
+    "sha256": "9cadb3fed837bb55614bcb12f224ab670e075ed296ae336357a2341badfda17a"
+  },
+  {
+    "path": "src/renderer/src/notation/tie-modifier-clearance.ts",
+    "sha256": "77bc5584bec19225835c01637147abe88cfd4fd0f001213d90c429dc96e83307"
+  },
+  {
+    "path": "src/renderer/src/notation/tie-voice-ink.ts",
+    "sha256": "8a7e927bd604189f6e2758b9c9a5e909d8daeeddf4012a322b5d4308b833af45"
+  },
+  {
+    "path": "scripts/studio-multivoice-tie-ink.cjs",
+    "sha256": "a7c66180b1e2476d40ecbf64c26a36cfd261eaf582ff8e7af2e0297d5f90433d"
+  },
+  {
+    "path": "scripts/studio-tie-stem-ink.cjs",
+    "sha256": "9cd4ab50dad8f1e7ee8934f0f1fcd2d550fdfe155b5c3f109d02fe5eb14e8b6c"
+  },
+  {
+    "path": "scripts/verify-studio-warning-workflow.cjs",
+    "sha256": "e410232c49aff11088969e81146e39f1340122afcd1756a139336cec5bdd36a5"
+  },
+  {
+    "path": "out/renderer/index.html",
+    "sha256": "e2ab6bd10b3611005c88807c78e4797cbb4b1d8a6b413b8e3feab0e94a72a6d5"
+  },
+  {
+    "path": "out/preload/index.js",
+    "sha256": "90b764e9a8664f85254774caf0ca7a7f7b9d12762d4a6c4f948a1c342771fff6"
+  },
+  {
+    "path": "out/renderer/assets/piano-expression.worker-B1lZU1yp.js",
+    "sha256": "8e3198d11b4cb1faf0aa36effe83564e8daf2c7ff83480b58bef988ef45f7134"
+  },
+  {
+    "path": "out/renderer/assets/PretendardVariable-CJuje-Rk.woff2",
+    "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+  },
+  {
+    "path": "out/renderer/assets/index-BVpFehNE.css",
+    "sha256": "477c7af22392d9e029b2c2e352ba078b69ee3b964659ec3f0ff0685da7ee7f5e"
+  },
+  {
+    "path": "out/renderer/assets/index-DJiGxFzv.js",
+    "sha256": "dd827063be6c39fc0825ab09ff9acd967f6df50029821a3345f60bf0bcc39087"
+  }
+]

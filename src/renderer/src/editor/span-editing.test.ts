@@ -30,6 +30,17 @@ describe('span endpoint editing', () => {
     expect(score).toEqual(original)
   })
 
+  it('human endpoint labels preserve a sparse second voice number without exposing ticks or changing score', () => {
+    const {score}=setup()
+    for(const measure of score.parts[0].staves[0].measures) measure.voices=measure.voices.filter(voice=>voice.id==='voice-2')
+    const before=structuredClone(score)
+    const options=spanEndpointOptions(score,{kind:'hairpin',id:'h'})
+    expect(options.length).toBeGreaterThan(0)
+    expect(options.every(option=>option.label.includes('성부 2'))).toBe(true)
+    expect(options.every(option=>!option.label.includes('틱'))).toBe(true)
+    expect(score).toEqual(before)
+  })
+
   it('rejects missing, reversed, coincident, foreign and slur rest endpoints', () => {
     const { score, events } = setup()
     const foreign = structuredClone(score.parts[0])
