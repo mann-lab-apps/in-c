@@ -2701,14 +2701,18 @@ describe('App component shell', () => {
 
   it('studio.r3 PDF success exposes manual Score instructions without cleaning the project', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
-    vi.mocked(window.inC.pdf.save).mockResolvedValueOnce({fileName:'practice.pdf'})
+    let finishPdf!: (value: {fileName: string}) => void
+    vi.mocked(window.inC.pdf.save).mockImplementationOnce(() => new Promise(resolve => { finishPdf = resolve }))
     const { App } = await import('./App')
     render(<App />)
     fireEvent.keyDown(window,{code:'KeyC',key:'c'})
     openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', {name:'PDF 변환'}))
-    const guide=await screen.findByRole('button', {name:'가져오는 방법'})
+    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('region',{name:'PDF 출력 결과'})).not.toBeInTheDocument()
+    await act(async () => finishPdf({fileName:'practice.pdf'}))
     const result=screen.getByRole('region',{name:'PDF 출력 결과'})
+    const guide=within(result).getByRole('button', {name:'가져오는 방법'})
     expect(result.closest('.studio-chrome')).toBeNull()
     expect(within(result).getByRole('heading',{name:'PDF로 연습 이어가기'})).toHaveClass('dd-text--item-title')
     expect(guide).toHaveClass('dd-button')

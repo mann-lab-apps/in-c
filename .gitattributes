@@ -1,0 +1,2 @@
+# Preserve the pinned upstream XSD bytes on Windows and Unix checkouts.
+src/musicxml/schema/musicxml-4.0/*.xsd -text
