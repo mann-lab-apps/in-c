@@ -1,0 +1,43 @@
+{
+  "observedAtKst": "2026-11-04T03:36:58.761897+09:00",
+  "host": {
+    "system": "Darwin",
+    "architecture": "arm64",
+    "version": "26.6.2"
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run verify:chromatics-musescore-parity-roadmap",
+      "exitCode": 0,
+      "rows": 23
+    },
+    {
+      "command": "npm run verify:chromatics-v1-work-queue",
+      "exitCode": 0,
+      "rows": 48
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 -m py_compile out/release-qa/verify-publication-alpha39.py out/release-qa/verify-published-mac-alpha39.py",
+      "exitCode": 0
+    },
+    {
+      "command": "node --check out/brand-qa/piano-offline-muted.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --cached --check (after raw hdiutil evidence preservation)",
+      "exitCode": 0
+    }
+  ],
+  "evidenceConsistency": "JSON parses, current report links exist, QA tool hashes and visually reviewed output hashes match",
+  "localFullSuite": "Not repeated: no product changes; exact release-source platform test:all results recorded in release-ci.json/ci-platform-results.json",
+  "baselineChanged": false
+}

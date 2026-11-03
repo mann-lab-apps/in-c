@@ -1,0 +1,21 @@
+{
+  "tools": [
+    {
+      "usedPath": "out/release-qa/verify-publication-alpha39.py",
+      "archivedPath": "docs/releases/studio-alpha39-20261103/verification-scripts/verify-publication-alpha39.py",
+      "sha256": "6f0b0b84ea917126b3c46b1f83ea548b60c6011bf656f5337999f464642e7af7"
+    },
+    {
+      "usedPath": "out/release-qa/verify-published-mac-alpha39.py",
+      "archivedPath": "docs/releases/studio-alpha39-20261103/verification-scripts/verify-published-mac-alpha39.py",
+      "sha256": "ad497f210d00f407985a98585d3ac0106a56130dc8cff7503c397fbab6a04691"
+    },
+    {
+      "usedPath": "out/brand-qa/piano-offline-muted.mjs",
+      "archivedPath": "docs/releases/studio-alpha39-20261103/verification-scripts/piano-offline-muted.mjs",
+      "sha256": "a18e5be84e784f4dd2008f3ac168091d828ebdb757973f927f55561930d785e1"
+    }
+  ],
+  "workingDirectory": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103",
+  "notes": "Archived QA-only tools. Execute from repository root; mac verifier uses piano script at out/brand-qa/piano-offline-muted.mjs. Original helpers/failed logs preserved; no product changes."
+}

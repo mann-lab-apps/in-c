@@ -1,0 +1,8 @@
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:41.7894360Z  Test Files  364 passed | 1 skipped (365)
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:41.7921763Z       Tests  3789 passed | 23 skipped (3812)
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:42.0952445Z # tests 5
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:42.0953436Z # pass 5
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:42.0953998Z # fail 0
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:42.0955090Z # skipped 0
+Package Linux	UNKNOWN STEP	2026-11-03T15:04:47.8558094Z PACKAGED_APP_SMOKE_OK {"appName":"띠로리 Studio","hasMusicXmlBridge":true,"hasPdfBridge":true,"hasMidiBridge":true,"hasAutosaveBridge":true,"hasRecentBridge":true,"hasPromotionsBridge":true,"hasStartScreen":true,"hasStartActions":true,"partViewPdfTarget":{"labels":[],"pagePartId":"cello","pageViewMode":"part","pdfPageMarginMm":"6","pdfPageOrientation":"portrait","pdfPageSize":"a4","pdfStaffSizePercent":"90","pdfSystemSpacingPercent":"90","partTitle":"Cello","partTitlePartId":"cello","status":true,"visiblePartIds":["cello"]},"hasScoreWorkspace":true,"hasScoreTitle":true,"hasNotationSvg":true,"hasMusicXmlFileWrite":true,"hasRecentOpenRoundTrip":true,"hasMxlRoundTrip":true,"hasExportCopyRoundTrip":true,"hasNativeProjectRoundTrip":true,"hasNativeRecoveryRoundTrip":true,"hasNativeBackupUiRecovery":true,"hasNativePartLayout":true,"hasNativePartTitleEdit":true,"hasPartXmlLayout":true,"hasScoreWideMeasureEdit":true,"hasPdfFileWrite":true,"hasPartViewPdfTarget":true,"hasPartViewPdfFileWrite":true,"hasMidiFileWrite":true,"hasAutosaveRoundTrip":true}
+Package Linux	UNKNOWN STEP	2026-11-03T15:04:47.9792796Z Packaged app smoke test passed: /home/runner/work/in-c/in-c/release/linux-unpacked/in-c

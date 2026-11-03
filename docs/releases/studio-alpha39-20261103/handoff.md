@@ -30,3 +30,9 @@ Windows는 미서명으로 SmartScreen 안내가 표시될 수 있다. 외부 Mu
 목표 관리 도구는 `goal: null`을 반환했다. 활성 목표를 새로 만들거나 릴리즈를 완료 처리하지 않았다. 이 대화의 추가 구현·검증 대기는 종료한다. 이미 승인받아 시작한 GitHub workflow는 외부에서 계속 실행되며 모든 gate가 성공하면 자동 게시한다. 사용자가 릴리즈 취소를 지시한 것은 아니므로 workflow를 취소하지 않았다. 다음 작업은 새 workflow/tag 생성이 아니라 현재 실행과 게시 여부 조회부터 시작한다. 관측 시점 snapshot은 session-stop.json을 따른다.
 
 로컬에 준비한 helper는 out/release-qa/verify-publication-alpha39.py, verify-published-mac-alpha39.py다. 존재를 확인한 뒤 사용한다. out/brand-qa/piano-offline-muted.mjs는 기존 assertion을 보존한 음소거 QA copy이며 내부 재생 관측은 청음 승인이 아니다. out/release-qa/alpha39-release-notes-final.md에는 기존 in-C 종료 후 새 이름 앱을 설치하는 안내를 준비했으나 아직 GitHub release body에 적용하지 않았다. 사이트·main 병합은 계속 별도 범위다.
+
+## 2026-11-04 후속 검증 완료
+
+위 내용은 사용자 중지 시점의 기록으로 보존한다. 이후 같은 Release run이 성공하고 alpha.39가 2026-11-04 00:10:57 KST에 게시된 것을 확인했다. 공개 파일6개(925,513,584 bytes)의 digest/체크섬, 다운로드 DMG의 Universal·Developer ID·공증·Gatekeeper, 임시 프로필의 native/XML/MIDI/PDF smoke와 12초 음소거 피아노 관측을 통과했다. 실제 PDF2쪽과 이미지6개를 검토했고 자체 프로세스·mount는 종료했다.
+
+macOS 설치 안내는 기존 릴리즈 본문에만 추가했다. 태그 소스 `188d4ef4`와 게시 자산은 그대로다. 제품 소스 변경 없이 evidence를 브랜치에 추가하며, 상세 결과·플랫폼별 skip·ZIP 경로 관찰·미검증 범위는 [게시 후 검증](post-release-verification.md)을 따른다. 과거 `session-stop.json`이나 검증 당시의 미커밋 표기를 현재 상태로 재작성하지 않았다.

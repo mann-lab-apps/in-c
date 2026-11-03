@@ -1,0 +1,30 @@
+{
+  "macOS": {
+    "vitestFilesPassed": 364,
+    "vitestFilesSkipped": 1,
+    "testsPassed": 3811,
+    "testsSkipped": 1,
+    "nodeNativePassed": 5,
+    "nativePackagedSmoke": "passed",
+    "developerIdNotaryStapler": "passed in CI; downloaded app validation pending"
+  },
+  "Windows": {
+    "vitestFilesPassed": 364,
+    "vitestFilesSkipped": 1,
+    "testsPassed": 3811,
+    "testsSkipped": 1,
+    "nodeNativePassed": 5,
+    "nativePackagedSmoke": "passed on Windows runner",
+    "interactiveInstallation": "not performed"
+  },
+  "Linux": {
+    "vitestFilesPassed": 364,
+    "vitestFilesSkipped": 1,
+    "testsPassed": 3789,
+    "testsSkipped": 23,
+    "nodeNativePassed": 5,
+    "nativePackagedSmoke": "passed under xvfb on Linux runner",
+    "skipCoverage": "22 availability-guarded XSD cases + 1 external opt-in; skipped is not pass",
+    "interactiveInstallation": "not performed"
+  }
+}

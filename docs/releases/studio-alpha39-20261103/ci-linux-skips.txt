@@ -1,0 +1,10 @@
+Package Linux	UNKNOWN STEP	2026-11-03T14:53:32.0554602Z  ✓  studio  src/musicxml/strong-accent.test.ts (15 tests | 2 skipped) 76ms
+Package Linux	UNKNOWN STEP	2026-11-03T14:54:05.6372905Z  ✓  studio  src/musicxml/element-order.test.ts (24 tests | 7 skipped) 148ms
+Package Linux	UNKNOWN STEP	2026-11-03T14:56:56.0063082Z  ✓  studio  src/musicxml/harmony-display.test.ts (12 tests | 2 skipped) 79ms
+Package Linux	UNKNOWN STEP	2026-11-03T14:58:17.6998465Z  ✓  studio  src/musicxml/harmony-timing.test.ts (14 tests | 6 skipped) 90ms
+Package Linux	UNKNOWN STEP	2026-11-03T15:00:31.0827787Z  ✓  studio  src/musicxml/empty-voices.test.ts (5 tests | 1 skipped) 93ms
+Package Linux	UNKNOWN STEP	2026-11-03T15:01:56.2847557Z  ✓  studio  src/musicxml/harmony-schema.test.ts (11 tests | 4 skipped) 60ms
+Package Linux	UNKNOWN STEP	2026-11-03T15:02:10.7784314Z  ↓  studio  src/musicxml/musescore-mxl.test.ts (1 test | 1 skipped)
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:41.7894360Z  Test Files  364 passed | 1 skipped (365)
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:41.7921763Z       Tests  3789 passed | 23 skipped (3812)
+Package Linux	UNKNOWN STEP	2026-11-03T15:03:42.0955090Z # skipped 0

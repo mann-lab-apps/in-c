@@ -1,0 +1,5 @@
+{
+  "firstStagedDiffCheck": "failed: docs/releases/studio-alpha39-20261103/attach.txt:18 trailing whitespace from raw hdiutil output",
+  "commitWasPrevented": true,
+  "resolution": "Keep exact raw output and SHA256 in attach-raw.json, retain original out/.../attach.log unchanged; strip trailing whitespace only in readable attach.txt. No product or assertion changes."
+}

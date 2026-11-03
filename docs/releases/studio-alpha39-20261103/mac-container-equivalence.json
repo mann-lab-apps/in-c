@@ -1,0 +1,8 @@
+{
+  "zipAndDmgAppAsarIdentical": true,
+  "appAsarSha256": "853d506cd0b0d708ec908d207656a553daf0e5d3dfdfac40623d15965f09347c",
+  "zipAndDmgIconIdentical": true,
+  "iconSha256": "9b8a6f98c6d369432727bc7508ca4441e4f830fd1c155635a74cd4f5b809db20",
+  "executionContainer": "Downloaded read-only DMG",
+  "zipExtraction": "macOS ditto with actual filesystem name verified"
+}

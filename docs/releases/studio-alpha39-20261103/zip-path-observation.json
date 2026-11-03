@@ -1,0 +1,19 @@
+{
+  "pythonFirstProbe": "failed app-name assertion; zipfile default CP437 decode, before macOS extraction verification",
+  "pythonDecodedPath": "ßääßà╡ßäàßà⌐ßäàßà╡ Studio.app/Contents/Info.plist",
+  "flagBits": 0,
+  "rawPathAsUtf8": "띠로리 Studio.app/Contents/Info.plist",
+  "extraFields": [
+    {
+      "id": "0x5455",
+      "bytes": 5,
+      "hex": "030df8e96a"
+    },
+    {
+      "id": "0x7875",
+      "bytes": 11,
+      "hex": "0104f50100000414000000"
+    }
+  ],
+  "action": "No asset mutation or assertion relaxation; independently extract with macOS ditto and validate actual filesystem name and app metadata."
+}

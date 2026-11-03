@@ -1,0 +1,46 @@
+{
+  "tag": "v0.1.0-alpha.39",
+  "url": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.39",
+  "publishedAt": "2026-11-03T15:10:57Z",
+  "prerelease": true,
+  "draft": false,
+  "allDownloadsAndChecksumsVerified": true,
+  "assets": [
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.39-linux-x86_64.AppImage",
+      "bytes": 160071306,
+      "sha256": "54ef44d35984802e4a8b4122f6acac3b9d1e4bd15378e01ee9cfbcd051057046",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/Ddirori-Studio-0.1.0-alpha.39-linux-x86_64.AppImage"
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.39-mac-universal.dmg",
+      "bytes": 252296511,
+      "sha256": "5020b93e0074e0d3eaf5a3b4a62c419017ce3b9950560fb44924b294959b3a8a",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/Ddirori-Studio-0.1.0-alpha.39-mac-universal.dmg"
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.39-mac-universal.zip",
+      "bytes": 251786390,
+      "sha256": "686c553d6b0ac4860bbfe54080eda92754751b466c65ad09bed06b6ec35b80e3",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/Ddirori-Studio-0.1.0-alpha.39-mac-universal.zip"
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.39-windows-x64-portable.exe",
+      "bytes": 130573137,
+      "sha256": "c5c6ff9136224a6261b964068f86c7c90ea42ba7aa3a5ff5a8ade136c1fe121e",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/Ddirori-Studio-0.1.0-alpha.39-windows-x64-portable.exe"
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.39-windows-x64-setup.exe",
+      "bytes": 130785655,
+      "sha256": "923920d90f96553e41028974a97e17a72377d35416df5a01e734b2e9385d8fd3",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/Ddirori-Studio-0.1.0-alpha.39-windows-x64-setup.exe"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 585,
+      "sha256": "5072ba4b2191ea4a8a144eb8db6d65113f9827c1260504bff1974fd8bd888813",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.39/SHA256SUMS.txt"
+    }
+  ]
+}

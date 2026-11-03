@@ -1,0 +1,51 @@
+[
+  {
+    "platform": "macOS",
+    "jobId": 125984314287,
+    "selectedLog": "ci-macos-selected.txt",
+    "summaryLines": [
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:39.9399160Z  Test Files  364 passed | 1 skipped (365)",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:39.9421220Z       Tests  3811 passed | 1 skipped (3812)",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:40.6169760Z # tests 5",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:40.6170340Z # pass 5",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:40.6170660Z # fail 0",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:03:40.6171030Z # skipped 0",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:08:33.5957430Z   • notarization successful",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:09:27.4682920Z release/mac-universal/띠로리 Studio.app: valid on disk",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:09:27.4685810Z release/mac-universal/띠로리 Studio.app: satisfies its Designated Requirement",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:09:27.9729060Z The validate action worked!",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:09:39.0273950Z PACKAGED_APP_SMOKE_OK {\"appName\":\"띠로리 Studio\",\"hasMusicXmlBridge\":true,\"hasPdfBridge\":true,\"hasMidiBridge\":true,\"hasAutosaveBridge\":true,\"hasRecentBridge\":true,\"hasPromotionsBridge\":true,\"hasStartScreen\":true,\"hasStartActions\":true,\"partViewPdfTarget\":{\"labels\":[],\"pagePartId\":\"cello\",\"pageViewMode\":\"part\",\"pdfPageMarginMm\":\"6\",\"pdfPageOrientation\":\"portrait\",\"pdfPageSize\":\"a4\",\"pdfStaffSizePercent\":\"90\",\"pdfSystemSpacingPercent\":\"90\",\"partTitle\":\"Cello\",\"partTitlePartId\":\"cello\",\"status\":true,\"visiblePartIds\":[\"cello\"]},\"hasScoreWorkspace\":true,\"hasScoreTitle\":true,\"hasNotationSvg\":true,\"hasMusicXmlFileWrite\":true,\"hasRecentOpenRoundTrip\":true,\"hasMxlRoundTrip\":true,\"hasExportCopyRoundTrip\":true,\"hasNativeProjectRoundTrip\":true,\"hasNativeRecoveryRoundTrip\":true,\"hasNativeBackupUiRecovery\":true,\"hasNativePartLayout\":true,\"hasNativePartTitleEdit\":true,\"hasPartXmlLayout\":true,\"hasScoreWideMeasureEdit\":true,\"hasPdfFileWrite\":true,\"hasPartViewPdfTarget\":true,\"hasPartViewPdfFileWrite\":true,\"hasMidiFileWrite\":true,\"hasAutosaveRoundTrip\":true}",
+      "Package macOS\tUNKNOWN STEP\t2026-11-03T15:09:39.1974820Z Packaged app smoke test passed: /Users/runner/work/in-c/in-c/release/mac-universal/띠로리 Studio.app/Contents/MacOS/띠로리 Studio"
+    ]
+  },
+  {
+    "platform": "Linux",
+    "jobId": 125984314693,
+    "selectedLog": "ci-linux-selected.txt",
+    "summaryLines": [
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:41.7894360Z  Test Files  364 passed | 1 skipped (365)",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:41.7921763Z       Tests  3789 passed | 23 skipped (3812)",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:42.0952445Z # tests 5",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:42.0953436Z # pass 5",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:42.0953998Z # fail 0",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:03:42.0955090Z # skipped 0",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:04:47.8558094Z PACKAGED_APP_SMOKE_OK {\"appName\":\"띠로리 Studio\",\"hasMusicXmlBridge\":true,\"hasPdfBridge\":true,\"hasMidiBridge\":true,\"hasAutosaveBridge\":true,\"hasRecentBridge\":true,\"hasPromotionsBridge\":true,\"hasStartScreen\":true,\"hasStartActions\":true,\"partViewPdfTarget\":{\"labels\":[],\"pagePartId\":\"cello\",\"pageViewMode\":\"part\",\"pdfPageMarginMm\":\"6\",\"pdfPageOrientation\":\"portrait\",\"pdfPageSize\":\"a4\",\"pdfStaffSizePercent\":\"90\",\"pdfSystemSpacingPercent\":\"90\",\"partTitle\":\"Cello\",\"partTitlePartId\":\"cello\",\"status\":true,\"visiblePartIds\":[\"cello\"]},\"hasScoreWorkspace\":true,\"hasScoreTitle\":true,\"hasNotationSvg\":true,\"hasMusicXmlFileWrite\":true,\"hasRecentOpenRoundTrip\":true,\"hasMxlRoundTrip\":true,\"hasExportCopyRoundTrip\":true,\"hasNativeProjectRoundTrip\":true,\"hasNativeRecoveryRoundTrip\":true,\"hasNativeBackupUiRecovery\":true,\"hasNativePartLayout\":true,\"hasNativePartTitleEdit\":true,\"hasPartXmlLayout\":true,\"hasScoreWideMeasureEdit\":true,\"hasPdfFileWrite\":true,\"hasPartViewPdfTarget\":true,\"hasPartViewPdfFileWrite\":true,\"hasMidiFileWrite\":true,\"hasAutosaveRoundTrip\":true}",
+      "Package Linux\tUNKNOWN STEP\t2026-11-03T15:04:47.9792796Z Packaged app smoke test passed: /home/runner/work/in-c/in-c/release/linux-unpacked/in-c"
+    ]
+  },
+  {
+    "platform": "Windows",
+    "jobId": 125984314699,
+    "selectedLog": "ci-windows-selected.txt",
+    "summaryLines": [
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:15.9125301Z  Test Files  364 passed | 1 skipped (365)",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:15.9161095Z       Tests  3811 passed | 1 skipped (3812)",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:16.5750467Z # tests 5",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:16.5751014Z # pass 5",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:16.5751278Z # fail 0",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:03:16.5752125Z # skipped 0",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:04:54.0637508Z PACKAGED_APP_SMOKE_OK {\"appName\":\"띠로리 Studio\",\"hasMusicXmlBridge\":true,\"hasPdfBridge\":true,\"hasMidiBridge\":true,\"hasAutosaveBridge\":true,\"hasRecentBridge\":true,\"hasPromotionsBridge\":true,\"hasStartScreen\":true,\"hasStartActions\":true,\"partViewPdfTarget\":{\"labels\":[],\"pagePartId\":\"cello\",\"pageViewMode\":\"part\",\"pdfPageMarginMm\":\"6\",\"pdfPageOrientation\":\"portrait\",\"pdfPageSize\":\"a4\",\"pdfStaffSizePercent\":\"90\",\"pdfSystemSpacingPercent\":\"90\",\"partTitle\":\"Cello\",\"partTitlePartId\":\"cello\",\"status\":true,\"visiblePartIds\":[\"cello\"]},\"hasScoreWorkspace\":true,\"hasScoreTitle\":true,\"hasNotationSvg\":true,\"hasMusicXmlFileWrite\":true,\"hasRecentOpenRoundTrip\":true,\"hasMxlRoundTrip\":true,\"hasExportCopyRoundTrip\":true,\"hasNativeProjectRoundTrip\":true,\"hasNativeRecoveryRoundTrip\":true,\"hasNativeBackupUiRecovery\":true,\"hasNativePartLayout\":true,\"hasNativePartTitleEdit\":true,\"hasPartXmlLayout\":true,\"hasScoreWideMeasureEdit\":true,\"hasPdfFileWrite\":true,\"hasPartViewPdfTarget\":true,\"hasPartViewPdfFileWrite\":true,\"hasMidiFileWrite\":true,\"hasAutosaveRoundTrip\":true}",
+      "Package Windows\tUNKNOWN STEP\t2026-11-03T15:04:54.2609203Z Packaged app smoke test passed: D:\\a\\in-c\\in-c\\release\\win-unpacked\\in-C.exe"
+    ]
+  }
+]

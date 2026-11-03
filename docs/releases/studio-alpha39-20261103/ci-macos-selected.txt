@@ -1,0 +1,12 @@
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:39.9399160Z  Test Files  364 passed | 1 skipped (365)
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:39.9421220Z       Tests  3811 passed | 1 skipped (3812)
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:40.6169760Z # tests 5
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:40.6170340Z # pass 5
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:40.6170660Z # fail 0
+Package macOS	UNKNOWN STEP	2026-11-03T15:03:40.6171030Z # skipped 0
+Package macOS	UNKNOWN STEP	2026-11-03T15:08:33.5957430Z   • notarization successful
+Package macOS	UNKNOWN STEP	2026-11-03T15:09:27.4682920Z release/mac-universal/띠로리 Studio.app: valid on disk
+Package macOS	UNKNOWN STEP	2026-11-03T15:09:27.4685810Z release/mac-universal/띠로리 Studio.app: satisfies its Designated Requirement
+Package macOS	UNKNOWN STEP	2026-11-03T15:09:27.9729060Z The validate action worked!
+Package macOS	UNKNOWN STEP	2026-11-03T15:09:39.0273950Z PACKAGED_APP_SMOKE_OK {"appName":"띠로리 Studio","hasMusicXmlBridge":true,"hasPdfBridge":true,"hasMidiBridge":true,"hasAutosaveBridge":true,"hasRecentBridge":true,"hasPromotionsBridge":true,"hasStartScreen":true,"hasStartActions":true,"partViewPdfTarget":{"labels":[],"pagePartId":"cello","pageViewMode":"part","pdfPageMarginMm":"6","pdfPageOrientation":"portrait","pdfPageSize":"a4","pdfStaffSizePercent":"90","pdfSystemSpacingPercent":"90","partTitle":"Cello","partTitlePartId":"cello","status":true,"visiblePartIds":["cello"]},"hasScoreWorkspace":true,"hasScoreTitle":true,"hasNotationSvg":true,"hasMusicXmlFileWrite":true,"hasRecentOpenRoundTrip":true,"hasMxlRoundTrip":true,"hasExportCopyRoundTrip":true,"hasNativeProjectRoundTrip":true,"hasNativeRecoveryRoundTrip":true,"hasNativeBackupUiRecovery":true,"hasNativePartLayout":true,"hasNativePartTitleEdit":true,"hasPartXmlLayout":true,"hasScoreWideMeasureEdit":true,"hasPdfFileWrite":true,"hasPartViewPdfTarget":true,"hasPartViewPdfFileWrite":true,"hasMidiFileWrite":true,"hasAutosaveRoundTrip":true}
+Package macOS	UNKNOWN STEP	2026-11-03T15:09:39.1974820Z Packaged app smoke test passed: /Users/runner/work/in-c/in-c/release/mac-universal/띠로리 Studio.app/Contents/MacOS/띠로리 Studio

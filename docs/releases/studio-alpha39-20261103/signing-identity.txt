@@ -1,0 +1,29 @@
+Executable=/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/MacOS/띠로리 Studio
+Identifier=com.mannlab.inc
+Format=app bundle with Mach-O universal (x86_64 arm64)
+CodeDirectory v=20500 size=635 flags=0x10000(runtime) hashes=9+7 location=embedded
+VersionPlatform=1
+VersionMin=786432
+VersionSDK=1704448
+Hash type=sha256 size=32
+CandidateCDHash sha256=e3b94f90dd04576b59586507af06c7a37d1998c5
+CandidateCDHashFull sha256=e3b94f90dd04576b59586507af06c7a37d1998c50657b2b46b7a58c68c901c58
+Hash choices=sha256
+CMSDigest=e3b94f90dd04576b59586507af06c7a37d1998c50657b2b46b7a58c68c901c58
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=16384
+Executable Segment flags=0x1
+Page size=4096
+CDHash=e3b94f90dd04576b59586507af06c7a37d1998c5
+Signature size=9043
+Authority=Developer ID Application: Jae-man Kim (ZRA4DHHKQ4)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=Nov 4, 2026 at 12:06:27 AM
+Notarization Ticket=stapled
+Info.plist entries=32
+TeamIdentifier=ZRA4DHHKQ4
+Runtime Version=26.2.0
+Sealed Resources version=2 rules=13 files=12
+Internal requirements count=1 size=176

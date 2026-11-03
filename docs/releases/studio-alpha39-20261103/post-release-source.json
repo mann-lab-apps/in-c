@@ -1,0 +1,93 @@
+{
+  "tag": "v0.1.0-alpha.39",
+  "releaseSource": "188d4ef40422a221e64a97c6afc78e00000d1c94",
+  "branchHeadAtStart": "67a549bde50c5028715f18a17ff4317910f6f473",
+  "tagToBranchChangedPaths": [
+    "docs/releases/studio-alpha39-20261103/handoff.md",
+    "docs/releases/studio-alpha39-20261103/next-goal-prompt.md",
+    "docs/releases/studio-alpha39-20261103/session-stop.json"
+  ],
+  "unchangedInputs": [
+    {
+      "path": "package.json",
+      "sha256": "7be9512690be001323eae950db3544fdeac083b2c1a964165d2f8273135ffed1",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "f772f608ec77dc66a04bd88bc512451e69dbcd63bfc84bc1bb6797e36ad19817",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "sha256": "563e9efb52c1c615b0c9a332fc96aa2195fa4b3c7a63e9dfa04351ec56ede349",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "build/icon.svg",
+      "sha256": "2e3421f000035f5a0dfa62944a5a1fc10e54a31d0921fc02485d76443cdc0085",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "build/icon.png",
+      "sha256": "c8f281bedd4195af4a9e6bacf6a83e712794d7911863570cf8ae99d40c2bc181",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "build/icon.icns",
+      "sha256": "9b8a6f98c6d369432727bc7508ca4441e4f830fd1c155635a74cd4f5b809db20",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "build/icon.ico",
+      "sha256": "79508650b4327c97bc7a7edd803d721d256a30e2d4f8640b6de7f629f77d8427",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/desktop-identity.ts",
+      "sha256": "65ff813e048eddbd17535c1f7d590c4ffee833ac49b2ecc524151c9e1f805127",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/main/desktop-brand.ts",
+      "sha256": "c74353f76de8405dc14825a883f48cf2ef2a615df1bd36d55c83defbfff56db1",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/main/index.ts",
+      "sha256": "91545018171ea23ea7757e6c0991fb3e84f8842854e774a9ec410964fc9d345b",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/preload/index.ts",
+      "sha256": "9884a13c55703b730ff162ccc89a10e99868947f21255b31112a42f8b07c2fe9",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/renderer/index.html",
+      "sha256": "36b227b543941c08f30f18c0bfb47e7f4ba5ab25502d200df002d8cdfea7f8ed",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "7fb1101b4c4bef0dc0f41223305107a2e718d96d3992433481f87d29c162adf8",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "src/renderer/src/SpanProperties.tsx",
+      "sha256": "ee79c8784780c2056b7eec2d48d293470a0edb4104e8b42e0ba6f351dad8b754",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "scripts/desktop-package.cjs",
+      "sha256": "822ba236c1921bb84133cba0c33fc6ead5def69bc5b64ca7ed7348fd37417870",
+      "matchesReleaseTag": true
+    },
+    {
+      "path": "scripts/verify-packaged-app.cjs",
+      "sha256": "128b4a276009bd21160b2a1a9a6bb6a974d1da0238fdca33c1dfc8415f6f8422",
+      "matchesReleaseTag": true
+    }
+  ],
+  "scope": "Read-only released runtime and packaging-source equivalence; no rebuilding or local suite repetition during download validation"
+}

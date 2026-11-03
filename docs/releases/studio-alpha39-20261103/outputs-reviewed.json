@@ -1,0 +1,44 @@
+{
+  "reviewedAtKst": "2026-11-04T03:35:08.889687+09:00",
+  "method": "Local PNG visual inspection through view_image; PDF rendered with Poppler pdftoppm -scale-to 1400 -png",
+  "pdfPages": 2,
+  "baselineChanged": false,
+  "items": [
+    {
+      "path": "reviewed/pdf-page-1.png",
+      "sha256": "877f6f3aadb8baf9cc595fc8cc7c6207d0fe9e77726dc14789d515b47d40f882",
+      "condition": "Downloaded signed DMG smoke, A4 part PDF page1",
+      "review": "Packaged Smoke Score / Cello Rehearsal / Codex QA and tempo96; one whole-rest bar. Intentional part page break; readable glyphs, no clipping observed."
+    },
+    {
+      "path": "reviewed/pdf-page-2.png",
+      "sha256": "f5b8afd9406918110d37f732a2e4164d86d5aac34550755449233669e70f292d",
+      "condition": "Same PDF page2",
+      "review": "Three whole-rest bars on the next page, no repeated header. Matches intentional native part page-break fixture; no clipping observed. Not a dense engraving approval."
+    },
+    {
+      "path": "reviewed/in-c-native-backups-960.png",
+      "sha256": "f966db3976d40fcbed8fe7edd9be92d298e8359b9711e0b6ebf1c0d419b99194",
+      "condition": "Downloaded signed DMG, owned synthetic project, 960px logical window",
+      "review": "Backup dialog close/restore controls and long generated filenames remain inside viewport. Retina PNG1920px; programmatic smoke rather than physical-pointer/OS dialog approval."
+    },
+    {
+      "path": "reviewed/in-c-native-backups-1400.png",
+      "sha256": "40eef5596ad99e65db4cbab26352bba644e5556b9a88ef1150dd34cc9057da09",
+      "condition": "Same synthetic backup, 1400px logical window",
+      "review": "Backup dialog and filename wrapping fit. Retina PNG2800px; same automated interaction limitation."
+    },
+    {
+      "path": "reviewed/published-icon.png",
+      "sha256": "eefe850bc81dc4adcdd10a6eaee455c8df7da7d517ecea9db9fde60f10ab8134",
+      "condition": "Published DMG icon.icns decoded with sips",
+      "review": "Blue background with black pencil; byte-identical to verified build/icon.icns. This is package-asset review, not Finder/Dock cache or installed-user-app replacement."
+    },
+    {
+      "path": "reviewed/packaged-12s.png",
+      "sha256": "8f65dc2b8b713d25619dc570cde4ef3b600b135b4fb40a74747875141b0f8f31",
+      "condition": "Downloaded signed DMG, generated1000-note fixture after muted playback stop",
+      "review": "Editor/palette/notation rendered, no visible corruption in captured viewport; title and bridge name separately asserted. Programmatic interaction; no physical pointer, listening, endurance or complete1000-note score review."
+    }
+  ]
+}

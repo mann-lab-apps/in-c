@@ -1,0 +1,18 @@
+{
+  "observedAtKst": "2026-11-04T03:34:43.852544+09:00",
+  "releaseId": 432855218,
+  "url": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.39",
+  "operation": "Edit existing release body only: append macOS installation guidance",
+  "beforeBodySha256": "c4769edda1b0498b423c7d950de4e3a962bae88c168099baa3d0fcff32625096",
+  "afterBodySha256": "27af6fe0a0a637a1df19ace9126acb7553a4e8572a9e24caa7af182458530421",
+  "tagTitlePublishTimeAndAssetsUnchanged": true,
+  "assetIds": [
+    706030695,
+    706030674,
+    706030684,
+    706030692,
+    706030677,
+    706031328
+  ],
+  "newReleaseCreated": false
+}

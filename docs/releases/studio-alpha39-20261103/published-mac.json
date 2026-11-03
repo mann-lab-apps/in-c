@@ -1,0 +1,157 @@
+{
+  "version": "0.1.0-alpha.39",
+  "artifact": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/release-qa/published-alpha39/Ddirori-Studio-0.1.0-alpha.39-mac-universal.dmg",
+  "checks": [
+    {
+      "name": "attach",
+      "exitCode": 0,
+      "seconds": 4.254
+    },
+    {
+      "name": "icon-preview",
+      "exitCode": 0,
+      "seconds": 0.033
+    },
+    {
+      "name": "architectures",
+      "exitCode": 0,
+      "seconds": 0.481
+    },
+    {
+      "name": "codesign",
+      "exitCode": 0,
+      "seconds": 2.385
+    },
+    {
+      "name": "signing-identity",
+      "exitCode": 0,
+      "seconds": 0.013
+    },
+    {
+      "name": "stapler",
+      "exitCode": 0,
+      "seconds": 0.767
+    },
+    {
+      "name": "gatekeeper",
+      "exitCode": 0,
+      "seconds": 2.995
+    },
+    {
+      "name": "smoke",
+      "exitCode": 0,
+      "seconds": 10.513
+    },
+    {
+      "name": "piano",
+      "exitCode": 0,
+      "seconds": 14.103
+    }
+  ],
+  "observedAtKst": "2026-11-04T03:32:41.006157+09:00",
+  "releaseSource": "188d4ef40422a221e64a97c6afc78e00000d1c94",
+  "bundleMetadata": {
+    "CFBundleName": "띠로리 Studio",
+    "CFBundleExecutable": "띠로리 Studio",
+    "CFBundleDisplayName": "띠로리 Studio",
+    "CFBundleShortVersionString": "0.1.0-alpha.39",
+    "CFBundleVersion": "0.1.0-alpha.39",
+    "CFBundleIconFile": "icon.icns"
+  },
+  "iconSha256": "9b8a6f98c6d369432727bc7508ca4441e4f830fd1c155635a74cd4f5b809db20",
+  "iconMatchesVerifiedBrandAsset": true,
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "bundleIdentifier": "com.mannlab.inc",
+  "isolatedProfile": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-smoke-qlwxn1yw",
+  "nativeSmokeResult": {
+    "appName": "띠로리 Studio",
+    "hasMusicXmlBridge": true,
+    "hasPdfBridge": true,
+    "hasMidiBridge": true,
+    "hasAutosaveBridge": true,
+    "hasRecentBridge": true,
+    "hasPromotionsBridge": true,
+    "hasStartScreen": true,
+    "hasStartActions": true,
+    "partViewPdfTarget": {
+      "labels": [],
+      "pagePartId": "cello",
+      "pageViewMode": "part",
+      "pdfPageMarginMm": "6",
+      "pdfPageOrientation": "portrait",
+      "pdfPageSize": "a4",
+      "pdfStaffSizePercent": "90",
+      "pdfSystemSpacingPercent": "90",
+      "partTitle": "Cello",
+      "partTitlePartId": "cello",
+      "status": true,
+      "visiblePartIds": [
+        "cello"
+      ]
+    },
+    "hasScoreWorkspace": true,
+    "hasScoreTitle": true,
+    "hasNotationSvg": true,
+    "hasMusicXmlFileWrite": true,
+    "hasRecentOpenRoundTrip": true,
+    "hasMxlRoundTrip": true,
+    "hasExportCopyRoundTrip": true,
+    "hasNativeProjectRoundTrip": true,
+    "hasNativeRecoveryRoundTrip": true,
+    "hasNativeBackupUiRecovery": true,
+    "hasNativePartLayout": true,
+    "hasNativePartTitleEdit": true,
+    "hasPartXmlLayout": true,
+    "hasScoreWideMeasureEdit": true,
+    "hasPdfFileWrite": true,
+    "hasPartViewPdfTarget": true,
+    "hasPartViewPdfFileWrite": true,
+    "hasMidiFileWrite": true,
+    "hasAutosaveRoundTrip": true
+  },
+  "smokeArtifacts": [
+    {
+      "name": "in-c-native-part-layout.pdf",
+      "bytes": 47272,
+      "sha256": "8ef80d102e4466b77b21f8587580afb136c6e51eea01147f079f4435b96c54f1",
+      "sourceDirectory": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T",
+      "modifiedWithinOwnedRun": true,
+      "archivedPath": "docs/releases/studio-alpha39-20261103/reviewed/in-c-native-part-layout.pdf"
+    },
+    {
+      "name": "in-c-native-part-layout.musicxml",
+      "bytes": 3483,
+      "sha256": "5f48e47aa7229b9c052a1ae8a0ef0481420d6eed7ccc7cafbb5c4b790c5790d8",
+      "sourceDirectory": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T",
+      "modifiedWithinOwnedRun": true,
+      "archivedPath": "docs/releases/studio-alpha39-20261103/reviewed/in-c-native-part-layout.musicxml"
+    },
+    {
+      "name": "in-c-native-backups-960.png",
+      "bytes": 257246,
+      "sha256": "f966db3976d40fcbed8fe7edd9be92d298e8359b9711e0b6ebf1c0d419b99194",
+      "sourceDirectory": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T",
+      "modifiedWithinOwnedRun": true,
+      "archivedPath": "docs/releases/studio-alpha39-20261103/reviewed/in-c-native-backups-960.png"
+    },
+    {
+      "name": "in-c-native-backups-1400.png",
+      "bytes": 313598,
+      "sha256": "40eef5596ad99e65db4cbab26352bba644e5556b9a88ef1150dd34cc9057da09",
+      "sourceDirectory": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T",
+      "modifiedWithinOwnedRun": true,
+      "archivedPath": "docs/releases/studio-alpha39-20261103/reviewed/in-c-native-backups-1400.png"
+    }
+  ],
+  "automatedNativeSmoke": "passed; generated fixtures and isolated userData",
+  "piano": "passed; muted 12-second offline graph/sample QA; not listening/endurance approval",
+  "interactiveInstallationOrOsDialogs": "not performed",
+  "status": "passed",
+  "detached": true,
+  "requestedTemporaryDirectory": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/release-qa/published-mac-alpha39/smoke-temp",
+  "actualSmokeArtifactsDirectory": "/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T",
+  "temporaryDirectoryObservation": "macOS Electron smoke used OS temp rather than requested TMPDIR. Only four known generated QA filenames with mtimes within this owned run were copied; no user project/profile files were read. userData/sessionData remained isolated."
+}

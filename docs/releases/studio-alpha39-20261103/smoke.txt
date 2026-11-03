@@ -1,0 +1,16 @@
+PACKAGED_APP_SMOKE_STAGE renderer-loaded
+PACKAGED_APP_SMOKE_STAGE renderer-ready/visible 189
+PACKAGED_APP_SMOKE_STAGE wizard 341
+PACKAGED_APP_SMOKE_STAGE score-created 1236
+PACKAGED_APP_SMOKE_STAGE format-roundtrip 1254
+PACKAGED_APP_SMOKE_STAGE part-pdf 1764
+PACKAGED_APP_SMOKE_STAGE native-project 1853
+PACKAGED_APP_SMOKE_STAGE native-pdf 3225
+PACKAGED_APP_SMOKE_STAGE renderer-complete 3599
+PACKAGED_APP_SMOKE_STAGE file-validation
+PACKAGED_APP_SMOKE_STAGE backup-viewports
+PACKAGED_APP_SMOKE_OK {"appName":"띠로리 Studio","hasMusicXmlBridge":true,"hasPdfBridge":true,"hasMidiBridge":true,"hasAutosaveBridge":true,"hasRecentBridge":true,"hasPromotionsBridge":true,"hasStartScreen":true,"hasStartActions":true,"partViewPdfTarget":{"labels":[],"pagePartId":"cello","pageViewMode":"part","pdfPageMarginMm":"6","pdfPageOrientation":"portrait","pdfPageSize":"a4","pdfStaffSizePercent":"90","pdfSystemSpacingPercent":"90","partTitle":"Cello","partTitlePartId":"cello","status":true,"visiblePartIds":["cello"]},"hasScoreWorkspace":true,"hasScoreTitle":true,"hasNotationSvg":true,"hasMusicXmlFileWrite":true,"hasRecentOpenRoundTrip":true,"hasMxlRoundTrip":true,"hasExportCopyRoundTrip":true,"hasNativeProjectRoundTrip":true,"hasNativeRecoveryRoundTrip":true,"hasNativeBackupUiRecovery":true,"hasNativePartLayout":true,"hasNativePartTitleEdit":true,"hasPartXmlLayout":true,"hasScoreWideMeasureEdit":true,"hasPdfFileWrite":true,"hasPartViewPdfTarget":true,"hasPartViewPdfFileWrite":true,"hasMidiFileWrite":true,"hasAutosaveRoundTrip":true}
+Error occurred in handler for 'musicxml:export': Error: 열거나 저장한 원본 악보와 다른 경로로 내보내 주세요.
+    at MusicXmlFileSession.exportCopy (/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Resources/app.asar/out/main/index.js:93:15)
+    at async /private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Resources/app.asar/out/main/index.js:1330:3
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:117721)

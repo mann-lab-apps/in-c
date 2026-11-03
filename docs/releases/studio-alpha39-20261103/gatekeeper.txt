@@ -1,0 +1,2 @@
+/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app: accepted
+source=Notarized Developer ID

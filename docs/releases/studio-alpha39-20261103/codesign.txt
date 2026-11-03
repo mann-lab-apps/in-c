@@ -1,0 +1,20 @@
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (GPU).app
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (GPU).app
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (Plugin).app
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (Plugin).app
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (Renderer).app
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper (Renderer).app
+--prepared:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper.app
+--validated:/private/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app/Contents/Frameworks/띠로리 Studio Helper.app
+/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app: valid on disk
+/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/studio-alpha39-published-gsube919/띠로리 Studio.app: satisfies its Designated Requirement
