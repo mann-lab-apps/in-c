@@ -1,0 +1,52 @@
+{
+  "run": 41581030858,
+  "workflowStatusAtRead": "in_progress",
+  "workflowConclusionAtRead": "",
+  "requiredPreflightJobs": "both completed successfully",
+  "sourceCommit": "580e36b401792698653f7a6aaed31c9aa1d40f84",
+  "scope": "targeted package smoke; full-test/publication jobs skipped intentionally",
+  "checks": [
+    {
+      "platform": "linux",
+      "deadlineSeconds": 20,
+      "passed": true,
+      "rawLog": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-release-alpha35-20261103/out/release-qa/alpha38-preflight-linux.log",
+      "sha256": "3ed0eb78541a4d367e8291ab15c585e0dc3f970bfc2fd26aa8318ee2f1ccf03a",
+      "stages": [
+        "2026-11-03T04:58:08.0347556Z PACKAGED_APP_SMOKE_STAGE renderer-loaded",
+        "2026-11-03T04:58:08.1687721Z PACKAGED_APP_SMOKE_STAGE renderer-ready/visible 443",
+        "2026-11-03T04:58:08.3201425Z PACKAGED_APP_SMOKE_STAGE wizard 594",
+        "2026-11-03T04:58:09.3831917Z PACKAGED_APP_SMOKE_STAGE score-created 1658",
+        "2026-11-03T04:58:09.4062136Z PACKAGED_APP_SMOKE_STAGE format-roundtrip 1681",
+        "2026-11-03T04:58:09.9820094Z PACKAGED_APP_SMOKE_STAGE part-pdf 2256",
+        "2026-11-03T04:58:10.0603001Z PACKAGED_APP_SMOKE_STAGE native-project 2335",
+        "2026-11-03T04:58:11.7658573Z PACKAGED_APP_SMOKE_STAGE native-pdf 4040",
+        "2026-11-03T04:58:12.2216628Z PACKAGED_APP_SMOKE_STAGE renderer-complete 4496",
+        "2026-11-03T04:58:12.2234313Z PACKAGED_APP_SMOKE_STAGE file-validation",
+        "2026-11-03T04:58:12.2254134Z PACKAGED_APP_SMOKE_STAGE backup-viewports",
+        "2026-11-03T04:58:13.5652528Z Packaged app smoke test passed: /home/runner/work/in-c/in-c/release/linux-unpacked/in-c"
+      ]
+    },
+    {
+      "platform": "windows",
+      "deadlineSeconds": 20,
+      "passed": true,
+      "rawLog": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-release-alpha35-20261103/out/release-qa/alpha38-preflight-windows.log",
+      "sha256": "34a8c5a959db5ab6050bd5dcef527c932f2e68584c65ea0295a5abf61b6e6189",
+      "stages": [
+        "2026-11-03T04:58:49.9230637Z PACKAGED_APP_SMOKE_STAGE renderer-loaded",
+        "2026-11-03T04:58:50.5091995Z PACKAGED_APP_SMOKE_STAGE renderer-ready/visible 1017",
+        "2026-11-03T04:58:50.6682029Z PACKAGED_APP_SMOKE_STAGE wizard 1177",
+        "2026-11-03T04:58:51.2655976Z PACKAGED_APP_SMOKE_STAGE score-created 1775",
+        "2026-11-03T04:58:51.3319994Z PACKAGED_APP_SMOKE_STAGE format-roundtrip 1841",
+        "2026-11-03T04:58:52.0132522Z PACKAGED_APP_SMOKE_STAGE part-pdf 2522",
+        "2026-11-03T04:58:52.1655108Z PACKAGED_APP_SMOKE_STAGE native-project 2675",
+        "2026-11-03T04:58:53.9764918Z PACKAGED_APP_SMOKE_STAGE native-pdf 4485",
+        "2026-11-03T04:58:54.5173963Z PACKAGED_APP_SMOKE_STAGE renderer-complete 5027",
+        "2026-11-03T04:58:54.5217602Z PACKAGED_APP_SMOKE_STAGE file-validation",
+        "2026-11-03T04:58:54.5268855Z PACKAGED_APP_SMOKE_STAGE backup-viewports",
+        "2026-11-03T04:58:55.6163854Z Packaged app smoke test passed: D:\\a\\in-c\\in-c\\release\\win-unpacked\\in-C.exe"
+      ]
+    }
+  ]
+}
