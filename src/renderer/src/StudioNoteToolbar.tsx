@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode, type KeyboardEvent } from 'react'
-import { Group, IconButton, Text, Tooltip } from '@ddirori/ui'
+import { Button, Group, IconButton, Text, Tooltip } from '@ddirori/ui'
 import { Minus, Pencil, Plus } from 'lucide-react'
 import { VexFlow } from 'vexflow'
 import type { DurationValue, Pitch } from '../../score-core'
 import './studio-note-toolbar.css'
+import { StudioDecorationGlyph } from './StudioNoteDecorations'
 
 const { Glyphs } = VexFlow
 const musicGlyphs = {
@@ -62,6 +63,12 @@ interface Props {
   onDots: (direction: -1 | 1) => void
   onTie: () => void
   onTuplet: () => void
+  graceEnabled: boolean
+  graceSelected: boolean
+  onGrace: () => void
+  graceConvertEnabled: boolean
+  graceConvertReason?: string
+  onGraceConvert: () => void
   accidental?: Pitch['alter']
   accidentalEnabled: boolean
   onAccidental: (alter: NonNullable<Pitch['alter']>) => void
@@ -114,6 +121,16 @@ export function StudioNoteToolbar(props: Props) {
           <IconButton label={props.tupletLabel} disabled={props.rhythmDisabled} selected={props.tupletActive} onClick={props.onTuplet}><MusicGlyph kind="tuplet" /></IconButton>
         </Tooltip>
       </Group>
+      <Tooltip text={props.graceEnabled ? '선택 음표 앞에 음가를 차지하지 않는 꾸밈음을 추가하거나 제거합니다. · Alt+G' : '꾸밈음을 붙일 음표 하나를 선택하세요. 음표 입력 중에는 Esc로 선택 모드로 돌아오세요.'}>
+        <Button kind="secondary" aria-label={`${props.graceSelected ? '꾸밈음 제거' : '꾸밈음 추가'}, 단축키 Alt+G`}
+          aria-keyshortcuts="Alt+G" selected={props.graceSelected} disabled={!props.graceEnabled} onClick={props.onGrace}>
+          <span className="studio-note-toolbar__grace-action"><StudioDecorationGlyph kind="grace" /><span>꾸밈음</span></span>
+        </Button>
+      </Tooltip>
+      <Tooltip text={props.graceConvertReason ?? '선택 음표를 다음 음표의 꾸밈음으로 바꾸고, 뒤 음표를 당긴 뒤 마디 끝을 쉼표로 채웁니다. · Alt+Shift+G'}>
+        <Button kind="secondary" aria-label="꾸밈음으로 변환, 단축키 Alt+Shift+G" aria-keyshortcuts="Alt+Shift+G"
+          disabled={!props.graceConvertEnabled} onClick={props.onGraceConvert}>꾸밈음으로 변환</Button>
+      </Tooltip>
       <Group label="임시표">
         {([[-1, 'flat', '플랫'], [0, 'natural', '제자리표'], [1, 'sharp', '샤프']] as const).map(([alter, glyph, label]) =>
           <Tooltip key={alter} text={props.accidentalEnabled

@@ -1,5 +1,11 @@
 > Current work: [live checkpoint and execution index](../product/studio-active-work.md). Older Current/Latest headings below are historical evidence.
 
+## 2026-11-03 — 별도 desktop-brand worktree / 사용자 피드백
+
+`feature/studio-desktop-brand-20261103`, base653497ac, 미커밋 로컬 구현이다. 띠로리 Studio 이름/blue-pencil 패키지·데이터 경로 보존, 빠르기 draft, 꾸밈음 노출/변환, 명시적 음가 덮어쓰기, 실제 단축키 도움말, MuseScore식 방향키, tapered 슬러와 한 마디 박자표 진입을 검증했다. 원본 작업 공간과 기존 설치/게시물은 바꾸지 않았다.
+
+실제960/1400 renderer·native/undo·PDF와 macOS DMG/Finder/창/메뉴/About/Dock을 확인했다. 최신 전체 gate: **Vitest364파일/3,811검사 PASS, 외부 opt-in1파일/1검사 skip, Node 도구5검사 PASS (551.42초, 입력/빌드1,026개 변경 없음)**. 현재 profile/fixed 기준에서 슬러 y/높이9값씩만 잉크 비교 후 갱신했고 다른 기보 metrics는 유지했다. Windows/Linux 실행·물리 IME/OS 파일 dialog·청음/외부 앱은 미검증이다. 자세한 소스/산출물·실패·지원 경계는 `docs/releases/studio-desktop-brand-20261103/handoff.md`와 `docs/product/studio-desktop-feedback-backlog-20261103.md`를 따른다. Commercial V1/RC 전체 완료가 아니다.
+
 2026-11-03 — alpha.38 release: isolated source `7732441ca6586672f3f1ad12794d6b3f6d6c5ce1`, full Release workflow `41581664095` PASS and prerelease published. macOS/Windows each 3,767 Vitest passes/1 external opt-in skip; Linux 3,745 passes/23 skips; Node-native5 and packaged smoke pass on all platforms. All six assets downloaded and checksum-verified. Actual published universal DMG passed deep/strict codesign, stapler, Gatekeeper and isolated native smoke plus muted 12-second piano QA; mounted image detached. Original dirty workspace preserved. Website metadata is draft PR #790, not merged/deployed. Physical input/listening/external MuseScore limits remain; no baseline change or whole V1/RC claim. See [release handoff](../releases/studio-alpha38-20261103/handoff.md) and linked JSON evidence; earlier candidate failures remain historical evidence.
 
 2026-11-01 — 552(551/547 포함) 전체254 files/2947 tests·Node-native5 PASS, 외부opt-in1 skipped. 2788개 입력/build/설치 lock 유지. 553은 동일 runtime의 확정 command+미확정 입력 조합4 actual을 QA-only로 확인했다. 이후554는 설정 grid 정렬 한 줄로 help 전후 control 행 차이를100%11→59/200%8→182px에서 모두0px로 보완했다(관련58/actual4/profile/fixed). 555는960/200% Enter 오류 문구가 footer 뒤에 가려지는 문제를 actual로 재현해 기존 validation reveal을 재사용했다(새7 포함 관련100/actual8/typecheck/build/profile/fixed). 현재555 고정 소스에554를 포함한 전체 gate 중이다. baseline 변경 없음. 각 실패/도구 가정 오류와 물리·외부 미검증 범위는553/554/555 반환 자료에 보존한다.

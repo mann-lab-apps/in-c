@@ -1,0 +1,31 @@
+{
+  "localOnly": true,
+  "app": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-package-feedback/mac-arm64/띠로리 Studio.app",
+  "profile": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-qa/os-feedback/profile",
+  "screenOnlyOwnedWindows": true,
+  "aboutMenuLabel": "About 띠로리 Studio",
+  "pid": 48971,
+  "nativeWindowTitle": "띠로리 Studio",
+  "nativeMenuTitles": [
+    "Apple",
+    "띠로리 Studio",
+    "File",
+    "Edit",
+    "View",
+    "Window"
+  ],
+  "osRunningName": "띠로리 Studio",
+  "aboutWindow": {
+    "bounds": {
+      "Height": 189,
+      "Width": 282,
+      "X": 723,
+      "Y": 234
+    },
+    "id": 56717,
+    "title": ""
+  },
+  "aboutOpened": true,
+  "existingInstalledAppUsed": false,
+  "ownedProcessEnded": true
+}

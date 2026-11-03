@@ -10,6 +10,7 @@ build/*
 !build/icon.svg
 !build/icon.png
 !build/icon.icns
+!build/icon.ico
 release/
 /releases/
 apps/*/releases/

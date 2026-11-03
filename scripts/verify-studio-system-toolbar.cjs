@@ -396,7 +396,7 @@ app.whenReady().then(async()=>{
    await query('');await key('Down');const first=await run(()=>document.activeElement.getAttribute('aria-label'));await key('End');assert.notEqual(await run(()=>document.activeElement.getAttribute('aria-label')),first);await geometry('keyboard-last');await key('Home');assert.equal(await run(()=>document.activeElement.getAttribute('aria-label')),first)
    await key('Escape');await wait(()=>!document.querySelector('.studio-command-search'));assert.equal(await run(()=>document.activeElement?.textContent.trim()),'도구')
    assert.deepEqual(await save('search-navigation'),original)
-   step+=':command-search-undo';await run(()=>{const n=document.querySelector('.score-canvas .notation-event[data-event-id="m1-c4"]');n.scrollIntoView({block:'center'});n.focus()});await key('Enter');await clickButton('악보로 이동');await key('Up',['alt']);const edited=await save('search-edit');assert.notDeepEqual(edited,original)
+   step+=':command-search-undo';await run(()=>{const n=document.querySelector('.score-canvas .notation-event[data-event-id="m1-c4"]');n.scrollIntoView({block:'center'});n.focus()});await key('Enter');await clickButton('악보로 이동');await key('Up',['alt','shift']);const edited=await save('search-edit');assert.notDeepEqual(edited,original)
    await open();await query('실행 취소');assert.equal(await run(()=>document.querySelector('.studio-command-search button[aria-label="편집 · 실행 취소"]').disabled),false);await key('Enter');await wait(()=>!document.querySelector('.studio-command-search'));assert.deepEqual(await save('search-undo'),original)
    await open();await query('PDF 페이지');await key('Down');await key('Enter');await wait(()=>!document.querySelector('.studio-command-search'));await wait(()=>document.activeElement?.matches('.studio-page-setup [role=combobox]'))
    const focus=await run(()=>({role:document.activeElement.getAttribute('role'),label:document.activeElement.textContent,box:document.activeElement.getBoundingClientRect().toJSON()}));assert.deepEqual(await save('search-workspace'),original)
@@ -465,7 +465,7 @@ app.whenReady().then(async()=>{
   if(saveDocumentOnly){
    await run(()=>{window.confirm=()=>true})
    const baseline=await save('older-baseline'),oldFile=lastProjectSaveFile,oldBytes=fs.readFileSync(oldFile)
-   await clickButton('악보로 이동');await key('Up',['alt'],'.notation-event.is-selected');assert.equal(await history(),'1회 수정')
+   await clickButton('악보로 이동');await key('Up',['alt','shift'],'.notation-event.is-selected');assert.equal(await history(),'1회 수정')
    let release
    const gate={kind:c.operation,promise:new Promise(resolve=>{release=resolve}),entered:false}
    documentSaveGate=gate
@@ -519,7 +519,7 @@ app.whenReady().then(async()=>{
    await run(()=>{const n=document.querySelector('[role="option"][data-value="string-quartet"]');if(!n?.checkVisibility())throw Error('Actual quartet option required');n.click()});await settle()
    await clickButton('만들기');await clickButton('악보로 이동');await key('N');await key('C');await key('N')
    const source=await save('copy-baseline'),primary=path.join(scene,'current.chromatics'),primaryBytes=fs.readFileSync(primary)
-   await clickButton('악보로 이동');await key('Up',['alt'],'.notation-event.is-selected')
+   await clickButton('악보로 이동');await key('Up',['alt','shift'],'.notation-event.is-selected')
    const expected=structuredClone(source),note=expected.parts.flatMap(p=>p.staves.flatMap(s=>s.measures.flatMap(m=>m.voices.flatMap(v=>v.events)))).find(e=>e.type==='note');assert.equal(note.pitch.step,'C');note.pitch.step='D'
    if(c.copyView==='part'){
     await click('악보')
@@ -620,7 +620,7 @@ app.whenReady().then(async()=>{
    const requestStart=xmlFeedbackRequests.length
    await click('파일');await clickButton('MusicXML로 저장');await wait(()=>document.querySelector('.studio-document__state').textContent==='변경 없음')
    const originalBytes=fs.readFileSync(path.join(scene,'output.musicxml'))
-   await clickButton('악보로 이동');await key('Up',['alt'],'.notation-event.is-selected');assert.equal(await history(),'1회 수정')
+   await clickButton('악보로 이동');await key('Up',['alt','shift'],'.notation-event.is-selected');assert.equal(await history(),'1회 수정')
    const selected=await run(()=>[...document.querySelectorAll('.notation-event.is-selected')].map(n=>n.dataset.eventId))
    rejectXmlStage=c.xmlFailureStage
    await click('파일');await run(()=>{const n=document.querySelector('button[aria-label="MusicXML로 저장"]');n.scrollIntoView({block:'center'});n.focus()});await key('Enter',[],'button[aria-label="MusicXML로 저장"]')
@@ -656,7 +656,7 @@ app.whenReady().then(async()=>{
    await settle();await clickButton('만들기');await clickButton('악보로 이동');await key('N');await key('C');await key('N')
    let source=await save('ensemble-source'),reopenSource='ensemble-source.chromatics'
    assert.equal(source.parts.length,4);assert.equal(source.parts.flatMap(p=>p.staves.flatMap(s=>s.measures.flatMap(m=>m.voices.flatMap(v=>v.events)))).filter(e=>e.type==='note').length,1)
-   if(mixerSaveOnly){await clickButton('악보로 이동');await key('Up',['alt'],'.notation-event.is-selected');assert.equal(await history(),'2회 수정');assert.equal(await run(()=>document.querySelector('.studio-document__state').textContent),'저장하지 않은 변경')}
+   if(mixerSaveOnly){await clickButton('악보로 이동');await key('Up',['alt','shift'],'.notation-event.is-selected');assert.equal(await history(),'2회 수정');assert.equal(await run(()=>document.querySelector('.studio-document__state').textContent),'저장하지 않은 변경')}
    const original=await run(()=>({selected:[...document.querySelectorAll('.notation-event.is-selected')].map(n=>n.dataset.eventId),events:document.querySelectorAll('.notation-event').length,history:[...document.querySelectorAll('.editor-status span')].find(n=>n.textContent?.endsWith('회 수정'))?.textContent}))
    await clickButton('도구');await clickButton('재생 도구');await ensureNativeFocus()
    const entry=await inspectMixerFocus();assert.equal(entry.index,2,'Existing entry must focus the first actual volume control');assert.equal(entry.coarse,c.coarse);assert.equal(entry.theme,c.theme)

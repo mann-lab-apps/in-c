@@ -252,8 +252,8 @@ app.whenReady().then(async () => {
     await wait(() => run(label => document.querySelector('[aria-label="연주 모델 실험"]').textContent.includes(label), expectedLabel), 'profile reloaded')
     await click('모델')
     await click('악보로 이동')
-    win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up', modifiers: ['alt'] })
-    win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Up', modifiers: ['alt'] })
+    win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up', modifiers: ['alt','shift'] })
+    win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Up', modifiers: ['alt','shift'] })
     await wait(() => run(() => document.querySelector('[aria-label="연주 모델 실험"]').textContent.includes('예측 미등록')), 'profile invalidated by score edit')
     assert.ok(await run(() => document.querySelector('.performance-lab [role="radio"]:last-child').disabled))
     fs.writeFileSync(path.join(output, 'results.json'), JSON.stringify({

@@ -1,9 +1,9 @@
 {
   "name": "in-c",
-  "productName": "in-C",
+  "productName": "띠로리 Studio",
   "desktopName": "in-c.desktop",
   "version": "0.1.0-alpha.38",
-  "description": "in C concert promotion service and related music app surfaces.",
+  "description": "띠로리 Studio — 악보를 만들고 편집하는 데스크톱 사보 도구.",
   "author": "mann-lab-apps",
   "homepage": "https://github.com/mann-lab-apps/in-c",
   "repository": {
@@ -86,7 +86,7 @@
   },
   "build": {
     "appId": "com.mannlab.inc",
-    "productName": "in-C",
+    "productName": "띠로리 Studio",
     "copyright": "Copyright © 2026 mann-lab-apps",
     "directories": {
       "output": "release",
@@ -99,7 +99,7 @@
       "package.json"
     ],
     "asar": true,
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Ddirori-Studio-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.music",
       "icon": "build/icon.icns",
@@ -117,13 +117,16 @@
           ]
         }
       ],
-      "notarize": true
+      "notarize": true,
+      "extendInfo": {
+        "CFBundleName": "띠로리 Studio"
+      }
     },
     "dmg": {
       "sign": true
     },
     "win": {
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -137,16 +140,17 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "executableName": "in-C"
     },
     "nsis": {
-      "artifactName": "${productName}-${version}-windows-${arch}-setup.${ext}",
+      "artifactName": "Ddirori-Studio-${version}-windows-${arch}-setup.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
     "portable": {
-      "artifactName": "${productName}-${version}-windows-${arch}-portable.${ext}"
+      "artifactName": "Ddirori-Studio-${version}-windows-${arch}-portable.${ext}"
     },
     "linux": {
       "icon": "build/icon.png",
@@ -159,13 +163,20 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "executableName": "in-c"
     },
     "publish": {
       "provider": "github",
       "owner": "mann-lab-apps",
       "repo": "in-c",
       "releaseType": "prerelease"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "studio-icon.png"
+      }
+    ]
   }
 }

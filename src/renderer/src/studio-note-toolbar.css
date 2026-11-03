@@ -9,3 +9,5 @@
 .studio-input-context output { min-width: 0; overflow-wrap: anywhere; }
 .studio-input-context__state { color: var(--dd-muted); }
 @media print { .studio-note-toolbar { display: none; } }
+
+.studio-note-toolbar__grace-action { display: inline-flex; align-items: center; gap: var(--dd-spacing-xs); white-space: nowrap; }

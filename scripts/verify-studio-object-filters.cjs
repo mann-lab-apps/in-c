@@ -2193,7 +2193,7 @@ app.whenReady().then(async()=>{
     const original=document.score.parts[0].staves[0].measures[2].voices[0].events[0],id=original.id
     await run(id=>{const n=document.querySelector(`.score-canvas .notation-event[data-event-id="${id}"]`);n.scrollIntoView({block:'center'});n.focus({preventScroll:true})},id);await key('Enter')
     assert.equal(await run(()=>document.activeElement?.getAttribute('data-event-id')),id,'Note focus must survive the new meter header layout')
-    await key('Up',['control','alt'])
+    await key('Up',['control'])
     const edited=await save('meter-note-edited'),expected=JSON.parse(JSON.stringify(document.score))
     expected.parts[0].staves[0].measures[2].voices[0].events[0].pitch={...original.pitch,octave:original.pitch.octave+1,alter:original.pitch.alter||0}
     assert.deepEqual(edited.score,expected,'Existing octave command must affect only the selected note after the header')

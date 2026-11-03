@@ -76,7 +76,7 @@ app.whenReady().then(async()=>{
    await win.loadFile(path.resolve('out/renderer/index.html'));app.focus({steal:true});win.focus();await settle()
    await click('프로젝트 열기');await wait(()=>document.querySelector('.editor-status').textContent.includes('을 열었습니다.'))
    if(editorReturnAudit){
-    await click('악보로 이동');await key('Up',['alt']);await save();const saved=requests[0].contents
+    await click('악보로 이동');await key('Up',['alt','shift']);await save();const saved=requests[0].contents
     const coarse=width===960;win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled',{enabled:coarse})
     const font=()=>run(()=>[...document.querySelectorAll('.score-canvas .vf-notehead text')].map(n=>({font:getComputedStyle(n).fontSize,family:getComputedStyle(n).fontFamily,width:n.getBBox().width,height:n.getBBox().height}))),metrics=await font()
     if(coarse){await run(scaleStudioChromeText);await settle()};assert.deepEqual(await font(),metrics)
@@ -102,7 +102,7 @@ app.whenReady().then(async()=>{
     assert(footerKeyboard,'Native Tab traversal must reach the status view control')
     const footerFocus=await run(()=>{const n=document.activeElement,r=n.getBoundingClientRect(),f=n.closest('.studio-status').getBoundingClientRect();return{visible:r.top>=f.top&&r.bottom<=f.bottom&&r.bottom<=innerHeight,height:r.height,focusVisible:n.matches(':focus-visible')}});assert(footerFocus.visible&&footerFocus.focusVisible);assert(footerFocus.height>=(coarse?47.9:31.9));await capture('footer-keyboard')
     await key('F6');assert.equal(await run(()=>document.activeElement?.getAttribute('data-event-id')),point.eventId);assert.deepEqual(await snapshot(),before)
-    await key('Up',['alt']);const edited=await snapshot();assert.notDeepEqual(edited.ink,before.ink);await key('z',['control']);assert.deepEqual(await snapshot(),{...before,dirty:true});await key('z',['control','shift']);assert.deepEqual(await snapshot(),edited);await key('z',['control']);assert.deepEqual(await snapshot(),{...before,dirty:true})
+    await key('Up',['alt','shift']);const edited=await snapshot();assert.notDeepEqual(edited.ink,before.ink);await key('z',['control']);assert.deepEqual(await snapshot(),{...before,dirty:true});await key('z',['control','shift']);assert.deepEqual(await snapshot(),edited);await key('z',['control']);assert.deepEqual(await snapshot(),{...before,dirty:true})
     await save();assert.equal(requests[1].contents,saved);await click('파일');await click('프로젝트 열기');await wait(()=>document.querySelector('.editor-status').textContent.includes('을 열었습니다.'));await save();assert.equal(requests[2].contents,saved)
     assert.equal(path.basename(target),name);assert.deepEqual(fs.readFileSync(source),bytes)
     rows.push({width,kind,coarse,chromeTextPercent:coarse?200:100,target:point,tailBefore,tailAfter:tail,wheels,footerFocus,tabCount,footerF6Return:true,pointerSelected:true,realEditUndoRedo:true,saveAndColdReopenExact:true,sourceUnchanged:true});fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(rows,null,2));await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled',{enabled:false});win.webContents.debugger.detach();continue
@@ -110,7 +110,7 @@ app.whenReady().then(async()=>{
    if(corruptAudit){
     await store.create(target);await store.create(target);const entries=await store.list();assert.equal(entries.length,2)
     const bad=entries[0],good=entries[1],badPath=path.join(root,'backups',bad.id),corrupt='{owned invalid backup after listing'
-    await click('악보로 이동');await key('Up',['alt']);assert((await snapshot()).dirty)
+    await click('악보로 이동');await key('Up',['alt','shift']);assert((await snapshot()).dirty)
     await run(()=>{window.__ownedConfirm=[];window.confirm=message=>{window.__ownedConfirm.push(message);return true}})
     const font=()=>run(()=>[...document.querySelectorAll('.score-canvas .vf-notehead text')].map(n=>({font:getComputedStyle(n).fontSize,family:getComputedStyle(n).fontFamily,width:n.getBBox().width,height:n.getBBox().height})))
     const metrics=await font(),coarse=width===960
@@ -135,7 +135,7 @@ app.whenReady().then(async()=>{
    }
    if(failureAudit){
     const backupDir=path.join(root,'backups');fs.writeFileSync(backupDir,'Owned directory collision')
-    await click('악보로 이동');const initial=await snapshot();await key('Up',['alt']);const edited=await snapshot();assert(edited.dirty);assert.notDeepEqual(edited.ink,initial.ink)
+    await click('악보로 이동');const initial=await snapshot();await key('Up',['alt','shift']);const edited=await snapshot();assert(edited.dirty);assert.notDeepEqual(edited.ink,initial.ink)
     await invokeSave();await wait(()=>document.querySelector('.editor-status').textContent.includes('프로젝트 저장을 마무리하지 못했습니다.'))
     assert.equal(requests.length,0);assert.deepEqual(await snapshot(),edited);assert.deepEqual(fs.readFileSync(target),bytes);assert.equal(fs.readFileSync(backupDir,'utf8'),'Owned directory collision');assert(!fs.readdirSync(root).some(n=>n.endsWith('.tmp')))
     const focus=await run(()=>({tag:document.activeElement?.tagName,label:document.activeElement?.getAttribute('aria-label'),visible:document.activeElement?.checkVisibility(),disabled:Boolean(document.activeElement?.disabled)}));await capture('save-failure');assert(focus.tag==='BUTTON'&&focus.label==='파일'&&focus.visible&&!focus.disabled,'Menu-origin error must return to persistent File trigger: '+JSON.stringify(focus))
@@ -152,7 +152,7 @@ app.whenReady().then(async()=>{
     assert.deepEqual(fs.readFileSync(source),bytes);assert(!fs.readdirSync(root).some(n=>n.endsWith('.tmp')));assert(!fs.readdirSync(backupDir).some(n=>n.endsWith('.tmp')))
     await capture('retry-reopen');rows.push({width,kind,menuActivation:keyboardSave??'pointer',failure:'Actual mkdir EEXIST; backup path is an owned regular file',focus,sourcePreservedOnFailure:true,selectionAndInkPreserved:true,oneUndoRedo:true,retryPayloadExact:true,reopenedPayloadExact:true,successfulRequests:requests.length,actualFailedWrites:failedWrites,undoRemainsDirtyUntilSave:true,backupPreviousSnapshotExact:true});fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(rows,null,2));continue
    }
-   for(let revision=0;revision<2;revision++){await click('악보로 이동');await key('Up',['alt']);assert(await run(()=>document.querySelector('.studio-document').textContent.includes('저장하지 않은 변경')));await save()}
+   for(let revision=0;revision<2;revision++){await click('악보로 이동');await key('Up',['alt','shift']);assert(await run(()=>document.querySelector('.studio-document').textContent.includes('저장하지 않은 변경')));await save()}
    assert.notEqual(requests[0].contents,requests[1].contents);for(const r of requests)assert.equal(api.decodeNativeProject(r.contents).score.title,original.score.title)
    assert.equal(fs.readFileSync(target,'utf8'),requests[1].contents);assert.equal(path.basename(target),name)
    const entries=await store.list();assert.equal(entries.length,2);let previous

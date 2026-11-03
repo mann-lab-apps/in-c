@@ -1,0 +1,116 @@
+{
+  "reason": "Reviewed filled tapered slur outlines include ink beyond the legacy centerline-only getBBox. Only nine slur y/height values in each current baseline changed. Tie paths, centerlines, source native bytes, other metrics exact.",
+  "visualReview": [
+    "curve-auto print before/after",
+    "curve-manual print before/after",
+    "curve-cross print before/after",
+    "fixed1400",
+    "profile960"
+  ],
+  "changes": [
+    {
+      "file": "docs/testing/studio-r3-notation-profile.json",
+      "beforeSha256": "fc5340dfa5e6a17fb31abb872e0d4d84e0c267bd3430c4f65813ee84bd4ca859",
+      "afterSha256": "b3a90ae83c8d6584497af78e2d4941210ab505e5cbcb82bb91c3726d9f1567b6",
+      "edits": [
+        {
+          "path": "/metrics/960/slurs/0/box/height",
+          "before": 17.9,
+          "after": 18.5
+        },
+        {
+          "path": "/metrics/960/slurs/0/box/y",
+          "before": 179.4,
+          "after": 178.7
+        },
+        {
+          "path": "/metrics/960/slurs/1/box/height",
+          "before": 11.9,
+          "after": 12.7
+        },
+        {
+          "path": "/metrics/1400/slurs/0/box/height",
+          "before": 17.9,
+          "after": 18.5
+        },
+        {
+          "path": "/metrics/1400/slurs/0/box/y",
+          "before": 179.4,
+          "after": 178.7
+        },
+        {
+          "path": "/metrics/1400/slurs/1/box/height",
+          "before": 8,
+          "after": 9.4
+        },
+        {
+          "path": "/metrics/1400/slurs/1/box/y",
+          "before": 224,
+          "after": 223.2
+        },
+        {
+          "path": "/metrics/1400/slurs/2/box/height",
+          "before": 8,
+          "after": 9.4
+        },
+        {
+          "path": "/metrics/1400/slurs/2/box/y",
+          "before": 415.3,
+          "after": 414.5
+        }
+      ]
+    },
+    {
+      "file": "docs/testing/notation-snapshot-baseline.json",
+      "beforeSha256": "5d3772ce147133620cb40d23471b4d3c61d49e04d67e985ea0a3e1cf886cd33e",
+      "afterSha256": "e785a872bdc5b2c2203b19a09151228ff676788c73060555ea8ee44d3e3565c3",
+      "edits": [
+        {
+          "path": "/960/slurs/0/box/height",
+          "before": 17.9,
+          "after": 18.5
+        },
+        {
+          "path": "/960/slurs/0/box/y",
+          "before": 179.4,
+          "after": 178.7
+        },
+        {
+          "path": "/960/slurs/1/box/height",
+          "before": 11.9,
+          "after": 12.7
+        },
+        {
+          "path": "/1400/slurs/0/box/height",
+          "before": 17.9,
+          "after": 18.5
+        },
+        {
+          "path": "/1400/slurs/0/box/y",
+          "before": 179.4,
+          "after": 178.7
+        },
+        {
+          "path": "/1400/slurs/1/box/height",
+          "before": 8,
+          "after": 9.4
+        },
+        {
+          "path": "/1400/slurs/1/box/y",
+          "before": 224,
+          "after": 223.2
+        },
+        {
+          "path": "/1400/slurs/2/box/height",
+          "before": 8,
+          "after": 9.4
+        },
+        {
+          "path": "/1400/slurs/2/box/y",
+          "before": 415.3,
+          "after": 414.5
+        }
+      ]
+    }
+  ]
+}

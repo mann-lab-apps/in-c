@@ -682,7 +682,7 @@ vi.mock('./playback/useScorePlayback', async importOriginal => {
 
 const installPreloadStub = () => {
   window.inC = {
-    appName: 'in-C',
+    appName: '띠로리 Studio',
     project: { open: vi.fn().mockResolvedValue(null), save: vi.fn().mockResolvedValue(null), listBackups: vi.fn().mockResolvedValue([]), readBackup: vi.fn() },
     autosave: {
       clear: vi.fn().mockResolvedValue(undefined),

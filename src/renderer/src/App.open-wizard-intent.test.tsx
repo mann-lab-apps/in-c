@@ -24,7 +24,7 @@ describe('newer wizard intent owns pending document opening', () => {
     bridge.mockImplementationOnce(() => pending)
     const { App } = await import('./App'); render(<App />)
     const original = structuredClone(playbackMockState.lastScore)
-    fireEvent.keyDown(window, { code: 'ArrowUp', key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { code: 'ArrowUp', key: 'ArrowUp', altKey: true, shiftKey: true })
     const editedBeforeOpen = structuredClone(playbackMockState.lastScore)
     expect(editedBeforeOpen).not.toEqual(original)
     openStudioWorkspace('파일')

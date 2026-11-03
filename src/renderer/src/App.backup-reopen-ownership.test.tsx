@@ -15,7 +15,7 @@ describe('backup restore ownership after dialog replacement',()=>{
   let finishA!:(value:{contents:string})=>void,failA!:(error:Error)=>void,finishB!:(value:{contents:string})=>void
   vi.mocked(window.inC.project.readBackup).mockImplementationOnce(()=>new Promise((resolve,reject)=>{finishA=resolve;failA=reject})).mockImplementationOnce(()=>new Promise(resolve=>{finishB=resolve}))
   const {App}=await import('./App');render(<App />)
-  fireEvent.keyDown(window,{code:'ArrowUp',key:'ArrowUp',altKey:true})
+  fireEvent.keyDown(window,{code:'ArrowUp',key:'ArrowUp',altKey:true,shiftKey:true})
   const baseline=structuredClone(playbackMockState.lastScore),selection=screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
   openStudioWorkspace('파일');const trigger=screen.getByRole('button',{name:'프로젝트 백업'})
   fireEvent.click(trigger)

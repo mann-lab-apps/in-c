@@ -349,7 +349,7 @@ describe('App component shell', () => {
     await waitFor(() => expect(playbackMockState.lastScore?.title).toBe('MusicXML Sketch'))
     await act(async () => {})
     const original = structuredClone(playbackMockState.lastScore)
-    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     const edited = structuredClone(playbackMockState.lastScore), status = document.querySelector('.editor-status')?.textContent
     const selection = screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
     await act(async () => finish())
@@ -379,7 +379,7 @@ describe('App component shell', () => {
     await screen.findByRole('region', { name: 'MusicXML 경고 상세' })
     await act(async () => {})
     const imported = structuredClone(playbackMockState.lastScore)
-    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
     const edited = structuredClone(playbackMockState.lastScore), selection = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
     await act(async () => failRecent(new Error(raw)))
@@ -409,7 +409,7 @@ describe('App component shell', () => {
     else operation.mockResolvedValueOnce({ filePath: '/fixture/bad.musicxml', fileName: 'bad.musicxml', contents: '<not-a-score/>' })
     operation.mockResolvedValueOnce({ filePath: '/fixture/retry.musicxml', fileName: 'retry.musicxml', contents: recentMusicXml })
     const { App } = await import('./App'); render(<App />)
-    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     const edited = structuredClone(playbackMockState.lastScore), selection = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
     openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
     await waitFor(() => expect(document.querySelector('.editor-status')).toHaveTextContent('MusicXML을 가져오지 못했습니다. 현재 악보는 유지됩니다.'))
@@ -462,7 +462,7 @@ describe('App component shell', () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { unattachedTieXml } = await import('../../testing/unattached-tie-fixture')
     const { App } = await import('./App'); render(<App />)
-    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     const edited = structuredClone(playbackMockState.lastScore), selection = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
     expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
     vi.mocked(window.inC.musicXml.open).mockResolvedValueOnce({ filePath: '/fixture/unattached.musicxml', fileName: 'unattached.musicxml', contents: unattachedTieXml(kind) })
@@ -1230,7 +1230,7 @@ describe('App component shell', () => {
       const bytes = [...vi.mocked(window.inC.midi.save).mock.calls[0]![0].contents]
       const expected = structuredClone(action === 'edit-success' ? original.score : next.score)
       if (action === 'edit-success') {
-        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
         const event = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
         if (event.type !== 'note') throw Error('Expected chord')
         event.pitches = [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]; event.pitch = event.pitches[0]!
@@ -1507,7 +1507,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
     await waitFor(() => expect(finish).toBeTypeOf('function'))
     const requestedMusic = printPreview().getAttribute('data-all-event-pitches')
-    if (action === 'edit') fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    if (action === 'edit') fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     else {
       openStudioWorkspace('파일')
       fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
@@ -2184,13 +2184,13 @@ describe('App component shell', () => {
     expect(dialog.closest('.studio-chrome')).toBeNull()
     expect(within(dialog).getByRole('heading',{name:'단축키 도움말'})).toHaveClass('dd-text--section-title')
 
-    expect(within(dialog).getByText('음표 입력')).toBeInTheDocument()
+    expect(within(dialog).getByText('음표 입력·음가')).toBeInTheDocument()
     expect(within(dialog).getByText('음가 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('1-7')).toBeInTheDocument()
+    expect(within(dialog).getByText('1=64분 · 2=32분 · 3=16분 · 4=8분 · 5=4분 · 6=2분 · 7=온음표')).toBeInTheDocument()
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
     expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
-    expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
+    expect(within(dialog).getByText('⌘/Ctrl+Alt+1–4')).toBeInTheDocument()
     expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
 
     fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
@@ -2222,7 +2222,7 @@ describe('App component shell', () => {
     for(const label of ['악보 구성','조표','박자표']) expect(q.getByRole('combobox',{name:label})).toHaveClass('dd-select')
     for(const button of q.getAllByRole('button')) expect(button).toHaveClass('dd-button')
     expect(q.getByRole('button',{name:'만들기'})).toBeEnabled()
-    expect(q.getByRole('spinbutton',{name:'빠르기'})).toHaveAccessibleDescription('bpm')
+    expect(q.getByRole('spinbutton',{name:'빠르기'})).toHaveAccessibleDescription('40–240 bpm · 정수로 입력해 주세요.')
     expect(q.getAllByRole('button',{name:/템플릿/})).toHaveLength(4)
   })
 
@@ -2737,7 +2737,7 @@ describe('App component shell', () => {
       .mockResolvedValueOnce({ fileName: 'retry.pdf' })
     const { App } = await import('./App'); render(<App />)
     const original = structuredClone(playbackMockState.lastScore)
-    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
     const edited = structuredClone(playbackMockState.lastScore), selected = screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
     openStudioWorkspace('내보내기')
     const pdf = screen.getByRole('button', { name: 'PDF 변환' }); pdf.focus(); fireEvent.click(pdf)

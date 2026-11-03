@@ -432,7 +432,7 @@ describe('App component shell', () => {
     )
   })
 
-  it('keyboard.navigation-first keeps plain vertical arrows from editing pitch', async () => {
+  it('keyboard.navigation-first keeps Alt vertical arrows from editing pitch', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -441,20 +441,20 @@ describe('App component shell', () => {
     const preview = screen.getByTestId('notation-preview')
     const initialPitches = preview.getAttribute('data-event-pitches')
 
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey:true })
     expect(preview).toHaveAttribute('data-event-pitches', initialPitches)
     expect(document.querySelector('.editor-status')).toHaveTextContent(
-      '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
+      '해당 방향에 선택할 보표가 없습니다.'
     )
 
-    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' })
+    fireEvent.keyDown(window, { altKey: true, shiftKey: true, key: 'ArrowUp' })
 
     await waitFor(() => {
       expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D04')
     })
   })
 
-  it('keyboard.navigation-first moves plain vertical arrows between grand staff lanes', async () => {
+  it('keyboard.navigation-first moves Alt vertical arrows between grand staff lanes', async () => {
     const { App } = await import('./App')
     render(<App />)
 
@@ -468,7 +468,7 @@ describe('App component shell', () => {
         name: 'part-1-staff-1-measure-1-full-measure-rest 선택'
       })
     )
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { key: 'ArrowDown', altKey:true })
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -482,7 +482,7 @@ describe('App component shell', () => {
     })
     expect(screen.getByText('아래 보표로 이동했습니다.')).toBeInTheDocument()
 
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey:true })
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -2017,7 +2017,7 @@ describe('App component shell', () => {
     const {App}=await import('./App');render(<App />)
     const before=structuredClone(playbackMockState.lastScore)
     fireEvent.click(screen.getByRole('button',{name:'m1-c4 선택'}))
-    fireEvent.keyDown(window,{key:'ArrowUp',code:'ArrowUp',altKey:true})
+    fireEvent.keyDown(window,{key:'ArrowUp',code:'ArrowUp',altKey:true,shiftKey:true})
     expect(screen.getByText('1회 수정')).toBeInTheDocument()
     const open=()=>{fireEvent.click(within(screen.getByRole('navigation',{name:'앱 메뉴'})).getByRole('button',{name:'도구'}));fireEvent.click(screen.getByRole('menuitem',{name:'명령 검색'}))}
     open();let dialog=screen.getByRole('dialog',{name:'명령 검색'}),input=within(dialog).getByRole('searchbox',{name:'명령 찾기'})
@@ -2103,7 +2103,7 @@ describe('App component shell', () => {
     chooseSpanEndpoint('표기 시작점',events[3]!.id)
     expectSpanEndpoint('표기 시작점',events[0]!.id)
     fireEvent.keyDown(window, { key: '5', code: 'Digit5' })
-    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true, shiftKey: true })
     fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
     fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
     expect(screen.queryByLabelText('표기 끝점')).not.toBeInTheDocument()

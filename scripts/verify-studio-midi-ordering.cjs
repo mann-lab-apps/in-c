@@ -53,7 +53,7 @@ app.whenReady().then(async()=>{
    await click('내보내기');await click('MIDI 내보내기');await wait(()=>pending.length===1,'prior request');pending[0].finish('success');await settle()
    await wait(()=>run(()=>document.querySelector('[aria-label="MIDI 경고 상세"]')?.textContent.includes('prior.mid')),'prior report')
    // Restore original music with a dirty history and a pending redo,then test exports.
-   await click('음표');await click('악보로 이동');await key('Up',['alt']);await key('Z',['control'])
+   await click('음표');await click('악보로 이동');await key('Up',['alt','shift']);await key('Z',['control'])
    await click('내보내기');await click('MIDI 내보내기');await click('MIDI 내보내기');await wait(()=>pending.length===3,'two pending requests')
    const before=await state();assert.match(before.document,/저장하지 않은 변경/)
    const [first,firstResult,,lastResult]=order.split('-'),firstIndex=first==='older'?1:2,lastIndex=first==='older'?2:1

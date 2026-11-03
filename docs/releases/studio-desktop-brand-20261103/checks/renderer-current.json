@@ -1,0 +1,227 @@
+{
+  "legacyDataAndPreferencesPreserved": true,
+  "paths": {
+    "userData": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-qa/compat-integrated-n/app-data/in-C",
+    "sessionData": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-qa/compat-integrated-n/app-data/in-C"
+  },
+  "name": "띠로리 Studio",
+  "nativeWindowTitle": "Meter QA — 띠로리 Studio",
+  "nativeMenu": [
+    {
+      "label": "띠로리 Studio",
+      "role": "appmenu",
+      "children": [
+        {
+          "label": "About 띠로리 Studio",
+          "role": "about"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Services",
+          "role": "services"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Hide 띠로리 Studio",
+          "role": "hide"
+        },
+        {
+          "label": "Hide Others",
+          "role": "hideothers"
+        },
+        {
+          "label": "Show All",
+          "role": "unhide"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Quit 띠로리 Studio",
+          "role": "quit"
+        }
+      ]
+    },
+    {
+      "label": "File",
+      "role": "filemenu",
+      "children": [
+        {
+          "label": "Close Window",
+          "role": "close"
+        }
+      ]
+    },
+    {
+      "label": "Edit",
+      "role": "editmenu",
+      "children": [
+        {
+          "label": "Undo",
+          "role": "undo"
+        },
+        {
+          "label": "Redo",
+          "role": "redo"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Cut",
+          "role": "cut"
+        },
+        {
+          "label": "Copy",
+          "role": "copy"
+        },
+        {
+          "label": "Paste",
+          "role": "paste"
+        },
+        {
+          "label": "Paste and Match Style",
+          "role": "pasteandmatchstyle"
+        },
+        {
+          "label": "Delete",
+          "role": "delete"
+        },
+        {
+          "label": "Select All",
+          "role": "selectall"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Substitutions",
+          "role": null
+        },
+        {
+          "label": "Speech",
+          "role": null
+        }
+      ]
+    },
+    {
+      "label": "View",
+      "role": "viewmenu",
+      "children": [
+        {
+          "label": "Reload",
+          "role": "reload"
+        },
+        {
+          "label": "Force Reload",
+          "role": "forcereload"
+        },
+        {
+          "label": "Toggle Developer Tools",
+          "role": "toggledevtools"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Actual Size",
+          "role": "resetzoom"
+        },
+        {
+          "label": "Zoom In",
+          "role": "zoomin"
+        },
+        {
+          "label": "Zoom Out",
+          "role": "zoomout"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Toggle Full Screen",
+          "role": "togglefullscreen"
+        }
+      ]
+    },
+    {
+      "label": "Window",
+      "role": "windowmenu",
+      "children": [
+        {
+          "label": "Minimize",
+          "role": "minimize"
+        },
+        {
+          "label": "Zoom",
+          "role": "zoom"
+        },
+        {
+          "label": "",
+          "role": null
+        },
+        {
+          "label": "Bring All to Front",
+          "role": "front"
+        }
+      ]
+    }
+  ],
+  "editing": [
+    {
+      "width": 960,
+      "graceNative": true,
+      "durationNative": true,
+      "undoEach": true,
+      "help": true,
+      "nativePitchGestures": true,
+      "meterRightClickAndScope": true
+    },
+    {
+      "width": 1400,
+      "graceNative": true,
+      "durationNative": true,
+      "undoEach": true,
+      "help": true,
+      "nativePitchGestures": true,
+      "meterRightClickAndScope": true
+    }
+  ],
+  "tempo": {
+    "input": "999",
+    "keptWithoutClamping": true,
+    "escape": 120,
+    "created": 80,
+    "viewports": [
+      960,
+      1400
+    ]
+  },
+  "screenshots": [
+    "tempo-error-960.png",
+    "tempo-error-1400.png",
+    "grace-960.png",
+    "overwrite-960.png",
+    "help-960.png",
+    "meter-entry-960.png",
+    "meter-960.png",
+    "grace-1400.png",
+    "overwrite-1400.png",
+    "help-1400.png",
+    "meter-entry-1400.png",
+    "meter-1400.png"
+  ],
+  "physicalOsDialogsOrIme": false,
+  "actualPackagedProcess": false
+}

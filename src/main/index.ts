@@ -10,6 +10,8 @@ import { AutosaveFileStore, type AutosaveSnapshot } from './autosave-files'
 import { RecentFileStore } from './recent-files'
 import { NativeProjectBackupStore } from './project-backups'
 import { savePngExport } from './png-export'
+import { configureDesktopBrand } from './desktop-brand'
+import { studioDisplayName } from '../desktop-identity'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
@@ -28,9 +30,7 @@ const productionConcertPostersApiUrl =
   'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
 // The packaged audit uses a separate profile; never read/write the user's projects/recovery.
-if (process.argv.includes('--piano-audit') && process.env.DDIRORI_PIANO_QA_DATA) {
-  app.setPath('userData', process.env.DDIRORI_PIANO_QA_DATA)
-}
+configureDesktopBrand(app, process.argv.includes('--piano-audit') ? process.env.DDIRORI_PIANO_QA_DATA : undefined)
 const musicXmlFiles = new MusicXmlFileSession(backupExistingMusicXmlFile)
 const nativeBackups = new NativeProjectBackupStore(() => join(app.getPath('userData'), 'native-project-backups'))
 const nativeFiles = new NativeProjectFileSession(filePath => nativeBackups.create(filePath))
@@ -52,7 +52,7 @@ ipcMain.handle('project:read-backup', async (_event, id: string) => ({ contents:
 ipcMain.handle('project:open', async () => {
   const result = isSmokeTest
     ? { canceled: false, filePaths: [join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.chromatics`)] }
-    : await dialog.showOpenDialog({ title: 'Chromatics 프로젝트 열기', properties: ['openFile'], filters: [{ name: 'Chromatics Project', extensions: ['chromatics'] }] })
+    : await dialog.showOpenDialog({ title: `${studioDisplayName} 프로젝트 열기`, properties: ['openFile'], filters: [{ name: 'Studio 프로젝트 (.chromatics)', extensions: ['chromatics'] }] })
   const filePath = result.filePaths[0]
   if (result.canceled || !filePath) return null
   return { filePath, fileName: basename(filePath), contents: encodeNativeProject(await nativeFiles.open(filePath)) }
@@ -64,7 +64,7 @@ ipcMain.handle('project:save', async (_event, input: { filePath?: string; sugges
   if (!filePath) {
     const result = isSmokeTest
       ? { canceled: false, filePath: join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.chromatics`) }
-      : await dialog.showSaveDialog({ title: 'Chromatics 프로젝트 저장', defaultPath: input.suggestedName, filters: [{ name: 'Chromatics Project', extensions: ['chromatics'] }] })
+      : await dialog.showSaveDialog({ title: `${studioDisplayName} 프로젝트 저장`, defaultPath: input.suggestedName, filters: [{ name: 'Studio 프로젝트 (.chromatics)', extensions: ['chromatics'] }] })
     if (result.canceled || !result.filePath) return null
     filePath = result.filePath
     nativeFiles.authorizeSave(filePath)
@@ -484,7 +484,8 @@ const createWindow = (): void => {
     height: 820,
     minWidth: 960,
     minHeight: 640,
-    title: 'in-C',
+    title: studioDisplayName,
+    icon: app.isPackaged ? join(process.resourcesPath, 'studio-icon.png') : join(__dirname, '../../build/icon.png'),
     show: false,
     backgroundColor: '#f6f3ec',
     webPreferences: {
@@ -986,7 +987,7 @@ const createWindow = (): void => {
       `)
 
       if (
-        result.appName !== 'in-C' ||
+        result.appName !== studioDisplayName ||
         !result.hasMusicXmlBridge ||
         !result.hasPdfBridge ||
         !result.hasMidiBridge ||

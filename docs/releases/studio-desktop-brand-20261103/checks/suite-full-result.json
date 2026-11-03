@@ -1,0 +1,9 @@
+{
+  "command": "npm run test:all",
+  "exit": 0,
+  "elapsedSeconds": 551.42,
+  "inputCount": 1026,
+  "changedInputs": [],
+  "head": "653497ac7a7fa692db430a1420040ed6fd6bf253",
+  "noBuildOrElectronDuringSuite": true
+}

@@ -17,11 +17,12 @@ interface Signature {
 }
 
 // App retains measure targeting, command enablement and exact undo semantics.
-export function StudioMeasureTools({theme, actions, signatures, enabled}: {
+export function StudioMeasureTools({theme, actions, signatures, enabled, meterScope}: {
   theme: 'light' | 'dark'
   actions: readonly Action[]
   signatures: readonly Signature[]
   enabled: boolean
+  meterScope?: string
 }) {
   return <section className="studio-measure-tools ddirori" data-theme={theme} data-density="compact" aria-label="마디 구조와 조표·박자표"
     onKeyDown={event => {
@@ -36,7 +37,7 @@ export function StudioMeasureTools({theme, actions, signatures, enabled}: {
       {signatures.map(signature => <div key={signature.label} className="studio-measure-tools__signature" data-signature={signature.label}>
         <Select label={signature.label} value={signature.value} options={signature.options} onChange={signature.onChange} disabled={!enabled}/>
       </div>)}
-      <Text variant="description">조표: 선택한 마디부터 적용 · 박자표: 선택한 마디에 적용</Text>
+      <Text variant="description">조표: 선택한 마디부터 적용 · 박자표 적용: {meterScope ?? '선택 보표의 이 마디만'}</Text>
     </div>
   </section>
 }

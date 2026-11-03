@@ -34,7 +34,7 @@ it.each([false,true])('keeps disabled pointer activation from blurring the curre
  render(<><div className="score-canvas" tabIndex={0}>Score</div><StudioMeasureContextMenu theme="light" x={20} y={20} canRemove={canRemove} onSelect={select} onClose={close}/></>)
  const first=screen.getByRole('menuitem',{name:'앞에 마디 추가'}),remove=screen.getByRole('menuitem',{name:'마디 제거'})
  fireEvent.keyDown(first,{key:'End'})
- const current=screen.getByRole('menuitem',{name:canRemove?'마디 제거':'2번 볼타'})
+ const current=screen.getByRole('menuitem',{name:canRemove?'마디 제거':'박자표 변경…'})
  expect(current).toHaveFocus()
  // Chromium's default pointerdown can blur the enabled command even though a
  // disabled button never activates. Cancel that default only for disabled items.

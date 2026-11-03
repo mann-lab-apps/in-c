@@ -1,0 +1,8 @@
+{
+  "command": "npm run test:all",
+  "exit": 1,
+  "seconds": 574.72,
+  "inputCount": 926,
+  "changedInputs": [],
+  "parallelProductTestEditsOrBuild": false
+}

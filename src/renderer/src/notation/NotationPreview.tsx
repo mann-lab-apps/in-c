@@ -1,3 +1,4 @@
+import { taperedSlurPath } from './slur-profile'
 import { resolveNotePointerOwner } from './note-pointer-owner'
 import { resolveSpanPointerOwner } from './span-pointer-owner'
 import { protectedInkBlocksSlurSide, type SlurSideObstacle } from './protected-slur-ink'
@@ -3568,6 +3569,14 @@ function drawSlurSegment(
     clearance = Math.max(Math.abs(adjusted.controlY - controlY), Math.abs(adjusted.y1 - y1), Math.abs(adjusted.y2 - y2))
     if (adjusted.x1 !== startX || adjusted.controlX !== controlX || adjusted.controlY !== controlY || adjusted.y1 !== y1 || adjusted.y2 !== y2) path.setAttribute('d', `M ${adjusted.x1} ${adjusted.y1} Q ${adjusted.controlX} ${adjusted.controlY} ${endX} ${adjusted.y2}`)
   }
+  const centerline = path.getAttribute('d') ?? ''
+  const thickness = parseFloat(getComputedStyle(path).strokeWidth) || 1.6
+  const outline = taperedSlurPath(centerline, thickness, {taperStart:isFirst,taperEnd:isLast})
+  if (outline) {
+    path.dataset.slurCenterline = centerline
+    path.dataset.slurThickness = String(thickness)
+    path.setAttribute('d', outline)
+  }
   return { path, clearance }
 }
 
@@ -3588,7 +3597,7 @@ function bindSpanSelection(
   group.setAttribute('aria-label', `${reference.kind === 'slur' ? '슬러' : '헤어핀'} ${reference.id} 선택`)
   group.setAttribute('aria-pressed', String(selected?.kind === reference.kind && selected.id === reference.id))
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  hit.setAttribute('d', element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
+  hit.setAttribute('d', element.getAttribute('data-slur-centerline') ?? element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
     `M ${line.getAttribute('x1')} ${line.getAttribute('y1')} L ${line.getAttribute('x2')} ${line.getAttribute('y2')}`).join(' '))
   hit.classList.add('notation-span-hit')
   element.parentNode?.insertBefore(group, element)

@@ -1,0 +1,56 @@
+{
+  "executable": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-package-feedback/mac-arm64/띠로리 Studio.app/Contents/MacOS/띠로리 Studio",
+  "actualPackagedApp": true,
+  "offlineNetworkBlocked": true,
+  "externalInputIgnored": true,
+  "appAsarSha256": "8688570e84d8b655b95c42b3559a76cebba79c38568e1dd163b3b179ab5f23d0",
+  "noteCount": 1000,
+  "seconds": 15,
+  "coldStartMs": 663,
+  "expressionMs": 415,
+  "expressionMethod": "score-rules-v1",
+  "measurements": [
+    {
+      "elapsedSeconds": 15.005,
+      "rssKiB": 1188256,
+      "created": 54,
+      "active": 6,
+      "maximum": 6,
+      "longTasks": 4,
+      "maxTaskMs": 170,
+      "nearLateStarts": 0,
+      "duplicateEnded": 0,
+      "endedWithoutStart": 0,
+      "inputEvents": [
+        {
+          "type": "click",
+          "trusted": false,
+          "at": 696.2000000476837,
+          "targetTag": "INPUT",
+          "targetAria": "피아노 음색",
+          "position": "0.0 / 1000.0박"
+        },
+        {
+          "type": "change",
+          "trusted": true,
+          "at": 824.2000000476837,
+          "targetTag": "INPUT",
+          "targetAria": "피아노 음색",
+          "position": "0.0 / 1000.0박"
+        },
+        {
+          "type": "click",
+          "trusted": false,
+          "at": 1043.3000000715256,
+          "targetTag": "BUTTON",
+          "targetAria": "재생",
+          "position": "0.0 / 1000.0박"
+        }
+      ],
+      "position": "25.2 / 1000.0박",
+      "fixtureDynamicCount": 0
+    }
+  ],
+  "noNearLateStarts": true,
+  "listening": "not-reviewed"
+}

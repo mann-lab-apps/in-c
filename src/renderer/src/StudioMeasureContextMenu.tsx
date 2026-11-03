@@ -1,9 +1,10 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { Button, Card, Text } from '@ddirori/ui'
-import { Plus, Repeat2, Trash2 } from 'lucide-react'
+import { Plus, Repeat2, Trash2, Settings2 } from 'lucide-react'
 import './studio-measure-context-menu.css'
 
 export type MeasureMenuAction = 'insert-before' | 'insert-after' | 'remove'
+  | 'time-signature'
   | 'toggle-repeat-start' | 'toggle-repeat-end' | 'toggle-volta-1' | 'toggle-volta-2'
 const commands: readonly { id: MeasureMenuAction; label: string }[] = [
   { id: 'insert-before', label: '앞에 마디 추가' },
@@ -12,6 +13,7 @@ const commands: readonly { id: MeasureMenuAction; label: string }[] = [
   { id: 'toggle-repeat-end', label: '도돌이표 끝' },
   { id: 'toggle-volta-1', label: '1번 볼타' },
   { id: 'toggle-volta-2', label: '2번 볼타' },
+  { id: 'time-signature', label: '박자표 변경…' },
   { id: 'remove', label: '마디 제거' }
 ]
 
@@ -76,11 +78,11 @@ export function StudioMeasureContextMenu({ theme, x, y, scope, canRemove, onClos
       }}>
       <Card>{scope ? <Text id={scopeId} as="p" variant="description">반복·볼타: {scope}</Text> : null}<div className="studio-measure-context-actions">
         {commands.map(command => {
-          const Icon = command.id === 'remove' ? Trash2 : command.id.startsWith('insert') ? Plus : Repeat2
+          const Icon = command.id === 'remove' ? Trash2 : command.id === 'time-signature' ? Settings2 : command.id.startsWith('insert') ? Plus : Repeat2
           return <Button key={command.id} role="menuitem" tabIndex={-1}
             kind={command.id === 'remove' ? 'danger' : 'quiet'}
             disabled={command.id === 'remove' && !canRemove}
-            onClick={() => { onSelect(command.id); restoreCanvas() }}>
+            onClick={() => { onSelect(command.id); if(command.id!=='time-signature') restoreCanvas() }}>
             <span className="studio-measure-context-action"><Icon size={18} strokeWidth={1.75} aria-hidden="true" /><span>{command.label}</span></span>
           </Button>
         })}

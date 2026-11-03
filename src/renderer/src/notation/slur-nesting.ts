@@ -68,14 +68,14 @@ export function slurCurveInk(curve: AutomaticSlurCurve) {
 export function readSlurCurveInk(path: SVGPathElement) {
   try {
     if (!readSvgShapeInk(path)) return []
-    const tokens = path.getAttribute('d')?.trim().split(/\s+/)
+    const tokens = (path.getAttribute('data-slur-centerline') ?? path.getAttribute('d'))?.trim().split(/\s+/)
     if (!tokens || tokens.length !== 8 || tokens[0] !== 'M' || tokens[3] !== 'Q') return []
     const [x1,y1,controlX,controlY,x2,y2] = [1,2,4,5,6,7].map(index => Number(tokens[index]))
     const root = path.ownerSVGElement?.getCTM(), matrix = path.getCTM()
     if (!root || !matrix) return []
     const transform = root.inverse().multiply(matrix)
     return slurCurveInk({ x1,y1,controlX,controlY,x2,y2,side:'below',
-      strokeWidth:parseFloat(getComputedStyle(path).strokeWidth) }).map(ink => {
+      strokeWidth:parseFloat(path.dataset.slurThickness ?? getComputedStyle(path).strokeWidth) }).map(ink => {
       const points = [[ink.x,ink.y],[ink.x+ink.width,ink.y],[ink.x,ink.y+ink.height],[ink.x+ink.width,ink.y+ink.height]]
         .map(([x,y]) => new DOMPoint(x,y).matrixTransform(transform))
       const x = Math.min(...points.map(point => point.x)), y = Math.min(...points.map(point => point.y))

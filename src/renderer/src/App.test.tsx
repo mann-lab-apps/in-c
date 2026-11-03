@@ -50,7 +50,7 @@ describe('App component shell', () => {
       const keys = action === 'space' ? [{ key: ' ', code: 'Space' }]
         : action === 'input-sequence' ? [{ key: 'n', code: 'KeyN' }, { key: 'c', code: 'KeyC' }]
         : action === 'selected-pitch' ? [{ key: 'a', code: 'KeyA' }]
-        : action === 'pitch-arrow' ? [{ key: 'ArrowUp', code: 'ArrowUp', altKey: true }]
+        : action === 'pitch-arrow' ? [{ key: 'ArrowUp', code: 'ArrowUp', altKey: true, shiftKey: true }]
         : [{ key: 's', code: 'KeyS', ctrlKey: true }]
       const defaults = keys.map(event => fireEvent.keyDown(button, event))
       await act(async () => {})
@@ -607,7 +607,7 @@ describe('App component shell', () => {
       const piano = project.score.parts[1]!, staff = piano.staves[0]!, measure = staff.measures[0]!, voice = measure.voices[0]!
       expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
       expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address', `${piano.id}:${staff.id}:${measure.id}:${voice.id}`)
-      fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
+      fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true, shiftKey: true })
       fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
       await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
       const changed = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -677,7 +677,7 @@ describe('App component shell', () => {
     playbackMockState.value = { ...playbackMockState.value, status: 'stopped', activeEvent: undefined, activeEventId: undefined }
     rerender(<App />)
     expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:/)
-    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true, shiftKey: true })
     fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
     const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
@@ -712,7 +712,7 @@ describe('App component shell', () => {
     const {App}=await import('./App');render(<App />)
     openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
     await waitFor(()=>expect(playbackMockState.lastScore).toEqual(source))
-    fireEvent.click(screen.getByRole('button',{name:`${eventId} 선택`}));fireEvent.keyDown(window,{key:'ArrowUp',code:'ArrowUp',altKey:true})
+    fireEvent.click(screen.getByRole('button',{name:`${eventId} 선택`}));fireEvent.keyDown(window,{key:'ArrowUp',code:'ArrowUp',altKey:true,shiftKey:true})
     const before=structuredClone(playbackMockState.lastScore!)
     expect(before).not.toEqual(source)
     const selection=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
@@ -890,13 +890,13 @@ describe('App component shell', () => {
         expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
       } else if (action === 'vertical-navigation') {
         const before = screen.getByTestId('notation-preview').getAttribute('data-selected-event-id')
-        fireEvent.keyDown(window, { key: 'ArrowUp' })
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
         expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', before)
-        fireEvent.keyDown(window, { key: 'ArrowDown' })
+        fireEvent.keyDown(window, { key: 'ArrowDown', altKey: true })
         expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-1:.*:voice-2$/)
-        fireEvent.keyDown(window, { key: 'ArrowDown' })
+        fireEvent.keyDown(window, { key: 'ArrowDown', altKey: true })
         expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-2:/)
-        fireEvent.keyDown(window, { key: 'ArrowUp' })
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
         expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toMatch(/^P2:P2-staff-1:/)
       } else if (action === 'explicit-staff') {
         expandNoteDetails()
@@ -907,7 +907,7 @@ describe('App component shell', () => {
         expect(document.querySelector('.studio-input-context')).toHaveAttribute('data-input-active', 'true')
         fireEvent.keyDown(window, { key: 'Escape' })
       } else {
-        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
         openStudioWorkspace('악보')
         chooseScoreView('파트보 선택', 'P1')
         fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
@@ -943,7 +943,7 @@ describe('App component shell', () => {
       // Flush React's native-open render/effect boundary before synthetic window keys.
       await act(async () => {})
       expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id', chord.id)
-      fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, ctrlKey: movement === 'octave' || movement === 'out-of-range', shiftKey: movement === 'chromatic' })
+      fireEvent.keyDown(window, { key: 'ArrowUp', altKey: movement === 'diatonic', ctrlKey: movement === 'octave' || movement === 'out-of-range', shiftKey: movement === 'diatonic' })
       expect(document.querySelector('.editor-status')).toHaveTextContent(movement === 'out-of-range' ? '0회 수정' : '1회 수정')
       if (movement === 'out-of-range') expect(screen.getByText(/화음을 이동할 수 없습니다/)).toBeInTheDocument()
       else expect(screen.getByText('선택한 화음의 모든 음을 이동했습니다.')).toBeInTheDocument()
@@ -2531,7 +2531,7 @@ describe('App component shell', () => {
         fireEvent.change(screen.getByLabelText('PDF 여백 mm'), { target: { value: '17' } })
         fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
       } else {
-        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true })
+        fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true, shiftKey: true })
         const event = expected.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!
         if (event.type !== 'note') throw Error('Expected chord')
         event.pitches = [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]; event.pitch = event.pitches[0]!
@@ -2719,7 +2719,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button',{name:/MusicXML 가져오기/}))
     const report=await screen.findByRole('region',{name:'MusicXML 경고 상세'})
     expect(within(report).getByText('warned.musicxml')).toBeVisible()
-    const shortcutDefault = fireEvent.keyDown(window,{key:'ArrowUp',altKey:true})
+    const shortcutDefault = fireEvent.keyDown(window,{key:'ArrowUp',altKey:true,shiftKey:true})
     const editDiagnostic = JSON.stringify({
       action, shortcutDefault,
       eventId: screen.getByTestId('notation-preview').getAttribute('data-selected-event-id'),
@@ -2884,14 +2884,14 @@ describe('App component shell', () => {
     render(<StudioMeasureContextMenu theme="dark" x={20} y={20} canRemove={false} onSelect={onSelect} onClose={onClose} />)
     const menu = screen.getByRole('menu', { name: '마디 작업' })
     const items = within(menu).getAllByRole('menuitem')
-    expect(items[6]).toBeDisabled()
+    expect(within(menu).getByRole('menuitem', {name:'마디 제거'})).toBeDisabled()
     fireEvent.keyDown(items[0], { key: 'End' })
-    expect(items[5]).toHaveFocus()
-    expect(fireEvent.keyDown(items[5], { key: 'Enter', isComposing: true })).toBe(false)
-    expect(fireEvent.keyDown(items[5], { key: 'Escape', isComposing: true })).toBe(false)
+    expect(within(menu).getByRole('menuitem', {name:'박자표 변경…'})).toHaveFocus()
+    expect(fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Enter', isComposing: true })).toBe(false)
+    expect(fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Escape', isComposing: true })).toBe(false)
     expect(onSelect).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
-    fireEvent.keyDown(items[5], { key: 'Tab' })
+    fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Tab' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -2905,12 +2905,12 @@ describe('App component shell', () => {
     let menu = screen.getByRole('menu', { name: '마디 작업' })
     expect(menu.querySelector('.dd-card')).not.toBeNull()
     const items = within(menu).getAllByRole('menuitem')
-    expect(items).toHaveLength(7)
+    expect(items).toHaveLength(8)
     items.forEach(item => expect(item).toHaveClass('dd-button'))
     expect(items[0]).toHaveFocus()
     fireEvent.keyDown(items[0], { key: 'End' })
-    expect(items[6]).toHaveFocus()
-    fireEvent.keyDown(items[6], { key: 'ArrowDown' })
+    expect(items[7]).toHaveFocus()
+    fireEvent.keyDown(items[7], { key: 'ArrowDown' })
     expect(items[0]).toHaveFocus()
     fireEvent.keyDown(items[0], { key: 'Home' })
     expect(items[0]).toHaveFocus()

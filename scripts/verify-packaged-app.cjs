@@ -1,8 +1,11 @@
-const { existsSync, readdirSync } = require('node:fs')
+const { existsSync, readdirSync, mkdtempSync, rmSync } = require('node:fs')
 const { join, resolve } = require('node:path')
 const { spawn } = require('node:child_process')
 
-const releaseDirectory = resolve(__dirname, '../release')
+const { tmpdir } = require('node:os')
+const { desktopPackageInfo } = require('./desktop-package.cjs')
+const names = desktopPackageInfo(require('../package.json'), process.platform)
+const releaseDirectory = resolve(process.env.PACKAGE_DIRECTORY || resolve(__dirname, '../release'))
 const executable = findPackagedExecutable(releaseDirectory)
 
 if (!executable) {
@@ -13,10 +16,13 @@ if (!executable) {
 
 const args = [
   '--smoke-test',
+  '--piano-audit',
   ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : [])
 ]
 const environment = { ...process.env }
 delete environment.ELECTRON_RUN_AS_NODE
+const ownedProfile = mkdtempSync(join(tmpdir(), 'studio-package-smoke-'))
+environment.DDIRORI_PIANO_QA_DATA = ownedProfile
 
 const child = spawn(executable, args, {
   env: environment,
@@ -32,10 +38,12 @@ child.on('error', (error) => {
   throw error
 })
 
-child.on('exit', (code) => {
+child.on('exit', (code, signal) => {
   clearTimeout(timeout)
+  rmSync(ownedProfile, { recursive: true, force: true })
 
   if (code !== 0) {
+    console.error(`Packaged app exited: code=${code}, signal=${signal}`)
     process.exitCode = code ?? 1
     return
   }
@@ -50,29 +58,29 @@ function findPackagedExecutable(directory) {
 
   if (process.platform === 'darwin') {
     const candidates = [
-      join(directory, 'mac-universal', 'in-C.app'),
-      join(directory, 'mac-arm64', 'in-C.app'),
-      join(directory, 'mac', 'in-C.app')
+      join(directory, 'mac-universal', names.bundleName),
+      join(directory, 'mac-arm64', names.bundleName),
+      join(directory, 'mac', names.bundleName)
     ]
     const appDirectory =
       candidates.find((candidate) => existsSync(candidate)) ??
       findEntry(directory, (name) => name.endsWith('.app'))
 
-    return appDirectory ? join(appDirectory, 'Contents', 'MacOS', 'in-C') : undefined
+    return appDirectory ? join(appDirectory, 'Contents', 'MacOS', names.executableName) : undefined
   }
 
   if (process.platform === 'win32') {
     return findEntry(
       directory,
       (name, fullPath) =>
-        name === 'in-C.exe' && fullPath.includes('win-unpacked')
+        name === names.executableName && fullPath.includes('win-unpacked')
     )
   }
 
   return findEntry(
     directory,
     (name, fullPath) =>
-      name === 'in-c' && fullPath.includes('linux-unpacked')
+      name === names.executableName && fullPath.includes('linux-unpacked')
   )
 }
 

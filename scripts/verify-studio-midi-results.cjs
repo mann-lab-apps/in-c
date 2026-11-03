@@ -38,7 +38,7 @@ app.whenReady().then(async () => {
    await click('내보내기'); await click(auditXml ? 'MusicXML 내보내기' : 'MIDI 내보내기'); const t = Date.now(); while (!finishMidi) { assert.ok(Date.now() - t < 10000, `Missing real ${extension} bridge`); await settle() }
    const requestedBytes = Buffer.from(requested.contents), expected = structuredClone(action === 'edit-success' ? original.score : next.score)
    if (action === 'edit-success') {
-    await click('음표'); await click('악보로 이동'); assert.equal(await run(() => Boolean(document.activeElement?.closest('.score-canvas'))), true); await key('Up', ['alt'])
+    await click('음표'); await click('악보로 이동'); assert.equal(await run(() => Boolean(document.activeElement?.closest('.score-canvas'))), true); await key('Up', ['alt','shift'])
     const event = expected.parts[1].staves[0].measures[0].voices[0].events[0]; event.pitches = [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]; event.pitch = event.pitches[0]
    } else { openFile = replacement; await click('파일'); await click('프로젝트 열기'); await wait(() => document.querySelector('.studio-document').textContent.includes('다음 악보')) }
    const before = await state(); finishMidi(action === 'replace-error'); await settle(); const after = await state()

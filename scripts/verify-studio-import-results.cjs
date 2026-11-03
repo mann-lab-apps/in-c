@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
    else if (action === 'layout-cancel') {
     await click('내보내기'); await run(() => { const n = document.querySelector('[aria-label="PDF 여백 mm"]'); if (!n?.checkVisibility() || n.disabled) throw Error('Missing actual margin field'); n.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(n, '17'); n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })) }); await settle()
    } else {
-    await click('음표'); await click('악보로 이동'); await key('Up', ['alt'])
+    await click('음표'); await click('악보로 이동'); await key('Up', ['alt','shift'])
     const event = expected.parts[1].staves[0].measures[0].voices[0].events[0]; event.pitches = [{ step: 'D', octave: 4, alter: 0 }, { step: 'F', octave: 4, alter: 0 }]; event.pitch = event.pitches[0]
    }
    const before = await state(); if (holdRecent) finishRecent(); else finishOpen(action === 'replace-error'); await settle(); const after = await state()

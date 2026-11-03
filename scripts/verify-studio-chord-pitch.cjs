@@ -65,7 +65,7 @@ app.whenReady().then(async () => {
     else { await run(label => { const n = document.querySelector(`.studio-note-toolbar [aria-label="임시표"] button[aria-label="${label}"]`); if (!n?.checkVisibility() || n.disabled) throw Error('Missing actual persistent accidental control'); n.focus(); n.click() }, movement === 'natural' ? '제자리표' : '샤프'); await settle() }
     assert.match(await run(() => document.querySelector('[aria-label="음표 편집 대상"]').textContent), /화음 전체/)
    } else if (process.argv.includes('--audit-letter')) await key('D')
-   else await key('Up', movement === 'diatonic' ? ['alt'] : movement === 'chromatic' ? ['alt', 'shift'] : ['control', 'alt'])
+   else await key('Up', movement === 'diatonic' ? ['alt', 'shift'] : movement === 'chromatic' ? [] : ['control'])
    const after = await ink(); assert.equal(after.heads.length, process.argv.includes('--audit-letter') ? 1 : 2); assert.equal(after.documentOverflow, false)
    if (process.argv.includes('--audit-letter')) { assert.deepEqual(after.lyrics, before.lyrics); assert.deepEqual(after.lyrics, ['Sing']); assert.equal(after.accidentals, 0); assert.notEqual(after.heads[0].y, before.heads[0].y) }
    else if (movement === 'natural') assert.equal(after.accidentals, 0, 'Natural command clears both unneeded sharps')

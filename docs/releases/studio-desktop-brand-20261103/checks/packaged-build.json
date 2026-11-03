@@ -1,0 +1,47 @@
+{
+  "archive": "out/brand-package-feedback/mac-arm64/띠로리 Studio.app/Contents/Resources/app.asar",
+  "rows": [
+    {
+      "file": "out/renderer/index.html",
+      "build": "2ca90617609a6c7b564fd7e2f21adc3a67aaf929844c30f0af54b5009fe7d2d9",
+      "packaged": "2ca90617609a6c7b564fd7e2f21adc3a67aaf929844c30f0af54b5009fe7d2d9"
+    },
+    {
+      "file": "out/main/index.js",
+      "build": "6c22e95210402673df1752b6d4a16138246e8a27fc3571a641c9078dc0ab6d59",
+      "packaged": "6c22e95210402673df1752b6d4a16138246e8a27fc3571a641c9078dc0ab6d59"
+    },
+    {
+      "file": "out/preload/index.js",
+      "build": "f73483be74a1ab3bfdb85c5bd054c96f15a36c8cfb06cc5d79ba4a2e0e3d93e6",
+      "packaged": "f73483be74a1ab3bfdb85c5bd054c96f15a36c8cfb06cc5d79ba4a2e0e3d93e6"
+    },
+    {
+      "file": "out/renderer/assets/PretendardVariable-CJuje-Rk.woff2",
+      "build": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "packaged": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+    },
+    {
+      "file": "out/renderer/assets/_virtual_studio-export-fonts-UBBjI3-N.js",
+      "build": "840816fbce2e22aa91b00eac4d6874d859f99899ce9c7e97607b555d07314ee2",
+      "packaged": "840816fbce2e22aa91b00eac4d6874d859f99899ce9c7e97607b555d07314ee2"
+    },
+    {
+      "file": "out/renderer/assets/index-B2c6mfD9.js",
+      "build": "17cc4beccd41aaf6044a70e80ce43a3685758b306adf4dc992b64d45141b066d",
+      "packaged": "17cc4beccd41aaf6044a70e80ce43a3685758b306adf4dc992b64d45141b066d"
+    },
+    {
+      "file": "out/renderer/assets/index-oFnZlWii.css",
+      "build": "59c805bbfb77a39684f625d0f3b96073e32a89c698736cc5e041a8710bab3392",
+      "packaged": "59c805bbfb77a39684f625d0f3b96073e32a89c698736cc5e041a8710bab3392"
+    },
+    {
+      "file": "out/renderer/assets/piano-expression.worker-B1lZU1yp.js",
+      "build": "8e3198d11b4cb1faf0aa36effe83564e8daf2c7ff83480b58bef988ef45f7134",
+      "packaged": "8e3198d11b4cb1faf0aa36effe83564e8daf2c7ff83480b58bef988ef45f7134"
+    }
+  ],
+  "allExact": true,
+  "scope": "all compiled main/preload/renderer assets; default-excluded VCS piano metadata is not a runtime asset"
+}

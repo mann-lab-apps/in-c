@@ -1,3 +1,7 @@
+import { buildDurationOverwrite } from './editor/duration-overwrite'
+import { studioShortcutSections as shortcutReferenceSections } from './studio-shortcuts'
+import { buildGraceConversion } from './editor/grace-conversion'
+import { studioWindowTitle } from '../../desktop-identity'
 import { readMusicXmlVoiceNumber, sortScoreVoices } from '../../musicxml/voice-order'
 import { resolveSameStaffVoicePresentation } from './notation/visual-state'
 import { expandScoreRepeatsForMusicXml } from '../../musicxml/expand-repeats'
@@ -440,7 +444,7 @@ interface NewScoreDraft {
   keySignatureId: string
   timeSignatureId: string
   measureCount: number
-  tempo: number
+  tempo: string
 }
 
 interface AutosaveRecoverySnapshot {
@@ -606,38 +610,6 @@ const selectionObjectFilterOptions = [
 ] as const satisfies ReadonlyArray<
   readonly [SelectionObjectTypeFilter, string]
 >
-const shortcutReferenceSections = [
-  {
-    title: '음표 입력',
-    rows: [
-      ['음가 선택', '1-7'],
-      ['셋잇단음표', tripletPreset.shortcut],
-      ['타이', 'T'],
-      ['슬러', 'S'],
-      ['이명동음 바꾸기', 'J']
-    ]
-  },
-  {
-    title: '성부와 선택',
-    rows: [
-      ['성부 순환', 'V'],
-      ['성부 직접 선택', 'Cmd/Ctrl+Alt+1-4'],
-      ['인접 보표 이동', 'Up/Down'],
-      ['선택 범위 확장', 'Shift+Click']
-    ]
-  },
-  {
-    title: '파일과 편집',
-    rows: [
-      ['악보 저장', 'Cmd/Ctrl+S'],
-      ['프로젝트 다른 이름 저장', 'Cmd/Ctrl+Shift+S'],
-      ['실행 취소', 'Cmd/Ctrl+Z'],
-      ['다시 실행', 'Cmd/Ctrl+Shift+Z'],
-      ['복사/붙여넣기', 'Cmd/Ctrl+C / Cmd/Ctrl+V'],
-      ['삭제', 'Delete/Backspace']
-    ]
-  }
-] as const
 const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
@@ -898,6 +870,9 @@ export const App = () => {
   const metadataFocusReturn = useRef<(Pick<MetadataEdit, 'field' | 'documentKey' | 'session' | 'partId'> & { input: HTMLInputElement; returnTarget?: HTMLButtonElement }) | undefined>(undefined)
   useEffect(() => { setMetadataActionsOpen(false) }, [score])
   const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
+  const [newScoreTempoError, setNewScoreTempoError] = useState<string>()
+  const newScoreTempoInput = useRef<HTMLInputElement>(null)
+  const confirmedWizardTempo = useRef('120')
   const [selectedPartPresetId, setSelectedPartPresetId] = useState('violin')
   const [scoreViewMode, setScoreViewMode] = useState<ScoreViewMode>('score')
   const [selectedScoreViewPartId, setSelectedScoreViewPartId] =
@@ -913,6 +888,10 @@ export const App = () => {
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
+  const [durationOverwrite, setDurationOverwrite] = useState<{score: Score;selection:EditorSelection;generation:number;command:ScoreCommand;count:number;value:DurationValue}>()
+  useEffect(() => {
+    if (durationOverwrite && (durationOverwrite.score !== score || durationOverwrite.selection !== selection || durationOverwrite.generation !== documentGeneration.current)) setDurationOverwrite(undefined)
+  }, [durationOverwrite, score, selection])
   const [commandSearchOpen, setCommandSearchOpen] = useState(false)
   const commandSearchActive = useRef(false)
   const commandSearchOwner = useRef<{ generation: number; workspace: number; origin?: HTMLElement }>(undefined)
@@ -1098,6 +1077,9 @@ export const App = () => {
   const [musicXmlReport, setMusicXmlReport] =
     useState<MusicXmlReportPanelState>()
   const [autosaveRevision, setAutosaveRevision] = useState(0)
+  useEffect(() => {
+    document.title = studioWindowTitle(score.title, autosaveRevision > 0, startScreenVisible)
+  }, [score.title, autosaveRevision, startScreenVisible])
   const documentGeneration = useRef(0)
   const [tempoPointRequest, setTempoPointRequest] = useState<{
     generation: number; owner: string; measureId: string; tick: number
@@ -2699,7 +2681,10 @@ export const App = () => {
     workspaceFocusRequest.current += 1
     wizardTrigger.current = document.activeElement as HTMLElement | null
     wizardComposing.current = false
-    setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
+    const draft = createDefaultNewScoreDraft(playback.tempo)
+    confirmedWizardTempo.current = draft.tempo
+    setNewScoreTempoError(undefined)
+    setNewScoreDraft(draft)
   }, [autosaveRevision, playback.tempo, beginDocumentOpen])
 
   const cancelNewScoreWizard = useCallback(() => {
@@ -2723,6 +2708,12 @@ export const App = () => {
       return
     }
 
+    const tempo = parseWizardTempo(newScoreDraft.tempo)
+    if (tempo === undefined) {
+      setNewScoreTempoError('40–240 bpm 사이의 정수를 입력해 주세요. 입력한 값은 자동으로 바뀌지 않습니다.')
+      newScoreTempoInput.current?.focus()
+      return
+    }
     const keySignature = resolveKeySignaturePreset(
       newScoreDraft.keySignatureId
     ).value
@@ -2738,7 +2729,7 @@ export const App = () => {
       keySignature,
       timeSignature,
       measureCount: newScoreDraft.measureCount,
-      tempo: newScoreDraft.tempo
+      tempo
     })
 
     playback.stop()
@@ -2880,10 +2871,10 @@ export const App = () => {
             )
           })
         } else {
-          setFileStatus({
-            tone: 'error',
-            message: describeDurationEditFailure(score, selection, duration)
-          })
+          const overwrite = buildDurationOverwrite(score, eventLocation, duration, () => previewInputId())
+          if (overwrite.command && overwrite.count) {
+            setDurationOverwrite({score,selection,generation:documentGeneration.current,command:overwrite.command,count:overwrite.count,value})
+          } else setFileStatus({ tone: 'error', message: overwrite.reason ?? describeDurationEditFailure(score, selection, duration) })
         }
       } else {
         setDurationValue(value)
@@ -4545,6 +4536,16 @@ export const App = () => {
     [replaceSelectedNote]
   )
 
+  const graceConversion = useMemo(() => buildGraceConversion(score,
+    !noteInputState && !activeSpanReference && selection.type === 'event' ? eventLocation : undefined,
+    () => `grace-rest-${crypto.randomUUID()}`), [score, selection, eventLocation, noteInputState, activeSpanReference])
+  const convertSelectedGrace = useCallback(() => {
+    if (executeCommand(graceConversion.command) && graceConversion.hostId) {
+      setSelection({ type: 'event', eventId: graceConversion.hostId, address: eventLocation?.address })
+      setFileStatus({ tone: 'neutral', message: '선택 음표를 다음 음표의 꾸밈음으로 바꿨습니다. 뒤 음표를 앞당기고 마디 끝을 쉼표로 채웠습니다.' })
+    } else setFileStatus({ tone: 'neutral', message: graceConversion.reason ?? '변환할 음표를 선택하세요.' })
+  }, [executeCommand, graceConversion, eventLocation])
+
   const toggleGraceNote = useCallback(() => {
     replaceSelectedNote((note) => {
       const graceNotes = note.graceNotes ?? []
@@ -6064,7 +6065,7 @@ export const App = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const usesCommandKey = event.metaKey || event.ctrlKey
 
-      if (event.isComposing || event.key === 'Process' || event.keyCode === 229) {
+      if (event.defaultPrevented || event.isComposing || event.key === 'Process' || event.keyCode === 229) {
         return
       }
 
@@ -6186,6 +6187,12 @@ export const App = () => {
         return
       }
 
+      if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyG') {
+        event.preventDefault()
+        if (event.shiftKey) convertSelectedGrace()
+        else if (!noteInputState && selection.type === 'event' && eventLocation?.event.type === 'note') toggleGraceNote()
+        return
+      }
       const duration = resolveDurationShortcut(event)
 
       if (duration) {
@@ -6296,26 +6303,23 @@ export const App = () => {
         case 'ArrowDown':
           event.preventDefault()
           if ((event.metaKey || event.ctrlKey) && event.altKey) {
+            setFileStatus({tone:'neutral',message:'화음 안의 개별 구성음 선택은 현재 지원하지 않습니다. 옥타브 이동은 ⌘/Ctrl+↑/↓를 사용하세요.'})
+          } else if ((event.metaKey || event.ctrlKey) && !event.shiftKey) {
             movePitch('octave', event.key === 'ArrowUp' ? 1 : -1)
           } else if (event.altKey && event.shiftKey) {
-            movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
-          } else if (event.altKey) {
             movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
-          } else if (
-            moveSelectionVertically(event.key === 'ArrowUp' ? -1 : 1)
-          ) {
+          } else if (event.altKey) {
+            const moved=moveSelectionVertically(event.key === 'ArrowUp' ? -1 : 1)
             setFileStatus({
               tone: 'neutral',
-              message:
+              message: moved ? (
                 event.key === 'ArrowUp'
                   ? '위 보표로 이동했습니다.'
                   : '아래 보표로 이동했습니다.'
+              ) : '해당 방향에 선택할 보표가 없습니다.'
             })
-          } else if (eventLocation?.event.type === 'note') {
-            setFileStatus({
-              tone: 'neutral',
-              message: '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
-            })
+          } else if (!event.shiftKey && !event.metaKey && !event.ctrlKey) {
+            movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
           }
           break
         case 'Escape':
@@ -6353,6 +6357,8 @@ export const App = () => {
     changePitchStep,
     clearSelection,
     convertSelectionToRest,
+    toggleGraceNote,
+    convertSelectedGrace,
     copySelection,
     deleteSelection,
     enterNote,
@@ -7017,6 +7023,9 @@ export const App = () => {
         restHint={!noteInputState && selection.type === 'range' ? (rangeRestResult?.blockedByOctaveEndpoint ? octaveRestConflictMessage() : rangeRestResult?.command ? '선택한 범위의 음표를 같은 음가의 쉼표로 변환 · 0' : '같은 마디의 타이·잇단음표 없는 음표 범위를 선택하세요.') : undefined}
         onRest={noteInputState ? enterRest : convertSelectionToRest}
         onInput={() => { setSpanSelection(undefined); setToolbarCategory('note'); toggleNoteInputMode() }}
+        graceEnabled={!noteInputState && !activeSpanReference && selection.type === 'event' && eventLocation?.event.type === 'note'}
+        graceSelected={eventLocation?.event.type === 'note' && Boolean(eventLocation.event.graceNotes?.length)} onGrace={toggleGraceNote}
+        graceConvertEnabled={Boolean(graceConversion.command)} graceConvertReason={graceConversion.reason} onGraceConvert={convertSelectedGrace}
         onDuration={changeDuration} onDots={changeDots} onTie={toggleTie} onTuplet={toggleTuplet}
         accidental={noteInputState ? noteInputState.accidental : selectedPitchAlter}
         accidentalEnabled={accidentalEnabled && (!activeSpanReference || Boolean(noteInputState))}
@@ -7275,6 +7284,7 @@ export const App = () => {
             hint:(scoreViewMode==='part'?'현재 파트보의 페이지를 PNG로 저장':'현재 총보의 페이지를 PNG로 저장')+(isTupletInput?' 셋잇단음표 입력을 완료하거나 취소한 뒤 PNG를 출력해 주세요.':''),onScope:setPngScope,onPage:setPngPage,onDpi:setPngDpi,onSave:()=>void savePng()}}
           xmlHint={scoreViewMode === 'part' ? '선택 파트보 MusicXML 내보내기' : '총보 MusicXML 사본 내보내기'}/>:null}
         {toolbarCategory === 'measure' ? <StudioMeasureTools theme={studioTheme} enabled={Boolean(activeMeasureId)}
+          meterScope={`${activeStructurePart?.name ?? '선택 파트'} · 보표 ${(activeStructurePart?.staves.findIndex(staff=>staff.id===activeStructureStaff?.id) ?? 0)+1} · ${activeMeasureIndex+1}마디 · 선택 보표의 이 마디만`}
           actions={[
             {label:'마디 추가',disabled:!activeMeasureId,onSelect:addMeasure,icon:<Plus size={18} strokeWidth={1.75} aria-hidden="true"/>},
             {label:'마디 삭제',disabled:!activeMeasureId,onSelect:removeMeasure,icon:<Minus size={18} strokeWidth={1.75} aria-hidden="true"/>},
@@ -7667,7 +7677,12 @@ export const App = () => {
       {measureContextMenu ? <StudioMeasureContextMenu key={measureContextMenu.measureId}
         theme={studioTheme} x={measureContextMenu.x} y={measureContextMenu.y}
         scope={resolveRepeatEditScope(score, measureContextMenu.measureId)?.label}
-        canRemove={measureCount > 1} onClose={closeMeasureContextMenu} onSelect={applyMeasureContextAction} /> : null}
+        canRemove={measureCount > 1} onClose={closeMeasureContextMenu} onSelect={action=>{
+          if(action==='time-signature') {
+            setMeasureContextMenu(undefined)
+            openToolbarWorkspace('measure','.studio-measure-tools [data-signature="박자표"] [role="combobox"]')
+          } else applyMeasureContextAction(action)
+        }} /> : null}
 
       {newScoreDraft ? (
         <div className="studio-first-use ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
@@ -7675,6 +7690,7 @@ export const App = () => {
           <form
             aria-label="새 악보 만들기"
             className="studio-new-score-form"
+            noValidate
             onCompositionStart={() => { wizardComposing.current = true }}
             onCompositionEnd={() => { wizardComposing.current = false }}
             onKeyDown={event => {
@@ -7722,8 +7738,28 @@ export const App = () => {
                 onChange={timeSignatureId => setNewScoreDraft({ ...newScoreDraft, timeSignatureId })}/>
               <Input label="마디 수" type="number" min={1} max={64} value={newScoreDraft.measureCount}
                 onChange={event => setNewScoreDraft({ ...newScoreDraft, measureCount: normalizeNumberInput(event.target.valueAsNumber,1,64,newScoreDraft.measureCount) })}/>
-              <Input label={koreanMusicTerms.tempo} type="number" min={40} max={240} help="bpm" value={newScoreDraft.tempo}
-                onChange={event => setNewScoreDraft({ ...newScoreDraft, tempo: normalizeNumberInput(event.target.valueAsNumber,40,240,newScoreDraft.tempo) })}/>
+              <Input onFocus={event => { newScoreTempoInput.current = event.currentTarget }} label={koreanMusicTerms.tempo} type="number" min={40} max={240} step={1}
+                help="40–240 bpm · 정수로 입력해 주세요." error={newScoreTempoError} value={newScoreDraft.tempo}
+                onChange={event => {
+                  newScoreTempoInput.current = event.currentTarget
+                  const tempo = event.target.value
+                  setNewScoreDraft({ ...newScoreDraft, tempo })
+                  if (parseWizardTempo(tempo) !== undefined) setNewScoreTempoError(undefined)
+                }}
+                onBlur={() => {
+                  if (wizardComposing.current) return
+                  if (parseWizardTempo(newScoreDraft.tempo) === undefined) {
+                    setNewScoreTempoError('40–240 bpm 사이의 정수를 입력해 주세요. 입력한 값은 자동으로 바뀌지 않습니다.')
+                  } else { confirmedWizardTempo.current = newScoreDraft.tempo; setNewScoreTempoError(undefined) }
+                }}
+                onKeyDown={event => {
+                  if (wizardComposing.current || event.nativeEvent.isComposing || event.keyCode === 229) return
+                  if (event.key === 'Escape') {
+                    event.preventDefault(); event.stopPropagation()
+                    setNewScoreDraft({ ...newScoreDraft, tempo: confirmedWizardTempo.current })
+                    setNewScoreTempoError(undefined)
+                  }
+                }}/>
             </div>
             <footer className="studio-new-score-actions">
               <Button kind="secondary" onClick={cancelNewScoreWizard}>취소</Button>
@@ -7750,14 +7786,31 @@ export const App = () => {
         </Dialog>
       </div> : null}
 
+      {durationOverwrite ? <div className="studio-duration-overwrite ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event=>event.stopPropagation()}>
+        <Dialog open title="뒤 음표를 덮어쓸까요?" onClose={()=>setDurationOverwrite(undefined)}>
+          <Text as="p">{durationLabels[durationOverwrite.value]}로 늘리면 같은 성부의 뒤 음표 {durationOverwrite.count}개와 그 음표의 부착 표기를 덮어씁니다. 일부만 겹치는 음표도 전체가 대체되고 남는 공간은 쉼표가 됩니다.</Text>
+          <Text as="p" variant="description">겹치지 않는 음표의 위치와 다른 마디·성부는 유지됩니다. 실행 취소 한 번으로 복원할 수 있습니다.</Text>
+          <Button kind="secondary" onClick={()=>setDurationOverwrite(undefined)}>취소</Button>
+          <Button onClick={()=>{
+            if(durationOverwrite.score===score && durationOverwrite.selection===selection && durationOverwrite.generation===documentGeneration.current && executeCommand(durationOverwrite.command)) {
+              setDurationValue(durationOverwrite.value)
+              setFileStatus({tone:'neutral',message:`뒤 음표 ${durationOverwrite.count}개를 덮어쓰고 ${durationLabels[durationOverwrite.value]}로 바꿨습니다. 실행 취소로 복원할 수 있습니다.`})
+            }
+            setDurationOverwrite(undefined)
+          }}>덮어쓰고 음가 늘리기</Button>
+        </Dialog>
+      </div> : null}
+
       {shortcutHelpOpen ? <div className="studio-shortcut-help ddirori" data-theme={studioTheme} data-density="compact" onKeyDown={event => event.stopPropagation()}>
         <Dialog open title="단축키 도움말" onClose={() => setShortcutHelpOpen(false)}>
+          <Text as="p" variant="description">현재 Studio 사용 안내입니다. Mac의 Option은 Windows/Linux의 Alt에 해당하며, ⌘/Ctrl은 Mac에서 Command, 그 외에는 Control입니다.</Text>
+          <Text as="p">음표 선택 → 입력/속성 편집 → 실행 취소 → 프로젝트 저장 순서로 사용할 수 있습니다. 옥타브 이동은 아래 첫 항목을 확인하세요.</Text>
           <div className="studio-shortcut-sections">
             {shortcutReferenceSections.map(section => <section key={section.title} className="studio-shortcut-section">
               <Text as="h3" variant="itemTitle">{section.title}</Text>
               <dl className="studio-shortcut-list">
-                {section.rows.map(([label,shortcut]) => <div key={label} className="studio-shortcut-row">
-                  <dt><Text as="span" variant="description">{label}</Text></dt>
+                {section.rows.map(([label,shortcut,detail]) => <div key={label} className="studio-shortcut-row">
+                  <dt><Text as="span" variant="label">{label}</Text><Text as="p" variant="description">{detail}</Text></dt>
                   <dd><Text as="span">{shortcut}</Text></dd>
                 </div>)}
               </dl>
@@ -7848,6 +7901,11 @@ function previewInputId(): string {
   return `preview-${crypto.randomUUID()}`
 }
 
+function parseWizardTempo(text: string): number | undefined {
+  const value = text.trim() === '' ? NaN : Number(text)
+  return Number.isInteger(value) && value >= 40 && value <= 240 ? value : undefined
+}
+
 function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
   return {
     title: '제목 없는 악보',
@@ -7856,7 +7914,7 @@ function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
     keySignatureId: 'c-major',
     timeSignatureId: '4-4',
     measureCount: 8,
-    tempo: normalizeNumberInput(tempo, 40, 240, DEFAULT_TEMPO_BPM)
+    tempo: String(normalizeNumberInput(tempo, 40, 240, DEFAULT_TEMPO_BPM))
   }
 }
 
@@ -9031,8 +9089,8 @@ function describeDurationEditFailure(
 
       if (event.type !== 'rest') {
         return event.ties?.start || event.ties?.stop
-          ? `타이로 연결된 음표 ${event.id} 때문에 음가를 늘릴 수 없습니다.`
-          : `음표 ${event.id} 때문에 음가를 늘릴 수 없습니다.`
+          ? '뒤 음표가 타이로 연결되어 있습니다. 타이를 먼저 확인한 뒤 음가를 바꿔 주세요.'
+          : '뒤 음표와 겹칩니다. 음가 덮어쓰기가 불가능한 표기나 마디 조건인지 확인해 주세요.'
       }
 
       if (event.duration.tuplet) {

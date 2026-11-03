@@ -1,0 +1,37 @@
+{
+  "accessibilityPermission": true,
+  "bundleIdentifier": "com.mannlab.inc",
+  "bundlePath": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-desktop-brand-20261103/out/brand-package-feedback/mac-arm64/띠로리 Studio.app",
+  "dockMatches": [
+    {
+      "height": 74,
+      "title": "띠로리 Studio",
+      "width": 58,
+      "x": 1154,
+      "y": 1117
+    }
+  ],
+  "menuTitles": [
+    "Apple",
+    "띠로리 Studio",
+    "File",
+    "Edit",
+    "View",
+    "Window"
+  ],
+  "name": "띠로리 Studio",
+  "pid": 51513,
+  "screenCapturePermission": true,
+  "windows": [
+    {
+      "bounds": {
+        "Height": 816,
+        "Width": 1274,
+        "X": 227,
+        "Y": 151
+      },
+      "id": 56732,
+      "title": "띠로리 Studio"
+    }
+  ]
+}

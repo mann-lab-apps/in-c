@@ -1,0 +1,232 @@
+[
+  {
+    "file": "docs/product/studio-desktop-feedback-backlog-20261103.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/product/studio-user-guide.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/artifacts.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/baseline-review.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/curves.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/dock-state.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/finder.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/initial-full-result.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/mounted-dmg.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/native-os.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/packaged-build.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/piano-method.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/piano-packaged-15s.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/renderer-current.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/checks/suite-full-result.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/contract.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/failures.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/handoff.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/icon-source.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/name-map.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/progress.md",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "docs/releases/studio-desktop-brand-20261103/source.json",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "scripts/build-studio-icons.mjs",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "scripts/desktop-brand.test.mjs",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "scripts/desktop-package.cjs",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "scripts/verify-studio-curves.cjs",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "scripts/verify-studio-desktop-brand.cjs",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/desktop-identity.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/main/desktop-brand.test.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/main/desktop-brand.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.desktop-title.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.grace-discovery.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.manual.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.meter-entry.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.musescore-keys.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.rhythm-actions.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/App.wizard-tempo.test.tsx",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/editor/duration-overwrite.test.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/editor/duration-overwrite.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/editor/grace-conversion.test.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/editor/grace-conversion.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/notation/slur-profile.test.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/notation/slur-profile.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/renderer/src/studio-shortcuts.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/testing/studio-curve-fixture.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  },
+  {
+    "file": "src/testing/studio-editing-fixture.ts",
+    "gitExit": 1,
+    "whitespaceDiagnostics": []
+  }
+]

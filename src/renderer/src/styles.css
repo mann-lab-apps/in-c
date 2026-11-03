@@ -1150,12 +1150,14 @@ h2:not(.dd-text) {
 }
 
 .notation-slur {
-  fill: none;
+  fill: #000;
   pointer-events: none;
-  stroke: #111827;
+  stroke: none;
   stroke-linecap: round;
   stroke-width: 1.6;
 }
+
+.notation-slur:not([data-slur-centerline]) { fill: none; stroke: #000; }
 
 .notation-span-target { cursor: pointer; }
 .notation-span-hit {
@@ -1170,6 +1172,11 @@ h2:not(.dd-text) {
   .score-canvas .notation-span-target:is(.is-selected, :focus-visible) :is(.notation-slur, .notation-hairpin) {
     stroke: var(--studio-paper-focus);
   }
+  .score-canvas .notation-span-target:is(.is-selected, :focus-visible) .notation-slur {
+    fill: var(--studio-paper-focus);
+    stroke: none;
+  }
+  .score-canvas .notation-span-target:is(.is-selected, :focus-visible) .notation-slur:not([data-slur-centerline]) { fill: none; stroke: var(--studio-paper-focus); }
   .notation-system-text-target.is-selected > .notation-system-text,
   .notation-staff-text-target.is-selected > .notation-staff-text { fill: var(--studio-paper-focus); }
   .notation-system-text-target:focus-visible, .notation-staff-text-target:focus-visible { outline: none; }

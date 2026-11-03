@@ -1,0 +1,50 @@
+{
+  "rows": [
+    {
+      "mode": "auto",
+      "width": 960,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    },
+    {
+      "mode": "manual",
+      "width": 960,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    },
+    {
+      "mode": "cross",
+      "width": 960,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    },
+    {
+      "mode": "auto",
+      "width": 1400,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    },
+    {
+      "mode": "manual",
+      "width": 1400,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    },
+    {
+      "mode": "cross",
+      "width": 1400,
+      "sourceExact": true,
+      "tiePathExact": true,
+      "slurCenterlineExact": true
+    }
+  ],
+  "oldRenderer": "preserved local package renderer in current isolated host",
+  "widthPairedRastersExact": true,
+  "reviewPending": false,
+  "review": "All three unique before/after PDF ink regions reviewed; true endpoints tapered, continuation endpoints retain thickness, tie paths/manual centerlines unchanged; no new clipping observed."
+}

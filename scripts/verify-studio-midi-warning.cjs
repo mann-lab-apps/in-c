@@ -57,7 +57,7 @@ app.whenReady().then(async()=>{
    if(!win.webContents.debugger.isAttached())win.webContents.debugger.attach('1.3')
    await win.webContents.debugger.sendCommand('Emulation.setTouchEmulationEnabled',{enabled:c.coarse});app.focus({steal:true});win.focus();await settle()
    await click('파일');await click('프로젝트 열기');await wait(()=>Boolean(document.querySelector('.score-canvas .notation-event[data-event-id="supported-note-1"]')))
-   await click('음표');await click('악보로 이동');await key('Up',['alt']);await key('Z',['control'])
+   await click('음표');await click('악보로 이동');await key('Up',['alt','shift']);await key('Z',['control'])
    const before=await state();assert.match(before.document,/저장하지 않은 변경/)
    if(process.argv.includes('--audit-pdf')){pdfName='before-midi.pdf';await click('내보내기');await click('PDF 변환');await wait(()=>document.querySelector('[aria-label="PDF 출력 결과"]')?.textContent.includes('before-midi.pdf'))}
    await click('내보내기');await click('MIDI 내보내기');await settle()

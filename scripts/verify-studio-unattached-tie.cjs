@@ -188,7 +188,7 @@ const auditRecentRemoval = async () => {
     } else {
       assert(pendingRemoval)
       await click('프로젝트 열기'); await wait(() => document.querySelector('.editor-status')?.textContent.includes('을 열었습니다.'))
-      await click('악보로 이동'); await key('Up', ['alt'])
+      await click('악보로 이동'); await key('Up', ['alt','shift'])
       const before = await snapshot(), status = await run(() => document.querySelector('.editor-status').textContent)
       assert(before.dirty)
       if (outcome === 'success') pendingRemoval.resolve([])
@@ -218,7 +218,7 @@ const auditPdfFailure = async () => {
     nativeTheme.themeSource = width === 960 ? 'dark' : 'light'; win.setContentSize(width, 800)
     await win.loadFile(path.resolve('out/renderer/index.html')); app.focus({ steal: true }); win.focus(); await settle()
     await click('프로젝트 열기'); await wait(() => document.querySelector('.editor-status')?.textContent.includes('을 열었습니다.'))
-    await click('악보로 이동'); await key('Up', ['alt'])
+    await click('악보로 이동'); await key('Up', ['alt','shift'])
     const before = await snapshot(); assert(before.dirty)
     await click('파일'); await click('내보내기 설정'); await click('PDF 변환')
     await wait(() => Boolean(document.querySelector('[aria-label="PDF 출력 기술 정보"]')))
@@ -398,7 +398,7 @@ const auditPrintHeader = async () => {
       assert.equal(point.owner,eventId,'Actual note ink must own pointer input after return');assert.equal(point.focused,eventId)
       assert(point.x>=0&&point.x<point.viewportWidth&&point.y>=0&&point.y<point.footerTop,'Use the entire status-row boundary, not its inner label')
       for(const type of ['mouseDown','mouseUp'])win.webContents.sendInputEvent({type,x:point.x,y:point.y,button:'left',clickCount:1});await settle();await capture('editor-return')
-      await key('Up',['alt']);const edited=await save('edited');assert.notDeepEqual(edited,baseline)
+      await key('Up',['alt','shift']);const edited=await save('edited');assert.notDeepEqual(edited,baseline)
       await click('악보로 이동');await key('z',['control']);assert.deepEqual(await save('undo'),baseline)
       await click('악보로 이동');await key('z',['control']);assert.deepEqual(await save('second-undo-noop'),baseline)
       await click('악보로 이동');await key('z',['control','shift']);assert.deepEqual(await save('redo'),edited)
@@ -648,7 +648,7 @@ const auditSearchCancel = async () => {
     nativeTheme.themeSource = width === 960 ? 'dark' : 'light'; win.setContentSize(width, 800)
     await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } }); app.focus({ steal: true }); win.focus(); await settle()
     await click('파일'); await click('프로젝트 열기'); await wait(() => document.querySelector('.editor-status').textContent.includes('을 열었습니다.'))
-    await click('악보로 이동'); await key('Up', ['alt']); const before = await snapshot(); assert(before.dirty)
+    await click('악보로 이동'); await key('Up', ['alt','shift']); const before = await snapshot(); assert(before.dirty)
     await click('도구'); await click('명령 검색')
     await wait(() => document.activeElement?.getAttribute('type') === 'search')
     await key('Down')
@@ -679,7 +679,7 @@ const auditWizardCancel = async () => {
     nativeTheme.themeSource = width === 960 ? 'dark' : 'light'; win.setContentSize(width, 800)
     await win.loadFile(path.resolve('out/renderer/index.html'), { query: { fixture: 'release-test' } }); app.focus({ steal: true }); win.focus(); await settle()
     await click('파일'); await click('프로젝트 열기'); await wait(() => document.querySelector('.editor-status').textContent.includes('을 열었습니다.'))
-    await click('악보로 이동'); await key('Up', ['alt'])
+    await click('악보로 이동'); await key('Up', ['alt','shift'])
     const before = await snapshot(); assert(before.dirty)
     await click('파일'); await click('파일 작업 열기'); await click('새 악보 만들기')
     await wait(() => Boolean(document.querySelector('dialog[open]')))
@@ -967,7 +967,7 @@ app.whenReady().then(async () => {
       }
       await click('파일'); await click('MusicXML 가져오기'); await wait(() => document.querySelector('.editor-status').textContent.includes('을 가져왔습니다.'))
       const baseline = await save('baseline')
-      await click('악보로 이동'); await key('Up', ['alt'])
+      await click('악보로 이동'); await key('Up', ['alt','shift'])
       const before = await snapshot(); assert(before.dirty)
       if (generalFailureAudit) {
         rejectNextOpen = kind === 'read'

@@ -23,7 +23,7 @@ describe('committed document keyboard lifetime', () => {
       dispatched = true
       // Deliberately exercise commit-before-passive-effects, not a sleep or
       // waitFor retry of the command. No test-only controls enter the product.
-      const key = new KeyboardEvent('keydown', { key: 'ArrowUp', code: 'ArrowUp', altKey: true, bubbles: true, cancelable: true })
+      const key = new KeyboardEvent('keydown', { key: 'ArrowUp', code: 'ArrowUp', altKey: true, shiftKey: true, bubbles: true, cancelable: true })
       window.dispatchEvent(key); handled = key.defaultPrevented
     }}><App /></Profiler>)
     if (entry === 'replacement') openStudioWorkspace('파일')

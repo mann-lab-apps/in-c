@@ -1,0 +1,35 @@
+{
+  "artifact": "out/brand-package-feedback/Ddirori-Studio-0.1.0-alpha.38-mac-arm64.dmg",
+  "localOnly": true,
+  "signature": "ad-hoc; not Developer ID or notarized",
+  "checks": [
+    {
+      "name": "dmg-feedback-attach",
+      "exit": 0
+    },
+    {
+      "name": "dmg-feedback-codesign",
+      "exit": 0
+    },
+    {
+      "name": "dmg-feedback-smoke",
+      "exit": 0
+    },
+    {
+      "name": "dmg-feedback-icon-unpack",
+      "exit": 0
+    }
+  ],
+  "volumeName": "띠로리 Studio 0.1.0-alpha.38-arm64",
+  "bundle": {
+    "CFBundleName": "띠로리 Studio",
+    "CFBundleDisplayName": "띠로리 Studio",
+    "CFBundleExecutable": "띠로리 Studio",
+    "CFBundleIdentifier": "com.mannlab.inc",
+    "CFBundleShortVersionString": "0.1.0-alpha.38"
+  },
+  "iconSha256": "9b8a6f98c6d369432727bc7508ca4441e4f830fd1c155635a74cd4f5b809db20",
+  "readOnlyMountedSmoke": "passed; isolated generated fixtures/profile, existing full assertions retained",
+  "physicalFinderDockScreenshot": "not captured; bundle/volume/icon/native menu API evidence is separate",
+  "detached": true
+}

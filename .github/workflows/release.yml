@@ -144,8 +144,9 @@ jobs:
       - name: Verify macOS Developer ID signing
         if: runner.os == 'macOS' && github.event_name != 'pull_request'
         run: |
-          codesign --verify --deep --strict --verbose=2 release/mac-universal/in-C.app
-          xcrun stapler validate release/mac-universal/in-C.app
+          app_path="release/mac-universal/$(node -p "require('./scripts/desktop-package.cjs').desktopPackageInfo(require('./package.json'), 'darwin').bundleName")"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          xcrun stapler validate "$app_path"
       - run: npm run verify:artifacts
 
       - name: Verify packaged app
@@ -200,8 +201,9 @@ jobs:
           if [ -f "$notes_path" ]; then
             notes_args=(--notes-file "$notes_path")
           fi
+          product_name="$(node -p "require('./package.json').build.productName")"
           gh release create "$RELEASE_TAG" release/* \
             --prerelease \
             "${notes_args[@]}" \
-            --title "in-C ${RELEASE_TAG#v}" \
+            --title "${product_name} ${RELEASE_TAG#v}" \
             --verify-tag

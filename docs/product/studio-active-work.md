@@ -1,5 +1,11 @@
 # Studio 현재 작업
 
+## 2026-11-03 — 별도 desktop-brand worktree / 사용자 피드백
+
+`feature/studio-desktop-brand-20261103`, base653497ac, 미커밋 로컬 구현이다. 띠로리 Studio 이름/blue-pencil 패키지·데이터 경로 보존, 빠르기 draft, 꾸밈음 노출/변환, 명시적 음가 덮어쓰기, 실제 단축키 도움말, MuseScore식 방향키, tapered 슬러와 한 마디 박자표 진입을 검증했다. 원본 작업 공간과 기존 설치/게시물은 바꾸지 않았다.
+
+실제960/1400 renderer·native/undo·PDF와 macOS DMG/Finder/창/메뉴/About/Dock을 확인했다. 최신 전체 gate: **Vitest364파일/3,811검사 PASS, 외부 opt-in1파일/1검사 skip, Node 도구5검사 PASS (551.42초, 입력/빌드1,026개 변경 없음)**. 현재 profile/fixed 기준에서 슬러 y/높이9값씩만 잉크 비교 후 갱신했고 다른 기보 metrics는 유지했다. Windows/Linux 실행·물리 IME/OS 파일 dialog·청음/외부 앱은 미검증이다. 자세한 소스/산출물·실패·지원 경계는 `docs/releases/studio-desktop-brand-20261103/handoff.md`와 `docs/product/studio-desktop-feedback-backlog-20261103.md`를 따른다. Commercial V1/RC 전체 완료가 아니다.
+
 2026-11-03 릴리즈 체크포인트: 사용자 승인으로 별도 `release/studio-alpha38-final-20261103` 브랜치의 소스 `7732441ca6586672f3f1ad12794d6b3f6d6c5ce1`을 `v0.1.0-alpha.38` prerelease로 게시했다. 현재 태그의 세 OS 전체 CI·패키지·native smoke와 게시 파일 전체 체크섬, 다운로드한 macOS 앱의 서명·공증·Gatekeeper·격리 실행을 확인했다. 사이트 변경은 draft PR #790이며 별도 머지 전에는 배포하지 않는다. 원본 worktree의 미커밋 변경은 보존했고 아래 기존 작업/목표 상태는 당시 기록이다. 상세 결과와 잔여 제한은 `docs/releases/studio-alpha38-20261103/handoff.md` 참조. 이번 게시가 전체 Studio/Commercial V1/RC 완료를 의미하지 않는다.
 
 2026-11-03 사용자 재개 요청에 따라 현재 턴의 구현을 이어간다. 목표 도구는 paused이며 재개 API는 없다. 이를 active라고 보고하지 않는다. 이전 재확인 HEAD는 `b5e0e9ce6d3d4b233d97c22d7206638e6d2a9aa6`(이전 792 검증 기준은 `3e4bd8d3bef89d6f92b317ebac60182b48b5580b`; 사이의 별도 Score 문서 커밋은 이번 성과가 아님), 브랜치는 `feature/chromatics-expanded-v1-checkpoint-20260913`, 버전은 `0.1.0-alpha.14`다. 이번 변경은 미커밋이며 커밋·푸시·머지·릴리즈·버전·사이트 갱신 승인은 없다. 다른 작업과 worktree, 브랜드·모바일 변경, 원래 Electron PID 88653을 보존한다. env/secret 및 iOS metadata는 작업 대상이 아니다.

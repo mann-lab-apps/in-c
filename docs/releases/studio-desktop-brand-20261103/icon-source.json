@@ -1,0 +1,11 @@
+{
+  "source": "/Users/jaemankim/Desktop/privates/coding/in-c/docs/brand/ddirori-brand-system/assets/icon-studio.svg",
+  "sha256": "2e3421f000035f5a0dfa62944a5a1fc10e54a31d0921fc02485d76443cdc0085",
+  "sourceManifestSha256": "613a98b497700917604623037442c62e6470790f24f9fc1494adfb1750a54660",
+  "manifestEntry": {
+    "file": "icon-studio.svg",
+    "bytes": 410,
+    "sha256": "2e3421f000035f5a0dfa62944a5a1fc10e54a31d0921fc02485d76443cdc0085"
+  },
+  "policy": "Current assets/icon-studio.svg blue functional pencil; unapproved v8 candidates excluded. Vector copied verbatim to build/icon.svg; historical brand assets/manifests unchanged."
+}

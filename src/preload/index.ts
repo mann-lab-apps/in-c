@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { studioDisplayName } from '../desktop-identity'
 import type { NativeProject } from '../project/schema'
 import type { NativeBackupEntry } from '../project/backups'
 import type { PngExportInput, PngExportResult } from '../image-export/png'
@@ -25,7 +26,7 @@ interface RecentMusicXmlFile {
 }
 
 const api = {
-  appName: 'in-C',
+  appName: studioDisplayName,
   png: {
     save: (input: PngExportInput) => ipcRenderer.invoke('png:save', input) as Promise<PngExportResult | null>
   },

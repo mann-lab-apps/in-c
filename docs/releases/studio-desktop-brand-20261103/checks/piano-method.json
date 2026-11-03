@@ -1,0 +1,9 @@
+{
+  "method": "owned QA-only copy of scripts/verify-piano-package.mjs; final AudioDestination connections routed through gain=0; source scheduling and all existing assertions retained",
+  "actualPackagedApp": true,
+  "seconds": 15,
+  "naturalEndingGateRun": false,
+  "physicalListening": false,
+  "sourceScriptSha256": "0c51c6b7a76817f5445077d0ac28350dd5d2a04f4044f86132e4a8db6994f617",
+  "qaCopySha256": "7e4e46f3726ff52ca89376718e6d675c9a1bd609e62d74c812d0607756594d01"
+}

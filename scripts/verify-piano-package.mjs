@@ -4,9 +4,12 @@ import net from 'node:net'
 import { spawn, execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
+const names = require('./desktop-package.cjs').desktopPackageInfo(require('../package.json'), process.platform)
 
 const seconds = Number(process.argv.find(a => a.startsWith('--seconds='))?.split('=')[1] ?? 605)
-const executable = path.resolve(process.env.PIANO_PACKAGED_APP || 'out/piano-package/mac-arm64/in-C.app/Contents/MacOS/in-C')
+const executable = path.resolve(process.env.PIANO_PACKAGED_APP || path.join('out/piano-package/mac-arm64', names.bundleName, 'Contents/MacOS', names.executableName))
 const output = path.resolve(process.env.PIANO_PACKAGE_QA_OUTPUT || 'out/piano-package-qa')
 const userData = path.join(output, `user-data-${seconds}`)
 fs.mkdirSync(userData, { recursive: true })
