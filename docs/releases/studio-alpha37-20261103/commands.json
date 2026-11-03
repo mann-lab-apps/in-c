@@ -1,0 +1,35 @@
+{
+  "checkout": "git clone --no-hardlinks --single-branch --branch release/studio-alpha37-20261103 -c core.autocrlf=true <owned-release-worktree> <fresh-independent-clone>",
+  "install": "npm ci",
+  "assets": "node scripts/verify-piano-assets.mjs",
+  "xmlFocused": "npm test -- src/musicxml/element-order.test.ts src/musicxml/strong-accent.test.ts --maxWorkers=2 --silent=passed-only",
+  "uiFocused": "npm test -- src/renderer/src/App.notation-exchange.test.tsx src/renderer/src/App.properties.test.tsx src/renderer/src/App.workspace.test.tsx -t \"studio.sound-dynamics-import-warning|studio.note-velocity-import-warning|studio.part-setup represents current|studio.r3 PDF success\" --maxWorkers=2 --silent=passed-only",
+  "nodeNative": "npm run test:tools",
+  "build": "npm run build",
+  "profile": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-notation-snapshots.cjs --profile=studio-r3",
+  "fixed": "env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-notation-snapshots.cjs --fixed-canvas",
+  "localPackaging": "env -u ELECTRON_RUN_AS_NODE CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --dir --mac --arm64 --publish never -c.mac.identity=null -c.mac.notarize=false -c.dmg.sign=false",
+  "packagedSmoke": "node out/verify-packaged-app-isolated.cjs",
+  "smokeIsolation": {
+    "source": "scripts/verify-packaged-app.cjs",
+    "extraArguments": [
+      "--piano-audit",
+      "--mute-audio"
+    ],
+    "extraEnv": "DDIRORI_PIANO_QA_DATA=<new-owned-temp-profile>"
+  },
+  "piano": "PIANO_PACKAGED_APP=<owned-package-executable> PIANO_PACKAGE_QA_OUTPUT=<owned-output> PIANO_QA_ISOLATE_INPUT=1 node out/verify-piano-package-muted.mjs --seconds=12",
+  "pianoIsolation": {
+    "source": "scripts/verify-piano-package.mjs",
+    "extraArgument": "--mute-audio"
+  },
+  "full": "CI=true GITHUB_ACTIONS=true npm run test:all",
+  "schemaCheckout": "SHA256 of unchanged SOURCE.json-referenced XSD files, core.autocrlf=true",
+  "tag": "node scripts/verify-release-tag.cjs v0.1.0-alpha.37",
+  "documentation": [
+    "npm run verify:chromatics-musescore-parity-roadmap",
+    "npm run verify:chromatics-v1-work-queue",
+    "git diff --check"
+  ],
+  "scope": "Local automated fixtures/isolated profiles, not physical IME/OS picker/listening/screen reader approval"
+}

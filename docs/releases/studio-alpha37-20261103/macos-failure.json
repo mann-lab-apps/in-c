@@ -1,0 +1,16 @@
+{
+  "run": 41577135779,
+  "job": 125723144797,
+  "phase": "test:all",
+  "filesPassed": 351,
+  "testsPassed": 3766,
+  "testsFailed": 1,
+  "testsSkipped": 1,
+  "case": "studio.save-draft-reveal save preserves manual inspection until an explicit pending-field save",
+  "file": "src/renderer/src/App.save-draft-reveal.test.tsx:31",
+  "assertion": "field.scrollIntoView expected 1 call, observed 2; not a duplicate file-write assertion",
+  "rawTail": "out/release-qa/job-125723144797-tail.log",
+  "sha256": "949bc0eef432c148fec83c0d8a8038b3047d9d3ba8b233cdf1235a64a4dbe66f",
+  "previousMacTimeoutCases": "not reported in this run",
+  "status": "macOS failed; sibling jobs retained for diagnostics; publication gated"
+}
