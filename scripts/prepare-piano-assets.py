@@ -1,7 +1,8 @@
 """Prepare pinned CC BY 3.0 piano samples; run with the experiment's audio extra.
 
 Only explicit files in assets/piano/salamander-source.json are downloaded.
-Raw files stay in ignored external-references; output OGGs are ignored public assets.
+Raw files stay in ignored external-references; the pinned output bank is versioned
+under public assets so a fresh release checkout can build without downloading audio.
 """
 import concurrent.futures
 import hashlib

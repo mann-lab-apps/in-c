@@ -79,6 +79,7 @@ jobs:
       - run: npm ci
       - if: github.event_name != 'pull_request'
         run: npm run verify:release-tag
+      - run: npm run piano:verify
       - run: npm run test:all
       - name: Verify macOS signing secrets
         if: runner.os == 'macOS' && github.event_name != 'pull_request'

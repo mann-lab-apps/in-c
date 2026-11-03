@@ -1,0 +1,3 @@
+Salamander Grand Piano V3 by Alexander Holm; source distribution/remapping by kinwie (sfzinstruments). Adapted four-layer sample preset for ddirori Studio.
+https://creativecommons.org/licenses/by/3.0/
+Selected four recorded velocity layers; resampled to 32kHz stereo, trimmed to at most 12s, 100ms tail fade, OGG Vorbis compression. No separate release/noise/resonance samples included.

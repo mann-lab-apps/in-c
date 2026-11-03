@@ -1,2 +1,8 @@
 *
 !.gitignore
+# The pinned runtime bank must exist in a fresh release checkout.
+# Raw WAV/cache/preparation files remain ignored.
+!manifest.json
+!LICENSE.txt
+!CREDITS.txt
+!*.ogg
