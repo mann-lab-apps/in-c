@@ -1,0 +1,58 @@
+{
+  "checkedAt": "2026-11-03T05:06:24.352376+00:00",
+  "releaseSourceCommit": "7732441ca6586672f3f1ad12794d6b3f6d6c5ce1",
+  "locallyPackagedCommit": "1c657db1",
+  "applicationSourcesEquivalent": true,
+  "onlyTreeDifferences": [
+    "docs/releases/notes/v0.1.0-alpha.38.md",
+    "docs/releases/studio-alpha38-20261103/preflight-matrix.json"
+  ],
+  "nativePlatform": "macOS arm64; core.autocrlf=true independent clone",
+  "version": "0.1.0-alpha.38",
+  "focusedSchedulerTestsPassed": 5,
+  "buildTypecheck": "passed",
+  "localPackagedSmoke": "all native/file/PDF/MIDI/backup assertions passed with original 20s wrapper deadline; isolated muted userData",
+  "localSigning": "explicit unsigned/unnotarized overrides; remote universal signing remains separate",
+  "rendererEquality": {
+    "reference": "validated alpha.37 fresh checkout",
+    "files": 130,
+    "byteIdentical": true
+  },
+  "fullReference": {
+    "version": "alpha.37",
+    "vitest": 3767,
+    "externalOptInSkipped": 1,
+    "nodeNative": 5,
+    "note": "same production renderer/core; alpha.38 release still requires full current-source CI on every platform"
+  },
+  "preflightMatrix": 41581030858,
+  "releaseRun": 41581664095,
+  "releaseStatusAtRecord": "running full tests; not yet published",
+  "logs": [
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-clean-20261103/out/release-qa/npm-ci.log",
+      "bytes": 1083,
+      "sha256": "51a1a162156fd98040b1b0a0bfc81a930acd7e833d8142ed9794122fc4d1e40c"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-clean-20261103/out/release-qa/draft-scheduler.log",
+      "bytes": 542,
+      "sha256": "b62655fbf041fbe9727ea77063a0e4b03fa26c50cd7631ac275ba2283fb488cc"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-clean-20261103/out/release-qa/build-alpha38.log",
+      "bytes": 2034,
+      "sha256": "3bb88d18641d6afccb7e4768ccece9bc8be5aa41bad642140df7935a6cf14121"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-clean-20261103/out/release-qa/package-alpha38.log",
+      "bytes": 2132,
+      "sha256": "34b54734145204c4d9a664c60e30313dd258a8e3a93c278a52c9ccae59111105"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha38-clean-20261103/out/release-qa/smoke-alpha38.log",
+      "bytes": 2262,
+      "sha256": "5ed46ed76f2f14cc3744af8b8167e9b368cd0708b3aa9c65b2846f3b307254a4"
+    }
+  ]
+}
