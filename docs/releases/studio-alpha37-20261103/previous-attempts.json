@@ -1,0 +1,39 @@
+{
+  "alpha35": {
+    "tagCommit": "20db5a6c1063ca490ccad081e4cdb97be2bdb2b0",
+    "run": 41572769737,
+    "conclusion": "failure; unpublished",
+    "linux": "full tests passed; missing ignored piano bank stopped package build",
+    "macOS": "two 15000ms workflow timeouts and two following lookup failures",
+    "windows": "three pinned XSD hash failures from checkout EOL conversion; one PDF guide lookup failure",
+    "rawTails": [
+      {
+        "path": "out/release-qa/linux-failed-tail.log",
+        "sha256": "72ad52432e6940a2406e22e4ee4dc3ab98ee05594881449d5f1be9ad564d59e7"
+      },
+      {
+        "path": "out/release-qa/job-125709281217-tail.log",
+        "sha256": "9db2cfb8f86947a0a4cdb4a499ac387cdb07707c8e178935547bcf7b4f7e545e"
+      },
+      {
+        "path": "out/release-qa/job-125709281348-tail.log",
+        "sha256": "1e0b7b2643fae61cc94f857aa4602b1e9ec4436fa2442ccdd8f9684cb140f430"
+      }
+    ]
+  },
+  "alpha36": {
+    "run": 41576386441,
+    "conclusion": "cancelled before publication after additional Windows failures were known",
+    "localFull": "interrupted with exit 130 because candidate superseded; not PASS"
+  },
+  "alpha37": {
+    "fixes": [
+      "versioned validated piano bank and early CI verification",
+      "failed-test logs retained; successful-test console noise suppressed",
+      "pinned XSD text conversion disabled; expected hashes untouched",
+      "native PDF callback controlled in existing guide test; assertions strengthened"
+    ],
+    "limitsUnchanged": true
+  },
+  "tags": "35/36 not moved, deleted or reused"
+}

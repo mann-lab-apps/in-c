@@ -1,0 +1,184 @@
+{
+  "checkedAt": "2026-11-03T04:27:55.614083+00:00",
+  "commit": "8fc5e6a134d810db0da2dc5ea3a0265ebb9983f0",
+  "version": "0.1.0-alpha.37",
+  "checkout": {
+    "kind": "independent fresh clone",
+    "coreAutocrlf": true,
+    "nativePlatform": "macOS arm64; Windows checkout conversion simulated",
+    "trackedFilesUnchanged": true
+  },
+  "schemaCheckout": [
+    {
+      "file": "musicxml.xsd",
+      "sha256": "bfe37ed25a9ec00e6f2591d53df260b84efe12aed209ba3ac0a76f9287665a99"
+    },
+    {
+      "file": "xml.xsd",
+      "sha256": "616a3077df5cfc954ac74a75abe9697b95eef7a85dbe09367d995a483e840eb5"
+    },
+    {
+      "file": "xlink.xsd",
+      "sha256": "6e601f8eeb41618b50e4c7f944dff754e57ea43b602755470dda24c9c2f6df92"
+    }
+  ],
+  "focused": [
+    {
+      "name": "xml-checkout",
+      "exitCode": 0,
+      "seconds": 1.633
+    },
+    {
+      "name": "ui-failures",
+      "exitCode": 0,
+      "seconds": 3.982
+    },
+    {
+      "name": "node-tools",
+      "exitCode": 0,
+      "seconds": 0.133
+    }
+  ],
+  "production": [
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 6.377
+    },
+    {
+      "name": "profile",
+      "exitCode": 0,
+      "seconds": 6.999
+    },
+    {
+      "name": "fixed",
+      "exitCode": 0,
+      "seconds": 2.665
+    },
+    {
+      "name": "package",
+      "exitCode": 0,
+      "seconds": 5.618
+    },
+    {
+      "name": "smoke",
+      "exitCode": 0,
+      "seconds": 5.541
+    },
+    {
+      "name": "piano-package",
+      "exitCode": 0,
+      "seconds": 14.182
+    },
+    {
+      "name": "roadmap",
+      "exitCode": 0,
+      "seconds": 0.13
+    },
+    {
+      "name": "work-queue",
+      "exitCode": 0,
+      "seconds": 0.133
+    },
+    {
+      "name": "tag-version",
+      "exitCode": 0,
+      "seconds": 0.04
+    }
+  ],
+  "testAll": {
+    "exitCode": 0,
+    "vitestFilesPassed": 352,
+    "vitestTestsPassed": 3767,
+    "externalOptInFilesSkipped": 1,
+    "externalOptInTestsSkipped": 1,
+    "nodeNativePassed": 5,
+    "durationSeconds": 534.9,
+    "environment": {
+      "CI": true,
+      "GITHUB_ACTIONS": true
+    }
+  },
+  "notes": [
+    "Local packaging explicitly unsigned/unnotarized; remote universal signing is a separate gate.",
+    "Offline piano QA is 12 seconds, muted, isolated profile; not listening/endurance approval.",
+    "No baseline updates; profile and fixed-canvas unchanged."
+  ],
+  "workflow": {
+    "id": 41577135779,
+    "url": "https://github.com/mann-lab-apps/in-c/actions/runs/41577135779",
+    "statusAtRecord": "in progress; no publication approval inferred"
+  },
+  "logs": [
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/build.log",
+      "bytes": 2034,
+      "sha256": "1a538f68ce480bb9827974df5df6795c96fa3de93d1783fe356f01e257baeb15"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/fixed.log",
+      "bytes": 204,
+      "sha256": "93e827d4e025c0d7a818b1ef88983015ec127f2f5575b30f08e9b1ff1d86830f"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/node-tools.log",
+      "bytes": 664,
+      "sha256": "64670016de19755c83299a2f9b99d65c900fed05c14e504d183a38218a7535b3"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/npm-ci.log",
+      "bytes": 1083,
+      "sha256": "51a1a162156fd98040b1b0a0bfc81a930acd7e833d8142ed9794122fc4d1e40c"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/package.log",
+      "bytes": 2132,
+      "sha256": "6af262dfeb4db9f371eebdb9378cecaca9e7e1748dbac83c9ae1e29fd0d52ce1"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/piano-package.log",
+      "bytes": 661,
+      "sha256": "c08437b0d13810f62be6f8dd5c855e46e1501268363ab8d37d910750086c774e"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/profile.log",
+      "bytes": 108,
+      "sha256": "0ae22a673a637028dbd10a3df2f0398cd2299861981148f368e60ccadde17e37"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/roadmap.log",
+      "bytes": 1507,
+      "sha256": "c71e1be8506a81d998d9beafa9f87758d101b31c4ac25f5d65e48b1cc1a7ce41"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/smoke.log",
+      "bytes": 1788,
+      "sha256": "e7753771e127957b416d761dbf72c132e88a8227709a8c8d14146b6456238994"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/tag-version.log",
+      "bytes": 56,
+      "sha256": "98b5a5302df9e2d3c5c0f98ce53366dc2891e659bf09cb37ad337ed0ebb4c63e"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/test-all-ci.log",
+      "bytes": 1537948,
+      "sha256": "c2e85dd90948f7bbc879c3188350f64b6fd5b5fa703f481e1ae57166b2bbeabf"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/ui-failures.log",
+      "bytes": 1074,
+      "sha256": "c12df14df23324bd2ef5fc2e159b7b06196aeee29eec6cf3e6fa238ae84b6587"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/work-queue.log",
+      "bytes": 1415,
+      "sha256": "8c31ef2da690749b61629912d1e01ab45c9df1c3ac79993a542bacadbbd5bbcc"
+    },
+    {
+      "path": "/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha37-clean-20261103/out/release-qa/xml-checkout.log",
+      "bytes": 414,
+      "sha256": "fad344dc44415f90a5e6c2a8aba676e57cfc1acc5a6fbddd2121ca6cfbb151ae"
+    }
+  ]
+}
