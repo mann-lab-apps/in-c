@@ -502,12 +502,21 @@ const createWindow = (): void => {
     mainWindow.once('ready-to-show', () => {
       mainWindow.show()
     })
+  } else {
+    mainWindow.webContents.on('console-message', details => {
+      if (details.message.startsWith('PACKAGED_APP_SMOKE_STAGE')) console.log(details.message)
+    })
   }
 
   mainWindow.webContents.once('did-finish-load', async () => {
     if (!isSmokeTest) {
       return
     }
+    // Layout checks await real animation frames. A hidden Xvfb window can
+    // suspend those frames even with background throttling disabled.
+    // Show the owned smoke window without taking the user's active focus.
+    mainWindow.showInactive()
+    console.log('PACKAGED_APP_SMOKE_STAGE renderer-loaded')
 
     const smokeMusicXmlPath = join(
       app.getPath('temp'),
@@ -564,6 +573,8 @@ const createWindow = (): void => {
     try {
       const result = await mainWindow.webContents.executeJavaScript(`
         (async () => {
+          const stage = name => console.log('PACKAGED_APP_SMOKE_STAGE ' + name + ' ' + Math.round(performance.now()))
+          stage('renderer-ready/' + document.visibilityState)
           const smokeMusicXmlPath = ${JSON.stringify(smokeMusicXmlPath)}
           const smokeMxlPath = ${JSON.stringify(smokeMxlPath)}
           const smokeExportPath = ${JSON.stringify(smokeExportPath)}
@@ -652,6 +663,8 @@ const createWindow = (): void => {
           const field = (name) =>
             (() => { const label=labels.find(label => label.textContent?.trim() === name);return label?.control || (label?.htmlFor ? document.getElementById(label.htmlFor) : null) || namedControl(name) })()
 
+          await waitForCondition(() => document.visibilityState === 'visible', 'Packaged smoke window did not become visible')
+          stage('wizard')
           await setInputValue(field('제목'), 'Packaged Smoke Score')
           await setInputValue(field('작곡가'), 'Codex QA')
           await setSelectValue(field('악보 구성'), 'string-quartet')
@@ -674,6 +687,7 @@ const createWindow = (): void => {
             document.querySelector('.notation-preview svg')
           )
 
+          stage('score-created')
           const savedMusicXml = await window.inC.musicXml.save({
             filePath: smokeMusicXmlPath,
             suggestedName: 'packaged-smoke.musicxml',
@@ -710,6 +724,7 @@ const createWindow = (): void => {
             contents: smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Resave')
           })
           const resavedMxl = await window.inC.recentMusicXml.open({ filePath: smokeMxlPath })
+          stage('format-roundtrip')
           const savedPdf = await window.inC.pdf.save({
             filePath: smokePdfPath,
             suggestedName: 'packaged-smoke.pdf'
@@ -787,6 +802,7 @@ const createWindow = (): void => {
               )
             ]
           }
+          stage('part-pdf')
           const savedPartPdf = await window.inC.pdf.save({
             filePath: smokePdfPath,
             suggestedName: 'packaged-smoke-cello.pdf'
@@ -796,6 +812,7 @@ const createWindow = (): void => {
             suggestedName: 'packaged-smoke.mid',
             contents: smokeMidiContents
           })
+          stage('native-project')
           await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="파트보 제목 수정"]')?.click()
@@ -876,6 +893,7 @@ const createWindow = (): void => {
           const partSystems = [...document.querySelectorAll('[data-measure-id][data-system-index]')]
           const hasNativePartLayout = document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal' &&
             partSystems.some(element => element.getAttribute('data-measure-id') === celloSecondMeasure && Number(element.getAttribute('data-system-index')) > 0)
+          stage('native-pdf')
           await menuCommand('파일', '내보내기 설정')
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="PDF 변환"]')?.click()
@@ -903,6 +921,7 @@ const createWindow = (): void => {
             title: 'Packaged Smoke'
           })
           const autosaveSnapshot = await window.inC.autosave.read()
+          stage('renderer-complete')
           await window.inC.autosave.clear()
           await window.inC.recentMusicXml.remove({ filePath: smokeMusicXmlPath })
 
@@ -999,6 +1018,7 @@ const createWindow = (): void => {
         throw new Error(`Packaged renderer check failed: ${JSON.stringify(result)}`)
       }
 
+      console.log('PACKAGED_APP_SMOKE_STAGE file-validation')
       const savedContents = await readFile(smokeMusicXmlPath, 'utf8')
 
       if (savedContents !== smokeMusicXmlContents) {
@@ -1022,6 +1042,7 @@ const createWindow = (): void => {
 
       validateSmokeMidi(savedMidi)
 
+      console.log('PACKAGED_APP_SMOKE_STAGE backup-viewports')
       await mainWindow.webContents.executeJavaScript(`document.querySelector('[aria-label="프로젝트 백업"]')?.click()`)
       for (const width of [960, 1400]) {
         mainWindow.setSize(width, 900)

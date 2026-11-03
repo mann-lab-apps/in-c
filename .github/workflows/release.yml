@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing v-prefixed tag to publish
+        description: Existing v-prefixed tag to publish, or preflight to check the selected branch without publication
         required: true
         type: string
 
@@ -31,8 +31,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Packaged Linux preflight (no publication)
+    if: github.event_name == 'workflow_dispatch' && inputs.tag == 'preflight'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run piano:verify
+      - run: npm run package:dir
+      - run: xvfb-run --auto-servernum npm run verify:package
+
   package:
     name: Package ${{ matrix.platform }}
+    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
     strategy:
       fail-fast: false
       matrix:
@@ -143,7 +161,7 @@ jobs:
   publish:
     name: Publish GitHub prerelease
     needs: package
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && inputs.tag != 'preflight'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}

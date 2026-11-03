@@ -1,0 +1,26 @@
+{
+  "previousRun": 41577135779,
+  "macOS": {
+    "cause": "RAF stubs installed after mounting App left real scheduled frames outside mocked cancellation",
+    "change": "Control window/global RAF and cancellation before App import/mount; restore both after cleanup",
+    "expectedCounts": "unchanged: save=1; new-wheel/composing/equal/later-focus=0",
+    "focusedCurrent": "5/5 pass with existing product code; no product scroll-handler change"
+  },
+  "linux": {
+    "failedStep": "Verify packaged app on Linux",
+    "result": "AppImage built; packaged smoke timed out after unchanged 20s deadline",
+    "hypothesis": "Hidden Xvfb window suspended real frame waits",
+    "change": "Smoke-only showInactive plus bounded visible-state requirement and phase logs",
+    "validation": "Targeted remote Linux preflight pending; not a release gate substitute"
+  },
+  "originalTails": [
+    {
+      "path": "out/release-qa/job-125723144797-tail.log",
+      "sha256": "949bc0eef432c148fec83c0d8a8038b3047d9d3ba8b233cdf1235a64a4dbe66f"
+    },
+    {
+      "path": "out/release-qa/job-125723144359-tail.log",
+      "sha256": "5bab25ddaa9da0a658aaf2647222fb212579c7057fdf6aa98a81d39d7e9cdd6d"
+    }
+  ]
+}
