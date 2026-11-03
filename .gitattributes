@@ -1,2 +1,6 @@
 # Preserve the pinned upstream XSD bytes on Windows and Unix checkouts.
 src/musicxml/schema/musicxml-4.0/*.xsd -text
+
+# Generated unified-diff evidence requires blank context lines containing one space.
+# Keep all product/source whitespace checks enabled.
+docs/releases/studio-desktop-brand-20261103/source.patch -whitespace
