@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart' as sqflite;
 
 import 'sqlite_migration.dart';
+import 'library_view_settings.dart';
 
 const libraryBackupSchemaVersion = 1;
 const libraryBackupFormat = 'ddirori-play-logical-backup';
 const libraryBackupAppVersion = '0.1.0';
+final _artworkHashPattern = RegExp(r'^[a-f0-9]{64}$');
 
 class LibraryBackupException implements Exception {
   const LibraryBackupException(this.message);
@@ -233,10 +235,17 @@ _BackupDocument _decodeAndValidate(String source) {
       DateTime.tryParse(createdAt)?.isUtc != true) {
     throw const LibraryBackupException('백업 버전 또는 생성 시각이 올바르지 않습니다.');
   }
-  // Pre-playlist exports have no playlist table; preserve their import path.
+  // Older exports omit tables introduced after their storage version.
   final scopedSpecs = [
     for (final spec in _tableSpecs)
-      if (storageVersion >= 15 || spec.name != 'local_playlists') spec,
+      if ((storageVersion >= 18 || spec.name != 'local_favorites') &&
+          (storageVersion >= 15 || spec.name != 'local_playlists') &&
+          (storageVersion >= 16 ||
+              !{
+                'library_view_settings',
+                'library_artwork',
+              }.contains(spec.name)))
+        spec,
   ];
   final expectedScope = scopedSpecs.map((spec) => spec.name).toList();
   final rawScope = decoded['scope'];
@@ -292,6 +301,9 @@ _BackupDocument _decodeAndValidate(String source) {
     totalRows += rows.length;
   }
   if (storageVersion < 15) data['local_playlists'] = const [];
+  if (storageVersion < 16) data['library_view_settings'] = const [];
+  if (storageVersion < 16) data['library_artwork'] = const [];
+  if (storageVersion < 18) data['local_favorites'] = const [];
   if (totalRows > 100000) {
     throw const LibraryBackupException('백업 항목이 허용된 개수를 초과했습니다.');
   }
@@ -371,6 +383,10 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
       value == null || targets.contains(value);
   void require(bool condition, String message) {
     if (!condition) throw LibraryBackupException(message);
+  }
+
+  for (final row in data['local_favorites']!) {
+    require(files.contains(row['file_id']), '즐겨찾기 파일 참조가 올바르지 않습니다.');
   }
 
   for (final row in data['catalog_works']!) {
@@ -513,6 +529,31 @@ class _BackupTableSpec {
       databaseRow?.call(row) ?? row;
 
   void validate(Map<String, Object?> row) {
+    if (name == 'library_artwork' &&
+        (row['owner'] is! String ||
+            !(row['owner']! as String).startsWith(
+              RegExp(r'(file|playlist):'),
+            ) ||
+            row['image_hash'] is! String ||
+            !_artworkHashPattern.hasMatch(row['image_hash']! as String) ||
+            (row['source_stamp'] != null &&
+                (row['source_stamp'] is! String ||
+                    !_artworkHashPattern.hasMatch(
+                      row['source_stamp']! as String,
+                    ))))) {
+      throw const LibraryBackupException('표지 참조가 올바르지 않습니다.');
+    }
+    if (name == 'library_view_settings') {
+      try {
+        if (row['id'] != 1) throw const FormatException('settings id');
+        LibraryViewSettings.fromJson(
+          (jsonDecode(row['value_json']! as String) as Map)
+              .cast<String, Object?>(),
+        );
+      } catch (_) {
+        throw const LibraryBackupException('보관함 표시 설정이 올바르지 않습니다.');
+      }
+    }
     final identityValue = row[primaryKey];
     if ((identityValue is! String || identityValue.trim().isEmpty) &&
         identityValue is! int) {
@@ -534,6 +575,16 @@ final _credentialPattern = RegExp(
 );
 
 final List<_BackupTableSpec> _tableSpecs = [
+  const _BackupTableSpec(
+    name: 'library_artwork',
+    primaryKey: 'owner',
+    columns: ['owner', 'image_hash', 'source_stamp'],
+  ),
+  const _BackupTableSpec(
+    name: 'library_view_settings',
+    primaryKey: 'id',
+    columns: ['id', 'value_json'],
+  ),
   _BackupTableSpec(
     name: 'scanned_audio_files',
     primaryKey: 'id',
@@ -812,6 +863,11 @@ final List<_BackupTableSpec> _tableSpecs = [
     name: 'playback_history_preferences',
     primaryKey: 'id',
     columns: ['id', 'retention_policy'],
+  ),
+  const _BackupTableSpec(
+    name: 'local_favorites',
+    primaryKey: 'file_id',
+    columns: ['file_id'],
   ),
   const _BackupTableSpec(
     name: 'local_playlists',

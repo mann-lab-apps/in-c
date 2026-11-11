@@ -178,12 +178,15 @@ class PlayQueueRow extends StatelessWidget {
     required this.item,
     this.current = false,
     this.showContext = true,
+    this.editMenu,
   });
 
   final int index;
   final LocalPlaybackQueueItem item;
   final bool current;
   final bool showContext;
+  final Widget? editMenu;
+  String get _currentLabel => item.isDirectFile ? '현재 곡' : '현재 악장';
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -191,7 +194,7 @@ class PlayQueueRow extends StatelessWidget {
     label:
         '큐 ${index + 1}번, ${item.displayTitle}, '
         '${showContext ? '${item.workTitle}, ${item.recordingTitle}, ' : ''}${item.fileSourceLabel}'
-        '${current ? ', 현재 악장' : ''}',
+        '${current ? ', $_currentLabel' : ''}',
     selected: current,
     child: DdiroriItem(
       flat: true,
@@ -203,9 +206,10 @@ class PlayQueueRow extends StatelessWidget {
           : '실제 파일 연결 필요',
       leading: SizedBox(width: 24, child: Text('${index + 1}')),
       actions: [
+        ?editMenu,
         if (current)
-          const DdiroriStatusBadge(
-            label: '현재 악장',
+          DdiroriStatusBadge(
+            label: _currentLabel,
             tone: DdiroriStatusTone.info,
           ),
         DdiroriIconButton(

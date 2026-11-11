@@ -11,6 +11,61 @@ void main() {
     () async => directory = await Directory.systemTemp.createTemp('qa_runner_'),
   );
   tearDown(() async => directory.delete(recursive: true));
+  test(
+    'old or truncated PNG files cannot stand in for a new capture',
+    () async {
+      final source = File(
+        'ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png',
+      );
+      final old = await source.copy('${directory.path}/old.png');
+      expect(await qaImageEvidence(old, 'old.png'), isNotNull);
+      final result = await runQaCheck(
+        const QaCheck(
+          'stale-image',
+          '/bin/sh',
+          ['-c', 'exit 0'],
+          expectedImages: ['old.png'],
+        ),
+        directory,
+      );
+      expect(result['status'], 'missingCapture');
+      final truncated = File('${directory.path}/truncated.png');
+      await truncated.writeAsBytes((await source.readAsBytes()).sublist(0, 24));
+      expect(await qaImageEvidence(truncated, 'truncated.png'), isNull);
+    },
+  );
+
+  test('capture markers are allowlisted and private paths and device IDs are redacted', () {
+    expect(
+      libraryCaptureScene('DDIRORI_LIBRARY_SCENE playlist-detail'),
+      'playlist-detail',
+    );
+    expect(libraryCaptureScene('DDIRORI_LIBRARY_SCENE ../../private'), isNull);
+    expect(
+      libraryCaptureScene('DDIRORI_LIBRARY_SCENE search-results'),
+      'search-results',
+    );
+    final clean = sanitizeQaLog(
+      'file /Users/person/Music/private.flac device 12345678-1234-1234-1234-123456789abc',
+    );
+    expect(clean, isNot(contains('private.flac')));
+    expect(clean, isNot(contains('12345678')));
+  });
+
+  test('successful command with missing captures cannot pass', () async {
+    final result = await runQaCheck(
+      const QaCheck(
+        'missing-image',
+        '/bin/sh',
+        ['-c', 'exit 0'],
+        expectedImages: ['images/missing.png'],
+      ),
+      directory,
+    );
+    expect(result['status'], 'missingCapture');
+    expect(result['exitCode'], 0);
+    expect(result['images'], isEmpty);
+  });
 
   test('fingerprint excludes only known generated iOS registrants', () {
     for (final path in [
@@ -55,7 +110,7 @@ void main() {
       expect(result['status'], 'passed');
       expect(result['exitCode'], 0);
       final log = File('${directory.path}/pass.log');
-      expect(await log.readAsString(), 'evidence');
+      expect(await log.readAsString(), 'evidence\n');
       expect(
         result['logSha256'],
         sha256.convert(await log.readAsBytes()).toString(),

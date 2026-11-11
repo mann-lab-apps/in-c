@@ -4,14 +4,25 @@ import 'dart:io';
 import 'package:classical_local_library/library_details.dart';
 import 'package:classical_local_library/library_discovery.dart';
 import 'package:classical_local_library/library_search.dart';
+import 'package:classical_local_library/local_file_library.dart';
 import 'package:classical_local_library/playback_planner.dart';
 
 import 'large_library_fixture.dart';
 
-void main() {
+void main(List<String> arguments) {
+  if (arguments.isNotEmpty &&
+      (arguments.length != 1 || arguments.single != '--stress')) {
+    stderr.writeln(
+      'Usage: dart run tool/benchmark_large_library.dart [--stress]',
+    );
+    exitCode = 64;
+    return;
+  }
   final rssBefore = ProcessInfo.currentRss;
   final started = Stopwatch()..start();
-  final fixture = buildLargeLibraryFixture();
+  final fixture = buildLargeLibraryFixture(
+    composerCount: arguments.contains('--stress') ? 400 : 100,
+  );
   final fixtureMicros = started.elapsedMicroseconds;
   final library = fixture.library;
   final timings = <String, int>{};
@@ -24,7 +35,21 @@ void main() {
     return result;
   }
 
-  measure('indexWarmup', () => library.track('track-4999'));
+  final lastWork = library.works.last.id;
+  final lastRecording = library.recordings.last.id;
+  final entries = measure(
+    'fileEntries',
+    () => const LocalFileLibrary().entries(files: library.files),
+  );
+  measure(
+    'fileSort',
+    () => const LocalFileLibrary().sort(entries, LocalFileSort.title),
+  );
+  measure(
+    'fileSearch',
+    () => const LocalFileLibrary().search(entries, entries.last.title),
+  );
+  measure('indexWarmup', () => library.track(library.tracks.last.id));
   final search = measure(
     'search',
     () => const LibrarySearchService().search(
@@ -39,13 +64,13 @@ void main() {
     scannedFiles: library.files,
     links: fixture.links,
   );
-  measure('workDetail', () => details.buildWork('work-999'));
-  measure('recordingDetail', () => details.buildRecording('recording-999'));
+  measure('workDetail', () => details.buildWork(lastWork));
+  measure('recordingDetail', () => details.buildRecording(lastRecording));
   measure(
     'discovery',
     () => const LibraryDiscoveryService().otherWorksByComposer(
       library,
-      workId: 'work-999',
+      workId: lastWork,
     ),
   );
   final planner = ClassicalPlaybackPlanner(
@@ -57,7 +82,7 @@ void main() {
   final plan = measure(
     'queuePlan',
     () => planner.createPlanForRecording(
-      'recording-999',
+      lastRecording,
       PlaybackMode.recordingRandom,
     ),
   );

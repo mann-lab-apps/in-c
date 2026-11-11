@@ -1,0 +1,70 @@
+{
+  "environment": "macOS host",
+  "physicalOutputVerified": false,
+  "generatorVersion": "2.0",
+  "fixtures": [
+    {
+      "fixture": "movement_1.wav",
+      "status": "verifiedHostMetadata",
+      "sha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "sourcePcmSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "container": "WAVE",
+      "audioFormat": "1 ch,  22050 Hz, Int16",
+      "generation": "generatePcmWaveFixture"
+    },
+    {
+      "fixture": "movement_1_aac.m4a",
+      "status": "verifiedHostMetadata",
+      "sha256": "4f270357ebd1354b6ef6c77c726734dc65f7c6adfdcef1d2cd9f192a429cc575",
+      "sourcePcmSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "container": "m4af",
+      "audioFormat": "1 ch,  22050 Hz, aac  (0x00000000) 0 bits/channel, 0 bytes/packet, 1024 frames/packet, 0 bytes/frame",
+      "generation": "macOS afconvert from movement_1.wav; see generate_audio_fixtures.dart"
+    },
+    {
+      "fixture": "movement_1_alac.m4a",
+      "status": "verifiedHostMetadata",
+      "sha256": "611f4fa7c0cb274ece397f42226777716b763da774e8aad1b07352e4b3c5555d",
+      "sourcePcmSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "container": "m4af",
+      "audioFormat": "1 ch,  22050 Hz, alac (0x00000001) from 16-bit source, 4096 frames/packet",
+      "generation": "macOS afconvert from movement_1.wav; see generate_audio_fixtures.dart"
+    },
+    {
+      "fixture": "movement_1.flac",
+      "status": "verifiedHostMetadata",
+      "sha256": "3a24217063e9586580ee66db634c2b847fb6a3789d69c092c24e32c1d0350de3",
+      "sourcePcmSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+      "container": "flac",
+      "audioFormat": "1 ch,  22050 Hz, flac (0x00000001) from 16-bit source, 4608 frames/packet",
+      "generation": "macOS afconvert from movement_1.wav; see generate_audio_fixtures.dart"
+    }
+  ],
+  "mp3": {
+    "status": "unavailableLocalEncoder",
+    "attempts": [
+      {
+        "codec": ".mp3",
+        "exitCode": 1,
+        "outputExists": false,
+        "reason": "Error: ExtAudioFileSetProperty ('cfmt') failed ('fmt?')"
+      },
+      {
+        "codec": ".mp3@44100",
+        "exitCode": 1,
+        "outputExists": false,
+        "reason": "Error: ExtAudioFileSetProperty ('cfmt') failed ('fmt?')"
+      }
+    ]
+  },
+  "availableRuntimeInventory": [
+    {
+      "version": "26.5",
+      "build": "23F77",
+      "available": true
+    }
+  ],
+  "olderOsVerified": false,
+  "note": "Metadata and capability probes only. Native transport has separate integration evidence; physical listening and older OS remain separate."
+}
+Running build hooks...Running build hooks...

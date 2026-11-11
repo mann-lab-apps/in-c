@@ -122,6 +122,14 @@ Future<void> _center(WidgetTester t, Finder finder) async {
 }
 
 Future<void> _openPlaybackPlan(WidgetTester t) async {
+  while (find.byTooltip('도구 더보기').evaluate().isEmpty) {
+    if (find.byTooltip('뒤로').evaluate().isNotEmpty) {
+      await t.tap(find.byTooltip('뒤로'));
+    } else {
+      await t.pageBack();
+    }
+    await t.pumpAndSettle();
+  }
   await t.tap(find.byTooltip('도구 더보기'));
   await t.pumpAndSettle();
   await t.tap(find.text('재생 계획').last);

@@ -1,0 +1,3 @@
+# Preserve hashed runner logs byte-for-byte, including terminal padding/line ends.
+play-music-actions-20261111/**/*.log binary
+play-reliability-20261111/**/*.log binary

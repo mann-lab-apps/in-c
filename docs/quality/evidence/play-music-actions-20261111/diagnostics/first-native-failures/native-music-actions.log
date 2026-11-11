@@ -1,0 +1,48 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           17.0s
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: native queue edits and SQLite reopen restore duplicate occurrence order modes and position without autoplay
+00:01 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: native completed append prepares new source ready and only explicit play advances position
+00:03 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: (tearDownAll)
+00:03 +2: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           18.0s
+00:28 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.dragUntilVisible.<anonymous closure> (package:flutter_test/src/controller.dart:2489:38)
+<asynchronous suspension>
+#3      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:130:27)
+<asynchronous suspension>
+#4      WidgetController.scrollUntilVisible.<anonymous closure> (package:flutter_test/src/controller.dart:2439:7)
+<asynchronous suspension>
+#5      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:130:27)
+<asynchronous suspension>
+#6      _tap (file:///private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart:275:5)
+<asynchronous suspension>
+#7      main.<anonymous closure> (file:///private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart:141:7)
+<asynchronous suspension>
+#8      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#9      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:41 +2 -1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue [E]
+  Test failed. See exception logs above.
+  The test description was: IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue
+  
+00:41 +2 -1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: (tearDownAll)
+00:42 +2 -1: Some tests failed.
+
+Failing tests:
+  /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue

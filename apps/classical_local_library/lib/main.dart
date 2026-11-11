@@ -18,6 +18,8 @@ import 'imslp_download.dart';
 import 'imslp_library.dart';
 import 'just_audio_playback.dart';
 import 'library_search.dart';
+import 'library_search_backend.dart';
+import 'library_search_coordinator.dart';
 import 'library_backup.dart';
 import 'library_backup_io.dart';
 import 'library_catalog.dart';
@@ -34,6 +36,10 @@ import 'local_audio_import.dart';
 import 'local_import_feedback.dart';
 import 'local_file_library.dart';
 import 'local_playlists.dart';
+import 'local_favorites.dart';
+import 'library_view_settings.dart';
+import 'library_artwork.dart';
+import 'presentation/play_artwork.dart';
 import 'local_data_control.dart';
 import 'local_audio_export.dart';
 import 'metadata_candidates.dart';
@@ -46,7 +52,6 @@ import 'playback_position.dart';
 import 'playback_planner.dart';
 import 'presentation/play_library_components.dart';
 import 'presentation/play_activity_components.dart';
-import 'presentation/play_playback_components.dart';
 import 'presentation/play_playback_layout.dart';
 import 'sample_classical_library.dart';
 import 'scan_locations.dart';
@@ -56,6 +61,10 @@ import 'sqlite_database.dart';
 part 'presentation/library_home_components.dart';
 part 'presentation/local_file_library_components.dart';
 part 'presentation/local_playlist_components.dart';
+part 'presentation/library_navigation.dart';
+part 'presentation/library_scroll_view.dart';
+part 'presentation/library_sections_editor.dart';
+part 'presentation/favorite_library.dart';
 
 void main() {
   const enableDemoLibrary = bool.fromEnvironment('ENABLE_DEMO_LIBRARY');
@@ -80,6 +89,7 @@ enum _LibraryView {
 }
 
 enum _HomeToolAction {
+  editSections,
   playback,
   management,
   listening,
@@ -120,6 +130,11 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
     this.imslpImportCoordinator,
     this.catalogRepository,
     this.localPlaylistRepository,
+    this.localFavoritesRepository,
+    this.viewSettingsStore,
+    this.artworkRepository,
+    this.artworkPicker,
+    this.librarySearchBackend,
     this.initialLibrary = sampleClassicalLibrary,
     this.enableDemoFeatures = true,
     this.localDataControlService,
@@ -154,6 +169,11 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
   final ImslpImportCoordinator? imslpImportCoordinator;
   final ClassicalCatalogRepository? catalogRepository;
   final LocalPlaylistRepository? localPlaylistRepository;
+  final LocalFavoritesRepository? localFavoritesRepository;
+  final LibraryViewSettingsStore? viewSettingsStore;
+  final LibraryArtworkRepository? artworkRepository;
+  final LibraryArtworkPicker? artworkPicker;
+  final LibrarySearchBackend? librarySearchBackend;
   final ClassicalLibrary initialLibrary;
   final bool enableDemoFeatures;
   final LocalDataControlService? localDataControlService;
@@ -199,6 +219,11 @@ class ClassicalLocalLibraryApp extends StatelessWidget {
         imslpImportCoordinator: imslpImportCoordinator,
         catalogRepository: catalogRepository,
         localPlaylistRepository: localPlaylistRepository,
+        localFavoritesRepository: localFavoritesRepository,
+        viewSettingsStore: viewSettingsStore,
+        artworkRepository: artworkRepository,
+        artworkPicker: artworkPicker,
+        librarySearchBackend: librarySearchBackend,
         initialLibrary: initialLibrary,
         enableDemoFeatures: enableDemoFeatures,
         localDataControlService: localDataControlService,
@@ -238,6 +263,11 @@ class LibraryHomeScreen extends StatefulWidget {
     this.imslpImportCoordinator,
     this.catalogRepository,
     this.localPlaylistRepository,
+    this.localFavoritesRepository,
+    this.viewSettingsStore,
+    this.artworkRepository,
+    this.artworkPicker,
+    this.librarySearchBackend,
     this.initialLibrary = sampleClassicalLibrary,
     this.enableDemoFeatures = true,
     this.localDataControlService,
@@ -271,6 +301,11 @@ class LibraryHomeScreen extends StatefulWidget {
   final ImslpImportCoordinator? imslpImportCoordinator;
   final ClassicalCatalogRepository? catalogRepository;
   final LocalPlaylistRepository? localPlaylistRepository;
+  final LocalFavoritesRepository? localFavoritesRepository;
+  final LibraryViewSettingsStore? viewSettingsStore;
+  final LibraryArtworkRepository? artworkRepository;
+  final LibraryArtworkPicker? artworkPicker;
+  final LibrarySearchBackend? librarySearchBackend;
   final ClassicalLibrary initialLibrary;
   final bool enableDemoFeatures;
   final LocalDataControlService? localDataControlService;
@@ -284,7 +319,6 @@ class LibraryHomeScreen extends StatefulWidget {
 class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     with WidgetsBindingObserver {
   late ClassicalLibrary library;
-  final LibrarySearchService searchService = const LibrarySearchService();
   final LocalFileLibrary fileLibrary = const LocalFileLibrary();
   ClassicalPlaybackPlanner? planner;
   PlaybackPlan? plan;
@@ -309,6 +343,24 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   LibraryMergeRepository? libraryMergeRepository;
   ClassicalCatalogRepository? catalogRepository;
   LocalPlaylistRepository? localPlaylistRepository;
+  LocalFavoritesRepository? localFavoritesRepository;
+  Set<String> favoriteIds = const {};
+  bool isFavoriteSaving = false;
+  String? favoriteError;
+  String? musicNotice;
+  Future<void> _favoriteWrite = Future.value();
+  int _favoriteRefresh = 0;
+  LibraryViewSettingsStore? viewSettingsStore;
+  LibraryArtworkRepository? artworkRepository;
+  bool isSavingArtwork = false;
+  List<LocalAudioFile>? _artworkFilesSource;
+  List<AudioFileTrackLink>? _artworkLinksSource;
+  Map<String, LocalAudioFile> _artworkFiles = {};
+  LibraryViewSettings viewSettings = LibraryViewSettings();
+  bool hasInvalidViewSettings = false;
+  bool hasArtworkLoadError = false;
+  bool isSavingViewSettings = false;
+  Future<void> _settingsWrite = Future.value();
   AudioFileTrackLinkRepository? fileTrackLinkRepository;
   ImslpStore? imslpStore;
   MusicBrainzClient? musicBrainzClient;
@@ -342,8 +394,31 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   ClassicalQueueMissingPolicy queueMissingPolicy =
       ClassicalQueueMissingPolicy.playAvailable;
   String searchQuery = '';
-  Timer? searchDebounce;
+  late final LibrarySearchCoordinator _searchCoordinator;
+  bool _searchReady = false;
+  Object? _searchInputs;
+  int _searchRevision = 0;
   _LibraryView homeView = _LibraryView.library;
+  final List<_LibraryVisit> _visits = [];
+  int _visitId = 0;
+  int _nextVisitId = 0;
+  final _playlistDetailKeys = <int, GlobalKey<_PlaylistDetailPanelState>>{};
+  final _pageChanges = ValueNotifier<int>(0);
+  bool _pageChangesDisposed = false;
+  bool _navigationPopPending = false;
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    if (_searchReady) _refreshSearchSnapshot();
+    // Routed pages observe the same owner; no player/repository is recreated.
+    if (!_pageChangesDisposed) _pageChanges.value++;
+  }
+
+  final _playlistChanges = ValueNotifier<int>(0);
+  String? _highlightPlaylistId;
+  OverlayEntry? _playlistFeedbackEntry;
+  bool _playlistRefreshFailed = false;
   LocalFileCategory fileCategory = LocalFileCategory.songs;
   String? fileGroup;
   String fileQuery = '';
@@ -462,13 +537,35 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     );
     playbackState = localPlayer.playbackState;
     playbackView = ValueNotifier(PlayPlaybackSnapshot(playbackState));
+    _searchCoordinator = LibrarySearchCoordinator(
+      widget.librarySearchBackend ?? AdaptiveLibrarySearchBackend(),
+    );
+    _searchReady = true;
+    _refreshSearchSnapshot();
+    _searchCoordinator.addListener(_searchChanged);
     playbackSubscription = localPlayer.states.listen((state) {
       unawaited(playbackHistoryCoordinator.observe(state));
       unawaited(playbackQueueCoordinator.observe(state));
       if (!mounted) {
         return;
       }
-      setState(() {
+      final previous = playbackState;
+      final rebuild =
+          homeView == _LibraryView.playback ||
+          !identical(previous.queue, state.queue) ||
+          previous.currentIndex != state.currentIndex ||
+          previous.playerState != state.playerState ||
+          previous.processingState != state.processingState ||
+          previous.failure != state.failure ||
+          previous.isSeeking != state.isSeeking ||
+          previous.shuffleEnabled != state.shuffleEnabled ||
+          previous.repeatMode != state.repeatMode ||
+          previous.isChangingMode != state.isChangingMode ||
+          previous.modeError != state.modeError ||
+          previous.isEditingQueue != state.isEditingQueue ||
+          previous.queueEditError != state.queueEditError ||
+          previous.duration != state.duration;
+      void update() {
         playbackState = state;
         if (firstUseEligible &&
             !firstPlayAchieved &&
@@ -477,7 +574,13 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
             state.currentItem?.recordingId == lastRegisteredRecordingId) {
           firstPlayAchieved = true;
         }
-      });
+      }
+
+      if (rebuild) {
+        setState(update);
+      } else {
+        update();
+      }
       _syncPlaybackView();
     });
     playbackHistorySubscription = playbackHistoryCoordinator.changes.listen((
@@ -490,10 +593,16 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
 
   @override
   void dispose() {
+    _clearPlaylistFeedback();
     WidgetsBinding.instance.removeObserver(this);
     localImportCancellation?.cancel();
-    searchDebounce?.cancel();
+    _searchReady = false;
+    _searchCoordinator.removeListener(_searchChanged);
+    _searchCoordinator.dispose();
     unawaited(playbackSubscription.cancel());
+    _playlistChanges.dispose();
+    _pageChangesDisposed = true;
+    _pageChanges.dispose();
     playbackView.dispose();
     unawaited(playbackHistorySubscription.cancel());
     unawaited(commandAvailabilitySubscription.cancel());
@@ -502,6 +611,10 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   }
 
   Future<void> _disposePlayback() async {
+    await _searchCoordinator.close();
+    await _settingsWrite.catchError((Object _) {});
+    artworkRepository?.dispose();
+    await artworkRepository?.drained;
     await systemMedia?.dispose();
     await playbackQueueCoordinator.flush();
     await playbackHistoryCoordinator.dispose();
@@ -582,11 +695,46 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     plan = nextPlanner.createPlan(mode);
   }
 
+  void _searchChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _refreshSearchSnapshot() {
+    final inputs = (
+      library,
+      scannedFiles,
+      metadataCandidates,
+      metadataOverrides,
+      libraryMerges,
+      fileTrackLinks,
+    );
+    if (inputs == _searchInputs) return;
+    _searchInputs = inputs;
+    final aliases = LibraryAliasIndex(libraryMerges);
+    _searchCoordinator.replaceSnapshot(
+      LibrarySearchSnapshot(
+        revision: ++_searchRevision,
+        library: library,
+        files: scannedFiles,
+        candidates: metadataCandidates,
+        overrides: metadataOverrides,
+        workAliases: aliases.aliasesFor(LibraryEntityType.work),
+        recordingAliases: aliases.aliasesFor(LibraryEntityType.recording),
+      ),
+    );
+  }
+
   void _setSearchQuery(String query) {
-    searchDebounce?.cancel();
-    searchDebounce = Timer(const Duration(milliseconds: 180), () {
-      if (mounted && query != searchQuery) setState(() => searchQuery = query);
-    });
+    setState(() => searchQuery = query);
+    _searchCoordinator.submit(query);
+  }
+
+  void _syncSearchVisit() {
+    if (homeView == _LibraryView.search) {
+      _searchCoordinator.activate(searchQuery);
+    } else {
+      _searchCoordinator.suspend();
+    }
   }
 
   Future<void> _prepareStorage() async {
@@ -668,6 +816,50 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     final linkRepository =
         widget.fileTrackLinkRepository ??
         await _defaultFileTrackLinkRepository();
+    final favorites =
+        widget.localFavoritesRepository ??
+        localFavoritesRepository ??
+        LocalFavoritesRepository(
+          widget.scanRepository != null
+              ? MemoryLocalFavoritesStore()
+              : SqliteLocalFavoritesStore(await _openDefaultDatabase()),
+        );
+    Set<String> storedFavorites = const {};
+    String? favoritesLoadError;
+    try {
+      storedFavorites = await favorites.load();
+    } catch (_) {
+      favoritesLoadError = '즐겨찾기를 불러오지 못했습니다. 다시 시도해 주세요.';
+    }
+    final settingsStore =
+        widget.viewSettingsStore ??
+        viewSettingsStore ??
+        (widget.scanRepository != null
+            ? MemoryLibraryViewSettingsStore()
+            : SqliteLibraryViewSettingsStore(await _openDefaultDatabase()));
+    LibraryViewSettings storedViewSettings;
+    var invalidViewSettings = false;
+    try {
+      storedViewSettings = await settingsStore.load();
+    } on FormatException {
+      storedViewSettings = LibraryViewSettings();
+      invalidViewSettings = true;
+    }
+    LibraryArtworkRepository? artwork;
+    var artworkLoadError = false;
+    try {
+      artwork =
+          widget.artworkRepository ??
+          artworkRepository ??
+          (widget.scanRepository == null
+              ? await _defaultArtworkRepository()
+              : null);
+      await artwork?.initialize();
+    } catch (_) {
+      artwork?.dispose();
+      artwork = null;
+      artworkLoadError = true;
+    }
     final externalStore =
         widget.imslpStore ??
         (widget.scanRepository != null
@@ -750,6 +942,14 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       libraryMergeRepository = mergeRepository;
       catalogRepository = catalog;
       localPlaylistRepository = playlistRepository;
+      localFavoritesRepository = favorites;
+      favoriteIds = storedFavorites;
+      favoriteError = favoritesLoadError;
+      viewSettingsStore = settingsStore;
+      viewSettings = storedViewSettings;
+      hasInvalidViewSettings = invalidViewSettings;
+      hasArtworkLoadError = artworkLoadError;
+      artworkRepository = artwork;
       playlists = storedPlaylists;
       fileTrackLinkRepository = linkRepository;
       imslpStore = externalStore;
@@ -779,6 +979,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                 : '음원 파일을 가져와 라이브러리를 시작하세요.'
           : '저장된 스캔 후보 ${files.length}개를 불러왔습니다.';
     });
+    _syncPlaybackView();
     await _restorePlaybackQueue();
   }
 
@@ -791,7 +992,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       currentQueue: currentQueue,
     );
     if (recovery.queue.isNotEmpty) {
-      await localPlayer.loadQueue(recovery.queue);
+      await localPlayer.restoreQueue(recovery);
     }
     if (!mounted) return;
     setState(() {
@@ -804,6 +1005,8 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
             '${recovery.skippedTrackIds.length}개를 제외했습니다.';
       } else if (recovery.isUnavailable) {
         scanStatus = '이전 재생 큐의 로컬 파일을 찾지 못했습니다.';
+      } else if (snapshot.optionsInvalid) {
+        scanStatus = '재생 모드를 복원하지 못해 저장된 곡 순서와 반복 끔으로 복구했습니다.';
       }
     });
   }
@@ -811,33 +1014,36 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   List<LocalPlaybackQueueItem> _queueForSnapshot(
     PlaybackQueueSnapshot snapshot,
   ) {
-    if (snapshot.trackIds.any(fileLibrary.isFileTrackId)) {
-      return fileLibrary.queueForSnapshot(
-        fileLibrary.entries(
-          files: scannedFiles,
-          candidates: metadataCandidates,
-          overrides: metadataOverrides,
-        ),
-        snapshot.trackIds,
-      );
-    }
-    Track? firstTrack;
+    final directFiles = fileLibrary.queueForSnapshot(
+      fileLibrary.entries(
+        files: scannedFiles,
+        candidates: metadataCandidates,
+        overrides: metadataOverrides,
+      ),
+      snapshot.trackIds,
+    );
+    final recordingIds = <String>{};
     for (final trackId in snapshot.trackIds) {
       try {
-        firstTrack = library.track(trackId);
-        break;
+        recordingIds.add(library.track(trackId).recordingId);
       } on StateError {
         continue;
       }
     }
     final activePlanner = planner;
-    if (firstTrack == null || activePlanner == null) return const [];
-    final restorationPlan = activePlanner.createPlanForRecording(
-      firstTrack.recordingId,
-      PlaybackMode.recordingRandom,
+    if (recordingIds.isEmpty || activePlanner == null) return directFiles;
+    final plans = [
+      for (final id in recordingIds)
+        activePlanner.createPlanForRecording(id, PlaybackMode.recordingRandom),
+    ];
+    final restorationPlan = PlaybackPlan(
+      mode: PlaybackMode.recordingRandom,
+      work: plans.first.work,
+      recording: plans.first.recording,
+      items: [for (final plan in plans) ...plan.items],
     );
     final aliases = LibraryAliasIndex(libraryMerges);
-    return const LocalPlaybackQueueBuilder()
+    final classical = const LocalPlaybackQueueBuilder()
         .buildDetailed(
           plan: restorationPlan,
           scannedFiles: scannedFiles,
@@ -849,6 +1055,8 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
           missingPolicy: ClassicalQueueMissingPolicy.playAvailable,
         )
         .queue;
+    // Recovery applies the saved occurrence order and selection to this catalog.
+    return [...directFiles, ...classical];
   }
 
   Future<void> _refreshPlaybackHistory() async {
@@ -1033,12 +1241,25 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     );
   }
 
+  Future<LibraryArtworkRepository> _defaultArtworkRepository() async {
+    final support = await getApplicationSupportDirectory();
+    final directory = Directory('${support.path}/library_artwork');
+    final repository = LibraryArtworkRepository(
+      directory: directory,
+      store: SqliteArtworkReferenceStore(await _openDefaultDatabase()),
+    );
+    await repository.initialize();
+    await const PlatformBackupExclusionPolicy().exclude(directory.path);
+    return repository;
+  }
+
   Future<LocalDataControlService> _defaultLocalDataControlService() async {
     final database = await _openDefaultDatabase();
     final supportDirectory = await getApplicationSupportDirectory();
     final managedDirectories = [
       Directory('${supportDirectory.path}/managed_audio'),
       Directory('${supportDirectory.path}/imslp_imports'),
+      Directory('${supportDirectory.path}/library_artwork'),
     ];
     const backupPolicy = PlatformBackupExclusionPolicy();
     for (final directory in managedDirectories) {
@@ -1107,7 +1328,9 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     }
   }
 
-  Future<void> _importAudioFiles() => _runImport();
+  Future<void> _importAudioFiles() async {
+    await _runImport();
+  }
 
   Future<void> _retryFailedImports() async {
     if (isImportingFiles) return;
@@ -1164,9 +1387,12 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     }
   }
 
-  Future<void> _runImport({List<int>? retryIndices}) async {
+  Future<LocalAudioImportBatchResult?> _runImport({
+    List<int>? retryIndices,
+    bool reportFailure = false,
+  }) async {
     final coordinator = localAudioImportCoordinator;
-    if (coordinator == null || isImportingFiles || isScanning) return;
+    if (coordinator == null || isImportingFiles || isScanning) return null;
 
     setState(() {
       isImportingFiles = true;
@@ -1180,10 +1406,10 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       final selections = retryIndices == null
           ? await audioFilePicker.pickAudioFiles()
           : [for (final index in retryIndices) importFeedback[index].selection];
-      if (!mounted) return;
+      if (!mounted) return null;
       if (selections.isEmpty) {
         setState(() => scanStatus = '파일 가져오기가 취소되었습니다.');
-        return;
+        return null;
       }
       final result = await coordinator.importFiles(
         selections,
@@ -1203,7 +1429,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
           });
         },
       );
-      if (!mounted) return;
+      if (!mounted) return null;
       final nextFeedback = LocalImportFeedbackItem.fromBatch(
         selections,
         result,
@@ -1262,16 +1488,20 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
             '취소 ${counts[LocalAudioImportOutcome.cancelled]}개',
         ].join(' · ');
       });
+      _syncPlaybackView();
+      return result;
     } catch (_) {
       if (mounted) {
         setState(() => scanStatus = '파일을 가져오지 못했습니다. 다시 시도해 주세요.');
       }
+      if (reportFailure) rethrow;
     } finally {
       if (identical(localImportCancellation, cancellation)) {
         localImportCancellation = null;
       }
       if (mounted) setState(() => isImportingFiles = false);
     }
+    return null;
   }
 
   String _formatImportBytes(int bytes) {
@@ -1409,6 +1639,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   }
 
   Future<void> _openCatalogRegistration(List<LocalAudioFile> files) async {
+    _dismissLibraryNotices();
     final repository = scanRepository;
     final linkRepository = fileTrackLinkRepository;
     final catalog = catalogRepository;
@@ -1524,15 +1755,46 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         .length;
   }
 
-  List<LocalFileLibraryEntry> get _fileEntries => fileLibrary.entries(
-    files: scannedFiles,
-    candidates: metadataCandidates,
-    overrides: metadataOverrides,
+  Object? _derivedInputs;
+  final _derivedValues = <Object, Object>{};
+  T _derive<T extends Object>(Object key, T Function() compute) {
+    final inputs = (
+      scannedFiles,
+      metadataCandidates,
+      metadataOverrides,
+      library,
+      libraryMerges,
+      fileTrackLinks,
+      importedAtByFileId,
+    );
+    if (_derivedInputs != inputs) {
+      _derivedInputs = inputs;
+      _derivedValues.clear();
+    }
+    if (_derivedValues.containsKey(key)) return _derivedValues[key] as T;
+    final value = compute();
+    if (_derivedValues.length >= 32) {
+      _derivedValues.remove(_derivedValues.keys.first);
+    }
+    _derivedValues[key] = value;
+    return value;
+  }
+
+  List<LocalFileLibraryEntry> get _fileEntries => _derive(
+    'entries',
+    () => fileLibrary.entries(
+      files: scannedFiles,
+      candidates: metadataCandidates,
+      overrides: metadataOverrides,
+    ),
   );
 
   List<LocalFileLibraryEntry> _entriesForCategory(
     List<LocalFileLibraryEntry> entries,
+    _LibraryVisit visit,
   ) {
+    final fileGroup = visit.group;
+    final fileCategory = visit.category;
     if (fileGroup == null || fileCategory == LocalFileCategory.songs) {
       return entries;
     }
@@ -1582,22 +1844,225 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         await localPlayer.play();
       }
     });
+    if (mounted &&
+        localPlayer.playbackState.playerState == LocalPlayerState.playing) {
+      _showMusicNotice('선택한 곡부터 재생합니다. 재생 대기열을 바꿨습니다.');
+    }
   }
 
-  Future<bool> _savePlaylistMutation(
-    Future<void> Function(LocalPlaylistRepository) mutation,
+  LocalAudioFile? get _currentFavoriteFile {
+    final id = playbackState.currentItem?.trackId;
+    return id == null ? null : _artworkFileForTrack(id);
+  }
+
+  Future<void> _setFavorite(LocalFileLibraryEntry entry) async {
+    final repository = localFavoritesRepository;
+    if (repository == null || isFavoriteSaving) return;
+    final enabled = !favoriteIds.contains(entry.file.id);
+    final generation = ++_favoriteRefresh;
+    setState(() {
+      isFavoriteSaving = true;
+      favoriteError = null;
+    });
+    _syncPlaybackView();
+    try {
+      _favoriteWrite = repository.setFavorite(entry.file.id, enabled);
+      await _favoriteWrite;
+      if (!mounted || generation != _favoriteRefresh) return;
+      // A successful write is authoritative even when the subsequent refresh
+      // fails. Never invite a second toggle by misreporting it as a save error.
+      final committed = repository.lastSaved;
+      if (committed != null) setState(() => favoriteIds = committed);
+      try {
+        final saved = await repository.load();
+        if (!mounted || generation != _favoriteRefresh) return;
+        setState(() => favoriteIds = saved);
+      } catch (_) {
+        if (mounted && generation == _favoriteRefresh) {
+          const message = '저장은 완료했습니다. 즐겨찾기 목록을 다시 불러와 주세요.';
+          setState(() => favoriteError = message);
+          _showMusicNotice(message);
+        }
+        return;
+      }
+      _showMusicNotice(enabled ? '즐겨찾기에 추가했습니다.' : '즐겨찾기에서 해제했습니다.');
+    } catch (_) {
+      if (mounted && generation == _favoriteRefresh) {
+        setState(() => favoriteError = '즐겨찾기를 저장하지 못했습니다. 다시 시도해 주세요.');
+        _showMusicNotice('즐겨찾기를 저장하지 못했습니다. 다시 시도해 주세요.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isFavoriteSaving = false);
+        _syncPlaybackView();
+      }
+    }
+  }
+
+  Future<void> _reloadFavorites() async {
+    final repository = localFavoritesRepository;
+    if (repository == null) return;
+    final previousError = favoriteError;
+    final generation = ++_favoriteRefresh;
+    try {
+      final saved = await repository.load();
+      if (!mounted || generation != _favoriteRefresh) return;
+      setState(() {
+        favoriteIds = saved;
+        favoriteError = null;
+        if (musicNotice == previousError) musicNotice = null;
+      });
+      _syncPlaybackView();
+    } catch (_) {
+      if (!mounted || generation != _favoriteRefresh) return;
+      setState(() => favoriteError = '즐겨찾기를 불러오지 못했습니다. 다시 시도해 주세요.');
+    }
+  }
+
+  void _showMusicNotice(String message) {
+    _clearPlaylistFeedback();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
+    setState(() => musicNotice = message);
+    _syncPlaybackView();
+  }
+
+  Future<void> _toggleCurrentFavorite() async {
+    final file = _currentFavoriteFile;
+    if (file == null) return;
+    final entry = _fileEntries.where((e) => e.file.id == file.id).firstOrNull;
+    if (entry != null) await _setFavorite(entry);
+  }
+
+  Future<void> _songAction(
+    LocalFileLibraryEntry entry,
+    _SongAction action,
   ) async {
+    switch (action) {
+      case _SongAction.play:
+        await _playFile(entry, [entry]);
+      case _SongAction.next:
+        await _enqueueFiles([entry], next: true);
+      case _SongAction.last:
+        await _enqueueFiles([entry]);
+      case _SongAction.favorite:
+        await _setFavorite(entry);
+      case _SongAction.playlist:
+        await _choosePlaylistForFiles([entry]);
+      case _SongAction.info:
+        if (!mounted) return;
+        await showDdiroriDialog<void>(
+          context: context,
+          title: '곡 정보',
+          child: Text(
+            '${entry.title}\n${entry.artist}\n${entry.album}\n${entry.file.format}\n${entry.isAvailable ? '보관함에서 재생 가능' : '파일 상태 확인 필요'}',
+          ),
+          actions: [
+            DdiroriButton(
+              label: '닫기',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+    }
+  }
+
+  Future<void> _queueEdit(Future<void> Function() action) async {
+    try {
+      await _runPlaybackCommand(action);
+      final error = localPlayer.playbackState.queueEditError;
+      if (mounted && error != null) {
+        _showMusicNotice(error);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMusicNotice('대기열을 변경하지 못했습니다. 현재 재생을 확인하고 다시 시도해 주세요.');
+      }
+    }
+  }
+
+  Future<void> _enqueueFiles(
+    List<LocalFileLibraryEntry> entries, {
+    bool next = false,
+  }) async {
+    final queue = fileLibrary.queue(entries);
+    if (queue.isEmpty) {
+      if (mounted) {
+        _showMusicNotice('추가할 수 있는 음원이 없습니다. 파일 상태를 확인해 주세요.');
+      }
+      return;
+    }
+    await _queueEdit(() async {
+      final before = localPlayer.playbackState.queue.length;
+      await localPlayer.enqueue(queue, next: next);
+      if (mounted &&
+          localPlayer.playbackState.failure == null &&
+          localPlayer.playbackState.queueEditError == null) {
+        final added = localPlayer.playbackState.queue.length - before;
+        final skipped = entries.length - added;
+        _showMusicNotice(
+          '${added > 0 ? added : 0}곡을 ${next ? '바로 다음' : '대기열 마지막'}에 추가했습니다.${skipped <= 0 ? '' : ' 파일 상태 확인 필요 $skipped곡 제외.'}',
+        );
+      }
+    });
+  }
+
+  Future<void> _openFavorites() => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => _withPlaybackScope(
+        ValueListenableBuilder<int>(
+          valueListenable: _pageChanges,
+          builder: (_, _, _) => _FavoriteLibrary(
+            entries: _fileEntries,
+            ids: favoriteIds,
+            error: favoriteError,
+            onRetry: () => unawaited(_reloadFavorites()),
+            busy: isFavoriteSaving || isPlaybackCommandRunning,
+            onPlay: (entry, visible) => unawaited(_playFile(entry, visible)),
+            onAction: (entry, action) => unawaited(_songAction(entry, action)),
+            onMissing: () {
+              Navigator.of(context).pop();
+              _navigateHome(() => homeView = _LibraryView.management);
+            },
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Future<bool> _savePlaylistMutation(
+    Future<void> Function(LocalPlaylistRepository) mutation, {
+    bool reportError = true,
+  }) async {
     final repository = localPlaylistRepository;
     if (repository == null || isPlaylistSaving) return false;
     setState(() => isPlaylistSaving = true);
+    _playlistRefreshFailed = false;
+    _playlistChanges.value++;
     try {
       await mutation(repository);
-      final updated = await repository.load();
+      // A committed write must never be retried as a failed creation merely
+      // because the following refresh failed.
+      List<LocalPlaylist> updated;
+      try {
+        updated = await repository.load();
+      } catch (_) {
+        updated = repository.lastSaved ?? playlists;
+        _playlistRefreshFailed = true;
+        if (mounted) {
+          showDdiroriToast(
+            context,
+            message: '저장은 완료했습니다. 목록 새로고침은 다시 시도해 주세요.',
+          );
+        }
+      }
       if (!mounted) return false;
       setState(() => playlists = updated);
+      _playlistChanges.value++;
       return true;
     } catch (error) {
-      if (mounted) {
+      if (mounted && reportError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -1610,7 +2075,10 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       }
       return false;
     } finally {
-      if (mounted) setState(() => isPlaylistSaving = false);
+      if (mounted) {
+        setState(() => isPlaylistSaving = false);
+        _playlistChanges.value++;
+      }
     }
   }
 
@@ -1618,67 +2086,170 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     LocalPlaylist? existing,
     List<String> initialFileIds = const [],
   ]) async {
-    var draft = existing?.name ?? '';
-    var saving = false;
-    await showDdiroriDialog<void>(
+    if (isPlaylistSaving) return;
+    final origin = _visitId;
+    final saved = await showDdiroriDialog<LocalPlaylist>(
       context: context,
       title: existing == null ? '새 재생목록' : '재생목록 이름 변경',
-      child: StatefulBuilder(
-        builder: (dialogContext, setDialogState) => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DdiroriInput(
-              value: draft,
-              label: '재생목록 이름',
-              onChanged: (value) => setDialogState(() => draft = value),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 8,
-              children: [
-                DdiroriButton(
-                  label: '취소',
-                  kind: DdiroriButtonKind.quiet,
-                  onPressed: saving ? null : () => Navigator.pop(dialogContext),
+      child: _PlaylistEditor(
+        existing: existing,
+        candidates: _fileEntries.where((entry) => entry.isAvailable).toList(),
+        initialIds: initialFileIds,
+        onSave: (name, ids) async {
+          LocalPlaylist? result;
+          final success = await _savePlaylistMutation((repository) async {
+            if (existing == null) {
+              result = await repository.create(name, initialFileIds: ids);
+            } else {
+              await repository.rename(existing.id, name);
+              result = repository.lastSaved!.firstWhere(
+                (item) => item.id == existing.id,
+              );
+            }
+          }, reportError: false);
+          return success ? result : null;
+        },
+      ),
+    );
+    if (!mounted || saved == null || origin != _visitId) return;
+    if (existing == null) {
+      setState(() => _highlightPlaylistId = saved.id);
+      _showPlaylistFeedback(
+        saved,
+        saved.fileIds.isEmpty
+            ? '“${saved.name}” 재생목록을 만들었습니다.'
+            : '“${saved.name}”을 만들고 ${saved.fileIds.length}곡을 추가했습니다.',
+      );
+    } else {
+      showDdiroriToast(context, message: '재생목록 이름을 변경했습니다.');
+    }
+  }
+
+  void _showPlaylistFeedback(LocalPlaylist playlist, String message) {
+    _clearPlaylistFeedback();
+    ScaffoldMessenger.of(context).clearSnackBars();
+    final expandedText = MediaQuery.textScalerOf(context).scale(16) >= 24;
+    if (MediaQuery.sizeOf(context).width < 480 && expandedText) {
+      _playlistFeedbackEntry = OverlayEntry(
+        builder: (overlayContext) => Positioned(
+          left: 16,
+          right: 16,
+          bottom:
+              MediaQuery.viewInsetsOf(overlayContext).bottom +
+              MediaQuery.paddingOf(overlayContext).bottom +
+              16,
+          child: Material(
+            color: DdiroriStyle.of(overlayContext)['surface'],
+            elevation: DdiroriTokens.elevation['floating']!,
+            borderRadius: BorderRadius.circular(DdiroriTokens.radius['card']!),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(overlayContext).height * .7,
+              ),
+              child: SingleChildScrollView(
+                child: Semantics(
+                  liveRegion: true,
+                  child: DdiroriBanner(
+                    message: message,
+                    action: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        DdiroriButton(
+                          label: '보기',
+                          onPressed: () {
+                            _clearPlaylistFeedback();
+                            unawaited(_openPlaylistFeedback(playlist.id));
+                          },
+                        ),
+                        DdiroriButton(
+                          label: '닫기',
+                          kind: DdiroriButtonKind.quiet,
+                          onPressed: _clearPlaylistFeedback,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                DdiroriButton(
-                  label: '저장',
-                  busy: saving,
-                  onPressed: saving || draft.trim().isEmpty
-                      ? null
-                      : () async {
-                          setDialogState(() => saving = true);
-                          LocalPlaylist? created;
-                          final saved = await _savePlaylistMutation((
-                            repository,
-                          ) async {
-                            if (existing == null) {
-                              created = await repository.create(
-                                draft,
-                                initialFileIds: initialFileIds,
-                              );
-                            } else {
-                              await repository.rename(existing.id, draft);
-                            }
-                          });
-                          if (!dialogContext.mounted) return;
-                          setDialogState(() => saving = false);
-                          if (saved) {
-                            if (created != null && mounted) {
-                              setState(() {
-                                selectedPlaylistId = created!.id;
-                                homeView = _LibraryView.playlists;
-                              });
-                            }
-                            Navigator.pop(dialogContext);
-                          }
+              ),
+            ),
+          ),
+        ),
+      );
+      Overlay.of(context).insert(_playlistFeedbackEntry!);
+      return;
+    }
+    showDdiroriToast(
+      context,
+      message:
+          '$message${_playlistRefreshFailed ? ' 저장은 완료했지만 새로고침하지 못해 마지막 저장 내용을 표시합니다.' : ''}',
+      action: SnackBarAction(
+        label: '보기',
+        textColor: DdiroriStyle.of(context)['action'],
+        onPressed: () => unawaited(_openPlaylistFeedback(playlist.id)),
+      ),
+    );
+  }
+
+  void _clearPlaylistFeedback() {
+    _playlistFeedbackEntry?.remove();
+    _playlistFeedbackEntry?.dispose();
+    _playlistFeedbackEntry = null;
+  }
+
+  /// A real route also returns to Now Playing when creation started there.
+  Future<void> _openPlaylistFeedback(String id) async {
+    _clearPlaylistFeedback();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final detailKey = GlobalKey<_PlaylistDetailPanelState>();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (routeContext) => ListenableBuilder(
+          listenable: Listenable.merge([_playlistChanges, _pageChanges]),
+          builder: (context, _) {
+            final playlist = playlists
+                .where((item) => item.id == id)
+                .firstOrNull;
+            return _withPlaybackScope(
+              Scaffold(
+                appBar: AppBar(
+                  title: Text(playlist?.name ?? '재생목록'),
+                  actions: [
+                    if (playlist != null)
+                      _playlistMenu(
+                        playlist,
+                        detailKey,
+                        onDeleted: () {
+                          if (routeContext.mounted) Navigator.pop(routeContext);
                         },
+                      ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+                body: PlayPlaybackLayout(
+                  child: SafeArea(
+                    child: _LibraryScrollView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        if (playlist == null)
+                          const DdiroriStatePanel(
+                            title: '재생목록이 없습니다',
+                            message: '삭제된 재생목록입니다.',
+                          )
+                        else
+                          _playlistDetail(
+                            playlist,
+                            _fileEntries,
+                            detailKey,
+                            onMissing: () =>
+                                unawaited(_openLibraryManagement()),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -1696,9 +2267,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       title: '재생목록에 곡 추가',
       child: _PlaylistSongPicker(
         candidates: candidates,
-        onAdd: (ids) => _savePlaylistMutation(
-          (repository) => repository.addFiles(playlist.id, ids),
-        ),
+        onAdd: (ids) => _addFilesToPlaylist(playlist.id, ids),
       ),
     );
   }
@@ -1718,7 +2287,9 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       );
       return;
     }
-    final missingCount = entries.length - ids.length;
+    final missingCount = entries.where((entry) => !entry.isAvailable).length;
+    final origin = _visitId;
+    var createNew = false;
     var saving = false;
     await showDdiroriSheet<void>(
       context: context,
@@ -1739,8 +2310,8 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
               onPressed: saving
                   ? null
                   : () {
+                      createNew = true;
                       Navigator.pop(sheetContext);
-                      unawaited(_editPlaylistName(null, ids));
                     },
             ),
             const SizedBox(height: 8),
@@ -1758,8 +2329,10 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                 onTap: () async {
                   if (saving) return;
                   setSheetState(() => saving = true);
-                  final saved = await _savePlaylistMutation(
-                    (repository) => repository.addFiles(playlist.id, ids),
+                  final saved = await _addFilesToPlaylist(
+                    playlist.id,
+                    ids,
+                    excluded: missingCount,
                   );
                   if (!sheetContext.mounted) return;
                   setSheetState(() => saving = false);
@@ -1770,6 +2343,34 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         ),
       ),
     );
+    if (createNew && mounted && origin == _visitId) {
+      await _editPlaylistName(null, ids);
+    }
+  }
+
+  Future<bool> _addFilesToPlaylist(
+    String id,
+    List<String> ids, {
+    int excluded = 0,
+  }) async {
+    final origin = _visitId;
+    final before = playlists.where((item) => item.id == id).firstOrNull;
+    if (before == null) return false;
+    final added = ids.toSet().difference(before.fileIds.toSet()).length;
+    final saved = await _savePlaylistMutation(
+      (repository) => repository.addFiles(id, ids),
+    );
+    if (saved && mounted && origin == _visitId) {
+      final after = playlists.where((item) => item.id == id).firstOrNull;
+      if (after != null) {
+        _showPlaylistFeedback(
+          after,
+          '${added == 0 ? '이미 “${after.name}”에 포함된 곡입니다.' : '“${after.name}”에 $added곡을 추가했습니다.'}'
+          '${excluded == 0 ? '' : ' 파일이 없는 $excluded곡은 제외했습니다.'}',
+        );
+      }
+    }
+    return saved;
   }
 
   Future<void> _addCurrentFileToPlaylist() async {
@@ -1783,7 +2384,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     await _choosePlaylistForFiles([entry]);
   }
 
-  Future<void> _deletePlaylist(LocalPlaylist playlist) async {
+  Future<bool> _deletePlaylist(LocalPlaylist playlist) async {
     final confirmed = await showDdiroriConfirmDialog(
       context: context,
       title: '재생목록 삭제',
@@ -1791,42 +2392,91 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       confirmLabel: '재생목록 삭제',
       danger: true,
     );
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !mounted) return false;
     final deleted = await _savePlaylistMutation(
       (repository) => repository.delete(playlist.id),
     );
-    if (deleted && mounted) setState(() => selectedPlaylistId = null);
+    if (deleted && artworkRepository != null) {
+      try {
+        await artworkRepository!.setPlaylist(playlist.id, null);
+      } catch (_) {
+        if (mounted) {
+          showDdiroriToast(context, message: '목록은 삭제했습니다. 표지 정리는 다시 시도해 주세요.');
+        }
+      }
+    }
+    return deleted;
   }
 
-  Widget _buildPlaylistsView(List<LocalFileLibraryEntry> entries) {
+  Widget _buildPlaylistsView(
+    List<LocalFileLibraryEntry> entries,
+    String? selectedPlaylistId,
+    GlobalKey<_PlaylistDetailPanelState> detailKey,
+  ) {
     final selected = playlists
         .where((item) => item.id == selectedPlaylistId)
         .firstOrNull;
     if (selected == null) {
       return _PlaylistListPanel(
         playlists: playlists,
-        busy: isPlaylistSaving,
+        highlightedId: _highlightPlaylistId,
+        busy: isPlaylistSaving || isSavingViewSettings,
+        sort: viewSettings.playlistSort,
+        onSort: (sort) => unawaited(
+          _saveViewSettings(viewSettings.copyWith(playlistSort: sort)),
+        ),
         onCreate: () => unawaited(_editPlaylistName()),
-        onSelect: (playlist) =>
-            setState(() => selectedPlaylistId = playlist.id),
+        onSelect: (playlist) => _navigateHome(() {
+          this.selectedPlaylistId = playlist.id;
+          _highlightPlaylistId = null;
+        }),
       );
     }
+    return _playlistDetail(selected, entries, detailKey);
+  }
+
+  Widget _playlistDetail(
+    LocalPlaylist selected,
+    List<LocalFileLibraryEntry> entries,
+    GlobalKey<_PlaylistDetailPanelState> detailKey, {
+    VoidCallback? onMissing,
+  }) {
     final entriesById = {for (final entry in entries) entry.file.id: entry};
-    final ordered = [for (final id in selected.fileIds) ?entriesById[id]];
+    List<LocalFileLibraryEntry> ordered(List<String> ids) => [
+      for (final id in ids) ?entriesById[id],
+    ];
     return _PlaylistDetailPanel(
+      key: detailKey,
       playlist: selected,
       entriesById: entriesById,
-      busy: isPlaylistSaving || isPlaybackCommandRunning,
+      busy:
+          isPlaylistSaving ||
+          isPlaybackCommandRunning ||
+          isSavingViewSettings ||
+          isSavingArtwork,
+      sort: viewSettings.trackSorts[selected.id] ?? PlaylistTrackSort.manual,
+      onSort: (sort) => unawaited(
+        _saveViewSettings(
+          viewSettings.copyWith(
+            trackSorts: {...viewSettings.trackSorts, selected.id: sort},
+          ),
+        ),
+      ),
       currentTrackId: playbackState.currentItem?.trackId,
-      onPlayAll: () {
-        final first = ordered.where((entry) => entry.isAvailable).firstOrNull;
-        if (first != null) unawaited(_playFile(first, ordered));
+      onPlayAll: (ids) {
+        final visible = ordered(ids);
+        final first = visible.where((entry) => entry.isAvailable).firstOrNull;
+        if (first != null) unawaited(_playFile(first, visible));
       },
-      onPlayFile: (entry) => unawaited(_playFile(entry, ordered)),
+      onPlayFile: (entry, ids) => unawaited(_playFile(entry, ordered(ids))),
+      favoriteIds: favoriteIds,
+      onSongAction: (entry, a) => unawaited(_songAction(entry, a)),
+      onEnqueueAll: (ids, next) =>
+          unawaited(_enqueueFiles(ordered(ids), next: next)),
       onAdd: () => unawaited(_addPlaylistFile(selected)),
-      onRename: () => unawaited(_editPlaylistName(selected)),
-      onDelete: () => unawaited(_deletePlaylist(selected)),
-      onMissing: () => setState(() => homeView = _LibraryView.management),
+      onMissing:
+          onMissing ??
+          () => _navigateHome(() => homeView = _LibraryView.management),
       onTrackAction: (fileId, action) => unawaited(
         _savePlaylistMutation(
           (repository) => switch (action) {
@@ -1851,6 +2501,223 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         (repository) => repository.reorderFiles(selected.id, ids),
       ),
     );
+  }
+
+  Widget _playlistMenu(
+    LocalPlaylist playlist,
+    GlobalKey<_PlaylistDetailPanelState> key, {
+    VoidCallback? onDeleted,
+  }) => DdiroriMenuButton<_PlaylistAction>(
+    label: '재생목록 더보기',
+    enabled: !isPlaylistSaving && !isSavingArtwork && !isSavingViewSettings,
+    onSelected: (action) async {
+      switch (action) {
+        case _PlaylistAction.edit:
+          key.currentState?.startEditing();
+        case _PlaylistAction.rename:
+          await _editPlaylistName(playlist);
+        case _PlaylistAction.changeCover:
+          await _changePlaylistArtwork(playlist);
+        case _PlaylistAction.removeCover:
+          await _changePlaylistArtwork(playlist, remove: true);
+        case _PlaylistAction.delete:
+          if (await _deletePlaylist(playlist)) onDeleted?.call();
+      }
+    },
+    itemBuilder: (context) => [
+      const PopupMenuItem(value: _PlaylistAction.edit, child: Text('편집')),
+      const PopupMenuItem(value: _PlaylistAction.rename, child: Text('이름 변경')),
+      if (artworkRepository != null) ...[
+        const PopupMenuItem(
+          value: _PlaylistAction.changeCover,
+          child: Text('표지 선택'),
+        ),
+        if (artworkRepository!.hashFor('playlist:${playlist.id}') != null)
+          const PopupMenuItem(
+            value: _PlaylistAction.removeCover,
+            child: Text('표지 제거'),
+          ),
+      ],
+      PopupMenuItem(
+        value: _PlaylistAction.delete,
+        child: Text(
+          '재생목록 삭제',
+          style: TextStyle(color: DdiroriStyle.of(context)['error']),
+        ),
+      ),
+    ],
+  );
+
+  Future<void> _changePlaylistArtwork(
+    LocalPlaylist playlist, {
+    bool remove = false,
+  }) async {
+    final repository = artworkRepository;
+    if (repository == null || isSavingArtwork) return;
+    setState(() => isSavingArtwork = true);
+    _playlistChanges.value++;
+    try {
+      final bytes = remove
+          ? null
+          : await (widget.artworkPicker ?? const PlatformLibraryArtworkPicker())
+                .pick();
+      if (!mounted ||
+          (!remove && bytes == null) ||
+          !playlists.any((p) => p.id == playlist.id)) {
+        return;
+      }
+      await repository.setPlaylist(playlist.id, bytes);
+      if (mounted) {
+        _showLibraryNotice(remove ? '표지를 제거했습니다.' : '표지를 저장했습니다.');
+      }
+    } catch (error) {
+      if (mounted) {
+        _showLibraryNotice(
+          error is FormatException
+              ? error.message.toString()
+              : '표지를 저장하지 못했습니다. 기존 표지는 유지됩니다.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isSavingArtwork = false);
+        _playlistChanges.value++;
+      }
+    }
+  }
+
+  void _showLibraryNotice(String message) {
+    _clearPlaylistFeedback();
+    ScaffoldMessenger.of(context).clearSnackBars();
+    showDdiroriToast(context, message: message);
+  }
+
+  void _dismissLibraryNotices() {
+    if (musicNotice != null) {
+      setState(() => musicNotice = null);
+      _syncPlaybackView();
+    }
+    _clearPlaylistFeedback();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
+  }
+
+  Future<bool> _saveViewSettings(LibraryViewSettings next) async {
+    final store = viewSettingsStore;
+    if (store == null || isSavingViewSettings) return false;
+    setState(() => isSavingViewSettings = true);
+    _playlistChanges.value++;
+    try {
+      _settingsWrite = store.save(next);
+      await _settingsWrite;
+      if (!mounted) return false;
+      setState(() {
+        viewSettings = next;
+        hasInvalidViewSettings = false;
+      });
+      return true;
+    } catch (_) {
+      if (mounted) {
+        showDdiroriToast(context, message: '표시 설정을 저장하지 못했습니다. 이전 설정을 유지합니다.');
+      }
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => isSavingViewSettings = false);
+        _playlistChanges.value++;
+      }
+    }
+  }
+
+  Future<void> _editLibrarySections() => showDdiroriDialog<void>(
+    context: context,
+    title: '보관함 분류 편집',
+    child: _LibrarySectionsEditor(
+      settings: viewSettings,
+      onSave: (order, visible) => _saveViewSettings(
+        viewSettings.copyWith(order: order, visible: visible),
+      ),
+    ),
+  );
+
+  _LibraryVisit _currentVisit() => _LibraryVisit(
+    id: _visitId,
+    view: homeView,
+    category: fileCategory,
+    group: fileGroup,
+    query: fileQuery,
+    sort: fileSort,
+    search: searchQuery,
+    playlistId: selectedPlaylistId,
+  );
+
+  void _navigateHome(VoidCallback change) {
+    _dismissLibraryNotices();
+    _searchCoordinator.suspend();
+    setState(() {
+      _visits.add(_currentVisit());
+      _visitId = ++_nextVisitId;
+      change();
+    });
+    _syncSearchVisit();
+    final id = _visitId;
+    var cached = _currentVisit();
+    unawaited(
+      Navigator.of(context)
+          .push<void>(
+            MaterialPageRoute(
+              builder: (pageContext) => ValueListenableBuilder<int>(
+                valueListenable: _pageChanges,
+                builder: (context, _, _) {
+                  if (_visitId == id) {
+                    cached = _currentVisit();
+                  } else {
+                    cached =
+                        _visits.where((visit) => visit.id == id).firstOrNull ??
+                        cached;
+                  }
+                  return _buildLibraryPage(context, cached);
+                },
+              ),
+            ),
+          )
+          .then((_) {
+            _playlistDetailKeys.remove(id);
+            if (mounted && _visitId == id) _restorePreviousVisit();
+            _navigationPopPending = false;
+          }),
+    );
+  }
+
+  void _goBack() {
+    _dismissLibraryNotices();
+    if (_visits.isEmpty || _navigationPopPending) return;
+    _navigationPopPending = true;
+    Navigator.of(context).pop();
+  }
+
+  void _restorePreviousVisit() {
+    if (_visits.isEmpty) return;
+    _dismissLibraryNotices();
+    _searchCoordinator.suspend();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      final previous = _visits.removeLast();
+      _visitId = previous.id;
+      homeView = previous.view;
+      fileCategory = previous.category;
+      fileGroup = previous.group;
+      fileQuery = previous.query;
+      fileSort = previous.sort;
+      searchQuery = previous.search;
+      selectedPlaylistId = previous.playlistId;
+      if (selectedPlaylistId != null &&
+          !playlists.any((item) => item.id == selectedPlaylistId)) {
+        selectedPlaylistId = null;
+      }
+    });
+    _syncSearchVisit();
   }
 
   List<LocalPlaybackQueueItem> _currentLocalQueue() {
@@ -2033,10 +2900,44 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
               library = snapshot.library;
               _rebuildPlaybackPlan();
             });
+            _syncPlaybackView();
+            unawaited(_reloadFavorites());
+            unawaited(_refreshPlayingMetadata());
           },
         ),
       ),
     );
+  }
+
+  Future<void> _refreshPlayingMetadata() async {
+    final items = {
+      for (final item in fileLibrary.queue(_fileEntries)) item.trackId: item,
+    };
+    final currentRecordingIds = localPlayer.playbackState.queue
+        .where((item) => !item.isDirectFile)
+        .map((item) => item.recordingId)
+        .toSet();
+    final activePlanner = planner;
+    if (activePlanner != null) {
+      for (final recording in library.recordings.where(
+        (r) => currentRecordingIds.contains(r.id),
+      )) {
+        final currentPlan = activePlanner.createPlanForRecording(
+          recording.id,
+          PlaybackMode.recordingRandom,
+        );
+        for (final item in const LocalPlaybackQueueBuilder().build(
+          plan: currentPlan,
+          scannedFiles: scannedFiles,
+          links: fileTrackLinks,
+          candidates: metadataCandidates,
+          overrides: metadataOverrides,
+        )) {
+          items[item.trackId] = item;
+        }
+      }
+    }
+    await localPlayer.updateMetadata(items);
   }
 
   Future<void> _openDiscovery() async {
@@ -2194,25 +3095,35 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         candidateRepository == null) {
       return;
     }
-    final supportDirectory = await getApplicationSupportDirectory();
+    var coordinator = widget.imslpImportCoordinator;
+    if (coordinator == null) {
+      final supportDirectory = await getApplicationSupportDirectory();
+      if (!mounted) return;
+      coordinator = ImslpImportCoordinator(
+        store: store,
+        downloadService: const ImslpDownloadService(),
+        destination: Directory('${supportDirectory.path}/imslp_imports'),
+        scanner: audioFileScanner,
+        scannedAudioRepository: scannedRepository,
+        metadataCandidateRepository: candidateRepository,
+      );
+    }
     if (!mounted) return;
-    final coordinator =
-        widget.imslpImportCoordinator ??
-        ImslpImportCoordinator(
-          store: store,
-          downloadService: const ImslpDownloadService(),
-          destination: Directory('${supportDirectory.path}/imslp_imports'),
-          scanner: audioFileScanner,
-          scannedAudioRepository: scannedRepository,
-          metadataCandidateRepository: candidateRepository,
-        );
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) => ImslpLibraryScreen(
-          library: library,
-          store: store,
-          client: widget.imslpCatalogClient ?? HttpImslpCatalogClient(),
-          importCoordinator: coordinator,
+        builder: (context) => _withPlaybackScope(
+          PlayPlaybackLayout(
+            child: ImslpLibraryScreen(
+              library: library,
+              store: store,
+              client: widget.imslpCatalogClient ?? HttpImslpCatalogClient(),
+              importCoordinator: coordinator,
+              onImportLocalFiles: _importImslpLocalFiles,
+              onShowImportedFiles: _showImslpImportedFiles,
+              onPlayImportedFiles: _playImslpImportedFiles,
+              onAssociateSource: _associateImslpSource,
+            ),
+          ),
         ),
       ),
     );
@@ -2223,6 +3134,134 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       scannedFiles = files;
       metadataCandidates = candidates;
     });
+    _syncPlaybackView();
+  }
+
+  Future<ImslpLocalImportResult?> _importImslpLocalFiles() async {
+    final batch = await _runImport(reportFailure: true);
+    if (batch == null || !mounted) return null;
+    final byId = {for (final file in batch.files) file.id: file};
+    final byPath = {for (final file in batch.files) file.path: file};
+    final imported = <String>{};
+    for (final item in batch.items) {
+      if (item.outcome == LocalAudioImportOutcome.failed ||
+          item.outcome == LocalAudioImportOutcome.cancelled) {
+        continue;
+      }
+      final file = byId[item.record?.fileId] ?? byPath[item.record?.localPath];
+      if (file != null) imported.add(file.id);
+    }
+    final names = [
+      for (final id in imported.take(3))
+        (byId[id]!.fileName ?? byId[id]!.path)
+            .replaceAll('\\', '/')
+            .split('/')
+            .last
+            .replaceAll(RegExp(r'[\x00-\x1f\x7f]'), ' '),
+    ];
+    return ImslpLocalImportResult(
+      fileIds: List.unmodifiable(imported),
+      label: imported.isEmpty
+          ? scanStatus
+          : '${names.join(', ')}${imported.length > 3 ? ' 외 ${imported.length - 3}곡' : ''}\n${imported.length}곡 · $scanStatus',
+    );
+  }
+
+  Future<List<LocalFileLibraryEntry>> _imslpImportedEntries(
+    ImslpLocalImportResult result,
+  ) async {
+    final repository = scanRepository;
+    if (repository == null) throw StateError('보관함을 먼저 준비해 주세요.');
+    final files = await repository.load();
+    final candidates = await metadataCandidateRepository!.load();
+    if (!mounted) return const [];
+    setState(() {
+      scannedFiles = files;
+      metadataCandidates = candidates;
+    });
+    _syncPlaybackView();
+    final entries = {for (final entry in _fileEntries) entry.file.id: entry};
+    return [
+      for (final id in result.fileIds)
+        if (entries[id] != null) entries[id]!,
+    ];
+  }
+
+  Future<void> _showImslpImportedFiles(ImslpLocalImportResult result) async {
+    await _imslpImportedEntries(result);
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => _withPlaybackScope(
+          ValueListenableBuilder<int>(
+            valueListenable: _pageChanges,
+            builder: (_, _, _) => _FavoriteLibrary(
+              title: 'IMSLP에서 가져온 곡',
+              emptyTitle: '가져온 곡을 찾을 수 없습니다',
+              emptyMessage: '파일 관리에서 가져오기 결과와 파일 상태를 확인해 주세요.',
+              entries: _fileEntries,
+              ids: result.fileIds.toSet(),
+              favoriteIds: favoriteIds,
+              busy: isFavoriteSaving || isPlaybackCommandRunning,
+              onPlay: (entry, visible) => unawaited(_playFile(entry, visible)),
+              onAction: (entry, action) =>
+                  unawaited(_songAction(entry, action)),
+              onMissing: () => unawaited(_openLibraryManagement()),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _playImslpImportedFiles(ImslpLocalImportResult result) async {
+    final entries = await _imslpImportedEntries(result);
+    if (!mounted) return;
+    final available = entries.where((entry) => entry.isAvailable).toList();
+    if (available.isEmpty) throw StateError('재생할 수 있는 가져온 곡이 없습니다.');
+    await _playFile(available.first, available);
+  }
+
+  Future<void> _associateImslpSource(
+    ImslpWorkSearchResult source,
+    ImslpLocalImportResult result,
+  ) async {
+    final repository = scanRepository;
+    final url = ImslpUrlPolicy.normalizeOfficialHttps(
+      source.pageUrl.toString(),
+    );
+    if (repository == null || url == null || result.fileIds.isEmpty) {
+      throw StateError('출처와 가져온 곡을 다시 확인해 주세요.');
+    }
+    final files = await repository.load();
+    final ids = result.fileIds.toSet();
+    if (!ids.every((id) => files.any((file) => file.id == id))) {
+      throw StateError('가져온 곡이 보관함에 없습니다.');
+    }
+    final reference = SourceReference(
+      kind: SourceKind.imslp,
+      url: url.removeFragment().toString(),
+      externalId: source.externalId,
+    );
+    final saved = await repository.replaceAll([
+      for (final file in files)
+        if (ids.contains(file.id))
+          file.copyWith(
+            sourceReferences: [
+              ...file.sourceReferences.where(
+                (item) =>
+                    item.kind != SourceKind.imslp ||
+                    item.externalId != source.externalId,
+              ),
+              reference,
+            ],
+          )
+        else
+          file,
+    ]);
+    if (!mounted) return;
+    setState(() => scannedFiles = saved);
+    _syncPlaybackView();
   }
 
   Future<void> _togglePlayback() {
@@ -2231,12 +3270,27 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
         await localPlayer.pause();
       } else if (playbackState.playerState == LocalPlayerState.paused) {
         await localPlayer.resume();
+      } else if (playbackState.hasQueue && playbackState.failure == null) {
+        await localPlayer.play();
       } else {
         await playbackHistoryCoordinator.closeCurrent();
         final retryQueue = playbackState.hasQueue
             ? playbackState.queue
             : _currentLocalQueue();
-        await localPlayer.loadQueue(retryQueue);
+        if (playbackState.hasQueue && playbackState.shuffleEnabled) {
+          await localPlayer.restoreQueue(
+            PlaybackQueueRecoveryResult(
+              queue: retryQueue,
+              skippedTrackIds: const [],
+              hadSnapshot: true,
+              queueOrder: playbackState.queueOrder,
+              shuffleEnabled: playbackState.shuffleEnabled,
+              repeatMode: playbackState.repeatMode,
+            ),
+          );
+        } else {
+          await localPlayer.loadQueue(retryQueue);
+        }
         if (localPlayer.playbackState.playerState != LocalPlayerState.error) {
           await localPlayer.play();
         }
@@ -2272,6 +3326,15 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   Future<void> _previousPlaybackItem() =>
       _runPlaybackCommand(localPlayer.previous);
 
+  Future<void> _toggleShuffle() => _runPlaybackCommand(
+    () => localPlayer.setShuffleEnabled(
+      !localPlayer.playbackState.shuffleEnabled,
+    ),
+  );
+  Future<void> _cycleRepeat() => _runPlaybackCommand(
+    () => localPlayer.setRepeatMode(localPlayer.playbackState.repeatMode.next),
+  );
+
   Future<void> _openPlaybackDiagnostic() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -2306,12 +3369,16 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
   }
 
   Future<void> _reloadAfterBackup() async {
+    await _drainFavorites();
     await playbackHistoryCoordinator.closeCurrent();
     await localPlayer.stop();
     await _loadStorage();
   }
 
   Future<void> _prepareLocalReset() async {
+    await _drainFavorites();
+    await _settingsWrite.catchError((Object _) {});
+    await artworkRepository?.drained;
     // Drain playback writes before deleting data, including the queue retained by stop.
     await localPlayer.stop();
     await localPlayer.loadQueue(const []);
@@ -2322,11 +3389,26 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     await playbackQueueCoordinator.flush();
   }
 
+  Future<void> _drainFavorites() async {
+    ++_favoriteRefresh;
+    await _favoriteWrite.catchError((Object _) {});
+    try {
+      // load waits for repository mutations even when issued outside this UI.
+      await localFavoritesRepository?.load();
+    } catch (_) {
+      // A read failure does not prevent a reset after the pending writes drain.
+    }
+  }
+
   Future<void> _applyLocalReset() async {
+    await artworkRepository?.clear();
     if (!mounted) return;
     setState(() {
       library = emptyClassicalLibrary;
       scannedFiles = const [];
+      favoriteIds = const {};
+      favoriteError = null;
+      musicNotice = null;
       importFeedback = const [];
       importedAtByFileId = const {};
       scanLocations = const [];
@@ -2337,6 +3419,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       recentPlaybackHistory = const [];
       playbackHistoryStatistics = const PlaybackHistoryStatistics.empty();
       firstUseEligible = true;
+      viewSettings = LibraryViewSettings();
       firstPlayAchieved = false;
       lastRegisteredRecordingId = null;
       scanStatus = supportsFolderScan
@@ -2344,6 +3427,8 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
           : '음원 파일을 가져와 라이브러리를 시작하세요.';
       _rebuildPlaybackPlan();
     });
+    _syncPlaybackView();
+    await _reloadFavorites();
   }
 
   ContinueListeningQueueResult _continuationFor(PlaybackHistoryEntry entry) {
@@ -2392,12 +3477,14 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
 
   void _openHomeTool(_HomeToolAction action) {
     switch (action) {
+      case _HomeToolAction.editSections:
+        unawaited(_editLibrarySections());
       case _HomeToolAction.playback:
-        setState(() => homeView = _LibraryView.playback);
+        _navigateHome(() => homeView = _LibraryView.playback);
       case _HomeToolAction.management:
-        setState(() => homeView = _LibraryView.management);
+        _navigateHome(() => homeView = _LibraryView.management);
       case _HomeToolAction.listening:
-        setState(() => homeView = _LibraryView.listening);
+        _navigateHome(() => homeView = _LibraryView.listening);
       case _HomeToolAction.discovery:
         unawaited(_openDiscovery());
       case _HomeToolAction.imslp:
@@ -2405,7 +3492,7 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
       case _HomeToolAction.libraryManagement:
         unawaited(_openLibraryManagement());
       case _HomeToolAction.folderBrowse:
-        setState(() {
+        _navigateHome(() {
           fileCategory = LocalFileCategory.folders;
           fileGroup = null;
           fileQuery = '';
@@ -2422,129 +3509,218 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
     playbackView.value = PlayPlaybackSnapshot(
       playbackState,
       commandRunning: isPlaybackCommandRunning || localPlayer.diagnosticActive,
+      currentFavorite: favoriteIds.contains(_currentFavoriteFile?.id),
+      canFavorite: _currentFavoriteFile != null,
+      favoriteBusy: isFavoriteSaving,
+      notice: musicNotice,
     );
   }
+
+  LocalAudioFile? _artworkFileForTrack(String id) {
+    if (!identical(_artworkFilesSource, scannedFiles) ||
+        !identical(_artworkLinksSource, fileTrackLinks)) {
+      final byId = {for (final file in scannedFiles) file.id: file};
+      _artworkFiles = {
+        for (final file in scannedFiles)
+          '${LocalFileLibrary.trackPrefix}${file.id}': file,
+        for (final link in fileTrackLinks)
+          if (byId[link.fileId] != null) link.trackId: byId[link.fileId]!,
+      };
+      _artworkFilesSource = scannedFiles;
+      _artworkLinksSource = fileTrackLinks;
+    }
+    return _artworkFiles[id];
+  }
+
+  Widget _wrapArtwork(Widget child) => LibraryArtworkScope(
+    repository: artworkRepository,
+    fileForTrack: _artworkFileForTrack,
+    child: child,
+  );
 
   Widget _withPlaybackScope(Widget child) => PlayPlaybackScope(
     snapshot: playbackView,
     onPlayPause: _togglePlayback,
     onNext: _nextPlaybackItem,
     onPrevious: _previousPlaybackItem,
+    onShuffle: _toggleShuffle,
+    onRepeat: _cycleRepeat,
     onStop: _stopPlayback,
     onSeek: _seekPlayback,
     onAddToPlaylist: () => unawaited(_addCurrentFileToPlaylist()),
-    child: child,
+    onToggleFavorite: () => unawaited(_toggleCurrentFavorite()),
+    onRemoveQueueItem: (i) => _queueEdit(() => localPlayer.removeQueueItem(i)),
+    onMoveQueueItem: (from, to) =>
+        _queueEdit(() => localPlayer.moveQueueItem(from, to)),
+    onClearUpcoming: () => _queueEdit(localPlayer.clearUpcoming),
+    onDismissNotice: () {
+      setState(() => musicNotice = null);
+      _syncPlaybackView();
+    },
+    wrapPage: _wrapArtwork,
+    child: _wrapArtwork(child),
   );
+
+  String _viewTitleFor(_LibraryVisit visit) {
+    final homeView = visit.view;
+    final fileGroup = visit.group;
+    final fileCategory = visit.category;
+    final selectedPlaylistId = visit.playlistId;
+    return switch (homeView) {
+      _LibraryView.library => '보관함',
+      _LibraryView.files =>
+        (fileGroup == null
+                ? null
+                : fileCategory == LocalFileCategory.albums
+                ? fileGroup.split('\u0000').first
+                : fileGroup) ??
+            switch (fileCategory) {
+              LocalFileCategory.songs => '곡',
+              LocalFileCategory.albums => '앨범',
+              LocalFileCategory.artists => '아티스트',
+              LocalFileCategory.folders => '폴더',
+            },
+      _LibraryView.search => '내 음악 검색',
+      _LibraryView.playlists =>
+        selectedPlaylistId == null
+            ? '재생목록'
+            : playlists
+                      .where((item) => item.id == selectedPlaylistId)
+                      .firstOrNull
+                      ?.name ??
+                  '재생목록',
+      _LibraryView.playback => '재생 및 랜덤 재생',
+      _LibraryView.management => '가져오기·파일 상태',
+      _LibraryView.listening => '감상 기록',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
+    return _buildLibraryPage(
+      context,
+      _visits.isEmpty ? _currentVisit() : _visits.first,
+    );
+  }
+
+  Widget _buildLibraryPage(BuildContext context, _LibraryVisit visit) {
+    final homeView = visit.view;
+    final fileCategory = visit.category;
+    final fileGroup = visit.group;
+    final fileQuery = visit.query;
+    final fileSort = visit.sort;
+    final searchQuery = visit.search;
+    final selectedPlaylistId = visit.playlistId;
+    final visitId = visit.id;
+    final detailKey = _playlistDetailKeys.putIfAbsent(
+      visitId,
+      () => GlobalKey<_PlaylistDetailPanelState>(),
+    );
     final colorScheme = Theme.of(context).colorScheme;
     final activePlan = plan;
     final fileEntries = _fileEntries;
-    final filteredFiles = fileLibrary.search(fileEntries, searchQuery);
-    final categoryFiles = _entriesForCategory(fileEntries);
-    final visibleFiles = fileLibrary.sort(
-      fileLibrary.search(categoryFiles, fileQuery),
-      fileSort,
-      importedAtByFileId: importedAtByFileId,
+    final visibleFiles = homeView != _LibraryView.files
+        ? const <LocalFileLibraryEntry>[]
+        : _derive(
+            ('visible', fileCategory, fileGroup, fileQuery, fileSort),
+            () => fileLibrary.sort(
+              fileLibrary.search(
+                _entriesForCategory(fileEntries, visit),
+                fileQuery,
+              ),
+              fileSort,
+              importedAtByFileId: importedAtByFileId,
+            ),
+          );
+    final fileGroups =
+        homeView != _LibraryView.files ||
+            fileGroup != null ||
+            fileCategory == LocalFileCategory.songs
+        ? const <String, List<LocalFileLibraryEntry>>{}
+        : _derive(('groups', fileCategory, fileQuery), () {
+            final groups = <String, List<LocalFileLibraryEntry>>{};
+            for (final entry in fileLibrary.search(fileEntries, fileQuery)) {
+              groups
+                  .putIfAbsent(
+                    fileLibrary.groupKey(entry, fileCategory),
+                    () => [],
+                  )
+                  .add(entry);
+            }
+            return groups;
+          });
+    final fileGroupNames = _derive(
+      ('groupNames', fileCategory, fileGroup, fileQuery, fileSort, homeView),
+      () => fileLibrary.sortedGroupKeys(
+        fileGroups,
+        fileSort,
+        importedAtByFileId: importedAtByFileId,
+      ),
     );
-    final fileGroups = <String, List<LocalFileLibraryEntry>>{};
-    if (homeView == _LibraryView.files && fileGroup == null) {
-      for (final entry in fileLibrary.search(fileEntries, fileQuery)) {
-        final group = fileLibrary.groupKey(entry, fileCategory);
-        fileGroups.putIfAbsent(group, () => []).add(entry);
-      }
-    }
-    final fileGroupNames = fileGroups.keys.toList()..sort();
-    final recentFiles = fileLibrary.sort(
-      fileEntries,
-      LocalFileSort.dateAdded,
-      importedAtByFileId: importedAtByFileId,
-    );
-    final recentItems = fileLibrary.recentlyAdded(
-      fileEntries,
-      importedAtByFileId: importedAtByFileId,
-    );
-    final searchResults = searchService.search(
-      library: library,
-      files: scannedFiles,
-      candidates: metadataCandidates,
-      overrides: metadataOverrides,
-      workAliases: LibraryAliasIndex(libraryMerges)
-          .aliasesFor(LibraryEntityType.work),
-      recordingAliases: LibraryAliasIndex(libraryMerges)
-          .aliasesFor(LibraryEntityType.recording),
-      query: searchQuery,
-    );
-    final searchFileIds = {
-      for (final result in searchResults)
-        if (result.type == SearchResultType.fileCandidate) result.id,
-    };
+    final recentFiles = homeView != _LibraryView.library
+        ? const <LocalFileLibraryEntry>[]
+        : _derive(
+            'recentFiles',
+            () => fileLibrary.sort(
+              fileEntries,
+              LocalFileSort.dateAdded,
+              importedAtByFileId: importedAtByFileId,
+            ),
+          );
+    final recentItems = homeView != _LibraryView.library
+        ? const <LocalFileRecentItem>[]
+        : _derive(
+            'recentItems',
+            () => fileLibrary.recentlyAdded(
+              fileEntries,
+              importedAtByFileId: importedAtByFileId,
+            ),
+          );
+    final searchView = _searchCoordinator.forQuery(searchQuery);
+    final searchResults =
+        searchView.batch?.results ?? const <LibrarySearchResult>[];
+    final filesById = homeView == _LibraryView.search
+        ? _derive(
+            'fileEntriesById',
+            () => {for (final file in fileEntries) file.file.id: file},
+          )
+        : const <String, LocalFileLibraryEntry>{};
     final searchFiles = [
-      for (final entry in fileEntries)
-        if (filteredFiles.contains(entry) ||
-            searchFileIds.contains(entry.file.id))
-          entry,
+      for (final id in searchView.batch?.fileIds ?? const <String>[])
+        if (filesById[id] != null) filesById[id]!,
     ];
 
     return _withPlaybackScope(
       Scaffold(
         appBar: AppBar(
+          toolbarHeight: MediaQuery.textScalerOf(context).scale(20) > 30
+              ? DdiroriTokens.comfortableControl * 2
+              : kToolbarHeight,
           title: homeView == _LibraryView.library
               ? null
-              : Text(switch (homeView) {
-                  _LibraryView.library => '보관함',
-                  _LibraryView.files =>
-                    (fileGroup == null
-                            ? null
-                            : fileCategory == LocalFileCategory.albums
-                            ? fileGroup!.split('\u0000').first
-                            : fileGroup) ??
-                        switch (fileCategory) {
-                          LocalFileCategory.songs => '곡',
-                          LocalFileCategory.albums => '앨범',
-                          LocalFileCategory.artists => '아티스트',
-                          LocalFileCategory.folders => '폴더',
-                        },
-                  _LibraryView.search => '내 음악 검색',
-                  _LibraryView.playlists =>
-                    selectedPlaylistId == null
-                        ? '재생목록'
-                        : playlists
-                                  .where(
-                                    (item) => item.id == selectedPlaylistId,
-                                  )
-                                  .firstOrNull
-                                  ?.name ??
-                              '재생목록',
-                  _LibraryView.playback => '재생 및 랜덤 재생',
-                  _LibraryView.management => '가져오기·파일 상태',
-                  _LibraryView.listening => '감상 기록',
-                }),
+              : Tooltip(
+                  message: _viewTitleFor(visit),
+                  child: Text(
+                    _viewTitleFor(visit),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
           backgroundColor: colorScheme.surface,
           leading: homeView == _LibraryView.library
               ? null
               : IconButton(
                   tooltip: '뒤로',
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: () => setState(() {
-                    if (homeView == _LibraryView.files && fileGroup != null) {
-                      fileGroup = null;
-                      fileQuery = '';
-                      fileSort = LocalFileSort.title;
-                    } else if (homeView == _LibraryView.playlists &&
-                        selectedPlaylistId != null) {
-                      selectedPlaylistId = null;
-                    } else {
-                      homeView = _LibraryView.library;
-                      fileQuery = '';
-                    }
-                  }),
+                  onPressed: _goBack,
                 ),
           actions: [
             if (homeView != _LibraryView.search)
               IconButton(
-                onPressed: () => setState(() => homeView = _LibraryView.search),
+                onPressed: () => _navigateHome(() {
+                  this.homeView = _LibraryView.search;
+                  this.searchQuery = '';
+                }),
                 icon: const Icon(Icons.search),
                 tooltip: '내 음악 검색',
               ),
@@ -2559,96 +3735,160 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                 icon: const Icon(Icons.file_open_outlined),
                 tooltip: '음악 가져오기',
               ),
-            PopupMenuButton<_HomeToolAction>(
-              tooltip: '도구 더보기',
-              onSelected: _openHomeTool,
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: _HomeToolAction.management,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.folder_outlined),
-                    title: Text('가져오기·파일 상태'),
+            if (homeView == _LibraryView.playlists &&
+                selectedPlaylistId != null) ...[
+              for (final playlist in playlists.where(
+                (item) => item.id == selectedPlaylistId,
+              ))
+                _playlistMenu(playlist, detailKey, onDeleted: _goBack),
+            ],
+            if (homeView == _LibraryView.files &&
+                fileGroup != null &&
+                visibleFiles.any((entry) => entry.isAvailable))
+              DdiroriMenuButton<_GroupAction>(
+                label: '음악 묶음 더보기',
+                enabled: !isPlaylistSaving && !isPlaybackCommandRunning,
+                onSelected: (action) {
+                  if (action == _GroupAction.addToPlaylist) {
+                    unawaited(_choosePlaylistForFiles(visibleFiles));
+                  } else if (action == _GroupAction.next ||
+                      action == _GroupAction.last) {
+                    unawaited(
+                      _enqueueFiles(
+                        visibleFiles,
+                        next: action == _GroupAction.next,
+                      ),
+                    );
+                  } else {
+                    final first = visibleFiles
+                        .where((entry) => entry.isAvailable)
+                        .firstOrNull;
+                    if (first != null) {
+                      unawaited(_playFile(first, visibleFiles));
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (visibleFiles.any((entry) => entry.isAvailable)) ...[
+                    const PopupMenuItem(
+                      value: _GroupAction.play,
+                      child: Text('모두 재생'),
+                    ),
+                    const PopupMenuItem(
+                      value: _GroupAction.next,
+                      child: Text('바로 다음에 재생'),
+                    ),
+                    const PopupMenuItem(
+                      value: _GroupAction.last,
+                      child: Text('대기열 마지막에 추가'),
+                    ),
+                    const PopupMenuItem(
+                      value: _GroupAction.addToPlaylist,
+                      child: Text('재생목록에 추가'),
+                    ),
+                  ],
+                ],
+              ),
+            if (homeView == _LibraryView.library)
+              DdiroriMenuButton<_HomeToolAction>(
+                label: '도구 더보기',
+                onSelected: _openHomeTool,
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: _HomeToolAction.editSections,
+                    enabled: !isSavingViewSettings,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.view_list_outlined),
+                      title: Text('보관함 분류 편집'),
+                    ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: _HomeToolAction.listening,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.history_outlined),
-                    title: Text('감상 기록'),
+                  const PopupMenuItem(
+                    value: _HomeToolAction.management,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.folder_outlined),
+                      title: Text('가져오기·파일 상태'),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _HomeToolAction.playback,
-                  enabled: activePlan != null || playbackState.hasQueue,
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.queue_music_outlined),
-                    title: Text('재생 계획'),
+                  const PopupMenuItem(
+                    value: _HomeToolAction.listening,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.history_outlined),
+                      title: Text('감상 기록'),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _HomeToolAction.discovery,
-                  enabled: activePlan != null,
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.explore_outlined),
-                    title: Text('음악 발견'),
+                  PopupMenuItem(
+                    value: _HomeToolAction.playback,
+                    enabled: activePlan != null || playbackState.hasQueue,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.queue_music_outlined),
+                      title: Text('재생 계획'),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _HomeToolAction.imslp,
-                  enabled: imslpStore != null && !isImportingFiles,
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.public_outlined),
-                    title: Text('IMSLP 자료'),
+                  PopupMenuItem(
+                    value: _HomeToolAction.discovery,
+                    enabled: activePlan != null,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.explore_outlined),
+                      title: Text('음악 발견'),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _HomeToolAction.libraryManagement,
-                  enabled: scanRepository != null && !isImportingFiles,
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.rule_folder_outlined),
-                    title: Text('음원 정보·파일 복구'),
+                  PopupMenuItem(
+                    value: _HomeToolAction.imslp,
+                    enabled: imslpStore != null && !isImportingFiles,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.public_outlined),
+                      title: Text('IMSLP 자료'),
+                    ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: _HomeToolAction.folderBrowse,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.folder_outlined),
-                    title: Text('폴더별 보기'),
+                  PopupMenuItem(
+                    value: _HomeToolAction.libraryManagement,
+                    enabled: scanRepository != null && !isImportingFiles,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.rule_folder_outlined),
+                      title: Text('음원 정보·파일 복구'),
+                    ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: _HomeToolAction.playbackDiagnostic,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.fact_check_outlined),
-                    title: Text('재생 진단'),
+                  const PopupMenuItem(
+                    value: _HomeToolAction.folderBrowse,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.folder_outlined),
+                      title: Text('폴더별 보기'),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _HomeToolAction.settings,
-                  enabled: localDataControlService != null,
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.settings_outlined),
-                    title: Text('앱 정보 및 데이터'),
+                  const PopupMenuItem(
+                    value: _HomeToolAction.playbackDiagnostic,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.fact_check_outlined),
+                      title: Text('재생 진단'),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  PopupMenuItem(
+                    value: _HomeToolAction.settings,
+                    enabled: localDataControlService != null,
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.settings_outlined),
+                      title: Text('앱 정보 및 데이터'),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
         body: PlayPlaybackLayout(
           fullPlayerInBody: homeView == _LibraryView.playback,
           child: SafeArea(
-            child: ListView(
-              key: PageStorageKey('home-${homeView.name}'),
+            child: _LibraryScrollView(
+              key: PageStorageKey('library-visit-$visitId'),
               padding: EdgeInsets.fromLTRB(
                 MediaQuery.sizeOf(context).width >= 1024
                     ? 32
@@ -2734,8 +3974,9 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                       action: DdiroriIconButton(
                         label: '파일 상태 확인',
                         icon: Icons.rule_folder_outlined,
-                        onPressed: () =>
-                            setState(() => homeView = _LibraryView.management),
+                        onPressed: () => _navigateHome(
+                          () => this.homeView = _LibraryView.management,
+                        ),
                       ),
                     ),
                   if (fileEntries.isEmpty && library.works.isEmpty)
@@ -2747,43 +3988,72 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                           ? null
                           : _importAudioFiles,
                     ),
+                  if (hasInvalidViewSettings)
+                    DdiroriBanner(
+                      message: '표시 설정을 읽지 못해 기본 분류를 표시합니다. 음악은 유지됩니다.',
+                      kind: DdiroriNoticeKind.warning,
+                      action: DdiroriButton(
+                        label: '분류 편집',
+                        onPressed: () => unawaited(_editLibrarySections()),
+                      ),
+                    ),
+                  if (hasArtworkLoadError)
+                    const DdiroriBanner(
+                      message: '표지를 불러오지 못했습니다. 기본 표지로 음악을 계속 사용할 수 있습니다.',
+                      kind: DdiroriNoticeKind.warning,
+                    ),
                   _FileCategoryList(
                     entries: fileEntries,
-                    onPlaylistsSelected: () => setState(() {
-                      selectedPlaylistId = null;
-                      homeView = _LibraryView.playlists;
+                    order: viewSettings.order,
+                    visible: viewSettings.visible,
+                    onEdit: () => unawaited(_editLibrarySections()),
+                    onPlaylistsSelected: () => _navigateHome(() {
+                      this.selectedPlaylistId = null;
+                      this.homeView = _LibraryView.playlists;
                     }),
-                    onCategorySelected: (category) => setState(() {
-                      fileCategory = category;
-                      fileGroup = null;
-                      fileQuery = '';
-                      fileSort = LocalFileSort.title;
-                      homeView = _LibraryView.files;
+                    onCategorySelected: (category) => _navigateHome(() {
+                      this.fileCategory = category;
+                      this.fileGroup = null;
+                      this.fileQuery = '';
+                      this.fileSort = LocalFileSort.title;
+                      this.homeView = _LibraryView.files;
                     }),
+                  ),
+                  _LibraryBrowseRow(
+                    key: const ValueKey('file-category-favorites'),
+                    title: '즐겨찾기',
+                    subtitle: '${favoriteIds.length}곡',
+                    leading: const Icon(Icons.favorite_border),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => unawaited(_openFavorites()),
                   ),
                   if (fileEntries.isNotEmpty || library.works.isNotEmpty) ...[
                     if (recentItems.isNotEmpty) ...[
                       const SizedBox(height: 28),
                       _RecentFileSection(
                         items: recentItems.take(6).toList(),
-                        onAll: () => setState(() {
-                          fileCategory = LocalFileCategory.songs;
-                          fileGroup = null;
-                          fileSort = LocalFileSort.dateAdded;
-                          fileQuery = '';
-                          homeView = _LibraryView.files;
+                        onAll: () => _navigateHome(() {
+                          this.fileCategory = LocalFileCategory.songs;
+                          this.fileGroup = null;
+                          this.fileSort = LocalFileSort.dateAdded;
+                          this.fileQuery = '';
+                          this.homeView = _LibraryView.files;
                         }),
                         onSelected: (item) {
                           if (item.isAlbum) {
-                            setState(() {
-                              fileCategory = LocalFileCategory.albums;
-                              fileGroup = item.key.substring('album:'.length);
-                              fileSort = LocalFileSort.trackOrder;
-                              fileQuery = '';
-                              homeView = _LibraryView.files;
+                            _navigateHome(() {
+                              this.fileCategory = LocalFileCategory.albums;
+                              this.fileGroup = item.key.substring(
+                                'album:'.length,
+                              );
+                              this.fileSort = LocalFileSort.trackOrder;
+                              this.fileQuery = '';
+                              this.homeView = _LibraryView.files;
                             });
                           } else if (!item.representative.isAvailable) {
-                            setState(() => homeView = _LibraryView.management);
+                            _navigateHome(
+                              () => this.homeView = _LibraryView.management,
+                            );
                           } else {
                             unawaited(
                               _playFile(item.representative, recentFiles),
@@ -2820,14 +4090,18 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                 ],
                 if (homeView == _LibraryView.files) ...[
                   _FileBrowseToolbar(
+                    grouped:
+                        fileCategory != LocalFileCategory.songs &&
+                        fileGroup == null,
                     query: fileQuery,
                     sort: fileSort,
                     showTrackOrder:
                         fileCategory == LocalFileCategory.albums &&
                         fileGroup != null,
                     onQueryChanged: (value) =>
-                        setState(() => fileQuery = value),
-                    onSortChanged: (value) => setState(() => fileSort = value),
+                        setState(() => this.fileQuery = value),
+                    onSortChanged: (value) =>
+                        setState(() => this.fileSort = value),
                   ),
                   const SizedBox(height: 12),
                   if (fileEntries.isEmpty)
@@ -2844,69 +4118,130 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                     )
                   else if (fileCategory == LocalFileCategory.songs ||
                       fileGroup != null)
-                    for (final entry in visibleFiles)
-                      _FileSongRow(
-                        entry: entry,
-                        current:
-                            playbackState.currentItem?.trackId ==
-                            '${LocalFileLibrary.trackPrefix}${entry.file.id}',
-                        onTap: () => unawaited(_playFile(entry, visibleFiles)),
-                        onMissing: () =>
-                            setState(() => homeView = _LibraryView.management),
-                        onAddToPlaylist: () =>
-                            unawaited(_choosePlaylistForFiles([entry])),
-                      )
+                    _LazyLibraryRows(
+                      keys: [
+                        for (final entry in visibleFiles)
+                          'file-row-${entry.file.id}',
+                      ],
+                      builder: (context, index) {
+                        final entry = visibleFiles[index];
+                        return _FileSongRow(
+                          entry: entry,
+                          favorite: favoriteIds.contains(entry.file.id),
+                          busy: isFavoriteSaving || isPlaybackCommandRunning,
+                          onAction: (a) => unawaited(_songAction(entry, a)),
+                          current:
+                              playbackState.currentItem?.trackId ==
+                              '${LocalFileLibrary.trackPrefix}${entry.file.id}',
+                          onTap: () =>
+                              unawaited(_playFile(entry, visibleFiles)),
+                          onMissing: () => _navigateHome(
+                            () => this.homeView = _LibraryView.management,
+                          ),
+                          onAddToPlaylist: () =>
+                              unawaited(_choosePlaylistForFiles([entry])),
+                        );
+                      },
+                    )
                   else if (fileGroupNames.isEmpty)
                     const DdiroriStatePanel(
                       title: '검색 결과가 없습니다',
                       message: '다른 검색어로 찾아보세요.',
                     )
                   else
-                    for (final name in fileGroupNames)
-                      _FileGroupRow(
-                        title: fileCategory == LocalFileCategory.albums
-                            ? name.split('\u0000').first
-                            : name,
-                        icon: switch (fileCategory) {
-                          LocalFileCategory.albums => Icons.album_outlined,
-                          LocalFileCategory.artists => Icons.person_outline,
-                          LocalFileCategory.folders => Icons.folder_outlined,
-                          LocalFileCategory.songs => Icons.music_note_outlined,
-                        },
-                        subtitle: fileCategory == LocalFileCategory.albums
-                            ? fileGroups[name]!.first.artist
-                            : null,
-                        count: fileGroups[name]!.length,
-                        onAddToPlaylist:
-                            fileCategory == LocalFileCategory.albums
-                            ? () => unawaited(
-                                _choosePlaylistForFiles(fileGroups[name]!),
-                              )
-                            : null,
-                        onTap: () => setState(() {
-                          fileGroup = name;
-                          fileQuery = '';
-                          if (fileCategory == LocalFileCategory.albums) {
-                            fileSort = LocalFileSort.trackOrder;
-                          }
-                        }),
-                      ),
+                    _LazyLibraryRows(
+                      keys: [
+                        for (final name in fileGroupNames) 'file-group-$name',
+                      ],
+                      builder: (context, index) {
+                        final name = fileGroupNames[index];
+                        return _FileGroupRow(
+                          file: fileCategory == LocalFileCategory.albums
+                              ? fileGroups[name]!.first.file
+                              : null,
+                          title: fileCategory == LocalFileCategory.albums
+                              ? name.split('\u0000').first
+                              : name,
+                          icon: switch (fileCategory) {
+                            LocalFileCategory.albums => Icons.album_outlined,
+                            LocalFileCategory.artists => Icons.person_outline,
+                            LocalFileCategory.folders => Icons.folder_outlined,
+                            LocalFileCategory.songs =>
+                              Icons.music_note_outlined,
+                          },
+                          subtitle: fileCategory == LocalFileCategory.albums
+                              ? fileGroups[name]!.first.artist
+                              : null,
+                          count: fileGroups[name]!.length,
+                          onEnqueue: (next) => unawaited(
+                            _enqueueFiles(
+                              fileLibrary.sort(
+                                fileGroups[name]!,
+                                fileCategory == LocalFileCategory.albums
+                                    ? LocalFileSort.trackOrder
+                                    : fileSort,
+                              ),
+                              next: next,
+                            ),
+                          ),
+                          onPlay: () {
+                            final group = fileLibrary.sort(
+                              fileGroups[name]!,
+                              fileCategory == LocalFileCategory.albums
+                                  ? LocalFileSort.trackOrder
+                                  : fileSort,
+                            );
+                            final first = group
+                                .where((e) => e.isAvailable)
+                                .firstOrNull;
+                            if (first != null) {
+                              unawaited(_playFile(first, group));
+                            }
+                          },
+                          onAddToPlaylist:
+                              fileCategory == LocalFileCategory.albums
+                              ? () => unawaited(
+                                  _choosePlaylistForFiles(fileGroups[name]!),
+                                )
+                              : null,
+                          onTap: () => _navigateHome(() {
+                            this.fileGroup = name;
+                            this.fileQuery = '';
+                            if (fileCategory == LocalFileCategory.albums) {
+                              this.fileSort = LocalFileSort.trackOrder;
+                            }
+                          }),
+                        );
+                      },
+                    ),
                 ],
                 if (homeView == _LibraryView.playlists)
-                  _buildPlaylistsView(fileEntries),
+                  _buildPlaylistsView(
+                    fileEntries,
+                    selectedPlaylistId,
+                    detailKey,
+                  ),
                 if (homeView == _LibraryView.search) ...[
                   _SearchPanel(
                     query: searchQuery,
+                    searchView: searchView,
+                    onRetry: _searchCoordinator.retry,
                     results: searchResults,
                     files: searchQuery.trim().isEmpty ? const [] : searchFiles,
                     onQueryChanged: _setSearchQuery,
                     onResultSelected: _openSearchResult,
                     onFileSelected: (file) =>
                         unawaited(_playFile(file, searchFiles)),
-                    onMissingFile: () =>
-                        setState(() => homeView = _LibraryView.management),
+                    onMissingFile: () => _navigateHome(
+                      () => this.homeView = _LibraryView.management,
+                    ),
                     onAddFileToPlaylist: (file) =>
                         unawaited(_choosePlaylistForFiles([file])),
+                    favoriteIds: favoriteIds,
+                    songActionsBusy:
+                        isFavoriteSaving || isPlaybackCommandRunning,
+                    onSongAction: (entry, a) =>
+                        unawaited(_songAction(entry, a)),
                   ),
                 ],
                 if (homeView == _LibraryView.management) ...[
@@ -2957,34 +4292,30 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                 ],
                 if (homeView == _LibraryView.playback) ...[
                   if (playbackState.currentItem?.isDirectFile ?? false) ...[
-                    PlayNowPlayingControls(
-                      state: playbackState,
-                      canUseQueue: playbackState.hasQueue,
-                      commandRunning:
-                          isPlaybackCommandRunning ||
-                          localPlayer.diagnosticActive,
-                      onPlayPause: _togglePlayback,
-                      onNext: _nextPlaybackItem,
-                      onPrevious: _previousPlaybackItem,
-                      onStop: _stopPlayback,
-                      onSeek: _seekPlayback,
-                      onAddToPlaylist: _addCurrentFileToPlaylist,
+                    Builder(
+                      builder: (context) {
+                        final scope = PlayPlaybackScope.maybeOf(context)!;
+                        final snapshot = scope.snapshot.value;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            scope.controls(snapshot),
+                            const SizedBox(height: 24),
+                            Text(
+                              '재생 대기열',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            scope.upcomingActions(context, snapshot),
+                            for (
+                              var index = 0;
+                              index < playbackState.queue.length;
+                              index++
+                            )
+                              scope.queueRow(snapshot, index),
+                          ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      '재생 대기열',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    for (
-                      var index = 0;
-                      index < playbackState.queue.length;
-                      index += 1
-                    )
-                      PlayQueueRow(
-                        index: index,
-                        item: playbackState.queue[index],
-                        current: index == playbackState.currentIndex,
-                      ),
                   ] else if (activePlan != null) ...[
                     _QueuePanel(
                       plan: activePlan,
@@ -3016,18 +4347,11 @@ class _LibraryHomeScreenState extends State<LibraryHomeScreen>
                       },
                     ),
                   ] else
-                    PlayNowPlayingControls(
-                      state: playbackState,
-                      canUseQueue: playbackState.hasQueue,
-                      commandRunning:
-                          isPlaybackCommandRunning ||
-                          localPlayer.diagnosticActive,
-                      onPlayPause: _togglePlayback,
-                      onNext: _nextPlaybackItem,
-                      onPrevious: _previousPlaybackItem,
-                      onStop: _stopPlayback,
-                      onSeek: _seekPlayback,
-                      onAddToPlaylist: _addCurrentFileToPlaylist,
+                    Builder(
+                      builder: (context) {
+                        final scope = PlayPlaybackScope.maybeOf(context)!;
+                        return scope.controls(scope.snapshot.value);
+                      },
                     ),
                 ],
                 if (homeView == _LibraryView.listening) ...[

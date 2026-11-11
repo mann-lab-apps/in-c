@@ -3,6 +3,79 @@ import 'dart:math';
 
 import 'package:sqflite/sqflite.dart' as sqflite;
 
+import 'library_view_settings.dart';
+import 'local_file_library.dart';
+
+class LocalPlaylistBrowseQuery {
+  const LocalPlaylistBrowseQuery();
+  List<LocalPlaylist> lists(
+    List<LocalPlaylist> playlists,
+    String query,
+    PlaylistListSort sort,
+  ) {
+    final result = playlists
+        .where(
+          (item) =>
+              item.name.toLowerCase().contains(query.trim().toLowerCase()),
+        )
+        .toList();
+    result.sort((a, b) {
+      final order = switch (sort) {
+        PlaylistListSort.createdNewest => b.createdAtMillis.compareTo(
+          a.createdAtMillis,
+        ),
+        PlaylistListSort.modifiedNewest => b.updatedAtMillis.compareTo(
+          a.updatedAtMillis,
+        ),
+        PlaylistListSort.name => a.name.toLowerCase().compareTo(
+          b.name.toLowerCase(),
+        ),
+      };
+      return order != 0 ? order : a.id.compareTo(b.id);
+    });
+    return result;
+  }
+
+  List<String> tracks(
+    LocalPlaylist playlist,
+    Map<String, LocalFileLibraryEntry> entries,
+    String query,
+    PlaylistTrackSort sort,
+  ) {
+    final terms = query.trim().toLowerCase();
+    final result = playlist.fileIds.where((id) {
+      final entry = entries[id];
+      return terms.isEmpty ||
+          (entry != null &&
+              '${entry.title} ${entry.artist} ${entry.album}'
+                  .toLowerCase()
+                  .contains(terms));
+    }).toList();
+    if (sort == PlaylistTrackSort.manual) return result;
+    result.sort((a, b) {
+      final first = entries[a], second = entries[b];
+      if (first == null || second == null) {
+        return first == null && second == null
+            ? a.compareTo(b)
+            : first == null
+            ? 1
+            : -1;
+      }
+      String value(LocalFileLibraryEntry e) => switch (sort) {
+        PlaylistTrackSort.manual => '',
+        PlaylistTrackSort.title => e.title,
+        PlaylistTrackSort.artist => e.artist,
+        PlaylistTrackSort.album => e.album,
+      };
+      final order = value(first)
+          .toLowerCase()
+          .compareTo(value(second).toLowerCase());
+      return order == 0 ? a.compareTo(b) : order;
+    });
+    return result;
+  }
+}
+
 class LocalPlaylist {
   LocalPlaylist({
     required this.id,
@@ -114,6 +187,10 @@ class LocalPlaylistRepository {
   final String Function() _idFactory;
   Future<void> _pending = Future.value();
 
+  /// Last successfully committed mutation, even if a subsequent read fails.
+  List<LocalPlaylist>? get lastSaved => _lastSaved;
+  List<LocalPlaylist>? _lastSaved;
+
   Future<List<LocalPlaylist>> load() => store.load();
 
   Future<LocalPlaylist> create(
@@ -222,6 +299,7 @@ class LocalPlaylistRepository {
       final playlists = [...await store.load()];
       final value = action(playlists);
       await store.save(playlists);
+      _lastSaved = List.unmodifiable(playlists);
       return value;
     });
     _pending = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});

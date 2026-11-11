@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -51,9 +52,11 @@ def main():
                     continue
                 if line is None:
                     break
-                stream.write(line)
+                safe_line = re.sub(r'/Users/[^\s"\x27<>]+', '<private-path>', line)
+                safe_line = re.sub(r'\b[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b', '<device-or-fixture-id>', safe_line)
+                stream.write(safe_line)
                 stream.flush()
-                print(line, end='', flush=True)
+                print(safe_line, end='', flush=True)
                 if 'DDIRORI_BACKGROUND_READY' in line and not switched:
                     subprocess.run(['xcrun', 'simctl', 'launch', args.device,
                                     'com.apple.Preferences'], check=True,

@@ -2,8 +2,79 @@ import 'dart:convert';
 
 import 'package:classical_local_library/imslp.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
+  test(
+    'search uses official HTTPS metadata endpoint, trims and bounds request',
+    () async {
+      var requests = 0;
+      final client = HttpImslpCatalogClient(
+        client: MockClient((request) async {
+          requests++;
+          expect(request.url.scheme, 'https');
+          expect(request.url.host, 'imslp.org');
+          expect(request.url.path, '/api.php');
+          expect(request.url.queryParameters['srsearch'], 'Beethoven');
+          expect(request.url.queryParameters['srlimit'], '20');
+          expect(request.url.queryParameters['srnamespace'], '0');
+          return http.Response('{"query":{"search":[]}}', 200);
+        }),
+      );
+      expect(await client.searchWorks('  '), isEmpty);
+      expect(requests, 0);
+      expect(await client.searchWorks('  Beethoven  ', limit: 100), isEmpty);
+      expect(requests, 1);
+    },
+  );
+
+  for (final response in [
+    (429, '{}', 'rateLimited'),
+    (503, '{}', 'httpFailure'),
+    (200, '<html>waiting</html>', 'invalidResponse'),
+    (200, '{"error":{"code":"ratelimited"}}', 'apiFailure'),
+  ]) {
+    test(
+      'search maps ${response.$1}/${response.$3} to actionable failure',
+      () async {
+        final client = HttpImslpCatalogClient(
+          client: MockClient(
+            (_) async => http.Response(response.$2, response.$1),
+          ),
+        );
+        await expectLater(
+          client.searchWorks('fixture'),
+          throwsA(
+            isA<ImslpClientException>().having(
+              (e) => e.kind,
+              'kind',
+              response.$3,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  test(
+    'search reports network errors without treating them as empty results',
+    () async {
+      final client = HttpImslpCatalogClient(
+        client: MockClient((_) async => throw http.ClientException('offline')),
+      );
+      await expectLater(
+        client.searchWorks('fixture'),
+        throwsA(
+          isA<ImslpClientException>().having(
+            (e) => e.kind,
+            'kind',
+            'networkFailure',
+          ),
+        ),
+      );
+    },
+  );
   test('official MediaWiki search response becomes work candidates', () {
     final results = HttpImslpCatalogClient.parseSearchResponse(
       jsonEncode({

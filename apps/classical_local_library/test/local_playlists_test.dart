@@ -150,6 +150,15 @@ void main() {
 
     final older = jsonDecode(backup) as Map<String, dynamic>;
     older['storageSchemaVersion'] = 14;
+    for (final table in [
+      'library_view_settings',
+      'library_artwork',
+      'local_favorites',
+    ]) {
+      (older['scope'] as List).remove(table);
+      (older['counts'] as Map).remove(table);
+      (older['data'] as Map).remove(table);
+    }
     (older['scope'] as List).remove('local_playlists');
     (older['counts'] as Map).remove('local_playlists');
     (older['data'] as Map).remove('local_playlists');

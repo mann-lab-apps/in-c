@@ -1,0 +1,12 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/audio_playback_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.6s
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/audio_playback_integration_test.dart: native FLAC decoder advances, seeks and completes synthetic audio
+00:03 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/audio_playback_integration_test.dart: native audio queue updates playback, position, and history
+00:13 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/audio_playback_integration_test.dart: (tearDownAll)
+00:13 +2: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/mixed_format_playback_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.3s
+00:36 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/mixed_format_playback_integration_test.dart: native mixed WAV AAC ALAC FLAC pauses seeks restores without autoplay and recovers corrupt content
+00:45 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/mixed_format_playback_integration_test.dart: (tearDownAll)
+00:45 +3: All tests passed!

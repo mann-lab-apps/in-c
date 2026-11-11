@@ -173,6 +173,34 @@ class ImslpImportRecord {
   final String? rawCopyrightStatus;
   final String? failureKind;
   final String? userMessage;
+
+  ImslpImportRecord withStatus(
+    ImslpTransferStatus value, {
+    String? fileId,
+    String? failureKind,
+    String? userMessage,
+  }) => ImslpImportRecord(
+    id: id,
+    resourceId: resourceId,
+    workId: workId,
+    sourcePageUrl: sourcePageUrl,
+    sourceDownloadUrl: sourceDownloadUrl,
+    originalFileName: originalFileName,
+    localPath: localPath,
+    sha256: sha256,
+    sizeBytes: sizeBytes,
+    downloadedAtMillis: downloadedAtMillis,
+    status: value,
+    rightsStatus: rightsStatus,
+    mimeType: mimeType,
+    fileId: fileId ?? this.fileId,
+    recordingId: recordingId,
+    trackId: trackId,
+    licenseLabel: licenseLabel,
+    rawCopyrightStatus: rawCopyrightStatus,
+    failureKind: failureKind,
+    userMessage: userMessage,
+  );
 }
 
 abstract interface class ImslpCatalogClient {
@@ -246,6 +274,12 @@ class HttpImslpCatalogClient implements ImslpCatalogClient {
   static List<ImslpWorkSearchResult> parseSearchResponse(String source) {
     final decoded = jsonDecode(source);
     if (decoded is! Map<String, Object?>) throw const FormatException();
+    if (decoded.containsKey('error')) {
+      throw const ImslpClientException(
+        'apiFailure',
+        'IMSLP 검색 요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      );
+    }
     final query = decoded['query'];
     if (query is! Map<String, Object?>) return const [];
     final rows = query['search'];

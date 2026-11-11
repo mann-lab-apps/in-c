@@ -48,6 +48,45 @@ void main() {
     ),
   ];
 
+  test('group sorting follows visible group names and latest addition with stable ties', () {
+    const library = LocalFileLibrary();
+    final entries = library.entries(files: files);
+    final groups = {
+      'Z album': [entries.first],
+      'A album': [entries[1]],
+      'B album': [entries[2]],
+    };
+    expect(library.sortedGroupKeys(groups, LocalFileSort.title), [
+      'A album',
+      'B album',
+      'Z album',
+    ]);
+    expect(
+      library.sortedGroupKeys(
+        groups,
+        LocalFileSort.dateAdded,
+        importedAtByFileId: {
+          entries.first.file.id: 100,
+          entries[1].file.id: 300,
+          entries[2].file.id: 300,
+        },
+      ),
+      ['A album', 'B album', 'Z album'],
+    );
+    expect(
+      library.sortedGroupKeys(
+        groups,
+        LocalFileSort.dateAdded,
+        importedAtByFileId: {
+          entries.first.file.id: 400,
+          entries[1].file.id: 300,
+          entries[2].file.id: 300,
+        },
+      ),
+      ['Z album', 'A album', 'B album'],
+    );
+  });
+
   test('tag values, folder and filename fallback stay visible', () {
     final entries = service.entries(files: files);
     final first = entries.firstWhere((entry) => entry.file.id == 'first');

@@ -2,6 +2,7 @@ import 'classical_library_models.dart';
 import 'local_audio_scanner.dart';
 import 'metadata_candidates.dart';
 import 'metadata_overrides.dart';
+import 'local_file_library.dart';
 
 enum SearchResultType {
   person(label: '인물'),
@@ -102,9 +103,11 @@ class SearchNormalizer {
     return folded.toString().replaceAll(RegExp(r'[^a-z0-9가-힣ㄱ-ㅎㅏ-ㅣ]+'), '');
   }
 
-  String initials(String value) {
+  String initials(String value) => _initialsFromNormalized(normalize(value));
+
+  String _initialsFromNormalized(String value) {
     final result = StringBuffer();
-    for (final rune in normalize(value).runes) {
+    for (final rune in value.runes) {
       if (rune >= 0xAC00 && rune <= 0xD7A3) {
         result.write(_initials[(rune - 0xAC00) ~/ 588]);
       } else if ((rune >= 0x3131 && rune <= 0x314E) ||
@@ -116,10 +119,72 @@ class SearchNormalizer {
   }
 }
 
+class _SearchDocument {
+  _SearchDocument(
+    this.result,
+    Iterable<String> source,
+    SearchNormalizer normalizer,
+  ) : _normalizer = normalizer,
+      values = source
+          .map(normalizer.normalize)
+          .where((v) => v.isNotEmpty)
+          .toList();
+  final LibrarySearchResult result;
+  final List<String> values;
+  final SearchNormalizer _normalizer;
+  late final initials = values.map(_normalizer._initialsFromNormalized).join();
+  late final joined = values.join();
+}
+
+class PreparedLibrarySearch {
+  PreparedLibrarySearch._(this._service, this._documents, this._files);
+  final LibrarySearchService _service;
+  final List<_SearchDocument> _documents;
+  final List<LocalFileLibraryEntry> _files;
+  List<LibrarySearchResult> search(String query) =>
+      _service._searchPrepared(this, query);
+  List<String> fileIds(String query, List<LibrarySearchResult> results) {
+    final ids = {
+      for (final r in results)
+        if (r.type == SearchResultType.fileCandidate) r.id,
+    };
+    for (final file in const LocalFileLibrary().search(_files, query)) {
+      ids.add(file.file.id);
+    }
+    return [
+      for (final file in _files)
+        if (ids.contains(file.file.id)) file.file.id,
+    ];
+  }
+
+  int get documentCount => _documents.length;
+}
+
+class LibrarySearchProfile {
+  int normalizationMicros = 0,
+      corpusMicros = 0,
+      matchMicros = 0,
+      finishMicros = 0,
+      fuzzyComparisons = 0,
+      documents = 0;
+  Map<String, int> toJson() => {
+    'normalizationMicros': normalizationMicros,
+    'compositionMicros': corpusMicros - normalizationMicros,
+    'matchMicros': matchMicros,
+    'finishMicros': finishMicros,
+    'fuzzyComparisons': fuzzyComparisons,
+    'documents': documents,
+  };
+}
+
 class LibrarySearchService {
-  const LibrarySearchService({this.normalizer = const SearchNormalizer()});
+  const LibrarySearchService({
+    this.normalizer = const SearchNormalizer(),
+    this.profile,
+  });
 
   final SearchNormalizer normalizer;
+  final LibrarySearchProfile? profile;
 
   List<LibrarySearchResult> search({
     required ClassicalLibrary library,
@@ -130,14 +195,27 @@ class LibrarySearchService {
     Map<String, String> recordingAliases = const {},
     required String query,
   }) {
-    final tokens = query
-        .split(RegExp(r'\s+'))
-        .map(normalizer.normalize)
-        .where((token) => token.isNotEmpty)
-        .toList();
-    if (tokens.isEmpty) return [];
+    if (query.trim().isEmpty) return [];
+    return prepare(
+      library: library,
+      files: files,
+      candidates: candidates,
+      overrides: overrides,
+      workAliases: workAliases,
+      recordingAliases: recordingAliases,
+    ).search(query);
+  }
 
-    final results = <LibrarySearchResult>[];
+  PreparedLibrarySearch prepare({
+    required ClassicalLibrary library,
+    required List<LocalAudioFile> files,
+    required List<MetadataCandidate> candidates,
+    List<MetadataOverride> overrides = const [],
+    Map<String, String> workAliases = const {},
+    Map<String, String> recordingAliases = const {},
+  }) {
+    final clock = profile == null ? null : (Stopwatch()..start());
+    final documents = <_SearchDocument>[];
     void addResult({
       required SearchResultType type,
       required String id,
@@ -145,17 +223,22 @@ class LibrarySearchService {
       required String subtitle,
       required Iterable<String> values,
     }) {
-      final rank = _rank(values, tokens);
-      if (rank == null) return;
-      results.add(
-        LibrarySearchResult(
-          type: type,
-          id: id,
-          title: title,
-          subtitle: subtitle,
-          rank: rank,
+      final normalization = profile == null ? null : (Stopwatch()..start());
+      documents.add(
+        _SearchDocument(
+          LibrarySearchResult(
+            type: type,
+            id: id,
+            title: title,
+            subtitle: subtitle,
+          ),
+          values,
+          normalizer,
         ),
       );
+      if (normalization != null) {
+        profile!.normalizationMicros += normalization.elapsedMicroseconds;
+      }
     }
 
     for (final person in library.people) {
@@ -223,33 +306,72 @@ class LibrarySearchService {
       );
     }
 
-    final candidatesByFileId = {
-      for (final candidate in candidates) candidate.fileId: candidate,
-    };
-    final overridesByFileId = {
-      for (final override in overrides) override.fileId: override,
+    final displayFiles = const LocalFileLibrary().entries(
+      files: files,
+      candidates: candidates,
+      overrides: overrides,
+    );
+    final displayByFileId = {
+      for (final entry in displayFiles) entry.file.id: entry,
     };
     for (final file in files) {
       final displayFileName = file.fileName ?? fileNameForPath(file.path);
-      final candidate = candidatesByFileId[file.id];
-      final effective = EffectiveFileMetadata.resolve(
-        candidate: candidate,
-        tag: file.tagMetadata,
-        override: overridesByFileId[file.id],
-      );
+      final display = displayByFileId[file.id]!;
       addResult(
         type: SearchResultType.fileCandidate,
         id: file.id,
         title: displayFileName,
-        subtitle: effective.summary,
+        subtitle: display.subtitle,
         values: [
           displayFileName,
-          for (final value in effective.values.values) '$value',
-          ?candidate?.albumText,
+          display.title,
+          display.album,
+          display.artist,
+          ?display.composer,
         ],
       );
     }
 
+    if (clock != null) {
+      profile!.corpusMicros = clock.elapsedMicroseconds;
+      profile!.documents = documents.length;
+    }
+    return PreparedLibrarySearch._(
+      this,
+      List.unmodifiable(documents),
+      displayFiles,
+    );
+  }
+
+  List<LibrarySearchResult> _searchPrepared(
+    PreparedLibrarySearch index,
+    String query,
+  ) {
+    final clock = profile == null ? null : (Stopwatch()..start());
+    final tokens = query
+        .split(RegExp(r'\s+'))
+        .map(normalizer.normalize)
+        .where((v) => v.isNotEmpty)
+        .toList();
+    if (tokens.isEmpty) return [];
+    final results = <LibrarySearchResult>[];
+    for (final document in index._documents) {
+      final rank = _rank(document, tokens);
+      if (rank != null) {
+        final r = document.result;
+        results.add(
+          LibrarySearchResult(
+            type: r.type,
+            id: r.id,
+            title: r.title,
+            subtitle: r.subtitle,
+            rank: rank,
+          ),
+        );
+      }
+    }
+    if (clock != null) profile!.matchMicros = clock.elapsedMicroseconds;
+    clock?.reset();
     results.sort((first, second) {
       final byRank = first.rank.compareTo(second.rank);
       if (byRank != 0) return byRank;
@@ -263,17 +385,14 @@ class LibrarySearchService {
       if (seen.add('${result.type.name}:${result.id}')) unique.add(result);
     }
     final nonFuzzy = unique.where((result) => result.rank < 1000).toList();
-    return (nonFuzzy.isEmpty ? unique : nonFuzzy).take(12).toList();
+    final limited = (nonFuzzy.isEmpty ? unique : nonFuzzy).take(12).toList();
+    if (clock != null) profile!.finishMicros = clock.elapsedMicroseconds;
+    return limited;
   }
 
-  int? _rank(Iterable<String> values, List<String> tokens) {
-    final sourceValues = values.toList();
-    final normalizedValues = sourceValues
-        .map(normalizer.normalize)
-        .where((value) => value.isNotEmpty)
-        .toList();
-    final joined = normalizedValues.join();
-    final initials = sourceValues.map(normalizer.initials).join();
+  int? _rank(_SearchDocument document, List<String> tokens) {
+    final normalizedValues = document.values;
+    final joined = document.joined;
     var total = 0;
     for (final token in tokens) {
       int? tokenRank;
@@ -283,7 +402,7 @@ class LibrarySearchService {
         tokenRank = 10;
       } else if (joined.contains(token)) {
         tokenRank = 20;
-      } else if (_isInitialQuery(token) && initials.contains(token)) {
+      } else if (_isInitialQuery(token) && document.initials.contains(token)) {
         tokenRank = 30;
       } else if (token.length >= 4 && _hasFuzzyMatch(token, normalizedValues)) {
         tokenRank = 1040;
@@ -299,29 +418,39 @@ class LibrarySearchService {
 
   bool _hasFuzzyMatch(String query, List<String> values) {
     final maximumDistance = query.length >= 8 ? 2 : 1;
-    return values.any(
-      (value) =>
-          value.length >= 4 && _levenshtein(query, value) <= maximumDistance,
-    );
+    return values.any((value) {
+      if (value.length < 4 ||
+          (query.length - value.length).abs() > maximumDistance) {
+        return false;
+      }
+      if (profile != null) profile!.fuzzyComparisons++;
+      return _levenshtein(query, value, maximumDistance) <= maximumDistance;
+    });
   }
 
-  int _levenshtein(String first, String second) {
+  int _levenshtein(String first, String second, int limit) {
     var previous = List<int>.generate(second.length + 1, (index) => index);
+    var current = List<int>.filled(second.length + 1, 0);
     for (var firstIndex = 0; firstIndex < first.length; firstIndex += 1) {
-      final current = <int>[firstIndex + 1];
+      current[0] = firstIndex + 1;
+      var minimum = current[0];
       for (var secondIndex = 0; secondIndex < second.length; secondIndex += 1) {
-        current.add(
-          [
-            current[secondIndex] + 1,
-            previous[secondIndex + 1] + 1,
+        final deletion = previous[secondIndex + 1] + 1,
+            insertion = current[secondIndex] + 1;
+        final substitute =
             previous[secondIndex] +
-                (first.codeUnitAt(firstIndex) == second.codeUnitAt(secondIndex)
-                    ? 0
-                    : 1),
-          ].reduce((left, right) => left < right ? left : right),
-        );
+            (first.codeUnitAt(firstIndex) == second.codeUnitAt(secondIndex)
+                ? 0
+                : 1);
+        var value = deletion < insertion ? deletion : insertion;
+        if (substitute < value) value = substitute;
+        current[secondIndex + 1] = value;
+        if (value < minimum) minimum = value;
       }
+      if (minimum > limit) return limit + 1;
+      final old = previous;
       previous = current;
+      current = old;
     }
     return previous.last;
   }

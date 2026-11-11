@@ -1,0 +1,17 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/ios_background_audio_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           19.7s
+00:00 +0: iOS native audio continues across an actual OS app switch
+DDIRORI_BACKGROUND_READY
+00:02 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/ios_background_audio_integration_test.dart
+DDIRORI_LIFECYCLE inactive
+DDIRORI_LIFECYCLE hidden
+DDIRORI_LIFECYCLE paused
+DDIRORI_LIFECYCLE hidden
+DDIRORI_LIFECYCLE inactive
+DDIRORI_LIFECYCLE resumed
+00:30 +0: iOS native audio continues across an actual OS app switch
+DDIRORI_BACKGROUND_RESULT {"lifecycle":["inactive","hidden","paused","hidden","inactive","resumed"],"start_index":0,"returned_index":3,"completed_index":12,"position_saved":true,"completed":true,"now_playing_title_after_return":"합성 음원 3","now_playing_rate_after_return":1.0}
+00:30 +1: native player retains pause and no-auto-resume event policy
+00:30 +2: (tearDownAll)
+00:31 +2: All tests passed!

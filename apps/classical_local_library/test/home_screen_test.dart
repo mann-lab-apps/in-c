@@ -80,7 +80,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('데모 스캔'), findsNothing);
-    await tester.drag(find.byType(ListView), const Offset(0, -520));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -520));
     await tester.pumpAndSettle();
     expect(find.text('보관함이 비어 있습니다'), findsOneWidget);
     expect(find.text('음악 가져오기'), findsOneWidget);
@@ -221,6 +221,11 @@ void main() {
       250,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(find.byTooltip('음원 정보 1')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('음원 정보 1'));
     await tester.pumpAndSettle();
     expect(find.textContaining('샘플 파일'), findsOneWidget);
@@ -1669,10 +1674,16 @@ class _SequencedImportController implements LocalAudioImportController {
 }
 
 Future<void> _showHomeView(WidgetTester tester, String label) async {
-  if (label == '라이브러리') {
+  while (find.byTooltip('도구 더보기').evaluate().isEmpty) {
     if (find.byTooltip('뒤로').evaluate().isNotEmpty) {
       await tester.tap(find.byTooltip('뒤로'));
+    } else {
+      await tester.pageBack();
     }
+    await tester.pumpAndSettle();
+  }
+  if (label == '라이브러리') {
+    // Global tools are available only at the library root.
   } else {
     await tester.tap(find.byTooltip('도구 더보기'));
     await tester.pumpAndSettle();

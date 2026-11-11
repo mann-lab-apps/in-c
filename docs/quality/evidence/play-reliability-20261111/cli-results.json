@@ -1,0 +1,41 @@
+{
+  "scope": "Synthetic protocol cases, not human feedback or iOS18 execution",
+  "results": [
+    {
+      "case": "unverified-v2",
+      "exitCode": 0,
+      "stdout": "실기기 후보 피드백 확인 완료\n플랫폼: ios\n심각도: NONE\nP0/P1 신고: 없음 (출시 승인 아님)\n미확인 사용자 항목: 있음\n자동검사 선언은 실제 증거 및 물리 사용자 응답을 대체하지 않습니다.\n",
+      "stderr": "Running build hooks...Running build hooks..."
+    },
+    {
+      "case": "separate-auto-and-user",
+      "exitCode": 0,
+      "stdout": "실기기 후보 피드백 확인 완료\n플랫폼: ios\n심각도: NONE\nP0/P1 신고: 없음 (출시 승인 아님)\n미확인 사용자 항목: 있음\n자동검사 선언은 실제 증거 및 물리 사용자 응답을 대체하지 않습니다.\n회귀 후보: music.favorites\n",
+      "stderr": "Running build hooks...Running build hooks..."
+    },
+    {
+      "case": "explicit-p1",
+      "exitCode": 2,
+      "stdout": "실기기 후보 피드백 확인 완료\n플랫폼: ios\n심각도: P1\nP0/P1 신고: 있음\n미확인 사용자 항목: 있음\n자동검사 선언은 실제 증거 및 물리 사용자 응답을 대체하지 않습니다.\n",
+      "stderr": "Running build hooks...Running build hooks..."
+    },
+    {
+      "case": "private-unknown-field",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Running build hooks...Running build hooks...피드백 검증 실패: 개인정보 또는 비밀값으로 보이는 내용이 포함되어 있습니다.\n"
+    },
+    {
+      "case": "legacy-v1",
+      "exitCode": 0,
+      "stdout": "실기기 후보 피드백 확인 완료\n플랫폼: ios\n심각도: NONE\nP0/P1 신고: 없음 (출시 승인 아님)\n미확인 사용자 항목: 있음\n자동검사 선언은 실제 증거 및 물리 사용자 응답을 대체하지 않습니다.\n",
+      "stderr": "Running build hooks...Running build hooks..."
+    },
+    {
+      "case": "oversized",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Running build hooks...Running build hooks...피드백 검증 실패: 피드백 크기가 허용 범위를 넘었습니다.\n"
+    }
+  ]
+}

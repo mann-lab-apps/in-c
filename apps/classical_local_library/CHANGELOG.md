@@ -1,5 +1,63 @@
 # Changes
 
+## Recovery, semantics and compatibility - 2026-11-11 (unreleased)
+
+- 즐겨찾기 저장 성공 뒤 재조회 실패를 잘못된 저장 실패로 표시하던 결함을 수정했다. 실제 저장 선택을 유지하고 재조회만 재시도하며 관련 오류 안내를 정리한다.
+- 재생 재시도의 첫 항목 재로드 정책을 안내하고 실제 semantics 역할·선택/disabled·seek 명령·큐 보호·IME/오류 상태와 폭/테마 전환의 draft 유지 회귀를 추가했다.
+- 기존 오디오 fixture와 native 검사에 mixed WAV/AAC/ALAC/FLAC·일시정지·완료·복원·손상 데이터 복구를 연결했다. MP3 encoder 및 이전 OS runtime의 부재를 명시하는 로컬 capability report를 추가했다.
+- 사용자/자동 결과를 분리한 strict 피드백 schema2와 schema1 호환·개인정보 거부·고정 회귀 후보 출력을 추가했다. [품질 기록](../../docs/quality/classical-local-library-reliability-2026-11-11.md) 참조. 미커밋·미배포, 기존0.1.0(4) 보존.
+
+## Queue editing, favorites and IMSLP follow-up - 2026-11-11 (unreleased)
+
+- 재생 중 큐의 다음/마지막 예약과 미래 occurrence 이동·제거·비우기를 추가했다. 현재/과거 항목을 보호하고 실제 엔진 source 편집·직렬화·셔플/반복·저장 복원을 연결했다. 부분 native 실패는 확정되지 않은 성공으로 표시하지 않고 재로드 가능한 오류로 처리한다.
+- file ID 기반 즐겨찾기와 보관함 목록·곡 메뉴·현재 재생의 상태를 연결했다. additive schema18·논리 백업/구버전 호환·파일 제거/초기화 정합성과 저장/재조회 실패를 구분한다.
+- 작품 없는 IMSLP 탐색에서 공식 페이지 확인→Files 음원 가져오기→곡 확인/명시적 재생과 출처 확인을 연결했다. 직접 URL 등록 draft·다운로드 단계·rename 전 journal·등록 재시도·취소/중복/형식 검증을 보완했다. 자동 파일 링크 수집과 제한 우회는 추가하지 않았다.
+- 소실된 임시 작업 트리는 기록된 패치와 Git index에서 복구하고 검색 oracle/자체 제작 orientation fixture를 독립적으로 재생성했다. 과거 실행·이미지와 이번 새 QA 증거는 구분한다. [품질 기록](../../docs/quality/classical-local-library-music-actions-2026-11-11.md) 참고.
+- 기존 내부0.1.0(4)에는 이 변경이 없다. 버전 증가·커밋·푸시·archive·업로드는 수행하지 않는다. 물리 Xs 청감·VoiceOver·Files/iCloud·전화/출력 장치는 별도 사용자 검수다.
+
+## Queue shuffle and repeat - 2026-11-03 (unreleased)
+
+- 전체 재생에 공통 셔플·반복 버튼과 한국어 상태/접근성 이름을 추가했다. 실제 just_audio shuffle/loop와 같은 큐·직렬화·시스템 명령을 사용하며 의존성은 추가하지 않았다.
+- 현재 곡·position을 유지한 남은 큐 셔플과 원래 순서 복구, 한 곡/전체 자연 반복, 수동 이동의 한 곡 반복 무시와 일시정지 유지 정책을 구현했다. 같은 셔플 순열로 전체를 반복하며 완료 후 재생은 첫 곡에서 다시 시작한다.
+- additive schema v17에 모드·원본 순열·중복 occurrence·선택을 저장하고 재시작 시 자동 재생 없이 복원한다. 구버전·손상 옵션과 누락 항목을 복구하며 재생목록 수동 순서·보관함 정렬·원본 파일을 보존한다. 여러 녹음이 섞인 큐가 첫 녹음만 복원되던 경로도 수정했다.
+- 경합·실패 rollback·늦은 seek/큐 교체·진단·시스템 조작과 실제 native 자연 반복/완료/재시작 검증을 추가했다. [품질 기록](../../docs/quality/classical-local-library-playback-modes-2026-11-03.md) 참고. 물리 iPhone Xs 검수는 별도이며 기존 내부0.1.0(4)는 이 기능을 포함하지 않는다. 커밋·배포·빌드 번호 변경 없음.
+
+## Internal TestFlight - 0.1.0+4 - 2026-11-02
+
+- 사용자의 아카이브·배포 요청에 따라 Apple의 기존1~3번 업로드를 조회하고 내부 테스트용4번을 배포했다. 보관함·재생목록·표지/복구·대형 목록과 전체 검색 개선을 포함한다.
+- Apple VALID/INTERNAL_ONLY와 기존 그룹 IN_BETA_TESTING을 API로 확인했다. [배포 기록](../../docs/quality/classical-local-library-testflight-internal-2026-11-02.md)을 참고한다. 공개 출시·실기기 검수 완료를 의미하지 않는다.
+- 아래 unreleased 절은 이번 빌드에 포함할 변경의 개발 당시 기록이다. 물리 iPhone Xs QA는 사용자 확인 대상이다.
+
+## Library search responsiveness - 2026-11-02 (unreleased)
+
+- 검색 snapshot의 정규화 문서를 재사용하고 초성을 지연 계산하며 안전한 fuzzy 길이 제외·DP 할당 감소를 적용했다. 이전 ID/type/rank/순서·상위12개와 전체 파일 결과 정책을 고정했다.
+- 큰 보관함은 지연 생성한 worker로 준비·검색하고, 최신 query/revision만 화면에 반영한다. draft·방문 복귀·재생 유지와 준비/검색/빈 결과/경로 없는 오류·재시도를 지원한다.
+- worker 실패·종료·재준비와 요청 순서 역전, 화면 크기/테마·실제 캡처·native 검색을 QA runner에 연결했다. SQLite v16·원본 파일·기존 내부 TestFlight0.1.0(3)은 유지하고 커밋·배포하지 않았다.
+
+## Large library and artwork recovery - 2026-10-31 (unreleased)
+
+- 보관함·검색·작품·녹음·재생목록과 순서 편집을 단일 sliver 스크롤의 지연 생성으로 변경했다. 화면 밖 곡도 전체 결과 재생 큐에 포함한다.
+- position tick의 보관함 재빌드를 분리하고 snapshot별 표시·질의를 제한된 캐시에 재사용한다. 재생 중 정보 교정·탐색·복귀·수동 순서는 유지한다.
+- 중단된 표지 저장의 part/orphan 정리, 손상 hash fallback·교체 복구, 외부 symlink 쓰기 방지와 직렬 clear/dispose 검증을 추가했다. 이전 사본 정리 실패가 성공한 새 표지 저장을 실패로 바꾸지 않는다.
+- 기존 로컬 QA runner에 선택적인 보관함 검증·새 widget/native 캡처·이미지 hash·누락/과거 이미지 거부·로그 비식별화를 연결했다. 커밋·배포와 버전/build 변경은 없다.
+
+## Library completion - 2026-10-31 (unreleased)
+
+- 미승인 경로 추론이 곡명·아티스트·앨범 표시로 새는 문제를 수정했다. 사용자 교정·태그·승인 정보를 사용하며 재생 중 교정은 큐/위치 재로드 없이 표시만 갱신한다.
+- 보관함 방문을 실제 route로 옮겨 iOS 뒤로 swipe 완료·취소와 원래 검색·스크롤 복귀를 지원한다.
+- 재생목록 목록/곡 검색과 실제 필드 정렬을 추가했다. 표시 정렬대로 재생하고 원래 수동 순서 편집을 보존한다. 분류 표시/순서와 정렬 설정은 additive schema v16에 저장한다.
+- 음원의 내장 표지와 사용자 재생목록 표지 선택·교체·제거를 추가했다. 크기 제한·화면 밖 지연 로딩·종료 취소·원본 보존·복원 누락 fallback을 적용한다. 백업에는 표지 byte를 넣지 않는다.
+- 손상된 표시 설정이 전체 음악 로드를 막는 경로와 성공 안내가 다음 오류를 가리는 경로를 보완했다. 320px/큰 글자 완료 안내는 넓은 공통 Banner와 보기/닫기를 사용한다.
+- 디자인 생성기의 고정 날짜/추천값과 API snapshot의 환경별 의존성 경로를 수정했다. 현재 정본만 공식 generator로 갱신했으며 역사적 manifest·대표색·공통 API는 변경하지 않았다.
+- 내부 TestFlight 0.1.0(3)은 보존하며 이번 변경은 미커밋·미배포다.
+
+## Library context and playlist feedback - 2026-10-31 (unreleased)
+
+- 전역 도구는 보관함에 모으고 음악 묶음/재생목록 상세는 해당 대상 메뉴로 분리했다. 검색과 상세에서 복귀할 때 방문별 필터·정렬·스크롤을 복원한다.
+- 재생목록 생성·곡 추가 뒤 원래 화면을 유지하고 완료 안내와 명시적 `보기`를 제공한다. 생성 전 곡을 선택할 수 있고 실패하면 draft를 보존한다. 저장 성공 후 재조회 실패를 생성 실패로 처리하지 않는다.
+- 상세의 편집·이름·삭제를 더보기로 모았다. 목록 정렬이 실제 그룹 순서에 반영되며 원본 파일·목록 ID·재생 큐와 백그라운드/시스템 미디어 계약을 보존한다.
+- 버전/build 변경·커밋·TestFlight 업로드는 수행하지 않았다.
+
 ## iOS system media controls - 0.1.0+3 - 2026-10-30
 
 - 잠금 화면·제어센터의 곡명·아티스트·앨범·시간·상태와 play/pause/이전/다음/seek/stop 명령을 기존 엔진에 연결했다. 공개 MediaPlayer API를 사용하며 패키지·권한 추가는 없다.

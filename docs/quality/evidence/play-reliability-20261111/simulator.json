@@ -1,0 +1,12 @@
+{
+  "scope": "Dedicated disposable QA simulator only; no physical device",
+  "devices": [
+    {
+      "name": "DDIRORI-QA-Play-20261023",
+      "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
+      "state": "Booted",
+      "isAvailable": true,
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+    }
+  ]
+}

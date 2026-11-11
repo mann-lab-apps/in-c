@@ -107,8 +107,12 @@ Future<void> _capture(WidgetTester t, String name) async {
 }
 
 Future<void> _view(WidgetTester t, String label) async {
-  if (label == '라이브러리') {
+  while (find.byTooltip('도구 더보기').evaluate().isEmpty) {
     await t.tap(find.byTooltip('뒤로'));
+    await t.pumpAndSettle();
+  }
+  if (label == '라이브러리') {
+    // Already at root; preserve the saved scroll position.
   } else {
     await t.tap(find.byTooltip('도구 더보기'));
     await t.pumpAndSettle();
@@ -287,7 +291,7 @@ void main() {
             expect(find.textContaining('/fixture/private'), findsNothing);
             expect(t.takeException(), isNull);
             expect(
-              t.getRect(find.byTooltip('도구 더보기')).bottom,
+              t.getRect(find.byTooltip('뒤로')).bottom,
               lessThanOrEqualTo(976),
             );
             await t.pumpWidget(const SizedBox());

@@ -1,6 +1,8 @@
 import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/material.dart';
 
+import 'play_artwork.dart';
+
 import '../local_playback.dart';
 
 class PlayNowPlayingControls extends StatelessWidget {
@@ -12,9 +14,14 @@ class PlayNowPlayingControls extends StatelessWidget {
     required this.onPlayPause,
     required this.onNext,
     this.onPrevious,
+    this.onShuffle,
+    this.onRepeat,
     required this.onStop,
     required this.onSeek,
     this.onAddToPlaylist,
+    this.onToggleFavorite,
+    this.favorite = false,
+    this.favoriteBusy = false,
     this.showContext = true,
   });
 
@@ -24,9 +31,12 @@ class PlayNowPlayingControls extends StatelessWidget {
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
   final VoidCallback? onPrevious;
+  final VoidCallback? onShuffle, onRepeat;
   final VoidCallback onStop;
   final ValueChanged<Duration> onSeek;
   final VoidCallback? onAddToPlaylist;
+  final VoidCallback? onToggleFavorite;
+  final bool favorite, favoriteBusy;
   final bool showContext;
 
   @override
@@ -40,8 +50,12 @@ class PlayNowPlayingControls extends StatelessWidget {
         currentItem != null &&
         state.failure == null &&
         !busy;
-    final statusLabel = state.isSeeking
+    final statusLabel = state.isEditingQueue
+        ? '대기열 편집 중'
+        : state.isSeeking
         ? '탐색 중'
+        : state.isChangingMode
+        ? '재생 모드 변경 중'
         : state.processingState == LocalPlaybackProcessingState.buffering
         ? '버퍼링 중'
         : null;
@@ -58,6 +72,13 @@ class PlayNowPlayingControls extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (currentItem != null && showContext) ...[
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: PlayArtwork(trackId: currentItem.trackId, size: 80),
+            ),
+            const SizedBox(height: 12),
+          ],
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -103,6 +124,12 @@ class PlayNowPlayingControls extends StatelessWidget {
               ),
             ),
           if (state.failure != null) const SizedBox(height: 8),
+          if (state.failure != null)
+            const Text('재생 다시 시도를 누르면 대기열을 다시 불러와 첫 항목부터 재생합니다.'),
+          if (state.modeError case final error?)
+            DdiroriBanner(message: error, kind: DdiroriNoticeKind.error),
+          if (state.queueEditError case final error?)
+            DdiroriBanner(message: error, kind: DdiroriNoticeKind.error),
           DdiroriToolbar(
             label: '재생 도구',
             children: [
@@ -141,13 +168,51 @@ class PlayNowPlayingControls extends StatelessWidget {
                   icon: Icons.playlist_add,
                   onPressed: busy ? null : onAddToPlaylist,
                 ),
+              if (currentItem != null && onToggleFavorite != null)
+                DdiroriIconButton(
+                  label: favorite ? '현재 곡 즐겨찾기 해제' : '현재 곡 즐겨찾기 추가',
+                  icon: favorite ? Icons.favorite : Icons.favorite_border,
+                  selected: favorite,
+                  onPressed: busy || favoriteBusy ? null : onToggleFavorite,
+                ),
             ],
           ),
           const SizedBox(height: 4),
+          if (onShuffle != null || onRepeat != null) ...[
+            DdiroriToolbar(
+              label: '재생 순서와 반복',
+              children: [
+                DdiroriIconButton(
+                  label: state.shuffleEnabled ? '셔플 켜짐' : '셔플 꺼짐',
+                  icon: Icons.shuffle,
+                  selected: state.shuffleEnabled,
+                  onPressed: canUseQueue && !busy && state.failure == null
+                      ? onShuffle
+                      : null,
+                ),
+                DdiroriIconButton(
+                  label: state.repeatMode.label,
+                  icon: state.repeatMode == LocalRepeatMode.one
+                      ? Icons.repeat_one
+                      : Icons.repeat,
+                  selected: state.repeatMode != LocalRepeatMode.off,
+                  onPressed: canUseQueue && !busy && state.failure == null
+                      ? onRepeat
+                      : null,
+                ),
+                Text(
+                  '${state.shuffleEnabled ? '셔플 켜짐' : '셔플 꺼짐'} · ${state.repeatMode.label}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+          ],
           DdiroriPlaybackProgress(
             key: ValueKey((
               currentItem?.trackId,
               currentItem?.path,
+              state.originalIndex,
+              state.automaticTransitions,
               state.failure?.kind,
               state.playerState == LocalPlayerState.paused,
             )),

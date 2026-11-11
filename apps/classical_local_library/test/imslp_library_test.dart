@@ -6,24 +6,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('empty catalog shows a safe IMSLP prerequisite state', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ImslpLibraryScreen(
-          library: emptyClassicalLibrary,
-          store: MemoryImslpStore(),
-          client: const _FakeClient(),
+  testWidgets(
+    'empty catalog searches and opens pages without inventing works',
+    (tester) async {
+      final store = MemoryImslpStore();
+      Uri? opened;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ImslpLibraryScreen(
+            library: emptyClassicalLibrary,
+            store: store,
+            client: const _FakeClient(),
+            openUri: (uri) async {
+              opened = uri;
+              return true;
+            },
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('IMSLP 자료'), findsOneWidget);
-    expect(find.textContaining('먼저 음원 파일을 작품과 녹음에 정리'), findsOneWidget);
-    expect(find.byTooltip('IMSLP 검색'), findsNothing);
-  });
+      expect(find.text('IMSLP 자료'), findsOneWidget);
+      expect(find.byTooltip('IMSLP 검색'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, 'Beethoven');
+      await tester.tap(find.byTooltip('IMSLP 검색'));
+      await tester.pumpAndSettle();
+      expect(find.text('Symphony No.5, Op.67'), findsOneWidget);
+      expect(find.byTooltip('이 작품 연결'), findsNothing);
+      await tester.tap(find.text('공식 페이지에서 녹음 확인'));
+      await tester.pumpAndSettle();
+      expect(opened?.host, 'imslp.org');
+      expect(await store.loadWorkLinks(), isEmpty);
+      expect(await store.loadImports(), isEmpty);
+      expect(find.textContaining('보관함에 가져왔습니다'), findsNothing);
+    },
+  );
 
   testWidgets('search candidate is linked only after confirmation', (
     tester,
@@ -97,6 +114,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('test.mp3'),
+      220,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.textContaining('국가별 이용 조건'), findsOneWidget);
     expect(find.textContaining('녹음·실연 권리'), findsOneWidget);
     expect(find.byTooltip('확인 후 다운로드'), findsNothing);

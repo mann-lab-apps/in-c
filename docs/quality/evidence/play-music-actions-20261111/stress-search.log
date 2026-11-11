@@ -1,0 +1,96 @@
+{
+  "environment": "Dart host/JIT",
+  "tracks": 20000,
+  "samplesMicros": {
+    "작곡가 99 작품 999": [
+      632261,
+      460147,
+      449320
+    ],
+    "ㅈㄱㄱ 99": [
+      508086,
+      502332,
+      498706
+    ],
+    "Composer 99": [
+      441475,
+      440343,
+      441342
+    ],
+    "CAT 999": [
+      420061,
+      428911,
+      432978
+    ],
+    "file-4999": [
+      457207,
+      460070,
+      452994
+    ],
+    "zzzzzz-not-found": [
+      437728,
+      436259,
+      433805
+    ]
+  },
+  "preparedSamplesMicros": {
+    "작곡가 99 작품 999": [
+      17316,
+      10870,
+      10791
+    ],
+    "ㅈㄱㄱ 99": [
+      83986,
+      15300,
+      14654
+    ],
+    "Composer 99": [
+      23110,
+      21805,
+      21968
+    ],
+    "CAT 999": [
+      13317,
+      10941,
+      11000
+    ],
+    "file-4999": [
+      46289,
+      44051,
+      44365
+    ],
+    "zzzzzz-not-found": [
+      18019,
+      19971,
+      18781
+    ]
+  },
+  "prepareMicros": 525301,
+  "profiledPhases": {
+    "normalizationMicros": 369759,
+    "compositionMicros": 155542,
+    "matchMicros": 10845,
+    "finishMicros": 39,
+    "fuzzyComparisons": 760791,
+    "documents": 48400
+  },
+  "worker": {
+    "coldTotalMicros": 523141,
+    "prepareMicros": 452168,
+    "queryMicros": 35802,
+    "warmTotalMicros": 39338,
+    "warmPrepareMicros": 0,
+    "warmQueryMicros": 39047,
+    "newRevisionTotalMicros": 479422,
+    "newRevisionPrepareMicros": 435438,
+    "newRevisionQueryMicros": 27668,
+    "fileIds": 20000,
+    "heartbeatCount": 198,
+    "maxHeartbeatGapMicros": 36552,
+    "heartbeatPeriodMicros": 5000,
+    "includesSpawnAndSnapshotTransfer": true
+  },
+  "maxRssBytes": 443908096,
+  "physicalDeviceVerified": false
+}
+Running build hooks...Running build hooks...

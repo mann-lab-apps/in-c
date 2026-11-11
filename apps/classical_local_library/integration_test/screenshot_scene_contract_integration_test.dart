@@ -47,12 +47,62 @@ void main() {
     expect(find.byTooltip('내 음악 검색'), findsOneWidget);
     expect(find.textContaining('/Users/'), findsNothing);
 
+    await scrollTo(tester, '즐겨찾기');
+    await tester.tap(find.byKey(const ValueKey('file-category-favorites')));
+    await tester.pumpAndSettle();
+    expect(find.text('즐겨찾는 곡을 모아보세요'), findsOneWidget);
+    expect(find.text('이 목록에서 검색'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('IMSLP 자료'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('IMSLP 검색'), findsOneWidget);
+    expect(find.text('음원 파일 가져오기'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    // Each authored scene starts at its own fixture; returning from Favorites
+    // intentionally retains the root scroll visit rather than scrolling up.
+    await restart(tester);
+
+    await tester.tap(find.byTooltip('내 음악 검색'));
+    await tester.pumpAndSettle();
+    expect(find.text('작품, 작곡가와 파일 검색'), findsOneWidget);
+    expect(find.text('검색 결과가 없습니다.'), findsNothing);
+    expect(find.text('검색하지 못했습니다'), findsNothing);
+    await tester.tap(find.byTooltip('뒤로'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const ValueKey('file-category-songs')));
     await tester.pumpAndSettle();
     expect(find.byTooltip('곡 정렬'), findsOneWidget);
     expect(find.text('이 목록에서 검색'), findsOneWidget);
     await tester.tap(find.byTooltip('뒤로'));
     await tester.pumpAndSettle();
+
+    await restart(tester);
+    await tester.tap(find.byKey(const ValueKey('file-category-playlists')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('새 재생목록'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('곡 선택'), findsOneWidget);
+    expect(find.text('저장'), findsOneWidget);
+    expect(find.byTooltip('도구 더보기'), findsNothing);
+
+    await restart(tester);
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('보관함 분류 편집'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('section-editor-songs')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('section-editor-playlists')),
+      findsOneWidget,
+    );
+    expect(find.text('저장'), findsOneWidget);
+    expect(find.byTooltip('재생목록 위로'), findsOneWidget);
 
     await restart(tester);
     await tester.tap(find.byTooltip('도구 더보기'));

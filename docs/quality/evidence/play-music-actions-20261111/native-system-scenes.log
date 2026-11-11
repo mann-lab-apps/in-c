@@ -1,0 +1,71 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/ios_system_media_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           17.7s
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/ios_system_media_integration_test.dart: public iOS Now Playing center and injected native remote commands follow the engine
+00:10 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/ios_system_media_integration_test.dart: (tearDownAll)
+00:11 +1: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           29.4s
+00:53 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart: store screenshot scenes follow independent current UI routes
+01:12 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart: R2 browsing scene preserves A playback while inspecting B on iOS
+01:18 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/screenshot_scene_contract_integration_test.dart: (tearDownAll)
+01:18 +3: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/library_search_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           28.9s
+02:00 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/library_search_integration_test.dart: iOS worker searches 20k files without blocking event processing
+02:02 +4: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/library_search_integration_test.dart: (tearDownAll)
+02:02 +4: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/playback_modes_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           18.6s
+02:29 +4: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/playback_modes_integration_test.dart: native shuffle loop boundaries and restoration preserve engine occurrence and position
+MODE_RESTART app=completed/completed index=5 pos=28800 error=null
+MODE_RESTART native=false/completed index=4 pos=28800
+MODE_RESTART app=completed/completed index=5 pos=28800 error=null
+MODE_RESTART app=loading/loading index=5 pos=28800 error=null
+MODE_RESTART app=loading/loading index=4 pos=0 error=null
+MODE_RESTART app=loading/idle index=4 pos=0 error=null
+MODE_RESTART native=false/idle index=4 pos=28800
+MODE_RESTART app=loading/loading index=0 pos=0 error=null
+MODE_RESTART app=loading/idle index=0 pos=0 error=null
+MODE_RESTART app=loading/idle index=0 pos=0 error=null
+MODE_RESTART native=true/idle index=0 pos=0
+MODE_RESTART app=loading/loading index=0 pos=0 error=null
+MODE_RESTART native=true/loading index=0 pos=0
+MODE_RESTART app=loading/loading index=0 pos=0 error=null
+MODE_RESTART app=loading/buffering index=0 pos=0 error=null
+MODE_RESTART native=true/buffering index=0 pos=0
+MODE_RESTART app=loading/buffering index=0 pos=0 error=null
+MODE_RESTART app=loading/buffering index=0 pos=0 error=null
+MODE_RESTART app=playing/ready index=0 pos=0 error=null
+MODE_RESTART native=true/ready index=0 pos=1
+MODE_RESTART app=paused/ready index=0 pos=0 error=null
+MODE_RESTART native=false/ready index=0 pos=92
+MODE_RESTART app=paused/ready index=0 pos=0 error=null
+MODE_RESTART app=paused/ready index=0 pos=0 error=null
+MODE_RESTART app=paused/ready index=0 pos=0 error=null
+MODE_RESTART app=paused/ready index=0 pos=0 error=null
+MODE_RESTART app=paused/ready index=1 pos=0 error=null
+MODE_RESTART app=paused/buffering index=1 pos=0 error=null
+MODE_RESTART native=false/buffering index=2 pos=0
+MODE_RESTART app=paused/ready index=1 pos=0 error=null
+MODE_RESTART app=paused/ready index=1 pos=0 error=null
+MODE_RESTART app=paused/ready index=1 pos=0 error=null
+MODE_RESTART native=false/ready index=2 pos=0
+MODE_RESTART app=paused/ready index=1 pos=0 error=null
+MODE_RESTART app=paused/ready index=1 pos=2000 error=null
+MODE_RESTART app=paused/buffering index=1 pos=2000 error=null
+MODE_RESTART native=false/buffering index=2 pos=2000
+MODE_RESTART app=paused/ready index=1 pos=2000 error=null
+MODE_RESTART native=false/ready index=2 pos=2000
+MODE_RESTART app=paused/ready index=1 pos=2000 error=null
+MODE_RESTART app=loading/loading index=1 pos=0 error=null
+MODE_RESTART native=false/loading index=2 pos=0
+MODE_RESTART native=false/ready index=2 pos=0
+MODE_RESTART app=loading/loading index=1 pos=2000 error=null
+MODE_RESTART app=loading/buffering index=1 pos=2000 error=null
+MODE_RESTART native=false/buffering index=2 pos=2000
+MODE_RESTART app=ready/ready index=1 pos=2000 error=null
+MODE_RESTART native=false/ready index=2 pos=2000
+MODE_RESTART app=ready/ready index=1 pos=2000 error=null
+02:33 +5: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/playback_modes_integration_test.dart: (tearDownAll)
+02:33 +5: All tests passed!

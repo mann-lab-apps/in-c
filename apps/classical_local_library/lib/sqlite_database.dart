@@ -14,6 +14,7 @@ import 'musicbrainz.dart';
 import 'playback_history.dart';
 import 'local_playback.dart';
 import 'playback_position.dart';
+import 'playback_order.dart';
 import 'scan_locations.dart';
 import 'scanned_audio_store.dart';
 import 'sqlite_migration.dart';
@@ -78,6 +79,16 @@ class SqliteMigrationRunner {
     if (schema.version >= 11) {
       await _ensureVersion11Columns(database);
       await _ensureVersion11MergeAuditHistory(database);
+    }
+    if (schema.version >= 17) {
+      final columns = (await database.rawQuery(
+        'PRAGMA table_info(playback_queue_state)',
+      )).map((row) => row['name']).toSet();
+      if (!columns.contains('playback_options_json')) {
+        await database.execute(
+          'ALTER TABLE playback_queue_state ADD COLUMN playback_options_json TEXT',
+        );
+      }
     }
     for (final indexSql in schema.indexSql) {
       await database.execute(indexSql);
@@ -273,6 +284,13 @@ class SqliteScannedAudioStore implements ScannedAudioStore {
           conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
         );
       }
+      // Full snapshot saves also implement removal. Keep favorites through
+      // path changes/missing scans, and remove only IDs absent after the save.
+      await transaction.rawDelete('''
+DELETE FROM local_favorites
+WHERE NOT EXISTS (
+  SELECT 1 FROM scanned_audio_files WHERE id = local_favorites.file_id
+);''');
     });
   }
 
@@ -671,12 +689,54 @@ class SqlitePlaybackQueueSnapshotStore implements PlaybackQueueSnapshotStore {
     );
     if (rows.isEmpty) return null;
     final row = rows.single;
+    final trackIds = (jsonDecode(
+      row['track_ids_json']! as String,
+    ) as List<Object?>).whereType<String>().toList();
+    List<int> order = const [];
+    int? selected;
+    var shuffle = false, repeat = LocalRepeatMode.off, invalid = false;
+    final options = row['playback_options_json'];
+    if (options != null) {
+      try {
+        final data = jsonDecode(options as String) as Map<String, dynamic>;
+        final raw = data['order'] as List<dynamic>;
+        order = raw.cast<int>().toList();
+        final index = data['index'];
+        final mode = data['repeat'];
+        if (data['version'] != 1 ||
+            !PlaybackOrder.valid(order, trackIds.length) ||
+            (data['shuffle'] == false &&
+                List.generate(
+                  order.length,
+                  (i) => i,
+                ).any((i) => order[i] != i)) ||
+            index is! int ||
+            index < 0 ||
+            index >= trackIds.length ||
+            data['shuffle'] is! bool ||
+            !LocalRepeatMode.values.any((m) => m.name == mode)) {
+          throw const FormatException();
+        }
+        selected = index;
+        shuffle = data['shuffle'] as bool;
+        repeat = LocalRepeatMode.values.firstWhere((m) => m.name == mode);
+      } catch (_) {
+        invalid = true;
+        order = const [];
+        selected = null;
+        shuffle = false;
+        repeat = LocalRepeatMode.off;
+      }
+    }
     return PlaybackQueueSnapshot(
-      trackIds: (jsonDecode(row['track_ids_json']! as String) as List<Object?>)
-          .whereType<String>()
-          .toList(),
+      trackIds: trackIds,
       currentTrackId: row['current_track_id'] as String?,
       savedAtMillis: row['saved_at_millis']! as int,
+      queueOrder: order,
+      currentIndex: selected,
+      shuffleEnabled: shuffle,
+      repeatMode: repeat,
+      optionsInvalid: invalid,
     );
   }
 
@@ -687,6 +747,15 @@ class SqlitePlaybackQueueSnapshotStore implements PlaybackQueueSnapshotStore {
       'track_ids_json': jsonEncode(snapshot.trackIds),
       'current_track_id': snapshot.currentTrackId,
       'saved_at_millis': snapshot.savedAtMillis,
+      'playback_options_json': snapshot.currentIndex == null
+          ? null
+          : jsonEncode({
+              'version': 1,
+              'order': snapshot.queueOrder,
+              'index': snapshot.currentIndex,
+              'shuffle': snapshot.shuffleEnabled,
+              'repeat': snapshot.repeatMode.name,
+            }),
     }, conflictAlgorithm: sqflite.ConflictAlgorithm.replace);
   }
 

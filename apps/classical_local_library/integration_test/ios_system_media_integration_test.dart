@@ -80,8 +80,22 @@ void main() {
       await command('play');
       await _wait(() => engine.playbackState.position.inMilliseconds >= 200);
       expect((await inspect())['rate'], 1);
+      final beforeMetadata = engine.playbackState;
+      await player.updateMetadata({
+        'fixture-first': _item('first', long.path, artist: '교정한 연주자'),
+      });
+      expect((await inspect())['artist'], '교정한 연주자');
+      expect((await inspect())['rate'], 1);
+      expect(engine.playbackState.currentIndex, beforeMetadata.currentIndex);
+      expect(
+        engine.playbackState.position,
+        greaterThanOrEqualTo(beforeMetadata.position),
+      );
+      expect(engine.playbackState.duration, beforeMetadata.duration);
       await command('pause');
       expect(engine.playbackState.playerState, LocalPlayerState.paused);
+      await player.setRepeatMode(LocalRepeatMode.one);
+      await player.setShuffleEnabled(true);
       await command('next');
       expect(engine.playbackState.currentIndex, 1);
       expect(engine.playbackState.playerState, LocalPlayerState.paused);
@@ -122,6 +136,8 @@ void main() {
       expect((await inspect())['title'], '검증 작품 · first');
       expect((await inspect())['playEnabled'], true);
 
+      await player.setRepeatMode(LocalRepeatMode.off);
+      await player.setShuffleEnabled(false);
       await player.loadQueue([_item('finish', short.path)]);
       await command('play');
       await _wait(
@@ -131,6 +147,9 @@ void main() {
       expect((await inspect())['rate'], 0);
       expect((await inspect())['seekEnabled'], false);
       await command('play');
+      await _wait(
+        () => engine.playbackState.playerState == LocalPlayerState.playing,
+      );
       expect(engine.playbackState.playerState, LocalPlayerState.playing);
       expect(engine.playbackState.currentIndex, 0);
       await command('stop');

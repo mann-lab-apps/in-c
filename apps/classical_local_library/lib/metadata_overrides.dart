@@ -173,6 +173,68 @@ class EffectiveFileMetadata {
   }
 }
 
+/// Read-only listening policy. Review screens retain the full inferred model.
+class ListeningFileMetadata {
+  const ListeningFileMetadata({
+    this.title,
+    this.album,
+    this.artist,
+    this.composer,
+    this.workTitle,
+  });
+  final String? title;
+  final String? album;
+  final String? artist;
+  final String? composer;
+  final String? workTitle;
+
+  static ListeningFileMetadata resolve({
+    AudioTagMetadata? tag,
+    MetadataCandidate? candidate,
+    MetadataOverride? override,
+  }) {
+    final approved = candidate?.reviewStatus == MetadataReviewStatus.approved
+        ? candidate
+        : null;
+    String? clean(String? value) {
+      final trimmed = value?.trim();
+      return trimmed == null || trimmed.isEmpty ? null : trimmed;
+    }
+
+    String? corrected(MetadataField field) =>
+        override?.source(field) == MetadataValueSource.inferred
+        ? null
+        : clean(override?.text(field));
+    return ListeningFileMetadata(
+      title:
+          corrected(MetadataField.movementTitle) ??
+          clean(tag?.title) ??
+          clean(tag?.movementTitle) ??
+          clean(approved?.movementText),
+      album:
+          corrected(MetadataField.workTitle) ??
+          clean(tag?.album) ??
+          clean(tag?.work) ??
+          clean(approved?.albumText) ??
+          clean(approved?.workTitleText),
+      artist:
+          corrected(MetadataField.performer) ??
+          clean(tag?.albumArtist) ??
+          clean(tag?.artist) ??
+          clean(approved?.albumArtistText) ??
+          clean(approved?.artistText),
+      composer:
+          corrected(MetadataField.composer) ??
+          clean(tag?.composer) ??
+          clean(approved?.composerText),
+      workTitle:
+          corrected(MetadataField.workTitle) ??
+          clean(tag?.work) ??
+          clean(approved?.workTitleText),
+    );
+  }
+}
+
 class MetadataOverrideValidator {
   const MetadataOverrideValidator._();
 

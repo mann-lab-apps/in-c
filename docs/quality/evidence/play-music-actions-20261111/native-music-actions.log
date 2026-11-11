@@ -1,0 +1,12 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.6s
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: native queue edits and SQLite reopen restore duplicate occurrence order modes and position without autoplay
+00:01 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: native completed append prepares new source ready and only explicit play advances position
+00:03 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/queue_edit_integration_test.dart: (tearDownAll)
+00:03 +2: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           16.7s
+00:26 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue
+00:45 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/music_actions_flow_integration_test.dart: (tearDownAll)
+00:45 +3: All tests passed!

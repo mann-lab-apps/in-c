@@ -464,8 +464,7 @@ void main() {
       expect(find.byTooltip('음원 정보 및 파일 복구 열기'), findsOneWidget);
       await tester.tap(find.byTooltip('뒤로'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('file-category-songs')));
-      await tester.pumpAndSettle();
+      expect(find.text('이 목록에서 검색'), findsOneWidget);
       await tester.tap(find.byTooltip('Andante 재생').first);
       await tester.pumpAndSettle();
       expect(player.currentItem?.trackId, 'local-file:andante');

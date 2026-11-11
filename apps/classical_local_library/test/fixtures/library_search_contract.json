@@ -1,0 +1,827 @@
+{
+  "": [],
+  "베토벤 5번": [
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 20
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 20
+    }
+  ],
+  "Beethoven Symphony 5": [
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    }
+  ],
+  "Op.67": [
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    }
+  ],
+  "운명": [
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 0
+    }
+  ],
+  "월광 1악장": [
+    {
+      "id": "part.beethoven.moonlight.1",
+      "type": "workPart",
+      "title": "1악장 Adagio sostenuto",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 0
+    }
+  ],
+  "ㅂㅌㅂ": [
+    {
+      "id": "person.beethoven",
+      "type": "person",
+      "title": "루트비히 판 베토벤",
+      "subtitle": "Ludwig van Beethoven",
+      "rank": 30
+    },
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.moonlight.1",
+      "type": "workPart",
+      "title": "1악장 Adagio sostenuto",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.moonlight.2",
+      "type": "workPart",
+      "title": "2악장 Allegretto",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.moonlight.3",
+      "type": "workPart",
+      "title": "3악장 Presto agitato",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "recording.moonlight.brendel",
+      "type": "recording",
+      "title": "브렌델 피아노 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 30
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 30
+    }
+  ],
+  "ㄱㅎㄱ 5": [
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 50
+    },
+    {
+      "id": "work.dvorak.new-world",
+      "type": "work",
+      "title": "교향곡 9번 마단조",
+      "subtitle": "안토닌 드보르자크 · Op. 95, B. 178 · Symphony No. 9 in E minor",
+      "rank": 50
+    },
+    {
+      "id": "part.dvorak.new-world.1",
+      "type": "workPart",
+      "title": "1악장 Adagio - Allegro molto",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 50
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    },
+    {
+      "id": "part.dvorak.new-world.2",
+      "type": "workPart",
+      "title": "2악장 Largo",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 50
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 50
+    }
+  ],
+  "Beethovn": [
+    {
+      "id": "person.beethoven",
+      "type": "person",
+      "title": "루트비히 판 베토벤",
+      "subtitle": "Ludwig van Beethoven",
+      "rank": 1040
+    },
+    {
+      "id": "work.beethoven.symphony5",
+      "type": "work",
+      "title": "교향곡 5번 다단조",
+      "subtitle": "루트비히 판 베토벤 · Op. 67 · Symphony No. 5 in C minor",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.moonlight.1",
+      "type": "workPart",
+      "title": "1악장 Adagio sostenuto",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.symphony5.1",
+      "type": "workPart",
+      "title": "1악장 Allegro con brio",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.moonlight.2",
+      "type": "workPart",
+      "title": "2악장 Allegretto",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.symphony5.2",
+      "type": "workPart",
+      "title": "2악장 Andante con moto",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.moonlight.3",
+      "type": "workPart",
+      "title": "3악장 Presto agitato",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.symphony5.3",
+      "type": "workPart",
+      "title": "3악장 Scherzo. Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    },
+    {
+      "id": "part.beethoven.symphony5.4",
+      "type": "workPart",
+      "title": "4악장 Allegro",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    },
+    {
+      "id": "recording.moonlight.brendel",
+      "type": "recording",
+      "title": "브렌델 피아노 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 피아노 소나타 14번 올림다단조",
+      "rank": 1040
+    },
+    {
+      "id": "recording.beethoven5.kleiber",
+      "type": "recording",
+      "title": "클라이버 / 빈 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    },
+    {
+      "id": "recording.beethoven5.furtwangler",
+      "type": "recording",
+      "title": "푸르트벵글러 / 베를린 필하모닉 연주 녹음",
+      "subtitle": "루트비히 판 베토벤 · 교향곡 5번 다단조",
+      "rank": 1040
+    }
+  ],
+  "Bth": [],
+  "Dvorak": [
+    {
+      "id": "person.dvorak",
+      "type": "person",
+      "title": "안토닌 드보르자크",
+      "subtitle": "Antonin Dvorak",
+      "rank": 0
+    },
+    {
+      "id": "work.dvorak.new-world",
+      "type": "work",
+      "title": "교향곡 9번 마단조",
+      "subtitle": "안토닌 드보르자크 · Op. 95, B. 178 · Symphony No. 9 in E minor",
+      "rank": 0
+    },
+    {
+      "id": "part.dvorak.new-world.1",
+      "type": "workPart",
+      "title": "1악장 Adagio - Allegro molto",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 0
+    },
+    {
+      "id": "part.dvorak.new-world.2",
+      "type": "workPart",
+      "title": "2악장 Largo",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 0
+    },
+    {
+      "id": "contract-18",
+      "type": "fileCandidate",
+      "title": "file-18.flac",
+      "subtitle": "아티스트 2 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-19",
+      "type": "fileCandidate",
+      "title": "file-19.flac",
+      "subtitle": "아티스트 3 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-20",
+      "type": "fileCandidate",
+      "title": "file-20.flac",
+      "subtitle": "아티스트 0 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-21",
+      "type": "fileCandidate",
+      "title": "file-21.flac",
+      "subtitle": "아티스트 1 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-22",
+      "type": "fileCandidate",
+      "title": "file-22.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-0",
+      "type": "fileCandidate",
+      "title": "file-0.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 20
+    },
+    {
+      "id": "contract-1",
+      "type": "fileCandidate",
+      "title": "file-1.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 20
+    },
+    {
+      "id": "contract-10",
+      "type": "fileCandidate",
+      "title": "file-10.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 20
+    }
+  ],
+  "Dvořák": [
+    {
+      "id": "person.dvorak",
+      "type": "person",
+      "title": "안토닌 드보르자크",
+      "subtitle": "Antonin Dvorak",
+      "rank": 0
+    },
+    {
+      "id": "work.dvorak.new-world",
+      "type": "work",
+      "title": "교향곡 9번 마단조",
+      "subtitle": "안토닌 드보르자크 · Op. 95, B. 178 · Symphony No. 9 in E minor",
+      "rank": 0
+    },
+    {
+      "id": "part.dvorak.new-world.1",
+      "type": "workPart",
+      "title": "1악장 Adagio - Allegro molto",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 0
+    },
+    {
+      "id": "part.dvorak.new-world.2",
+      "type": "workPart",
+      "title": "2악장 Largo",
+      "subtitle": "안토닌 드보르자크 · 교향곡 9번 마단조",
+      "rank": 0
+    },
+    {
+      "id": "contract-18",
+      "type": "fileCandidate",
+      "title": "file-18.flac",
+      "subtitle": "아티스트 2 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-19",
+      "type": "fileCandidate",
+      "title": "file-19.flac",
+      "subtitle": "아티스트 3 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-20",
+      "type": "fileCandidate",
+      "title": "file-20.flac",
+      "subtitle": "아티스트 0 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-21",
+      "type": "fileCandidate",
+      "title": "file-21.flac",
+      "subtitle": "아티스트 1 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-22",
+      "type": "fileCandidate",
+      "title": "file-22.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-0",
+      "type": "fileCandidate",
+      "title": "file-0.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 20
+    },
+    {
+      "id": "contract-1",
+      "type": "fileCandidate",
+      "title": "file-1.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 20
+    },
+    {
+      "id": "contract-10",
+      "type": "fileCandidate",
+      "title": "file-10.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 20
+    }
+  ],
+  "duplicate": [
+    {
+      "id": "contract-0",
+      "type": "fileCandidate",
+      "title": "file-0.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-1",
+      "type": "fileCandidate",
+      "title": "file-1.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-10",
+      "type": "fileCandidate",
+      "title": "file-10.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-11",
+      "type": "fileCandidate",
+      "title": "file-11.flac",
+      "subtitle": "아티스트 3 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-12",
+      "type": "fileCandidate",
+      "title": "file-12.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-13",
+      "type": "fileCandidate",
+      "title": "file-13.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-14",
+      "type": "fileCandidate",
+      "title": "file-14.flac",
+      "subtitle": "아티스트 2 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-15",
+      "type": "fileCandidate",
+      "title": "file-15.flac",
+      "subtitle": "아티스트 3 · 앨범 0",
+      "rank": 0
+    },
+    {
+      "id": "contract-16",
+      "type": "fileCandidate",
+      "title": "file-16.flac",
+      "subtitle": "아티스트 0 · 앨범 1",
+      "rank": 0
+    },
+    {
+      "id": "contract-17",
+      "type": "fileCandidate",
+      "title": "file-17.flac",
+      "subtitle": "아티스트 1 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-2",
+      "type": "fileCandidate",
+      "title": "file-2.flac",
+      "subtitle": "아티스트 2 · 앨범 2",
+      "rank": 0
+    },
+    {
+      "id": "contract-3",
+      "type": "fileCandidate",
+      "title": "file-3.flac",
+      "subtitle": "아티스트 3 · 앨범 0",
+      "rank": 0
+    }
+  ],
+  "corrected": [
+    {
+      "id": "contract-23",
+      "type": "fileCandidate",
+      "title": "file-23.flac",
+      "subtitle": "아티스트 3 · 앨범 2",
+      "rank": 0
+    }
+  ],
+  "unapproved-directory": [],
+  "FILE 17": [
+    {
+      "id": "contract-17",
+      "type": "fileCandidate",
+      "title": "file-17.flac",
+      "subtitle": "아티스트 1 · 앨범 2",
+      "rank": 30
+    }
+  ],
+  "zzzzzz-not-found": [],
+  "아티스트": [
+    {
+      "id": "contract-0",
+      "type": "fileCandidate",
+      "title": "file-0.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 10
+    },
+    {
+      "id": "contract-1",
+      "type": "fileCandidate",
+      "title": "file-1.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 10
+    },
+    {
+      "id": "contract-10",
+      "type": "fileCandidate",
+      "title": "file-10.flac",
+      "subtitle": "아티스트 2 · 앨범 1",
+      "rank": 10
+    },
+    {
+      "id": "contract-11",
+      "type": "fileCandidate",
+      "title": "file-11.flac",
+      "subtitle": "아티스트 3 · 앨범 2",
+      "rank": 10
+    },
+    {
+      "id": "contract-12",
+      "type": "fileCandidate",
+      "title": "file-12.flac",
+      "subtitle": "아티스트 0 · 앨범 0",
+      "rank": 10
+    },
+    {
+      "id": "contract-13",
+      "type": "fileCandidate",
+      "title": "file-13.flac",
+      "subtitle": "아티스트 1 · 앨범 1",
+      "rank": 10
+    },
+    {
+      "id": "contract-14",
+      "type": "fileCandidate",
+      "title": "file-14.flac",
+      "subtitle": "아티스트 2 · 앨범 2",
+      "rank": 10
+    },
+    {
+      "id": "contract-15",
+      "type": "fileCandidate",
+      "title": "file-15.flac",
+      "subtitle": "아티스트 3 · 앨범 0",
+      "rank": 10
+    },
+    {
+      "id": "contract-16",
+      "type": "fileCandidate",
+      "title": "file-16.flac",
+      "subtitle": "아티스트 0 · 앨범 1",
+      "rank": 10
+    },
+    {
+      "id": "contract-17",
+      "type": "fileCandidate",
+      "title": "file-17.flac",
+      "subtitle": "아티스트 1 · 앨범 2",
+      "rank": 10
+    },
+    {
+      "id": "contract-18",
+      "type": "fileCandidate",
+      "title": "file-18.flac",
+      "subtitle": "아티스트 2 · 앨범 0",
+      "rank": 10
+    },
+    {
+      "id": "contract-19",
+      "type": "fileCandidate",
+      "title": "file-19.flac",
+      "subtitle": "아티스트 3 · 앨범 1",
+      "rank": 10
+    }
+  ],
+  "00000": [],
+  "a very long impossible query without matching fields": []
+}

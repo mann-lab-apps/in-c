@@ -34,6 +34,7 @@ class LocalFileLibraryEntry {
     required this.album,
     required this.artist,
     required this.folder,
+    this.composer,
   });
 
   final LocalAudioFile file;
@@ -41,6 +42,7 @@ class LocalFileLibraryEntry {
   final String album;
   final String artist;
   final String folder;
+  final String? composer;
 
   String get subtitle => '$artist · $album';
 
@@ -61,6 +63,35 @@ class LocalFileLibrary {
         LocalFileCategory.folders => entry.folder,
         LocalFileCategory.songs => entry.file.id,
       };
+
+  List<String> sortedGroupKeys(
+    Map<String, List<LocalFileLibraryEntry>> groups,
+    LocalFileSort order, {
+    Map<String, int> importedAtByFileId = const {},
+  }) {
+    int latest(List<LocalFileLibraryEntry> entries) =>
+        entries.fold(0, (value, entry) {
+          final added =
+              importedAtByFileId[entry.file.id] ??
+              entry.file.lastSeenAtMillis ??
+              entry.file.modifiedAtMillis ??
+              0;
+          return added > value ? added : value;
+        });
+    final keys = groups.keys.toList();
+    final latestByKey = order == LocalFileSort.dateAdded
+        ? {for (final key in keys) key: latest(groups[key]!)}
+        : const <String, int>{};
+    keys.sort((a, b) {
+      if (order == LocalFileSort.dateAdded) {
+        final byDate = latestByKey[b]!.compareTo(latestByKey[a]!);
+        if (byDate != 0) return byDate;
+      }
+      final title = a.toLowerCase().compareTo(b.toLowerCase());
+      return title == 0 ? a.compareTo(b) : title;
+    });
+    return keys;
+  }
 
   List<LocalFileRecentItem> recentlyAdded(
     List<LocalFileLibraryEntry> entries, {
@@ -120,33 +151,20 @@ class LocalFileLibrary {
     MetadataCandidate? candidate,
     MetadataOverride? override,
   ) {
-    final effective = EffectiveFileMetadata.resolve(
-      candidate: candidate,
+    final metadata = ListeningFileMetadata.resolve(
       tag: file.tagMetadata,
+      candidate: candidate,
       override: override,
     );
-    String? clean(String? value) {
-      final trimmed = value?.trim();
-      return trimmed == null || trimmed.isEmpty ? null : trimmed;
-    }
-
-    final filename = clean(file.fileName) ?? path.basename(file.path);
-    final title =
-        clean(file.tagMetadata?.title) ??
-        clean(effective.text(MetadataField.movementTitle)) ??
-        path.basenameWithoutExtension(filename);
+    final filename = file.fileName?.trim().isNotEmpty == true
+        ? file.fileName!
+        : path.basename(file.path);
     return LocalFileLibraryEntry(
       file: file,
-      title: title,
-      album:
-          clean(file.tagMetadata?.album) ??
-          clean(effective.text(MetadataField.workTitle)) ??
-          '앨범 정보 없음',
-      artist:
-          clean(file.tagMetadata?.albumArtist) ??
-          clean(file.tagMetadata?.artist) ??
-          clean(effective.text(MetadataField.composer)) ??
-          '아티스트 정보 없음',
+      title: metadata.title ?? path.basenameWithoutExtension(filename),
+      album: metadata.album ?? '앨범 정보 없음',
+      artist: metadata.artist ?? '아티스트 정보 없음',
+      composer: metadata.composer,
       folder: switch (path.basename(path.dirname(file.path))) {
         'managed_audio' => '가져온 파일',
         'imslp_imports' => 'IMSLP 파일',
@@ -164,7 +182,7 @@ class LocalFileLibrary {
     return entries
         .where((item) {
           final haystack =
-              '${item.title} ${item.album} ${item.artist} '
+              '${item.title} ${item.album} ${item.artist} ${item.composer ?? ''} '
                       '${item.file.fileName ?? ''} ${item.folder}'
                   .toLowerCase();
           return terms.every(haystack.contains);

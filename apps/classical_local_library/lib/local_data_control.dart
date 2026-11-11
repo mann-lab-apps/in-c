@@ -95,7 +95,10 @@ class LocalDataControlService {
 
 const _resetDeleteOrder = [
   'playback_queue_state',
+  'local_favorites',
   'local_playlists',
+  'library_view_settings',
+  'library_artwork',
   'catalog_recording_credits',
   'catalog_tracks',
   'catalog_recordings',

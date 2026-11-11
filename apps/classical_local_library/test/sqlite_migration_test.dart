@@ -14,7 +14,7 @@ void main() {
     () {
       const schema = SqliteStorageSchema();
 
-      expect(schema.version, 15);
+      expect(schema.version, 18);
       expect(schema.tables.map((table) => table.name), [
         'scanned_audio_files',
         'scan_locations',
@@ -28,6 +28,7 @@ void main() {
         'imslp_resources',
         'imslp_imports',
         'local_audio_imports',
+        'local_favorites',
         'local_playlists',
         'metadata_overrides',
         'library_entity_merges',
@@ -42,6 +43,8 @@ void main() {
         'catalog_recording_credits',
         'catalog_tracks',
         'app_reset_state',
+        'library_view_settings',
+        'library_artwork',
       ]);
       expect(
         schema.tables

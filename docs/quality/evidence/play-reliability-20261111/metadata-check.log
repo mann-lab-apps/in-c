@@ -1,0 +1,27 @@
+[15:09:57]: fastlane 2.241.1 (Ruby 4.0.6, bundler)
+[15:09:58]: ---------------------------
+[15:09:58]: --- Step: opt_out_usage ---
+[15:09:58]: ---------------------------
+[15:09:58]: Disabled upload of used actions
+[15:09:58]: ------------------------------------------------
+[15:09:58]: Name of the lane 'testflight' is already taken by the action named 'testflight'
+[15:09:58]: ------------------------------------------------
+[15:09:58]: Driving the lane 'prepare_ios_metadata' 🚀
+[15:09:58]: Metadata valid: classical-local-library (source pending)
+
++------------------------------------+
+|          fastlane summary          |
++------+---------------+-------------+
+| Step | Action        | Time (in s) |
++------+---------------+-------------+
+| 1    | opt_out_usage | 0           |
++------+---------------+-------------+
+
+[15:09:58]: fastlane.tools finished successfully 🎉
+
+#######################################################################
+# fastlane 2.241.2 is available. You are on 2.241.1.
+# You should use the latest version.
+# Please update using `bundle update fastlane`.
+# To see what's new, open https://github.com/fastlane/fastlane/releases.
+#######################################################################

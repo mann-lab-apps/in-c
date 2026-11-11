@@ -1,0 +1,9 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/integration_test/local_file_library_flow_integration_test.dart
+Running Xcode build...                                          
+Xcode build done.                                           20.3s
+00:00 +0: fixture import appears as a song and plays without a work
+DDIRORI_LIBRARY_SCENE search-results
+DDIRORI_LIBRARY_SCENE creation-result
+DDIRORI_LIBRARY_SCENE playlist-detail
+00:27 +1: (tearDownAll)
+00:28 +1: All tests passed!

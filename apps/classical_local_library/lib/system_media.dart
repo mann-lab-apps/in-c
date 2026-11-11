@@ -148,6 +148,7 @@ class PlaybackSystemMediaCoordinator {
   SystemMediaSnapshot? snapshot;
   List<LocalPlaybackQueueItem>? _queue;
   int? _index;
+  int? _automatic;
   int _generation = 0;
   bool _disposed = false;
   bool hasPublishFailure = false;
@@ -157,10 +158,13 @@ class PlaybackSystemMediaCoordinator {
   void _observe() {
     if (_disposed) return;
     final state = controller.playbackState;
-    if (!identical(_queue, state.queue) || _index != state.currentIndex) {
+    if (!identical(_queue, state.queue) ||
+        _index != state.currentIndex ||
+        _automatic != state.automaticTransitions) {
       _generation += 1;
       _queue = state.queue;
       _index = state.currentIndex;
+      _automatic = state.automaticTransitions;
     }
     if (!state.hasQueue ||
         state.failure != null ||

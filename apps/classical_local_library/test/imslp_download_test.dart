@@ -60,8 +60,8 @@ void main() {
         request.response.close();
       });
 
-      expect(
-        () => _service().download(
+      await expectLater(
+        _service().download(
           resource: _resource(server),
           destination: tempDirectory,
         ),
@@ -89,8 +89,8 @@ void main() {
       request.response.close();
     });
 
-    expect(
-      () => _service().download(
+    await expectLater(
+      _service().download(
         resource: _resource(server),
         destination: tempDirectory,
       ),
@@ -102,7 +102,6 @@ void main() {
         ),
       ),
     );
-    await Future<void>.delayed(Duration.zero);
     expect(tempDirectory.listSync().whereType<File>(), isEmpty);
   });
 
@@ -114,8 +113,8 @@ void main() {
     });
     final cancellation = ImslpDownloadCancellation()..cancel();
 
-    expect(
-      () => _service().download(
+    await expectLater(
+      _service().download(
         resource: _resource(server),
         destination: tempDirectory,
         cancellation: cancellation,

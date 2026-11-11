@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-11-11T03:39:37.150121+00:00",
+  "branch": "feature/ddirori-play-library-context-20261031",
+  "baseCommit": "cb29d398321d3b1ac84e4ce90d619e3da7af574b",
+  "uncommitted": true,
+  "runnerSourceFingerprint": "ea6efac895a795f86b432d7f476d725f757994608dfca7e7e6e912f6b09c4ea8",
+  "schemaVersion": 18,
+  "appVersionUnchanged": "0.1.0+4",
+  "physicalDeviceVerified": false,
+  "publishedOrUploaded": false,
+  "imageCount": 60,
+  "testCountsSource": "test.log and native-*.log; do not sum widget reruns",
+  "imageReviewSource": "Quality Markdown records manual image inspection separately",
+  "xcode": "Xcode 26.5\nBuild version 17F42"
+}

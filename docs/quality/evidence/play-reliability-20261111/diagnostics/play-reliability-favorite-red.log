@@ -1,0 +1,33 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: committed favorite survives refresh failure and reload is not a second mutation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _WidgetPredicateWidgetFinder:<Found 0 widgets with widget matching predicate: []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart:185:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart line 185
+The test description was:
+  committed favorite survives refresh failure and reload is not a second mutation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: committed favorite survives refresh failure and reload is not a second mutation [E]
+  Test failed. See exception logs above.
+  The test description was: committed favorite survives refresh failure and reload is not a second mutation
+  
+00:02 +0 -1: (tearDownAll)
+00:02 +0 -1: Some tests failed.
+
+Failing tests:
+  /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation

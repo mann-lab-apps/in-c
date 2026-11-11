@@ -62,13 +62,15 @@ void main() {
     );
   });
 
-  test('스캔 파일 후보의 추론 메타데이터를 검색한다', () {
+  test('승인한 파일 후보만 보관함 음악 정보로 검색한다', () {
     final file = _audioFile('/Music/Dvorak/New World/04 Allegro con fuoco.mp3');
     final candidate = const MetadataCandidateInferencer().infer(file);
     final results = search.search(
       library: sampleClassicalLibrary,
       files: [file],
-      candidates: [candidate],
+      candidates: [
+        candidate.copyWith(reviewStatus: MetadataReviewStatus.approved),
+      ],
       query: 'Dvorak New World',
     );
 
@@ -77,6 +79,15 @@ void main() {
     );
 
     expect(fileResults.single.title, '04 Allegro con fuoco.mp3');
+    expect(
+      search.search(
+        library: emptyClassicalLibrary,
+        files: [file],
+        candidates: [candidate],
+        query: 'Dvorak New World',
+      ),
+      isEmpty,
+    );
   });
 
   test('파일명이 없는 레거시 후보는 전체 경로 대신 basename만 표시한다', () {

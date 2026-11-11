@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "appVersion": "0.0.1",
+  "buildNumber": 1,
+  "platform": "ios",
+  "deviceClass": "phone",
+  "osMajor": 18,
+  "provider": "notChecked",
+  "fixture": "notChecked",
+  "format": "other",
+  "voiceOver": "notChecked",
+  "dynamicType": "notChecked",
+  "importOutcome": "notChecked",
+  "playbackOutcome": "notChecked",
+  "relaunchOutcome": "notChecked",
+  "routes": [
+    "notChecked"
+  ],
+  "interruptionOutcome": "notChecked",
+  "listening": "notChecked",
+  "reproducibility": "notChecked",
+  "severity": "none",
+  "musicActions": {
+    "queueReservation": "notChecked",
+    "queueEditing": "notChecked",
+    "queueModes": "notChecked",
+    "queueRestoration": "notChecked",
+    "favorites": "notChecked",
+    "imslpPageReturn": "notChecked",
+    "imslpImport": "notChecked",
+    "imslpSourceConfirmation": "notChecked"
+  },
+  "automaticChecks": {
+    "semantics": "notChecked",
+    "decoderSignal": "notChecked",
+    "nativeTransport": "notChecked",
+    "simulatorLifecycle": "notChecked"
+  }
+}

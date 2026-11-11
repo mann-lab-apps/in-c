@@ -1,0 +1,85 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: (setUpAll)
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: (setUpAll)
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:01 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+00:02 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+00:02 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+00:03 +4: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+00:03 +5: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: favorite publishes only persisted state, blocks duplicates and retries failure
+00:03 +6: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creating a playlist stays in its list until explicit view
+00:03 +7: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:03 +8: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:04 +9: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:04 +10: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: favorites list empty data search sort and save errors preserve route and selection
+00:04 +11: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: favorites list empty data search sort and save errors preserve route and selection
+00:04 +12: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:04 +13: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:04 +14: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:04 +15: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:04 +16: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:05 +17: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: creation from song returns to source, view returns to source too
+00:05 +18: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-2-light
+00:05 +19: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-2-light
+00:05 +20: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: search states, large text and semantics 390-1-dark
+00:05 +21: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: optional song draft cancels without writing and failed save preserves it
+00:06 +22: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: optional song draft cancels without writing and failed save preserves it
+00:06 +23: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:06 +24: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:06 +25: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:06 +26: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:06 +27: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:06 +28: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-light
+00:06 +29: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-light
+00:07 +30: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-light
+00:07 +31: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: same-file future occurrences edit independently and preserve paused position
+00:07 +32: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: same-file future occurrences edit independently and preserve paused position
+00:07 +33: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: same-file future occurrences edit independently and preserve paused position
+00:07 +34: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-2-dark
+00:07 +35: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: system back restores list filter, sort and scroll per visit
+00:07 +36: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: system back restores list filter, sort and scroll per visit
+00:08 +37: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: system back restores list filter, sort and scroll per visit
+00:08 +38: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: system back restores list filter, sort and scroll per visit
+00:08 +39: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: system back restores list filter, sort and scroll per visit
+00:08 +40: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 1024-1-dark
+00:08 +41: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 1024-1-dark
+00:08 +42: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: view from Now Playing returns there and deletion preserves playback
+00:08 +43: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: view from Now Playing returns there and deletion preserves playback
+00:09 +44: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 1024-1-light
+00:09 +45: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: IMSLP main callbacks return registered IDs, preserve playback until explicit play and persist only confirmed provenance
+00:09 +46: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-1-dark
+00:09 +47: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-1-dark
+00:09 +48: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 1024-2-dark
+00:10 +49: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: reset drains pending favorites and stale completion cannot repopulate the emptied UI
+00:10 +50: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-1-light
+00:10 +51: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 1024-2-light
+00:10 +52: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: backup callback reloads favorite memory and management removal refreshes it without autoplay
+00:10 +53: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-2-dark
+00:10 +54: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-2-dark
+00:11 +55: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: playlist draft from a favorite survives failed saving and busy duplicate taps
+00:11 +56: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: playlist playback shuffle never changes the saved manual order
+00:11 +57: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: playlist playback shuffle never changes the saved manual order
+00:11 +58: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 320-2-light
+00:11 +59: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 320-1-dark
+00:11 +60: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 320-1-dark
+00:12 +61: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 390-1-dark
+00:12 +62: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 320-1-light
+00:12 +63: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 390-1-light
+00:12 +64: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 320-2-dark
+00:12 +65: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 390-2-dark
+00:13 +66: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 320-2-light
+00:13 +67: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 390-2-light
+00:13 +68: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 390-1-dark
+00:13 +69: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-1-dark
+00:13 +70: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 390-1-light
+00:13 +71: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-1-light
+00:14 +72: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-1-light
+00:14 +73: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 390-2-light
+00:14 +74: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:14 +75: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:14 +76: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 1024-1-light
+00:15 +77: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:15 +78: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 1024-2-dark
+00:15 +79: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 1024-2-light
+00:15 +80: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: (tearDownAll)
+00:15 +80: All tests passed!

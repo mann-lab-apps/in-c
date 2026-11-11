@@ -21,7 +21,7 @@ class SqliteTableSchema {
 class SqliteStorageSchema {
   const SqliteStorageSchema();
 
-  int get version => 15;
+  int get version => 18;
 
   List<SqliteTableSchema> get tables => const [
     SqliteTableSchema(
@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS playback_queue_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   track_ids_json TEXT NOT NULL,
   current_track_id TEXT,
+  playback_options_json TEXT,
   saved_at_millis INTEGER NOT NULL
 );''',
     ),
@@ -222,6 +223,15 @@ CREATE TABLE IF NOT EXISTS local_audio_imports (
   status TEXT NOT NULL,
   file_id TEXT,
   failure_kind TEXT
+);''',
+    ),
+    SqliteTableSchema(
+      name: 'local_favorites',
+      createSql: '''
+CREATE TABLE IF NOT EXISTS local_favorites (
+  file_id TEXT NOT NULL PRIMARY KEY CHECK (length(trim(file_id)) > 0),
+  FOREIGN KEY(file_id) REFERENCES scanned_audio_files(id)
+    DEFERRABLE INITIALLY DEFERRED
 );''',
     ),
     SqliteTableSchema(
@@ -392,6 +402,23 @@ CREATE TABLE IF NOT EXISTS app_reset_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   pending_file_cleanup INTEGER NOT NULL DEFAULT 0,
   started_at_millis INTEGER NOT NULL
+);''',
+    ),
+    SqliteTableSchema(
+      name: 'library_view_settings',
+      createSql: '''
+CREATE TABLE IF NOT EXISTS library_view_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  value_json TEXT NOT NULL
+);''',
+    ),
+    SqliteTableSchema(
+      name: 'library_artwork',
+      createSql: '''
+CREATE TABLE IF NOT EXISTS library_artwork (
+  owner TEXT PRIMARY KEY,
+  image_hash TEXT NOT NULL,
+  source_stamp TEXT
 );''',
     ),
   ];

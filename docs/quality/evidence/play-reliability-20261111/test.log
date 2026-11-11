@@ -1,0 +1,731 @@
+00:00 +0: loading /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart
+00:00 +0: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_feedback_test.dart: path-free local file feedback round-trips
+00:00 +1: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/audio_tags_test.dart: audio_metadata_reader 결과를 앱 메타데이터 모델로 변환한다
+00:00 +2: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/audio_tags_test.dart: audio_metadata_reader 결과를 앱 메타데이터 모델로 변환한다
+00:00 +3: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/audio_tags_test.dart: audio_metadata_reader 결과를 앱 메타데이터 모델로 변환한다
+00:00 +4: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/audio_tags_test.dart: 태그가 비어 있으면 noTags로 정규화한다
+00:00 +5: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/audio_tags_test.dart: parser 오류를 내부 오류 종류로 제한해 노출한다
+00:00 +6: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:00 +7: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +8: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +9: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +10: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +11: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +12: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +13: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +14: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +15: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +16: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +17: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +18: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +19: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +20: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +21: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +22: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +23: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:01 +24: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +25: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +26: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +27: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +28: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +29: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:02 +30: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +31: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +32: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +33: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +34: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +35: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +36: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +37: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +38: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:03 +39: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:04 +40: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:04 +41: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: debounced search keeps the newest input and cancels on navigation
+00:04 +42: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:05 +43: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:05 +44: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:05 +45: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:06 +46: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:06 +47: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:06 +48: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: committed favorite survives refresh failure and reload is not a second mutation
+00:06 +49: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+00:06 +50: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+00:06 +51: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+00:06 +52: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+00:06 +53: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+00:09 +54: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: position ticks update playback without rebuilding library rows
+DDIRORI_SCALE tickRowRebuilds=0
+00:09 +55: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 retry reloads the failed engine queue, not a new random plan
+00:09 +56: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 retry reloads the failed engine queue, not a new random plan
+00:09 +57: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:09 +58: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:10 +59: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:10 +60: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:10 +61: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:10 +62: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +63: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +64: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +65: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +66: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +67: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:11 +68: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +69: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +70: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +71: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +72: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +73: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +74: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +75: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +76: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +77: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:12 +78: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:13 +79: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/large_library_performance_test.dart: SQLite 카탈로그는 5000트랙을 고정 query 경로로 불러온다
+00:13 +80: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +80: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_scale_test.dart: 5000 songs build viewport rows and playback includes offscreen results
+DDIRORI_SCALE songs rows=7 elapsedMs=811 rss=421298176
+00:13 +81: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +82: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +83: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +84: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +85: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +86: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +87: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +88: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +89: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +90: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:13 +91: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +92: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +93: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +94: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +95: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +96: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +97: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +98: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +99: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:14 +100: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +101: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +102: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +103: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +104: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +105: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +106: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +107: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +108: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +109: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +110: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +111: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +112: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:15 +113: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:16 +114: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/dark
+00:16 +115: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_diagnostic_test.dart: diagnostic screen copies selected anonymous JSON report
+00:16 +116: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:16 +117: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: song search and playlist share the file favorite and current player state
+00:17 +118: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:17 +119: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:17 +120: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:17 +121: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:17 +122: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +123: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +124: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +125: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +126: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +127: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +128: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +129: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +130: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +131: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +132: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +133: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:18 +134: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +135: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +136: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +137: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +138: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +139: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 320.0/1.0/light
+00:19 +140: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:19 +141: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:19 +142: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:19 +143: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:19 +144: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +145: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +146: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +147: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +148: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +149: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +150: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +151: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +152: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +153: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +154: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +155: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +156: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:20 +157: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:21 +158: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:21 +159: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:21 +160: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:21 +161: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:21 +162: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +163: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +164: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +165: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +166: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +167: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +168: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +169: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +170: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +171: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +172: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +173: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +174: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +175: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +176: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-dark
+00:22 +177: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:22 +178: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:22 +179: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:23 +180: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:23 +181: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:23 +182: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:23 +183: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/sqlite_database_test.dart: SQLite stores handle a synthetic large local library dataset
+00:24 +184: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:24 +185: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:24 +186: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 320-1-light
+00:25 +187: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +188: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +189: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +190: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +191: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +192: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +193: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:25 +194: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +195: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +196: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +197: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +198: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +199: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +200: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +201: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +202: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:26 +203: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +204: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +205: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +206: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +207: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +208: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +209: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +210: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +211: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +212: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +213: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:27 +214: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: global tools stay at library root and search returns to its source
+00:28 +215: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +216: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +217: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +218: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +219: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +220: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 390.0/1.0/light
+00:28 +221: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-dark
+00:28 +222: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-dark
+00:29 +223: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_ui_test.dart: real app mode controls and queue preserve playback 390-1-dark
+00:29 +224: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: iOS edge swipe cancel retains detail and completed swipe restores parent (variant: TargetPlatform.iOS)
+00:29 +225: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: iOS edge swipe cancel retains detail and completed swipe restores parent (variant: TargetPlatform.iOS)
+00:29 +226: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: iOS edge swipe cancel retains detail and completed swipe restores parent (variant: TargetPlatform.iOS)
+00:29 +227: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: iOS edge swipe cancel retains detail and completed swipe restores parent (variant: TargetPlatform.iOS)
+00:29 +228: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: iOS edge swipe cancel retains detail and completed swipe restores parent (variant: TargetPlatform.iOS)
+00:29 +229: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +230: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +231: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +232: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +233: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +234: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:30 +235: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:31 +236: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:31 +237: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:31 +238: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:31 +239: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +240: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +241: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +242: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +243: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +244: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +245: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +246: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:32 +247: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:33 +248: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_file_player_home_test.dart: 부분 저장 뒤 화면 닫기는 취소가 아님을 알리고 보관함을 다시 읽는다
+00:34 +249: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/dark
+00:34 +250: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/dark
+00:34 +251: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/dark
+00:34 +252: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/dark
+00:34 +253: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/dark
+00:34 +254: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:34 +255: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:35 +256: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:35 +257: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +258: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +259: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +260: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +261: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +262: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +263: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +264: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +265: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:36 +266: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:37 +267: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:37 +268: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/imslp_library_actions_test.dart: recovery list retries stored registration and shows only real completion actions
+00:37 +269: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r1_test.dart: R1 navigation preserves engine state 1024.0/1.0/light
+00:37 +270: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/music_actions_ui_test.dart: capture real app queue favorites and IMSLP fixtures 1024-1-light
+00:37 +271: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: busy creation blocks duplicate writes and late unmount completion is safe
+00:37 +272: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:37 +273: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +274: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +275: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +276: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +277: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +278: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +279: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:38 +280: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:39 +281: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:39 +282: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:39 +283: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:39 +284: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +285: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +286: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +287: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +288: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +289: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +290: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +291: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +292: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +293: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +294: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:40 +295: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +296: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +297: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +298: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +299: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +300: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +301: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +302: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +303: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +304: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +305: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +306: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +307: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +308: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +309: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +310: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +311: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +312: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +313: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +314: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +315: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +316: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +317: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +318: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +319: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +320: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:41 +321: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +322: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +323: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +324: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +325: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +326: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +327: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +328: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +329: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +330: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +331: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +332: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +333: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +334: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +335: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +336: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +337: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +338: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +339: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +340: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +341: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +342: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +343: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +344: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +345: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +346: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +347: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +348: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +349: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +350: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +351: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +352: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +353: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +354: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +355: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +356: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +357: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +358: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +359: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +360: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +361: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +362: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +363: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +364: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +365: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +366: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +367: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +368: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +369: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +370: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +371: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +372: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +373: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +374: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +375: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +376: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:42 +377: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +378: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +379: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +380: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +381: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +382: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +383: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +384: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +385: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +386: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +387: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +388: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +389: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +390: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +391: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +392: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +393: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +394: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +395: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +396: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +397: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +398: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +399: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +400: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +401: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +402: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +403: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +404: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +405: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +406: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:43 +407: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +408: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +409: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +410: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +411: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +412: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +413: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +414: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +415: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +416: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +417: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:44 +418: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +419: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +420: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +421: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +422: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +423: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +424: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +425: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +426: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +427: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:45 +428: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:46 +429: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:46 +430: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +431: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +432: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +433: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +434: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +435: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +436: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +437: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +438: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +439: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +440: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +441: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +442: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:47 +443: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:48 +444: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:48 +445: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:48 +446: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:48 +447: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:48 +448: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +449: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +450: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +451: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +452: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +453: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:49 +454: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:50 +455: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:50 +456: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:50 +457: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:50 +458: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:50 +459: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +460: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +461: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +462: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +463: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +464: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +465: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:51 +466: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +467: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +468: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +469: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +470: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +471: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +472: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +473: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +474: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:52 +475: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +476: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +477: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +478: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +479: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +480: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +481: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +482: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +483: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +484: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +485: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +486: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +487: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:53 +488: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +489: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +490: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +491: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +492: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +493: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +494: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +495: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +496: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +497: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +498: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +499: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +500: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +501: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +502: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +503: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:54 +504: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:55 +505: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:55 +506: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/playback_modes_test.dart: seeded permutations preserve prefix and every occurrence at scale
+00:55 +507: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +508: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +509: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +510: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +511: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +512: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +513: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +514: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +515: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +516: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +517: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +518: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +519: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +520: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +521: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +522: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +523: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +524: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-dark
+00:55 +525: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_management_test.dart: 저장 실패는 draft를 보존하고 재시도 중 중복·닫기를 막는다
+00:55 +526: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_management_test.dart: 저장 실패는 draft를 보존하고 재시도 중 중복·닫기를 막는다
+00:55 +527: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_management_test.dart: 저장 실패는 draft를 보존하고 재시도 중 중복·닫기를 막는다
+00:55 +528: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +529: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +530: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +531: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +532: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +533: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +534: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +535: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +536: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +537: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +538: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:55 +539: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_navigation_test.dart: library contexts render and remain accessible 1024-2-light
+00:56 +540: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_management_test.dart: 편집 취소는 저장소를 변경하지 않는다
+00:56 +541: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_backup_test.dart: 논리 백업은 사용자 경로와 음원을 제외하고 개수 manifest를 기록한다
+00:56 +542: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +543: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +544: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +545: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +546: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +547: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:56 +548: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_favorites_backup_test.dart: logical backup restores favorites, missing state and source provenance idempotently
+00:57 +549: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_backup_test.dart: 빈 DB에 복원하면 파일은 누락 상태가 되고 동일 백업은 idempotent하다
+00:57 +550: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +551: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +552: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +553: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +554: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +555: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +556: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +557: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +558: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +559: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +560: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +561: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +562: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +563: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +564: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +565: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +566: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +567: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +568: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:57 +569: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:58 +570: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:58 +571: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_discovery_test.dart: discovery screen explains results and selects one on a narrow screen
+00:58 +572: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +573: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +574: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +575: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +576: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +577: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +578: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +579: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +580: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +581: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +582: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +583: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +584: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +585: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +586: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +587: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +588: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +589: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +590: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:58 +591: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +592: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +593: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +594: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +595: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +596: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +597: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +598: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +599: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+00:59 +600: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +601: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +602: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +603: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +604: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +605: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +606: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +607: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +608: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +609: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +610: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:00 +611: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +612: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +613: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +614: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +615: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +616: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +617: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +618: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +619: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +620: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +621: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +622: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +623: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +624: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +625: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +626: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +627: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +628: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +629: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +630: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +631: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +632: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +633: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +634: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:01 +635: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +636: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +637: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +638: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +639: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +640: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +641: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +642: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:02 +643: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +644: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +645: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +646: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +647: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +648: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +649: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +650: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +651: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +652: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +653: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:03 +654: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:04 +655: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/local_playlists_home_test.dart: 재생목록 생성, 곡 추가, 재생, 재방문 후 유지
+01:04 +656: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_artwork_test.dart: artwork initialization failure keeps the music library usable
+01:04 +657: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_artwork_test.dart: artwork initialization failure keeps the music library usable
+01:04 +658: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_artwork_test.dart: artwork initialization failure keeps the music library usable
+01:04 +659: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +660: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +661: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +662: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +663: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +664: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +665: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +666: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +667: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:04 +668: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +669: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +670: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +671: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +672: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +673: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +674: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:05 +675: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +676: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +677: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +678: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +679: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +680: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +681: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +682: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +683: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +684: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +685: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +686: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:06 +687: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:07 +688: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: retry reloads all retained movements and starts from first, not browsing plan
+01:07 +689: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +690: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +691: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +692: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +693: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +694: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:08 +695: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:09 +696: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:10 +697: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:11 +698: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: busy and failed search permits playback controls, retries, and back restores unsubmitted draft
+01:12 +699: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/dark
+01:12 +700: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/dark
+01:12 +701: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/dark
+01:13 +702: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: search states, large text and semantics 320-1-light
+01:13 +703: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/light
+01:14 +704: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/light
+01:14 +705: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/1.0/light
+01:15 +706: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: search states, large text and semantics 390-1-dark
+01:15 +707: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/dark
+01:15 +708: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/dark
+01:16 +709: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/dark
+01:16 +710: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: search states, large text and semantics 390-2-light
+01:16 +711: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/light
+01:17 +712: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/light
+01:17 +713: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 320.0/2.0/light
+01:18 +714: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/library_search_ui_test.dart: search states, large text and semantics 1024-2-dark
+01:18 +715: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 390.0/1.0/dark
+01:18 +716: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 390.0/1.0/dark
+01:19 +717: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 390.0/1.0/light
+01:20 +718: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 390.0/2.0/dark
+01:21 +719: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 390.0/2.0/light
+01:22 +720: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 1024.0/1.0/dark
+01:23 +721: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 1024.0/1.0/light
+01:24 +722: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 1024.0/2.0/dark
+01:25 +723: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P03 A playing while B browses 1024.0/2.0/light
+01:26 +724: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: P02 shared context once, mixed groups and private file details
+01:27 +725: /private/tmp/ddirori-play-library-context-20261031/apps/classical_local_library/test/product_design_r2_test.dart: seek command is submitted once while pending, details use actual state
+01:27 +726: All tests passed!

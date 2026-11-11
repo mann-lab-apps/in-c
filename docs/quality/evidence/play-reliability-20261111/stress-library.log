@@ -1,0 +1,29 @@
+{
+  "fixture": {
+    "composers": 400,
+    "works": 4000,
+    "recordings": 4000,
+    "tracks": 20000
+  },
+  "environment": "dartHostProcess",
+  "catalogLoadQueryCountFromCodeInspection": 9,
+  "fixtureCreationMicros": 40387,
+  "rssBeforeBytes": 368001024,
+  "rssAfterBytes": 404668416,
+  "processMaxRssBytes": 404668416,
+  "physicalDevicePerformanceVerified": false,
+  "timingsMicros": {
+    "fileEntries": 141121,
+    "fileSort": 22917,
+    "fileSearch": 26151,
+    "indexWarmup": 39259,
+    "search": 908710,
+    "workDetail": 15959,
+    "recordingDetail": 10302,
+    "discovery": 3102,
+    "queuePlan": 818
+  },
+  "searchResults": 12,
+  "queueItems": 5
+}
+Running build hooks...Running build hooks...

@@ -17,6 +17,7 @@ class _FileBrowseToolbar extends StatelessWidget {
     required this.showTrackOrder,
     required this.onQueryChanged,
     required this.onSortChanged,
+    this.grouped = false,
   });
 
   final String query;
@@ -24,6 +25,7 @@ class _FileBrowseToolbar extends StatelessWidget {
   final bool showTrackOrder;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<LocalFileSort> onSortChanged;
+  final bool grouped;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -37,12 +39,15 @@ class _FileBrowseToolbar extends StatelessWidget {
       Align(
         alignment: AlignmentDirectional.centerEnd,
         child: DdiroriMenuButton<LocalFileSort>(
-          label: '곡 정렬',
+          label: grouped ? '목록 정렬' : '곡 정렬',
           icon: Icons.sort,
           onSelected: onSortChanged,
           itemBuilder: (context) => [
             for (final option in LocalFileSort.values)
-              if (option != LocalFileSort.trackOrder || showTrackOrder)
+              if ((option != LocalFileSort.trackOrder || showTrackOrder) &&
+                  (!grouped ||
+                      option == LocalFileSort.title ||
+                      option == LocalFileSort.dateAdded))
                 PopupMenuItem(
                   value: option,
                   child: Row(
@@ -146,36 +151,50 @@ class _FileCategoryList extends StatelessWidget {
     required this.entries,
     required this.onCategorySelected,
     required this.onPlaylistsSelected,
+    required this.order,
+    required this.visible,
+    required this.onEdit,
   });
 
   final List<LocalFileLibraryEntry> entries;
   final ValueChanged<LocalFileCategory> onCategorySelected;
   final VoidCallback onPlaylistsSelected;
+  final List<String> order;
+  final List<String> visible;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    const categories = [
-      (LocalFileCategory.songs, '곡', Icons.music_note_outlined),
-      (LocalFileCategory.albums, '앨범', Icons.album_outlined),
-      (LocalFileCategory.artists, '아티스트', Icons.person_outline),
-    ];
+    const categories = {
+      'songs': (LocalFileCategory.songs, '곡', Icons.music_note_outlined),
+      'albums': (LocalFileCategory.albums, '앨범', Icons.album_outlined),
+      'artists': (LocalFileCategory.artists, '아티스트', Icons.person_outline),
+    };
     return Column(
       children: [
-        for (final category in categories)
-          _LibraryBrowseRow(
-            key: ValueKey('file-category-${category.$1.name}'),
-            leading: Icon(category.$3, size: 24),
-            title: category.$2,
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => onCategorySelected(category.$1),
+        if (visible.isEmpty)
+          DdiroriStatePanel(
+            title: '보관함 분류가 숨겨져 있습니다',
+            message: '음악은 그대로 보관되어 있습니다.',
+            action: DdiroriButton(label: '분류 편집', onPressed: onEdit),
           ),
-        _LibraryBrowseRow(
-          key: const ValueKey('file-category-playlists'),
-          leading: const Icon(Icons.queue_music_outlined, size: 24),
-          title: '재생목록',
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onPlaylistsSelected,
-        ),
+        for (final id in order.where(visible.contains))
+          if (id != 'playlists')
+            _LibraryBrowseRow(
+              key: ValueKey('file-category-$id'),
+              leading: Icon(categories[id]!.$3, size: 24),
+              title: categories[id]!.$2,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => onCategorySelected(categories[id]!.$1),
+            )
+          else
+            _LibraryBrowseRow(
+              key: const ValueKey('file-category-playlists'),
+              leading: const Icon(Icons.queue_music_outlined, size: 24),
+              title: '재생목록',
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onPlaylistsSelected,
+            ),
       ],
     );
   }
@@ -262,10 +281,9 @@ class _RecentFileTile extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: _LocalArtwork(
-              album: item.isAlbum,
-              missing: !item.representative.isAvailable,
-            ),
+            child: !item.representative.isAvailable
+                ? const _LocalArtwork(missing: true)
+                : PlayArtwork(file: item.representative.file, size: null),
           ),
           const SizedBox(height: 8),
           Text(
@@ -289,9 +307,8 @@ class _RecentFileTile extends StatelessWidget {
 }
 
 class _LocalArtwork extends StatelessWidget {
-  const _LocalArtwork({this.album = false, this.missing = false});
+  const _LocalArtwork({this.missing = false});
 
-  final bool album;
   final bool missing;
 
   @override
@@ -304,11 +321,7 @@ class _LocalArtwork extends StatelessWidget {
       ),
       child: Center(
         child: Icon(
-          missing
-              ? Icons.warning_amber_outlined
-              : album
-              ? Icons.album_outlined
-              : Icons.music_note_outlined,
+          missing ? Icons.warning_amber_outlined : Icons.music_note_outlined,
           color: c['muted'],
           size: 32,
         ),
@@ -386,6 +399,9 @@ class _FileSongRow extends StatelessWidget {
     required this.onMissing,
     this.current = false,
     this.onAddToPlaylist,
+    this.favorite = false,
+    this.busy = false,
+    this.onAction,
   });
 
   final LocalFileLibraryEntry entry;
@@ -393,6 +409,8 @@ class _FileSongRow extends StatelessWidget {
   final VoidCallback onMissing;
   final bool current;
   final VoidCallback? onAddToPlaylist;
+  final bool favorite, busy;
+  final ValueChanged<_SongAction>? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -402,11 +420,14 @@ class _FileSongRow extends StatelessWidget {
         '${filename == null || filename == entry.title ? '' : ' · $filename'}';
     return _LibraryBrowseRow(
       title: entry.title,
-      subtitle: entry.isAvailable ? detail : '$detail · 파일 없음',
+      subtitle:
+          '${favorite ? '즐겨찾기 · ' : ''}${entry.isAvailable ? detail : '$detail · 파일 없음'}',
       leading: SizedBox(
         width: 36,
         height: 36,
-        child: _LocalArtwork(missing: !entry.isAvailable),
+        child: entry.isAvailable
+            ? PlayArtwork(file: entry.file, size: 36)
+            : const _LocalArtwork(missing: true),
       ),
       selected: current,
       onTap: entry.isAvailable ? onTap : onMissing,
@@ -422,9 +443,16 @@ class _FileSongRow extends StatelessWidget {
                 : Icons.rule_folder_outlined,
             onPressed: entry.isAvailable ? onTap : onMissing,
           ),
-          if (entry.isAvailable && onAddToPlaylist != null)
-            PopupMenuButton<String>(
-              tooltip: '${entry.title} 더보기',
+          if (onAction != null)
+            _SongMenu(
+              entry: entry,
+              favorite: favorite,
+              busy: busy,
+              onAction: onAction!,
+            )
+          else if (entry.isAvailable && onAddToPlaylist != null)
+            DdiroriMenuButton<String>(
+              label: '${entry.title} 더보기',
               onSelected: (_) => onAddToPlaylist!(),
               itemBuilder: (context) => const [
                 PopupMenuItem(
@@ -447,6 +475,9 @@ class _FileGroupRow extends StatelessWidget {
     required this.count,
     required this.onTap,
     this.onAddToPlaylist,
+    this.file,
+    this.onEnqueue,
+    this.onPlay,
   });
 
   final String title;
@@ -455,22 +486,39 @@ class _FileGroupRow extends StatelessWidget {
   final int count;
   final VoidCallback onTap;
   final VoidCallback? onAddToPlaylist;
+  final LocalAudioFile? file;
+  final ValueChanged<bool>? onEnqueue;
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) => _LibraryBrowseRow(
     title: title,
     subtitle: subtitle == null ? '$count곡' : '$subtitle · $count곡',
-    leading: Icon(icon),
+    leading: file == null ? Icon(icon) : PlayArtwork(file: file, size: 32),
     trailing: onAddToPlaylist == null
         ? const Icon(Icons.chevron_right)
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              PopupMenuButton<String>(
-                tooltip: '$title 더보기',
-                onSelected: (_) => onAddToPlaylist!(),
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
+              DdiroriMenuButton<String>(
+                label: '$title 더보기',
+                onSelected: (a) {
+                  if (a == 'play') {
+                    onPlay?.call();
+                  } else if (a == 'next' || a == 'last') {
+                    onEnqueue?.call(a == 'next');
+                  } else {
+                    onAddToPlaylist!();
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (onPlay != null)
+                    const PopupMenuItem(value: 'play', child: Text('지금 재생')),
+                  if (onEnqueue != null) ...const [
+                    PopupMenuItem(value: 'next', child: Text('바로 다음에 재생')),
+                    PopupMenuItem(value: 'last', child: Text('대기열 마지막에 추가')),
+                  ],
+                  const PopupMenuItem(
                     value: 'add-to-playlist',
                     child: Text('재생목록에 추가'),
                   ),

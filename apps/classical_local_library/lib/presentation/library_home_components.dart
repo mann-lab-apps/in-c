@@ -68,9 +68,11 @@ class _LibrarySummary extends StatelessWidget {
   );
 }
 
-class _SearchPanel extends StatelessWidget {
+class _SearchPanel extends StatelessWidget implements _LibrarySliver {
   const _SearchPanel({
     required this.query,
+    required this.searchView,
+    required this.onRetry,
     required this.results,
     required this.files,
     required this.onQueryChanged,
@@ -78,9 +80,14 @@ class _SearchPanel extends StatelessWidget {
     required this.onFileSelected,
     required this.onMissingFile,
     required this.onAddFileToPlaylist,
+    this.onSongAction,
+    this.favoriteIds = const {},
+    this.songActionsBusy = false,
   });
 
   final String query;
+  final LibrarySearchView searchView;
+  final VoidCallback onRetry;
   final List<LibrarySearchResult> results;
   final List<LocalFileLibraryEntry> files;
   final ValueChanged<String> onQueryChanged;
@@ -88,52 +95,118 @@ class _SearchPanel extends StatelessWidget {
   final ValueChanged<LocalFileLibraryEntry> onFileSelected;
   final VoidCallback onMissingFile;
   final ValueChanged<LocalFileLibraryEntry> onAddFileToPlaylist;
+  final void Function(LocalFileLibraryEntry, _SongAction)? onSongAction;
+  final Set<String> favoriteIds;
+  final bool songActionsBusy;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          header: true,
-          child: Text('검색', style: Theme.of(context).textTheme.bodyMedium),
+    final catalogResults = results
+        .where((item) => item.type != SearchResultType.fileCandidate)
+        .toList();
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  '검색',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DdiroriSearch(
+                value: query,
+                label: '작품, 작곡가와 파일 검색',
+                onChanged: onQueryChanged,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        DdiroriSearch(
-          value: query,
-          label: '작품, 작곡가와 파일 검색',
-          onChanged: onQueryChanged,
-        ),
-        const SizedBox(height: 12),
-        if (query.trim().isNotEmpty && results.isEmpty && files.isEmpty)
-          DdiroriStatePanel(
-            title: '검색 결과가 없습니다.',
-            message: '다른 검색어로 찾아보세요.',
-            action: DdiroriButton(
-              label: '검색 초기화',
-              icon: Icons.clear,
-              onPressed: () => onQueryChanged(''),
+        if (searchView.busy)
+          SliverToBoxAdapter(
+            child: Semantics(
+              liveRegion: true,
+              child: Row(
+                children: [
+                  const DdiroriProgress(size: 24, label: '음악 검색'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      searchView.phase == LibrarySearchPhase.preparing
+                          ? '검색 정보를 준비하는 중입니다.'
+                          : searchView.phase == LibrarySearchPhase.waiting
+                          ? '검색어를 확인하는 중입니다.'
+                          : '검색하는 중입니다.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (searchView.phase == LibrarySearchPhase.failed)
+          SliverToBoxAdapter(
+            child: DdiroriStatePanel(
+              title: '검색하지 못했습니다',
+              error: true,
+              message: '음악은 그대로 보관되어 있습니다. 다시 시도해 주세요.',
+              action: DdiroriButton(label: '다시 검색', onPressed: onRetry),
+            ),
+          )
+        else if (query.trim().isNotEmpty &&
+            results.isEmpty &&
+            files.isEmpty &&
+            searchView.phase == LibrarySearchPhase.ready)
+          SliverToBoxAdapter(
+            child: DdiroriStatePanel(
+              title: '검색 결과가 없습니다.',
+              message: '다른 검색어로 찾아보세요.',
+              action: DdiroriButton(
+                label: '검색 초기화',
+                icon: Icons.clear,
+                onPressed: () => onQueryChanged(''),
+              ),
             ),
           )
         else if (query.trim().isNotEmpty) ...[
-          for (final file in files)
-            _FileSongRow(
-              entry: file,
-              onTap: () => onFileSelected(file),
-              onMissing: onMissingFile,
-              onAddToPlaylist: () => onAddFileToPlaylist(file),
-            ),
-          for (final result in results.where(
-            (item) => item.type != SearchResultType.fileCandidate,
-          ))
-            PlaySearchResultRow(
-              result: result,
-              onTap:
-                  result.type == SearchResultType.person ||
-                      result.type == SearchResultType.fileCandidate
-                  ? null
-                  : () => onResultSelected(result),
-            ),
+          _LazyLibraryRows(
+            keys: [for (final file in files) 'search-file-${file.file.id}'],
+            builder: (context, index) {
+              final file = files[index];
+              return _FileSongRow(
+                entry: file,
+                onTap: () => onFileSelected(file),
+                onMissing: onMissingFile,
+                onAddToPlaylist: () => onAddFileToPlaylist(file),
+                favorite: favoriteIds.contains(file.file.id),
+                busy: songActionsBusy,
+                onAction: onSongAction == null
+                    ? null
+                    : (action) => onSongAction!(file, action),
+              );
+            },
+          ),
+          _LazyLibraryRows(
+            keys: [
+              for (final result in catalogResults)
+                'search-${result.type.name}-${result.id}',
+            ],
+            builder: (context, index) {
+              final result = catalogResults[index];
+              return PlaySearchResultRow(
+                result: result,
+                onTap:
+                    result.type == SearchResultType.person ||
+                        result.type == SearchResultType.fileCandidate
+                    ? null
+                    : () => onResultSelected(result),
+              );
+            },
+          ),
         ],
       ],
     );
@@ -472,6 +545,8 @@ class _QueuePanel extends StatelessWidget {
       links: links,
     );
     final showsActiveQueue = playbackState.hasQueue;
+    final playbackScope = PlayPlaybackScope.maybeOf(context)!;
+    final snapshot = playbackScope.snapshot.value;
     final localQueue = showsActiveQueue ? playbackState.queue : plannedQueue;
     final singleContext =
         localQueue.isNotEmpty &&
@@ -498,17 +573,13 @@ class _QueuePanel extends StatelessWidget {
               onOpenRecording: onOpenRecording,
             ),
           if (showControls)
-            PlayNowPlayingControls(
+            playbackScope.controls(
+              snapshot,
               showContext: !singleContext,
-              state: playbackState,
               canUseQueue: localQueue.isNotEmpty || plannedQueue.isNotEmpty,
-              commandRunning: isCommandRunning,
-              onPlayPause: onPlayPausePressed,
-              onNext: onNextPressed,
-              onPrevious: onPreviousPressed,
-              onStop: onStopPressed,
-              onSeek: onSeek,
             ),
+          if (showsActiveQueue)
+            playbackScope.upcomingActions(context, snapshot),
           const SizedBox(height: 8),
           if (!showsActiveQueue && availability.missingCount > 0)
             ListTile(
@@ -527,12 +598,16 @@ class _QueuePanel extends StatelessWidget {
                 item: localQueue[index],
                 onOpenRecording: onOpenRecording,
               ),
-            PlayQueueRow(
-              showContext: false,
-              index: index,
-              item: localQueue[index],
-              current: showsActiveQueue && playbackState.currentIndex == index,
-            ),
+            if (showsActiveQueue)
+              playbackScope.queueRow(snapshot, index, showContext: false)
+            else
+              PlayQueueRow(
+                showContext: false,
+                index: index,
+                item: localQueue[index],
+                current:
+                    showsActiveQueue && playbackState.currentIndex == index,
+              ),
           ],
         ],
       ),
@@ -734,7 +809,7 @@ class _StatisticsGroupList extends StatelessWidget {
   }
 }
 
-class _WorksPanel extends StatelessWidget {
+class _WorksPanel extends StatelessWidget implements _LibrarySliver {
   const _WorksPanel({
     required this.library,
     required this.onWorkSelected,
@@ -769,67 +844,81 @@ class _WorksPanel extends StatelessWidget {
           : a.title.ko.compareTo(b.title.ko);
       return order == 0 ? a.id.compareTo(b.id) : order;
     });
-    return _Section(
-      title: '작품',
-      trailing: '${works.length}개 작품',
-      children: [
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: [
-            Semantics(
-              label: '작품 필터',
-              child: DdiroriChoices<bool>(
-                options: const {false: '전체 작품', true: '녹음 있는 작품'},
-                selected: {onlyRecorded},
-                onChanged: (values) =>
-                    onFilterChanged(values.firstOrNull ?? false),
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _Section(
+            title: '작품',
+            trailing: '${works.length}개 작품',
+            children: [
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  Semantics(
+                    label: '작품 필터',
+                    child: DdiroriChoices<bool>(
+                      options: const {false: '전체 작품', true: '녹음 있는 작품'},
+                      selected: {onlyRecorded},
+                      onChanged: (values) =>
+                          onFilterChanged(values.firstOrNull ?? false),
+                    ),
+                  ),
+                  DdiroriMenuButton<bool>(
+                    label: '작품 정렬',
+                    icon: Icons.sort,
+                    onSelected: onSortChanged,
+                    itemBuilder: (_) => [
+                      CheckedPopupMenuItem(
+                        value: false,
+                        checked: !sortByComposer,
+                        child: const Text('작품명순'),
+                      ),
+                      CheckedPopupMenuItem(
+                        value: true,
+                        checked: sortByComposer,
+                        child: const Text('작곡가순'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            DdiroriMenuButton<bool>(
-              label: '작품 정렬',
-              icon: Icons.sort,
-              onSelected: onSortChanged,
-              itemBuilder: (_) => [
-                CheckedPopupMenuItem(
-                  value: false,
-                  checked: !sortByComposer,
-                  child: const Text('작품명순'),
+              if (works.isEmpty)
+                DdiroriStatePanel(
+                  title: '조건에 맞는 작품이 없습니다.',
+                  message: '작품 필터를 바꿔보세요.',
+                  action: DdiroriButton(
+                    label: '필터 초기화',
+                    onPressed: () => onFilterChanged(false),
+                  ),
                 ),
-                CheckedPopupMenuItem(
-                  value: true,
-                  checked: sortByComposer,
-                  child: const Text('작곡가순'),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
-        if (works.isEmpty)
-          DdiroriStatePanel(
-            title: '조건에 맞는 작품이 없습니다.',
-            message: '작품 필터를 바꿔보세요.',
-            action: DdiroriButton(
-              label: '필터 초기화',
-              onPressed: () => onFilterChanged(false),
-            ),
-          ),
-        for (final work in works) ...[
-          PlayWorkRow(
-            work: work,
-            composer: library.person(work.composerId),
-            partCount: library.partsForWork(work.id).length,
-            recordingCount: library.recordingsForWork(work.id).length,
-            onTap: () => onWorkSelected(work.id),
-          ),
-          const Divider(height: 1),
-        ],
+        _LazyLibraryRows(
+          keys: [for (final work in works) 'work-${work.id}'],
+          builder: (context, index) {
+            final work = works[index];
+            return Column(
+              children: [
+                PlayWorkRow(
+                  work: work,
+                  composer: library.person(work.composerId),
+                  partCount: library.partsForWork(work.id).length,
+                  recordingCount: library.recordingsForWork(work.id).length,
+                  onTap: () => onWorkSelected(work.id),
+                ),
+                const Divider(height: 1),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
 }
 
-class _RecordingsPanel extends StatelessWidget {
+class _RecordingsPanel extends StatelessWidget implements _LibrarySliver {
   const _RecordingsPanel({
     required this.library,
     required this.onRecordingSelected,
@@ -840,16 +929,29 @@ class _RecordingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: '연주 녹음',
-      trailing: '앨범과 작품을 분리',
-      children: [
-        for (final recording in library.recordings)
-          PlayRecordingRow(
-            recording: recording,
-            workTitle: library.work(recording.workId).title.ko,
-            onTap: () => onRecordingSelected(recording.id),
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _Section(
+            title: '연주 녹음',
+            trailing: '앨범과 작품을 분리',
+            children: const [],
           ),
+        ),
+        _LazyLibraryRows(
+          keys: [
+            for (final recording in library.recordings)
+              'recording-${recording.id}',
+          ],
+          builder: (context, index) {
+            final recording = library.recordings[index];
+            return PlayRecordingRow(
+              recording: recording,
+              workTitle: library.work(recording.workId).title.ko,
+              onTap: () => onRecordingSelected(recording.id),
+            );
+          },
+        ),
       ],
     );
   }

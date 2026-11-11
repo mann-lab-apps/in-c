@@ -1,6 +1,24 @@
 import 'dart:convert';
 
-const releaseCandidateFeedbackSchemaVersion = 1;
+const releaseCandidateFeedbackSchemaVersion = 2;
+
+enum ReleaseMusicScenario {
+  queueReservation,
+  queueEditing,
+  queueModes,
+  queueRestoration,
+  favorites,
+  imslpPageReturn,
+  imslpImport,
+  imslpSourceConfirmation,
+}
+
+enum ReleaseAutomaticCheck {
+  semantics,
+  decoderSignal,
+  nativeTransport,
+  simulatorLifecycle,
+}
 
 enum ReleaseFeedbackPlatform { ios, android }
 
@@ -54,6 +72,8 @@ class ReleaseCandidateFeedbackReport {
     required this.reproducibility,
     required this.severity,
     this.schemaVersion = releaseCandidateFeedbackSchemaVersion,
+    this.musicActions = const {},
+    this.automaticChecks = const {},
   });
 
   final int schemaVersion;
@@ -75,6 +95,50 @@ class ReleaseCandidateFeedbackReport {
   final ReleaseFeedbackListening listening;
   final ReleaseFeedbackReproducibility reproducibility;
   final ReleaseFeedbackSeverity severity;
+
+  /// User observations only. Missing answers always mean notChecked.
+  final Map<ReleaseMusicScenario, ReleaseFeedbackOutcome> musicActions;
+
+  /// Reported automation results, separate from physical observations.
+  /// These declarations are not proof: retain runner evidence separately.
+  final Map<ReleaseAutomaticCheck, ReleaseFeedbackOutcome> automaticChecks;
+
+  List<String> get regressionCandidates => [
+    for (final entry in musicActions.entries)
+      if (entry.value == ReleaseFeedbackOutcome.issue)
+        'music.${entry.key.name}',
+    for (final entry in automaticChecks.entries)
+      if (entry.value == ReleaseFeedbackOutcome.issue)
+        'automatic.${entry.key.name}',
+    if (voiceOver == ReleaseFeedbackOutcome.issue) 'physical.voiceOver',
+    if (importOutcome == ReleaseFeedbackOutcome.issue) 'physical.fileProvider',
+    if (playbackOutcome == ReleaseFeedbackOutcome.issue) 'physical.playback',
+    if (relaunchOutcome == ReleaseFeedbackOutcome.issue) 'physical.relaunch',
+    if (interruptionOutcome == ReleaseFeedbackOutcome.issue)
+      'physical.interruption',
+    if (listening == ReleaseFeedbackListening.silentOrAbnormal)
+      'physical.output',
+  ];
+
+  bool get hasUnverifiedObservations =>
+      provider == ReleaseFeedbackProvider.notChecked ||
+      fixture == ReleaseFeedbackFixture.notChecked ||
+      reproducibility == ReleaseFeedbackReproducibility.notChecked ||
+      [
+        voiceOver,
+        dynamicType,
+        importOutcome,
+        playbackOutcome,
+        relaunchOutcome,
+        interruptionOutcome,
+      ].contains(ReleaseFeedbackOutcome.notChecked) ||
+      listening == ReleaseFeedbackListening.notChecked ||
+      routes.contains(ReleaseFeedbackRoute.notChecked) ||
+      ReleaseMusicScenario.values.any(
+        (s) =>
+            musicActions[s] == null ||
+            musicActions[s] == ReleaseFeedbackOutcome.notChecked,
+      );
 
   bool get blocksRelease =>
       severity == ReleaseFeedbackSeverity.p0 ||
@@ -100,10 +164,25 @@ class ReleaseCandidateFeedbackReport {
     'listening': listening.name,
     'reproducibility': reproducibility.name,
     'severity': severity.name,
+    if (schemaVersion == 2) ...{
+      'musicActions': {
+        for (final s in ReleaseMusicScenario.values)
+          s.name: (musicActions[s] ?? ReleaseFeedbackOutcome.notChecked).name,
+      },
+      'automaticChecks': {
+        for (final c in ReleaseAutomaticCheck.values)
+          c.name:
+              (automaticChecks[c] ?? ReleaseFeedbackOutcome.notChecked).name,
+      },
+    },
   };
 
   factory ReleaseCandidateFeedbackReport.fromJson(Map<String, Object?> json) {
-    const keys = {
+    final version = json['schemaVersion'];
+    if (version is! int || (version != 1 && version != 2)) {
+      throw const FormatException('지원하지 않는 피드백 schemaVersion입니다.');
+    }
+    final keys = {
       'schemaVersion',
       'appVersion',
       'buildNumber',
@@ -123,13 +202,11 @@ class ReleaseCandidateFeedbackReport {
       'listening',
       'reproducibility',
       'severity',
+      if (version == 2) ...['musicActions', 'automaticChecks'],
     };
     final unexpected = json.keys.where((key) => !keys.contains(key)).toList();
     if (unexpected.isNotEmpty || json.keys.length != keys.length) {
       throw const FormatException('피드백 필드가 계약과 일치하지 않습니다.');
-    }
-    if (json['schemaVersion'] != releaseCandidateFeedbackSchemaVersion) {
-      throw const FormatException('지원하지 않는 피드백 schemaVersion입니다.');
     }
     final appVersion = json['appVersion'];
     if (appVersion is! String ||
@@ -160,6 +237,13 @@ class ReleaseCandidateFeedbackReport {
       throw const FormatException('routes가 중복되거나 모순됩니다.');
     }
     return ReleaseCandidateFeedbackReport(
+      schemaVersion: version,
+      musicActions: version == 1
+          ? const {}
+          : _outcomes(ReleaseMusicScenario.values, json['musicActions']),
+      automaticChecks: version == 1
+          ? const {}
+          : _outcomes(ReleaseAutomaticCheck.values, json['automaticChecks']),
       appVersion: appVersion,
       buildNumber: buildNumber,
       platform: _enumValue(
@@ -227,10 +311,20 @@ class ReleaseCandidateFeedbackCodec {
     caseSensitive: false,
   );
 
-  String encode(ReleaseCandidateFeedbackReport report) =>
-      const JsonEncoder.withIndent('  ').convert(report.toJson());
+  String encode(ReleaseCandidateFeedbackReport report) {
+    if (report.schemaVersion == 1 &&
+        (report.musicActions.isNotEmpty || report.automaticChecks.isNotEmpty)) {
+      throw const FormatException('구버전 피드백에 새 검사 결과를 저장할 수 없습니다.');
+    }
+    final json = report.toJson();
+    ReleaseCandidateFeedbackReport.fromJson(json);
+    return const JsonEncoder.withIndent('  ').convert(json);
+  }
 
   ReleaseCandidateFeedbackReport decode(String source) {
+    if (utf8.encode(source).length > 16384) {
+      throw const FormatException('피드백 크기가 허용 범위를 넘었습니다.');
+    }
     if (_privateValue.hasMatch(source)) {
       throw const FormatException('개인정보 또는 비밀값으로 보이는 내용이 포함되어 있습니다.');
     }
@@ -240,6 +334,25 @@ class ReleaseCandidateFeedbackCodec {
     }
     return ReleaseCandidateFeedbackReport.fromJson(decoded);
   }
+}
+
+Map<T, ReleaseFeedbackOutcome> _outcomes<T extends Enum>(
+  List<T> values,
+  Object? raw,
+) {
+  if (raw is! Map<String, Object?> ||
+      raw.length != values.length ||
+      raw.keys.any((key) => !values.any((v) => v.name == key))) {
+    throw const FormatException('검사 항목이 계약과 일치하지 않습니다.');
+  }
+  return Map.unmodifiable({
+    for (final value in values)
+      value: _enumValue(
+        ReleaseFeedbackOutcome.values,
+        raw[value.name],
+        '검사 결과',
+      ),
+  });
 }
 
 T _enumValue<T extends Enum>(List<T> values, Object? raw, String field) {

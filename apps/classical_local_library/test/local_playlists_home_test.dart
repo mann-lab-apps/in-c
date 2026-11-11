@@ -70,6 +70,9 @@ void main() {
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
     expect(find.text('저녁'), findsWidgets);
+    expect(find.text('담긴 곡이 없습니다'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('playlist-list-1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('곡 추가'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('first'));
@@ -148,6 +151,8 @@ void main() {
     await tester.tap(find.text('길고 긴 재생목록 이름을 가진 음악 모음').last);
     await tester.pumpAndSettle();
     expect(find.text('곡 추가'), findsOneWidget);
+    await tester.tap(find.byTooltip('재생목록 더보기'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('편집'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('first 순서 및 삭제'), findsOneWidget);
@@ -187,8 +192,11 @@ void main() {
 
     await tester.tap(find.text('second'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('재생 상세 열기'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('재생 상세 열기'));
     await tester.pumpAndSettle();
+    expect(find.text('현재 재생'), findsOneWidget);
     await tester.tap(find.byTooltip('현재 곡 재생목록에 추가'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('destination-evening')));
@@ -214,6 +222,8 @@ void main() {
     await _openPlaylists(tester);
     await tester.tap(find.text('순서'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('재생목록 더보기'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('편집'));
     await tester.pumpAndSettle();
     await tester.drag(
@@ -227,6 +237,8 @@ void main() {
     await tester.tap(find.text('모두 재생'));
     await tester.pumpAndSettle();
     expect(player.playbackState.currentItem?.trackId, 'local-file:second');
+    await tester.tap(find.byTooltip('재생목록 더보기'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('편집'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('second 순서 및 삭제'));
@@ -239,7 +251,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('뒤로'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).first, const Offset(0, 220));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 220));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const ValueKey('file-category-songs')),
@@ -271,10 +283,8 @@ void main() {
     await tester.pumpAndSettle();
     expect((await repository.load()).single.fileIds, ['first', 'second']);
 
-    await tester.tap(find.byTooltip('뒤로'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('뒤로'));
-    await tester.pumpAndSettle();
+    // Creation from an album stays in that album list.
+    expect(find.byTooltip('앨범 정보 없음 더보기'), findsOneWidget);
     await tester.tap(find.byTooltip('내 음악 검색'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'first');
