@@ -1,5 +1,9 @@
 # 띠로리 플레이
 
+## 현재 개발 체크포인트 (2026-11-11)
+
+플레이 후속 작업의 지속 worktree는 `/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031`, 브랜치는 `feature/ddirori-play-library-context-20261031`다. 제품 checkpoint는 `436a615746ca1c546206e80921ad4c27a6923cd7`이며 원격에 푸시했다. 이전 `/tmp` 경로·미커밋 표시는 당시 QA/복구 이력이다. 다음 개발은 지속 경로에서 시작하며 원본 저장소의 별도 작업에 덮어쓰지 않는다. [커밋·워크트리 인계](../../docs/quality/classical-local-library-checkpoint-2026-11-11.md)를 참고한다. 이번 체크포인트는 새 TestFlight나 공개 배포가 아니다.
+
 ## 복구·접근성·호환성 후속 (2026-11-11, 미배포)
 
 - 즐겨찾기 저장이 끝난 뒤 목록 새로고침만 실패하면 저장된 선택을 유지하고 `즐겨찾기 다시 불러오기`로 재조회한다. 다시 저장/토글하지 않는다. 재조회 성공 뒤 관련 오류 안내를 지운다.
