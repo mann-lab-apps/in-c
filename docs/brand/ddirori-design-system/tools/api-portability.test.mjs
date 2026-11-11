@@ -8,3 +8,10 @@ test('API snapshots match across macOS and Linux checkout paths without losing t
   assert.equal(portableApiText(signature(mac), mac), portableApiText(signature(linux), linux));
   assert.match(portableApiText(signature(mac), mac), /ReactEventHandler<HTMLButtonElement>/);
 });
+test('serialized JSON and linked dependency paths are portable too', () => {
+  const type = '(import("/external/dependencies/node_modules/@types/react/index").ReactEventHandler<HTMLButtonElement>)';
+  const document = JSON.stringify({type});
+  const result = portableApiText(document, '/tmp/isolated-checkout/');
+  assert.equal(JSON.parse(result).type, '(import("react").ReactEventHandler<HTMLButtonElement>)');
+  assert.equal(result.includes('/external/'), false);
+});

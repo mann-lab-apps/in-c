@@ -16,8 +16,8 @@ const variants = source.accents.map(a => ({
 const active = variants.find(p => p.key === source.active);
 if (!active) throw Error('Unknown active accent: ' + source.active);
 const outputs = {
-  'palette-candidates.json': {status: source.status, recommended: null, variants},
-  'palette-pilot.json': {...active, status: source.status, source: 'color-system.json', date: '2026-10-23'},
+  'palette-candidates.json': {status: source.status, recommended: source.active, variants},
+  'palette-pilot.json': {...active, status: source.status, source: 'color-system.json', date: source.updated},
 };
 for (const [name, value] of Object.entries(outputs)) {
   const body = JSON.stringify(value, null, 2) + '\n';
