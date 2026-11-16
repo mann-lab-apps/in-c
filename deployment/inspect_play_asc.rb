@@ -73,6 +73,17 @@ if result['passed']
     result['betaReviewContactPresence']=beta ? beta.fetch('attributes',{}).slice('contactFirstName','contactLastName','contactPhone','contactEmail').transform_values{|v|!v.to_s.strip.empty?} : {}
     groups=optional.call('/v1/apps/6828809673/betaGroups')
     result['internalGroups']=(groups || []).select{|r|r.dig('attributes','isInternalGroup')}.map{|r|{'id'=>r['id'],'name'=>r.dig('attributes','name')}}
+    result['appDeclarations']=get.call('/v1/apps/6828809673').fetch('data').fetch('attributes').slice('contentRightsDeclaration','isOrEverWasMadeForKids')
+    result['priceSchedule']=optional.call('/v1/apps/6828809673/appPriceSchedule')
+    result['availability']=optional.call('/v1/apps/6828809673/appAvailabilityV2')
+    if result['priceSchedule']
+      price_id=result['priceSchedule'].fetch('id')
+      result['manualPrices']=get.call("/v1/appPriceSchedules/#{price_id}/manualPrices?include=appPricePoint,territory&limit=200")
+    end
+    if result['availability']
+      availability_id=result['availability'].fetch('id')
+      result['territoryAvailabilities']=get.call("/v2/appAvailabilities/#{availability_id}/territoryAvailabilities?include=territory&limit=200")
+    end
   rescue StandardError=>e
     result['additionalReadFailureClass']=e.class.name
   end
