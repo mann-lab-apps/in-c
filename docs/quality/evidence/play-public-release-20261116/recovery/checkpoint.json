@@ -1,0 +1,24 @@
+{
+  "checkpointCommit": "c91c6ec9def6c6d900881470d94fcfcf54e85347",
+  "productSourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "productSourceSha256": "ff88d244cb3d8caf3d868f462a1357827d2f235c7cb69dbfea1953f59c63a982",
+  "bundlePrerequisite": "f57602c18ce55031833faabf37a073da437453b9",
+  "bundleIsIncremental": true,
+  "ipaSha256": "d44f262a017c7060a057b8c93593daef44b0dcfbe637bcb1a03eeaf5cb962c36",
+  "privateCredentialsIncluded": false,
+  "physicalQAReceived": false,
+  "files": {
+    "checkpoint.bundle": {
+      "bytes": 13952632,
+      "sha256": "c734592a8bb12d30bd2c22b555b0d823d2aa21ce30fbcfe857577a40c3d7708a"
+    },
+    "release-runtime.tar.gz": {
+      "bytes": 127302914,
+      "sha256": "3d71d8293097bff427a83225406a82259f9f9ade110b5cd681a46db4817904f1"
+    },
+    "scoped-source.tar.gz": {
+      "bytes": 6308160,
+      "sha256": "06c8c6bffc755c443860e409a362881f6fd5f1818634e10113c0ddd4c7576a66"
+    }
+  }
+}

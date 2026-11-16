@@ -71,3 +71,17 @@ Apple의 기기/locale별 최대10장 규칙에 따라 기존12 scene 중7개만
 첫 출시의 release_notes가 패키지 metadata 차단을 만들던 입력을 null로 정리했고, 실제 최초 설명은 description/CHANGELOG에 남겼다. 기존 사용자 승인인 비면제 암호화 불사용을 새 IPA Info.plist와 Apple usesNonExemptEncryption=false에 대조해 해당 manual만 verified다. 확인하지 않은 나머지 설문/운영 답변은 그대로 pending이다. 최종 metadata/media 패키징 차단은0개이며, 전체 공개 출시 Go와는 다르다. preflight는 구현 FAIL0, 운영 설문·내부 안내/연락처 검토·수동 확인·심사 연락처·사용자 QA의5개 묶음이 blocked다.
 
 자동 host830·배포Ruby114/409 assertions·공통 캡처Python23·촬영 visibility Flutter3, iOS 현재 후보 format native1과 선행 SQLite backup/undo native1을 구분한다. 이전17/4개 플랫폼 QA 결과를 새 후보의 물리 결과로 승격하지 않는다. 원본 제품 fingerprint는 native 실행/촬영 이후에도 동일하며 원본 작업 공간과 다른 앱을 수정하지 않았다. 임시 진단 ref는 쓰기 실행 후 다시 읽기 전용으로 돌리고, 이 작업이 만든 미리보기 서버/촬영 기기/격리 촬영 checkout만 정리한다. 기존 QA simulator와 지속 worktree는 보존한다.
+
+## 복구 checkpoint와 정리
+
+검증·승인된 초안/이미지 반영 인계 commit은 `c91c6ec9def6c6d900881470d94fcfcf54e85347`이며 원격 feature branch에 push했다. 제품/IPA의 소스는 계속2814dbd3다. 외부 폴더 `../ddirori-play-snapshots/20261116-public-release/`에 새 checkpoint를 만들었고 기존20261112 snapshot은 보존했다.
+
+| 복구 파일 | SHA256 |
+| --- | --- |
+| checkpoint.bundle | c734592a8bb12d30bd2c22b555b0d823d2aa21ce30fbcfe857577a40c3d7708a |
+| scoped-source.tar.gz | 06c8c6bffc755c443860e409a362881f6fd5f1818634e10113c0ddd4c7576a66 |
+| release-runtime.tar.gz | 3d71d8293097bff427a83225406a82259f9f9ade110b5cd681a46db4817904f1 |
+
+bundle은 증분이며 base f57602c18ce55031833faabf37a073da437453b9가 필요하다. 기존 저장소에서 bundle verify를 통과했으며 독립 전체 clone으로 설명하지 않는다. scoped source와 실제 signed artifact/metadata/media runtime을 별도로 보관했다. 복구는 외부 RESTORE.md를 따르고 기존 dirty tree에 덮어쓰지 않는다. .p8·issuer·인증서 비밀키·심사 연락처 실제 값은 포함하지 않는다.
+
+이 작업의 미리보기 서버3개·촬영 simulator9개·일회성 capture checkout2개를 소유/경로 확인 후 정리했다. 사용자의 지속 worktree와 기존 QA simulator, 새 제품 빌드 checkout은 유지한다. 다른 작업 공간의 동시 커밋/변경은 되돌리지 않았다. 최종 판정은 공개 출시 No-Go이며 목표는 공개 전까지 미완료다. 준비된 자료와 승인된 원격 반영을 사람의 QA·운영 설문/연락처·가격/지역 실제 설정·공개 후보 연결·최종 제출/출시 승인으로 대체하지 않는다.
