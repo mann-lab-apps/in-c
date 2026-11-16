@@ -22,7 +22,7 @@ store:
   first_release: true
   test_only: false
 content:
-  reviewed: false
+  reviewed: true
   copyright: 2026 MannLab
   locales:
     ko:

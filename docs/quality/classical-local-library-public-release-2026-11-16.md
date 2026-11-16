@@ -100,6 +100,14 @@ bundle은 증분이며 base f57602c18ce55031833faabf37a073da437453b9가 필요�
 
 후속 감사에서 빌드5의 MusicBrainz client가 비활성임을 확인했다. 실제 archive release-manifest의 SHA87fc5b8e와 성공 result 연결, 실제 Xcode 로그의4개 DART_DEFINES export, main.dart의 기본 주입 조건을 대조했다. 네 번 모두 MUSICBRAINZ_CONTACT가 없고 앱은 client=null이면 설정 안내를 표시한다. 조회 구현/fixture가 존재하는 것과 서명 후보에서 활성화된 것은 달랐다. 따라서 설명의 조회 보장1줄과 검색어MusicBrainz를 삭제하는 YAML 초안을 준비하고 content.reviewed=false로 되돌렸다. source/IPA/build5와 최종14장·가격/지역은 보존했다.
 
-새 정확한 교정 계획 SHA256은 `82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2`이며 description/keywords만 포함한다. 아직 원격에 실행하지 않았다. [읽기 전용43821097782](https://github.com/mann-lab-apps/in-c/actions/runs/43821097782)에서 현재 원격의 MusicBrainz 문구와 빈 심사/beta 연락처·미응답 권리/연령 설문을 확인했다. 최초 inspector의 미지원 역방향 locale 소유 조회로 인한 실패2개는 보존하고 공식 parent localization 목록 경로로 수정한 후 성공했다. API403을 설문 완료나 쓰기 권한 승인으로 해석하지 않는다.
+새 정확한 교정 계획 SHA256은 `82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2`이며 description/keywords만 포함한다. 준비 시점에는 원격에 실행하지 않았다. [읽기 전용43821097782](https://github.com/mann-lab-apps/in-c/actions/runs/43821097782)에서 당시 원격의 MusicBrainz 문구와 빈 심사/beta 연락처·미응답 권리/연령 설문을 확인했다. 최초 inspector의 미지원 역방향 locale 소유 조회로 인한 실패2개는 보존하고 공식 parent localization 목록 경로로 수정한 후 성공했다. API403을 설문 완료나 쓰기 권한 승인으로 해석하지 않는다.
 
 운영자 확인표 STORE-OPERATOR-CHECKLIST-1.0.0.md에 실제 데이터 흐름·SFSafariViewController와 외부 Safari의 차이·무료 계약/유료 정산의 구분·한국만 배포해도 필요한 DSA 상태 신고를 공식 자료와 연결했다. 설문/연락처 답변은 만들지 않았다. metadata check와 Ruby13개/40 assertions PASS, 교정 검토 대기로 현 preflight는 PASS25/BLOCKED6/FAIL0이다. 새 차단은 발견한 문구의 검토/승인을 정직하게 보존한 것이며 구현 실패가 아니다. 증거는 operator-input-review에 있다.
+
+## 승인된 MusicBrainz 설명·검색어 교정 반영
+
+사용자가 정확한 두 필드 교정을 승인했다. [43822461677](https://github.com/mann-lab-apps/in-c/actions/runs/43822461677)에서 원본 승인 계획 SHA82aab8ea를 검사하고 app/locale 소유 관계·기존 문구·정확한build5·PREPARE_FOR_SUBMISSION/MANUAL을 확인한 뒤 PATCH1회를 실행했다. description/keywords read-back이 일치하고 다른 locale 필드와 버전·후보·copyright가 그대로임을 확인했다. 원본 계획과 이전 감사 증거는 수정하지 않았다. 현재 YAML content.reviewed만 true로 되돌렸으며 제품2814dbd3/실제 IPA·이미지·가격/지역을 변경하지 않았다.
+
+심사 제출·공개 출시·운영 설문·비공개 연락처·사용자 QA는 이번 승인에 포함하지 않았고 실행하지 않았다. 진단 ref의 쓰기 helper는 실행 후 제거하고 읽기 전용으로 복귀했다. 원격 실행·후속 검증과 도구/결과 hash는 copy-correction-approved 증거에 보관한다.
+
+별도 [읽기 전용43822583878](https://github.com/mann-lab-apps/in-c/actions/runs/43822583878)에서도 두 필드가 승인 계획의 목표값과 일치하고 MusicBrainz 문구/검색어가 없음을 검증했다. 심사/beta 연락처와 권리/연령 설문은 여전히 미응답이다. metadata check·Ruby13개/40 assertions·git diff check PASS, 실제 서명 후보 preflight는 PASS26/BLOCKED5/FAIL0이다. 제품/의존성/이미지는 변경하지 않아 전체 host/native 검사를 중복 실행하지 않았다. 공개 출시 No-Go와 나머지 운영자/물리 게이트는 유지한다.

@@ -2,13 +2,15 @@
 
 확인일2026-11-16. 제품2814dbd30aa5764ec70544772d6fcd418260367f와 실제 서명 후보1.0.0(5)를 기준으로 한다. 아직 공개 출시 No-Go다. 이 문서는 설문 대필·수락·심사 제출 승인이 아니며 원격 설문을 변경하지 않는다.
 
-## 먼저 바로잡을 출시 문구
+## 교정한 출시 문구
 
 `main.dart`는 MUSICBRAINZ_CONTACT가 없으면 MusicBrainz client를 만들지 않는다. 실제 archive의 release-manifest와 해당 hash로 연결된 result는 이 설정을 포함하지 않으며 제품에는 다른 기본 client 주입이 없다. 따라서 빌드5에서 MusicBrainz 조회를 시도하면 설정 필요 안내가 나오고 조회하지 않는다. 조회 구현·fixture 테스트가 있다는 사실과 제품 후보에서 활성이라는 사실을 구분한다.
 
-현재 한국어 설명의 ‘MusicBrainz 후보를 확인하고 선택한 정보만 반영’1줄과 검색어MusicBrainz를 제거하는 수정안을 YAML에 준비했다. 기존 저장된 문구는 승인 없이 바꾸지 않았다. 같은 빌드5를 유지하며 이 두 필드만 교정할 수 있다. 향후 조회 활성화는 공식 서비스 사용 조건·공개 연락처 빌드 설정·새 후보 검증을 따로 진행한다. 개인정보 페이지의 외부 서비스 일반 안내는 기능 활성 보증이 아니며 이번에 게시물을 변경하지 않는다.
+사용자가 ‘설명 한 줄과 검색어 교정 승인’으로 승인한 뒤 한국어 설명의 ‘MusicBrainz 후보를 확인하고 선택한 정보만 반영’1줄과 검색어MusicBrainz를 제거했다. [43822461677](https://github.com/mann-lab-apps/in-c/actions/runs/43822461677)에서 두 필드의 read-back과 나머지 locale 필드·선택build5·PREPARE_FOR_SUBMISSION/MANUAL 불변을 확인했다. 향후 조회 활성화는 공식 서비스 사용 조건·공개 연락처 빌드 설정·새 후보 검증을 따로 진행한다. 개인정보 페이지의 외부 서비스 일반 안내는 기능 활성 보증이 아니며 이번에 게시물을 변경하지 않았다.
 
-정확한 변경은 `deployment/output/classical-local-library/candidate-build5/copy-correction-plan.json`이며 SHA256은 `82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2`다. description/keywords 두 필드만 PATCH하며 원격의 기존 값·소유 관계·PREPARE_FOR_SUBMISSION/MANUAL·선택build5를 먼저 검사한다. 공식 OpenAPI request schema와 필드/길이를 대조했다. 새 원격 쓰기는 이 교정안에 대한 승인 후에만 실행한다.
+정확한 승인 계획은 `deployment/output/classical-local-library/candidate-build5/copy-correction-plan.json`이며 SHA256은 `82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2`다. 원본의 executed=false는 준비 시점 이력으로 보존하고 실제 실행 결과는 별도 증거에 기록한다. description/keywords 두 필드만 PATCH하며 원격의 기존 값·소유 관계·PREPARE_FOR_SUBMISSION/MANUAL·선택build5를 먼저 검사했다. 공식 OpenAPI request schema와 필드/길이를 대조했다. 승인 범위 밖 설문·연락처·심사·공개 쓰기는 하지 않았다.
+
+[독립 읽기43822583878](https://github.com/mann-lab-apps/in-c/actions/runs/43822583878)에서도 교정값 일치를 검증했다. YAML content.reviewed=true이며 문구 승인 대기는 해결됐다. 다음 운영 입력과 물리 QA는 별도 미완료다.
 
 ## 개인정보: 코드와 빌드가 증명하는 범위
 

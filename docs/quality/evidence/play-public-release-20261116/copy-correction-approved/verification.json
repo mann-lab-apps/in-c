@@ -1,0 +1,31 @@
+{
+  "verifiedAtUtc": "2026-11-16T07:18:06.918371+00:00",
+  "approvedPlanSha256": "82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2",
+  "userApproval": "설명 한 줄과 검색어 교정 승인",
+  "applyRun": 43822461677,
+  "applyCommit": "b24f9e646b451ecd20a69dd24aed2861d4e4d4e1",
+  "independentReadOnlyRun": 43822583878,
+  "readOnlyCommit": "4969728725c89167864408f259310ea9173fd866",
+  "exactTwoFieldsMatched": true,
+  "otherLocaleFieldsUnchanged": true,
+  "versionAndSelectedBuildUnchanged": true,
+  "productSourceUnchanged": true,
+  "writeHelperRemovedFromDiagnosticTip": true,
+  "metadataCheckPassed": true,
+  "metadataTests": {
+    "tests": 13,
+    "assertions": 40,
+    "failures": 0,
+    "errors": 0
+  },
+  "preflightCounts": {
+    "pass": 26,
+    "warning": 0,
+    "blocked": 5,
+    "fail": 0
+  },
+  "newSurveyAnswersStored": false,
+  "newPhysicalQaReceived": false,
+  "reviewSubmitted": false,
+  "released": false
+}
