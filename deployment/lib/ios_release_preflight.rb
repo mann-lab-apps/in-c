@@ -1,34 +1,16 @@
 require 'ipaddr'
 require 'json'
+require 'digest'
 require 'open3'
 require 'time'
 require 'uri'
 require_relative 'ios_metadata'
+require_relative 'release_candidate_feedback'
+require_relative 'release_candidate_binding'
 
 module Deployment
   class IOSReleasePreflight
     STATUSES = %w[pass warning blocked fail].freeze
-    FEEDBACK_FIELDS = %w[
-      schemaVersion appVersion buildNumber platform deviceClass osMajor provider
-      fixture format voiceOver dynamicType importOutcome playbackOutcome
-      relaunchOutcome routes interruptionOutcome listening reproducibility severity
-    ].freeze
-    FEEDBACK_VALUES = {
-      'platform' => %w[ios android],
-      'deviceClass' => %w[phone tablet],
-      'provider' => %w[onDevice cloudDrive thirdParty notChecked],
-      'fixture' => %w[movement1Wav movement1Aac movement1Alac userApproved notChecked],
-      'format' => %w[wav aac alac mp3 flac ogg opus other],
-      'voiceOver' => %w[passed issue notChecked],
-      'dynamicType' => %w[passed issue notChecked],
-      'importOutcome' => %w[passed issue notChecked],
-      'playbackOutcome' => %w[passed issue notChecked],
-      'relaunchOutcome' => %w[passed issue notChecked],
-      'interruptionOutcome' => %w[passed issue notChecked],
-      'listening' => %w[heard silentOrAbnormal notChecked],
-      'reproducibility' => %w[always intermittent notReproduced notChecked],
-      'severity' => %w[none p0 p1 p2 p3]
-    }.freeze
     REVIEW_CONTACT_FIELDS = %w[
       contactFirstName contactLastName contactPhone contactEmail
     ].freeze
@@ -47,12 +29,15 @@ module Deployment
 
     attr_reader :data, :issues
 
-    def initialize(manifest:, artifact: nil, feedback: [], review_details: nil)
+    def initialize(manifest:, artifact: nil, feedback: [], review_details: nil, candidate: nil, ipa: nil)
       @metadata = IOSMetadata.new(manifest)
       @data = @metadata.data
       @app = Deployment.contained(REPO, data.dig('source', 'path'))
       @artifact = artifact && File.expand_path(artifact, ROOT)
       @feedback = Array(feedback).map { |path| File.expand_path(path, ROOT) }
+      @candidate = candidate && File.expand_path(candidate, ROOT)
+      @ipa = ipa && File.expand_path(ipa, ROOT)
+      @feedback_sha256 = []
       details_reference = review_details || ENV[data.dig('secrets', 'review_details_env')]
       @review_details = details_reference && File.expand_path(details_reference, ROOT)
       @issues = []
@@ -67,6 +52,7 @@ module Deployment
       check_release_inputs
       check_review_contact
       check_feedback
+      check_candidate_binding
       check_artifact
       counts = STATUSES.to_h { |status| [status, issues.count { |issue| issue['status'] == status }] }
       {
@@ -317,18 +303,12 @@ module Deployment
       @feedback.each do |path|
         begin
           raw = File.read(path)
-          raise Error, 'private data pattern' if raw.match?(%r{file:/{2}|/(?:Users|home|storage)/|\\|deviceId|fileName|trackTitle|-----BEGIN}i)
-          report = JSON.parse(raw)
-          raise Error, 'invalid fields' unless report.is_a?(Hash) && report.keys.sort == FEEDBACK_FIELDS.sort
-          raise Error, 'invalid schema/version' unless report['schemaVersion'] == 1 && report['appVersion'] == data.dig('source', 'version') && report['buildNumber'] == data.dig('source', 'build_number')
-          FEEDBACK_VALUES.each { |field, allowed| raise Error, "invalid #{field}" unless allowed.include?(report[field]) }
-          raise Error, 'invalid os major' unless report['osMajor'].is_a?(Integer) && report['osMajor'].between?(1, 99)
-          routes = report['routes']
-          raise Error, 'invalid routes' unless routes.is_a?(Array) && !routes.empty? && routes.uniq == routes && (routes - %w[speaker wired bluetooth notChecked]).empty? && !(routes.include?('notChecked') && routes.length > 1)
-          outcomes = %w[voiceOver dynamicType importOutcome playbackOutcome relaunchOutcome interruptionOutcome].map { |field| report[field] }
-          raise Error, 'issue requires severity' if outcomes.include?('issue') && report['severity'] == 'none'
+          report = ReleaseCandidateFeedback.decode(raw)
+          @feedback_sha256 << Digest::SHA256.hexdigest(raw)
+          raise Error, 'feedback candidate version' unless report['appVersion'] == data.dig('source', 'version') && report['buildNumber'] == data.dig('source', 'build_number')
+          raise Error, 'issue requires severity' if ReleaseCandidateFeedback.user_issue?(report) && report['severity'] == 'none'
           blocking += 1 if %w[p0 p1].include?(report['severity'])
-          incomplete += 1 if outcomes.include?('notChecked') || report['provider'] == 'notChecked' || report['fixture'] == 'notChecked' || report['listening'] == 'notChecked' || routes == ['notChecked']
+          incomplete += 1 if ReleaseCandidateFeedback.unverified?(report)
           device_classes << report['deviceClass'] if report['platform'] == 'ios'
         rescue StandardError
           add('fail', 'feedback.invalid', '실기기 피드백 파일이 개인정보 최소화 계약과 일치하지 않습니다.')
@@ -341,6 +321,32 @@ module Deployment
         add('blocked', 'feedback.incomplete', 'iPhone·iPad 물리 기기 피드백 또는 필수 확인 항목이 아직 완전하지 않습니다.', { 'incomplete_reports' => incomplete })
       else
         add('pass', 'feedback.p0_p1', '제공된 실기기 피드백에 P0/P1이 없습니다.', { 'reports' => @feedback.length })
+      end
+    end
+
+    def check_candidate_binding
+      return unless data['app'] == 'classical-local-library'
+      unless @candidate && @ipa
+        add('blocked', 'candidate.binding', '실제 소스·IPA hash와 사용자 응답 receipt를 연결한 후보 manifest 및 IPA가 필요합니다.')
+        return
+      end
+      begin
+        candidate = ReleaseCandidateBinding.decode(File.read(@candidate))
+        ReleaseCandidateBinding.verify!(candidate, source: data['source'], ipa_sha256: Digest::SHA256.file(@ipa).hexdigest, feedback_sha256: @feedback_sha256)
+        scopes = [data.dig('source', 'path'), 'packages/ddirori_ui']
+        _out, _err, committed = Open3.capture3('git', 'cat-file', '-e', "#{candidate['sourceCommit']}^{commit}", chdir: REPO)
+        _out, _err, unchanged = Open3.capture3('git', 'diff', '--quiet', candidate['sourceCommit'], '--', *scopes, chdir: REPO)
+        untracked, _err, listed = Open3.capture3('git', 'ls-files', '--others', '--exclude-standard', '--', *scopes, chdir: REPO)
+        if !committed.success? || !unchanged.success? || !listed.success? || !untracked.strip.empty?
+          add('blocked', 'candidate.source', '후보 commit과 현재 제품 소스가 일치하는지 확인해야 합니다. 다른 앱 변경은 검사 범위에 포함하지 않습니다.')
+        else
+          add('pass', 'candidate.binding', '실제 IPA hash·제품 checkpoint와 제공된 사용자 응답 receipt가 같은 후보에 연결되었습니다. 청감 자체를 자동 증명하지 않습니다.')
+        end
+        if candidate['distribution'] == 'internal-testflight'
+          add('blocked', 'candidate.distribution', '내부 테스트 전용 후보입니다. 공개 배포 가능한 별도 artifact가 필요합니다.')
+        end
+      rescue StandardError
+        add('fail', 'candidate.binding', '후보 manifest·IPA·피드백 receipt가 일치하지 않습니다. 후보를 다시 확인해 주세요.')
       end
     end
 

@@ -15,6 +15,88 @@ void main() {
   late Directory tempDirectory;
 
   setUpAll(sqfliteFfiInit);
+
+  test('development builds do not invent the old release build label', () {
+    expect(appVersionLabel, isNot('0.1.0 (1)'));
+  });
+
+  testWidgets(
+    'local privacy works offline; email composes only public contact and version',
+    (tester) async {
+      final database = (await tester.runAsync(
+        () => _openDatabase(tempDirectory),
+      ))!;
+      addTearDown(database.close);
+      final opened = <Uri>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppSettingsScreen(
+            dataControl: LocalDataControlService(
+              database: database,
+              managedDirectories: const [],
+            ),
+            onResetComplete: () async {},
+            openExternal: (uri) async {
+              opened.add(uri);
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.scrollUntilVisible(find.text('개인정보 처리 안내'), 200);
+      await tester.tap(find.text('개인정보 처리 안내'));
+      await tester.pumpAndSettle();
+      expect(find.text('기기 내 데이터 처리 안내'), findsOneWidget);
+      expect(opened, isEmpty);
+      expect(find.textContaining('이미 내보낸 백업은 삭제하지 않습니다'), findsOneWidget);
+      await tester.tap(find.text('닫기'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('이메일 문의'), 200);
+      await tester.tap(find.text('이메일 문의'));
+      await tester.pumpAndSettle();
+      expect(opened.single.scheme, 'mailto');
+      expect(opened.single.path, publicSupportEmail);
+      expect(opened.single.queryParameters.keys, ['subject']);
+      expect(
+        opened.single.queryParameters['subject'],
+        contains(appVersionLabel),
+      );
+      expect(opened.single.toString(), isNot(contains('/Users/')));
+    },
+  );
+
+  testWidgets(
+    'mail failure keeps public contact without platform error paths',
+    (tester) async {
+      final database = (await tester.runAsync(
+        () => _openDatabase(tempDirectory),
+      ))!;
+      addTearDown(database.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppSettingsScreen(
+            dataControl: LocalDataControlService(
+              database: database,
+              managedDirectories: const [],
+            ),
+            onResetComplete: () async {},
+            openExternal: (_) async => throw StateError('/Users/private/mail'),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.scrollUntilVisible(find.text('이메일 문의'), 200);
+      await tester.tap(find.text('이메일 문의'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.textContaining('메일 앱을 열지 못했습니다.'),
+        200,
+      );
+      expect(find.textContaining('/Users/private'), findsNothing);
+      expect(find.textContaining('메일 앱을 열지 못했습니다.'), findsOneWidget);
+    },
+  );
   setUp(() async {
     tempDirectory = await Directory.systemTemp.createTemp('data_control_test_');
   });
@@ -155,7 +237,9 @@ void main() {
           300,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.tap(find.text('초기화'));
+        await tester.ensureVisible(find.widgetWithText(DdiroriButton, '초기화'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(DdiroriButton, '초기화'));
         await tester.pumpAndSettle();
         await tester.enterText(find.byType(TextField), '초기화');
         await tester.pumpAndSettle();
@@ -250,8 +334,15 @@ void main() {
       late Future<void> importFuture;
       await tester.runAsync(() async {
         importFuture = Future<void>.sync(importButton.onPressed!);
-        await Future<void>.delayed(const Duration(milliseconds: 100));
       });
+      final waiting = Stopwatch()..start();
+      while (find.text('라이브러리 백업 가져오기').evaluate().isEmpty &&
+          waiting.elapsed < const Duration(seconds: 5)) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+      }
       await tester.pumpAndSettle();
       expect(find.text('라이브러리 백업 가져오기'), findsOneWidget);
       expect(find.textContaining('음원 파일과 원래 폴더 위치는'), findsOneWidget);

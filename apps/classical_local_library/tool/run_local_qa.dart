@@ -3,6 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as path;
+
+const qaSourceFingerprintVersion = 2;
+const qaGeneratedRegistrantPaths = [
+  'ios/Runner/GeneratedPluginRegistrant.h',
+  'ios/Runner/GeneratedPluginRegistrant.m',
+  'android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java',
+];
 
 class QaCheck {
   const QaCheck(
@@ -77,7 +85,9 @@ Future<Map<String, Object?>?> qaImageEvidence(
     'height': dimension(20),
     'physicalDeviceVerified': false,
     'storeApproved': false,
-    'environment': relative.contains('/native-')
+    'environment': relative.startsWith('android-background/')
+        ? 'AndroidEmulator'
+        : relative.contains('/native-')
         ? 'iOSSimulator'
         : 'FlutterWidgetFakeController',
   };
@@ -194,44 +204,58 @@ Future<void> _killDescendants(int pid) async {
   }
 }
 
-bool isQaSourceFile(String path) {
-  final normalized = path.replaceAll('\\', '/');
+bool isQaSourceFile(String sourcePath) {
+  final normalized = sourcePath.replaceAll('\\', '/');
   if (normalized.split('/').contains('__pycache__') &&
       normalized.endsWith('.pyc')) {
     return false;
   }
   if (normalized.split('/').last == '.DS_Store') return false;
   // Flutter creates these ignored files during the first test/build.
-  for (final generated in [
-    'ios/Runner/GeneratedPluginRegistrant.h',
-    'ios/Runner/GeneratedPluginRegistrant.m',
-  ]) {
-    if (normalized == generated || normalized.endsWith('/$generated')) {
+  for (final generated in qaGeneratedRegistrantPaths) {
+    final absolute =
+        normalized.startsWith('/') ||
+        RegExp(r'^[A-Za-z]:/').hasMatch(normalized);
+    if (normalized == generated ||
+        (absolute && normalized.endsWith('/$generated'))) {
       return false;
     }
   }
   return true;
 }
 
-Future<String> sourceFingerprint() async {
+Future<Map<String, String?>> generatedRegistrantFingerprints({
+  String root = '.',
+}) async => {
+  for (final relative in qaGeneratedRegistrantPaths)
+    relative: await File(path.join(root, relative)).exists()
+        ? sha256
+              .convert(await File(path.join(root, relative)).readAsBytes())
+              .toString()
+        : null,
+};
+
+Future<String> sourceFingerprint({String root = '.'}) async {
   final files = <File>[];
-  for (final path in [
+  for (final folder in [
     'lib',
     'test',
     'integration_test',
     'tool',
     'assets',
     'ios/Runner',
+    'android/app/src/main',
     '../../packages/ddirori_ui/lib',
     '../../packages/ddirori_ui/assets',
   ]) {
-    final directory = Directory(path);
+    final directory = Directory('$root/$folder');
     if (!await directory.exists()) continue;
     await for (final entity in directory.list(
       recursive: true,
       followLinks: false,
     )) {
-      if (entity is File && isQaSourceFile(entity.path)) {
+      if (entity is File &&
+          isQaSourceFile(path.relative(entity.path, from: root))) {
         files.add(entity);
       }
     }
@@ -240,19 +264,28 @@ Future<String> sourceFingerprint() async {
     'pubspec.yaml',
     'pubspec.lock',
     'ios/Runner.xcodeproj/project.pbxproj',
+    'android/app/build.gradle.kts',
+    'android/build.gradle.kts',
+    'android/settings.gradle.kts',
+    'android/gradle.properties',
+    'android/gradle/wrapper/gradle-wrapper.properties',
   ]) {
-    files.add(File(path));
+    files.add(File('$root/$path'));
   }
   files.sort((a, b) => a.path.compareTo(b.path));
   final entries = <String>[];
   for (final file in files) {
-    entries.add('${file.path}:${sha256.convert(await file.readAsBytes())}');
+    final relative = path.relative(file.path, from: root);
+    entries.add(
+      '$relative:${await file.exists() ? sha256.convert(await file.readAsBytes()) : 'missing'}',
+    );
   }
   return sha256.convert(utf8.encode(entries.join('\n'))).toString();
 }
 
 Future<void> main(List<String> arguments) async {
   String? simulator;
+  String? androidDevice;
   String? outputRoot;
   var libraryUx = false;
   var withCaptures = false;
@@ -261,6 +294,8 @@ Future<void> main(List<String> arguments) async {
       switch (arguments[i]) {
         case '--simulator':
           simulator = arguments[++i];
+        case '--android-device':
+          androidDevice = arguments[++i];
         case '--output':
           outputRoot = arguments[++i];
         case '--library-ux':
@@ -276,12 +311,33 @@ Future<void> main(List<String> arguments) async {
         !RegExp(r'^[A-Fa-f0-9-]{36}$').hasMatch(simulator)) {
       throw const FormatException('simulator');
     }
+    if (androidDevice != null &&
+        !RegExp(r'^emulator-[0-9]+$').hasMatch(androidDevice)) {
+      throw const FormatException('android device');
+    }
   } catch (_) {
     stderr.writeln(
-      'Usage: dart run tool/run_local_qa.dart [--library-ux] [--captures] [--simulator UUID] [--output DIRECTORY]',
+      'Usage: dart run tool/run_local_qa.dart [--library-ux] [--captures] [--simulator UUID] [--android-device emulator-PORT] [--output DIRECTORY]',
     );
     exitCode = 64;
     return;
+  }
+  if (androidDevice != null) {
+    final device = await Process.run('adb', [
+      '-s',
+      androidDevice,
+      'emu',
+      'avd',
+      'name',
+    ]);
+    if (device.exitCode != 0 ||
+        !(device.stdout as String).trim().startsWith('DDIRORI_QA_Play_')) {
+      stderr.writeln(
+        'Select a booted dedicated DDIRORI_QA_Play_ Android emulator.',
+      );
+      exitCode = 64;
+      return;
+    }
   }
   if (simulator != null) {
     final discovery = await Process.run('xcrun', [
@@ -349,16 +405,33 @@ Future<void> main(List<String> arguments) async {
   }
   final report = <String, Object?>{
     'schemaVersion': 1,
+    'sourceFingerprintVersion': qaSourceFingerprintVersion,
+    'generatedRegistrantsBefore': await generatedRegistrantFingerprints(),
     'startedAt': DateTime.now().toUtc().toIso8601String(),
-    'environment': simulator == null ? 'hostOnly' : 'hostAndIosSimulator',
+    'environment': androidDevice != null
+        ? simulator != null
+              ? 'hostIosAndAndroidEmulators'
+              : 'hostAndAndroidEmulator'
+        : simulator == null
+        ? 'hostOnly'
+        : 'hostAndIosSimulator',
     'sourceSha256Before': before,
     'physicalDeviceVerified': false,
     'storeScreenshotsVerified': false,
-    'scope': libraryUx ? 'libraryMusicActionsAndRecovery' : 'fullLocalQa',
+    'scope': libraryUx ? 'releaseHardening' : 'fullLocalQa',
     'status': 'running',
     'checks': <Map<String, Object?>>[],
   };
   final checks = [
+    const QaCheck('android-evidence-unit', 'python3', [
+      '-m',
+      'unittest',
+      'discover',
+      '-s',
+      'tool',
+      '-p',
+      'test_android_media_evidence.py',
+    ]),
     const QaCheck('flutter-version', 'flutter', ['--version', '--machine']),
     const QaCheck('format', 'dart', [
       'format',
@@ -423,11 +496,27 @@ Future<void> main(List<String> arguments) async {
           'test/library_search_ui_test.dart',
           'test/playback_modes_ui_test.dart',
           'test/music_actions_ui_test.dart',
+          'test/library_batch_ui_test.dart',
+          'test/composer_library_ui_test.dart',
+          'test/composer_context_ui_test.dart',
+          'test/release_hardening_ui_test.dart',
           '--reporter',
           'expanded',
         ],
         environment: captureEnvironment,
         expectedImages: [
+          for (final label in ['390-1-light', '320-2-light', '1024-2-dark'])
+            for (final scene in ['settings', 'privacy', 'support-failure'])
+              'images/release-$scene-$label.png',
+          for (final label in ['390-1-light', '320-2-light', '1024-2-dark'])
+            for (final scene in ['management', 'editor', 'imslp', 'period'])
+              'images/composer-$scene-$label.png',
+          for (final label in ['390-1-light', '320-2-light', '1024-2-dark'])
+            for (final scene in ['overview', 'queue'])
+              'images/composer-$scene-$label.png',
+          for (final label in ['390-1-light', '320-2-light', '1024-2-dark'])
+            for (final scene in ['selection', 'save-queue'])
+              'images/batch-$scene-$label.png',
           'images/favorite-refresh-failure-390-1-light.png',
           for (final label in ['390-1-light', '320-2-light', '1024-2-dark'])
             for (final scene in [
@@ -497,6 +586,7 @@ Future<void> main(List<String> arguments) async {
         '--no-pub',
         'integration_test/queue_edit_integration_test.dart',
         'integration_test/music_actions_flow_integration_test.dart',
+        'integration_test/composer_context_integration_test.dart',
         '-d',
         simulator,
         '--reporter',
@@ -519,6 +609,49 @@ Future<void> main(List<String> arguments) async {
         '--output',
         '${directory.path}/background',
       ]),
+    ],
+    if (androidDevice != null) ...[
+      QaCheck('native-android-formats', 'flutter', [
+        'test',
+        '--no-pub',
+        'integration_test/mixed_format_playback_integration_test.dart',
+        '-d',
+        androidDevice,
+        '--reporter',
+        'expanded',
+      ]),
+      QaCheck('native-android-context', 'flutter', [
+        'test',
+        '--no-pub',
+        'integration_test/composer_context_integration_test.dart',
+        '-d',
+        androidDevice,
+        '--reporter',
+        'expanded',
+      ]),
+      QaCheck('native-android-queue', 'flutter', [
+        'test',
+        '--no-pub',
+        'integration_test/queue_edit_integration_test.dart',
+        '--plain-name',
+        'native indexed queue selection keeps sources and persists selected occurrence',
+        '-d',
+        androidDevice,
+        '--reporter',
+        'expanded',
+      ]),
+      QaCheck(
+        'native-android-background',
+        'python3',
+        [
+          'tool/run_android_background_audio_qa.py',
+          '--device',
+          androidDevice,
+          '--output',
+          '${directory.path}/android-background',
+        ],
+        expectedImages: ['android-background/android-media-notification.png'],
+      ),
     ],
     if (simulator != null && !libraryUx) ...[
       const QaCheck('ios-build', 'flutter', [
@@ -558,6 +691,7 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln('${check.id}: ${result['status']}');
   }
   final after = await sourceFingerprint();
+  report['generatedRegistrantsAfter'] = await generatedRegistrantFingerprints();
   report['sourceSha256After'] = after;
   report['completedAt'] = DateTime.now().toUtc().toIso8601String();
   report['status'] = before != after

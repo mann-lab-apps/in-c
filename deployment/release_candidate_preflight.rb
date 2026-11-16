@@ -9,6 +9,8 @@ OptionParser.new do |parser|
   parser.on('--artifact PATH') { |value| options[:artifact] = value }
   parser.on('--feedback PATH') { |value| options[:feedback] << value }
   parser.on('--review-details PATH') { |value| options[:review_details] = value }
+  parser.on('--candidate PATH') { |value| options[:candidate] = value }
+  parser.on('--ipa PATH') { |value| options[:ipa] = value }
   parser.on('--format FORMAT') { |value| options[:format] = value }
   parser.on('--output PATH') { |value| options[:output] = value }
   parser.on('--require-ready') { options[:require_ready] = true }
@@ -22,6 +24,8 @@ report = Deployment::IOSReleasePreflight.new(
   artifact: options[:artifact],
   feedback: options[:feedback],
   review_details: options[:review_details],
+  candidate: options[:candidate],
+  ipa: options[:ipa],
 ).run
 rendered = options[:format] == 'json' ? JSON.pretty_generate(report) + "\n" : Deployment::IOSReleasePreflight.text(report)
 File.write(options[:output], rendered) if options[:output]

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'classical_library_models.dart';
 import 'imslp.dart';
 import 'imslp_download.dart';
+import 'imslp_context.dart';
 
 /// Only successfully registered local audio IDs, returned by the parent's
 /// existing file import flow. A null result means cancellation; no source is
@@ -26,6 +27,8 @@ class ImslpLibraryScreen extends StatefulWidget {
     this.importCoordinator,
     this.openUri,
     this.initialWorkId,
+    this.contextComposer,
+    this.canonicalWorkId,
     this.onImportLocalFiles,
     this.onShowImportedFiles,
     this.onPlayImportedFiles,
@@ -38,6 +41,8 @@ class ImslpLibraryScreen extends StatefulWidget {
   final ImslpImportCoordinator? importCoordinator;
   final Future<bool> Function(Uri uri)? openUri;
   final String? initialWorkId;
+  final ClassicalPerson? contextComposer;
+  final String Function(String)? canonicalWorkId;
   final Future<ImslpLocalImportResult?> Function()? onImportLocalFiles;
   final Future<void> Function(ImslpLocalImportResult result)?
   onShowImportedFiles;
@@ -81,6 +86,13 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
   String? message;
   ImslpDownloadCancellation? cancellation;
   late final TextEditingController searchController;
+  List<Work> get availableWorks {
+    final byId = {for (final w in widget.library.works) w.id: w};
+    final ids = widget.library.works
+        .map((w) => widget.canonicalWorkId?.call(w.id) ?? w.id)
+        .toSet();
+    return [for (final id in ids) ?byId[id]];
+  }
 
   ImslpWorkLink? get currentLink {
     final work = selectedWork;
@@ -94,11 +106,17 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
   @override
   void initState() {
     super.initState();
-    selectedWork = widget.library.works.isEmpty
+    selectedWork = availableWorks.isEmpty || widget.contextComposer != null
         ? null
-        : widget.library.works.first;
-    for (final work in widget.library.works) {
-      if (work.id == widget.initialWorkId) selectedWork = work;
+        : availableWorks.first;
+    for (final work in availableWorks) {
+      if (work.id ==
+          (widget.initialWorkId == null
+              ? null
+              : widget.canonicalWorkId?.call(widget.initialWorkId!) ??
+                    widget.initialWorkId)) {
+        selectedWork = work;
+      }
     }
     searchController = TextEditingController(text: _defaultQuery());
     unawaited(_reload());
@@ -117,7 +135,10 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
 
   String _defaultQuery() {
     final work = selectedWork;
-    if (work == null) return '';
+    if (work == null) {
+      final p = widget.contextComposer;
+      return p == null ? '' : (p.name.english ?? p.name.original ?? p.name.ko);
+    }
     return buildImslpWorkQuery(work, widget.library.person(work.composerId));
   }
 
@@ -189,6 +210,15 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
   Future<void> _search() async {
     final query = searchController.text.trim();
     final generation = ++searchGeneration;
+    if (isPrivateImslpQuery(query)) {
+      setState(() {
+        searching = false;
+        searchFailed = false;
+        searchResults = [];
+        message = '파일 경로 대신 작곡가와 작품명을 입력해 주세요.';
+      });
+      return;
+    }
     if (query.isEmpty) {
       setState(() {
         searching = false;
@@ -319,13 +349,24 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
   Future<void> _link(ImslpWorkSearchResult result) async {
     final work = selectedWork;
     if (work == null) return;
+    if (!isImslpWorkPage(result.pageUrl)) {
+      setState(
+        () => message = '공식 IMSLP 작품 페이지를 선택해 주세요. 파일·분류 페이지는 작품에 연결하지 않습니다.',
+      );
+      return;
+    }
+    final evidence = ImslpMatchEvidence(
+      composer: widget.library.person(work.composerId),
+      work: work,
+      result: result,
+    );
     final confirmed = await _confirm(
       title: 'IMSLP 작품 연결',
       message:
-          '로컬 작품: ${work.title.ko}\nIMSLP: ${result.composerName ?? '작곡가 정보 없음'} · ${result.title}\n이 작품 페이지를 연결할까요?',
+          '로컬 작품: ${work.title.ko}\nIMSLP: ${result.composerName ?? '작곡가 정보 없음'} · ${result.title}\n${evidence.summary}\n${currentLink == null ? '이 작품 페이지를 연결할까요?' : '현재 연결을 변경할까요? 기존 자료 목록은 해제하며 가져온 로컬 파일은 유지합니다.'}',
       confirmLabel: '연결',
     );
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !mounted || selectedWork?.id != work.id) return;
     try {
       await widget.store.upsertWorkLink(
         ImslpWorkLink(
@@ -552,6 +593,11 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const Text('로컬 보관함 검색과 별개입니다. 검색 결과는 작품 페이지이며 음원 파일 목록이 아닙니다.'),
+            if (widget.contextComposer != null)
+              Text(
+                '확인한 작곡가: ${widget.contextComposer!.name.ko} · ${widget.contextComposer!.composerProfile?.source ?? '기존 작품의 작곡가 관계'}',
+              ),
+            const Text('검색어의 작곡가·작품명만 IMSLP에 전송합니다. 로컬 음원과 파일 경로는 전송하지 않습니다.'),
             const SizedBox(height: 12),
             DdiroriInput(
               value: searchController.text,
@@ -577,6 +623,21 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
                   ),
                 if (searchFailed)
                   DdiroriButton(label: '검색 다시 시도', onPressed: _search),
+                if (searchFailed)
+                  DdiroriButton(
+                    label: 'IMSLP 공식 검색 열기',
+                    kind: DdiroriButtonKind.secondary,
+                    onPressed: busy
+                        ? null
+                        : () => _runAction(() async {
+                            await _open(
+                              Uri.https('imslp.org', '/index.php', {
+                                'title': 'Special:Search',
+                                'search': searchController.text.trim(),
+                              }),
+                            );
+                          }),
+                  ),
               ],
             ),
             if (searching)
@@ -599,6 +660,16 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(result.composerName ?? '작곡가 정보 없음'),
+                    if (selectedWork != null || widget.contextComposer != null)
+                      Text(
+                        ImslpMatchEvidence(
+                          composer: selectedWork == null
+                              ? widget.contextComposer!
+                              : widget.library.person(selectedWork!.composerId),
+                          work: selectedWork,
+                          result: result,
+                        ).summary,
+                      ),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -725,7 +796,7 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
                 kind: DdiroriButtonKind.quiet,
               ),
             ],
-            if (widget.library.works.isNotEmpty) ...[
+            if (availableWorks.isNotEmpty) ...[
               DropdownButtonFormField<Work>(
                 initialValue: selectedWork,
                 isExpanded: true,
@@ -734,7 +805,7 @@ class _ImslpLibraryScreenState extends State<ImslpLibraryScreen> {
                   prefixIcon: Icon(Icons.library_music_outlined),
                 ),
                 items: [
-                  for (final work in widget.library.works)
+                  for (final work in availableWorks)
                     DropdownMenuItem(
                       value: work,
                       child: Text(

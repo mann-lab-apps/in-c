@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "fixture": "movement_1.mp3",
+  "source": "movement_1.wav",
+  "originalSyntheticAudio": true,
+  "sourceSha256": "7a61385f3d45dae593a8af2315f6f43a4536526851686fd3e5edac80de8d2c8d",
+  "fixtureSha256": "efed8e948836f353826bf7cf43a000824683ac154d7393fc62f377a96cb1ce38",
+  "encoder": "LAME 3.100",
+  "encoderLibrarySha256": "e93eb175663f5c271b0b8ca09b32ca2bbab33ac971bfda797489aa415e7eced0",
+  "encoderProvenance": "Existing Unity FSBTool",
+  "encoderLibraryName": "libmp3lame.dylib",
+  "verifiedSigningTeam": "9QW8UQUTAA",
+  "encoderLicense": "LGPL-2.0-or-later; https://github.com/lameproject/lame/blob/master/COPYING",
+  "encoderBundledWithApp": false,
+  "sampleRate": 22050,
+  "channels": 1,
+  "sourceSamples": 52920,
+  "bitrateKbps": 96,
+  "generation": "python3 tool/generate_mp3_fixture.py --lame-library <trusted-local-library>"
+}

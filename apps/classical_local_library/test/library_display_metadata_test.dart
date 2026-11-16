@@ -83,7 +83,11 @@ void main() {
       ),
     );
     expect(tagged.displayTitle, '태그 곡명');
-    expect(tagged.artist, '태그 연주자');
+    expect(
+      tagged.artist,
+      isNull,
+      reason: 'albumArtist must not invent a track performer',
+    );
     expect(tagged.album, '별도 앨범');
     expect(tagged.workTitle, plan.work.title.ko);
     expect(tagged.trackId, unknown.trackId);
@@ -127,8 +131,9 @@ void main() {
             ],
           )
           .single;
-      expect(entry.title, 'corrected title');
-      expect(entry.album, 'corrected album');
+      expect(entry.title, 'tag title');
+      expect(entry.workTitle, 'corrected album');
+      expect(entry.album, 'tag album');
       expect(entry.artist, 'corrected artist');
       expect(
         library

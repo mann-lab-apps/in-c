@@ -12,20 +12,21 @@ class LibraryViewSettings {
     List<String> visible = sections,
     this.playlistSort = PlaylistListSort.createdNewest,
     Map<String, PlaylistTrackSort> trackSorts = const {},
-  }) : order = List.unmodifiable(order),
-       visible = List.unmodifiable(visible),
+  }) : order = List.unmodifiable(order.map(_section)),
+       visible = List.unmodifiable(visible.map(_section)),
        trackSorts = Map.unmodifiable(trackSorts) {
-    if (order.length != sections.length ||
-        order.toSet().length != sections.length ||
-        !order.every(sections.contains) ||
-        visible.toSet().length != visible.length ||
-        !visible.every(sections.contains) ||
+    if (this.order.length != sections.length ||
+        this.order.toSet().length != sections.length ||
+        !this.order.every(sections.contains) ||
+        this.visible.toSet().length != this.visible.length ||
+        !this.visible.every(sections.contains) ||
         trackSorts.length > 10000 ||
         trackSorts.keys.any((id) => id.isEmpty || id.length > 200)) {
       throw const FormatException('보관함 표시 설정이 올바르지 않습니다.');
     }
   }
-  static const sections = ['songs', 'albums', 'artists', 'playlists'];
+  static const sections = ['songs', 'albums', 'composers', 'playlists'];
+  static String _section(String id) => id == 'artists' ? 'composers' : id;
   final List<String> order;
   final List<String> visible;
   final PlaylistListSort playlistSort;

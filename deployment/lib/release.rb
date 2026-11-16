@@ -42,10 +42,13 @@ module Deployment
       { 'ios' => %w[bundle_id scheme configuration team_id profile export_options baseline baseline_sha256],
         'android' => %w[package_name upload_certificate_sha1 baseline baseline_sha256] }.each do |platform, fields|
         config = data[platform]
+        next if platform == 'android' && data.key?('android') && config.nil?
         raise Error, "invalid #{platform} fields" unless config.is_a?(Hash) && config.keys.sort == fields.sort && config.values.all? { |v| v.is_a?(String) && !v.empty? }
         raise Error, 'invalid baseline hash' unless config['baseline_sha256'].match?(/\A[0-9a-f]{64}\z/)
       end
-      raise Error, 'invalid upload certificate fingerprint' unless data.dig('android', 'upload_certificate_sha1').match?(/\A[0-9A-F]{40}\z/)
+      if data['android']
+        raise Error, 'invalid upload certificate fingerprint' unless data.dig('android', 'upload_certificate_sha1').match?(/\A[0-9A-F]{40}\z/)
+      end
       asset('metadata')
       asset('release_notes')
       Deployment.contained(directory, data.dig('ios', 'export_options'))
@@ -90,6 +93,7 @@ module Deployment
     def platform
       value = @options.fetch('platform', 'ios')
       raise Error, 'platform must be ios or android' unless %w[ios android].include?(value)
+      raise Error, 'platform signing is not configured in this manifest' unless manifest.data[value]
       value
     end
 
@@ -160,8 +164,11 @@ module Deployment
         options = export_options
         raise Error, 'export destination must be local export' unless options['destination'] == 'export'
         raise Error, 'export options differ from manifest' unless options['method'] == 'app-store-connect' && options['teamID'] == config['team_id'] && options['signingStyle'] == 'manual' && options['signingCertificate'] == 'Apple Distribution' && options['provisioningProfiles'] == { config['bundle_id'] => config['profile'] }
-        allowed = %w[destination method teamID signingStyle signingCertificate provisioningProfiles stripSwiftSymbols uploadSymbols manageAppVersionAndBuildNumber]
+        allowed = %w[destination method teamID signingStyle signingCertificate provisioningProfiles stripSwiftSymbols uploadSymbols manageAppVersionAndBuildNumber testFlightInternalTestingOnly]
         raise Error, 'unexpected export options' unless (options.keys - allowed).empty?
+        if options.key?('testFlightInternalTestingOnly')
+          raise Error, 'internal-test-only flag must be boolean' unless [true, false].include?(options['testFlightInternalTestingOnly'])
+        end
         raise Error, 'automatic build-number mutation forbidden' if options['manageAppVersionAndBuildNumber'] == true
       else
         gradle = File.read(File.join(app_path, 'android/app/build.gradle.kts'))

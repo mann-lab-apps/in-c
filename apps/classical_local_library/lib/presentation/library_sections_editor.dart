@@ -4,6 +4,7 @@ const _sectionLabels = {
   'songs': '곡',
   'albums': '앨범',
   'artists': '아티스트',
+  'composers': '작곡가',
   'playlists': '재생목록',
 };
 

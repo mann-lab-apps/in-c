@@ -50,7 +50,7 @@ void main() {
 
   test('logical backup restores favorites, missing state and source provenance idempotently', () async {
     final document = jsonDecode(backup) as Map<String, dynamic>;
-    expect(document['storageSchemaVersion'], 18);
+    expect(document['storageSchemaVersion'], 19);
     expect(document['counts']['local_favorites'], 1);
     expect(document['data']['local_favorites'], [
       {'file_id': 'stable-file'},

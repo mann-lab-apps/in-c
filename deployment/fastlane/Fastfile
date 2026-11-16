@@ -65,13 +65,15 @@ end
 
 desc 'Audit local iOS release readiness without store writes or secret output'
 lane :release_candidate_preflight do |options|
-  unknown = options.keys.map(&:to_s) - %w[manifest artifact feedback review_details output require_ready]
+  unknown = options.keys.map(&:to_s) - %w[manifest artifact feedback review_details candidate ipa output require_ready]
   UI.user_error!("Unsupported preflight options: #{unknown.join(', ')}") unless unknown.empty?
   report = Deployment::IOSReleasePreflight.new(
     manifest: options.fetch(:manifest),
     artifact: options[:artifact],
     feedback: options.fetch(:feedback, '').split(',').reject(&:empty?),
     review_details: options[:review_details],
+    candidate: options[:candidate],
+    ipa: options[:ipa],
   ).run
   rendered = Deployment::IOSReleasePreflight.text(report)
   File.write(options[:output], JSON.pretty_generate(report) + "\n") if options[:output]

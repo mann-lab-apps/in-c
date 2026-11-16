@@ -21,6 +21,7 @@ Future<void> main() async {
       'movement_1_aac.m4a',
       'movement_1_alac.m4a',
       'movement_1.flac',
+      'movement_1.mp3',
     ]) {
       final file = File('assets/audio_test/$name');
       final info = await Process.run('/usr/bin/afinfo', [file.path]);
@@ -28,7 +29,8 @@ Future<void> main() async {
       final valid =
           info.exitCode == 0 &&
           output.contains('22050 Hz') &&
-          output.contains('estimated duration: 2.400000 sec');
+          (output.contains('estimated duration: 2.400000 sec') ||
+              (name.endsWith('.mp3') && output.contains('52920 valid frames')));
       fixtures.add({
         'fixture': name,
         'status': valid ? 'verifiedHostMetadata' : 'failed',
@@ -44,7 +46,11 @@ Future<void> main() async {
             .firstMatch(output)
             ?.group(1)
             ?.trim(),
-        'generation': name.endsWith('.wav') ? 'generatePcmWaveFixture' : 'macOS afconvert from movement_1.wav; see generate_audio_fixtures.dart',
+        'generation': name.endsWith('.wav')
+            ? 'generatePcmWaveFixture'
+            : name.endsWith('.mp3')
+            ? 'existing signed local LAME; mp3-provenance.json'
+            : 'macOS afconvert from movement_1.wav; see generate_audio_fixtures.dart',
       });
       if (!valid) exitCode = 1;
     }
@@ -95,6 +101,7 @@ Future<void> main() async {
             ?.group(1),
         'fixtures': fixtures,
         'mp3': {
+          'fixture': 'movement_1.mp3; native verification is separate',
           'status': mp3.any((r) => r['exitCode'] == 0)
               ? 'encoderAvailableNeedsFixtureAndNativeVerification'
               : 'unavailableLocalEncoder',

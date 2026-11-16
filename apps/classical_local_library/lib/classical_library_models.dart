@@ -1,4 +1,6 @@
 import 'audio_tags.dart';
+import 'classical_context.dart';
+export 'classical_context.dart';
 
 const _unsetLocalAudioValue = Object();
 final Expando<_ClassicalLibraryIndex> _libraryIndexes =
@@ -90,12 +92,14 @@ class ClassicalPerson {
     required this.name,
     this.birthYear,
     this.deathYear,
+    this.composerProfile,
   });
 
   final String id;
   final LocalizedName name;
   final int? birthYear;
   final int? deathYear;
+  final ComposerProfile? composerProfile;
 }
 
 class Instrument {
@@ -119,6 +123,7 @@ class Work {
     required this.title,
     this.catalogNumber,
     this.periodLabel,
+    this.periodAssessment,
     this.sourceReferences = const [],
   });
 
@@ -127,6 +132,7 @@ class Work {
   final LocalizedName title;
   final String? catalogNumber;
   final String? periodLabel;
+  final PeriodAssessment? periodAssessment;
   final List<SourceReference> sourceReferences;
 }
 

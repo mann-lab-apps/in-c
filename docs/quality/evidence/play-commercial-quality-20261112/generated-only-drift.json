@@ -1,0 +1,11 @@
+{
+  "qaRunFingerprint": "53f9affa6664dc4cb86ab7f59b0b72e2b2ba68478dd96ac464ebec50074b7747",
+  "postBuildFingerprint": "606e955cb37a13dadf821b157f366752447d477abfe582e23f2381a7c8792d74",
+  "singleGeneratedFile": "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java",
+  "gitIgnored": true,
+  "previousGeneratedSha256": "f2a5798a364da2d1012f9e9b45edd35a4aa34177c9c8d31fabc9c7a82f336b5f",
+  "currentGeneratedSha256": "0a6a2e522a6909ef965a0dad887b33006b377c9e8b55743d45ae516067c22882",
+  "reconstructedByReplacingOnlyThisFileInMemory": true,
+  "productFilesModifiedToRecreateQaState": false,
+  "explanation": "Flutter normal simulator build removed integration_test registration from ignored Android generated Java. Original QA report is unchanged. Post-build QA unit/live/native rechecks passed."
+}

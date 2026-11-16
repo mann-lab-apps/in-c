@@ -21,6 +21,7 @@ Future<void> main() async {
       'movement_1_aac.m4a',
       'movement_1_alac.m4a',
       'movement_1.flac',
+      'movement_1.mp3',
     ]) {
       final input = File('assets/audio_test/$fixture');
       final output = File('${directory.path}/$fixture.wav');
@@ -57,7 +58,7 @@ Future<void> main() async {
       'schemaVersion': 1,
       'environment': 'macosHostDecoder',
       'physicalOutputVerified': false,
-      'mp3': 'notVerifiedNoLocalEncoder',
+      'mp3': 'syntheticFixtureHostDecoderOnly',
       'stereoRoutingAndTransitionGap': 'notVerifiedMonoOfflineDecodeOnly',
       'results': results,
     }),

@@ -44,6 +44,13 @@ class LocalPlaybackQueueItem {
 
   bool get isDirectFile => trackId.startsWith('local-file:');
 
+  List<String> get contextParts => [
+    workTitle,
+    recordingTitle,
+  ].map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
+
+  String get contextLabel => contextParts.join(' · ');
+
   String get fileSourceLabel => isDirectFile
       ? '로컬 파일'
       : usesLinkedFile
@@ -391,8 +398,12 @@ class LocalPlaybackState {
     if (item == null) {
       return playerState.label;
     }
-    return '${playerState.label} · $positionLabelIndex/${queue.length} · '
-        '${item.workTitle} · ${item.displayTitle}';
+    return [
+      playerState.label,
+      '$positionLabelIndex/${queue.length}',
+      item.workTitle.trim(),
+      item.displayTitle.trim(),
+    ].where((value) => value.isNotEmpty).join(' · ');
   }
 
   static Duration _normalizeDuration(Duration value, Duration? maximum) {
@@ -411,7 +422,13 @@ abstract class LocalPlaybackController {
 
   Stream<LocalPlaybackState> get states;
 
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue);
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  });
+
+  Future<void> selectQueueItem(int index) =>
+      Future.error(UnsupportedError('Queue selection is unavailable'));
 
   Future<void> play();
 
@@ -637,10 +654,16 @@ class SerializedLocalPlaybackController
   }
 
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  }) {
     if (_diagnosticActive || _disposeRequested) return Future<void>.value();
     _queueRevision += 1;
-    return _enqueue(() => delegate.loadQueue(queue));
+    final snapshot = List<LocalPlaybackQueueItem>.unmodifiable(queue);
+    return _enqueue(
+      () => delegate.loadQueue(snapshot, initialIndex: initialIndex),
+    );
   }
 
   Future<void> _command(Future<void> Function() operation) {
@@ -735,6 +758,18 @@ class SerializedLocalPlaybackController
 
   @override
   Future<void> previous() => _command(delegate.previous);
+
+  @override
+  Future<void> selectQueueItem(int index) {
+    if (_diagnosticActive || _disposeRequested) return Future.value();
+    final queue = playbackState.queue;
+    final revision = ++_queueRevision;
+    return _command(() async {
+      if (revision == _queueRevision && identical(queue, playbackState.queue)) {
+        await delegate.selectQueueItem(index);
+      }
+    });
+  }
 
   @override
   Future<void> seek(Duration position) {
@@ -1288,20 +1323,29 @@ class FakeLocalPlayer
   });
 
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> nextQueue) =>
-      _loadQueue(nextQueue);
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> nextQueue, {
+    int initialIndex = 0,
+  }) => _loadQueue(nextQueue, initialIndex: initialIndex);
 
   Future<void> _loadQueue(
     List<LocalPlaybackQueueItem> sources, {
     PlaybackOrder? order,
     int initialIndex = 0,
   }) async {
+    if (initialIndex < 0 ||
+        (sources.isEmpty
+            ? initialIndex != 0
+            : initialIndex >= sources.length)) {
+      throw RangeError.index(initialIndex, sources, 'initialIndex');
+    }
     final generation = ++_queueGeneration;
     _sourceQueue = List.unmodifiable(sources);
     _order =
         order ??
         (_shuffle
-            ? PlaybackOrder.identity(sources.length).shuffled(0, random)
+            ? PlaybackOrder.identity(sources.length)
+                  .shuffled(initialIndex, random)
             : PlaybackOrder.identity(sources.length));
     final nextQueue = [for (final i in _order.indices) _sourceQueue[i]];
     _emit(
@@ -1571,6 +1615,39 @@ class FakeLocalPlayer
             ? normalized
             : _playbackState.bufferedPosition,
         isSeeking: false,
+      ),
+    );
+  }
+
+  @override
+  Future<void> selectQueueItem(int index) async {
+    if (_isDisposed ||
+        queue.isEmpty ||
+        state == LocalPlayerState.error ||
+        _playbackState.isBusy) {
+      return;
+    }
+    RangeError.checkValidIndex(index, queue, 'index');
+    final originalQueue = queue, generation = _queueGeneration;
+    await persistPosition();
+    if (_isDisposed ||
+        generation != _queueGeneration ||
+        !identical(originalQueue, queue)) {
+      return;
+    }
+    _emit(
+      _playbackState.copyWith(
+        playerState: state == LocalPlayerState.playing
+            ? LocalPlayerState.playing
+            : state == LocalPlayerState.ready
+            ? LocalPlayerState.ready
+            : LocalPlayerState.paused,
+        currentIndex: index,
+        position: Duration.zero,
+        bufferedPosition: Duration.zero,
+        duration: trackDurations[queue[index].trackId],
+        isSeeking: false,
+        processingState: LocalPlaybackProcessingState.ready,
       ),
     );
   }

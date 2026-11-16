@@ -1,5 +1,47 @@
 # Changes
 
+## 1.0.0 release preparation - 2026-11-16 (not distributed)
+
+- First public target1.0.0 and operator만랩 are user-confirmed. Approved policy publication is live at ddirori.com/play/privacy/; production policy/support defines and listing URLs match verified HTTPS pages. No new app analytics, permission or audio dependency.
+- Deployment preflight accepts the app's strict feedback v1/v2 contract, retains unanswered music/physical checks, and requires candidate source/IPA/observation receipts. Shared synthetic fixtures cover both Dart and Ruby. No synthetic response counts as user QA.
+- Backup headers export1.0.0 while format1/SQLite19 and reading0.1.0 backups remain compatible. Candidate build5 follows Apple's verified builds/uploads1–4, all complete with no further pages. No new TestFlight/public candidate or physical-device pass is claimed.
+
+## Release hardening - 2026-11-12 (unreleased)
+
+- 실제 병합의 undo snapshot에서 원래 iOS 경로와 백업 범위 밖 가져오기 행이 남을 수 있던 문제를 수정했다. 논리 backup의 file ID 기반 경로를 사용하고 복원 후 undo·재백업을 보존한다. 중첩 private path/모르는 file ID/비포함 테이블 위조는 import 전에 거부한다. 원본 DB와 음원은 수정하지 않는다.
+
+- 재생 메타데이터의 빈 구분자와 큰 글자의 최근 추가 제목/카드 가독성을 보완했다. 큐·위치·재생 상태·기존 의미 있는 semantics를 유지한다.
+- 가져오기 disk-full 부분 성공/실패 재시도와 백업 scalar/enum 손상 거부를 검증했다. 실제 candidate/교정/병합 store 재읽기·구버전 복원을 유지한다.
+- QA source fingerprint v2와 생성 registrant artifact 분리·새 설정 상태 캡처, 자체 합성 MP3의 provenance/host decoder·native format 회귀를 추가했다. 새 앱 의존성이나 encoder 바이너리를 추가하지 않았다.
+- 오프라인 데이터 처리 안내·이메일 작성/실패 복구와 개발 빌드 버전 표시를 보완했다. 공개 사이트 초안은 로컬 준비 상태이며 게시/커밋/배포하지 않았다.
+
+## Commercial quality hardening - 2026-11-12 (unreleased)
+
+- 손상된 백업의 중첩 JSON·교정 출처와 불일치한 작품/녹음/악장 관계를 복원 전에 거부한다. 병합된 정상 관계·직접 파일 이력·구버전 백업을 보존한다. 교체 파일로 감상한 이력의 백업이 원래 트랙 파일을 가리키던 오류도 수정했다. 저장 schema와 원본 파일은 변경하지 않는다.
+- Android 알림 QA에 앱 세션/실제 SystemUI 내용 확인·기한·실패 기록·판정 단위 테스트를 추가했다. 재생 waveform 때문에 UI idle을 얻지 못하는 경우 OS pause가 실제 엔진에 반영된 다음 화면을 촬영한다. 미디어 키 주입과 실제 버튼 터치·청감은 구분한다.
+
+## Composer, periods and IMSLP context - 2026-11-12 (unreleased)
+
+- 독립 작곡가 역할·이름/확인 별칭/출처와 파일의 명시적 ID 연결·해제를 추가했다. 기존 인물 ID와 태그/교정/역할을 보존하며 동명이인은 자동 합치지 않는다. 저장 실패는 draft와 재시도를 유지한다.
+- 작품 시대/작곡가 활동 시대·추정/미상·다중 시대를 구분하고 보관함 방문별 시대 필터와 교정 동선을 추가했다. 기존 periodLabel과 녹음/발매 연도는 재해석하지 않는다.
+- IMSLP 맥락 질의·일치/차이 근거·대표 작품 연결/변경·해제와 공식 검색 fallback, bounded 메모리 캐시/중복 요청 합치기를 추가했다. 새 자동 다운로드 계약이나 권리 판정은 없다.
+- additive schema19와 구버전 DB/백업 호환. 큐/위치·iOS/Android 오디오 계약, 버전0.1.0+4·feedback2를 유지한다. 미커밋·미배포이며 [검증 기록](../../docs/quality/classical-local-library-composer-context-2026-11-12.md)을 따른다.
+
+- 독립 작곡가와 직접 재생 이력이 있는 재시작의 legacy bootstrap 덮어쓰기 경로를 막았다. 직접 파일 이력은 정확한 local-file/file ID 계약으로 논리 백업에 보존하고 잘못된 참조는 거부한다.
+
+## Composer library and playback foundation - 2026-11-11 (unreleased)
+
+- 곡/앨범/작곡가/재생목록을 기본 분류로 하고 작품·앨범의 작곡가별 범위, 전체 음반 보기와 현재 재생의 보관함 링크를 추가했다. 기존 artists 설정을 호환하고 보조 아티스트 탐색을 보존했다.
+- 앨범/작품·곡/악장·앨범 아티스트/연주자 정보를 분리했다. 기존 값/출처를 유지하며 새 역할별 교정은 기존 JSON 저장소를 사용한다. schema18·feedback2·버전0.1.0+4를 유지한다.
+- 일반 목록 전체와 시작 인덱스를 보존하고 큐 occurrence 선택을 같은 native 엔진에 연결했다. 직렬화·이력·모드/복원·paused/ready 및 기존 클래식 범위 정책을 보존한다.
+- Android의 foreground media playback·OS 미디어 명령과 재생 중 lifecycle 저장을 추가했다. audio_service0.18.19 MIT 사용, iOS 기존 시스템 adapter는 유지한다. [검증 기록](../../docs/quality/classical-local-library-composer-foundation-2026-11-11.md)에서 자동/native/물리 검수를 구분한다. 커밋·배포하지 않는다.
+
+## Batch songs and save queue - 2026-11-11 (unreleased)
+
+- 곡/즐겨찾기의 방문별 file ID 다중 선택·검색 밖 개수·검색 결과 전체 선택과 재생/다음/마지막/재생목록/즐겨찾기 일괄 행동을 추가했다. 실패·취소 시 선택을 유지하고 한 번의 batch 즐겨찾기 저장으로 원자성을 보존한다.
+- 실제 큐 전체/현재부터를 열 당시 순서로 재생목록에 저장한다. 첫 중복만 유지하고 제외 수·최종 파일 상태 재검증·이름 draft·저장/재조회 실패 구분과 명시적 보기를 재사용한다. 탐색·저장으로 현재 큐나 재생을 초기화하지 않는다.
+- schema18·버전0.1.0+4·공통 UI API 유지. [QA 기록](../../docs/quality/classical-local-library-batch-actions-2026-11-11.md) 참조. 미커밋·미배포이며 기존 TestFlight에는 없다.
+
 ## Recovery, semantics and compatibility - 2026-11-11 (unreleased)
 
 - 즐겨찾기 저장 성공 뒤 재조회 실패를 잘못된 저장 실패로 표시하던 결함을 수정했다. 실제 저장 선택을 유지하고 재조회만 재시도하며 관련 오류 안내를 정리한다.

@@ -44,6 +44,13 @@ void main(List<String> arguments) {
     codec: 'flac',
     container: 'flac',
   );
+  final mp3 = Process.runSync('python3', [
+    'tool/generate_mp3_fixture.py',
+    '--check',
+  ]);
+  if (mp3.exitCode != 0) {
+    throw StateError('MP3 provenance/hash check failed: ${mp3.stderr}');
+  }
 }
 
 void _writeOrCheckCompressedFixture(

@@ -4,6 +4,11 @@ import 'package:http/http.dart' as http;
 
 import 'classical_library_models.dart';
 
+bool isPrivateImslpQuery(String query) => RegExp(
+  r'file:/{2,}|/(?:Users|home|storage|private/var)/|[A-Za-z]:[\\/]',
+  caseSensitive: false,
+).hasMatch(query);
+
 enum ImslpResourceKind {
   score('총보'),
   part('파트보'),
@@ -222,15 +227,79 @@ class ImslpClientException implements Exception {
 }
 
 class HttpImslpCatalogClient implements ImslpCatalogClient {
-  HttpImslpCatalogClient({http.Client? client})
-    : _client = client ?? http.Client();
+  HttpImslpCatalogClient({
+    http.Client? client,
+    DateTime Function()? clock,
+    Future<void> Function(Duration)? delay,
+  }) : _client = client ?? http.Client(),
+       clock = clock ?? DateTime.now,
+       delay = delay ?? Future<void>.delayed;
 
   final http.Client _client;
+  final DateTime Function() clock;
+  final Future<void> Function(Duration) delay;
+  final _cache = <String, (DateTime, List<ImslpWorkSearchResult>)>{};
+  final _pending = <String, Future<List<ImslpWorkSearchResult>>>{};
+  Future<void> _dispatch = Future.value();
+  DateTime? _lastRequest;
 
   @override
   Future<List<ImslpWorkSearchResult>> searchWorks(
     String query, {
     int limit = 10,
+  }) async {
+    final normalized = query
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .toLowerCase();
+    if (normalized.isEmpty) return const [];
+    if (isPrivateImslpQuery(query)) {
+      throw const ImslpClientException(
+        'privateQuery',
+        '파일 경로 대신 작곡가와 작품명을 입력해 주세요.',
+      );
+    }
+    final key = '$normalized:${limit.clamp(1, 20)}';
+    final cached = _cache[key];
+    if (cached != null &&
+        !clock().difference(cached.$1).isNegative &&
+        clock().difference(cached.$1) < const Duration(minutes: 5)) {
+      return cached.$2;
+    }
+    final pending = _pending[key];
+    if (pending != null) return pending;
+    final future = () async {
+      // Courtesy pacing only; not a claim about an official API quota.
+      final turn = _dispatch.then((_) async {
+        if (_lastRequest case final previous?) {
+          final remaining =
+              const Duration(seconds: 1) - clock().difference(previous);
+          if (remaining > Duration.zero) await delay(remaining);
+        }
+        _lastRequest = clock();
+      });
+      _dispatch = turn.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+      await turn;
+      final result = List<ImslpWorkSearchResult>.unmodifiable(
+        await _request(query, limit: limit),
+      );
+      if (result.isNotEmpty) {
+        if (_cache.length >= 32) _cache.remove(_cache.keys.first);
+        _cache[key] = (clock(), result);
+      }
+      return result;
+    }();
+    _pending[key] = future;
+    try {
+      return await future;
+    } finally {
+      _pending.remove(key);
+    }
+  }
+
+  Future<List<ImslpWorkSearchResult>> _request(
+    String query, {
+    required int limit,
   }) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
@@ -376,6 +445,10 @@ class MemoryImslpStore implements ImslpStore {
           existing.workId != link.workId) {
         throw ImslpLinkConflictException(existing.workId);
       }
+    }
+    if (_links.containsKey(link.workId) &&
+        _links[link.workId]!.externalId != link.externalId) {
+      _resources.remove(link.workId);
     }
     _links[link.workId] = link;
   }

@@ -11,6 +11,48 @@ import 'package:classical_local_library/scanned_audio_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('second-file disk-full keeps successful copy; retry failed file adds no duplicate', () async {
+    var writes = 0;
+    var fail = true;
+    final fixture = await _Fixture.create(
+      writeChunk: (output, bytes) async {
+        writes++;
+        if (fail && writes == 2) {
+          throw const FileSystemException(
+            'private-path must not escape',
+            '/private/fixture',
+            OSError('disk full', 28),
+          );
+        }
+        await output.writeFrom(bytes);
+      },
+    );
+    addTearDown(fixture.dispose);
+    final first = await fixture.writeSource('first.wav', [1, 2, 3]);
+    final second = await fixture.writeSource('second.wav', [4, 5, 6]);
+    final initial = await fixture.coordinator.importFiles([
+      FileSelectedAudioFile(first),
+      FileSelectedAudioFile(second),
+    ]);
+    expect(initial.count(LocalAudioImportOutcome.imported), 1);
+    expect(initial.items.last.failureKind, 'insufficientStorage');
+    expect(await fixture.importStore.load(), hasLength(1));
+    expect(await fixture.destination.list().toList(), hasLength(1));
+    fail = false;
+    final retry = await fixture.coordinator.importFiles([
+      FileSelectedAudioFile(second),
+    ]);
+    expect(retry.count(LocalAudioImportOutcome.imported), 1);
+    expect(await fixture.importStore.load(), hasLength(2));
+    expect(await fixture.destination.list().toList(), hasLength(2));
+    expect(await first.readAsBytes(), [1, 2, 3]);
+    expect(await second.readAsBytes(), [4, 5, 6]);
+    final repeated = await fixture.coordinator.importFiles([
+      FileSelectedAudioFile(second),
+    ]);
+    expect(repeated.count(LocalAudioImportOutcome.duplicate), 1);
+    expect(await fixture.destination.list().toList(), hasLength(2));
+  });
   test('file name, extension, and MIME policy reject unsafe input', () {
     const policy = LocalAudioImportPolicy();
 
@@ -458,6 +500,7 @@ class _Fixture {
   static Future<_Fixture> create({
     LocalAudioImportStore? importStore,
     AudioFileScanner scanner = const _TestAudioScanner(),
+    AudioImportChunkWriter? writeChunk,
   }) async {
     final root = await Directory.systemTemp.createTemp('local_audio_import_');
     final destination = Directory('${root.path}/managed');
@@ -483,6 +526,11 @@ class _Fixture {
         scannedAudioRepository: scannedRepository,
         metadataCandidateRepository: candidateRepository,
         fileTrackLinkRepository: linkRepository,
+        writeChunk:
+            writeChunk ??
+            (output, bytes) async {
+              await output.writeFrom(bytes);
+            },
         clock: () => DateTime.fromMillisecondsSinceEpoch(1792476000000),
       ),
     );

@@ -14,7 +14,7 @@ void main() {
     () {
       const schema = SqliteStorageSchema();
 
-      expect(schema.version, 18);
+      expect(schema.version, 19);
       expect(schema.tables.map((table) => table.name), [
         'scanned_audio_files',
         'scan_locations',

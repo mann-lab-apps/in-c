@@ -1,0 +1,26 @@
+[
+  {
+    "url": "https://ddirori.com/play/privacy/",
+    "status": 200,
+    "sha256": "29de8dc3c5b3541c97756963984d1883a0af2ddcb66db54cfe21fefb4f761124",
+    "operatorConfirmed": true,
+    "effectiveDateConfirmed": true,
+    "playPrivacyLinkPresent": true
+  },
+  {
+    "url": "https://ddirori.com/play/",
+    "status": 200,
+    "sha256": "e74145c8a55c39c74d1332e91ab58f5539ea451c68c2480b81b8799e36122125",
+    "operatorConfirmed": false,
+    "effectiveDateConfirmed": false,
+    "playPrivacyLinkPresent": true
+  },
+  {
+    "url": "https://ddirori.com/support/",
+    "status": 200,
+    "sha256": "8d55fc485bf365207b778291f73e4d48329b0ae13f87076ef611d53b6c3eda81",
+    "operatorConfirmed": false,
+    "effectiveDateConfirmed": false,
+    "playPrivacyLinkPresent": false
+  }
+]

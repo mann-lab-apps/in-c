@@ -127,7 +127,7 @@ List<LocalPlaybackQueueItem> _queue([
 );
 
 Future<void> _tap(WidgetTester tester, String tooltip) async {
-  final finder = find.byTooltip(tooltip).first;
+  final finder = find.byTooltip(tooltip);
   if (finder.evaluate().isEmpty) {
     await tester.scrollUntilVisible(
       finder,

@@ -519,15 +519,20 @@ Future<void> _tap(
   Finder finder, {
   bool dialog = false,
 }) async {
+  // Flutter's tooltip surrogate can have zero height at the viewport edge;
+  // scroll and hit-test the actual button, not that overlay anchor.
+  final icon = find.ancestor(of: finder, matching: find.byType(IconButton));
+  final target = icon.evaluate().isEmpty ? finder : icon.first;
   final scroll = find
       .descendant(
         of: find.byType(dialog ? AlertDialog : ListView),
         matching: find.byType(Scrollable),
       )
       .first;
-  await tester.scrollUntilVisible(finder, 180, scrollable: scroll);
-  await tester.ensureVisible(finder);
-  await tester.tap(finder);
+  await tester.scrollUntilVisible(target, 180, scrollable: scroll);
+  await tester.ensureVisible(target);
+  await tester.pump();
+  await tester.tap(target);
   await tester.pump();
 }
 

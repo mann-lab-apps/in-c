@@ -1,5 +1,62 @@
 # Classical Local Library Physical Device Checklist
 
+## 1.0.0 공개 후보 — 2026-11-16
+
+첫 공개 목표는1.0.0이다. 현재 로컬 counter4와 이전 내부0.1.0(4)는 새 Apple 후보 설치 증거가 아니다. 새 후보를 받은 뒤 실제 버전/build와 아래 관찰만 회신한다. 앱/배포 도구는 v1/v2를 읽지만 새 음악 동작 미응답은 미확인이다. 자동 검사 선언이 사용자 답변을 대신하지 않는다.
+
+5~10분 최소 흐름: 실제 Files 가져오기/취소→본인 권리 음원의 재생/pause/seek/다음→잠금30초/복귀→가능한 출력 장치·중단/분리 후 자동 재개 방지→VoiceOver/큰 글자→앱 정보의 공개 개인정보·지원 링크→재실행/기존 자료 유지. 이후 재생목록/즐겨찾기/예약·큐 모드/복원과 IMSLP 동작 중 수행한 항목만 기록하고 나머지는 notChecked다. 지원 범위는 현재 iPhone/iPad이며 iPad 미검수를 iPhone 응답으로 채우지 않는다.
+
+원시 피드백 JSON에는 개인 음원·파일명·경로·기기 고유 ID와 후보 hash를 추가하지 않는다. 운영자는 사용자가 해당 후보에서 검수했다고 확인한 뒤 별도 candidate manifest에 report SHA·source SHA·IPA SHA·관찰 시각을 연결한다. 이전 응답을 새 버전/build 또는 같은 번호의 다른 소스로 재사용하지 않는다. 실제 설치/청감과 연결 확인 없이 receipt를 생성하지 않는다.
+
+## 출시 전 보완 후보 — 새 후보 설치 후5~10분
+
+이 작업은 아직 배포하지 않았다. 기존 빌드4가 새 동작을 포함한다고 가정하지 않는다. 새 후보의 표시 버전/OS와 각 항목의 통과/문제/미확인만 보내고 개인 음원·경로·곡명·고유 기기 식별자는 보내지 않는다.
+
+1. 태그 없는 곡을 재생해 축약/전체 재생·대기열에 구분점만 남지 않는지 본다. 큰 글자에서 최근 추가 제목·카드와 조작을 확인한다.
+2. 본인 MP3/FLAC/M4A로 재생·pause·seek·다음을 누르고 잠금30초→복귀 후 같은 큐/위치를 확인한다. 실제 들린 소리를 기록한다. 자동 MP3 fixture의 성공은 본인 파일 청감 증거가 아니다.
+3. 가능한 출력 장치와 interruption/분리 후 자동 재개 방지를 확인한다. 없는 장치·구형 OS는 미확인으로 둔다.
+4. 실제 파일 제공자에서 선택 취소/다시 선택, VoiceOver/TalkBack의 곡·재생 버튼·닫기·뒤로 읽기/focus를 확인한다. 개인 보관함 초기화나 실제 저장 공간 소진은 하지 않는다.
+5. 앱 정보 및 데이터의 오프라인 처리 안내, 문의 메일 작성/취소를 확인한다. 메일을 보낼 필요는 없다. 이미 보관한 자료·정상 백업 미리보기와 재실행 복원을 비교한다.
+
+운영 검토는 최종 공개 HTTPS URL/DNS, 페이지 운영 주체·적용일·게시 승인, 새 후보 사용자 QA 결과를 묶어 확인한다. 기존 공개 이메일·아이콘 승인은 다시 요구하지 않는다.
+
+## 상용 후보 최소 확인 — 2026-11-12, 새 후보 설치 후 약10분
+
+개인 보관함을 지우거나 손상 백업을 직접 만들 필요가 없다. 새 후보의 build/OS와 각 항목의 통과/문제/미확인만 알려준다. 파일명·경로·음원을 제출하지 않는다.
+
+1. 실제 MP3/FLAC/M4A를 Files 제공자에서 가져와 목록→재생→seek/다음→앱 전환→잠금30초→복귀를 확인한다. 가청 출력과 원래 큐·위치를 비교한다.
+2. 사용 가능한 스피커/유선/Bluetooth에서 확인하고 전화·다른 오디오·출력 장치 분리 후 자동 재개하지 않는지 확인한다. 없는 장치는 미확인으로 둔다.
+3. VoiceOver/TalkBack으로 가져오기·곡 선택·pause/seek·닫기/뒤로와 큰 글자를 확인한다. semantics 자동 통과는 실제 발화/탐색 통과가 아니다.
+4. 백업 내보내기→취소 가능한 미리보기, 기존 자료가 보이는 앱 재시작, 실제 쓰는 규모의 목록 검색/스크롤을 확인한다. 다른 설치 복원은 파일 재연결이 필요한 별도 사용자 선택이다. 자동 테스트는 임시 DB에서 손상 백업·rollback을 검사한다.
+
+## 작곡가·시대·IMSLP 맥락 — 2026-11-12, 새 후보 제공 후5~10분
+
+이번 변경은 아직 배포하지 않았다. 아래는 사용자 실기기 점검이며 자동/native 결과로 완료 표시하지 않는다. 개인 음원/경로/기기 식별자를 보내지 말고 성공/실패와 행동만 기록한다.
+
+1. 음원 재생 후 도구→작곡가 관리에서 작품 없이 작곡가 이름·확인 별칭·출처를 저장한다. 취소/오류 후 입력 보존과 VoiceOver 이름·버튼·읽기 순서를 확인한다.
+2. 곡 정보→작곡가 연결·관리에서 대상 확인/취소·연결/해제를 누른다. 원본 태그·음원이 그대로이고 자동 재생/곡 이동이 없어야 한다.
+3. 작곡가 활동 시대를 여러 개 선택하고 시대 필터 전체/미분류/선택 시대를 비교한다. 작품 시대가 확인된 곡과 활동 시대 기준 추정을 구분하고 뒤로 돌아와 재생/검색 위치를 확인한다.
+4. 작곡가/작품 IMSLP 검색에서 입력과 일치/차이 근거를 확인하고 연결 확인을 취소한 뒤 다시 연결한다. 외부 공식 페이지에서 돌아오거나 네트워크가 끊겨도 큐를 유지해야 한다. 링크 연결은 파일 저장/권리 승인과 다르다.
+5. 앱을 다시 열어 작곡가·연결·시대·IMSLP 참조를 확인한다. 저장 정보는 복원하지만 자동 재생하지 않아야 한다. 기존 잠금 청감·전화/다른 오디오·출력 장치 분리 점검도 함께 유지한다.
+
+## 작곡가·큐 선택·Android — 2026-11-11, 새 후보 제공 후5~10분
+
+이 변경은 기존 TestFlight0.1.0(4)에 없다. 새 후보의 실제 OS/build만 기록하고 개인 곡명·경로·음원은 보내지 않는다. 각 항목을 통과/문제/미확인으로 답한다.
+
+1. 혼합 작곡가 앨범에서 작곡가→작품/앨범→곡을 보고 앨범 전체 보기를 비교한다. 작품명 교정이 원래 앨범을 바꾸거나 앨범 아티스트가 개별 연주자를 대신하면 문제다. 미상도 재생할 수 있어야 한다.
+2. 목록의 세 번째 곡을 재생한 뒤 이전 곡과 큐 행을 선택한다. 중복 곡의 정확한 위치·paused 유지·복귀 후 큐/위치를 확인한다. 현재 재생의 작곡가/앨범 링크와 뒤로 복귀, VoiceOver/TalkBack 읽기 순서·focus를 확인한다.
+3. Android 후보는 잠금·앱 전환 후30초 청취하고 실제 알림의 이전/다음·pause/play·seek를 확인한다. 전화·다른 오디오·출력 장치 분리·진단 후 자동 재개하지 않아야 한다. 에뮬레이터 OS 미디어 키 결과는 물리 출력과 알림 터치의 증거가 아니다.
+4. iPhone Xs에서는 기존 잠금·제어센터·Files 제공자·청감 검수를 이어간다. 합성 native 진행과 decoder 통과가 gapless/스피커/Bluetooth/실제 포맷 청감을 입증하지 않는다. 앨범/음원 원본은 수정되지 않아야 한다.
+
+## 다중 선택·큐 보관 — 2026-11-11, 새 후보 제공 후5분
+
+아직 미배포다. 기존0.1.0(4)로 이 기능을 통과 처리하지 않는다. 새 후보에서 다음을 `통과/문제/미확인`으로 회신하면 된다. 개인 곡명·경로·음원은 보내지 않는다.
+
+1. 곡 세 개를 선택하고 검색으로 한 곡만 보이게 한다. 검색 밖 개수를 듣고/확인한 뒤 전체 해제·취소한다. 재생이 바뀌지 않아야 한다. VoiceOver 선택/해제·읽기 순서·닫은 뒤 focus 복귀를 확인한다.
+2. 일시정지 후 두 곡을 골라 바로 다음에 예약한다. 현재 곡/위치·일시정지가 유지돼야 한다. 두 곡 즐겨찾기 추가/해제와 화면 왕복을 확인한다.
+3. 재생 중 전체 재생에서 큐 저장을 연다. 전체/현재부터 개수·중복 안내를 보고 새 이름으로 저장한다. 원래 화면에 완료·보기가 나오고 음악은 이어져야 한다. 취소는 목록을 만들지 않는다.
+4. 보기를 열어 순서를 확인하고 앱 재시작 후 같은 목록을 확인한다. 잠금·출력·Files/iCloud·청감은 아래 기존 체크리스트로 별도 점검한다. 자동 semantics/native 결과는 물리 결과를 대체하지 않는다.
+
 ## 안정성 후속 — 2026-11-11, 새 후보 제공 후5~10분
 
 기존 TestFlight0.1.0(4)에서는 이번 기능을 검수할 수 없다. 새 후보를 별도 받은 뒤 실제 build/OS만 기록하고 개인 보관함을 초기화하지 않는다. 각 항목은 `passed / issue / notChecked`로 답하며 무응답은 notChecked다.
@@ -132,7 +189,7 @@ user's personal paths, titles, metadata, or listening history.
 | Transport | Play, pause, resume, seek, next, stop | State, position, and queue index remain consistent | Device, OS, result |
 | Queue | Play a multi-movement work | Movement order and completion are correct | Fixture IDs, result |
 | Queue recovery | Stop the app on a middle movement, relaunch, then repeat with one fixture unavailable | Current movement is first after recovery; unavailable movements are skipped and explained without exposing paths | Fixture IDs, available count, result |
-| Lifecycle | Background then foreground the app | Current policy pauses and stores position | OS, result |
+| Lifecycle | Background/lock then foreground the app during playback; repeat while paused | iOS/Android keep active playback and checkpoint position; user-paused playback stays paused. Interruption/route loss pauses without automatic resume | OS, result |
 | Interruption | Start another audio source or receive an interruption | Playback pauses and does not auto-resume unexpectedly | Source type, result |
 | Wired route | Connect/disconnect wired headphones | Route change does not crash; playback policy is observed | Accessory class, result |
 | Wireless route | Connect/disconnect Bluetooth headphones | Route change does not crash; playback policy is observed | Accessory class, result |

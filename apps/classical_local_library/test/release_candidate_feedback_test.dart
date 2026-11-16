@@ -1,8 +1,39 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:classical_local_library/release_candidate_feedback.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const codec = ReleaseCandidateFeedbackCodec();
+  test('Dart and deployment share the v1/v2 synthetic feedback contract', () {
+    final fixture = jsonDecode(
+      File('test/fixtures/release_candidate_feedback_contract.json')
+          .readAsStringSync(),
+    ) as Map<String, dynamic>;
+    expect(fixture['syntheticOnly'], isTrue);
+    final base = Map<String, dynamic>.from(fixture['baseReport'] as Map);
+    final v2 = {
+      ...base,
+      'schemaVersion': 2,
+      'musicActions': fixture['musicActions'],
+      'automaticChecks': fixture['automaticChecks'],
+    };
+    for (final report in [base, v2]) {
+      final decoded = codec.decode(jsonEncode(report));
+      expect(decoded.toJson(), report);
+      expect(decoded.hasUnverifiedObservations, isTrue);
+    }
+    for (final mutation in fixture['invalidMutations'] as List) {
+      expect(
+        () => codec.decode(
+          jsonEncode({...v2, ...mutation as Map<String, dynamic>}),
+        ),
+        throwsFormatException,
+        reason: '$mutation',
+      );
+    }
+  });
   const report = ReleaseCandidateFeedbackReport(
     appVersion: '0.1.0',
     buildNumber: 1,

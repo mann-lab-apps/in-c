@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-11-12T01:46:54.344833+00:00",
+  "branch": "feature/ddirori-play-library-context-20261031",
+  "baseCommit": "f57602c18ce55031833faabf37a073da437453b9",
+  "uncommitted": true,
+  "runnerSourceFingerprint": "606e955cb37a13dadf821b157f366752447d477abfe582e23f2381a7c8792d74",
+  "qaRunFingerprint": "53f9affa6664dc4cb86ab7f59b0b72e2b2ba68478dd96ac464ebec50074b7747",
+  "postBuildGeneratedOnlyDifference": {
+    "qaRunFingerprint": "53f9affa6664dc4cb86ab7f59b0b72e2b2ba68478dd96ac464ebec50074b7747",
+    "postBuildFingerprint": "606e955cb37a13dadf821b157f366752447d477abfe582e23f2381a7c8792d74",
+    "singleGeneratedFile": "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java",
+    "gitIgnored": true,
+    "previousGeneratedSha256": "f2a5798a364da2d1012f9e9b45edd35a4aa34177c9c8d31fabc9c7a82f336b5f",
+    "currentGeneratedSha256": "0a6a2e522a6909ef965a0dad887b33006b377c9e8b55743d45ae516067c22882",
+    "reconstructedByReplacingOnlyThisFileInMemory": true,
+    "productFilesModifiedToRecreateQaState": false,
+    "explanation": "Flutter normal simulator build removed integration_test registration from ignored Android generated Java. Original QA report is unchanged. Post-build QA unit/live/native rechecks passed."
+  },
+  "schemaVersion": 19,
+  "feedbackSchemaVersion": 2,
+  "appVersionUnchanged": "0.1.0+4",
+  "physicalDeviceVerified": false,
+  "publishedOrUploaded": false,
+  "imageCount": 86,
+  "xcode": "Xcode 26.5\nBuild version 17F42",
+  "iosDependencyManager": "FlutterGeneratedPluginSwiftPackage (local SwiftPM); no CocoaPods Podfile.lock",
+  "android": {
+    "avd": "DDIRORI_QA_Play_API35_20261111",
+    "sdk": "35",
+    "physicalAudibilityVerified": false
+  },
+  "simulator": [
+    {
+      "name": "DDIRORI-QA-Play-20261023",
+      "state": "Booted",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+    }
+  ],
+  "testCountsSource": "test.log and native-*.log; do not count reruns twice",
+  "imageReviewSource": "Quality Markdown records opened images separately"
+}

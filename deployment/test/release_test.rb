@@ -110,6 +110,27 @@ class ReleaseTest < Minitest::Test
     assert_equal 'passed', @pipeline.record['status']
   end
 
+  def test_ios_only_manifest_does_not_invent_android_signing
+    @data['android'] = nil
+    write_manifest
+    @pipeline = pipeline
+    run_action('preflight')
+    assert_equal 'passed', @pipeline.record['status']
+    refute @pipeline.manifest['android']
+    assert_raises(Deployment::Error) { pipeline('platform' => 'android').run('aab') }
+    assert_empty @calls
+  end
+
+  def test_explicit_app_store_eligible_export_flag_is_checked_as_boolean
+    path = File.join(@manifest_dir, 'ExportOptions.plist')
+    prefix, close, suffix = File.read(path).rpartition('</dict>')
+    File.write(path, prefix + '<key>testFlightInternalTestingOnly</key><false/>' + close + suffix)
+    run_action('preflight')
+    assert_equal 'passed', @pipeline.record['status']
+    File.write(path, File.read(path).sub('<key>testFlightInternalTestingOnly</key><false/>', '<key>testFlightInternalTestingOnly</key><string>false</string>'))
+    assert_blocked('preflight')
+  end
+
   def test_dirty_source_is_blocked
     @pipeline.dirty = true
     assert_blocked('preflight')

@@ -1,0 +1,32 @@
+[
+  {
+    "check": "residual-markers",
+    "command": [
+      "rg",
+      "-n",
+      "TODO|FIXME|Flutter Demo|Counter",
+      "lib",
+      "test",
+      "integration_test",
+      "tool"
+    ],
+    "exitCode": 1,
+    "noMatches": true,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "check": "insecure-native-network",
+    "command": [
+      "rg",
+      "-n",
+      "NSAllowsArbitraryLoads|usesCleartextTraffic=\"true\"",
+      "android/app/src/main/AndroidManifest.xml",
+      "ios/Runner/Info.plist"
+    ],
+    "exitCode": 1,
+    "noMatches": true,
+    "stdout": "",
+    "stderr": ""
+  }
+]

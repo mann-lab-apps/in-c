@@ -1,0 +1,44 @@
+{
+  "environment": "Android emulator API35",
+  "flutterExitCode": 0,
+  "stages": [
+    "background",
+    "pause",
+    "next",
+    "play",
+    "stop"
+  ],
+  "inspection": {
+    "dedicatedEmulatorAnimationsDisabled": true,
+    "foregroundServiceBeforeHome": true,
+    "activeMediaSession": true,
+    "notificationContent": {
+      "ready": true,
+      "systemUiTitleVisible": true,
+      "enabledMediaControls": 4,
+      "appOwnedSession": true,
+      "reason": "ready",
+      "attempts": 1
+    },
+    "notificationHierarchySha256": "bfac88266de77757e16e4acf80a2caf49c97d7e3dcc120012b35820e9d6e06bb",
+    "notificationPngSha256": "1a59f24e7071ffdb86c53dccada82c72343952b3045d3a69bf38b1c5065913b6"
+  },
+  "nativeResult": {
+    "lifecycle": [
+      "inactive",
+      "hidden",
+      "paused",
+      "hidden",
+      "inactive",
+      "resumed",
+      "inactive",
+      "resumed"
+    ],
+    "pausedPositionMillis": 8026,
+    "queueCount": 3,
+    "stopped": true,
+    "physicalAudibilityVerified": false
+  },
+  "passed": true,
+  "physicalAudibilityVerified": false
+}

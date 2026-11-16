@@ -13,6 +13,8 @@ iOS 출시 정보 전체의 준비/검증/업로드와 촬영 계획은
 
 Clef & Staff 파일럿용 공통 Fastlane 플랫폼이다. 기존 앱 파일을 수정하지 않고,
 앱별 `apps/<app>/release.json`으로 고정한 소스를 별도 checkout에서 빌드한다.
+
+Play는 pinned `ios-metadata.yaml`에서 `prepare_play_build.rb --manifest ... --baseline /external/verified.ipa --output output/classical-local-library/unique-inputs`로 기존 빌드용 release.json을 생성할 수 있다. 기존 서명 IPA를 검사·hash 고정하고 YAML의 버전/define과 생성 metadata를 그대로 사용한다. archive/export/compare/testflight는 기존 lane으로 실행한다. iOS만 배포 설정된 앱은 `android: null`을 명시하며 Android 작업은 조기에 거부한다. Android 앱 기능이나 기존 두 플랫폼 설정의 검사를 낮추지 않는다. Play export는 `testFlightInternalTestingOnly: false`를 명시하며 자동 버전 변경·직접 업로드 destination은 계속 금지한다. API 키와 사용자 QA receipt는 생성 JSON에 넣지 않는다.
 심사 제출, production track, 정식 출시 및 외부 TestFlight 배포 lane은 없다.
 
 ## 조사 결과와 범위

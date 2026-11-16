@@ -25,8 +25,8 @@ class IOSReleasePreflightTest < Minitest::Test
     assert_equal 'pass', codes['privacy.permissions']
     assert_equal 'pass', codes['icon.marketing']
     assert_equal 'pass', codes['icon.approval']
-    assert_equal 'blocked', codes['url.ko.privacy_url']
-    assert_equal 'pass', codes['checkpoint.source']
+    assert_equal 'pass', codes['url.ko.privacy_url']
+    assert_equal report_source_state, codes['checkpoint.source']
     assert_equal 'blocked', codes['screenshots.capture']
   end
 
@@ -52,6 +52,15 @@ class IOSReleasePreflightTest < Minitest::Test
     refute valid.call('https://127.0.0.1/privacy')
   end
 
+  def test_missing_public_policy_remains_blocked_and_unsafe_url_fails
+    [nil, '', 'http://127.0.0.1/privacy'].each do |value|
+      preflight = Deployment::IOSReleasePreflight.new(manifest: MANIFEST)
+      preflight.data['content']['locales']['ko']['privacy_url'] = value
+      expected = value.nil? || value.empty? ? 'blocked' : 'fail'
+      assert preflight.run['issues'].any? { |row| row.values_at('code', 'status') == ['url.ko.privacy_url', expected] }
+    end
+  end
+
   def test_p0_feedback_blocks_release_without_echoing_private_values
     Tempfile.create(['release-feedback-', '.json']) do |file|
       file.write(JSON.generate(feedback('p0')))
@@ -74,6 +83,35 @@ class IOSReleasePreflightTest < Minitest::Test
     end
   end
 
+  def test_schema2_is_accepted_and_automatic_passes_do_not_clear_user_unknowns
+    fixture = JSON.parse(File.read(File.join(Deployment::REPO, 'apps/classical_local_library/test/fixtures/release_candidate_feedback_contract.json')))
+    value = fixture['baseReport'].merge(
+      'schemaVersion' => 2,
+      'appVersion' => YAML.safe_load(File.read(MANIFEST)).dig('source', 'version'),
+      'buildNumber' => YAML.safe_load(File.read(MANIFEST)).dig('source', 'build_number'),
+      'musicActions' => fixture['musicActions'],
+      'automaticChecks' => fixture['automaticChecks'].transform_values { 'passed' },
+    )
+    Tempfile.create(['synthetic-v2-', '.json']) do |file|
+      file.write(JSON.generate(value))
+      file.flush
+      result = report(feedback: [file.path])
+      refute result['issues'].any? { |row| row['code'] == 'feedback.invalid' }
+      assert result['issues'].any? { |row| row.values_at('code', 'status') == ['feedback.incomplete', 'blocked'] }
+    end
+  end
+
+  def test_legacy_feedback_is_readable_but_missing_music_observations_stay_unknown
+    Tempfile.create(['synthetic-legacy-', '.json']) do |file|
+      file.write(JSON.generate(feedback('none')))
+      file.flush
+      result = report(feedback: [file.path])
+      refute result['issues'].any? { |row| row['code'] == 'feedback.invalid' }
+      assert result['issues'].any? { |row| row.values_at('code', 'status') == ['feedback.incomplete', 'blocked'] }
+      assert result['issues'].any? { |row| row.values_at('code', 'status') == ['candidate.binding', 'blocked'] }
+    end
+  end
+
   def test_phone_only_feedback_remains_blocked_until_ipad_is_checked
     Tempfile.create(['release-feedback-', '.json']) do |file|
       file.write(JSON.generate(feedback('none')))
@@ -86,8 +124,8 @@ class IOSReleasePreflightTest < Minitest::Test
   def test_phone_and_tablet_feedback_clear_device_coverage_block
     Tempfile.create(['release-phone-feedback-', '.json']) do |phone|
       Tempfile.create(['release-tablet-feedback-', '.json']) do |tablet|
-        phone.write(JSON.generate(feedback('none')))
-        tablet.write(JSON.generate(feedback('none').merge('deviceClass' => 'tablet')))
+        phone.write(JSON.generate(complete_feedback))
+        tablet.write(JSON.generate(complete_feedback.merge('deviceClass' => 'tablet')))
         phone.flush
         tablet.flush
 
@@ -119,10 +157,22 @@ class IOSReleasePreflightTest < Minitest::Test
 
   private
 
+  def complete_feedback
+    feedback('none').merge(
+      'schemaVersion' => 2,
+      'musicActions' => Deployment::ReleaseCandidateFeedback::MUSIC.to_h { |key| [key, 'passed'] },
+      'automaticChecks' => Deployment::ReleaseCandidateFeedback::AUTOMATIC.to_h { |key| [key, 'notChecked'] },
+    )
+  end
+
+  def report_source_state
+    YAML.safe_load(File.read(MANIFEST)).dig('source', 'state') == 'pinned' ? 'pass' : 'blocked'
+  end
+
   def feedback(severity)
     {
       'schemaVersion' => 1,
-      'appVersion' => '0.1.0',
+      'appVersion' => YAML.safe_load(File.read(MANIFEST)).dig('source', 'version'),
       'buildNumber' => YAML.safe_load(File.read(MANIFEST)).dig('source', 'build_number'),
       'platform' => 'ios',
       'deviceClass' => 'phone',

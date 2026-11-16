@@ -11,6 +11,7 @@ class _LibraryVisit {
     required this.sort,
     required this.search,
     required this.playlistId,
+    this.eraFilter,
   });
 
   final int id;
@@ -21,6 +22,7 @@ class _LibraryVisit {
   final LocalFileSort sort;
   final String search;
   final String? playlistId;
+  final String? eraFilter;
 }
 
 enum _PlaylistAction { edit, rename, changeCover, removeCover, delete }
@@ -126,7 +128,20 @@ class _PlaylistEditorState extends State<_PlaylistEditor> {
       saving = true;
       error = null;
     });
-    final saved = await widget.onSave(name, selected.toList());
+    LocalPlaylist? saved;
+    try {
+      saved = await widget.onSave(name, selected.toList());
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          saving = false;
+          error = e is LocalPlaylistException
+              ? e.message
+              : '저장하지 못했습니다. 다시 시도해 주세요.';
+        });
+      }
+      return;
+    }
     if (!mounted) return;
     setState(() => saving = false);
     if (saved != null) {

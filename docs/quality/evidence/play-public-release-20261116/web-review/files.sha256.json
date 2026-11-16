@@ -1,0 +1,12 @@
+{
+  "browser.log": "477f812645e38f6829e0fd9b759a983528f50cd1ff4e6b18c05d52a38ae3c637",
+  "verify.log": "598d61abebc237a0c78ae9855879c1c6d81e7b0f13b40a2b28516e441c05c1fd",
+  "initial-large-text-failure.log": "e99e7cce1f50f075999f2a959ff5df063ddb4ce82fa67fea155e1ca18219a926",
+  "web-review-manifest.json": "17a2f3656c2b7f96e3c778d863b8424ef4bc93b0f09f19e5c756a8b3b91ac543",
+  "ddirori-play-privacy.patch": "72851a2373064b3041464c50920c7668e08baf7c48d0d1083f0259210eab3ec2",
+  "build.log": "bc3d60d1c67730b5ae875599758c0cb0173e2b9f0cbac2b1a88de51c91b9320f",
+  "browser/browser-checks.json": "62b7912364484fd57bae036bbfb980b2375547c032fb14ac972e4bebdbe92515",
+  "browser/play-policy-390-1-light.png": "c4bf88f538a9eab13e2430aba1dde686fdef2e5ea41ac2e1fb391e9f5d625077",
+  "browser/play-policy-1024-2-dark.png": "7a976e322fcc3c41819bc477e70002dd12db41eba51ea0c0111c564117bfcbf2",
+  "browser/play-policy-320-2-light.png": "0cc8b82e6364601c3538d05339206d68680a100c6b2d9b6ff426a36a895d0604"
+}

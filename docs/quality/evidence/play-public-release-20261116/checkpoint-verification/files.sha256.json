@@ -1,0 +1,13 @@
+{
+  "play-release-analyze-20261116.log": "fb615960d1ab04542a01c94fa2a00193c8b98284ff19525225435f0e706f0340",
+  "play-release-builder-green-20261116.log": "6d0f68f9cc3b7afa7019d5ec2d3c2a73d9f6b7a2a0559389a8e420e26849030f",
+  "play-release-builder-red-20261116.log": "5bc0e4d26e8974a7d6459f1649722a9fc76a939c1f95826970af69a9943b00c5",
+  "play-release-deployment-all-final-20261116.log": "0cb4bc2ea20dc0196aa1f7ecd79817d0fc7b4b4bc255cdbd4a39678d66a376f0",
+  "play-release-deployment-tests-20261116.log": "ace6831691fadf0322fe8d78e7c2ac703d1005e2e5f894b63d294c96a0f438e0",
+  "play-release-fixtures-20261116.log": "dd35d399349c10aa3a96d7b290940c947560d0a57270cc0c46cfa73c85128ef6",
+  "play-release-host-20261116.log": "668b50cadf5f07fd15cf26708c8c4f83554c3654c753015b40310bb04f5fee28",
+  "play-release-metadata-final-20261116.log": "b14c84556507b3880dfb048955ece31bbd01e63a7bad2143ebc60a3cd1621c0e",
+  "play-release-native-backup-20261116.log": "aa95a9d616680605e8e5e16b89fb522eca84a6ae1bcfb0f45a8f113d735a2866",
+  "play-release-python-verified-20261116.log": "921b60a7fd52e978fbb551cacd29df2d6708879400278e1fcc70fceeb0c6f8e0",
+  "play-release-source-fingerprint-build5-20261116.json": "faaf5ccddbd8673e73d6e0238a0b25b46445b1488504aaaf24ab751b348e47b1"
+}

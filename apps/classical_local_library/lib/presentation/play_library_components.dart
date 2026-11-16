@@ -179,6 +179,7 @@ class PlayQueueRow extends StatelessWidget {
     this.current = false,
     this.showContext = true,
     this.editMenu,
+    this.onTap,
   });
 
   final int index;
@@ -186,6 +187,7 @@ class PlayQueueRow extends StatelessWidget {
   final bool current;
   final bool showContext;
   final Widget? editMenu;
+  final VoidCallback? onTap;
   String get _currentLabel => item.isDirectFile ? '현재 곡' : '현재 악장';
 
   @override
@@ -193,14 +195,15 @@ class PlayQueueRow extends StatelessWidget {
     container: true,
     label:
         '큐 ${index + 1}번, ${item.displayTitle}, '
-        '${showContext ? '${item.workTitle}, ${item.recordingTitle}, ' : ''}${item.fileSourceLabel}'
+        '${showContext && item.contextParts.isNotEmpty ? '${item.contextParts.join(', ')}, ' : ''}${item.fileSourceLabel}'
         '${current ? ', $_currentLabel' : ''}',
     selected: current,
     child: DdiroriItem(
       flat: true,
+      onTap: onTap,
       title: item.displayTitle,
       subtitle: showContext
-          ? '${item.workTitle} · ${item.recordingTitle}\n${item.fileSourceLabel} · ${_fileName(item.path)}'
+          ? '${item.contextLabel.isEmpty ? '' : '${item.contextLabel}\n'}${item.fileSourceLabel} · ${_fileName(item.path)}'
           : item.usesLinkedFile
           ? null
           : '실제 파일 연결 필요',

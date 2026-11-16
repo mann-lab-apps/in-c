@@ -1,0 +1,48 @@
+{
+  "recordedAtUtc": "2026-11-12T02:48:08.197304+00:00",
+  "publiclyPublished": false,
+  "browserVisualVerified": false,
+  "httpAndStructureChecks": [
+    {
+      "page": "index.html",
+      "status": 200,
+      "sha256": "e69f5b969c5726bc6372898c46f42f62421d0f6c7ebd94507fe077bb8aac0de5",
+      "korean": true,
+      "headings": 1,
+      "links": [
+        "support.html",
+        "privacy.html"
+      ]
+    },
+    {
+      "page": "privacy.html",
+      "status": 200,
+      "sha256": "a5f1e8e3698a320bae7833c99c895669f92caa600e823b90ff4b6092c5b947fa",
+      "korean": true,
+      "headings": 1,
+      "links": [
+        "index.html",
+        "support.html",
+        "mailto:daga4242@gmail.com?subject=%EB%9D%A0%EB%A1%9C%EB%A6%AC%20%ED%94%8C%EB%A0%88%EC%9D%B4%20%EB%AC%B8%EC%9D%98"
+      ]
+    },
+    {
+      "page": "support.html",
+      "status": 200,
+      "sha256": "ec6374841f8f3bdf8027775c3227bbe614497d9886d08109ba22b1798df929c9",
+      "korean": true,
+      "headings": 1,
+      "links": [
+        "index.html",
+        "privacy.html",
+        "mailto:daga4242@gmail.com?subject=%EB%9D%A0%EB%A1%9C%EB%A6%AC%20%ED%94%8C%EB%A0%88%EC%9D%B4%20%EB%AC%B8%EC%9D%98"
+      ]
+    },
+    {
+      "page": "styles.css",
+      "status": 200,
+      "sha256": "c8ac93af03649df7a058ac92a1e48dc0184b72e45fbc3620e66becc177bf24fd"
+    }
+  ],
+  "linkMinimumBlockSizeCss": "3rem at default 16px = 48px; visual/browser unverified"
+}

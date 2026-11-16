@@ -226,17 +226,23 @@ class _DelayedPlaybackController implements LocalPlaybackController {
   }
 
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) async {
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  }) async {
     await _operation('load:${queue.first.trackId}');
     _state = LocalPlaybackState(
       playerState: LocalPlayerState.ready,
       queue: queue,
-      currentIndex: 0,
+      currentIndex: initialIndex,
     );
   }
 
   @override
   Future<void> next() => _operation('next');
+
+  @override
+  Future<void> selectQueueItem(int index) => _operation('select:$index');
 
   @override
   Future<void> previous() => _operation('previous');

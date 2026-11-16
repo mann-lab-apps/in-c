@@ -15,6 +15,8 @@ class PlayPlaybackSnapshot {
     this.favoriteBusy = false,
     this.canFavorite = false,
     this.notice,
+    this.composer,
+    this.album,
   });
 
   final LocalPlaybackState state;
@@ -22,6 +24,7 @@ class PlayPlaybackSnapshot {
   final bool currentFavorite, favoriteBusy;
   final bool canFavorite;
   final String? notice;
+  final String? composer, album;
 }
 
 class PlayPlaybackScope extends InheritedWidget {
@@ -36,6 +39,10 @@ class PlayPlaybackScope extends InheritedWidget {
     required this.onStop,
     required this.onSeek,
     this.onAddToPlaylist,
+    this.onSaveQueue,
+    this.onSelectQueueItem,
+    this.onOpenComposer,
+    this.onOpenAlbum,
     this.onToggleFavorite,
     this.onRemoveQueueItem,
     this.onMoveQueueItem,
@@ -53,6 +60,9 @@ class PlayPlaybackScope extends InheritedWidget {
   final Future<void> Function() onStop;
   final Future<void> Function(Duration) onSeek;
   final VoidCallback? onAddToPlaylist;
+  final Future<void> Function()? onSaveQueue;
+  final Future<void> Function(int)? onSelectQueueItem;
+  final VoidCallback? onOpenComposer, onOpenAlbum;
   final VoidCallback? onToggleFavorite;
   final Future<void> Function(int)? onRemoveQueueItem;
   final Future<void> Function(int, int)? onMoveQueueItem;
@@ -157,6 +167,15 @@ class PlayPlaybackScope extends InheritedWidget {
       item: value.state.queue[index],
       current: index == value.state.currentIndex,
       showContext: showContext,
+      onTap:
+          onSelectQueueItem == null ||
+              value.commandRunning ||
+              value.state.isBusy ||
+              value.state.failure != null
+          ? null
+          : () {
+              if (_sameQueue(value)) onSelectQueueItem!(index);
+            },
       editMenu: !editable || onRemoveQueueItem == null
           ? null
           : DdiroriMenuButton<String>(
@@ -186,8 +205,8 @@ class PlayPlaybackScope extends InheritedWidget {
     );
   }
 
-  Future<void> openDetails(BuildContext context) =>
-      Navigator.of(context).push<void>(
+  Future<void> openDetails(BuildContext context) => Navigator.of(context)
+      .push<void>(
         MaterialPageRoute(
           builder: (context) => _wrap(
             Scaffold(
@@ -205,6 +224,26 @@ class PlayPlaybackScope extends InheritedWidget {
                             children: [
                               if (value.notice != null) notice(value),
                               controls(value),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  if (value.composer != null &&
+                                      onOpenComposer != null)
+                                    DdiroriButton(
+                                      label: '작곡가 · ${value.composer}',
+                                      kind: DdiroriButtonKind.quiet,
+                                      onPressed: onOpenComposer,
+                                    ),
+                                  if (value.album != null &&
+                                      onOpenAlbum != null)
+                                    DdiroriButton(
+                                      label: '앨범 · ${value.album}',
+                                      kind: DdiroriButtonKind.quiet,
+                                      onPressed: onOpenAlbum,
+                                    ),
+                                ],
+                              ),
                               if (value.state.failure != null) ...[
                                 const SizedBox(height: 12),
                                 Text(
@@ -220,6 +259,15 @@ class PlayPlaybackScope extends InheritedWidget {
                               ),
                               const SizedBox(height: 8),
                               upcomingActions(context, value),
+                              if (onSaveQueue != null)
+                                DdiroriButton(
+                                  label: '대기열을 재생목록으로 저장',
+                                  icon: Icons.playlist_add,
+                                  onPressed:
+                                      value.commandRunning || value.state.isBusy
+                                      ? null
+                                      : onSaveQueue,
+                                ),
                             ],
                           ),
                         ),
@@ -406,7 +454,14 @@ class _PlaybackStrip extends StatelessWidget {
                                   ),
                                   if (showTitle)
                                     Text(
-                                      '${item?.recordingTitle ?? ''} · ${playPlayerStateLabel(state.playerState)}',
+                                      [
+                                            item?.recordingTitle.trim() ?? '',
+                                            playPlayerStateLabel(
+                                              state.playerState,
+                                            ),
+                                          ]
+                                          .where((value) => value.isNotEmpty)
+                                          .join(' · '),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)

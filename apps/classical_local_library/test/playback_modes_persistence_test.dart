@@ -51,7 +51,7 @@ void main() {
           'schema_migrations',
           orderBy: 'version',
         )).map((r) => r['version']),
-        [16, 18],
+        [16, 19],
       );
       final row = (await db.query('playback_queue_state')).single;
       expect(row['track_ids_json'], '["a","b"]');

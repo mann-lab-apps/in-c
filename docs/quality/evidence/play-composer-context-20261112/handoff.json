@@ -1,0 +1,29 @@
+{
+  "recordedAt": "2026-11-12T01:08:16.696877+00:00",
+  "branch": "feature/ddirori-play-library-context-20261031",
+  "baseCommit": "f57602c18ce55031833faabf37a073da437453b9",
+  "uncommitted": true,
+  "runnerSourceFingerprint": "1e88fa1f6d039982e7d9c0581462641bb682656ad0e54ea80d037431897af81f",
+  "schemaVersion": 19,
+  "feedbackSchemaVersion": 2,
+  "appVersionUnchanged": "0.1.0+4",
+  "physicalDeviceVerified": false,
+  "publishedOrUploaded": false,
+  "imageCount": 86,
+  "xcode": "Xcode 26.5\nBuild version 17F42",
+  "iosDependencyManager": "FlutterGeneratedPluginSwiftPackage (local SwiftPM); no CocoaPods Podfile.lock",
+  "android": {
+    "avd": "DDIRORI_QA_Play_API35_20261111",
+    "sdk": "35",
+    "physicalAudibilityVerified": false
+  },
+  "simulator": [
+    {
+      "name": "DDIRORI-QA-Play-20261023",
+      "state": "Booted",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+    }
+  ],
+  "testCountsSource": "test.log and native-*.log; do not count reruns twice",
+  "imageReviewSource": "Quality Markdown records opened images separately"
+}

@@ -1,0 +1,51 @@
+{
+  "publiclyPublished": false,
+  "browser": "local headless Chrome; dedicated profile",
+  "results": [
+    {
+      "width": 390,
+      "textScale": 1,
+      "textScaleMethod": "default",
+      "theme": "light",
+      "image": "play-policy-390-1-light.png",
+      "title": "띠로리 플레이 개인정보 처리방침",
+      "scrollWidth": 390,
+      "viewport": 390,
+      "focus": "본문 바로가기",
+      "focusOutline": "solid",
+      "headingCount": 1,
+      "operator": true,
+      "mail": true
+    },
+    {
+      "width": 320,
+      "textScale": 2,
+      "textScaleMethod": "computed font/line-height doubled; browser-local QA only",
+      "theme": "light",
+      "image": "play-policy-320-2-light.png",
+      "title": "띠로리 플레이 개인정보 처리방침",
+      "scrollWidth": 320,
+      "viewport": 320,
+      "focus": "본문 바로가기",
+      "focusOutline": "solid",
+      "headingCount": 1,
+      "operator": true,
+      "mail": true
+    },
+    {
+      "width": 1024,
+      "textScale": 2,
+      "textScaleMethod": "computed font/line-height doubled; browser-local QA only",
+      "theme": "dark",
+      "image": "play-policy-1024-2-dark.png",
+      "title": "띠로리 플레이 개인정보 처리방침",
+      "scrollWidth": 1024,
+      "viewport": 1024,
+      "focus": "본문 바로가기",
+      "focusOutline": "solid",
+      "headingCount": 1,
+      "operator": true,
+      "mail": true
+    }
+  ]
+}

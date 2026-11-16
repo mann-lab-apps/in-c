@@ -1,0 +1,23 @@
+{
+  "recordedAt": "2026-11-11T07:27:43.490603+00:00",
+  "branch": "feature/ddirori-play-library-context-20261031",
+  "baseCommit": "f57602c18ce55031833faabf37a073da437453b9",
+  "uncommitted": true,
+  "runnerSourceFingerprint": "e4a913630b3805d8c1bfedb221f5da4d8d4a936880e51b577dd974f3315ddb55",
+  "schemaVersion": 18,
+  "feedbackSchemaVersion": 2,
+  "appVersionUnchanged": "0.1.0+4",
+  "physicalDeviceVerified": false,
+  "publishedOrUploaded": false,
+  "imageCount": 67,
+  "xcode": "Xcode 26.5\nBuild version 17F42",
+  "simulator": [
+    {
+      "name": "DDIRORI-QA-Play-20261023",
+      "state": "Booted",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+    }
+  ],
+  "testCountsSource": "test.log and native-*.log; do not count reruns twice",
+  "imageReviewSource": "Quality Markdown records opened images separately"
+}

@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 
 import 'classical_library_models.dart';
 import 'file_links.dart';
+import 'composer_library.dart';
 
 const emptyClassicalLibrary = ClassicalLibrary(
   people: [],
@@ -205,7 +206,9 @@ class SqliteClassicalCatalogStore implements ClassicalCatalogStore {
 
   Future<bool> bootstrapLegacyReferences(ClassicalLibrary legacy) async {
     final existing = sqflite.Sqflite.firstIntValue(
-      await database.rawQuery('SELECT COUNT(*) FROM catalog_works'),
+      await database.rawQuery(
+        'SELECT (SELECT COUNT(*) FROM catalog_works) + (SELECT COUNT(*) FROM catalog_people)',
+      ),
     );
     if ((existing ?? 0) > 0) return false;
 
@@ -338,6 +341,11 @@ class SqliteClassicalCatalogStore implements ClassicalCatalogStore {
       tracks: selectedTracks,
       files: const [],
     );
+    if (selected.works.isEmpty &&
+        selected.recordings.isEmpty &&
+        selected.tracks.isEmpty) {
+      return false;
+    }
     await database.transaction((transaction) async {
       await _replaceCatalog(transaction, selected);
       for (final table in [
@@ -495,6 +503,17 @@ Future<void> _replaceCatalog(
   sqflite.DatabaseExecutor executor,
   ClassicalLibrary library,
 ) async {
+  final origins = <String, Map<String, Object?>>{};
+  for (final table in [
+    'catalog_people',
+    'catalog_works',
+    'catalog_recordings',
+  ]) {
+    origins[table] = {
+      for (final row in await executor.query(table, columns: ['id', 'origin']))
+        row['id'] as String: row['origin'],
+    };
+  }
   for (final table in _catalogDeleteOrder) {
     await executor.delete(table);
   }
@@ -504,7 +523,10 @@ Future<void> _replaceCatalog(
       'name_json': jsonEncode(_nameToJson(person.name)),
       'birth_year': person.birthYear,
       'death_year': person.deathYear,
-      'origin': 'user',
+      'composer_profile_json': person.composerProfile == null
+          ? null
+          : jsonEncode(person.composerProfile!.toJson()),
+      'origin': origins['catalog_people']?[person.id] ?? 'user',
     });
   }
   for (final instrument in library.instruments) {
@@ -534,10 +556,13 @@ Future<void> _replaceCatalog(
       'title_json': jsonEncode(_nameToJson(work.title)),
       'catalog_number': work.catalogNumber,
       'period_label': work.periodLabel,
+      'period_assessment_json': work.periodAssessment == null
+          ? null
+          : jsonEncode(work.periodAssessment!.toJson()),
       'source_references_json': jsonEncode([
         for (final reference in work.sourceReferences) reference.toJson(),
       ]),
-      'origin': 'user',
+      'origin': origins['catalog_works']?[work.id] ?? 'user',
     });
   }
   for (final part in library.workParts) {
@@ -559,7 +584,7 @@ Future<void> _replaceCatalog(
       'source_references_json': jsonEncode([
         for (final reference in recording.sourceReferences) reference.toJson(),
       ]),
-      'origin': 'user',
+      'origin': origins['catalog_recordings']?[recording.id] ?? 'user',
     });
     for (final credit in recording.credits) {
       await executor.insert('catalog_recording_credits', {
@@ -596,6 +621,12 @@ Future<ClassicalLibrary> _loadFrom(
         name: _nameFromJson(row['name_json']! as String),
         birthYear: row['birth_year'] as int?,
         deathYear: row['death_year'] as int?,
+        composerProfile: row['composer_profile_json'] == null
+            ? null
+            : ComposerProfile.fromJson(
+                (jsonDecode(row['composer_profile_json'] as String) as Map)
+                    .cast<String, Object?>(),
+              ),
       ),
   ];
   final instruments = [
@@ -632,6 +663,12 @@ Future<ClassicalLibrary> _loadFrom(
         title: _nameFromJson(row['title_json']! as String),
         catalogNumber: row['catalog_number'] as String?,
         periodLabel: row['period_label'] as String?,
+        periodAssessment: row['period_assessment_json'] == null
+            ? null
+            : PeriodAssessment.fromJson(
+                (jsonDecode(row['period_assessment_json'] as String) as Map)
+                    .cast<String, Object?>(),
+              ),
         sourceReferences: _referencesFromJson(
           row['source_references_json']! as String,
         ),
@@ -777,6 +814,14 @@ CatalogRegistrationResult _applyDraft(
     work = current.work(draft.existingWorkId!);
   } else {
     ClassicalPerson? composer;
+    final matchingPeople = people
+        .where((person) => _sameName(person.name, draft.composerName))
+        .toList();
+    if (matchingPeople.length > 1) {
+      throw const FormatException(
+        '동명이인 또는 중복 별칭입니다. 작곡가 정보를 확인하거나 기존 작품을 선택해 주세요.',
+      );
+    }
     for (final person in people) {
       if (_sameName(person.name, draft.composerName)) composer = person;
     }
@@ -1018,8 +1063,14 @@ LocalizedName _simpleName(String value) {
   return LocalizedName(ko: clean, sortName: clean, aliases: const []);
 }
 
-bool _sameName(LocalizedName name, String value) =>
-    _slug(name.sortName) == _slug(value);
+bool _sameName(LocalizedName name, String value) {
+  final exact = ComposerNames.normalize(value);
+  return exact.isNotEmpty &&
+      [
+        ...name.searchNames,
+        name.sortName,
+      ].any((candidate) => ComposerNames.normalize(candidate) == exact);
+}
 
 String _slug(String value) {
   final normalized = value.trim().toLowerCase().replaceAll(

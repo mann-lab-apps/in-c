@@ -215,8 +215,10 @@ class JustAudioLocalPlaybackController
   }
 
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) =>
-      _loadQueue(queue);
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  }) => _loadQueue(queue, initialIndex: initialIndex);
 
   Future<void> _loadQueue(
     List<LocalPlaybackQueueItem> sources, {
@@ -224,6 +226,12 @@ class JustAudioLocalPlaybackController
     int initialIndex = 0,
     bool initializingEmptyQueue = false,
   }) async {
+    if (initialIndex < 0 ||
+        (sources.isEmpty
+            ? initialIndex != 0
+            : initialIndex >= sources.length)) {
+      throw RangeError.index(initialIndex, sources, 'initialIndex');
+    }
     final generation = initializingEmptyQueue
         ? _queueGeneration
         : ++_queueGeneration;
@@ -236,7 +244,8 @@ class JustAudioLocalPlaybackController
     _order =
         order ??
         (_shuffle
-            ? PlaybackOrder.identity(sources.length).shuffled(0, random)
+            ? PlaybackOrder.identity(sources.length)
+                  .shuffled(initialIndex, random)
             : PlaybackOrder.identity(sources.length));
     _engineOrder = QueueShuffleOrder(_order);
     final immutableQueue = List<LocalPlaybackQueueItem>.unmodifiable([
@@ -868,6 +877,22 @@ class JustAudioLocalPlaybackController
             _playbackState.queue.length - 1,
           );
     await persistPosition();
+    await _moveTo(index);
+  }
+
+  @override
+  Future<void> selectQueueItem(int index) async {
+    if (_isDisposed ||
+        !_hasLoadedSources ||
+        _playbackState.queue.isEmpty ||
+        _playbackState.playerState == LocalPlayerState.error ||
+        _playbackState.isBusy) {
+      return;
+    }
+    RangeError.checkValidIndex(index, _playbackState.queue, 'index');
+    final generation = _queueGeneration;
+    await persistPosition();
+    if (_isDisposed || generation != _queueGeneration) return;
     await _moveTo(index);
   }
 

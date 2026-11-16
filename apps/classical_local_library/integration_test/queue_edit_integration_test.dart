@@ -17,6 +17,67 @@ import 'package:path_provider/path_provider.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
+    'native indexed queue selection keeps sources and persists selected occurrence',
+    (tester) async {
+      final dir = await (await getTemporaryDirectory()).createTemp(
+        'indexed-queue-',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final q = await _syntheticQueue(dir),
+          engine = AudioPlayer(handleInterruptions: false);
+      var p = SerializedLocalPlaybackController(
+        JustAudioLocalPlaybackController(player: engine),
+      );
+      final path = '${dir.path}/indexed.sqlite';
+      var db = await ClassicalLocalDatabase(path: path).open();
+      addTearDown(() async {
+        await p.dispose();
+        if (db.isOpen) await db.close();
+      });
+      final queue = [q[0], q[1], q[0], q[2]];
+      await p.loadQueue(queue, initialIndex: 2);
+      expect(p.playbackState.currentIndex, 2);
+      expect(engine.currentIndex, 2);
+      expect(p.playbackState.queue, queue);
+      final sources = engine.sequence.map((s) => s.tag).toList();
+      await p.selectQueueItem(0);
+      expect(engine.currentIndex, 0);
+      expect(engine.playing, isFalse);
+      await p.play();
+      await _until(tester, () => engine.position.inMilliseconds > 100);
+      await p.selectQueueItem(2);
+      expect(engine.currentIndex, 2);
+      expect(engine.playing, isTrue);
+      await p.pause();
+      await p.seek(const Duration(seconds: 2));
+      await p.selectQueueItem(1);
+      expect(engine.playing, isFalse);
+      expect(p.playbackState.currentIndex, 1);
+      expect(engine.sequence.map((s) => s.tag), sources);
+      await PlaybackQueuePersistenceCoordinator(
+        store: SqlitePlaybackQueueSnapshotStore(db),
+      ).observe(p.playbackState);
+      await p.dispose();
+      await db.close();
+      db = await ClassicalLocalDatabase(path: path).open();
+      final snapshot = (await SqlitePlaybackQueueSnapshotStore(db).load())!;
+      p = SerializedLocalPlaybackController(JustAudioLocalPlaybackController());
+      await p.restoreQueue(
+        const PlaybackQueueRecovery().recover(
+          snapshot: snapshot,
+          currentQueue: q,
+        ),
+      );
+      expect(
+        p.playbackState.queue.map((i) => i.trackId),
+        queue.map((i) => i.trackId),
+      );
+      expect(p.playbackState.currentIndex, 1);
+      expect(p.playbackState.playerState, LocalPlayerState.ready);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+  testWidgets(
     'native queue edits and SQLite reopen restore duplicate occurrence order modes and position without autoplay',
     (tester) async {
       expect(Platform.isIOS, isTrue);

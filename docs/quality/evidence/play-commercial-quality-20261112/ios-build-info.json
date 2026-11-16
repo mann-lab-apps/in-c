@@ -1,0 +1,11 @@
+{
+  "CFBundleIdentifier": "com.mannlab.ddirori.play",
+  "CFBundleShortVersionString": "0.1.0",
+  "CFBundleVersion": "4",
+  "MinimumOSVersion": "15.0",
+  "UIBackgroundModes": [
+    "audio"
+  ],
+  "environment": "iOS simulator build",
+  "signedDistributionVerified": false
+}

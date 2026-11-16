@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'audio_tags.dart';
 import 'metadata_candidates.dart';
 
@@ -10,7 +12,10 @@ enum MetadataField {
   performer(label: '연주자'),
   conductor(label: '지휘자'),
   ensemble(label: '앙상블'),
-  year(label: '녹음·발매 연도');
+  year(label: '녹음·발매 연도'),
+  title(label: '곡 제목'),
+  albumTitle(label: '앨범명'),
+  albumArtist(label: '앨범 아티스트');
 
   const MetadataField({required this.label});
   final String label;
@@ -27,6 +32,35 @@ enum MetadataValueSource {
 }
 
 class MetadataOverride {
+  /// The same decoder is used for SQLite reads and preflight backup validation.
+  factory MetadataOverride.fromStorageRow(Map<String, Object?> row) {
+    Map<MetadataField, Object> values(String column) => {
+      for (final entry in (jsonDecode(
+        row[column]! as String,
+      ) as Map<String, Object?>).entries)
+        if (entry.value != null)
+          MetadataField.values.byName(entry.key): entry.value!,
+    };
+    Map<MetadataField, MetadataValueSource> sources(String column) => {
+      for (final entry in (jsonDecode(
+        row[column]! as String,
+      ) as Map<String, Object?>).entries)
+        MetadataField.values.byName(entry.key): MetadataValueSource.values
+            .byName(entry.value! as String),
+    };
+    return MetadataOverride(
+      fileId: row['file_id']! as String,
+      values: values('values_json'),
+      sources: sources('sources_json'),
+      fallbackValues: values('fallback_values_json'),
+      fallbackSources: sources('fallback_sources_json'),
+      updatedAtMillis: row['updated_at_millis']! as int,
+      musicBrainzRecordingId: row['musicbrainz_recording_id'] as String?,
+      musicBrainzWorkId: row['musicbrainz_work_id'] as String?,
+      musicBrainzReleaseId: row['musicbrainz_release_id'] as String?,
+    );
+  }
+
   MetadataOverride({
     required this.fileId,
     required Map<MetadataField, Object> values,
@@ -148,6 +182,19 @@ class EffectiveFileMetadata {
     );
     set(MetadataField.year, candidate?.year, MetadataValueSource.inferred);
 
+    set(MetadataField.title, tag?.title, MetadataValueSource.tag);
+    set(
+      MetadataField.albumTitle,
+      candidate?.albumText,
+      MetadataValueSource.inferred,
+    );
+    set(
+      MetadataField.albumArtist,
+      candidate?.albumArtistText,
+      MetadataValueSource.inferred,
+    );
+    set(MetadataField.albumTitle, tag?.album, MetadataValueSource.tag);
+    set(MetadataField.albumArtist, tag?.albumArtist, MetadataValueSource.tag);
     set(MetadataField.composer, tag?.composer, MetadataValueSource.tag);
     set(MetadataField.workTitle, tag?.work, MetadataValueSource.tag);
     set(
@@ -179,14 +226,18 @@ class ListeningFileMetadata {
     this.title,
     this.album,
     this.artist,
+    this.albumArtist,
     this.composer,
     this.workTitle,
+    this.movementTitle,
   });
   final String? title;
   final String? album;
   final String? artist;
+  final String? albumArtist;
   final String? composer;
   final String? workTitle;
+  final String? movementTitle;
 
   static ListeningFileMetadata resolve({
     AudioTagMetadata? tag,
@@ -207,22 +258,23 @@ class ListeningFileMetadata {
         : clean(override?.text(field));
     return ListeningFileMetadata(
       title:
-          corrected(MetadataField.movementTitle) ??
+          corrected(MetadataField.title) ??
           clean(tag?.title) ??
+          corrected(MetadataField.movementTitle) ??
           clean(tag?.movementTitle) ??
           clean(approved?.movementText),
       album:
-          corrected(MetadataField.workTitle) ??
+          corrected(MetadataField.albumTitle) ??
           clean(tag?.album) ??
-          clean(tag?.work) ??
-          clean(approved?.albumText) ??
-          clean(approved?.workTitleText),
+          clean(approved?.albumText),
       artist:
           corrected(MetadataField.performer) ??
-          clean(tag?.albumArtist) ??
           clean(tag?.artist) ??
-          clean(approved?.albumArtistText) ??
           clean(approved?.artistText),
+      albumArtist:
+          corrected(MetadataField.albumArtist) ??
+          clean(tag?.albumArtist) ??
+          clean(approved?.albumArtistText),
       composer:
           corrected(MetadataField.composer) ??
           clean(tag?.composer) ??
@@ -231,6 +283,10 @@ class ListeningFileMetadata {
           corrected(MetadataField.workTitle) ??
           clean(tag?.work) ??
           clean(approved?.workTitleText),
+      movementTitle:
+          corrected(MetadataField.movementTitle) ??
+          clean(tag?.movementTitle) ??
+          clean(approved?.movementText),
     );
   }
 }

@@ -310,6 +310,8 @@ class LibrarySearchService {
       files: files,
       candidates: candidates,
       overrides: overrides,
+      library: library,
+      workAliases: workAliases,
     );
     final displayByFileId = {
       for (final entry in displayFiles) entry.file.id: entry,
@@ -327,7 +329,10 @@ class LibrarySearchService {
           display.title,
           display.album,
           display.artist,
-          ?display.composer,
+          ?display.albumArtist,
+          ?display.composerSourceText,
+          ?display.workTitle,
+          ?display.movementTitle,
         ],
       );
     }

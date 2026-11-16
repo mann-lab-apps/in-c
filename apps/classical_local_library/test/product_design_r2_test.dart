@@ -413,9 +413,12 @@ class _CountingPlayer extends FakeLocalPlayer {
       );
   final commands = <String>[];
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  }) {
     commands.add('load');
-    return super.loadQueue(queue);
+    return super.loadQueue(queue, initialIndex: initialIndex);
   }
 
   @override
@@ -482,8 +485,11 @@ class _RecoveringPlayer extends _CountingPlayer {
         )
       : super.playbackState;
   @override
-  Future<void> loadQueue(List<LocalPlaybackQueueItem> queue) {
+  Future<void> loadQueue(
+    List<LocalPlaybackQueueItem> queue, {
+    int initialIndex = 0,
+  }) {
     _failed = false;
-    return super.loadQueue(queue);
+    return super.loadQueue(queue, initialIndex: initialIndex);
   }
 }

@@ -1,0 +1,150 @@
+{
+  "operation": "read-only Play inspection",
+  "appId": "6828809673",
+  "storeWrites": false,
+  "attempts": [
+    {
+      "keyReference": "repository-secret",
+      "failedRead": {
+        "resource": "/v1/apps/6828809673/buildUploads",
+        "httpStatus": 403,
+        "codes": [
+          "FORBIDDEN_ERROR.ROLE_NOT_VALID"
+        ]
+      },
+      "passed": false,
+      "failureClass": "RuntimeError"
+    },
+    {
+      "keyReference": "user-provided-desktop-0",
+      "passed": true
+    }
+  ],
+  "resources": {
+    "versions": [
+      {
+        "id": "423cf385-e335-43a4-9429-1759b9cee567",
+        "attributes": {
+          "platform": "IOS",
+          "versionString": "1.0",
+          "appStoreState": "PREPARE_FOR_SUBMISSION",
+          "appVersionState": "PREPARE_FOR_SUBMISSION",
+          "releaseType": "AFTER_APPROVAL"
+        }
+      }
+    ],
+    "versionsHasNextPage": false,
+    "builds": [
+      {
+        "id": "eb468b7f-8296-4030-afc9-f2c08d42a1f5",
+        "attributes": {
+          "version": "3",
+          "uploadedDate": "2026-10-30T06:16:40-07:00",
+          "expired": false,
+          "processingState": "VALID",
+          "buildAudienceType": "INTERNAL_ONLY",
+          "usesNonExemptEncryption": false
+        }
+      },
+      {
+        "id": "19789d8e-5e3a-4d60-8cb2-10931c5c6c13",
+        "attributes": {
+          "version": "4",
+          "uploadedDate": "2026-11-02T05:52:03-08:00",
+          "expired": false,
+          "processingState": "VALID",
+          "buildAudienceType": "INTERNAL_ONLY",
+          "usesNonExemptEncryption": false
+        }
+      },
+      {
+        "id": "a75f2996-e8e6-4516-a990-1a6b05b3216e",
+        "attributes": {
+          "version": "1",
+          "uploadedDate": "2026-10-30T04:35:07-07:00",
+          "expired": false,
+          "processingState": "VALID",
+          "buildAudienceType": "INTERNAL_ONLY",
+          "usesNonExemptEncryption": false
+        }
+      },
+      {
+        "id": "eb230219-dfa5-462d-a586-5d78140187c6",
+        "attributes": {
+          "version": "2",
+          "uploadedDate": "2026-10-30T05:28:18-07:00",
+          "expired": false,
+          "processingState": "VALID",
+          "buildAudienceType": "INTERNAL_ONLY",
+          "usesNonExemptEncryption": false
+        }
+      }
+    ],
+    "buildsHasNextPage": false,
+    "uploads": [
+      {
+        "id": "19789d8e-5e3a-4d60-8cb2-10931c5c6c13",
+        "attributes": {
+          "cfBundleShortVersionString": "0.1.0",
+          "cfBundleVersion": "4",
+          "state": {
+            "errors": [],
+            "warnings": [],
+            "infos": [],
+            "state": "COMPLETE"
+          },
+          "platform": "IOS",
+          "uploadedDate": "2026-11-02T05:51:20-08:00"
+        }
+      },
+      {
+        "id": "eb468b7f-8296-4030-afc9-f2c08d42a1f5",
+        "attributes": {
+          "cfBundleShortVersionString": "0.1.0",
+          "cfBundleVersion": "3",
+          "state": {
+            "errors": [],
+            "warnings": [],
+            "infos": [],
+            "state": "COMPLETE"
+          },
+          "platform": "IOS",
+          "uploadedDate": "2026-10-30T06:15:19-07:00"
+        }
+      },
+      {
+        "id": "eb230219-dfa5-462d-a586-5d78140187c6",
+        "attributes": {
+          "cfBundleShortVersionString": "0.1.0",
+          "cfBundleVersion": "2",
+          "state": {
+            "errors": [],
+            "warnings": [],
+            "infos": [],
+            "state": "COMPLETE"
+          },
+          "platform": "IOS",
+          "uploadedDate": "2026-10-30T05:24:47-07:00"
+        }
+      },
+      {
+        "id": "a75f2996-e8e6-4516-a990-1a6b05b3216e",
+        "attributes": {
+          "cfBundleShortVersionString": "0.1.0",
+          "cfBundleVersion": "1",
+          "state": {
+            "errors": [],
+            "warnings": [],
+            "infos": [],
+            "state": "COMPLETE"
+          },
+          "platform": "IOS",
+          "uploadedDate": "2026-10-30T04:33:30-07:00"
+        }
+      }
+    ],
+    "uploadsHasNextPage": false
+  },
+  "passed": true,
+  "selectedKeyReference": "user-provided-desktop-0"
+}

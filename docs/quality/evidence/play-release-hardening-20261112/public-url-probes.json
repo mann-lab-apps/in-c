@@ -1,0 +1,17 @@
+[
+  {
+    "url": "https://ddirori.mannlab.app/",
+    "failureType": "URLError",
+    "reason": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "url": "https://ddirori-play-mannlab.daga4242.chatgpt.site/privacy.html",
+    "failureType": "HTTPError",
+    "reason": "HTTP Error 403: Forbidden"
+  },
+  {
+    "url": "https://ddirori-play-mannlab.daga4242.chatgpt.site/support.html",
+    "failureType": "HTTPError",
+    "reason": "HTTP Error 403: Forbidden"
+  }
+]

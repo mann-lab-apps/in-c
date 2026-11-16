@@ -19,6 +19,20 @@ void main() {
       );
       final old = await source.copy('${directory.path}/old.png');
       expect(await qaImageEvidence(old, 'old.png'), isNotNull);
+      expect(
+        (await qaImageEvidence(
+          old,
+          'android-background/android-media-notification.png',
+        ))!['environment'],
+        'AndroidEmulator',
+      );
+      expect(
+        (await qaImageEvidence(
+          old,
+          'images/native-fixture.png',
+        ))!['environment'],
+        'iOSSimulator',
+      );
       final result = await runQaCheck(
         const QaCheck(
           'stale-image',
@@ -67,12 +81,13 @@ void main() {
     expect(result['images'], isEmpty);
   });
 
-  test('fingerprint excludes only known generated iOS registrants', () {
+  test('fingerprint excludes only exact Flutter registrant paths', () {
     for (final path in [
       'ios/Runner/GeneratedPluginRegistrant.h',
       '/checkout/ios/Runner/GeneratedPluginRegistrant.m',
       r'C:\checkout\ios\Runner\GeneratedPluginRegistrant.h',
       'assets/.DS_Store',
+      'android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java',
     ]) {
       expect(isQaSourceFile(path), isFalse, reason: path);
     }
@@ -84,6 +99,10 @@ void main() {
       'lib/GeneratedPluginRegistrant.m',
       '../../packages/ddirori_ui/lib/src/generated/ddirori_tokens.dart',
       'assets/audio_test/movement_1.flac',
+      'android/app/src/main/kotlin/app/inc/classical_local_library/MainActivity.kt',
+      'android/app/src/main/java/app/inc/GeneratedPluginRegistrant.java',
+      'android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.kt',
+      'lib/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java',
     ]) {
       expect(isQaSourceFile(path), isTrue, reason: path);
     }
@@ -98,6 +117,44 @@ void main() {
       directory,
     ).timeout(const Duration(seconds: 3));
     expect(result['status'], 'timedOut');
+  });
+
+  test('generated artifact changes are separate; real native/config changes affect v2 fingerprint', () async {
+    final root = '${directory.path}/app';
+    Future<void> write(String relative, String value) async {
+      final file = File('$root/$relative');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(value);
+    }
+
+    const generated =
+        'android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java';
+    await write(generated, 'generated before');
+    await write(
+      'android/app/src/main/kotlin/app/inc/MainActivity.kt',
+      'product',
+    );
+    final before = await sourceFingerprint(root: root);
+    final artifacts = await generatedRegistrantFingerprints(root: root);
+    await write(generated, 'generated after');
+    expect(await sourceFingerprint(root: root), before);
+    expect(await generatedRegistrantFingerprints(root: root), isNot(artifacts));
+    for (final file in [
+      'lib/main.dart',
+      'pubspec.yaml',
+      'pubspec.lock',
+      'android/app/src/main/kotlin/app/inc/MainActivity.kt',
+      'ios/Runner/Info.plist',
+    ]) {
+      final previous = await sourceFingerprint(root: root);
+      await write(file, 'changed product $file');
+      expect(
+        await sourceFingerprint(root: root),
+        isNot(previous),
+        reason: file,
+      );
+    }
+    expect(qaSourceFingerprintVersion, 2);
   });
 
   test(

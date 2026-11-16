@@ -5,18 +5,20 @@ source:
   state: pending
   path: apps/classical_local_library
   commit: '066e36e55831856100fae3050d5050b47e62f597'
-  version: 0.1.0
-  build_number: 4
+  version: 1.0.0
+  build_number: 5
   bundle_id: com.mannlab.ddirori.play
   dart_defines:
     ENABLE_DEMO_LIBRARY: 'false'
-    APP_VERSION_LABEL: 0.1.0 (4)
+    APP_VERSION_LABEL: 1.0.0 (5)
+    SUPPORT_URL: https://ddirori.com/support/
+    PRIVACY_POLICY_URL: https://ddirori.com/play/privacy/
   flavor:
 store:
   app_id: '6828809673'
   bundle_id: com.mannlab.ddirori.play
   expected_name: 띠로리 플레이
-  version: 0.1.0
+  version: 1.0.0
   first_release: true
   test_only: false
 content:
@@ -27,75 +29,46 @@ content:
       name: 띠로리 플레이
       subtitle: 내 음악을 가져오고 바로 재생
       description: |-
-        곡을 지금 재생하거나 현재 대기열의 바로 다음·마지막에 예약하세요. 현재 곡을 유지하며 남은 대기열을 정리하고, 즐겨찾는 곡은 별도 목록에서 검색해 들을 수 있습니다.
-        작품을 등록하기 전에도 IMSLP에서 작품을 검색하고 공식 페이지를 확인할 수 있습니다. Files에 저장한 음원을 가져와 바로 듣고, 확인한 페이지를 출처로 연결할 수 있습니다. 검색 결과는 다운로드 가능한 녹음 파일 목록을 뜻하지 않습니다.
-        전체 재생에서 현재 큐의 셔플과 한 곡·전체 반복을 선택할 수 있습니다. 셔플을 꺼도 현재 곡과 위치를 유지하며 원래 순서로 돌아갑니다. 재시작 시 순서와 모드를 복원하고 자동 재생하지 않습니다.
-        내 음악 전체 검색은 검색 정보를 준비하는 중·검색 중·결과 없음·실패를 구분합니다. 준비 중에도 재생을 조작할 수 있으며 실패하면 다시 검색할 수 있습니다.
-        보관함 분류의 표시와 순서를 고르고 재생목록과 목록 안 곡을 검색·정렬하세요. 표지 선택과 제거로 재생목록을 구분하고 음원의 내장 앨범아트를 확인할 수 있습니다. 정보가 없는 음원은 파일명과 정보 없음으로 표시합니다.
-        띠로리 플레이는 내가 가진 음원을 가져와 바로 듣고, 원할 때 클래식 작품으로 정리하는 로컬 음악 플레이어입니다.
+        내 음악을 가져와 바로 듣고, 원하는 방식으로 보관하세요.
 
-        화면에 맞는 메뉴로 보관함을 탐색하고 검색에서 돌아오면 이전 목록을 이어볼 수 있습니다. 재생목록을 만들거나 곡을 담아도 원래 화면에 머물며 완료 안내의 ‘보기’로 목록을 열 수 있습니다. 재생목록 상세의 더보기에서 이름과 곡 순서를 편집하거나 목록을 삭제하세요. 목록 삭제와 곡 제거로 원본 음원이 삭제되지 않습니다.
+        띠로리 플레이는 기기에 보관한 음원을 관리하고 재생하는 음악 플레이어입니다. 작품을 등록하기 전에도 파일 앱에서 가져온 곡을 바로 들을 수 있습니다.
 
-        iPhone 또는 iPad의 파일 앱에서 음원을 가져오면 보관함의 곡 목록에서 바로 재생할 수 있습니다. 곡·앨범·아티스트·재생목록으로 탐색하고 목록 안에서 검색하거나 곡을 정렬하세요. 곡·앨범·현재 재생에서 재생목록에 담고, 여러 곡을 고르거나 순서를 바꿔 들을 수 있습니다. 폴더별 보기는 도구 메뉴에서 이용할 수 있습니다. 최근 추가한 앨범과 곡도 확인할 수 있습니다. 클래식 작품으로 정리하는 과정은 선택 사항입니다.
+        익숙한 내 음악 보관함
+        • 곡·앨범·작곡가·재생목록으로 탐색
+        • 보관함 검색과 목록 정렬, 최근 추가한 음악 확인
+        • 재생목록 만들기·곡 추가·순서 편집과 즐겨찾기
+        • 여러 곡을 함께 선택해 재생하거나 대기열에 예약
 
-        가져오기 결과에서 파일별 성공·중복·분석 대기·실패를 확인하고 실패한 파일만 다시 시도할 수 있습니다. 원한다면 가져온 파일을 작품·녹음·악장으로 정리하세요. 앱 관리 음원을 내보낸 뒤에는 띠로리 Score에서 악보와 음원을 수동으로 연결하는 방법을 확인할 수 있습니다. 앱 간 자동 전송이나 저장 확인은 제공하지 않습니다.
+        이어지는 감상
+        • 축약 플레이어와 전체 재생 화면
+        • 이전·다음 곡, 진행 위치, 셔플·한 곡/전체 반복
+        • 화면 잠금과 앱 전환 중 재생 유지
+        • 잠금 화면·제어센터에서 곡 정보와 재생 조작
+        • 큐·재생 위치 복원과 감상 기록
+        앱을 다시 열거나 오디오 중단이 끝났다는 이유만으로 자동 재생하지 않습니다.
 
-        클래식 중심 라이브러리
-        • 가져온 파일을 작품 등록 없이 바로 재생하고 보관함에서 검색
-        • 작곡가, 작품, 녹음, 악장과 로컬 파일을 구분해 관리
-        • 작품 상세에서 악장과 보유 녹음을 살펴보고 녹음 상세에서 연주자와 파일 상태 확인
-        • 작품 번호, 한글·원어 이름과 별칭 검색
-        • 파일 태그와 파일명에서 메타데이터 후보 확인
-        • 앱 내부 메타데이터 교정과 중복 작품·녹음 정리
+        클래식 음원도 차근차근
+        • 작곡가의 한글·원어 이름과 확인한 별칭 관리
+        • 작품·녹음·악장을 구분하고 악장 순서대로 감상
+        • 출처와 추정 여부를 구분하는 시대별 탐색
+        • MusicBrainz 후보를 확인하고 선택한 정보만 반영
+        • IMSLP 공식 작품 페이지 검색과 참조 연결
+        IMSLP 검색 결과는 다운로드 가능한 음원 목록이나 저작권 승인을 뜻하지 않습니다.
 
-        작품을 지키는 재생
-        • 작품, 녹음 또는 악장 단위의 랜덤 재생
-        • 분리된 악장을 순서대로 묶은 재생 큐
-        • 녹음 전체 또는 선택한 악장부터 남은 악장을 순서대로 재생
-        • 다른 작품과 녹음을 살펴보는 동안 현재 재생 조작에 접근
-        • 큐의 작품·녹음 맥락을 묶어 보고 개별 악장과 음원 정보 확인
-        • 재생 위치 저장과 이어 듣기
-        • 최근 감상 기록과 작품·녹음별 감상 통계
-        • 음원과 원래 폴더 경로를 제외한 라이브러리 백업·복원
-        • 이동하거나 누락된 음원을 사용자 확인 후 기존 작품에 다시 연결
+        데이터를 내 손으로
+        원본 음원과 태그는 수정하지 않습니다. 카탈로그·재생목록·감상 기록을 논리 백업으로 내보내고 복원할 수 있습니다. 논리 백업은 음원 내용과 원래 경로를 포함하지 않으므로 복원 후 실제 파일을 다시 연결해야 합니다.
 
-        내 라이브러리에서 다시 발견하기
-        • 같은 작곡가의 다른 작품과 같은 작품의 다른 녹음 탐색
-        • 최근 감상과 보유 메타데이터를 바탕으로 한 기기 내 추천
-        • MusicBrainz 후보를 확인한 뒤 선택한 필드만 반영
-        • 로컬 작품과 공식 IMSLP 작품 페이지 연결
-
-        음원, 파일 정보, 카탈로그와 감상 기록은 기본적으로 기기에 저장됩니다. 계정, 광고 또는 분석 SDK를 사용하지 않으며 원본 음원과 원본 태그를 수정하지 않습니다.
-
-        iOS에서는 음악 재생 중 화면을 잠그거나 다른 앱으로 전환해도 재생을 이어갑니다. 잠금 화면·제어센터에서 곡 정보를 보고 재생·일시정지·이전·다음·진행 위치를 조작할 수 있습니다. 전화 등 오디오 중단이나 헤드폰 분리 시 일시정지합니다. 외부 서비스 검색과 자료 확인에는 인터넷 연결이 필요할 수 있습니다.
+        앱 내부에 회원가입·광고·분석 SDK는 없습니다. 자료는 기본적으로 기기에 저장되며 외부 검색·공식 페이지 열기는 사용자가 선택합니다. 외부 서비스에는 인터넷 연결과 해당 서비스의 이용 조건이 적용됩니다.
       keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz
       promotional_text: 내 음원을 가져와 곧바로 듣고, 원할 때 작품·녹음·악장으로 정리하세요.
-      support_url:
-      marketing_url:
-      privacy_url:
+      support_url: https://ddirori.com/support/
+      marketing_url: https://ddirori.com/play/
+      privacy_url: https://ddirori.com/play/privacy/
       release_notes: |-
-        미배포 안정성 개선: 즐겨찾기 저장 성공 후 새로고침 실패를 구분하고, 목록 재조회만 다시 시도하도록 개선했습니다. 재생 오류의 재시도 동작을 명확히 안내하고 비식별 피드백에서 자동 검사와 사용자 확인을 구분합니다.
-        미배포 후속 변경: 현재 큐의 예약·미래 항목 편집과 file ID 기반 즐겨찾기를 추가하고, 작품 등록 없는 IMSLP 탐색에서 Files 음원 가져오기·곡 확인·명시적 재생으로 이어지도록 개선했습니다. 기존 내부 TestFlight0.1.0(4)에는 이 변경이 없습니다.
-        미배포 개발 변경: 현재 큐 셔플과 한 곡·전체 반복, 원래 순서 복구와 재시작 후 모드·선택 복원을 추가했습니다. 수동 이동은 한 곡 반복을 무시하고 일시정지 상태를 유지합니다. 이 변경은 기존 내부 TestFlight0.1.0(4)에 포함되지 않았습니다.
-        전체 검색의 준비 정보를 재사용하고 큰 보관함의 검색 계산을 분리했습니다. 최신 입력과 음원 정보 변경만 결과에 반영하며 검색 준비·실패·재시도를 안내합니다. 검색과 화면 이동은 재생 큐와 위치를 바꾸지 않습니다.
-        많은 곡과 재생목록의 스크롤·검색 중 갱신 비용을 줄이고, 중단되거나 손상된 표지 사본의 복구를 개선했습니다. 정렬된 전체 곡 재생과 저장한 수동 순서는 유지됩니다.
-        재생목록 검색·정렬, 보관함 분류 편집과 로컬 표지를 추가했습니다. 태그·사용자 교정·승인 정보로 표시하며 iOS 뒤로 제스처와 큰 글자 완료 안내를 개선했습니다. 음악·목록과 재생 상태는 유지됩니다.
-        보관함의 전역 도구와 상세별 메뉴를 나누고 검색·목록 복귀 시 이전 탐색 위치를 유지합니다. 재생목록 생성·추가 후 원래 화면에 완료 안내를 표시하고 ‘보기’로 상세를 엽니다. 저장 실패 시 입력을 유지하며 저장 후 새로고침 실패를 중복 생성으로 이어지지 않게 처리합니다.
-        iOS 잠금 화면·제어센터에 곡 정보와 재생 조작을 연결하고 이전 곡 버튼을 추가했습니다. 일시정지 중 곡 이동은 재생을 시작하지 않으며, 진단 실행은 본재생을 일시정지하고 큐·위치를 보존합니다.
-        iOS에서 화면 잠금·앱 전환 중 재생을 이어가고 현재 위치를 저장하도록 변경했습니다. interruption과 헤드폰 분리 시 일시정지하고 자동 재개하지 않는 정책은 유지합니다.
-        재생목록을 만들고 곡·앨범·현재 재생에서 바로 담을 수 있습니다. 여러 곡을 한 번에 고르고 편집 화면에서 드래그로 순서를 바꿔 재생하세요. 파일이 누락되면 목록에는 남기고 재생할 때 건너뜁니다. 폴더별 보기는 도구 메뉴로 이동했고, 가져오기·파일 상태와 음원 정보·파일 복구 도구의 이름을 명확히 했습니다.
-        공통 블루 테마로 아이콘 배경과 주요 동작·선택·포커스 색을 통일하고, 일반 안내는 중립색으로 구분했습니다.
-        보관함 첫 화면을 큰 제목, 간결한 분류 목록과 최근 추가한 앨범·곡 카드로 정리하고 제목 위 앱 아이콘·이름은 제거했습니다. 런처에는 승인된 띠로리 플레이 아이콘을 적용했습니다.
-        곡·앨범·아티스트 목록 안 검색과 곡 정렬을 추가했습니다. 누락 파일은 파일 상태 확인으로 연결하고, 검색·정렬 중 재생 큐를 유지합니다.
-        보관함에서 곡·앨범·아티스트·재생목록을 탐색하고 가져온 파일을 정리 없이 바로 재생할 수 있습니다. 폴더별 보기는 도구 메뉴에서 접근합니다. 재생 중 축약 조작에서 상세와 큐를 열 수 있습니다.
-        클래식 정리와 감상 기록, 음악 발견, IMSLP는 상단 도구에서 선택해 이용할 수 있습니다.
-        녹음 탐색 중에도 현재 재생을 조작할 수 있습니다. 넓은 화면은 별도 재생 영역을, 좁은 화면은 하단 축약 조작과 재생 상세를 제공합니다.
-        큐의 반복 작품·녹음 설명을 줄이고 악장 순서와 현재 항목을 명확히 표시했습니다. 음원 정보와 녹음 상세는 계속 확인할 수 있습니다.
-        공통 보조 버튼의 중립색과 선택 표현을 정리하고, 입력 확정 및 선택 항목의 접근성 이름을 보완했습니다.
-        내부 메타데이터 저장이 실패하면 입력을 유지하고 다시 시도할 수 있습니다. 저장 중 중복 실행을 막고 완료 후 목록으로 돌아갑니다.
-        가져온 파일의 결과를 개별로 확인하고 실패 파일만 다시 시도할 수 있습니다. 선택한 파일은 작품·녹음 정리로 이어지고 등록 실패 시 입력을 보존합니다. 실제 재생 상태 확인 후 첫 재생을 알립니다.
-        작품 등록 후 후속 처리만 실패한 경우 같은 입력으로 재시도하거나, 이미 저장된 내용은 취소되지 않는다는 확인 뒤 화면을 닫고 보관함을 다시 확인할 수 있습니다.
-        내보낼 수 있는 앱 관리 음원은 공유 성공 뒤 띠로리 Score에 수동으로 연결하는 방법을 안내합니다. 공유만으로 Score 저장이 완료되지는 않습니다.
+        내 음원을 가져와 바로 재생하고 곡·앨범·작곡가·재생목록으로 정리할 수 있습니다.
+        즐겨찾기·대기열 예약·셔플/반복과 잠금 화면 재생 조작을 제공합니다.
+        원하면 작품·녹음·악장과 시대 정보를 정리하고 공식 IMSLP 작품 페이지를 연결할 수 있습니다.
+        논리 백업은 음원 내용을 포함하지 않으며 복원 후 파일을 다시 연결해야 합니다. 개인 경로가 포함된 이전 비정상 백업은 최신 앱의 원본 라이브러리에서 다시 내보내 주세요.
 declarations:
   reviewed: false
   primary_category: MUSIC
@@ -106,113 +79,25 @@ review:
   reviewed: false
   demo_account_required: false
   notes: |-
-    2026-11-11 unreleased local follow-up: Songs, albums, playlists and local search offer play-now/play-next/append with contextual feedback. The active queue edits future occurrences only; current/past entries and stored playlist order are preserved. Favorites are file-ID based with additive SQLite18 and logical-backup compatibility. IMSLP opens with no registered local works: search work pages, inspect the official page, save audio in Files and use the actual import callback. Show/play imported songs and confirm source association separately. No dummy catalog rows, automatic file-link scraping, access-restriction bypass or streaming. See classical-local-library-music-actions-2026-11-11.md for fresh evidence and remaining physical QA. These changes are not in internal0.1.0(4); source is pending and no distribution is authorized.
-    Historical checkpoint (2026-11-03, superseded by the 2026-11-11 follow-up above): the user stopped the earlier partial queue/favorites/IMSLP implementation before integration and validation. Preserve that stop record in classical-local-library-music-actions-2026-11-03.md; use classical-local-library-music-actions-2026-11-11.md for current implementation and fresh local evidence. Existing internal0.1.0(4) excludes this follow-up. Physical QA and a committed product checkpoint remain prerequisites for pinning or distribution.
-    2026-11-03 unreleased queue modes (not in existing internal 0.1.0(4)): Open the full player and use "셔플 꺼짐" and "반복 끔". Repeat cycles off/all/one. Natural endings follow the mode; manual Next/Previous ignore repeat-one and paused navigation stays paused. Shuffle preserves the current occurrence/position and played prefix, and turning it off restores original order. Repeat-all uses the same frozen shuffle order. Modes/order/selection restore without autoplay (additive SQLite v17). Empty/loading/error controls are disabled; failures must retain actual modes with a path-free error. System commands use the same controller. Native simulator tests do not certify physical audibility or OS button UX.
-    2026-11-02 unreleased local search update: Open "내 음악 검색", type a title, artist or work, and distinguish empty input, waiting/preparing/searching, no results and retryable failure. Large snapshots are prepared lazily in a local worker; clearing or editing the query must not restore an older result. Metadata changes invalidate prepared results. Search does not pause or reload playback. The top domain suggestions remain limited to 12 while matching file rows and their playback queue are not truncated. Simulator and injected failures are not physical-device or Files-provider evidence.
-    2026-10-31 local UX update (unreleased): Global tools are at the Library root only. Search Back restores the source view, filter, sort and scroll. Create a playlist with optional songs, then Save: remain at the source and use the explicit "보기" confirmation to open it. Back returns to the source, including Now Playing. Playlist details use "재생목록 더보기" for Edit, Rename and Delete. Removing a playlist or song does not delete audio files or stop the active queue.
-    2026-10-26: Common blue theme: brand/icon background #A5D8FF, light action/focus #1971C2, dark action #A5D8FF. Informational banners use neutral info; success/warning/error keep semantic colors. Existing routes and permissions are unchanged; verify the new source in light/dark before review.
-    띠로리 플레이 is a local-file music organizer and player with iOS background audio.
-    No account or sign-in is required. The production app starts with an empty library.
-
-    To review the primary local workflow, import a reviewer-owned WAV, M4A, MP3, FLAC, OGG or Opus
-    file with "파일 가져오기" and the iOS document picker. The song should appear in the library
-    without creating a work or recording. Tap the song to play it, then use the compact player
-    to pause, skip or open the full player and queue. The library shows compact categories and
-    recently added album/song tiles; an album tile opens its local song list. Open Songs to search within that list and
-    use "곡 정렬" to change the order; this does not change the active playback queue. Album,
-    artist and folder lists are optional. A missing file offers file status review, not playback.
-    Classical organization is a separate, optional path under the top "도구 더보기" menu:
-    choose "음원 정보·파일 복구", register the file as work/recording/movement, then use work and recording
-    detail screens to play the complete recording or start from a selected movement.
-    The import result separates imported, duplicate, analysis-pending, failed and cancelled files.
-    Retry acts on failed selections only. From an imported file, open the full work/recording form;
-    cancelling registration retains the imported file, and save failure retains the draft.
-    If catalog persistence has completed but a follow-up step fails, retry the same draft; closing
-    asks for confirmation that the saved catalog is not undone and reloads the library.
-    The first-play message appears only after the player reports playing. Direct song playback
-    remains available without classical registration.
-
-    For a completed managed copy only, use "음원 정보·파일 복구" > the file's export action. After a supported
-    audio copy is shared, "연결 방법" explains how to save it in Files, select a score in Ddirori
-    Score and add it as a linked file there. Share success does not verify a Files save or a
-    Score import. No cross-app direct transfer, account or synchronization is provided.
-
-    While playback is active, browsing another work or recording does not replace the playing
-    queue. Use the side playback area on wide layouts, or the bottom compact controls and
-    "재생 상세 열기" on narrow layouts. File details are available via "음원 정보 N" in the queue.
-    Retrying a playback failure reloads the retained queue and starts from its first item.
-
-    For metadata editing, open "도구 더보기" > "음원 정보·파일 복구", then the file's "파일 작업" menu and
-    "내부 메타데이터 편집". Cancel leaves existing values unchanged. Save stays in the
-    dialog until persistence succeeds; a failure preserves the draft for retry.
-
-    The "재생 진단" screen exercises bundled, self-generated WAV, AAC-in-M4A and ALAC-in-M4A
-    fixtures without requiring copyrighted media. These fixtures are diagnostic assets and are not
-    added to the user's music library.
-
-    MusicBrainz and IMSLP are optional, user-initiated network features. MusicBrainz values are not
-    applied without field-level confirmation. IMSLP pages and material rights must be reviewed by
-    the user; the app does not scrape undocumented file links or bypass membership, waiting-period,
-    CAPTCHA or regional restrictions.
-
-    On iOS, the playback audio session and background audio mode allow local playback to continue
-    when the screen locks or another app opens. Calls/audio interruptions and headphone disconnection
-    pause playback without automatic resumption. Physical iPhone screen-lock audibility remains pending
-    user QA. Now Playing info and play/pause/previous/next/seek/stop commands use Apple's public
-    MediaPlayer APIs and the same playback controller as the app. Previous restarts the current
-    track at 3 seconds or later; otherwise it selects the previous track. Paused navigation stays
-    paused. Diagnostics pause library playback without replacing its queue or automatically resuming.
-    Accounts, analytics, advertising and cloud synchronization are not provided. Original files and tags are
-    never modified. A logical JSON backup can restore catalog and listening state, but deliberately
-    excludes audio bytes and original file/folder paths. Restored or moved files must be relinked
-    with explicit user confirmation. Storage startup and scan failures show a path-free Korean retry action.
-    Privacy and support actions remain unavailable until approved public HTTPS URLs are injected.
-    Verify these instructions and attach a copyright-safe review fixture before marking this section
-    reviewed.
+    Ddirori Play is a local audio manager/player. No account/subscription is required. Production launch starts with an empty library; sample music is not automatically added.
+    Import rights-cleared audio using Files, open Songs, and tap a song to play. Work/Recording registration is optional. Browse Songs/Albums/Composers/Playlists and use multi-select, play-next/append, favorites and playlist actions. Successful playlist creation stays on the source screen with an explicit View action.
+    Now Playing reflects the actual engine and queue. Pause/seek/previous/next, shuffle/repeat and queue selection share one controller. Screen lock/app switching alone does not pause iOS playback. Interruption or route loss pauses without automatic resume. Relaunch restores state without autoplay.
+    Optional tools manage composer names/confirmed aliases, works/recordings/movements, uncertain eras and official IMSLP work-page links. Search results are not downloadable audio lists or rights approval. External searches are user-initiated. Original tags/media are not modified.
+    Settings opens https://ddirori.com/play/privacy/ and https://ddirori.com/support/. Operator: 만랩. No in-app account, advertising or analytics SDK; website analytics are separate. Logical backups omit audio/original paths and require relinking. Legacy nonportable backups must be re-exported from the source library.
+    First public target is1.0.0. Build5 was selected after reading all existing Apple builds/uploads1-4, complete with no further pages. Actual new upload acceptance, candidate/device QA and media review are pending. Simulator or injected-picker tests are not physical audibility, Files-provider, VoiceOver or Bluetooth approval.
 testflight:
   reviewed: false
-  feedback_email:
-  build_id: 19789d8e-5e3a-4d60-8cb2-10931c5c6c13
+  feedback_email: daga4242@gmail.com
+  build_id:
   description: 로컬 음원을 가져와 곡 목록에서 바로 재생하고, 원하는 음원을 작품·녹음·악장으로 정리하는 흐름을 테스트합니다.
   test_notes: |-
-    2026-11-11 미배포 후속: 곡 더보기에서 지금 재생/바로 다음/마지막 추가를 구분하고, 현재 재생 상세에서 미래 항목 이동·제거·남은 대기열 비우기와 일시정지·현재 위치 보존을 확인합니다. 곡/현재 재생의 즐겨찾기와 보관함 즐겨찾기 목록·재시작/백업 복원을 비교합니다. 작품이 없어도 IMSLP 검색→공식 페이지 확인→Files 저장→음원 가져오기→곡 보기/재생으로 이어져야 하며 출처는 별도 사용자 확인 후에만 저장합니다. 실제 Files/iCloud·잠금 청감·VoiceOver·전화·Bluetooth는 Xs 사용자 검수이며 fixture/native 상태 값으로 대체 통과하지 않습니다. 기존 내부0.1.0(4)는 새 기능을 포함하지 않습니다.
-    2026-11-03 미배포 큐 모드: 전체 재생에서 셔플과 반복 끔→전체 반복→한 곡 반복을 조작합니다. 현재 곡·위치 유지, 실제 대기열 순서, 한 곡 반복 중 수동 이동, 일시정지 유지, 마지막 자연 종료, 완료 후 재생과 재시작 후 순서/선택 복원을 확인합니다. 기존 내부0.1.0(4)에는 이 기능이 없습니다. 물리 Xs 잠금·청감·시스템 버튼 검수는 새 후보가 제공된 뒤 별도 수행하며 이번 작업은 업로드하지 않습니다.
-    2026-11-02 내부 빌드0.1.0(4): 이전 내부 빌드3 이후 보관함 메뉴·재생목록 생성 완료 안내/보기·검색/정렬·분류 편집·로컬 표지·대형 목록/복구·전체 검색 worker 개선을 포함합니다. Apple VALID/INTERNAL_ONLY, 기존 내부 그룹 연결 후 IN_BETA_TESTING을 확인했습니다. 곡 재생 중 빠른 검색·삭제·뒤로 복귀, 재생목록 생성 후 원래 화면 유지와 보기, 표지 선택과 누락 파일 복구를 확인해 주세요. 잠금/앱 전환 재생과 시스템 조작은 유지합니다. Xs 실제 청감·VoiceOver·Files/iCloud·대형 실사용 성능은 사용자 검수 대상입니다. 공개 출시·외부 테스트가 아닌 내부 테스트 전용 빌드입니다.
-    2026-11-02 전체 검색 미배포: 내 음악 검색에서 빠른 입력·삭제, 준비 중 재생 조작, 오류 후 다시 검색과 화면 복귀를 확인합니다. 가져오기·교정·승인 후 이전 검색 결과가 남지 않아야 합니다. 상위 검색 제안12개와 전체 파일 결과를 구분하며 검색으로 큐·곡·위치를 바꾸지 않습니다. 현재 내부 0.1.0(3)은 이번 변경을 포함하지 않습니다. Xs 실사용 성능·청감은 사용자 검수 pending입니다.
-    2026-10-31 대형 보관함 후속 미배포: 곡·앨범·아티스트·검색·재생목록을 길게 스크롤하고 재생 중 탐색·정렬·뒤로 복귀를 확인합니다. 화면 밖 곡까지 표시 순서대로 재생되고 편집은 저장한 수동 순서를 사용해야 합니다. 표지 저장 중 중단·손상 사본은 기본 표지와 재선택/재추출로 복구하며 원본은 변경하지 않습니다. host/simulator 합성 fixture 결과는 실제 Xs 성능·청감·Files 제공자 결과가 아닙니다.
-    2026-10-31 후속 미배포 변경: 도구 더보기→보관함 분류 편집에서 표시·순서를 저장하고 재시작해 확인합니다. 모두 숨겨도 분류 편집으로 복구할 수 있습니다. 재생목록 목록과 상세의 검색·정렬을 사용하고, 정렬된 순서로 재생한 뒤 편집에서는 원래 저장 순서가 유지되는지 확인합니다. 정렬 설정은 재시작 후 유지하고 검색어는 방문 중에만 유지합니다. 상세 더보기의 표지 선택/제거는 이미지 관리 사본만 변경합니다. 논리 백업은 이미지 byte를 제외하므로 다른 설치에서 표지를 다시 선택할 수 있습니다. 미승인 경로 추론은 음악 정보로 표시하지 않습니다. iOS 뒤로 swipe 완료·취소와 큰 글자 보기/닫기를 확인합니다. 기존 내부 빌드 0.1.0(3)에는 포함되지 않습니다.
-    후속 UX 미배포 변경: 태그·사용자 교정·승인된 후보를 구분하며 미승인 경로 추론은 감상 화면의 앨범/아티스트로 사용하지 않습니다. 보관함 내부 탐색을 실제 route로 전환해 iOS 뒤로 제스처 완료/취소와 이전 화면 복원을 검증합니다. 기존 배포 빌드의 동작으로 해석하지 마세요.
-    2026-10-31 미배포 변경: 보관함 루트에만 전역 도구가 있고 상세 메뉴는 해당 대상에만 작용하는지 확인해 주세요. 상세→검색→뒤로에서 이전 목록/검색어/정렬/스크롤로 복귀해야 합니다. 새 재생목록 저장 후 원래 화면의 완료 안내에서 ‘보기’를 누를 때만 상세가 열려야 합니다. 현재 재생에서 생성 후 ‘보기’와 뒤로를 눌러도 큐·곡·위치가 유지되어야 합니다. 재생목록 상세의 더보기에서 편집/이름 변경/삭제를 사용합니다.
-    0.1.0(3): 잠금 화면·제어센터의 곡명과 앱의 현재 곡이 일치하는지 확인해 주세요. 재생·일시정지·다음·이전·진행 위치를 조작한 뒤 앱 큐·위치와 비교하세요. 일시정지 중 곡 이동은 재생을 시작하지 않아야 합니다. 이전은 3초 이상이면 현재 곡 처음, 3초 미만이면 이전 곡으로 이동합니다. 진단 실행·실패·화면 닫기 후에도 본재생 큐·위치가 보존되고 자동 재개하지 않는지 확인하세요. 실제 iPhone Xs 시스템 버튼·잠금 청감은 사용자 QA 대상입니다.
-    기존 잠금 재생 회귀: iPhone Xs에서 1분 이상 음원을 재생한 뒤 전원 버튼으로 화면을 잠그고 30초간 재생이 이어지는지 확인해 주세요. 잠금 중 다음 곡, 잠금 해제 후 큐·위치 유지, 직접 일시정지 후 자동 재생 방지, 전화/다른 오디오·헤드폰 분리 시 일시정지와 자동 재개 방지를 확인해 주세요.
-    보관함의 재생목록에서 목록을 만든 뒤 검색으로 곡 두 개를 함께 선택해 추가하고, 편집에서 드래그로 순서를 바꿔 재생해 주세요. 곡·앨범·검색 결과의 더보기와 현재 재생에서도 재생목록에 담을 수 있습니다. 목록 삭제나 곡 제거로 원본 파일이 삭제되어서는 안 됩니다. 앱 재시작 후에도 목록과 순서가 유지되고 누락 곡은 목록에 남지만 재생에서는 건너뛰는지 확인해 주세요. 폴더별 보기는 도구 메뉴에 있습니다.
-    보관함의 곡·앨범·아티스트·재생목록 행을 열어 목록 안 검색과 곡 정렬을 확인해 주세요. 재생 중 검색·정렬을 바꾸어도 큐와 현재 위치가 유지되고, 누락 파일은 파일 상태 확인으로 이어져야 합니다.
-    빈 보관함에서 파일을 가져와 곡 목록에 표시되는지, 작품 등록 전에 바로 재생되는지 확인해 주세요. 축약 조작과 전체 재생 화면의 큐를 확인해 주세요.
-    R3: 여러 파일 중 일부가 실패해도 완료한 곡이 남는지, 실패한 선택만 재시도되는지 확인해 주세요. 가져온 곡의 작품·녹음 정리를 취소하거나 저장 실패로 재시도해도 원본과 큐가 유지되어야 합니다. 등록 후 첫 재생 안내는 실제 재생 시작 뒤에만 나타납니다.
-    앱 관리 복사본 내보내기 성공 뒤 연결 방법을 열어 파일 앱 보관→Score 악보 선택→연결 파일 추가의 수동 경로를 확인해 주세요. 공유 완료는 Score 저장 완료가 아닙니다.
-    앨범·아티스트·재생목록 탐색과 내 음악 검색을 확인해 주세요. 폴더별 보기·클래식 정리·감상 기록·음악 발견·IMSLP는 상단 도구 더보기에서 접근합니다.
-    R2: A 녹음 재생 중 검색으로 B 녹음을 열어도 A의 큐·악장·위치가 유지되는지 확인해 주세요. 넓은 화면 옆 재생 영역과 좁은 화면 하단 조작/재생 상세를 확인해 주세요.
-    같은 녹음의 큐는 작품·녹음 맥락을 한 번 표시하며 혼합 큐는 구간별로 구분합니다. 음원 정보 N에서 파일명·출처를, 녹음 정보 열기에서 상세를 확인해 주세요. 재시도는 기존 큐 첫 악장부터 시작합니다.
-    작품·녹음 검색·필터·정렬은 보관함 아래의 클래식 영역에서 확인해 주세요. 탐색·검색·테마 변경만으로 큐나 재생 위치가 초기화되면 안 됩니다.
-    도구 메뉴의 가져오기·파일 상태에서 파일·폴더·요약을, 음원 정보·파일 복구에서 메타데이터·누락 파일 복구를, 감상 기록에서 이력·통계를 확인해 주세요. 재생의 오류 재시도와 길이 미확정 상태를 구분해 주세요.
-    공통 quiet/secondary 버튼의 중립색과 선택 상태, 목록 선택 이름, 검색 입력과 기존 재생·queue 동선이 유지되는지 확인해 주세요.
-    승인된 Play 아이콘 후보 08의 실제 런처 표시와 빈 보관함의 음악 가져오기 행동을 확인해 주세요. 실제 기기 렌더링과 스토어 스크린샷은 별도 검수입니다.
-    큰 글씨·다크 모드에서 이름과 주요 행동을 읽을 수 있는지 확인해 주세요.
-    큰 글씨의 좁은 화면에서 섹션 제목과 상태·도구가 별도 줄에 배치되고 최근 감상 메뉴가 겹치지 않는지 확인해 주세요.
-    저작권 문제가 없는 짧은 음원으로 파일 가져오기, 메타데이터 확인, 작품·녹음·악장 등록과 재생을 확인해 주세요.
-    홈·검색·음악 발견에서 작품 상세와 녹음 상세로 이동하고 악장 순서, 연주자와 파일 연결 상태를 확인해 주세요.
-    여러 악장 파일을 한 작품으로 등록한 뒤 작품 랜덤 재생에서 순서대로 큐에 들어가는지 확인해 주세요.
-    녹음 상세에서 전체 재생과 중간 악장부터 재생을 각각 실행해 남은 악장 순서가 유지되는지 확인해 주세요.
-    앱을 다시 실행해 재생 위치, 감상 기록과 라이브러리가 유지되는지 확인해 주세요.
-    재생 중 전체 로컬 데이터 초기화를 실행하면 재생과 큐가 비워지고 다시 실행해도 이전 큐·위치·이력이 되살아나지 않는지 확인해 주세요. 외부 원본은 유지되어야 합니다.
-    재생 진단을 다시 실행하면 이전 청감 응답은 확인하지 않음으로 돌아갑니다. 자동 결과와 실제 청감 응답을 별도로 확인해 주세요.
-    앱 정보 및 데이터에서 논리 백업을 내보내고 가져오기 preview를 확인해 주세요. 백업에는 음원과 원래 파일·폴더 경로가 포함되지 않으며 복원한 음원은 다시 연결해야 합니다.
-    음원 정보·파일 복구에서 누락 파일의 대체 파일을 선택하고 일치 근거를 확인한 뒤 재연결해 기존 작품·교정·감상 상태가 유지되는지 확인해 주세요.
-    저장소 준비 또는 스캔 실패 뒤 한국어 재시도 동작과 개인 파일 경로 비노출을 확인해 주세요.
-    파일 앱 또는 iCloud Drive에서 가져오기, 스피커·유선·Bluetooth 출력과 interruption 동작도 가능한 범위에서 확인해 주세요.
-    기기/OS/앱 버전, 음원 형식, 실행 순서, 기대 결과와 실제 결과를 피드백에 포함하되 파일 경로나 개인 메타데이터는 보내지 마세요.
-    출시 후보 피드백 JSON은 제한된 기기 분류·OS major·fixture·결과·P0–P3만 기록하고 validator를 통과시켜 주세요. 파일명, 전체 경로, 곡 metadata, 기기 식별자와 native 오류 전문은 넣지 마세요.
+    Use only the newly identified candidate; existing internal0.1.0(4) does not contain these changes.
+    1. Import a rights-cleared MP3/FLAC/M4A using Files; check cancellation/duplicates and immediate song playback without Work registration.
+    2. Pause/seek/previous/next, queue selection, playlists/favorites and browsing while playing.
+    3. Lock30 seconds and compare queue/position on return. Check available output routes and interruption/route loss; do not auto-resume.
+    4. Check large text/VoiceOver, app version, privacy/support links, relaunch and existing data.
+    5. Optional composer/era/IMSLP paths require user confirmation; no automatic download or rights approval.
+    Reply passed/issue/notChecked with the exact candidate version/build. Never send private media, filenames, paths or account/device identifiers. Candidate receipt binding is separate from feedback JSON; automated declarations do not fill physical observations.
 screenshots:
   engine: flutter_integration_ios
   adapter: capture/classical_local_library/adapter.dart
@@ -234,54 +119,8 @@ screenshots:
     height: 2752
     locale: ko
   scenes:
-  - id: library_search
-    purpose: 전체 검색의 실제 빈 입력 화면과 검색 입력·뒤로 동선을 보여준다. 준비/검색/실패/재시도/결과 없음은 로컬 QA의 별도 상태 캡처로 검증하며 이 빈 입력 scene을 해당 결과나 성능 증거로 사용하지 않는다.
-    route: 보관함 → 내 음악 검색
-    fixture: 개인정보 없는 보관함. 빈 입력은 가상 결과를 주입하지 않는다. 준비·실패는 주입형 widget QA, 실제 합성 음원 검색 결과는 simulator native-search-results로 따로 기록한다. 스토어 촬영 승인 아님.
-    must_show:
-    - 작품, 작곡가와 파일 검색 입력, 뒤로 진입. 큐가 없으면 미니플레이어 없음
-    - 빈 입력을 검색 결과 없음 또는 오류로 표시하지 않음
-    exclude:
-    - 개인 경로와 메타데이터, 출시 승인, 실제 기기 성능 또는 가청 출력 주장
-    - 가짜 성공 결과와 준비 중 상태를 검색 결과 없음으로 표시한 화면
-    steps:
-    - {action: wait, milliseconds: 120}
-    - {action: tap, by: tooltip, value: 내 음악 검색}
-    - {action: wait, milliseconds: 400}
-    assertions:
-    - {by: widget_type, value: DdiroriSearch, present: true}
-    - {by: text, value: '작품, 작곡가와 파일 검색', present: true}
-    - {by: text, value: 검색 결과가 없습니다., present: false}
-    - {by: text, value: 검색하지 못했습니다, present: false}
-    - {by: widget_type, value: ErrorWidget, present: false}
-  - id: metadata_edit
-    purpose: 실제 내부 메타데이터 편집에서 공통 입력·출처 안내·저장/취소 행동을 보여준다. 저장 실패 시 같은 draft에서 재시도한다.
-    route: 보관함 → 도구 더보기 → 음원 정보·파일 복구 → 파일 작업 → 내부 메타데이터 편집
-    fixture: 자체 제작 음원 한 파일을 가져온 뒤 음원 정보 및 파일 복구 목록에 준비. 사용자 개인정보가 없는 작곡가·작품명만 사용. 자동 촬영 전 파일 준비 필요.
-    must_show:
-    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
-    - 내부 메타데이터 편집 제목, 작곡가 입력과 현재 값 출처
-    - 저장·취소 행동과 잘리지 않는 입력 레이블. 오류 안내는 폼 스크롤 밖 상단에서 확인할 수 있을 것
-    exclude:
-    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
-    - 실제 사용자의 파일 경로·이름·개인정보
-    - 카탈로그·팔레트 비교 화면 또는 저장 실패를 성공으로 표시한 상태
-    steps:
-    - {action: wait, milliseconds: 120}
-    - {action: tap, by: tooltip, value: 도구 더보기}
-    - {action: tap, by: text, value: 음원 정보·파일 복구}
-    - {action: tap, by: tooltip, value: 파일 작업}
-    - {action: tap, by: text, value: 내부 메타데이터 편집}
-    - {action: wait, milliseconds: 400}
-    assertions:
-    - {by: widget_type, value: Theme, present: true}
-    - {by: widget_type, value: MetadataEditDialog, present: true}
-    - {by: widget_type, value: DdiroriInput, present: true}
-    - {by: text, value: 저장, present: true}
-    - {by: text, value: 취소, present: true}
-    - {by: widget_type, value: ErrorWidget, present: false}
   - id: library
-    purpose: 상단 앱 아이콘·이름 없이 큰 보관함 제목, 구분선이 있는 곡·앨범·아티스트·재생목록 분류와 최근 추가한 앨범·곡 카드 및 전체 검색·가져오기 진입점을 보여준다. 곡·앨범·현재 재생의 재생목록 추가와 편집·드래그는 별도 동선 검수 대상이며 이 기본 scene의 증거가 아니다. 폴더별 보기는 도구 메뉴에 있다. R3의 파일별 결과와 첫 재생 안내는 실제 가져오기·엔진 상태가 있는 별도 검수이며 이 데모 scene의 증거가 아니다.
+    purpose: 상단 앱 아이콘·이름 없이 보관함 제목, 곡·앨범·작곡가·재생목록 분류와 최근 추가/검색/가져오기를 보여준다. 큰 글자는 제목 우측 행동을 별도 줄로 옮기고 카드 열 수를 줄일 수 있다. 작곡가별 범위와 현재 재생 복귀 링크·큐 선택은 별도 로컬 QA로 확인한다. 폴더/아티스트 보기는 도구 메뉴에 있다. 실제 import/엔진/물리 청감의 증거가 아니다.
     route: 앱 실행 → 보관함
     fixture: 현재 scene smoke는 샘플 카탈로그·가상 파일 목록과 fake controller를 사용한다. 기본 생산 모드는 빈 보관함이다. 실제 스토어 촬영 전 권리 확인 음원을 가져온 fixture와 수동 검수가 필요하다.
     must_show:
@@ -289,7 +128,7 @@ screenshots:
     - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 공통 보조 버튼은 중립색, 선택은 면·기호로 구분하며 작품/재생 행동을 보존
     - 앱 아이콘·이름을 반복하지 않은 큰 보관함 제목. 최종 대표색·런처 승인과 구분
-    - 구분선이 있는 곡·앨범·아티스트·재생목록 분류와 최근 추가한 앨범·곡 카드. 파일명·메타데이터가 읽힐 것
+    - 구분선이 있는 곡·앨범·작곡가·재생목록 분류와 최근 추가한 앨범·곡 카드. 파일명·메타데이터가 읽힐 것
     - 내 음악 검색과 파일 가져오기, 도구 더보기 진입점. 클래식 정리는 선택 동선
     - 빈 라이브러리에서 바로 실행할 수 있는 파일 가져오기 또는 검색 행동
     - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
@@ -312,6 +151,7 @@ screenshots:
       milliseconds: 500
     assertions:
     - {by: widget_type, value: Theme, present: true}
+    - {by: key, value: file-category-composers, present: true}
     - by: text
       value: 기본 컴포넌트
       present: false
@@ -336,6 +176,7 @@ screenshots:
     - by: text
       value: 최근 추가한 음악
       present: true
+    - {by: key, value: recent-library-title, present: true}
     - by: text
       value: 띠로리 색상 작업실
       present: false
@@ -349,11 +190,12 @@ screenshots:
       value: 첫 음악을 재생했어요.
       present: false
   - id: song_browse
-    purpose: 보관함의 곡 분류에서 곡 행, 목록 안 검색·곡 정렬·곡별 더보기를 보여준다. 긴 목록은 스크롤해 다음 곡을 탐색한다. 보관함의 전역 도구는 곡 목록 헤더에 반복되지 않는다. 재생목록 추가 결과와 ‘보기’는 별도 상호작용 검수 대상이다. 미니플레이어는 큐가 있을 때만 노출한다. 단일 캡처는 대형 보관함 성능의 증거가 아니다.
+    purpose: 곡 목록의 시대 필터(기본 전체), 검색·정렬·곡별 더보기·여러 곡 선택 진입을 보여준다. 필터는 재생을 바꾸지 않으며 작곡가 연결/시대 교정/IMSLP 근거는 별도 로컬 QA 상태 캡처로 검사한다. 미니플레이어는 실제 큐가 있을 때만 노출한다. 이 장면은 실기기나 시대 자동 식별의 증거가 아니다.
     route: 앱 실행 → 보관함 → 곡
     fixture: 현재 smoke는 자체 제작 샘플 카탈로그·가상 파일 목록과 fake controller를 사용한다. 스토어 촬영 전 권리 확인 음원의 실제 가져오기와 수동 검수 필요.
     must_show:
     - 곡 더보기의 지금 재생·바로 다음·마지막 예약·즐겨찾기·재생목록·곡 정보는 선택 행동으로 접근하며 이 닫힌 메뉴 캡처가 행동 완료의 증거는 아님
+    - 여러 곡 선택 진입. 이 기본 scene에서는 선택 모드나 완료를 꾸며 넣지 않음
     - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 곡 제목과 파일 메타데이터 fallback, 목록 안 검색 입력, 정렬 명령, 곡별 더보기 진입
     - 중립 표면과 공통 Item/Input/MenuButton. 실제 현재 큐가 없는 상태에서는 미니플레이어 없음
@@ -365,35 +207,19 @@ screenshots:
     - {action: wait, milliseconds: 120}
     - {action: tap, by: text, value: 곡}
     - {action: wait, milliseconds: 400}
+    - {action: tap, by: tooltip, value: '시대: 전체'}
+    - {action: tap, by: text, value: 전체 시대}
+    - {action: wait, milliseconds: 120}
     assertions:
     - {by: widget_type, value: Theme, present: true}
     - {by: tooltip, value: 곡 정렬, present: true}
+    - {by: text, value: '시대: 전체', present: true}
+    - {by: text, value: 여러 곡 선택, present: true}
     - {by: tooltip, value: 도구 더보기, present: false}
     - {by: text, value: '이 목록에서 검색', present: true}
     - {by: widget_type, value: CustomScrollView, present: true}
     - {by: widget_type, value: DdiroriSearch, present: true}
     - {by: widget_type, value: PopupMenuButton, present: true}
-    - {by: widget_type, value: ErrorWidget, present: false}
-  - id: library_sections
-    purpose: 실제 분류 편집 dialog에서 표시 체크와 위·아래 순서 조작, 저장·취소를 보여준다. 저장 영속성과 재생 유지·물리 VoiceOver는 별도 검수 대상이다.
-    route: 앱 실행 → 보관함 → 도구 더보기 → 보관함 분류 편집
-    fixture: 개인 데이터 없는 기본 분류 설정. 실제 저장 전 draft를 사용하며 완료를 꾸미지 않는다.
-    must_show:
-    - 보관함 분류 편집 제목, 곡·앨범·아티스트·재생목록 체크와 위·아래 조작
-    - 음악 파일을 변경하지 않는 안내와 저장·취소. 큰 글자에서 필요한 경우 스크롤
-    exclude:
-    - 실제로 숨기거나 저장하지 않은 결과와 실기기 검수 통과 표시
-    steps:
-    - {action: wait, milliseconds: 500}
-    - {action: tap, by: tooltip, value: 도구 더보기}
-    - {action: tap, by: text, value: 보관함 분류 편집}
-    - {action: wait, milliseconds: 400}
-    assertions:
-    - {by: widget_type, value: AlertDialog, present: true}
-    - {by: key, value: section-editor-songs, present: true}
-    - {by: key, value: section-editor-playlists, present: true}
-    - {by: tooltip, value: 재생목록 위로, present: true}
-    - {by: text, value: 저장, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: playlist_create
     purpose: 재생목록 생성 전 이름·선택적인 곡 추가·저장/취소를 보여준다. 생성 완료·영속성·실제 오디오 출력의 증거는 아니다.
@@ -420,9 +246,10 @@ screenshots:
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: movement_queue
     purpose: 상위 작품·녹음 맥락과 현재 큐, 이전·재생·다음·정지 및 셔플·반복 끔 기본 상태를 보여준다. 선택 모드별 순서·상태 캡처는 별도 로컬 QA에서 기록하며 이 fixture 화면은 native 반복 또는 물리 청감 증거가 아니다.
-    route: 보관함 → 도구 더보기 → 재생 계획 → 현재 재생 큐
+    route: 보관함 → 도구 더보기 → 재생 계획 → 현재 재생 큐. 기존 버튼/steps를 유지하며 빈 보조 구분자 부재를 함께 확인한다.
     fixture: 자체 제작 베토벤 교향곡 샘플 카탈로그와 악장 4개
     must_show:
+    - 빈 작품·녹음 보조 항목은 구분점만 표시하지 않음. 태그 없는 직접 파일의 축약/전체 재생은 별도 로컬 QA와 native 캡처로 확인
     - 이 scene은 계획 큐 기본 상태다. 실제 큐의 미래 항목 편집은 음원을 재생한 뒤 재생 상세에서 별도 확인
     - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
     - 작품·녹음 이름과 순서가 표시된 악장 큐
@@ -455,6 +282,7 @@ screenshots:
     - by: text
       value: 현재 재생 큐
       present: true
+    - {by: text, value: ' · ', present: false}
     - by: text
       value: 1악장 Allegro con brio
       present: true
@@ -473,7 +301,7 @@ screenshots:
       value: 디자인 시스템 기준
       present: false
   - id: favorites
-    purpose: 보관함 즐겨찾기 진입과 첫 빈 상태의 곡 추가 안내를 보여준다. 저장 성공 후 재조회 실패 안내와 재조회만 재시도하는 동작은 별도 로컬 오류 fixture로 검증하며 정상 캡처에 오류를 꾸며 넣지 않는다. 저장·해제·백업 및 실제 재생은 별도 회귀 검수 대상이다.
+    purpose: 보관함 즐겨찾기 진입과 첫 빈 상태의 곡 추가 안내 및 비활성 여러 곡 선택을 보여준다. 저장 후 재조회 실패와 여러 곡 일괄 해제는 별도 로컬 fixture로 검사한다. 정상 빈 캡처에 저장/오류/선택 완료를 꾸며 넣지 않는다.
     route: 보관함 → 즐겨찾기
     fixture: 즐겨찾기를 저장하지 않은 보관함. 개인정보 없는 자체 제작 fixture만 사용하며 빈 목록에 곡을 자동 주입하지 않는다.
     must_show:
@@ -488,6 +316,7 @@ screenshots:
     assertions:
     - {by: text, value: 즐겨찾기, present: true}
     - {by: text, value: 이 목록에서 검색, present: true}
+    - {by: text, value: 여러 곡 선택, present: true}
     - {by: text, value: '저장은 완료했습니다. 즐겨찾기 목록을 다시 불러와 주세요.', present: false}
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: imslp_search
@@ -558,96 +387,6 @@ screenshots:
     - by: text
       value: 디자인 시스템 기준
       present: false
-  - id: recording_detail
-    purpose: 하나의 녹음에서 연주 정보와 악장 순서, 로컬 파일 가용성을 보여준다 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인
-    route: 라이브러리 → 작품 → 교향곡 5번 다단조 → 클라이버 / 빈 필하모닉 연주 녹음
-    fixture: 자체 제작 베토벤 교향곡 샘플 녹음과 연결된 로컬 악장 4개
-    must_show:
-    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
-    - 작품·작곡가·녹음명과 연도, 앙상블, 지휘자
-    - 녹음 전체 재생 명령과 재생 가능한 트랙 수
-    - 실제 재생 큐가 있으면 탐색 중 녹음과 구분되는 옆 재생 영역 또는 하단 축약 조작. 큐가 없는 fixture에서는 표시하지 않음
-    - 원래 순서를 유지한 악장 목록과 파일명만 표시하는 가용성 상태
-    - 새 공통 테마의 읽기 쉬운 행동색과 중립 작업 면. 악보·주석·음원 정보의 기존 의미 보존
-    - 흰색 또는 무채색 작업 면·읽을 수 있는 본문, 선택 상태는 강조색과 기호/문구로 구분. 악보 지면·저장된 주석·음원 의미색 유지
-    - 현재 공통 타이포와 간격에 맞는 제목·본문·레이블. 표시 중인 선택 컨트롤은 얇은 경계와 선택 면/기호로 구분하고 내용이 잘리지 않을 것
-    exclude:
-    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
-    - 실제 사용자의 전체 파일·폴더 경로와 개인정보
-    - 저작권 미확인 음원, 재생 오류 또는 권한 팝업
-    - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
-    - 이전 굵은 선택 밑줄·중첩 외곽선 UI, 글자나 조작부가 잘린 화면, 웹 컴포넌트 예제
-    - 시스템 기준 검증용 웹 화면 또는 서로 다른 디자인 버전이 혼재한 화면
-    steps:
-    - {action: wait, milliseconds: 120}
-    - action: scroll_to
-      by: text
-      value: 작품
-      delta: 300
-    - action: tap
-      by: text
-      value: 교향곡 5번 다단조
-    - action: scroll_to
-      by: text
-      value: 클라이버 / 빈 필하모닉 연주 녹음
-      delta: 300
-    - action: tap
-      by: text
-      value: 클라이버 / 빈 필하모닉 연주 녹음
-    - action: wait
-      milliseconds: 400
-    assertions:
-    - {by: widget_type, value: Theme, present: true}
-    - by: text
-      value: 녹음
-      present: true
-    - by: text
-      value: 녹음 전체 재생
-      present: true
-    - by: text
-      value: 4/4 재생 가능
-      present: true
-    - by: text
-      value: 띠로리 색상 작업실
-      present: false
-    - by: widget_type
-      value: ErrorWidget
-      present: false
-    - by: text
-      value: 디자인 시스템 기준
-      present: false
-  - id: browsing_playback
-    purpose: 다른 녹음 탐색 중에도 실제 controller 상태를 읽는 재생 영역과 조작에 접근함을 보여준다. 가청 출력 검증과 구분한다.
-    route: 라이브러리 → 교향곡 5번 → 클라이버 녹음 재생 → 라이브러리 복귀 → 브렌델 녹음 탐색
-    fixture: 자체 제작 카탈로그의 교향곡 5번 큐와 브렌델 피아노 녹음. 촬영 fixture controller 사용 여부를 산출물에 구분하며 실제 사용자 음원은 사용하지 않음.
-    must_show:
-    - 공통 블루 행동·선택·포커스(해당 상태가 표시될 때)와 중립 바탕·글자; 악보 지면·저장 주석색은 보존
-    - 탐색 중인 브렌델 녹음 정보와 재생 중인 클라이버 큐의 1악장
-    - 넓은 화면의 옆 재생 영역 또는 좁은 화면의 하단 축약 조작과 재생 상세 진입
-    - 선택 녹음 변경만으로 기존 큐를 교체하지 않은 상태
-    exclude:
-    - 이전 라임·올리브 테마 또는 앱별 비교 강조색이 섞인 화면
-    - 저작권 미확인 음원·개인 파일 경로와 메타데이터
-    - fake snapshot을 물리 출력·백그라운드 재생 증거로 표현한 상태
-    steps:
-    - {action: wait, milliseconds: 120}
-    - {action: scroll_to, by: text, value: 교향곡 5번 다단조, delta: 250}
-    - {action: tap, by: text, value: 교향곡 5번 다단조}
-    - {action: scroll_to, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음, delta: 250}
-    - {action: tap, by: text, value: 클라이버 / 빈 필하모닉 연주 녹음}
-    - {action: tap, by: text, value: 녹음 전체 재생}
-    - {action: back}
-    - {action: back}
-    - {action: scroll_to, by: text, value: 브렌델 피아노 연주 녹음, delta: 250}
-    - {action: tap, by: text, value: 브렌델 피아노 연주 녹음}
-    - {action: wait, milliseconds: 400}
-    assertions:
-    - {by: widget_type, value: Theme, present: true}
-    - {by: text, value: 브렌델 피아노 연주 녹음, present: true}
-    - {by: text, value: 1악장 Allegro con brio, present: true}
-    - {by: tooltip, value: 재생 상세 열기, present: true}
-    - {by: widget_type, value: PlayPlaybackLayout, present: true}
-    - {by: widget_type, value: ErrorWidget, present: false}
 videos:
   app_preview:
     required: false
@@ -660,6 +399,9 @@ manual:
   privacy_labels:
     status: pending
     evidence: >-
+      2026-11-16 사용자가 운영 주체 만랩·공개 도메인 ddirori.com을 확정하고 검토본 게시를 명시 승인했다. 웹 commit5a0d7f90f5a176966fffc9f06ddb344d793cf6a3·GitHub Pages run43805476424 성공 후 /play/privacy/·/support/ HTTPS200와 내용을 확인했다. 앱 define과 스토어 URL을 일치시켰으며 사이트 GA와 앱의 데이터 처리는 구분한다. Apple 개인정보 설문 확정은 별도 pending.
+      2026-11-12 처리 안내·확인된 공개 이메일의 작성 진입 추가. 문의 메일은 사용자 작성이며 자동 진단/개인 음원을 첨부하지 않는다. 게시용 privacy/support 초안은 로컬에만 있고 공개 도메인은 현재 환경 DNS 실패/기존 임시 URL403으로 미검증이다. 기존 개인정보 처리 범위와 설문 pending을 유지한다.
+      2026-11-12 작곡가 이름/별칭·확인 출처·시대·연결 file ID는 로컬 SQLite와 사용자 명시 논리 백업에 저장된다. IMSLP는 사용자가 실행한 작곡가/작품 검색 텍스트만 전송하고 파일/경로/음원은 보내지 않는다. 검색 캐시는 메모리5분/32개이며 앱 종료 후 남지 않는다. 자동 전송/새 SDK 없음; Apple 설문 답변은 여전히 운영자 확인 pending.
       2026-11-11 비식별 feedback schema2는 고정 음악 동작 결과와 자동 검사 선언을 분리하고 구버전 읽기·unknown/private 값 거부를 유지한다. 새 SDK/자동 전송/음원·파일명·경로·계정·기기 ID 수집은 없으며 설문 답변을 대신 확정하지 않는다.
       2026-10-23 unsigned release bundle에서 앱과 포함 SDK의 privacy manifest, tracking/collection 없음, FileTimestamp C617.1·3B52.1을 확인. 논리 백업 fixture에서 음원 byte와 실제 파일·폴더
       경로를 제외하고 사용자 명시 동작으로만 공유·가져오기 하는 계약을 검증. App Store Connect 설문과 signed archive privacy report는 운영자 확인 대기.
@@ -670,10 +412,14 @@ manual:
       2026-10-30 사용자가 내부 TestFlight 빌드의 비면제 암호화 사용 안 함 신고를 승인. 코드에서 확인한 암호화 관련 사용은 HTTPS와 파일 중복 확인용 SHA-256 해시이며 App Store Connect 빌드 a75f2996-e8e6-4516-a990-1a6b05b3216e에 usesNonExemptEncryption=false 등록 후 READY_FOR_BETA_TESTING 확인. 공개 출시용 수출 규정 설문과 지역별 요건 검토는 별도 pending.
   content_licenses:
     status: pending
-    evidence: ''
+    evidence: '2026-11-12 공식 IMSLP API·General disclaimer·Licensing Policy and Guidelines·Privacy policy 확인. 작품 목록/페이지는 녹음 파일 취득 계약이 아니며 자료별 라이선스·지역 검토를 앱이 대신 판정하지 않는다. 새 사전/외부 음원 자산 없음. 공식 문서 URL과 구현 경계는 composer-context 품질 기록에 보관하며 사용자 권리 답변은 pending.'
   accessibility:
     status: pending
     evidence: >-
+      2026-11-12 빈 재생 메타데이터와 semantics의 빈 구분자를 제거하고 큰 글자에서 최근 추가 행동·카드 열을 조정했다. 새 320/390/1024·200%·light/dark widget 캡처/semantics는 물리 VoiceOver 발화·탐색을 대신하지 않는다.
+      2026-11-12 작곡가 관리/확인 연결·시대 다중 선택·출처·저장 busy/draft/오류·IMSLP 일치 근거를 추가했다. 320/390/1024px·200%·light/dark의 실제 Flutter 검사·semantics와 물리 Xs VoiceOver/IME/focus 검수는 분리하며 후자는 pending.
+      2026-11-11 작곡가/앨범 복귀 링크·작곡가 범위 안내·대기열 행 선택과 disabled 의미를 추가했다. Flutter 크기/글자/테마와 실제 semantics를 검사하며 물리 Xs VoiceOver 읽기 순서/focus·터치 검수는 새 후보에서 pending이다.
+      2026-11-11 곡/즐겨찾기 다중 선택의 개수·검색 밖 안내·선택 행·busy와 큐 저장 dialog를 추가했다. host semantics·12개 크기/테마 검사는 물리 Xs VoiceOver 발화/순서/focus 검수와 별도이며 새 후보 검수 pending이다.
       2026-11-11 안정성 후속: 실제 Flutter semantics tree로 버튼 역할·선택/disabled·slider increase와 요청 경계·busy·현재 큐 보호·IMSLP live region을 검사한다. 폭/테마 변경 draft와 키보드 Escape/IME 회귀는 물리 VoiceOver 발화·읽기 순서 검수와 구분한다. 실제 Xs 검수는 pending이다.
       2026-11-11 미래 큐 편집 메뉴·예약 행동·즐겨찾기·IMSLP 검색/진행·완료 안내를 변경했다. 실제 Flutter 크기/글자/테마·semantics는 로컬 QA에 기록하고 Xs VoiceOver 낭독·focus 복귀·실제 터치는 새 후보 검수 pending으로 둔다.
       2026-11-03 미배포: 전체 재생에 셔플/반복 공통 버튼·선택 상태·한국어 tooltip/모드 이름·명령 실패 안내를 추가했다. 320/390/1024px·글자200%·테마/reduced motion 자동 검사와 실제 VoiceOver 낭독·탐색은 구분하며 물리 검수 pending이다. 기존 내부0.1.0(4)에는 새 모드가 없다.
@@ -713,6 +459,11 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-11-12 후속은 미커밋·미배포다. 합성 MP3는 검증된 기존 로컬 LAME로 만든 fixture이며 host PCM/native 상태 검사는 실제 음원 청감과 다르다. 새 후보의 Xs·구형 OS·Files·스크린리더·액세서리 검수를 유지한다. 공개 URL/정책 게시도 별도 게이트다.
+      2026-11-12 상용 품질 보강: 중첩 JSON/교정 출처·관계 오류는 DB 변경 전에 거부하고 교체 파일의 이력 ID를 보존한다. schema19/0.1.0+4 유지·미배포이며 새 증거는 classical-local-library-commercial-quality-2026-11-12.md에 기록한다. UI 배치는 바뀌지 않아 screenshot scenes는 유지한다. 물리/스토어 게이트는 pending.
+      2026-11-12 작곡가·시대·IMSLP 맥락 변경은 미커밋/미배포다. 새 iOS/Android native SQLite/실오디오 회귀와 widget 캡처는 composer-context 기록으로 분리한다. 물리 Xs/Android 청감·제공자·스크린리더·액세서리 검수는 pending, 기존 빌드4 설치 증거로 간주하지 않는다.
+      2026-11-11 작곡가 중심 분류·메타데이터 역할 분리·목록 시작 인덱스·큐 행 이동은 미커밋/미배포 후속이다. 실제 iOS simulator 회귀와 Android emulator foreground/미디어 키 결과는 composer-foundation 기록에 분리한다. 물리 Xs·Android 청감/제공자/스크린리더는 pending이며 기존0.1.0(4)에서 검수한 것으로 해석하지 않는다.
+      2026-11-11 다중 선택·큐 저장은 미커밋/미배포 후속이다. 새 native simulator와 SQLite/화면 증거는 batch-actions 품질 기록에 보관하며 Xs의 실제 청감·OS 버튼·Files·VoiceOver를 대신 통과 처리하지 않는다. 기존 내부0.1.0(4)에 없음.
       2026-11-11 안정성 후속은 저장/재조회 구분·오류 재시도 안내·schema2 비식별 피드백과 mixed-format native 회귀를 추가한다. MP3 encoder 및 이전 iOS runtime 부재는 미검증으로 남기며 최신 simulator를 Xs 출력/설치 증거로 사용하지 않는다. 새 배포 없음, 기존 빌드4 미포함. classical-local-library-reliability-2026-11-11.md 참조.
       2026-11-11 미배포 schema18·큐 편집·즐겨찾기·독립 IMSLP 탐색/가져오기 후속. 전용 simulator의 실제 native 전환·SQLite·명령 주입과 물리 Files/iCloud·OS 잠금 버튼·출력/청감·VoiceOver는 별도다. 이번 기능을 기존 내부0.1.0(4)에서 검증했다고 표시하지 않는다.
       2026-11-03 미배포: 셔플/반복과 additive schema v17 큐 옵션 저장·복원을 추가했다. 실제 native 반복·시스템 명령 주입·앱 전환과 물리 잠금/청감/OS 버튼은 별개다. 새 후보의 Xs 셔플·한 곡/전체 반복·수동 이동·잠금 중 다음 곡·재시작 복원·VoiceOver 검수는 pending이며 이번 작업은 빌드4를 교체하거나 업로드하지 않는다.

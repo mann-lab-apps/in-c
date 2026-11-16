@@ -1,0 +1,12 @@
+[
+  {
+    "name": "residual",
+    "rgExitCode": 1,
+    "matches": []
+  },
+  {
+    "name": "network",
+    "rgExitCode": 1,
+    "matches": []
+  }
+]

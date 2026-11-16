@@ -82,7 +82,11 @@ class CountingArtworkRepository extends LibraryArtworkRepository {
 }
 
 Future<void> settleArtwork(WidgetTester tester, bool Function() ready) async {
-  for (var i = 0; i < 80; i++) {
+  // Image decoding and filesystem work use real asynchronous platform work.
+  // Concurrent app suites can exceed 80 pumps; keep the same state assertion
+  // and allow a bounded wall-clock deadline instead of a fixed pump count.
+  final deadline = Stopwatch()..start();
+  while (deadline.elapsed < const Duration(seconds: 10)) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
@@ -92,7 +96,7 @@ Future<void> settleArtwork(WidgetTester tester, bool Function() ready) async {
       return;
     }
   }
-  fail('Artwork action did not settle');
+  fail('Artwork action did not settle within 10 seconds');
 }
 
 void main() {

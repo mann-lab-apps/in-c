@@ -35,10 +35,19 @@ is checked with `afinfo`; AAC encoder metadata is not byte-stable, unlike PCM.
 `movement_1_alac.m4a` and `movement_1.flac` use the same generated source with
 macOS `afconvert -f m4af -d alac` and `afconvert -f flac -d flac` respectively.
 They are repository-generated derivatives, not third-party performances.
-No external encoder binary is downloaded. The local macOS encoder does not
-support MP3 output; MP3 validation remains separate and unverified here.
+No external encoder binary is downloaded. The macOS system encoder cannot encode
+MP3; `movement_1.mp3` was generated from our own PCM with the existing installed
+Unity FSBTool LAME3.100 library, whose Unity signature was verified. The encoder
+is not copied into the repository or linked into the app. See
+`mp3-provenance.json` for source/output/library hashes and signing team.
+`python3 tool/generate_mp3_fixture.py --check` needs no LAME binary; regenerating
+requires explicitly passing a trusted existing `--lame-library`. There is no
+automatic binary download. LAME API/license references are its official
+[header](https://github.com/lameproject/lame/blob/master/include/lame.h) and
+[LGPL license](https://github.com/lameproject/lame/blob/master/COPYING).
+The synthetic sound contains no third-party music/performance.
 
-`dart run tool/verify_decoded_audio.dart` decodes all four first-movement formats
+`dart run tool/verify_decoded_audio.dart` decodes all five first-movement formats
 with the host's actual `afconvert` decoder. It emits input/output hashes, duration,
 mono channel count, peak/clipping count, three marker frequency/RMS measurements
 and a central quiet-window RMS. Tolerances are fixed in `audio_signal_analysis.dart`

@@ -66,6 +66,15 @@ Widget libraryApp({
 );
 
 Future<void> openCategory(WidgetTester tester, String category) async {
+  if (category == 'artists') {
+    await tester.tap(find.byTooltip('도구 더보기'));
+    await tester.pumpAndSettle();
+    final target = find.text('아티스트별 보기');
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+    return;
+  }
   final row = find.byKey(ValueKey('file-category-$category'));
   await tester.ensureVisible(row);
   await tester.tap(row);

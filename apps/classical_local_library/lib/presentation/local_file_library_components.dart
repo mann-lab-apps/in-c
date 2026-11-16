@@ -169,6 +169,7 @@ class _FileCategoryList extends StatelessWidget {
       'songs': (LocalFileCategory.songs, '곡', Icons.music_note_outlined),
       'albums': (LocalFileCategory.albums, '앨범', Icons.album_outlined),
       'artists': (LocalFileCategory.artists, '아티스트', Icons.person_outline),
+      'composers': (LocalFileCategory.composers, '작곡가', Icons.piano_outlined),
     };
     return Column(
       children: [
@@ -215,32 +216,55 @@ class _RecentFileSection extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Row(
-        children: [
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                '최근 추가한 음악',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ),
-          DdiroriIconButton(
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final style = Theme.of(context).textTheme.titleMedium;
+          final measure = TextPainter(
+            text: TextSpan(text: '최근 추가한 음악', style: style),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout();
+          final separateAction = measure.width + 48 > constraints.maxWidth;
+          measure.dispose();
+          final heading = Semantics(
+            key: const ValueKey('recent-library-title'),
+            header: true,
+            child: Text('최근 추가한 음악', style: style),
+          );
+          final action = DdiroriIconButton(
             label: '최근 추가한 음악 모두 보기',
             icon: Icons.arrow_forward,
             onPressed: onAll,
-          ),
-        ],
+          );
+          return separateAction
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    heading,
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: action,
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: heading),
+                    action,
+                  ],
+                );
+        },
       ),
       const SizedBox(height: 12),
       LayoutBuilder(
         builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 900
-              ? 4
-              : constraints.maxWidth >= 600
-              ? 3
-              : 2;
+          // Artwork tiles need room for readable titles at the user's scale.
+          final minimumTileWidth =
+              140 * MediaQuery.textScalerOf(context).scale(16) / 16;
+          final columns =
+              ((constraints.maxWidth + 12) / (minimumTileWidth + 12))
+                  .floor()
+                  .clamp(1, 4);
           final itemWidth =
               (constraints.maxWidth - 12 * (columns - 1)) / columns;
           return Wrap(

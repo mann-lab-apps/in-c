@@ -442,7 +442,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (final category in ['albums', 'artists']) {
-        await tester.tap(find.byKey(ValueKey('file-category-$category')));
+        if (category == 'artists') {
+          await tester.tap(find.byTooltip('도구 더보기'));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text('아티스트별 보기'));
+          await tester.tap(find.text('아티스트별 보기'));
+        } else {
+          await tester.tap(find.byKey(ValueKey('file-category-$category')));
+        }
         await tester.pumpAndSettle();
         expect(find.text(category == 'albums' ? '교향곡' : '연주자'), findsOneWidget);
         await tester.tap(find.byTooltip('뒤로'));
@@ -621,6 +628,67 @@ void main() {
       find.byKey(const ValueKey('persistent-playback-strip')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('metadata 없는 직접 곡의 축약/전체 재생은 빈 구분자를 읽지 않는다', (tester) async {
+    tester.view.physicalSize = const Size(390, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final player = FakeLocalPlayer();
+    await tester.pumpWidget(
+      _app(
+        player: player,
+        stored: const [
+          LocalAudioFile(
+            id: 'untagged',
+            path: '/fixture/untagged.flac',
+            format: 'flac',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('file-category-songs')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('untagged 재생'));
+    await tester.pumpAndSettle();
+    void expectCleanText() {
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((w) => w.data ?? w.textSpan?.toPlainText() ?? '');
+      expect(
+        texts.where((s) => RegExp(r'(^|\n)\s*·|·\s*(·|$)').hasMatch(s)),
+        isEmpty,
+      );
+      expect(player.playbackState.summary, isNot(contains(' ·  · ')));
+    }
+
+    expectCleanText();
+    await tester.tap(find.byTooltip('재생 상세 열기'));
+    await tester.pumpAndSettle();
+    expectCleanText();
+    expect(player.playbackState.currentItem!.displayTitle, 'untagged');
+  });
+
+  testWidgets('320px 200% 최근 추가 제목은 음악의 한 글자를 따로 줄바꿈하지 않는다', (tester) async {
+    tester.view.physicalSize = const Size(320, 900);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearAllTestValues);
+    await tester.pumpWidget(_app(player: FakeLocalPlayer(), stored: _files));
+    await tester.pumpAndSettle();
+    final heading = tester.renderObject<RenderParagraph>(
+      find.text('최근 추가한 음악'),
+    );
+    final music = heading.getBoxesForSelection(
+      const TextSelection(baseOffset: 7, extentOffset: 9),
+    );
+    expect(music.map((b) => b.top).toSet(), hasLength(1));
+    expect(find.byTooltip('최근 추가한 음악 모두 보기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('320px large text keeps library and mini-player usable', (

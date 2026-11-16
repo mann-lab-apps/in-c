@@ -90,6 +90,21 @@ class SqliteMigrationRunner {
         );
       }
     }
+    if (schema.version >= 19) {
+      for (final pair in [
+        ('catalog_people', 'composer_profile_json'),
+        ('catalog_works', 'period_assessment_json'),
+      ]) {
+        final columns = (await database.rawQuery(
+          'PRAGMA table_info(${pair.$1})',
+        )).map((row) => row['name']).toSet();
+        if (!columns.contains(pair.$2)) {
+          await database.execute(
+            'ALTER TABLE ${pair.$1} ADD COLUMN ${pair.$2} TEXT',
+          );
+        }
+      }
+    }
     for (final indexSql in schema.indexSql) {
       await database.execute(indexSql);
     }
@@ -541,53 +556,8 @@ class SqliteMetadataOverrideStore implements MetadataOverrideStore {
     );
   }
 
-  MetadataOverride _fromRow(Map<String, Object?> row) {
-    final rawValues =
-        jsonDecode(row['values_json']! as String) as Map<String, Object?>;
-    final rawSources =
-        jsonDecode(row['sources_json']! as String) as Map<String, Object?>;
-    final rawFallbackValues = jsonDecode(
-      row['fallback_values_json']! as String,
-    ) as Map<String, Object?>;
-    final rawFallbackSources = jsonDecode(
-      row['fallback_sources_json']! as String,
-    ) as Map<String, Object?>;
-    final values = <MetadataField, Object>{};
-    final sources = <MetadataField, MetadataValueSource>{};
-    final fallbackValues = <MetadataField, Object>{};
-    final fallbackSources = <MetadataField, MetadataValueSource>{};
-    for (final entry in rawValues.entries) {
-      final field = MetadataField.values.byName(entry.key);
-      final value = entry.value;
-      if (value != null) values[field] = value;
-    }
-    for (final entry in rawSources.entries) {
-      sources[MetadataField.values.byName(entry.key)] = MetadataValueSource
-          .values
-          .byName(entry.value! as String);
-    }
-    for (final entry in rawFallbackValues.entries) {
-      final value = entry.value;
-      if (value != null) {
-        fallbackValues[MetadataField.values.byName(entry.key)] = value;
-      }
-    }
-    for (final entry in rawFallbackSources.entries) {
-      fallbackSources[MetadataField.values.byName(entry.key)] =
-          MetadataValueSource.values.byName(entry.value! as String);
-    }
-    return MetadataOverride(
-      fileId: row['file_id']! as String,
-      values: values,
-      sources: sources,
-      fallbackValues: fallbackValues,
-      fallbackSources: fallbackSources,
-      updatedAtMillis: row['updated_at_millis']! as int,
-      musicBrainzRecordingId: row['musicbrainz_recording_id'] as String?,
-      musicBrainzWorkId: row['musicbrainz_work_id'] as String?,
-      musicBrainzReleaseId: row['musicbrainz_release_id'] as String?,
-    );
-  }
+  MetadataOverride _fromRow(Map<String, Object?> row) =>
+      MetadataOverride.fromStorageRow(row);
 }
 
 class SqliteAudioFileTrackLinkStore implements AudioFileTrackLinkStore {
@@ -1025,32 +995,48 @@ class SqliteImslpStore implements ImslpStore {
 
   @override
   Future<void> upsertWorkLink(ImslpWorkLink link) async {
-    final conflicts = await database.query(
-      'imslp_work_links',
-      columns: ['work_id'],
-      where: 'external_id = ? AND work_id != ?',
-      whereArgs: [link.externalId, link.workId],
-      limit: 1,
-    );
-    if (conflicts.isNotEmpty) {
-      throw ImslpLinkConflictException(conflicts.single['work_id']! as String);
-    }
-    final row = {
-      'work_id': link.workId,
-      'external_id': link.externalId,
-      'page_url': link.pageUrl,
-      'work_title': link.workTitle,
-      'composer_name': link.composerName,
-      'catalog_number': link.catalogNumber,
-      'linked_at_millis': link.linkedAtMillis,
-    };
-    final updated = await database.update(
-      'imslp_work_links',
-      row,
-      where: 'work_id = ?',
-      whereArgs: [link.workId],
-    );
-    if (updated == 0) await database.insert('imslp_work_links', row);
+    await database.transaction((transaction) async {
+      final conflicts = await transaction.query(
+        'imslp_work_links',
+        columns: ['work_id'],
+        where: 'external_id = ? AND work_id != ?',
+        whereArgs: [link.externalId, link.workId],
+        limit: 1,
+      );
+      if (conflicts.isNotEmpty) {
+        throw ImslpLinkConflictException(
+          conflicts.single['work_id']! as String,
+        );
+      }
+      final row = {
+        'work_id': link.workId,
+        'external_id': link.externalId,
+        'page_url': link.pageUrl,
+        'work_title': link.workTitle,
+        'composer_name': link.composerName,
+        'catalog_number': link.catalogNumber,
+        'linked_at_millis': link.linkedAtMillis,
+      };
+      final old = await transaction.query(
+        'imslp_work_links',
+        where: 'work_id = ?',
+        whereArgs: [link.workId],
+      );
+      if (old.isNotEmpty && old.single['external_id'] != link.externalId) {
+        await transaction.delete(
+          'imslp_resources',
+          where: 'work_id = ?',
+          whereArgs: [link.workId],
+        );
+      }
+      final updated = await transaction.update(
+        'imslp_work_links',
+        row,
+        where: 'work_id = ?',
+        whereArgs: [link.workId],
+      );
+      if (updated == 0) await transaction.insert('imslp_work_links', row);
+    });
   }
 
   @override

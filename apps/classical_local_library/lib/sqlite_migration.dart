@@ -21,7 +21,7 @@ class SqliteTableSchema {
 class SqliteStorageSchema {
   const SqliteStorageSchema();
 
-  int get version => 18;
+  int get version => 19;
 
   List<SqliteTableSchema> get tables => const [
     SqliteTableSchema(
@@ -295,6 +295,7 @@ CREATE TABLE IF NOT EXISTS catalog_people (
   name_json TEXT NOT NULL,
   birth_year INTEGER,
   death_year INTEGER,
+  composer_profile_json TEXT,
   origin TEXT NOT NULL DEFAULT 'user'
 );''',
     ),
@@ -333,6 +334,7 @@ CREATE TABLE IF NOT EXISTS catalog_works (
   title_json TEXT NOT NULL,
   catalog_number TEXT,
   period_label TEXT,
+  period_assessment_json TEXT,
   source_references_json TEXT NOT NULL DEFAULT '[]',
   origin TEXT NOT NULL DEFAULT 'user',
   FOREIGN KEY(composer_id) REFERENCES catalog_people(id)

@@ -178,7 +178,11 @@ void main() {
           id: 'different-artist',
           path: '/music/other.flac',
           format: 'flac',
-          tagMetadata: AudioTagMetadata(album: '앨범 A', artist: '다른 연주자'),
+          tagMetadata: AudioTagMetadata(
+            album: '앨범 A',
+            albumArtist: '다른 음반 아티스트',
+            artist: '다른 연주자',
+          ),
         ),
       ],
     );

@@ -1,0 +1,61 @@
+{
+  "fixtureSchemaVersion": 1,
+  "syntheticOnly": true,
+  "baseReport": {
+    "schemaVersion": 1,
+    "appVersion": "0.1.0",
+    "buildNumber": 4,
+    "platform": "ios",
+    "deviceClass": "phone",
+    "osMajor": 18,
+    "provider": "notChecked",
+    "fixture": "notChecked",
+    "format": "mp3",
+    "voiceOver": "notChecked",
+    "dynamicType": "notChecked",
+    "importOutcome": "notChecked",
+    "playbackOutcome": "notChecked",
+    "relaunchOutcome": "notChecked",
+    "routes": ["notChecked"],
+    "interruptionOutcome": "notChecked",
+    "listening": "notChecked",
+    "reproducibility": "notChecked",
+    "severity": "none"
+  },
+  "musicActions": {
+    "queueReservation": "notChecked",
+    "queueEditing": "notChecked",
+    "queueModes": "notChecked",
+    "queueRestoration": "notChecked",
+    "favorites": "notChecked",
+    "imslpPageReturn": "notChecked",
+    "imslpImport": "notChecked",
+    "imslpSourceConfirmation": "notChecked"
+  },
+  "automaticChecks": {
+    "semantics": "notChecked",
+    "decoderSignal": "notChecked",
+    "nativeTransport": "notChecked",
+    "simulatorLifecycle": "notChecked"
+  },
+  "invalidMutations": [
+    {"schemaVersion": 2.0},
+    {"schemaVersion": "2"},
+    {"schemaVersion": 3},
+    {"buildNumber": true},
+    {"buildNumber": 0},
+    {"buildNumber": 2100000001},
+    {"osMajor": 18.0},
+    {"osMajor": 0},
+    {"appVersion": "1.0"},
+    {"deviceId": "synthetic-unknown-field"},
+    {"musicActions": {}},
+    {"musicActions": {"fileName": "synthetic.mp3"}},
+    {"automaticChecks": []},
+    {"automaticChecks": null},
+    {"routes": ["speaker", "speaker"]},
+    {"routes": ["notChecked", "speaker"]},
+    {"provider": "unknownProvider"},
+    {"fixture": "/var/mobile/Containers/private-fixture"}
+  ]
+}

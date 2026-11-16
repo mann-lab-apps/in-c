@@ -107,6 +107,29 @@ bundle exec fastlane release_candidate_preflight \
 
 ## 로컬 검사와 실행
 
+### Play 후보와 피드백 연결
+
+Play preflight는 앱과 같은 v1/v2 피드백 계약을 읽는다. 공통 합성 fixture는
+`apps/classical_local_library/test/fixtures/release_candidate_feedback_contract.json`이며
+Dart/Ruby 테스트가 함께 검증한다. v1의 새 음악 동작 응답 누락, v2의 notChecked는
+미확인이다. automaticChecks 선언은 사용자 청감·제공자·스크린리더 응답을 채우지 않는다.
+현재 iPhone/iPad 지원을 유지하므로 두 deviceClass의 물리 응답을 요구한다.
+
+`release_candidate_preflight.rb --candidate /external/candidate.json --ipa /external/app.ipa`
+또는 lane의 `candidate:`·`ipa:` 옵션으로 정확한 후보를 연결한다. manifest는
+`format: ddirori-play-release-candidate`, schemaVersion1, sourceCommit,
+sourceFingerprintVersion2, sourceSha256, ipaSha256, bundleId, appVersion, buildNumber,
+builtAtUtc(UTC), distribution(app-store/internal-testflight), feedback 배열을 갖는다.
+실제 제품 commit·소스 지문·실제 IPA hash에서 생성하며 임의 값을 넣지 않는다.
+
+feedback 배열의 receipt는 reportSha256, sourceSha256, ipaSha256, observedAtUtc다.
+사용자가 해당 후보에서 관찰했음을 확인한 뒤 운영자가 연결하며 자동으로 작성하지 않는다.
+검사는 실제 IPA의 hash와 metadata identity, 현재 제품/공통 UI의 commit 일치, 응답 hash·
+후보 hash·관찰 시각을 대조한다. 버전/build만 같은 과거 응답을 승인하지 않는다.
+receipt는 운영자 확인 기록이며 물리 청감을 암호학적으로 증명하지 않는다.
+내부 전용 artifact는 공개 배포 게이트를 해제하지 않는다. 후보/receipt/IPA가 없으면
+blocked를 유지한다. 기존 v1 입력은 읽되 미응답을 passed로 바꾸지 않는다.
+
 형식·오타·중복 YAML key·경로·정책·촬영 동선을 검사한다. pending 상태에서도 편집 검사는 가능하다.
 
 ```sh

@@ -8,10 +8,14 @@ import 'library_backup_io.dart';
 
 const appVersionLabel = String.fromEnvironment(
   'APP_VERSION_LABEL',
-  defaultValue: '0.1.0 (1)',
+  defaultValue: '개발 빌드 (버전 정보 미설정)',
 );
 const privacyPolicyUrl = String.fromEnvironment('PRIVACY_POLICY_URL');
 const supportUrl = String.fromEnvironment('SUPPORT_URL');
+const publicSupportEmail = 'daga4242@gmail.com';
+
+Future<bool> _launchExternalUri(Uri uri) =>
+    launchUrl(uri, mode: LaunchMode.externalApplication);
 
 Uri? parsePublicHttpsUrl(String value) {
   final uri = Uri.tryParse(value.trim());
@@ -33,6 +37,7 @@ class AppSettingsScreen extends StatefulWidget {
     this.backupService,
     this.backupTransport,
     this.onBackupImported,
+    this.openExternal = _launchExternalUri,
   });
 
   final LocalDataControlService dataControl;
@@ -41,6 +46,7 @@ class AppSettingsScreen extends StatefulWidget {
   final LibraryBackupService? backupService;
   final LibraryBackupTransport? backupTransport;
   final Future<void> Function()? onBackupImported;
+  final Future<bool> Function(Uri) openExternal;
 
   @override
   State<AppSettingsScreen> createState() => _AppSettingsScreenState();
@@ -70,8 +76,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   Future<void> _openConfiguredUrl(String value) async {
     try {
       final uri = parsePublicHttpsUrl(value);
-      if (uri != null &&
-          await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (uri != null && await widget.openExternal(uri)) {
         return;
       }
     } catch (_) {
@@ -79,6 +84,41 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     }
     if (mounted) setState(() => status = '설정된 링크를 열지 못했습니다.');
   }
+
+  Future<void> _composeSupportEmail() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: publicSupportEmail,
+      queryParameters: {'subject': '띠로리 플레이 문의 ($appVersionLabel)'},
+    );
+    try {
+      if (await widget.openExternal(uri)) return;
+    } catch (_) {
+      /* Show only the public contact, never platform errors. */
+    }
+    if (mounted) {
+      setState(() => status = '메일 앱을 열지 못했습니다. $publicSupportEmail로 문의해 주세요.');
+    }
+  }
+
+  Future<void> _showLocalPrivacy() => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('기기 내 데이터 처리 안내'),
+      content: const SingleChildScrollView(
+        child: Text(
+          '음원 관리 사본, 메타데이터와 감상 기록은 기기에 저장합니다. 계정·광고·분석 SDK나 자체 클라우드 업로드는 없습니다.\n\n'
+          'MusicBrainz·IMSLP 검색은 사용자가 실행하며 검색어와 확인한 식별자 등을 외부 서비스에 보냅니다. 원본 음원과 전체 로컬 경로를 검색 요청에 넣지 않습니다. 공식 사이트를 열면 해당 사이트 정책이 적용됩니다.\n\n'
+          '논리 백업과 진단 공유는 사용자가 선택합니다. 백업에는 음원 byte와 원래 경로가 없지만 메타데이터·이력이 있으므로 공유 대상을 확인하세요. 진단에는 개인 음원·파일명·경로·기기 식별자를 넣지 않습니다.\n\n'
+          '전체 로컬 데이터 초기화는 앱 관리 사본과 내부 데이터를 삭제하며 외부 원본·이미 내보낸 백업은 삭제하지 않습니다. 앱을 제거해도 외부 원본과 공유한 파일은 별도로 관리해야 합니다.\n\n'
+          '공개 개인정보 처리방침 URL은 준비 중입니다. 문의: $publicSupportEmail',
+        ),
+      ),
+      actions: [
+        DdiroriButton(label: '닫기', onPressed: () => Navigator.pop(context)),
+      ],
+    ),
+  );
 
   Future<void> _confirmReset() async {
     var confirmation = '';
@@ -267,7 +307,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           const DdiroriItem(
             leading: Icon(Icons.info_outline),
             title: '띠로리 플레이',
-            subtitle: '내부 베타 · 버전 $appVersionLabel',
+            subtitle: '내부 베타 · $appVersionLabel',
           ),
           if (widget.backupService != null &&
               widget.backupTransport != null) ...[
@@ -328,17 +368,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             title: '외부 서비스',
             subtitle:
                 'MusicBrainz에는 사용자가 선택한 검색어와 식별자만 전송하며, '
-                'IMSLP에는 자료 검색과 다운로드 요청만 보냅니다. 로컬 전체 경로는 전송하지 않습니다. '
+                'IMSLP에는 사용자가 실행한 검색·자료 확인 요청을 보냅니다. 로컬 전체 경로는 전송하지 않습니다. '
                 'AcoustID 지문 조회는 현재 비활성 상태입니다.',
           ),
           DdiroriItem(
             leading: const Icon(Icons.privacy_tip_outlined),
             title: '개인정보 처리 안내',
             subtitle: privacyUri == null
-                ? '공개 HTTPS URL 준비 중'
+                ? '기기 내 처리 안내 · 공개 HTTPS URL 준비 중'
                 : privacyUri.toString(),
             onTap: privacyUri == null
-                ? null
+                ? _showLocalPrivacy
                 : () => _openConfiguredUrl(privacyUri.toString()),
           ),
           DdiroriItem(
@@ -350,6 +390,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             onTap: supportUri == null
                 ? null
                 : () => _openConfiguredUrl(supportUri.toString()),
+          ),
+          DdiroriItem(
+            leading: const Icon(Icons.mail_outline),
+            title: '이메일 문의',
+            subtitle: '$publicSupportEmail\n개인 음원·경로 없이 문제 행동과 버전을 알려주세요.',
+            onTap: _composeSupportEmail,
           ),
           DdiroriItem(
             leading: const Icon(Icons.description_outlined),

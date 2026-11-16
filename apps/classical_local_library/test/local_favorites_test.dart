@@ -17,6 +17,36 @@ void main() {
   setUpAll(sqfliteFfiInit);
 
   test(
+    'batch copies IDs before waiting, writes once and serializes changes',
+    () async {
+      final store = _ControlledStore()..gate = Completer<void>();
+      final repo = LocalFavoritesRepository(store);
+      final ids = ['one', 'two', 'one'];
+      final saving = repo.setFavorites(ids, true);
+      ids.clear();
+      await store.saveStarted.future;
+      final removing = repo.setFavorites(['one'], false);
+      expect(repo.lastSaved, isNull);
+      store.gate!.complete();
+      await saving;
+      await removing;
+      expect(await repo.load(), {'two'});
+      expect(store.saves, 2);
+      await repo.setFavorites(['two'], true);
+      expect(store.saves, 2);
+      store.failSave = true;
+      await expectLater(
+        repo.setFavorites(['one', 'three'], true),
+        _safeFailure,
+      );
+      expect(repo.lastSaved, {'two'});
+      expect(await repo.load(), {'two'});
+      await repo.setFavorites(['one', 'three'], true);
+      expect(await repo.load(), {'one', 'two', 'three'});
+    },
+  );
+
+  test(
     'idempotent confirmation replaces an older lastSaved snapshot',
     () async {
       final store = _ControlledStore();
@@ -165,6 +195,32 @@ void main() {
       await restored.remove('one');
       expect(await restored.load(), isEmpty);
     });
+
+    test(
+      'batch transaction rolls back every change and retries once',
+      () async {
+        await database.execute('''
+CREATE TRIGGER reject_batch BEFORE INSERT ON local_favorites
+WHEN NEW.file_id = 'two'
+BEGIN SELECT RAISE(ABORT, 'injected'); END;''');
+        await expectLater(
+          favorites.setFavorites(['one', 'two'], true),
+          _safeFailure,
+        );
+        expect(await favorites.load(), isEmpty);
+        expect(favorites.lastSaved, isNull);
+        await database.execute('DROP TRIGGER reject_batch');
+        await favorites.setFavorites(['one', 'two'], true);
+        expect(await favorites.load(), {'one', 'two'});
+        await expectLater(
+          favorites.setFavorites(['unknown'], true),
+          _safeFailure,
+        );
+        expect(await favorites.load(), {'one', 'two'});
+        await favorites.setFavorites(['one', 'two'], false);
+        expect(await favorites.load(), isEmpty);
+      },
+    );
 
     test(
       'missing state, snapshot saves and relinking preserve stable ID',
@@ -362,7 +418,7 @@ BEGIN SELECT RAISE(ABORT, 'injected managed cleanup failure'); END;''');
           'schema_migrations',
           orderBy: 'version',
         )).map((r) => r['version']),
-        [17, 18],
+        [17, 19],
       );
       for (final entry in before.entries) {
         expect(await database.query(entry.key), entry.value, reason: entry.key);

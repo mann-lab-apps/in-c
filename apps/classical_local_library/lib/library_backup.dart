@@ -4,10 +4,15 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 
 import 'sqlite_migration.dart';
 import 'library_view_settings.dart';
+import 'classical_library_models.dart';
+import 'audio_tags.dart';
+import 'metadata_overrides.dart';
+import 'metadata_candidates.dart';
+import 'playback_history.dart';
 
 const libraryBackupSchemaVersion = 1;
 const libraryBackupFormat = 'ddirori-play-logical-backup';
-const libraryBackupAppVersion = '0.1.0';
+const libraryBackupAppVersion = '1.0.0';
 final _artworkHashPattern = RegExp(r'^[a-f0-9]{64}$');
 
 class LibraryBackupException implements Exception {
@@ -194,7 +199,9 @@ _BackupDocument _decodeAndValidate(String source) {
   }
   if (_privatePathPattern.hasMatch(source) ||
       _credentialPattern.hasMatch(source)) {
-    throw const LibraryBackupException('백업에 개인 경로나 비밀값으로 보이는 내용이 포함되어 있습니다.');
+    throw const LibraryBackupException(
+      '백업에 개인 경로나 비밀값으로 보이는 내용이 포함되어 있습니다. 원본 라이브러리를 최신 앱에서 다시 내보내 주세요.',
+    );
   }
   Object? decoded;
   try {
@@ -282,6 +289,14 @@ _BackupDocument _decodeAndValidate(String source) {
     final rows = <Map<String, Object?>>[];
     final identities = <String>{};
     for (final rawRow in rawRows) {
+      if (storageVersion < 19 && rawRow is Map<String, Object?>) {
+        if (spec.name == 'catalog_people') {
+          rawRow.putIfAbsent('composer_profile_json', () => null);
+        }
+        if (spec.name == 'catalog_works') {
+          rawRow.putIfAbsent('period_assessment_json', () => null);
+        }
+      }
       if (rawRow is! Map<String, Object?> ||
           rawRow.keys.toSet().difference(spec.columns.toSet()).isNotEmpty ||
           rawRow.keys.length != spec.columns.length) {
@@ -307,7 +322,13 @@ _BackupDocument _decodeAndValidate(String source) {
   if (totalRows > 100000) {
     throw const LibraryBackupException('백업 항목이 허용된 개수를 초과했습니다.');
   }
-  _validateReferences(data);
+  try {
+    _validateReferences(data);
+  } on LibraryBackupException {
+    rethrow;
+  } catch (_) {
+    throw const LibraryBackupException('백업 참조 데이터 형식이 올바르지 않습니다.');
+  }
   return _BackupDocument(Map.unmodifiable(data));
 }
 
@@ -385,6 +406,44 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
     if (!condition) throw LibraryBackupException(message);
   }
 
+  final aliases = <String, String>{};
+  for (final row in data['library_entity_merges']!) {
+    if (row['undone_at_millis'] != null) continue;
+    final targets = switch (row['entity_type']) {
+      'work' => works,
+      'recording' => recordings,
+      _ => const <String>{},
+    };
+    require(targets.contains(row['target_id']), '병합 별칭의 대표 항목 참조가 올바르지 않습니다.');
+    final source = '${row['entity_type']}:${row['source_id']}';
+    final target = '${row['entity_type']}:${row['target_id']}';
+    require(
+      source != target && !aliases.containsKey(source),
+      '병합 별칭이 중복되거나 자기 자신을 가리킵니다.',
+    );
+    aliases[source] = target;
+  }
+  String canonical(String type, Object? id) {
+    var current = '$type:$id';
+    final visited = <String>{};
+    while (aliases.containsKey(current)) {
+      require(visited.add(current), '병합 별칭 순환이 발견되었습니다.');
+      current = aliases[current]!;
+    }
+    return current;
+  }
+
+  for (final row in data['library_entity_merges']!) {
+    canonical('${row['entity_type']}', row['source_id']);
+  }
+  final recordingRows = {
+    for (final row in data['catalog_recordings']!) row['id']: row,
+  };
+  final trackRows = {for (final row in data['catalog_tracks']!) row['id']: row};
+  final partRows = {
+    for (final row in data['catalog_work_parts']!) row['id']: row,
+  };
+
   for (final row in data['local_favorites']!) {
     require(files.contains(row['file_id']), '즐겨찾기 파일 참조가 올바르지 않습니다.');
   }
@@ -420,6 +479,14 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
           partIds.every(parts.contains),
       '트랙 참조가 올바르지 않습니다.',
     );
+    require(
+      (partIds as List).every(
+        (id) =>
+            canonical('work', partRows[id]!['work_id']) ==
+            canonical('work', recordingRows[row['recording_id']]!['work_id']),
+      ),
+      '트랙의 악장과 녹음의 작품이 일치하지 않습니다.',
+    );
   }
   for (final table in ['metadata_candidates', 'metadata_overrides']) {
     for (final row in data[table]!) {
@@ -435,14 +502,87 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
   for (final row in data['playback_positions']!) {
     require(files.contains(row['file_id']), '재생 위치 파일 참조가 올바르지 않습니다.');
   }
-  for (final row in data['playback_history']!) {
+  bool sameHistoryEntity(
+    String type,
+    Object? left,
+    Object? right,
+    Map<String, Object?>? historicalMerge,
+  ) {
+    final a = canonical(type, left), b = canonical(type, right);
+    if (a == b) return true;
+    if (historicalMerge?['entity_type'] != type) return false;
+    // An undone audit's after-image still describes that selected merge.
+    final pair = {
+      canonical(type, historicalMerge!['source_id']),
+      canonical(type, historicalMerge['target_id']),
+    };
+    return pair.contains(a) && pair.contains(b);
+  }
+
+  void validateHistoryRow(
+    Map<String, Object?> row, {
+    Map<String, Object?>? historicalMerge,
+  }) {
+    final directId = 'local-file:${row['file_id']}';
+    final isDirect =
+        row['track_id'] == directId &&
+        row['recording_id'] == directId &&
+        row['work_id'] == directId;
     require(
       files.contains(row['file_id']) &&
-          works.contains(row['work_id']) &&
-          recordings.contains(row['recording_id']) &&
-          tracks.contains(row['track_id']),
+          (isDirect ||
+              (works.contains(row['work_id']) &&
+                  recordings.contains(row['recording_id']) &&
+                  tracks.contains(row['track_id']))),
       '감상 이력 참조가 올바르지 않습니다.',
     );
+    if (!isDirect) {
+      final track = trackRows[row['track_id']]!;
+      require(
+        sameHistoryEntity(
+              'recording',
+              row['recording_id'],
+              track['recording_id'],
+              historicalMerge,
+            ) &&
+            sameHistoryEntity(
+              'work',
+              row['work_id'],
+              recordingRows[row['recording_id']]!['work_id'],
+              historicalMerge,
+            ),
+        '감상 이력의 작품·녹음·트랙 관계가 일치하지 않습니다.',
+      );
+      // A historical file may have been replaced by relink; do not compare it
+      // with the track's current file mapping.
+    }
+  }
+
+  for (final row in data['playback_history']!) {
+    validateHistoryRow(row);
+  }
+  for (final merge in data['library_entity_merges']!) {
+    if (merge['undo_snapshot_json'] == null) continue;
+    final snapshot = jsonDecode(
+      merge['undo_snapshot_json']! as String,
+    ) as Map<String, Object?>;
+    if (snapshot.isEmpty) continue;
+    for (final side in ['before', 'after']) {
+      final section = snapshot[side]! as Map<String, Object?>;
+      for (final raw in section['playback_history']! as List) {
+        final row = (raw as Map).cast<String, Object?>();
+        validateHistoryRow({
+          ...row,
+          'file_id': _snapshotHistoryFileId(row),
+        }, historicalMerge: merge);
+      }
+      for (final raw in section['imslp_work_links'] as List? ?? const []) {
+        require(
+          works.contains((raw as Map)['work_id']),
+          '병합 복원 정보의 IMSLP 참조가 올바르지 않습니다.',
+        );
+      }
+    }
   }
   for (final row in data['imslp_work_links']!) {
     require(works.contains(row['work_id']), 'IMSLP 작품 참조가 올바르지 않습니다.');
@@ -461,29 +601,6 @@ void _validateReferences(Map<String, List<Map<String, Object?>>> data) {
       '재생목록 데이터가 올바르지 않습니다.',
     );
     // A removed file stays in the list for later relinking.
-  }
-
-  final aliases = <String, String>{};
-  for (final row in data['library_entity_merges']!) {
-    if (row['undone_at_millis'] != null) continue;
-    final targets = switch (row['entity_type']) {
-      'work' => works,
-      'recording' => recordings,
-      _ => const <String>{},
-    };
-    require(targets.contains(row['target_id']), '병합 별칭의 대표 항목 참조가 올바르지 않습니다.');
-    final source = '${row['entity_type']}:${row['source_id']}';
-    final target = '${row['entity_type']}:${row['target_id']}';
-    require(source != target, '병합 별칭은 자기 자신을 가리킬 수 없습니다.');
-    aliases[source] = target;
-  }
-  for (final start in aliases.keys) {
-    final visited = <String>{};
-    var current = start;
-    while (aliases.containsKey(current)) {
-      require(visited.add(current), '병합 별칭 순환이 발견되었습니다.');
-      current = aliases[current]!;
-    }
   }
 }
 
@@ -529,6 +646,148 @@ class _BackupTableSpec {
       databaseRow?.call(row) ?? row;
 
   void validate(Map<String, Object?> row) {
+    try {
+      const integerColumns = {
+        'size_bytes',
+        'birth_year',
+        'death_year',
+        'release_year',
+        'recorded_year',
+        'year',
+        'track_number',
+        'track_total',
+        'disc_number',
+        'disc_total',
+        'sequence_number',
+        'has_tag_conflict',
+        'is_completed',
+      };
+      for (final entry in row.entries) {
+        final value = entry.value;
+        if (value == null) continue;
+        final column = entry.key;
+        final integer =
+            integerColumns.contains(column) ||
+            column.endsWith('_millis') ||
+            (column == 'id' &&
+                {
+                  'library_view_settings',
+                  'playback_history_preferences',
+                }.contains(name));
+        if (column == 'confidence') {
+          if (value is! num || !value.isFinite || value < 0 || value > 1) {
+            throw const FormatException('confidence');
+          }
+        } else if (integer) {
+          if (value is! int) throw const FormatException('integer');
+          if ({
+                'size_bytes',
+                'position_millis',
+                'last_position_millis',
+                'duration_millis',
+                'listened_millis',
+              }.contains(column) &&
+              value < 0) {
+            throw const FormatException('negative size/time');
+          }
+          if ({'has_tag_conflict', 'is_completed'}.contains(column) &&
+              value != 0 &&
+              value != 1) {
+            throw const FormatException('boolean');
+          }
+        } else if (value is! String) {
+          throw const FormatException('text');
+        }
+      }
+      if (name == 'scanned_audio_files') {
+        AudioImportStatus.values.byName(row['import_status']! as String);
+        AudioTagReadStatus.values.byName(row['tag_read_status']! as String);
+        if (row['tag_failure_kind'] != null) {
+          AudioTagFailureKind.values.byName(row['tag_failure_kind']! as String);
+        }
+      }
+      if (name == 'metadata_candidates') {
+        MetadataReviewStatus.values.byName(row['review_status']! as String);
+      }
+      if (name == 'catalog_recording_credits') {
+        RecordingRole.values.byName(row['role']! as String);
+      }
+      if (name == 'playback_history') {
+        PlaybackHistoryStatus.values.byName(row['status']! as String);
+      }
+      if (name == 'playback_history_preferences') {
+        if (row['id'] != 1) throw const FormatException('preferences id');
+        PlaybackHistoryRetentionPolicy.values.byName(
+          row['retention_policy']! as String,
+        );
+      }
+      for (final entry in row.entries) {
+        if (entry.key.endsWith('_json') && entry.value != null) {
+          final decoded = jsonDecode(entry.value! as String);
+          final normalized = jsonEncode(decoded);
+          if (_privatePathPattern.hasMatch(normalized) ||
+              _credentialPattern.hasMatch(normalized)) {
+            throw const FormatException('private data in JSON');
+          }
+        }
+      }
+      if (name == 'library_entity_merges') {
+        if (!const {'work', 'recording'}.contains(row['entity_type'])) {
+          throw const FormatException('merge entity type');
+        }
+        final evidence = jsonDecode(row['evidence_json']! as String) as List;
+        for (final item in evidence) {
+          item as String;
+        }
+        if (row['undo_snapshot_json'] != null) {
+          _validatePortableMergeSnapshot(
+            jsonDecode(row['undo_snapshot_json']! as String)
+                as Map<String, Object?>,
+          );
+        }
+      }
+      for (final column in ['name_json', 'title_json']) {
+        if (!row.containsKey(column) || row[column] == null) continue;
+        final value =
+            jsonDecode(row[column]! as String) as Map<String, Object?>;
+        value['ko']! as String;
+        value['sortName']! as String;
+        value['original'] as String?;
+        value['english'] as String?;
+        if (value['aliases'] != null) {
+          for (final alias in value['aliases']! as List) {
+            alias as String;
+          }
+        }
+      }
+      if (row.containsKey('source_references_json')) {
+        for (final source
+            in jsonDecode(row['source_references_json']! as String) as List) {
+          SourceReference.fromJson((source as Map).cast<String, Object?>());
+        }
+      }
+      if (row['tag_metadata_json'] != null) {
+        AudioTagMetadata.fromJson(
+          (jsonDecode(row['tag_metadata_json']! as String) as Map)
+              .cast<String, Object?>(),
+        );
+      }
+      if (name == 'metadata_overrides') MetadataOverride.fromStorageRow(row);
+      if (name == 'catalog_people' && row['composer_profile_json'] != null) {
+        ComposerProfile.fromJson(
+          (jsonDecode(row['composer_profile_json'] as String) as Map)
+              .cast<String, Object?>(),
+        );
+      }
+      if (name == 'catalog_works' && row['period_assessment_json'] != null) {
+        PeriodAssessment.fromJson(
+          (jsonDecode(row['period_assessment_json'] as String) as Map)
+              .cast<String, Object?>(),
+        );
+      }
+    } catch (_) {
+      throw LibraryBackupException('$name의 저장 정보 형식이 올바르지 않습니다.');
+    }
     if (name == 'library_artwork' &&
         (row['owner'] is! String ||
             !(row['owner']! as String).startsWith(
@@ -565,8 +824,124 @@ class _BackupTableSpec {
 String _backupPath(String fileId) =>
     'ddirori-backup://missing/${Uri.encodeComponent(fileId)}';
 
+const _mergeSnapshotTables = {
+  'playback_history',
+  'imslp_work_links',
+  'imslp_imports',
+  'imslp_resources',
+};
+const _excludedMergeSnapshotTables = {'imslp_imports', 'imslp_resources'};
+
+String _snapshotHistoryFileId(Map<String, Object?> row) {
+  final uri = Uri.parse(row['path']! as String);
+  if (uri.scheme != 'ddirori-backup' ||
+      uri.host != 'missing' ||
+      uri.pathSegments.length != 1 ||
+      row['path'] != _backupPath(uri.pathSegments.single)) {
+    throw const FormatException(
+      'Non-portable merge history; re-export from the source library',
+    );
+  }
+  return uri.pathSegments.single;
+}
+
+void _validatePortableMergeSnapshot(Map<String, Object?> snapshot) {
+  if (snapshot.isEmpty) return;
+  if (snapshot.keys.toSet().difference({'before', 'after'}).isNotEmpty ||
+      snapshot.length != 2) {
+    throw const FormatException('snapshot sections');
+  }
+  Set<String>? tables;
+  for (final side in ['before', 'after']) {
+    final section = snapshot[side]! as Map<String, Object?>;
+    if (!section.containsKey('playback_history') ||
+        section.keys.any((key) => !_mergeSnapshotTables.contains(key))) {
+      throw const FormatException('snapshot tables');
+    }
+    if (tables != null &&
+        (tables.difference(section.keys.toSet()).isNotEmpty ||
+            tables.length != section.length)) {
+      throw const FormatException('snapshot selectors');
+    }
+    tables = section.keys.toSet();
+    for (final entry in section.entries) {
+      final rows = entry.value! as List<Object?>;
+      if (_excludedMergeSnapshotTables.contains(entry.key)) {
+        if (rows.isNotEmpty) {
+          throw const FormatException('non-portable import/resource snapshot');
+        }
+        continue;
+      }
+      final spec = _tableSpecs.singleWhere((spec) => spec.name == entry.key);
+      final columns = {
+        for (final column in spec.columns)
+          column == 'file_id' && entry.key == 'playback_history'
+              ? 'path'
+              : column,
+      };
+      for (final raw in rows) {
+        final row = (raw! as Map).cast<String, Object?>();
+        if (row.length != columns.length ||
+            row.keys.any((key) => !columns.contains(key))) {
+          throw const FormatException('snapshot row');
+        }
+        spec.validate(
+          entry.key == 'playback_history'
+              ? {
+                  for (final column in spec.columns)
+                    column: column == 'file_id'
+                        ? _snapshotHistoryFileId(row)
+                        : row[column],
+                }
+              : row,
+        );
+      }
+    }
+  }
+}
+
+String? _portableMergeSnapshot(
+  Object? value,
+  Map<String, String> paths,
+  Map<String, String> trackFiles,
+) {
+  if (value == null) return null;
+  try {
+    final snapshot = jsonDecode(value as String) as Map<String, Object?>;
+    if (snapshot.isEmpty) return '{}';
+    final result = <String, Object?>{};
+    for (final section in ['before', 'after']) {
+      final original = snapshot[section]! as Map<String, Object?>;
+      final converted = <String, Object?>{};
+      for (final entry in original.entries) {
+        if (!_mergeSnapshotTables.contains(entry.key)) {
+          throw const FormatException('snapshot table');
+        }
+        if (_excludedMergeSnapshotTables.contains(entry.key)) {
+          // Imports/resources and their local copies are outside logical backup.
+          // Retain empty selectors so existing undo conflict checks remain strict.
+          converted[entry.key] = <Object?>[];
+          continue;
+        }
+        final spec = _tableSpecs.singleWhere((spec) => spec.name == entry.key);
+        final rows = <Map<String, Object?>>[];
+        for (final item in entry.value! as List<Object?>) {
+          final row = (item! as Map).cast<String, Object?>();
+          final portable = spec.toPortableRow(row, paths, trackFiles);
+          if (portable != null) rows.add(spec.toDatabaseRow(portable));
+        }
+        converted[entry.key] = rows;
+      }
+      result[section] = converted;
+    }
+    return jsonEncode(result);
+  } catch (_) {
+    throw const LibraryBackupException('병합 복원 정보를 백업으로 변환하지 못했습니다.');
+  }
+}
+
 final _privatePathPattern = RegExp(
-  r'(file:/{2,}|/(?:Users|home|storage)/|(?:^|["\s])[A-Za-z]:[\\/])',
+  r'(file:/{2,}|/(?:Users|home|storage)/|/(?:private/)?var/(?:mobile|folders)/|(?:^|["\s])[A-Za-z]:[\\/])',
   caseSensitive: false,
 );
 final _credentialPattern = RegExp(
@@ -693,7 +1068,14 @@ final List<_BackupTableSpec> _tableSpecs = [
   const _BackupTableSpec(
     name: 'catalog_people',
     primaryKey: 'id',
-    columns: ['id', 'name_json', 'birth_year', 'death_year', 'origin'],
+    columns: [
+      'id',
+      'name_json',
+      'birth_year',
+      'death_year',
+      'composer_profile_json',
+      'origin',
+    ],
   ),
   const _BackupTableSpec(
     name: 'catalog_instruments',
@@ -719,6 +1101,7 @@ final List<_BackupTableSpec> _tableSpecs = [
       'title_json',
       'catalog_number',
       'period_label',
+      'period_assessment_json',
       'source_references_json',
       'origin',
     ],
@@ -765,7 +1148,7 @@ final List<_BackupTableSpec> _tableSpecs = [
     primaryKey: 'track_id',
     columns: ['track_id', 'file_id', 'linked_at_millis'],
   ),
-  const _BackupTableSpec(
+  _BackupTableSpec(
     name: 'library_entity_merges',
     primaryKey: 'id',
     columns: [
@@ -780,6 +1163,14 @@ final List<_BackupTableSpec> _tableSpecs = [
       'undo_snapshot_json',
       'undone_at_millis',
     ],
+    portable: (row, paths, trackFiles) => {
+      ...row,
+      'undo_snapshot_json': _portableMergeSnapshot(
+        row['undo_snapshot_json'],
+        paths,
+        trackFiles,
+      ),
+    },
   ),
   _BackupTableSpec(
     name: 'playback_positions',
@@ -834,7 +1225,9 @@ final List<_BackupTableSpec> _tableSpecs = [
       'status',
     ],
     portable: (row, paths, trackFiles) {
-      final fileId = trackFiles[row['track_id']] ?? paths[row['path']];
+      // A linked replacement can differ from the catalog's original file.
+      // Preserve the file actually listened to whenever its path is known.
+      final fileId = paths[row['path']] ?? trackFiles[row['track_id']];
       if (fileId == null) return null;
       return {
         'session_id': row['session_id'],

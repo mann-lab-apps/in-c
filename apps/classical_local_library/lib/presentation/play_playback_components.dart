@@ -59,11 +59,11 @@ class PlayNowPlayingControls extends StatelessWidget {
         : state.processingState == LocalPlaybackProcessingState.buffering
         ? '버퍼링 중'
         : null;
-    final contextLabel = showContext && currentItem != null
-        ? currentItem.isDirectFile
-              ? '\n${currentItem.workTitle} · ${currentItem.recordingTitle}'
-              : '\n${currentItem.workTitle.isEmpty ? '작품 정보 없음' : currentItem.workTitle} · '
-                    '${currentItem.recordingTitle.isEmpty ? '녹음 정보 없음' : currentItem.recordingTitle}'
+    final contextLabel =
+        showContext &&
+            currentItem != null &&
+            currentItem.contextLabel.isNotEmpty
+        ? '\n${currentItem.contextLabel}'
         : '';
 
     return Semantics(

@@ -1,0 +1,33 @@
+{
+  "fingerprints": [
+    {
+      "sourceFingerprintVersion": 2,
+      "sourceSha256": "117c95938a28b3badf7eac23083dd45a2c1477e400ff2653a1a408babaa0ae2f",
+      "generatedRegistrants": {
+        "ios/Runner/GeneratedPluginRegistrant.h": "a5f88cc6415d2e639d2cb549348b84e02a7fdd0261603b0063abef6fa11f075a",
+        "ios/Runner/GeneratedPluginRegistrant.m": "55bf64ab8057abbc1df4527401d803ece3ffda35b50391680a41e692a4b94cae",
+        "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": "f2a5798a364da2d1012f9e9b45edd35a4aa34177c9c8d31fabc9c7a82f336b5f"
+      }
+    },
+    {
+      "sourceFingerprintVersion": 2,
+      "sourceSha256": "117c95938a28b3badf7eac23083dd45a2c1477e400ff2653a1a408babaa0ae2f",
+      "generatedRegistrants": {
+        "ios/Runner/GeneratedPluginRegistrant.h": "a5f88cc6415d2e639d2cb549348b84e02a7fdd0261603b0063abef6fa11f075a",
+        "ios/Runner/GeneratedPluginRegistrant.m": "55bf64ab8057abbc1df4527401d803ece3ffda35b50391680a41e692a4b94cae",
+        "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": "0a6a2e522a6909ef965a0dad887b33006b377c9e8b55743d45ae516067c22882"
+      }
+    }
+  ],
+  "buildInfo": {
+    "CFBundleIdentifier": "com.mannlab.ddirori.play",
+    "CFBundleShortVersionString": "0.1.0",
+    "CFBundleVersion": "4",
+    "MinimumOSVersion": "15.0",
+    "UIBackgroundModes": [
+      "audio"
+    ]
+  },
+  "productSourceUnchanged": true,
+  "signedArchiveVerified": false
+}

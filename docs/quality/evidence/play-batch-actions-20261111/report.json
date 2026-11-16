@@ -1,0 +1,757 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-11-11T07:12:27.883367Z",
+  "environment": "hostAndIosSimulator",
+  "sourceSha256Before": "e4a913630b3805d8c1bfedb221f5da4d8d4a936880e51b577dd974f3315ddb55",
+  "physicalDeviceVerified": false,
+  "storeScreenshotsVerified": false,
+  "scope": "libraryMusicActionsAndRecovery",
+  "status": "passed",
+  "checks": [
+    {
+      "id": "flutter-version",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 381,
+      "log": "flutter-version.log",
+      "logSha256": "c528a6a6894e49b9c11a6acb40793d19c0ca4a803c9e0f5b1c1a8a196f2d65f9"
+    },
+    {
+      "id": "format",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 1157,
+      "log": "format.log",
+      "logSha256": "79064246f7586539ce234b785b4d7b140e53f7db0dc08615a5ff8e612183c2fa"
+    },
+    {
+      "id": "test",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 54575,
+      "log": "test.log",
+      "logSha256": "f4461650ba9be23287f08251f8ede820a3607b267d6c167c7b85aea1dd72b20f"
+    },
+    {
+      "id": "analyze",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 3372,
+      "log": "analyze.log",
+      "logSha256": "f6e4a98bdf69cecb2ce0936e8ce2e42f7f54b5c00237eb8b8bb099d5ba3cb2e4"
+    },
+    {
+      "id": "fixtures",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 617,
+      "log": "fixtures.log",
+      "logSha256": "8c6f1c5e40cd91e15fb3bfb5f723bbdc0dd6a5287de1442939471ec5fc22f949"
+    },
+    {
+      "id": "decoder-signal",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 741,
+      "log": "decoder-signal.log",
+      "logSha256": "5f40995458060b75a55eb452e90eb99c8a3de15fbb8e5bc4a02dbdbe16238c07"
+    },
+    {
+      "id": "audio-capabilities",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 835,
+      "log": "audio-capabilities.log",
+      "logSha256": "7ae53cff7d13a3ee97b5651db3ed123a0e9510786275a77d91ea9b80d2ac2e9d"
+    },
+    {
+      "id": "large-library",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 1889,
+      "log": "large-library.log",
+      "logSha256": "b164547bb24d25586c29f05540ce1597413f0b0f5d1874bc3bb764100ee3f11d"
+    },
+    {
+      "id": "stress-library",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 2356,
+      "log": "stress-library.log",
+      "logSha256": "7d115aa386dc425426d1b9bd3f9ecf8c76143e50bd48b8d012bb04deab2ea079"
+    },
+    {
+      "id": "library-search",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 4189,
+      "log": "library-search.log",
+      "logSha256": "6e871fd0a6a573122e67e186ba2635063852510a498565b57942bd7859b2d965"
+    },
+    {
+      "id": "stress-search",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 11843,
+      "log": "stress-search.log",
+      "logSha256": "0ded3bb6de062c59e5e2d92326367aa0a3072cf1210879a6b5d9e47275050296"
+    },
+    {
+      "id": "widget-captures",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 15926,
+      "log": "widget-captures.log",
+      "logSha256": "b6061921853c1362243bd3cbbc95126bcf447ab7a378b018ecfacb15e12b8a40",
+      "images": [
+        {
+          "file": "images/batch-selection-390-1-light.png",
+          "sha256": "8580b865c68f602f33b243847312288942304d6a2c58495d047ebdacc5aa6c29",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/batch-save-queue-390-1-light.png",
+          "sha256": "f395fff5f2ca11029e3c676139997560913b838a71e1b06cc9d801089fb4b688",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/batch-selection-320-2-light.png",
+          "sha256": "6437d4777d0c66d76c41a55aeae3a1e711d4453f56e3de6a5a10441561401af0",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/batch-save-queue-320-2-light.png",
+          "sha256": "0208c207dacc97d575f25f363c1ab9e3c42234b873ba5d111ce31b486fbaf041",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/batch-selection-1024-2-dark.png",
+          "sha256": "5b98b51ff91160aa998b8378aff6ecbee06e4b504ba47409f5681524ce63c4f8",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/batch-save-queue-1024-2-dark.png",
+          "sha256": "adfa7ed438556d5d6c394475f478e2a8592c0622bb19a2fb890d307d2c28f8ea",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/favorite-refresh-failure-390-1-light.png",
+          "sha256": "6669cfd7692477c7d9708f1dcbd772be3382c08184cf678c8e975a80108dead0",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/library-390-1-light.png",
+          "sha256": "4ab3449205c6d7f2b1f45579dbb1b7a9677763da2c17818e404e573a422ec799",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-list-390-1-light.png",
+          "sha256": "b5ac389e346bc728d0eba44eb7c23c386d6f7a0f280665c403aa692f780e516b",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-menu-390-1-light.png",
+          "sha256": "5e60c2297393e85902f57105f6afd757fe8f3135e1363b7a04a28351fa4119fc",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-create-390-1-light.png",
+          "sha256": "8ea6e81ee4be06b01fd732546815e406e9f4054e513d52199f5d580047392637",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-created-390-1-light.png",
+          "sha256": "6e2029aa084b580f1ada3470597f113c7f25ede567ac02ada5ff57a2a2f4aac6",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/section-editor-390-1-light.png",
+          "sha256": "f73accfa85c689ef311ab60d4ca488017e1d8d75115f49fce7283f428f35e241",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/library-320-2-light.png",
+          "sha256": "99aecef2ea68d652f9a95989ad26d7f0138614109ea46fec23c3e717b9d2c9b3",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-list-320-2-light.png",
+          "sha256": "dcfe89c45b4059283f692de9ea49261095014c9d6364c85d75bb24db290142c4",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-menu-320-2-light.png",
+          "sha256": "e5f09a19a91c06bab0fb83cb27f6331fa3c731d2850282068f88e620e83c98b9",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-create-320-2-light.png",
+          "sha256": "5f8583f8294e9633afcfc9d6605162bb9726971e019280807dbfc38057a3074c",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-created-320-2-light.png",
+          "sha256": "94e1ad5dd17610d705a004a304dfe4264f4d9097841e180c58e06080b99e05ef",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/section-editor-320-2-light.png",
+          "sha256": "e81d699985ed5c470ebec16cff31ecfbea418a29fe8a17321587f414f817b02a",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/library-1024-2-dark.png",
+          "sha256": "f70100d63fd2accdf6cc7a18d3be63afbfc6d01b67b127c2c08d8fd627cce73f",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-list-1024-2-dark.png",
+          "sha256": "98fbca49b54ce4d933cf592f34d2c0fa7f6cf95f77ced4c81361425becb62131",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-menu-1024-2-dark.png",
+          "sha256": "27e67cc16d663d218f27a4ced79ef242b6e11efb7879a906b543f5d25f0bf3e0",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-create-1024-2-dark.png",
+          "sha256": "e3a1e34d24da877be69bae0169b25d3553628f08d562916ce5b08fc405d4c3f8",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playlist-created-1024-2-dark.png",
+          "sha256": "e8f9bf5c77807154df779bec11a49a9b87a4076090b8a7a0b72f092c843fb07c",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/section-editor-1024-2-dark.png",
+          "sha256": "84772478f47dbe18f3d4c6a1a1c5aa0a2d634df890b4a7d7fa0f445a45f69883",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-idle-390-1-light.png",
+          "sha256": "21947c2915fa41b329a83bb915c35c9e24a0a606b89bf1128c43fcea9825fe1c",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-preparing-390-1-light.png",
+          "sha256": "5e25ffab5682acc97c559236307b4f5d915a7b018ac5a5fc964719b142ce5793",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-failed-390-1-light.png",
+          "sha256": "d6f8e098601f96177199084545abecdd63cc2f6b8c4a6d417df22100bab22be5",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-ready-390-1-light.png",
+          "sha256": "b4ccf9af620826c441d0d839e921fa5f6fb8c10032eaa6fded2b49465beaf4d6",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-searching-390-1-light.png",
+          "sha256": "7f429e19ababf388dfede935cca3e96fe571a43bfba1af0b29e0cccee4d1ebab",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-empty-390-1-light.png",
+          "sha256": "8dd94f132d93b9d235e4d36af6626e8b5c87a63ed767acbcbeb8e4815b8b0a3d",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-idle-320-2-light.png",
+          "sha256": "2b5d035ede24386889d88c9888d8818d2c5615c96340a56230e3d00cc6c5a8a3",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-preparing-320-2-light.png",
+          "sha256": "59f00fd818afe9ab9dad8a710374bbdee3b8bb419321c4ef14c5cdde1ed93dd0",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-failed-320-2-light.png",
+          "sha256": "78483865f95c8641f46e9aefbb787d86038ec038d98422dfed2286431442d147",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-ready-320-2-light.png",
+          "sha256": "dfffede08d9c47ac8868486d2d30d8b3e73b9562fd459d858e68a0c08fb94f87",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-searching-320-2-light.png",
+          "sha256": "54e5bd1ac9bae7ade3da469713e052ff2da0ea3d759cc96e5f50fa98d06199b8",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-empty-320-2-light.png",
+          "sha256": "2303a6a4dd89510ff20aedcf786fd41c91ea5635b191c96dafb2c26e29909635",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-idle-1024-2-dark.png",
+          "sha256": "16a3b274d523e019e9687e35517950fe19e3d044469e8dd64cf773ad2ecbf6c6",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-preparing-1024-2-dark.png",
+          "sha256": "074dac740db2dec22f236267f1db42cc864f78a6ac452229c57b436946192fa3",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-failed-1024-2-dark.png",
+          "sha256": "b496b1a530706c7e97f5ce6feb365cebc484290b7ca42b6adf898d8af2744c43",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-ready-1024-2-dark.png",
+          "sha256": "b4f06714e77be8aef3af409540cdbe0ef02b3ae2433e49f683625f4919c34150",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-searching-1024-2-dark.png",
+          "sha256": "411046bd75aca75d843e97145a7a3222d73a24f6eb5f62dc65ab09ce396f5856",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/search-empty-1024-2-dark.png",
+          "sha256": "f5166ed2ba6d884ab9731f05b17a4cbcf3a94729e09a1069ecdaca2aeacbad4a",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-off-390-1-light.png",
+          "sha256": "acdb77aee1d923f9f036423f555367bf874042b3e5489f45c0b36615321c73bc",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-all-390-1-light.png",
+          "sha256": "a17d023787187f3b98ec76d81c32c5f509c39a16839e5feb0c047126b5d2e8d5",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-one-390-1-light.png",
+          "sha256": "d65916a34023e899eb9f556a5a4a8131563fe375e74ecc0266ab3cf0f42a2c72",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-shuffle-390-1-light.png",
+          "sha256": "38ad47520b63c8caadcded9b96cda8d383325563e081c6b00fe2dfc5442a007e",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-off-320-2-light.png",
+          "sha256": "9ac8f31bfd093f67af0814d15a07174f68bb0428c74945b048663b11e7bc0cdb",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-all-320-2-light.png",
+          "sha256": "215ad56379c8d9bd2735b3f08a077825d219e6dfedd6ff1d1c1b77bda0eb7970",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-one-320-2-light.png",
+          "sha256": "f2d9a23e68a490e179b18baffda645bd706f1a5c7aa0cb11d6fb3bf9cc03d8b3",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-shuffle-320-2-light.png",
+          "sha256": "6970a2df1b72f4a6a4efc7cba0818ac7f1ea3d28086b7479b464cbee1496aa21",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-off-1024-2-dark.png",
+          "sha256": "b01dd337677fc1e137558682b2eb09d1b4ee6b6469dc120728ce71418ba5cd98",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-all-1024-2-dark.png",
+          "sha256": "20dc28ca0871cd09d8e1ccc2c10c9715f0584285eb2d1dd78170afa9adc921cb",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-one-1024-2-dark.png",
+          "sha256": "3afe15cdac538e98ddbc13f976710625c3a50200488a3a88c2e806007e0482de",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/playback-modes-shuffle-1024-2-dark.png",
+          "sha256": "6a13112b563067d2bb9195ec40238acf896386c1ea9875fa8a9f06803ad8c80f",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-queue-390-1-light.png",
+          "sha256": "a2f7a5181adaabce26a7564552f016772df11d583b5faae1b4e1feb0f8d4ab25",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-favorites-390-1-light.png",
+          "sha256": "ca7ff5e3c17acc60a4f720a87231f94ea43a85c5d7910ef7183ba409ed61de4b",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-imslp-390-1-light.png",
+          "sha256": "6732a39f393c040cac3035a3273792f5237543f0c7111c95903e1003960d8f53",
+          "width": 390,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-queue-320-2-light.png",
+          "sha256": "708517fd2d1433b9553fc9b96a225e283ad2803202ba880638783ac3a74b3690",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-favorites-320-2-light.png",
+          "sha256": "db943c61cec0832b4597ee75ab79f52c8ff50dfe5b8f397472a5cfa15d8751ab",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-imslp-320-2-light.png",
+          "sha256": "826aac40eab877b77e937f0d3ab8e794c294997560edfd5a710fdec5f00a15f4",
+          "width": 320,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-queue-1024-2-dark.png",
+          "sha256": "f3b574786b763578ecebf0143222a14ba99c4196fa53a64776171c932701cf45",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-favorites-1024-2-dark.png",
+          "sha256": "45ffd1416e277df452afb4330c090ab5e705942c67ccd5c658ac614d5b98741b",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        },
+        {
+          "file": "images/music-actions-imslp-1024-2-dark.png",
+          "sha256": "f8b7256222b217107a8bddaabb25597d687aa9ab03b7ad20096783ee3802b214",
+          "width": 1024,
+          "height": 1000,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "FlutterWidgetFakeController"
+        }
+      ]
+    },
+    {
+      "id": "native-library",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 59276,
+      "log": "native-library.log",
+      "logSha256": "fb1acd5b0b621ed38941917320646c08807345f9ca0440115b8423a090ab27e4",
+      "images": [
+        {
+          "file": "images/native-creation-result.png",
+          "sha256": "45caf0dd2e17e8173cc368749a2e405bb5be6706604158c95a751a02ddc7dcd4",
+          "width": 1206,
+          "height": 2622,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "iOSSimulator"
+        },
+        {
+          "file": "images/native-playlist-detail.png",
+          "sha256": "d63cd0499df6f7212d39663c98f70fd94fd93bd5e2f8efeb448c625eed28326c",
+          "width": 1206,
+          "height": 2622,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "iOSSimulator"
+        },
+        {
+          "file": "images/native-search-results.png",
+          "sha256": "bfcf1d32302e3f811af56bb948e8ae44991d21a85b28cee46f848adfb77fd082",
+          "width": 1206,
+          "height": 2622,
+          "physicalDeviceVerified": false,
+          "storeApproved": false,
+          "environment": "iOSSimulator"
+        }
+      ]
+    },
+    {
+      "id": "native-system-scenes",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 135447,
+      "log": "native-system-scenes.log",
+      "logSha256": "923e60fe28980e195b15e2ee7ce8083da1204b81e06bdad806fd588aeabad4f6"
+    },
+    {
+      "id": "native-music-actions",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 89817,
+      "log": "native-music-actions.log",
+      "logSha256": "db54effefeb6c07b6e4af7239946b3079bd6f58592df7827bb2225c82fdf1ceb"
+    },
+    {
+      "id": "native-formats",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 70881,
+      "log": "native-formats.log",
+      "logSha256": "bbddf82ccfd59c4458cce58f54d81df883534fa6a86b953103de3bd7881433ee"
+    },
+    {
+      "id": "native-background",
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedMillis": 59831,
+      "log": "native-background.log",
+      "logSha256": "edb9efd1b628a02b11ab180d87bceebafe67e57772b9541b40ee338a4aecb569"
+    }
+  ],
+  "sourceSha256After": "e4a913630b3805d8c1bfedb221f5da4d8d4a936880e51b577dd974f3315ddb55",
+  "completedAt": "2026-11-11T07:21:01.111242Z"
+}

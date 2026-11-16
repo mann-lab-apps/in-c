@@ -1,0 +1,24 @@
+{
+  "webBaseCommit": "b7beab5803527c80a549ef3af725883be200892a",
+  "sourceChanges": {
+    "scripts/build.mjs": {
+      "before": "01cb58d1427eb05f7b3f30b7b435cf831ec0d43be5d10902a41a2566c8f9ad03",
+      "after": "b22a22d006a2a47b68261883c0f75e94e3bcb79badd7718c0146a2eb2ad2a997"
+    },
+    "src/play.html": {
+      "before": "34964a815ff0d3a20b944358f0d0d4bf2e35a527f09edb56f741871bbab51f0f",
+      "after": "45b0748874f673f1267edb677c39d710a8057903259af1eea9725083d8b710c3"
+    },
+    "src/play-privacy.html": {
+      "before": null,
+      "after": "114b409f52b4290a468d4d6ee56c6619db0e8c620f77ac5d006b56e5492b6d8c"
+    }
+  },
+  "patchSha256": "f8090cdeba930313e8eaffa81d9798db77930e5f477295468f73fedda687b747",
+  "plannedPrivacyUrl": "https://ddirori.com/play/privacy/",
+  "existingSupportUrl": "https://ddirori.com/support/",
+  "published": false,
+  "effectiveDateApproved": true,
+  "approvedEffectiveDate": "2026-11-16",
+  "note": "Review-only draft. No web repository changes or publication."
+}

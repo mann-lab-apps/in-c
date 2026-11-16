@@ -25,6 +25,18 @@ enum LocalAudioImportOutcome { imported, duplicate, pending, failed, cancelled }
 
 enum LocalAudioImportStage { copying, analyzing }
 
+typedef AudioImportChunkWriter = Future<void> Function(
+  RandomAccessFile output,
+  List<int> bytes,
+);
+
+Future<void> _writeAudioImportChunk(
+  RandomAccessFile output,
+  List<int> bytes,
+) async {
+  await output.writeFrom(bytes);
+}
+
 class LocalAudioImportProgress {
   const LocalAudioImportProgress({
     required this.stage,
@@ -292,6 +304,7 @@ class LocalAudioImportCoordinator
     this.policy = const LocalAudioImportPolicy(),
     this.clock = DateTime.now,
     this.backupPolicy = const PlatformBackupExclusionPolicy(),
+    this.writeChunk = _writeAudioImportChunk,
   });
 
   final LocalAudioImportStore store;
@@ -303,6 +316,7 @@ class LocalAudioImportCoordinator
   final LocalAudioImportPolicy policy;
   final DateTime Function() clock;
   final BackupExclusionPolicy backupPolicy;
+  final AudioImportChunkWriter writeChunk;
   Future<void> _operationTail = Future<void>.value();
 
   @override
@@ -618,7 +632,7 @@ class LocalAudioImportCoordinator
               );
             }
             try {
-              await output.writeFrom(chunk);
+              await writeChunk(output, chunk);
             } on FileSystemException catch (error) {
               throw _writeException(error);
             }

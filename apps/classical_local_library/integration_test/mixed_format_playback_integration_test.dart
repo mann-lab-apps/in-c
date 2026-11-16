@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'native mixed WAV AAC ALAC FLAC pauses seeks restores without autoplay and recovers corrupt content',
+    'native mixed WAV AAC ALAC FLAC MP3 pauses seeks restores without autoplay and recovers corrupt content',
     (tester) async {
       final dir = await (await getTemporaryDirectory()).createTemp(
         'mixed-format-',
@@ -30,6 +30,7 @@ void main() {
         'movement_1_aac.m4a',
         'movement_1_alac.m4a',
         'movement_1.flac',
+        'movement_1.mp3',
       ]) {
         final path = '${dir.path}/$name';
         await File(path).writeAsBytes(
@@ -92,7 +93,7 @@ void main() {
           currentQueue: queue,
         ),
       );
-      expect(player.playbackState.currentIndex, 3);
+      expect(player.playbackState.currentIndex, queue.length - 1);
       expect(player.playbackState.playerState, LocalPlayerState.ready);
       expect(player.playbackState.position, Duration.zero);
       await player.play();

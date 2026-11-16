@@ -606,6 +606,20 @@ class PlaybackHistoryCoordinator {
     return operation;
   }
 
+  /// Persist the active session without ending it or changing engine playback.
+  Future<void> checkpoint() {
+    if (_isDisposed) return Future.value();
+    final operation = _pending.then((_) async {
+      final active = _active;
+      if (active == null) return;
+      final now = clock();
+      active.checkpoint(now);
+      await _saveActive(now, PlaybackHistoryStatus.partial);
+    });
+    _pending = operation.then<void>((_) {}, onError: (_, _) {});
+    return operation;
+  }
+
   Future<void> _observe(LocalPlaybackState state) async {
     final now = clock();
     final item = state.currentItem;

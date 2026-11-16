@@ -34,6 +34,9 @@ class SystemMediaSnapshot {
     this.artist,
     this.album,
     this.duration,
+    this.playing = false,
+    this.busy = false,
+    this.completed = false,
   });
   final String id;
   final int generation;
@@ -42,6 +45,7 @@ class SystemMediaSnapshot {
   final String? album;
   final Duration position;
   final Duration? duration;
+  final bool playing, busy, completed;
   final double rate;
   final int index;
   final int count;
@@ -212,6 +216,9 @@ class PlaybackSystemMediaCoordinator {
               : 0,
           index: completed ? state.queue.length - 1 : state.currentIndex,
           count: state.queue.length,
+          playing: playing,
+          busy: state.isBusy,
+          completed: completed,
           actions: actions,
         );
       }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:classical_local_library/library_backup.dart';
+import 'package:classical_local_library/library_deduplication.dart';
 import 'package:classical_local_library/sqlite_database.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -17,9 +18,201 @@ void main() {
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('library_backup_test_');
   });
+
+  test('백업 scalar 타입과 enum 손상은 preview/import 이전에 거부된다', () async {
+    final source = await openDatabase('scalar-source');
+    final target = await openDatabase('scalar-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    final valid = jsonDecode(
+      await LibraryBackupService(database: source).exportJson(),
+    ) as Map<String, Object?>;
+    final service = LibraryBackupService(database: target);
+    for (final mutation in <(String, String, Object?)>[
+      ('catalog_people', 'birth_year', 'unknown'),
+      ('catalog_works', 'composer_id', true),
+      ('scanned_audio_files', 'size_bytes', '100'),
+      ('scanned_audio_files', 'import_status', 'unknown'),
+      ('scanned_audio_files', 'tag_read_status', 'unknown'),
+      ('scanned_audio_files', 'tag_failure_kind', 'unknown'),
+      ('metadata_candidates', 'confidence', 'high'),
+      ('metadata_candidates', 'confidence', 1.5),
+      ('metadata_candidates', 'review_status', 'unknown'),
+      ('playback_history', 'status', 'unknown'),
+      ('playback_history', 'last_position_millis', -1),
+      ('playback_history_preferences', 'retention_policy', 'unknown'),
+    ]) {
+      final corrupted = _clone(valid);
+      _rows(corrupted, mutation.$1).single[mutation.$2] = mutation.$3;
+      final encoded = jsonEncode(corrupted);
+      await expectLater(
+        () => service.previewImport(encoded),
+        throwsA(isA<LibraryBackupException>()),
+        reason: '${mutation.$1}.${mutation.$2}',
+      );
+      await expectLater(
+        () => service.importJson(encoded),
+        throwsA(isA<LibraryBackupException>()),
+      );
+      expect(await target.query('catalog_people'), isEmpty);
+      expect(await target.query('scanned_audio_files'), isEmpty);
+    }
+    final invalidUndone = _clone(valid);
+    _rows(
+      invalidUndone,
+      'library_entity_merges',
+    ).single.addAll({'entity_type': 'unknown', 'undone_at_millis': 100});
+    await expectLater(
+      () => service.previewImport(jsonEncode(invalidUndone)),
+      throwsA(isA<LibraryBackupException>()),
+    );
+    await expectLater(
+      () => service.importJson(jsonEncode(invalidUndone)),
+      throwsA(isA<LibraryBackupException>()),
+    );
+    expect(await target.query('catalog_people'), isEmpty);
+  });
   tearDown(() async {
     if (await directory.exists()) await directory.delete(recursive: true);
   });
+
+  test('복원 전 중첩 JSON과 메타데이터 출처를 검사하고 대상 DB를 보존한다', () async {
+    final source = await openDatabase('nested-source');
+    final target = await openDatabase('nested-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    await _seed(target);
+    final service = LibraryBackupService(database: target);
+    final baseline = await service.exportJson();
+    final document = jsonDecode(
+      await LibraryBackupService(database: source).exportJson(),
+    ) as Map<String, Object?>;
+    for (final mutation in <(String, String, Object?)>[
+      ('catalog_people', 'name_json', '{'),
+      ('catalog_works', 'title_json', '{"ko":42,"sortName":"x"}'),
+      ('catalog_works', 'source_references_json', '[{"kind":"invented"}]'),
+      ('scanned_audio_files', 'tag_metadata_json', '{"title":42}'),
+      ('metadata_overrides', 'values_json', '{"movementNumber":"one"}'),
+      ('metadata_overrides', 'sources_json', '{}'),
+      ('metadata_overrides', 'fallback_sources_json', '{"title":"user"}'),
+      ('catalog_tracks', 'work_part_ids_json', '{'),
+      ('library_entity_merges', 'evidence_json', '{'),
+      ('library_entity_merges', 'undo_snapshot_json', '[]'),
+    ]) {
+      final corrupted = _clone(document);
+      _rows(corrupted, mutation.$1).single[mutation.$2] = mutation.$3;
+      final encoded = jsonEncode(corrupted);
+      await expectLater(
+        () => service.previewImport(encoded),
+        throwsA(isA<LibraryBackupException>()),
+        reason: '${mutation.$1}.${mutation.$2} preview',
+      );
+      await expectLater(
+        () => service.importJson(encoded),
+        throwsA(isA<LibraryBackupException>()),
+        reason: '${mutation.$1}.${mutation.$2} import',
+      );
+      final after =
+          jsonDecode(await service.exportJson()) as Map<String, Object?>;
+      expect(after['data'], (jsonDecode(baseline) as Map)['data']);
+    }
+  });
+
+  test('존재하는 ID라도 다른 작품 악장과 녹음의 이력을 섞은 백업은 거부한다', () async {
+    final source = await openDatabase('ownership-source');
+    final target = await openDatabase('ownership-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    final valid = jsonDecode(
+      await LibraryBackupService(database: source).exportJson(),
+    ) as Map<String, Object?>;
+    final works = _rows(valid, 'catalog_works');
+    works.add({...works.single, 'id': 'work-2'});
+    _counts(valid)['catalog_works'] = works.length;
+    final service = LibraryBackupService(database: target);
+    for (final table in ['catalog_work_parts', 'playback_history']) {
+      final corrupted = _clone(valid);
+      _rows(corrupted, table).single['work_id'] = 'work-2';
+      await expectLater(
+        () => service.previewImport(jsonEncode(corrupted)),
+        throwsA(isA<LibraryBackupException>()),
+        reason: table,
+      );
+      await expectLater(
+        () => service.importJson(jsonEncode(corrupted)),
+        throwsA(isA<LibraryBackupException>()),
+        reason: table,
+      );
+      expect(await target.query('catalog_people'), isEmpty);
+      expect(await target.query('scanned_audio_files'), isEmpty);
+    }
+  });
+
+  test('대표 작품으로 병합된 이력과 악장은 원래 녹음 관계를 보존해 복원한다', () async {
+    final source = await openDatabase('alias-source');
+    final target = await openDatabase('alias-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    final valid = jsonDecode(
+      await LibraryBackupService(database: source).exportJson(),
+    ) as Map<String, Object?>;
+    final works = _rows(valid, 'catalog_works');
+    works.add({...works.single, 'id': 'work-2'});
+    _counts(valid)['catalog_works'] = works.length;
+    final merges = _rows(valid, 'library_entity_merges');
+    merges.add(_merge('merge-2', 'work-1', 'work-2'));
+    _counts(valid)['library_entity_merges'] = merges.length;
+    _rows(valid, 'playback_history').single['work_id'] = 'work-2';
+    _rows(valid, 'catalog_work_parts').single['work_id'] = 'work-2';
+    final service = LibraryBackupService(database: target);
+    await service.importJson(jsonEncode(valid));
+    expect(
+      (await target.query('playback_history')).single['work_id'],
+      'work-2',
+    );
+    expect(
+      (await target.query('catalog_recordings')).single['work_id'],
+      'work-1',
+    );
+    expect(
+      (await service.previewImport(await service.exportJson())).conflicts,
+      0,
+    );
+    expect(await target.rawQuery('PRAGMA integrity_check'), [
+      {'integrity_check': 'ok'},
+    ]);
+  });
+
+  test(
+    '1.0 backup reads legacy 0.1 header without changing storage format',
+    () async {
+      final source = await openDatabase('legacy-header-source');
+      final target = await openDatabase('legacy-header-target');
+      addTearDown(source.close);
+      addTearDown(target.close);
+      await _seed(source);
+      final current = jsonDecode(
+        await LibraryBackupService(database: source).exportJson(),
+      ) as Map<String, dynamic>;
+      expect(current['appVersion'], '1.0.0');
+      expect(current['schemaVersion'], 1);
+      current['appVersion'] = '0.1.0';
+      final backup = LibraryBackupService(database: target);
+      expect(
+        (await backup.previewImport(jsonEncode(current))).canImport,
+        isTrue,
+      );
+      await backup.importJson(jsonEncode(current));
+      expect(await target.rawQuery('PRAGMA integrity_check'), [
+        {'integrity_check': 'ok'},
+      ]);
+      expect(await target.query('catalog_tracks'), hasLength(1));
+    },
+  );
 
   test('논리 백업은 사용자 경로와 음원을 제외하고 개수 manifest를 기록한다', () async {
     final database = await openDatabase('source');
@@ -42,6 +235,151 @@ void main() {
     expect(source, isNot(contains('/Users/private')));
     expect(source, isNot(contains('local_path')));
     expect(source, isNot(contains('scan_locations')));
+  });
+
+  test('actual merge backup strips nested iOS paths and restored undo preserves history', () async {
+    final source = await openDatabase('merge-portable-source');
+    final target = await openDatabase('merge-portable-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    const original =
+        '/var/mobile/Containers/Data/Application/private-fixture/Documents/music.flac';
+    await source.update('scanned_audio_files', {'path': original});
+    await source.update('playback_history', {'path': original});
+    await source.insert('imslp_imports', {
+      'id': 'excluded-import',
+      'resource_id': 'excluded-resource',
+      'work_id': 'work-1',
+      'source_page_url': 'https://imslp.org/wiki/Fixture',
+      'source_download_url': 'https://imslp.org/fixture.mp3',
+      'original_file_name': 'original-import-not-in-scope.mp3',
+      'local_path': '$original/managed-copy.mp3',
+      'sha256': 'fixture',
+      'size_bytes': 10,
+      'downloaded_at_millis': 1,
+      'status': 'completed',
+      'rights_status': 'userConfirmed',
+    });
+    final work = (await source.query('catalog_works')).single;
+    await source.insert('catalog_works', {...work, 'id': 'work-2'});
+    await SqliteLibraryMergeStore(source).merge(
+      const LibraryEntityMerge(
+        id: 'real-merge',
+        entityType: LibraryEntityType.work,
+        sourceId: 'work-1',
+        targetId: 'work-2',
+        sourceLabel: '작품',
+        targetLabel: '대표 작품',
+        mergedAtMillis: 100,
+        evidence: [],
+      ),
+    );
+    final before = (await source.query(
+      'library_entity_merges',
+      where: 'id = ?',
+      whereArgs: ['real-merge'],
+    )).single;
+    final backup = await LibraryBackupService(database: source).exportJson();
+    expect(backup, isNot(contains(original)));
+    expect(backup, isNot(contains('/var/mobile/')));
+    expect(backup, isNot(contains('original-import-not-in-scope.mp3')));
+    expect(
+      (await source.query(
+        'library_entity_merges',
+        where: 'id = ?',
+        whereArgs: ['real-merge'],
+      )).single,
+      before,
+    );
+    final service = LibraryBackupService(database: target);
+    for (final attack in ['privatePath', 'unknownFile', 'excludedImport']) {
+      final corrupted = jsonDecode(backup) as Map<String, Object?>;
+      final row = _rows(
+        corrupted,
+        'library_entity_merges',
+      ).firstWhere((row) => row['id'] == 'real-merge');
+      final snapshot = jsonDecode(
+        row['undo_snapshot_json']! as String,
+      ) as Map<String, Object?>;
+      final after = snapshot['after']! as Map<String, Object?>;
+      if (attack == 'excludedImport') {
+        after['imslp_imports'] = [
+          {'id': 'forged-import'},
+        ];
+      } else {
+        (after['playback_history']! as List).single['path'] =
+            attack == 'privatePath'
+            ? original
+            : 'ddirori-backup://missing/unknown-file';
+      }
+      row['undo_snapshot_json'] = jsonEncode(snapshot);
+      final encoded = jsonEncode(corrupted)
+          .replaceAll('/var/mobile', r'\u002fvar\u002fmobile');
+      await expectLater(
+        () => service.previewImport(encoded),
+        throwsA(isA<LibraryBackupException>()),
+        reason: attack,
+      );
+      await expectLater(
+        () => service.importJson(encoded),
+        throwsA(isA<LibraryBackupException>()),
+        reason: attack,
+      );
+      expect(await target.query('catalog_people'), isEmpty);
+    }
+    await service.importJson(backup);
+    await SqliteLibraryMergeStore(target).undo('real-merge', 200);
+    final history = (await target.query('playback_history')).single;
+    expect(history['work_id'], 'work-1');
+    expect(history['path'], 'ddirori-backup://missing/file-1');
+    expect(await target.query('imslp_imports'), isEmpty);
+    await SqliteLibraryMergeStore(source).undo('real-merge', 200);
+    expect((await source.query('imslp_imports')).single['work_id'], 'work-1');
+    expect((await source.query('playback_history')).single['path'], original);
+    expect(
+      (await service.previewImport(await service.exportJson())).conflicts,
+      0,
+    );
+    expect(await target.rawQuery('PRAGMA integrity_check'), [
+      {'integrity_check': 'ok'},
+    ]);
+  });
+
+  test('교체 파일로 감상한 이력은 원래 트랙 파일 대신 실제 감상 파일 ID를 보존한다', () async {
+    final source = await openDatabase('replacement-source');
+    final target = await openDatabase('replacement-target');
+    addTearDown(source.close);
+    addTearDown(target.close);
+    await _seed(source);
+    final file = (await source.query('scanned_audio_files')).single;
+    await source.insert('scanned_audio_files', {
+      ...file,
+      'id': 'file-2',
+      'path': '/Users/private/replacement.flac',
+    });
+    await source.update('audio_file_track_links', {'file_id': 'file-2'});
+    await source.update('playback_history', {
+      'path': '/Users/private/replacement.flac',
+    });
+    final backup = await LibraryBackupService(database: source).exportJson();
+    expect(
+      _rows(
+        jsonDecode(backup) as Map<String, Object?>,
+        'playback_history',
+      ).single['file_id'],
+      'file-2',
+    );
+    await LibraryBackupService(database: target).importJson(backup);
+    expect(
+      (await target.query('audio_file_track_links')).single['file_id'],
+      'file-2',
+    );
+    expect((await target.query('catalog_tracks')).single['file_id'], 'file-1');
+    expect(
+      (await target.query('playback_history')).single['path'],
+      endsWith('/file-2'),
+    );
   });
 
   test('내보내기는 저장 행에 섞인 credential 형태를 거부한다', () async {
@@ -82,6 +420,15 @@ void main() {
     expect(files.single['path'], startsWith('ddirori-backup://missing/'));
     expect(await targetDatabase.query('catalog_tracks'), hasLength(1));
     expect(await targetDatabase.query('metadata_overrides'), hasLength(1));
+    expect(
+      await SqliteMetadataCandidateStore(targetDatabase).load(),
+      hasLength(1),
+    );
+    expect(
+      await SqliteMetadataOverrideStore(targetDatabase).load(),
+      hasLength(1),
+    );
+    expect(await SqliteLibraryMergeStore(targetDatabase).load(), hasLength(1));
     expect(await targetDatabase.query('library_entity_merges'), hasLength(1));
     expect(await targetDatabase.query('playback_history'), hasLength(1));
     expect(await targetDatabase.query('playback_positions'), hasLength(1));
@@ -247,7 +594,7 @@ Future<void> _seed(Database database) async {
     'confidence': 0.9,
     'source_label': 'fixture',
     'raw_pattern': null,
-    'review_status': 'accepted',
+    'review_status': 'approved',
     'has_tag_conflict': 0,
   });
   await database.insert('metadata_overrides', {
@@ -348,7 +695,7 @@ Map<String, Object?> _merge(String id, String source, String target) => {
   'source_label': source,
   'target_label': target,
   'merged_at_millis': 1,
-  'evidence_json': '{}',
+  'evidence_json': '[]',
   'undo_snapshot_json': '{}',
   'undone_at_millis': null,
 };

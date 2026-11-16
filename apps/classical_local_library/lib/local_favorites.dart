@@ -98,19 +98,24 @@ class LocalFavoritesRepository {
   Future<void> remove(String fileId) => setFavorite(fileId, false);
 
   /// Explicit desired state makes duplicate commands idempotent.
-  Future<void> setFavorite(String fileId, bool favorite) {
+  Future<void> setFavorite(String fileId, bool favorite) =>
+      setFavorites([fileId], favorite);
+
+  /// One desired-state snapshot, serialized and committed atomically by store.
+  Future<void> setFavorites(Iterable<String> fileIds, bool favorite) {
+    final ids = Set<String>.of(fileIds);
     final result = _pending.then<void>((_) async {
-      _validateFileIds({fileId});
+      _validateFileIds(ids);
       final current = await _load();
-      if (current.contains(fileId) == favorite) {
+      if (ids.every((id) => current.contains(id) == favorite)) {
         _lastSaved = Set.unmodifiable(current);
         return;
       }
       final draft = Set<String>.of(current);
       if (favorite) {
-        draft.add(fileId);
+        draft.addAll(ids);
       } else {
-        draft.remove(fileId);
+        draft.removeAll(ids);
       }
       try {
         await store.save(draft);

@@ -59,8 +59,8 @@ const searchFixtureCandidates = [
 final searchFixtureOverrides = [
   MetadataOverride(
     fileId: 'contract-23',
-    values: {MetadataField.movementTitle: 'corrected'},
-    sources: {MetadataField.movementTitle: MetadataValueSource.user},
+    values: {MetadataField.title: 'corrected'},
+    sources: {MetadataField.title: MetadataValueSource.user},
     updatedAtMillis: 1,
   ),
 ];

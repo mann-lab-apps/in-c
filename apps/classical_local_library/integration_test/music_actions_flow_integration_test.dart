@@ -10,6 +10,8 @@ import 'package:classical_local_library/local_audio_import.dart';
 import 'package:classical_local_library/local_audio_scanner.dart';
 import 'package:classical_local_library/local_favorites.dart';
 import 'package:classical_local_library/local_playback.dart';
+import 'package:classical_local_library/local_file_library.dart';
+import 'package:classical_local_library/local_playlists.dart';
 import 'package:classical_local_library/main.dart';
 import 'package:classical_local_library/metadata_candidates.dart';
 import 'package:classical_local_library/playback_position.dart';
@@ -17,6 +19,7 @@ import 'package:classical_local_library/scan_locations.dart';
 import 'package:classical_local_library/scanned_audio_store.dart';
 import 'package:classical_local_library/sqlite_database.dart';
 import 'package:flutter/material.dart';
+import 'package:ddirori_ui/ddirori_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -25,6 +28,158 @@ import 'package:sqflite/sqflite.dart' as sql;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets(
+    'native batch reservation and frozen queue playlist persist without interrupting playback',
+    (tester) async {
+      final run = await Directory(
+        '${(await getTemporaryDirectory()).path}/batch-qa',
+      ).create(recursive: true).then((d) => d.createTemp('run-'));
+      final path = '${run.path}/library.sqlite';
+      var database = await ClassicalLocalDatabase(path: path).open();
+      final bytes = (await rootBundle.load('assets/audio_test/movement_1.wav'))
+          .buffer
+          .asUint8List();
+      final header = Uint8List.fromList(bytes.sublist(0, 44)),
+          samples = bytes.sublist(44);
+      const repeats = 90;
+      ByteData.sublistView(header)
+        ..setUint32(4, 36 + samples.length * repeats, Endian.little)
+        ..setUint32(40, samples.length * repeats, Endian.little);
+      final audio =
+          (BytesBuilder()
+                ..add(header)
+                ..add([for (var i = 0; i < repeats; i++) ...samples]))
+              .takeBytes();
+      final files = <LocalAudioFile>[];
+      for (final id in ['a', 'b']) {
+        final f = File('${run.path}/$id.wav');
+        await f.writeAsBytes(audio);
+        files.add(
+          LocalAudioFile(
+            id: id,
+            path: f.path,
+            fileName: '$id.wav',
+            format: 'wav',
+          ),
+        );
+      }
+      await ScannedAudioRepository(SqliteScannedAudioStore(database))
+          .replaceAll(files);
+      final player = _player(database);
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await player.dispose();
+        if (database.isOpen) await database.close();
+        await run.delete(recursive: true);
+      });
+      final playlists = LocalPlaylistRepository(
+        SqliteLocalPlaylistStore(database),
+      );
+      await tester.pumpWidget(
+        ClassicalLocalLibraryApp(
+          initialLibrary: emptyClassicalLibrary,
+          enableDemoFeatures: false,
+          supportsFolderScan: false,
+          playbackController: player,
+          localPlaylistRepository: playlists,
+          scanRepository: ScannedAudioRepository(
+            SqliteScannedAudioStore(database),
+          ),
+          scanLocationRepository: ScanLocationRepository(
+            MemoryScanLocationStore(),
+          ),
+          metadataCandidateRepository: MetadataCandidateRepository(
+            SqliteMetadataCandidateStore(database),
+          ),
+          fileTrackLinkRepository: AudioFileTrackLinkRepository(
+            SqliteAudioFileTrackLinkStore(database),
+          ),
+          localFavoritesRepository: LocalFavoritesRepository(
+            SqliteLocalFavoritesStore(database),
+          ),
+          imslpStore: MemoryImslpStore(),
+        ),
+      );
+      await _until(
+        tester,
+        () => find
+            .byKey(const ValueKey('file-category-songs'))
+            .evaluate()
+            .isNotEmpty,
+      );
+      await _tap(tester, find.byKey(const ValueKey('file-category-songs')));
+      await _tap(tester, find.text('여러 곡 선택'));
+      await _tap(tester, find.text('현재 결과 모두 선택'));
+      expect(player.playbackState.queue, isEmpty);
+      await _tap(tester, find.byTooltip('선택한 곡 작업'));
+      await _tap(tester, find.text('선택한 곡 재생'));
+      await _until(
+        tester,
+        () => player.playbackState.playerState == LocalPlayerState.playing,
+      );
+      await _tap(tester, find.text('여러 곡 선택'));
+      await _tap(tester, find.text('현재 결과 모두 선택'));
+      await _tap(tester, find.byTooltip('선택한 곡 작업'));
+      await _tap(tester, find.text('바로 다음에 재생'));
+      await _until(
+        tester,
+        () =>
+            player.playbackState.queue.length == 4 &&
+            !player.playbackState.isBusy,
+      );
+      final before = player.playbackState;
+      expect(before.queue.map((i) => i.trackId), [
+        'local-file:a',
+        'local-file:a',
+        'local-file:b',
+        'local-file:b',
+      ]);
+      await _tap(tester, find.byTooltip('재생 상세 열기'));
+      await _tap(
+        tester,
+        find.byWidgetPredicate(
+          (w) => w is DdiroriButton && w.label == '대기열을 재생목록으로 저장',
+        ),
+      );
+      await _tap(tester, find.text('전체 대기열 저장'));
+      await _tap(tester, find.text('새 재생목록'));
+      await tester.enterText(find.byType(TextField).last, 'Native batch queue');
+      await _tap(tester, find.text('저장'));
+      await _until(tester, () => find.text('보기').evaluate().isNotEmpty);
+      expect((await playlists.load()).single.fileIds, ['a', 'b']);
+      expect(player.playbackState.playerState, LocalPlayerState.playing);
+      expect(
+        player.playbackState.queue.map((i) => i.trackId),
+        before.queue.map((i) => i.trackId),
+      );
+      expect(player.playbackState.currentIndex, before.currentIndex);
+      expect(
+        player.playbackState.position,
+        greaterThanOrEqualTo(before.position),
+      );
+      expect(await database.query('catalog_works'), isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await player.dispose();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await database.close();
+      database = await ClassicalLocalDatabase(path: path).open();
+      expect((await SqliteLocalPlaylistStore(database).load()).single.fileIds, [
+        'a',
+        'b',
+      ]);
+      expect(await database.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+      expect(
+        const LocalFileLibrary().queue(
+          const LocalFileLibrary().entries(files: files),
+        ),
+        hasLength(2),
+      );
+      expect(tester.takeException(), isNull);
+    },
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
   testWidgets(
     'IMSLP entry imports audio without catalog, plays natively and restores favorite/edited queue',
     (tester) async {

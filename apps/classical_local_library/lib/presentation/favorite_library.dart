@@ -14,6 +14,7 @@ class _FavoriteLibrary extends StatefulWidget {
     this.error,
     this.onRetry,
     this.favoriteIds,
+    this.onBatch,
   });
   final List<LocalFileLibraryEntry> entries;
   final Set<String> ids;
@@ -26,6 +27,7 @@ class _FavoriteLibrary extends StatefulWidget {
   final String title, emptyTitle, emptyMessage;
   final String? error;
   final VoidCallback? onRetry;
+  final Future<bool> Function(List<String>, LibraryBatchAction)? onBatch;
   @override
   State<_FavoriteLibrary> createState() => _FavoriteLibraryState();
 }
@@ -85,19 +87,32 @@ class _FavoriteLibraryState extends State<_FavoriteLibrary> {
                   ),
                 ),
               ),
-              SliverList.builder(
-                itemCount: visible.length,
-                itemBuilder: (context, i) => _FileSongRow(
-                  entry: visible[i],
-                  favorite: (widget.favoriteIds ?? widget.ids).contains(
-                    visible[i].file.id,
-                  ),
+              if (widget.onBatch != null)
+                _SelectableSongSliver(
+                  showEmpty: false,
+                  ordered: const LocalFileLibrary().sort(entries, sort),
+                  visible: visible,
+                  favoriteIds: widget.favoriteIds ?? widget.ids,
                   busy: widget.busy,
-                  onTap: () => widget.onPlay(visible[i], visible),
+                  onBatch: widget.onBatch!,
+                  onPlay: widget.onPlay,
+                  onAction: widget.onAction,
                   onMissing: widget.onMissing,
-                  onAction: (a) => widget.onAction(visible[i], a),
+                )
+              else
+                SliverList.builder(
+                  itemCount: visible.length,
+                  itemBuilder: (context, i) => _FileSongRow(
+                    entry: visible[i],
+                    favorite: (widget.favoriteIds ?? widget.ids).contains(
+                      visible[i].file.id,
+                    ),
+                    busy: widget.busy,
+                    onTap: () => widget.onPlay(visible[i], visible),
+                    onMissing: widget.onMissing,
+                    onAction: (a) => widget.onAction(visible[i], a),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

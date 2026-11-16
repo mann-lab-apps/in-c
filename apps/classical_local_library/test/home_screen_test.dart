@@ -845,7 +845,7 @@ void main() {
     );
   });
 
-  testWidgets('Android 앱이 background로 이동하면 일시정지하고 위치를 저장한다', (tester) async {
+  testWidgets('Android background는 재생을 유지하고 위치를 저장한다', (tester) async {
     final fixture = _linkedPlaybackFixture();
     final store = MemoryPlaybackPositionStore();
     final historyStore = MemoryPlaybackHistoryStore();
@@ -882,7 +882,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pumpAndSettle();
 
-    expect(player.state, LocalPlayerState.paused);
+    expect(player.state, LocalPlayerState.playing);
     final path = player.currentItem!.path;
     expect((await store.load(path))?.position, const Duration(seconds: 25));
     final history = await historyStore.loadRecent();
