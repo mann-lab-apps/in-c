@@ -1,0 +1,24 @@
+{
+  "operation": "Upload exact Play1.0.0(5) and connect existing internal group",
+  "appId": "6828809673",
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "ipaSha256": "d44f262a017c7060a057b8c93593daef44b0dcfbe637bcb1a03eeaf5cb962c36",
+  "publicMetadataWritten": false,
+  "reviewSubmitted": false,
+  "released": false,
+  "uploadCommandPassed": true,
+  "appleBuildId": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e",
+  "processingState": "VALID",
+  "groupLinked": true,
+  "testerCount": 1,
+  "buildBetaDetail": {
+    "internalBuildState": "IN_BETA_TESTING",
+    "externalBuildState": "READY_FOR_BETA_SUBMISSION",
+    "autoNotifyEnabled": true
+  },
+  "buildAudienceType": "APP_STORE_ELIGIBLE",
+  "usesNonExemptEncryption": false,
+  "internalGroupId": "61f6e80b-f830-4c8d-9086-cca142e61f91",
+  "physicalInstallationVerified": false,
+  "passed": true
+}

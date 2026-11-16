@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "app": "classical-local-library",
+  "display_name": "띠로리 플레이",
+  "source_path": "apps/classical_local_library",
+  "source_commit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "version": "1.0.0",
+  "build_number": 5,
+  "entrypoint": "lib/main.dart",
+  "version_constant": null,
+  "dart_defines": {
+    "ENABLE_DEMO_LIBRARY": "false",
+    "APP_VERSION_LABEL": "1.0.0 (5)",
+    "SUPPORT_URL": "https://ddirori.com/support/",
+    "PRIVACY_POLICY_URL": "https://ddirori.com/play/privacy/"
+  },
+  "ios": {
+    "bundle_id": "com.mannlab.ddirori.play",
+    "scheme": "Runner",
+    "configuration": "Release",
+    "team_id": "ZRA4DHHKQ4",
+    "profile": "띠로리 플레이",
+    "export_options": "ExportOptions.plist",
+    "baseline": "deployment/output/classical-local-library/release-inputs-20261116-build5/baseline.ipa",
+    "baseline_sha256": "373542867ce5a519b5711712e59fbd287f7890604ab3d0e1de1c57e6e68f2127"
+  },
+  "android": null,
+  "metadata": "metadata/ios",
+  "release_notes": "notes.txt"
+}

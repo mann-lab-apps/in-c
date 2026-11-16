@@ -22,6 +22,7 @@ SLOTS = {"APP_IPHONE_67": {(1260, 2736), (1290, 2796), (1320, 2868)},
          "APP_IPHONE_65": {(1242, 2688), (1284, 2778)},
          "APP_IPAD_PRO_3GEN_129": {(2048, 2732), (2064, 2752)}}
 STAGED = {"test": "integration_test/_deployment_capture_test.dart",
+          "visibility": "integration_test/_deployment_capture_visibility.dart",
           "adapter": "integration_test/_deployment_capture_adapter.dart",
           "driver": "test_driver/_deployment_capture_driver.dart"}
 
@@ -255,7 +256,7 @@ def capture(manifest, data, source_root=None, devices=None):
               "version": f"{data['version']}+{data['build_number']}", "manifest_sha256": sha(manifest), "started_at": datetime.now(timezone.utc).isoformat(),
               "engine": data["engine"], "build_mode": "debug_integration", "binary_upload": False, "review_submission": False, "release": False,
               "visual_review_required": True, "ready_for_upload": False, "assets": [], "devices": [],
-              "capture_code_sha256": {str(p.relative_to(ROOT)): sha(p) for p in [Path(__file__), ROOT / "capture/screens_test.dart", ROOT / "capture/driver.dart", contained(ROOT, data["adapter"])]}}
+              "capture_code_sha256": {str(p.relative_to(ROOT)): sha(p) for p in [Path(__file__), ROOT / "capture/screens_test.dart", ROOT / "capture/visibility.dart", ROOT / "capture/driver.dart", contained(ROOT, data["adapter"])]}}
     result = output / "result.json"
     persist(result, record)
     persist(output / "capture-manifest.json", data)
@@ -270,7 +271,8 @@ def capture(manifest, data, source_root=None, devices=None):
             tracked = subprocess.run(["git", "ls-files", "--error-unmatch", str(dest.relative_to(source))], cwd=source, capture_output=True).returncode == 0
             if tracked:
                 raise ValueError("capture staging would overwrite tracked source")
-            origin = contained(ROOT, data["adapter"]) if key == "adapter" else ROOT / "capture" / ("screens_test.dart" if key == "test" else "driver.dart")
+            names = {"test": "screens_test.dart", "visibility": "visibility.dart", "driver": "driver.dart"}
+            origin = contained(ROOT, data["adapter"]) if key == "adapter" else ROOT / "capture" / names[key]
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(origin, dest)
         record["source_root"] = str(source)

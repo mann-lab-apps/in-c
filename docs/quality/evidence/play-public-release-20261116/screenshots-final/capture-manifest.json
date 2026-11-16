@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "app": "classical-local-library",
+  "engine": "flutter_integration_ios",
+  "source_commit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "source_path": "apps/classical_local_library",
+  "bundle_id": "com.mannlab.ddirori.play",
+  "version": "1.0.0",
+  "build_number": 5,
+  "dart_defines": {
+    "ENABLE_DEMO_LIBRARY": "false",
+    "APP_VERSION_LABEL": "1.0.0 (5)",
+    "SUPPORT_URL": "https://ddirori.com/support/",
+    "PRIVACY_POLICY_URL": "https://ddirori.com/play/privacy/"
+  },
+  "flavor": null,
+  "adapter": "capture/classical_local_library/adapter.dart",
+  "devices": [
+    {
+      "id": "iphone",
+      "family": "iphone",
+      "type_id": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+      "display_type": "APP_IPHONE_67",
+      "width": 1320,
+      "height": 2868,
+      "locale": "ko"
+    },
+    {
+      "id": "ipad",
+      "family": "ipad",
+      "type_id": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "width": 2064,
+      "height": 2752,
+      "locale": "ko"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "library",
+      "purpose": "상단 앱 아이콘·이름 없이 보관함 제목, 곡·앨범·작곡가·재생목록 분류와 최근 추가/검색/가져오기를 보여준다. 큰 글자는 제목 우측 행동을 별도 줄로 옮기고 카드 열 수를 줄일 수 있다. 작곡가별 범위와 현재 재생 복귀 링크·큐 선택은 별도 로컬 QA로 확인한다. 폴더/아티스트 보기는 도구 메뉴에 있다. 실제 import/엔진/물리 청감의 증거가 아니다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 120
+        },
+        {
+          "action": "wait",
+          "milliseconds": 500
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "Theme",
+          "present": true
+        },
+        {
+          "by": "key",
+          "value": "file-category-composers",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "기본 컴포넌트",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "띠로리 플레이",
+          "present": false
+        },
+        {
+          "by": "tooltip",
+          "value": "도구 더보기",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "내 음악 검색",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "곡",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "재생목록",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "보관함",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "최근 추가한 음악",
+          "present": true
+        },
+        {
+          "by": "key",
+          "value": "recent-library-title",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "띠로리 색상 작업실",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "디자인 시스템 기준",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "첫 음악을 재생했어요.",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "song_browse",
+      "purpose": "곡 목록의 시대 필터(기본 전체), 검색·정렬·곡별 더보기·여러 곡 선택 진입을 보여준다. 필터는 재생을 바꾸지 않으며 작곡가 연결/시대 교정/IMSLP 근거는 별도 로컬 QA 상태 캡처로 검사한다. 미니플레이어는 실제 큐가 있을 때만 노출한다. 이 장면은 실기기나 시대 자동 식별의 증거가 아니다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 120
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "곡"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        },
+        {
+          "action": "tap",
+          "by": "tooltip",
+          "value": "시대: 전체"
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "전체 시대"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 120
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "Theme",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "곡 정렬",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "시대: 전체",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "여러 곡 선택",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "도구 더보기",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "TextField",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "CustomScrollView",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "DdiroriSearch",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "playlist_create",
+      "purpose": "재생목록 생성 전 이름·선택적인 곡 추가·저장/취소를 보여준다. 생성 완료·영속성·실제 오디오 출력의 증거는 아니다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 500
+        },
+        {
+          "action": "tap",
+          "by": "key",
+          "value": "file-category-playlists"
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "새 재생목록"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "AlertDialog",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "DdiroriInput",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "곡 선택",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "취소",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "저장",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "도구 더보기",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "movement_queue",
+      "purpose": "상위 작품·녹음 맥락과 현재 큐, 이전·재생·다음·정지 및 셔플·반복 끔 기본 상태를 보여준다. 선택 모드별 순서·상태 캡처는 별도 로컬 QA에서 기록하며 이 fixture 화면은 native 반복 또는 물리 청감 증거가 아니다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 120
+        },
+        {
+          "action": "tap",
+          "by": "tooltip",
+          "value": "도구 더보기"
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "재생 계획"
+        },
+        {
+          "action": "scroll_to",
+          "by": "text",
+          "value": "현재 재생 큐",
+          "delta": 300
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "Theme",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "현재 재생 큐",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": " · ",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "1악장 Allegro con brio",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "음원 정보 1",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "이전",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "다음",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "셔플 꺼짐",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "반복 끔",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "띠로리 색상 작업실",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "디자인 시스템 기준",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "favorites",
+      "purpose": "보관함 즐겨찾기 진입과 첫 빈 상태의 곡 추가 안내 및 비활성 여러 곡 선택을 보여준다. 저장 후 재조회 실패와 여러 곡 일괄 해제는 별도 로컬 fixture로 검사한다. 정상 빈 캡처에 저장/오류/선택 완료를 꾸며 넣지 않는다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 400
+        },
+        {
+          "action": "scroll_to",
+          "by": "text",
+          "value": "즐겨찾기",
+          "delta": 200
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "즐겨찾기"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        }
+      ],
+      "assertions": [
+        {
+          "by": "text",
+          "value": "즐겨찾기",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "TextField",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "여러 곡 선택",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "저장은 완료했습니다. 즐겨찾기 목록을 다시 불러와 주세요.",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "imslp_search",
+      "purpose": "등록 작품 없이도 접근하는 IMSLP 탐색과 공식 페이지 확인 후 Files에서 저장한 음원의 가져오기 진입을 보여준다. 작품 검색은 음원 파일 목록이 아니다.",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 400
+        },
+        {
+          "action": "tap",
+          "by": "tooltip",
+          "value": "도구 더보기"
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "IMSLP 자료"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        }
+      ],
+      "assertions": [
+        {
+          "by": "text",
+          "value": "IMSLP 자료",
+          "present": true
+        },
+        {
+          "by": "tooltip",
+          "value": "IMSLP 검색",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "음원 파일 가져오기",
+          "present": true
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "work_detail",
+      "purpose": "작품 정보와 순서가 보존된 악장을 한 문맥에서 탐색하는 클래식 전용 구조를 보여준다 (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인",
+      "steps": [
+        {
+          "action": "wait",
+          "milliseconds": 120
+        },
+        {
+          "action": "scroll_to",
+          "by": "text",
+          "value": "작품",
+          "delta": 300
+        },
+        {
+          "action": "tap",
+          "by": "text",
+          "value": "교향곡 5번 다단조"
+        },
+        {
+          "action": "wait",
+          "milliseconds": 400
+        }
+      ],
+      "assertions": [
+        {
+          "by": "widget_type",
+          "value": "Theme",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "작품",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "교향곡 5번 다단조",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "managed",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "악장",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "1악장 Allegro con brio",
+          "present": true
+        },
+        {
+          "by": "text",
+          "value": "띠로리 색상 작업실",
+          "present": false
+        },
+        {
+          "by": "widget_type",
+          "value": "ErrorWidget",
+          "present": false
+        },
+        {
+          "by": "text",
+          "value": "디자인 시스템 기준",
+          "present": false
+        }
+      ]
+    }
+  ],
+  "content_contract_sha256": "242cee96cca984e0202b51c1ff2663a53c4c6c03b5f1b810ff0ad7a8869d424a"
+}

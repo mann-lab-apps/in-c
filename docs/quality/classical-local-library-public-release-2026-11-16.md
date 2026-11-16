@@ -4,11 +4,11 @@
 
 | 구분 | 수용 조건 | 실패/보존 계약 | 담당·현재 상태 |
 | --- | --- | --- | --- |
-| 코드 | 앱/Dart·배포/Ruby가 같은 v1/v2 fixture를 읽고 잘못된 구조를 거부 | unknown/private/type·P0/P1 차단, 자동 선언과 물리 결과 분리 | PASS: host830, Ruby112 |
+| 코드 | 앱/Dart·배포/Ruby가 같은 v1/v2 fixture를 읽고 잘못된 구조를 거부 | unknown/private/type·P0/P1 차단, 자동 선언과 물리 결과 분리 | PASS: host830, Ruby114/409 assertions |
 | 후보 연결 | 피드백을 실제 소스/IPA 후보와 별도 비식별 manifest로 연결 | 같은 버전/build의 다른 소스나 오래된 응답을 재사용하지 않음 | 구현·단위 PASS, 실제 후보와 사용자 receipt 대기 |
 | 운영 페이지 | 검토 가능한 초안·실제 공개 URL·앱 define 일치 | 승인 없는 게시/다른 웹 작업 덮어쓰기 금지 | PASS: 사용자 게시 승인·운영 URL 확인 |
-| checkpoint | 검증된 Play 변경만 선별 commit/push·복구 자료 | 실제 제품 commit만 pin, 기존 작업·다른 앱 보존 | agent, 검증 후 |
-| 후보 | 확정 버전/새 build의 artifact·서명·IPA hash·내부 접근 확인 | 내부 전용/공개용 구분·기존 빌드 보존 | 1.0.0 사용자 확정·Apple 기존1~4 확인·후보5 준비 |
+| checkpoint | 검증된 Play 변경만 선별 commit/push·복구 자료 | 실제 제품 commit만 pin, 기존 작업·다른 앱 보존 | PASS: 제품2814dbd3·pin729e2107 push |
+| 후보 | 확정 버전/새 build의 artifact·서명·IPA hash·내부 접근 확인 | 내부 전용/공개용 구분·기존 빌드 보존 | PASS:1.0.0(5) VALID·내부 그룹 연결 |
 | 사용자 QA | 실제 후보를 설치한 Xs 결과와 지원 기기 범위 확인 | 개인 음원/경로 수집·미확인 PASS 금지 | 사용자, 새 후보 후 |
 | 스토어 | 최종 문구·촬영·선언·심사 정보·정확한 원격 변경 목록 | 게시/스토어 쓰기/심사/출시 단계별 명시 승인 | agent 준비/운영자 승인 필요 |
 
@@ -39,3 +39,35 @@ Apple의 기기/locale별 최대10장 규칙에 따라 기존12 scene 중7개만
 ## 제품 checkpoint
 
 실제 제품 commit은 `2814dbd30aa5764ec70544772d6fcd418260367f`다. 이전 누적 Play 기능/QA와 이번1.0.0+5·운영 URL·feedback/binding 도구를 검증 후 포함했으며 다른 앱의 작업은 포함하지 않았다. 제품 fingerprint v2는 `ff88d244cb3d8caf3d868f462a1357827d2f235c7cb69dbfea1953f59c63a982`다. 이 commit이 존재한 뒤 YAML source를 pin하고 content.reviewed와 미완료 manual은 false/pending으로 유지했다. 빌드 checkout은 이 제품 commit을 그대로 사용하고 후속 메타데이터 commit을 제품 소스로 오인하지 않는다.
+
+## 실제 서명·내부 배포
+
+- 기존 JSON manifest를 생성해 Pipeline archive→export→compare→testflight를 실행했다. source checkout은 깨끗한 제품2814dbd3이고 product fingerprint 전후가 일치한다. archive의 Info.plist는1.0.0(5), bundle/name·iOS15·iPhone/iPad·background audio만·nonexempt encryption false를 확인했다. production define의 demo false·실제 공개 URL도 검사했다.
+- IPA SHA256은 `d44f262a017c7060a057b8c93593daef44b0dcfbe637bcb1a03eeaf5cb962c36`다. App Store 배포 서명·profile·Team·비디버그·baseline 배포 속성을 실제 검사했다. 공개 심사 가능한 export지만 현재 대상은 내부 QA다.
+- [내부 업로드 run43809733858](https://github.com/mann-lab-apps/in-c/actions/runs/43809733858) 성공. Apple build `21fe8804-716b-4e6f-bba0-62ff7ed6b99e`는 VALID·APP_STORE_ELIGIBLE·IN_BETA_TESTING, 기존 그룹 `61f6e80b-f830-4c8d-9086-cca142e61f91`·테스터1명 연결을 재조회했다. 공개 Store metadata·심사 제출·출시는 수행하지 않았다. 설치/청감은 미확인이다.
+- preflight가 서명을 무조건 blocked로 남기던 결함을 수정했다. 실제 IPA의 codesign/App Store profile 검사를 통과하고 identity·Team이 일치할 때만 signing PASS다. 잘못된 팀/버전/빌드/앱/디버그·검사 실패는 FAIL이고 IPA 미제공은 여전히 blocked다. red2개→전체Ruby114개/409 assertions green, 실제 IPA 검사도 PASS다. 계정의 심사 제출 권한을 서명 결과로 대신하지 않는다.
+- 현재 실제 후보 preflight는 PASS24/BLOCKED7/FAIL0이다. 남은 항목은 문구·설문·내부 안내 검토·수동 운영 확인·화면 촬영 검수·심사 연락처·사용자 QA다. 서명 문제가 해결됐다는 이유로 나머지 게이트를 낮추지 않는다.
+
+사용자는 새 후보 물리 테스트 결과와 별개로 배포 준비를 계속하라고 지시했다. 실기기 결과는 미확인으로 유지하고 문구·촬영·입력안·복구 자료를 계속 준비한다. 공개 심사 및 beta 연락처는 원격에 비어 있다. 비공개 값은 저장소 밖 review-details JSON 또는 운영자 콘솔 입력으로 받으며 앱 관리 URL을 연락처 값으로 추정하지 않는다. 제출 검토 목록은 `deployment/apps/classical-local-library/STORE-REVIEW-1.0.0.md`를 따른다.
+
+## 승인된 미출시 초안 저장
+
+사용자가4개 payload를 검토하고 명시 승인한 뒤 [run43812918007](https://github.com/mann-lab-apps/in-c/actions/runs/43812918007)에서 저장했다. 기존 draft의1.0→1.0.0/MANUAL, ko 이름·부제·정책URL, 설명·검색어·프로모션·지원/소개URL, MUSIC을 각각 재조회해 일치를 확인했다. PREPARE_FOR_SUBMISSION을 유지하며 심사·공개·가격/지역·설문·비공개 연락처·스크린샷 업로드는 수행하지 않았다. 원격값과 일치하는 승인 문구의 content.reviewed만 true로 바꿨다. source는 제품2814dbd3를 유지한다. 서명 IPA와 native format 회귀 이후에도 제품 fingerprint는 동일하다.
+
+## 촬영 도구 보완과 증거 구분
+
+입력창/비활성 위젯의 중앙 hit-test와 표시 여부를 혼동하던 촬영 assertion을 분리했다. 양성 widget_type만 viewport와 겹치는 실제 layout을 검사한다. tap 및 text/tooltip 검사와 modal의 접근 차단 계약은 유지한다. 입력/비활성·offstage/화면 밖·modal을3개 Flutter 검사로 검증하고 공통 캡처 Python23개도 통과했다. generic PopupMenuButton 타입 문자열 대신 실제 곡 정렬 tooltip을 검사하며, repeat 버튼으로 재스크롤해 제목을 화면 밖으로 밀던 scene 동작을 제거했다. 기존 실패3회를 성공으로 재분류하지 않는다. 공통 UI API/토큰은 변경하지 않았으며 Clef 실제 native 촬영을 새로 했다고 표현하지 않는다.
+
+기존 가상 파일/fake player로 촬영된14장은 제출용으로 승인하지 않았다. 실제 importer가 자체 제작 WAV/AAC/ALAC4개를 관리 사본으로 복사·분석하고 성공 건수/파일 존재를 검사하는 별도 촬영 adapter를 만들었다. 기본 실제 player를 사용하되 촬영 중 재생을 자동 시작하지 않는다. 실존 연주자/오케스트라의 녹음을 가장하지 않고 `구조 예제 · 직접 만든 합성 음원`으로 구분한다. 작품/작곡가의 확인된 구조 예제 값은 기존 교정 repository로 등록하고 임시 디렉터리 경로 추정은 별도로 보존한다. 원본 파일/태그와 제품 코드는 수정하지 않았다. 제공자 chooser UI·실제 청감은 이 importer fixture 결과와 별개다.
+
+현재 제품 source에서 별도로 실행한 iOS mixed WAV/AAC/ALAC/FLAC/MP3 native 검사1개는 play/pause/seek·재기동 시 자동 재생 방지·손상 내용 복구를 통과했다. 시뮬레이터 transport 결과이며 사용자 Xs의 가청 출력 결과가 아니다.
+
+최종 촬영은 `screenshots-20261116T055425-0f66ab1b`다. iPhone17 Pro Max/iPad Pro13 M5·iOS26.5·light·기본 글자, 각각1320×2868/2064×2752의7장씩 총14장이다. 실제 native snapshot·정해진 scene assertions·설치 앱1.0.0(5) 검사 후 원본을 보존한 contact sheet로14장을 열어 검수했다. 최종 작품 화면은 확인된 작품/작곡가를 표시하며 임시 managed 폴더명을 제목으로 쓰지 않는 assertion도 통과했다. pipeline이 원본/image/review/manifest hash를 묶어 visual-verification PASS·ready_for_upload를 생성했다. 이는 이미지의 기술적 준비 상태이고 Store 업로드 승인·실기기 QA·공개 출시 판정은 별도다. 이전 두 묶음의14장은 최종 제출 세트로 재사용하지 않는다.
+
+## 승인된14장 업로드와 남은 게이트
+
+사용자가 최종14장의 미출시 페이지 업로드를 명시 승인했다. [run43814776105](https://github.com/mann-lab-apps/in-c/actions/runs/43814776105)는 기존 `IOSRelease` media section만 실행했다. 마지막 iPad 작품 이미지가 일시적으로 UPLOAD_COMPLETE여서 최초 sync의 검증 실패 기록을 보존하고 읽기만 하며 기다렸다. 결국14장 모두 COMPLETE·MD5·순서가 일치했다. mutation을 거부하는 API adapter로 별도 [run43815321466](https://github.com/mann-lab-apps/in-c/actions/runs/43815321466)도 verify PASS·differences=[]를 확인했다. Store는1.0.0/PREPARE_FOR_SUBMISSION/MANUAL을 유지하며 심사/출시는 하지 않았다.
+
+첫 출시의 release_notes가 패키지 metadata 차단을 만들던 입력을 null로 정리했고, 실제 최초 설명은 description/CHANGELOG에 남겼다. 기존 사용자 승인인 비면제 암호화 불사용을 새 IPA Info.plist와 Apple usesNonExemptEncryption=false에 대조해 해당 manual만 verified다. 확인하지 않은 나머지 설문/운영 답변은 그대로 pending이다. 최종 metadata/media 패키징 차단은0개이며, 전체 공개 출시 Go와는 다르다. preflight는 구현 FAIL0, 운영 설문·내부 안내/연락처 검토·수동 확인·심사 연락처·사용자 QA의5개 묶음이 blocked다.
+
+자동 host830·배포Ruby114/409 assertions·공통 캡처Python23·촬영 visibility Flutter3, iOS 현재 후보 format native1과 선행 SQLite backup/undo native1을 구분한다. 이전17/4개 플랫폼 QA 결과를 새 후보의 물리 결과로 승격하지 않는다. 원본 제품 fingerprint는 native 실행/촬영 이후에도 동일하며 원본 작업 공간과 다른 앱을 수정하지 않았다. 임시 진단 ref는 쓰기 실행 후 다시 읽기 전용으로 돌리고, 이 작업이 만든 미리보기 서버/촬영 기기/격리 촬영 checkout만 정리한다. 기존 QA simulator와 지속 worktree는 보존한다.

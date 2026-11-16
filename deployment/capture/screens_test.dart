@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import '_deployment_capture_adapter.dart' as adapter;
+import '_deployment_capture_visibility.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -105,10 +106,13 @@ void main() {
       }
       for (final rawCheck in scene['assertions'] as List) {
         final check = rawCheck as Map<String, dynamic>;
+        final candidate = match(check);
         await checkState(
-          match(check).hitTestable(),
+          check['by'] == 'widget_type' && check['present'] == true
+              ? visibleCaptureLayout(tester, candidate)
+              : candidate.hitTestable(),
           check['present'] as bool,
-          'Scene ${scene['id']}: required UI state differs',
+          'Scene ${scene['id']}: required ${check['by']}=${check['value']} differs',
         );
       }
       await tester.pumpAndSettle(const Duration(milliseconds: 200));

@@ -271,7 +271,24 @@ module Deployment
       capture = data.dig('artifacts', 'capture_verification')
       add(capture ? 'pass' : 'blocked', 'screenshots.capture', capture ? '검수된 screenshot capture가 연결되었습니다.' : '고정된 checkpoint에서 screenshot 촬영과 시각 검수가 필요합니다.')
       team = read('ios/Runner.xcodeproj/project.pbxproj')[/DEVELOPMENT_TEAM = ([A-Z0-9]+);/, 1]
-      add('blocked', 'signing.verification', team ? 'Xcode Team 설정은 있으나 배포 인증서·profile과 계정 권한을 확인해야 합니다.' : 'Apple Developer Team과 배포 서명이 필요합니다.')
+      if @ipa
+        begin
+          signed = inspect_signed_ipa
+          expected = [source['bundle_id'], source['version'], source['build_number'], team, false]
+          raise Error, 'signed identity mismatch' unless team && signed.values_at('identifier', 'version', 'build_number', 'team_id', 'debuggable') == expected
+          add('pass', 'signing.verification', '실제 IPA의 배포 서명·App Store profile·Team과 후보 ID·버전·build를 검증했습니다. 계정의 제출 권한·실기기 결과는 별도입니다.')
+        rescue StandardError
+          add('fail', 'signing.verification', '실제 IPA의 배포 서명 또는 후보 identity 검증이 실패했습니다.')
+        end
+      else
+        add('blocked', 'signing.verification', team ? 'Xcode Team 설정은 있으나 실제 배포 IPA 서명·profile 검증이 필요합니다.' : 'Apple Developer Team과 배포 서명이 필요합니다.')
+      end
+    end
+
+    def inspect_signed_ipa
+      raw, _stderr, status = Open3.capture3('python3', File.join(ROOT, 'lib/artifact.py'), 'ios', @ipa)
+      raise Error, 'distribution signature verification failed' unless status.success?
+      JSON.parse(raw)
     end
 
     def check_review_contact

@@ -1,0 +1,14 @@
+{
+  "format": "ddirori-play-release-candidate",
+  "schemaVersion": 1,
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "sourceFingerprintVersion": 2,
+  "sourceSha256": "ff88d244cb3d8caf3d868f462a1357827d2f235c7cb69dbfea1953f59c63a982",
+  "ipaSha256": "d44f262a017c7060a057b8c93593daef44b0dcfbe637bcb1a03eeaf5cb962c36",
+  "bundleId": "com.mannlab.ddirori.play",
+  "appVersion": "1.0.0",
+  "buildNumber": 5,
+  "builtAtUtc": "2026-11-16T05:19:41Z",
+  "distribution": "app-store",
+  "feedback": []
+}

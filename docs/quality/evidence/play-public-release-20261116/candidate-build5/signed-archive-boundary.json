@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "identity": {
+    "CFBundleIdentifier": "com.mannlab.ddirori.play",
+    "CFBundleDisplayName": "띠로리 플레이",
+    "CFBundleShortVersionString": "1.0.0",
+    "CFBundleVersion": "5",
+    "MinimumOSVersion": "15.0",
+    "UIDeviceFamily": [
+      1,
+      2
+    ],
+    "UIBackgroundModes": [
+      "audio"
+    ],
+    "ITSAppUsesNonExemptEncryption": false
+  },
+  "dartDefines": [
+    "ENABLE_DEMO_LIBRARY=false",
+    "APP_VERSION_LABEL=1.0.0 (5)",
+    "SUPPORT_URL=https://ddirori.com/support/",
+    "PRIVACY_POLICY_URL=https://ddirori.com/play/privacy/",
+    "FLUTTER_BUILD_NAME=1.0.0",
+    "FLUTTER_BUILD_NUMBER=5",
+    "FLUTTER_VERSION=3.47.2",
+    "FLUTTER_CHANNEL=stable",
+    "FLUTTER_GIT_URL=https://github.com/flutter/flutter.git",
+    "FLUTTER_FRAMEWORK_REVISION=d3b14c8769",
+    "FLUTTER_ENGINE_REVISION=a804b26164",
+    "FLUTTER_DART_VERSION=3.13.2"
+  ],
+  "infoPlistSha256": "4ed4dd93e967428afa4cc6bbd73455c062a5814487192c13e4044ea9dcb63ad5",
+  "signedArchive": true,
+  "physicalAudibilityVerified": false
+}

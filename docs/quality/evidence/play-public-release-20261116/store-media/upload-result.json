@@ -1,0 +1,159 @@
+{
+  "operation": "User-approved14 Play screenshots to unreleased1.0.0 only",
+  "appId": "6828809673",
+  "version": "1.0.0",
+  "imageCount": 14,
+  "sections": [
+    "media"
+  ],
+  "reviewSubmitted": false,
+  "released": false,
+  "otherMetadataWritten": false,
+  "runs": [
+    {
+      "mode": "sync",
+      "result": "/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/20261116T060859-7774d377/result.json",
+      "status": "failed"
+    },
+    {
+      "mode": "verify",
+      "result": "/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/20261116T061056-8004b4c3/result.json",
+      "status": "failed"
+    },
+    {
+      "mode": "verify",
+      "result": "/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/20261116T061126-1d68efe1/result.json",
+      "status": "failed"
+    },
+    {
+      "mode": "verify",
+      "result": "/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/20261116T061155-de3e7a61/result.json",
+      "status": "passed"
+    }
+  ],
+  "initialSyncFailureClass": "Deployment::Error",
+  "verificationPending": true,
+  "passed": true,
+  "readBackPassed": true,
+  "target": {
+    "app_id": "6828809673",
+    "info_id": "c41cc51c-2a81-4560-96c2-0539371940c8",
+    "version_id": "423cf385-e335-43a4-9429-1759b9cee567",
+    "version_state": "PREPARE_FOR_SUBMISSION",
+    "release_type": "MANUAL"
+  },
+  "verifiedImages": [
+    {
+      "scene": "library",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 1,
+      "sha256": "8b83361ffef45bae6e165a0cc620beb1a84be7fb8ba4909218dd14d7546664d4",
+      "md5": "61be426735553a4e500bbfa390e03229"
+    },
+    {
+      "scene": "song_browse",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 2,
+      "sha256": "c26d7f055064d25ad8caf07470af77e2c9cafe2c9125e54ce43a1cd76148cb96",
+      "md5": "47b262e0595be782f23c7268d4352fe6"
+    },
+    {
+      "scene": "playlist_create",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 3,
+      "sha256": "767b927dd2fd30f63c898da9a527426c5e2debe77532d4e583e99ebdd1c981d5",
+      "md5": "65a08feb1739f1f440ce4dea4d018e07"
+    },
+    {
+      "scene": "movement_queue",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 4,
+      "sha256": "eee895d1728e1991f86251b703df6e8008d36671917fb0fae9843d1f7d16943d",
+      "md5": "80c7db703dae5ba629a13418456ef818"
+    },
+    {
+      "scene": "favorites",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 5,
+      "sha256": "70f82ac2aec43e3d3dc5d68be789ea81b727492d89dfc278d0c9d41e51800d31",
+      "md5": "a1717120078961ed0a7ad4d7909e641c"
+    },
+    {
+      "scene": "imslp_search",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 6,
+      "sha256": "d5f79e6e421804c7104c4633c81f622c794446e8a99dbd12c5af41def1ce9695",
+      "md5": "a326fc469b7945303670d693ca497f9b"
+    },
+    {
+      "scene": "work_detail",
+      "locale": "ko",
+      "display_type": "APP_IPHONE_67",
+      "position": 7,
+      "sha256": "3d3cddd591c6a494d3ab64681915611222f77c851a3dd1c9334fc02d8036a85c",
+      "md5": "a761678cbf78d9a714a79b709c02cec6"
+    },
+    {
+      "scene": "library",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 1,
+      "sha256": "2a8f6c89c7d77d0789f64c3a1a2cd0d873c98c7cadd7e7784d893531ed3279d4",
+      "md5": "11c253e64b1e6cece4435a7539782608"
+    },
+    {
+      "scene": "song_browse",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 2,
+      "sha256": "f83b9641571f8ebb88676b579a59a040ecab3ec4ae5fb43a98dcccd54b7f302d",
+      "md5": "3479845c00c919d5106e3920faf4c918"
+    },
+    {
+      "scene": "playlist_create",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 3,
+      "sha256": "b0921267e406df0cd7db162ac95ae6a8826d9530e042594eece420b7abfcd7db",
+      "md5": "dbb2caaa055f884910319648e0674c5d"
+    },
+    {
+      "scene": "movement_queue",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 4,
+      "sha256": "b671ab7805e8b36f267c39fbc449fc68c590ad9ed2aac16776554a7cb4accf5d",
+      "md5": "8edffff43f4c53b3e3d3650869e6e6c3"
+    },
+    {
+      "scene": "favorites",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 5,
+      "sha256": "0c67597b33d9dd9dae18726c45aadf15ad25dd752a942419aec08261a9b874a9",
+      "md5": "302c911c43a4813361bd418fb26bbb35"
+    },
+    {
+      "scene": "imslp_search",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 6,
+      "sha256": "34e213e20d04bee75d83a3f420747223eec4fd0d2dd70bd5cfae5cc4001255f0",
+      "md5": "42babe63edfb63ac87b826f84c4388a7"
+    },
+    {
+      "scene": "work_detail",
+      "locale": "ko",
+      "display_type": "APP_IPAD_PRO_3GEN_129",
+      "position": 7,
+      "sha256": "30845f0dd3821a969419752533f364e4c4be814f59520bb66fdeed5903b0c151",
+      "md5": "3c9ae4cb9d9f52e5ea8f3fe24ccff28b"
+    }
+  ]
+}

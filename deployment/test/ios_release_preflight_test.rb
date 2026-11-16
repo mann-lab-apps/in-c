@@ -27,7 +27,8 @@ class IOSReleasePreflightTest < Minitest::Test
     assert_equal 'pass', codes['icon.approval']
     assert_equal 'pass', codes['url.ko.privacy_url']
     assert_equal report_source_state, codes['checkpoint.source']
-    assert_equal 'blocked', codes['screenshots.capture']
+    capture = YAML.safe_load(File.read(MANIFEST)).dig('artifacts', 'capture_verification')
+    assert_equal capture ? 'pass' : 'blocked', codes['screenshots.capture']
   end
 
   def test_play_requires_only_the_audio_background_mode
@@ -155,7 +156,38 @@ class IOSReleasePreflightTest < Minitest::Test
     end
   end
 
+  def test_signed_distribution_ipa_clears_only_the_signing_gate
+    preflight = signed_preflight
+    result = preflight.run
+    assert result['issues'].any? { |row| row.values_at('code', 'status') == ['signing.verification', 'pass'] }
+    refute result['app_store_ready']
+    assert result['issues'].any? { |row| row['code'] == 'feedback.missing' }
+  end
+
+  def test_signed_ipa_rejects_identity_team_and_debug_mismatches
+    [
+      {'identifier' => 'another.app'}, {'version' => '0.1.0'},
+      {'build_number' => 999}, {'team_id' => 'ANOTHERTEAM'},
+      {'debuggable' => true},
+    ].each do |mutation|
+      result = signed_preflight(mutation).run
+      assert result['issues'].any? { |row| row.values_at('code', 'status') == ['signing.verification', 'fail'] }, mutation.keys.inspect
+    end
+    preflight = signed_preflight
+    preflight.define_singleton_method(:inspect_signed_ipa) { raise Deployment::Error, 'Synthetic verification failure' }
+    assert preflight.run['issues'].any? { |row| row.values_at('code', 'status') == ['signing.verification', 'fail'] }
+  end
+
   private
+
+  def signed_preflight(mutation = {})
+    preflight = Deployment::IOSReleasePreflight.new(manifest: MANIFEST, ipa: '/synthetic/app.ipa')
+    source = preflight.data['source']
+    value = {'identifier' => source['bundle_id'], 'version' => source['version'],
+             'build_number' => source['build_number'], 'team_id' => 'ZRA4DHHKQ4', 'debuggable' => false}.merge(mutation)
+    preflight.define_singleton_method(:inspect_signed_ipa) { value }
+    preflight
+  end
 
   def complete_feedback
     feedback('none').merge(

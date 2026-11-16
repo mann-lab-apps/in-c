@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "run_id": "20261116T051726-cda0f261",
+  "app": "classical-local-library",
+  "action": "archive",
+  "platform": "ios",
+  "version": "1.0.0+5",
+  "manifest_sha256": "87fc5b8e2da8803eb29ee5034665e2b23b1775ba7060dfdf16ee2483bf3e8694",
+  "started_at": "2026-11-16T05:17:26Z",
+  "status": "passed",
+  "store_operation": false,
+  "pipeline_sha256": "cb9128fa4f6b197223833e3727584d70f5e7ee1b48a0f4b689028078fd4699ba",
+  "source_commit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "preflight": "passed",
+  "source_clean": true,
+  "tools": {
+    "ruby": "4.0.6",
+    "fastlane": "2.241.1",
+    "flutter": {
+      "frameworkVersion": "3.47.2",
+      "channel": "stable",
+      "repositoryUrl": "https://github.com/flutter/flutter.git",
+      "frameworkRevision": "d3b14c876900e553bc736ca19295fc09e3853e8e",
+      "frameworkCommitDate": "2026-08-26 16:07:51 -0700",
+      "engineRevision": "a804b261645ef8c13eb3d5c44a5c2fb0340c5539",
+      "engineCommitDate": "2026-08-26 18:46:13.000Z",
+      "engineContentHash": "1cf1c4773fb941c4c74a7f8bb144a8837596c0f4",
+      "engineBuildDate": "2026-08-26 12:23:07.677",
+      "dartSdkVersion": "3.13.2",
+      "devToolsVersion": "2.60.0",
+      "flutterVersion": "3.47.2",
+      "flutterRoot": "/opt/homebrew/share/flutter"
+    },
+    "xcode": "Xcode 26.5\nBuild version 17F42"
+  },
+  "archive": "/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/20261116T051726-cda0f261/app.xcarchive",
+  "finished_at": "2026-11-16T05:18:52Z"
+}

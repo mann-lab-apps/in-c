@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "capture_result_sha256": "008486c556ba6282bd74d671f479e5e0b1f588a24991b32df4366f24d3aab1d0",
+  "reviewer": "Codex: actual iPhone/iPad native image contact sheets opened and inspected; technical image review, not device listening/VoiceOver or release approval",
+  "assets": [
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-library.jpg",
+      "sha256": "8b83361ffef45bae6e165a0cc620beb1a84be7fb8ba4909218dd14d7546664d4",
+      "approved": true,
+      "notes": "Imported synthetic file names and recent additions are readable; composer/work navigation and neutral surfaces remain intact; no brand-header duplication or personal path. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-song_browse.jpg",
+      "sha256": "c26d7f055064d25ad8caf07470af77e2c9cafe2c9125e54ce43a1cd76148cb96",
+      "approved": true,
+      "notes": "Four real imported synthetic files; filename fallback, search, era filter, sort and per-song actions visible; no unsupported artist/album invented. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-playlist_create.jpg",
+      "sha256": "767b927dd2fd30f63c898da9a527426c5e2debe77532d4e583e99ebdd1c981d5",
+      "approved": true,
+      "notes": "Creation dialog has name input, song selection, cancel and disabled empty-name save; no fabricated successful save. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-movement_queue.jpg",
+      "sha256": "eee895d1728e1991f86251b703df6e8008d36671917fb0fae9843d1f7d16943d",
+      "approved": true,
+      "notes": "Confirmed structural-example recording clearly labelled synthetic; idle engine, unknown duration, controls/modes and first movement visible; no playing/audibility claim. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-favorites.jpg",
+      "sha256": "70f82ac2aec43e3d3dc5d68be789ea81b727492d89dfc278d0c9d41e51800d31",
+      "approved": true,
+      "notes": "Honest empty favorites state with search and unavailable multi-select; no favorite data fabricated. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-imslp_search.jpg",
+      "sha256": "d5f79e6e421804c7104c4633c81f622c794446e8a99dbd12c5af41def1ce9695",
+      "approved": true,
+      "notes": "Official-work-page search and manual import/source guidance visible; no download/rights/search-success claim. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/iphone-work_detail.jpg",
+      "sha256": "3d3cddd591c6a494d3ab64681915611222f77c851a3dd1c9334fc02d8036a85c",
+      "approved": true,
+      "notes": "Correct confirmed composer/work and ordered linked movements visible; actual imported files exist; no managed-directory name used as work/composer. Structural example is not an original performance. Visual review of actual native iphone capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-library.jpg",
+      "sha256": "2a8f6c89c7d77d0789f64c3a1a2cd0d873c98c7cadd7e7784d893531ed3279d4",
+      "approved": true,
+      "notes": "Imported synthetic file names and recent additions are readable; composer/work navigation and neutral surfaces remain intact; no brand-header duplication or personal path. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-song_browse.jpg",
+      "sha256": "f83b9641571f8ebb88676b579a59a040ecab3ec4ae5fb43a98dcccd54b7f302d",
+      "approved": true,
+      "notes": "Four real imported synthetic files; filename fallback, search, era filter, sort and per-song actions visible; no unsupported artist/album invented. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-playlist_create.jpg",
+      "sha256": "b0921267e406df0cd7db162ac95ae6a8826d9530e042594eece420b7abfcd7db",
+      "approved": true,
+      "notes": "Creation dialog has name input, song selection, cancel and disabled empty-name save; no fabricated successful save. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-movement_queue.jpg",
+      "sha256": "b671ab7805e8b36f267c39fbc449fc68c590ad9ed2aac16776554a7cb4accf5d",
+      "approved": true,
+      "notes": "Confirmed structural-example recording clearly labelled synthetic; idle engine, unknown duration, controls/modes and first movement visible; no playing/audibility claim. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-favorites.jpg",
+      "sha256": "0c67597b33d9dd9dae18726c45aadf15ad25dd752a942419aec08261a9b874a9",
+      "approved": true,
+      "notes": "Honest empty favorites state with search and unavailable multi-select; no favorite data fabricated. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-imslp_search.jpg",
+      "sha256": "34e213e20d04bee75d83a3f420747223eec4fd0d2dd70bd5cfae5cc4001255f0",
+      "approved": true,
+      "notes": "Official-work-page search and manual import/source guidance visible; no download/rights/search-success claim. Visual review of actual native ipad capture; physical QA is separate."
+    },
+    {
+      "path": "media/screenshots-20261116T055425-0f66ab1b/ipad-work_detail.jpg",
+      "sha256": "30845f0dd3821a969419752533f364e4c4be814f59520bb66fdeed5903b0c151",
+      "approved": true,
+      "notes": "Correct confirmed composer/work and ordered linked movements visible; actual imported files exist; no managed-directory name used as work/composer. Structural example is not an original performance. Visual review of actual native ipad capture; physical QA is separate."
+    }
+  ]
+}

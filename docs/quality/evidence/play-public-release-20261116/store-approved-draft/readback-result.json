@@ -1,0 +1,54 @@
+{
+  "operation": "User-approved four Play unreleased draft patches",
+  "appId": "6828809673",
+  "planSha256": "df22262e8897300fc79d14c2fe3e92be1843e8a8cf41ec19041d75d97ba4b093",
+  "writes": [
+    {
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567",
+      "fields": [
+        "versionString",
+        "releaseType"
+      ],
+      "attempted": true,
+      "verified": true
+    },
+    {
+      "path": "/v1/appInfoLocalizations/8d41fb16-8122-4be8-b4e4-79c354dbd501",
+      "fields": [
+        "name",
+        "subtitle",
+        "privacyPolicyUrl"
+      ],
+      "attempted": true,
+      "verified": true
+    },
+    {
+      "path": "/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960",
+      "fields": [
+        "description",
+        "keywords",
+        "promotionalText",
+        "supportUrl",
+        "marketingUrl"
+      ],
+      "attempted": true,
+      "verified": true
+    },
+    {
+      "path": "/v1/appInfos/c41cc51c-2a81-4560-96c2-0539371940c8",
+      "fields": [
+        "primaryCategory"
+      ],
+      "attempted": true,
+      "verified": true
+    }
+  ],
+  "submission": false,
+  "release": false,
+  "pricingOrTerritoryWritten": false,
+  "surveyAnswersWritten": false,
+  "passed": true,
+  "versionString": "1.0.0",
+  "releaseType": "MANUAL",
+  "appStoreState": "PREPARE_FOR_SUBMISSION"
+}

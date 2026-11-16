@@ -1,0 +1,19 @@
+{
+  "ExportOptions.plist": "b3d1811aed40d4c01e0d116db7aa5d780d0ca8854a00ea232df12c8cb7c7580b",
+  "apple-result.json": "7376ff193961543173f3561dae93dc5919b7213865d77751fda1e055a4936bac",
+  "archive-result.json": "31c1bba6e62995326399108a6e0079535511478cf6e9a495894ac4a0544a07d2",
+  "build-manifest.json": "87fc5b8e2da8803eb29ee5034665e2b23b1775ba7060dfdf16ee2483bf3e8694",
+  "candidate.json": "60d5a0b1815b4c8b6d80515cd34da096379db26edc36724e0eb1bd96a7a6e0be",
+  "capture-visibility-widget3.log": "4ad9d992df03ad743b24477b8ad95dc41720c412f1aee854f19d9b24d41be6ca",
+  "comparison-result.json": "c844a73d5b06d52ef424a908aacb99d18321ca602b67cc34d44af144e3bcbe40",
+  "deployment-python23.log": "bef9aae2d9b9e4ac8922c3296ca0797401d2ce1b36cab42b95ba7bbd81c3fabf",
+  "deployment-ruby114.log": "a5da8d8e3576e220891f67c4c394d358118310d5090544c1aa9626f283564e85",
+  "export-result.json": "31f254f0ff68ce1aea10c2575071cffc8c4fde616e2103ce82fdff9551acff2c",
+  "internal-upload-result.json": "fce281b78e892b934eae78cef3db9dcd1288d8902142766755050efee3eef27b",
+  "preparation.json": "b90fb6ee30e4d1059231ef43f65e4f6570fcc687daf26c69415fd21b78e7d38a",
+  "signed-archive-boundary.json": "51f02e2acea722518ac151a34d003f79ce19e42c74d406d82315ec43b7f12102",
+  "signed-preflight.json": "98106dc3c7ee92bdae8359cffed60250abc496e479196ce6c6c0c5d5202bdd31",
+  "signing-gate-red.log": "3ef81a75851282343e839700214c5c9ad252bc370f70cc81777265243e274988",
+  "source-fingerprint-after-build.json": "faaf5ccddbd8673e73d6e0238a0b25b46445b1488504aaaf24ab751b348e47b1",
+  "store-readonly-inventory.json": "729cca864615eca1b92a97a884b65098225e6cd3a7981355c4a986d85981b3f4"
+}

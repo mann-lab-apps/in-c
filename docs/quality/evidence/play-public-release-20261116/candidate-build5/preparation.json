@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "version": "1.0.0+5",
+  "metadataYamlSha256": "25ed3de83e60b24a2aeb0055abd92fe8bf6e433d9bf1576d0ab302e593e6bc35",
+  "manifestSha256": "87fc5b8e2da8803eb29ee5034665e2b23b1775ba7060dfdf16ee2483bf3e8694",
+  "baselineVersion": "0.1.0+1",
+  "baselineSha256": "373542867ce5a519b5711712e59fbd287f7890604ab3d0e1de1c57e6e68f2127",
+  "binaryBuilt": false,
+  "storeWritten": false
+}
