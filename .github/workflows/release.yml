@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   inspect:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, in-c-release]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
