@@ -28,7 +28,7 @@ refs.each do |ref|
     resources={}
     {'versions'=>'/v1/apps/6828809673/appStoreVersions?limit=50','builds'=>'/v1/apps/6828809673/builds?limit=100','uploads'=>'/v1/apps/6828809673/buildUploads?limit=100'}.each do |name,path|
       data=get.call(path)
-      resources[name]=data.fetch('data').map{|r|{'id'=>r['id'],'attributes'=>r.fetch('attributes').select{|k,_|%w[version versionString cfBundleShortVersionString cfBundleVersion platform appVersionState appStoreState releaseType processingState uploadedDate expired usesNonExemptEncryption buildAudienceType state].include?(k)}}
+      resources[name]=data.fetch('data').map{|r|{'id'=>r['id'],'attributes'=>r.fetch('attributes').select{|k,_|%w[version versionString cfBundleShortVersionString cfBundleVersion platform appVersionState appStoreState releaseType processingState uploadedDate expired usesNonExemptEncryption buildAudienceType state].include?(k)}}}
       resources[name+'HasNextPage']=!!data.dig('links','next')
       result['resources']=resources
     end
