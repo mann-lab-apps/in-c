@@ -1,32 +1,34 @@
-name: Play exact build5 internal upload
+name: Play read-only ASC inspection
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Internal upload execution label
+        description: Diagnostic label only; no tag is created or published
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  internal-upload:
+  inspect:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Upload authorized exact IPA and connect existing internal group
+      - name: Read Play app and build metadata only
         working-directory: deployment
         env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby internal_play_build5.rb
-      - name: Preserve sanitized upload result
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_asc.rb
+      - name: Preserve sanitized inspection
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: play-internal-build5-${{ github.run_id }}
-          path: deployment/play-internal-build5-result.json
-          retention-days: 14
+          name: play-asc-readonly-${{ github.run_id }}
+          path: deployment/play-asc-inspection.json
+          retention-days: 7
