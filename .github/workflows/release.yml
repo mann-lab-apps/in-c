@@ -1,32 +1,32 @@
-name: Play approved14 draft screenshots
+name: Play read-only14 image verification
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Approved14 screenshot upload label
+        description: Read-only verification label
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  approved-media:
+  verify-media:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Upload only the14 reviewed images and verify checksums and completion
+      - name: Read Apple processing and verify14 exact image checksums and order
         working-directory: deployment
         env:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby approved_play_media.rb
-      - name: Preserve public-field-only upload verification
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby verify_play_media.rb
+      - name: Preserve read-only verification
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: play-approved-media-${{ github.run_id }}
-          path: deployment/play-approved-media-result.json
+          name: play-verified-media-${{ github.run_id }}
+          path: deployment/play-verified-media-result.json
           retention-days: 14
