@@ -10,10 +10,10 @@ original_path=plan_path.sub('-v2.json','.json')
 request_sha='57148a731c7610c9acb301508f002cf42b491e68fabaae02f8460a1a492fe0e3'
 approved_sha='6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1'
 app_id='6828809673';version_id='423cf385-e335-43a4-9429-1759b9cee567';build_id='21fe8804-716b-4e6f-bba0-62ff7ed6b99e'
-apply=ARGV==['--apply']
+apply=false
 report={'operation'=>'Play four remaining launch settings','observedAtUtc'=>Time.now.utc.iso8601,'appId'=>app_id,'planSha256'=>approved_sha,'mode'=>apply ? 'apply' : 'dry-run','mutations'=>false,'operations'=>[],'reviewSubmitted'=>false,'released'=>false}
 begin
-  raise 'Use explicit mode' unless apply || ARGV==['--dry-run']
+  raise 'Only read-only inspection is supported' unless ARGV==['--dry-run']
   raise 'Approved scope changed' unless Digest::SHA256.file(original_path).hexdigest==approved_sha
   raise 'Adapted request changed' unless Digest::SHA256.file(plan_path).hexdigest==request_sha
   raise 'Explicit authorization required' if apply && ENV['PLAY_APPROVED_LAUNCH_PLAN_SHA256']!=approved_sha
@@ -30,8 +30,7 @@ begin
   token=Spaceship::ConnectAPI::Token.create(key_id:File.basename(key_file)[/AuthKey_(.+)\.p8/,1],issuer_id:ENV.fetch('APPLE_API_ISSUER_ID'),key:File.read(key_file),in_house:false)
   request=lambda do |method,path,body=nil|
     if method!='GET'
-      raise 'Unapproved mutation' unless apply && expected.include?([method,path]) && body==plan['operations'].find{|o|o.values_at('method','path')==[method,path]}['body']
-      report['mutations']=true
+      raise 'Read-only inspector rejects mutations'
     end
     uri=path.start_with?('https://') ? URI(path) : URI('https://api.appstoreconnect.apple.com'+path)
     raise 'Unexpected API origin' unless uri.scheme=='https' && uri.host=='api.appstoreconnect.apple.com' && !uri.userinfo
@@ -100,6 +99,8 @@ begin
         rows.concat(page.fetch('data'));path=page.dig('links','next');break unless path
       end
       raise 'Incomplete territory pagination' if path
+      report['territoryAvailabilityRows']=rows.map{|r|{'territory'=>r.dig('relationships','territory','data','id'),'available'=>r.dig('attributes','available'),'preOrderEnabled'=>r.dig('attributes','preOrderEnabled'),'releaseDate'=>r.dig('attributes','releaseDate')}}.sort_by{|r|r['territory']}
+      raise 'Unexpected preorder or scheduled release' unless rows.all?{|r|r.dig('attributes','preOrderEnabled')!=true && r.dig('attributes','releaseDate').nil?}
       enabled=rows.select{|r|r.dig('attributes','available')==true}
       raise 'Competing territory policy' unless enabled.length==1 && enabled[0].dig('relationships','territory','data','id')=='KOR' && enabled[0].dig('attributes','preOrderEnabled')!=true && enabled[0].dig('attributes','releaseDate').nil?
       {'configured'=>true,'availableTerritories'=>['KOR'],'availableInNewTerritories'=>false,'preOrderEnabled'=>false}
@@ -111,6 +112,11 @@ begin
   report['territoryCatalogue']=territories.fetch('data').map{|t|{'id'=>t['id'],'currency'=>t.dig('attributes','currency')}}
   raise 'Korean territory unavailable' unless report['territoryCatalogue'].any?{|t|t['id']=='KOR'}
   catalogue_ids=report['territoryCatalogue'].map{|t|t['id']}.sort
+  if before_availability['configured']
+    actual=report.fetch('territoryAvailabilityRows')
+    raise 'Territory set differs from current catalogue' unless actual.map{|r|r['territory']}==catalogue_ids && actual.all?{|r|r['available']==(r['territory']=='KOR')}
+    report['availabilityCatalogueVerified']=true
+  end
   expected_rows=catalogue_ids.map do |id|
     {'type'=>'territoryAvailabilities','id'=>"${play-area-#{id}}",'attributes'=>{'available'=>id=='KOR','preOrderEnabled'=>false,'releaseDate'=>nil},'relationships'=>{'territory'=>{'data'=>{'type'=>'territories','id'=>id}}}}
   end
