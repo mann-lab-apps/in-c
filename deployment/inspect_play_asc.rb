@@ -13,7 +13,15 @@ begin
     request = Net::HTTP::Get.new(uri)
     request['Authorization'] = "Bearer #{token.text}"
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true, open_timeout: 15, read_timeout: 30) { |http| http.request(request) }
-    raise 'Read-only API request rejected' unless response.is_a?(Net::HTTPSuccess)
+    unless response.is_a?(Net::HTTPSuccess)
+      result['failedRead'] = {'resource' => path.split('?').first, 'httpStatus' => response.code.to_i}
+      begin
+        result['failedRead']['codes'] = JSON.parse(response.body).fetch('errors', []).map { |entry| entry['code'] }
+      rescue JSON::ParserError
+        nil
+      end
+      raise 'Read-only API request rejected'
+    end
     JSON.parse(response.body)
   end
   app = get.call('/v1/apps/6828809673').fetch('data')
@@ -23,8 +31,7 @@ begin
   result['resources'] = {}
   {
     'versions' => '/v1/apps/6828809673/appStoreVersions?limit=50',
-    'builds' => '/v1/builds?filter[app]=6828809673&limit=100',
-    'uploads' => '/v1/buildUploads?filter[app]=6828809673&limit=100'
+    'builds' => '/v1/apps/6828809673/builds?limit=100'
   }.each do |name, path|
     data = get.call(path)
     result['resources'][name] = data.fetch('data').map do |row|
