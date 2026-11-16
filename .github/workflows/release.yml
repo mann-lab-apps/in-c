@@ -1,32 +1,33 @@
-name: Play operator inputs read-only inventory
+name: Play approved copy correction
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Read-only operator-input inspection label
+        description: Approved description and keyword correction label
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  check-settings:
+  approved-copy:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Read public copy, declarations and contact presence without writes
+      - name: Apply approved two-field correction with read-back
         working-directory: deployment
         env:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          PLAY_APPROVED_COPY_PLAN_SHA256: 82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_operator_inputs.rb
-      - name: Preserve public fields and private-field presence only
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby correct_play_copy.rb
+      - name: Preserve public-field-only correction evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: play-launch-settings-${{ github.run_id }}
-          path: deployment/play-operator-inputs-readonly.json
+          name: play-copy-correction-${{ github.run_id }}
+          path: deployment/play-copy-correction-result.json
           retention-days: 14
