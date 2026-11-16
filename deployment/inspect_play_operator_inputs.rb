@@ -3,7 +3,7 @@ require 'json'
 require 'net/http'
 require 'time'
 
-report={'operation'=>'Read-only Play operator inputs and copy guard','observedAtUtc'=>Time.now.utc.iso8601,'mutations'=>false,'reviewSubmitted'=>false,'released'=>false}
+report={'operation'=>'Read-only Play operator inputs and copy guard','observedAtUtc'=>Time.now.utc.iso8601,'mutations'=>false,'reviewSubmitted'=>false,'released'=>false,'requests'=>[]}
 begin
   key_file=Dir.glob('/Users/jaemankim/Desktop/appstoreconnect/AuthKey_*.p8').sort.fetch(0)
   token=Spaceship::ConnectAPI::Token.create(key_id:File.basename(key_file)[/AuthKey_(.+)\.p8/,1],issuer_id:ENV.fetch('APPLE_API_ISSUER_ID'),key:File.read(key_file),in_house:false)
@@ -11,6 +11,7 @@ begin
     uri=URI('https://api.appstoreconnect.apple.com'+path)
     request=Net::HTTP::Get.new(uri);request['Authorization']="Bearer #{token.text}"
     response=Net::HTTP.start(uri.host,uri.port,use_ssl:true,open_timeout:15,read_timeout:45){|http|http.request(request)}
+    report['requests'] << {'path'=>path,'httpStatus'=>response.code.to_i}
     raise "Read failed HTTP#{response.code}" unless response.is_a?(Net::HTTPSuccess)
     JSON.parse(response.body).fetch('data')
   end
