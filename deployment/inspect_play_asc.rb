@@ -8,6 +8,7 @@ refs = [{'reference'=>'repository-secret','key_id'=>ENV.fetch('APPLE_API_KEY_ID'
 Dir.glob('/Users/jaemankim/Desktop/appstoreconnect/AuthKey_*.p8').sort.each_with_index do |file,index|
   refs << {'reference'=>"user-provided-desktop-#{index}",'key_id'=>File.basename(file)[/AuthKey_(.+)\.p8/,1],'key'=>File.read(file)}
 end
+get=nil
 refs.each do |ref|
   attempt={'keyReference'=>ref['reference']}
   begin
