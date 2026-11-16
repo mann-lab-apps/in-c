@@ -5,16 +5,25 @@ require 'net/http'
 require 'bigdecimal'
 require 'time'
 
-plan_path='/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/candidate-build5/remaining-draft-plan.json'
+plan_path='/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/candidate-build5/remaining-draft-plan-v2.json'
+original_path=plan_path.sub('-v2.json','.json')
+request_sha='57148a731c7610c9acb301508f002cf42b491e68fabaae02f8460a1a492fe0e3'
 approved_sha='6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1'
 app_id='6828809673';version_id='423cf385-e335-43a4-9429-1759b9cee567';build_id='21fe8804-716b-4e6f-bba0-62ff7ed6b99e'
 apply=ARGV==['--apply']
 report={'operation'=>'Play four remaining launch settings','observedAtUtc'=>Time.now.utc.iso8601,'appId'=>app_id,'planSha256'=>approved_sha,'mode'=>apply ? 'apply' : 'dry-run','mutations'=>false,'operations'=>[],'reviewSubmitted'=>false,'released'=>false}
 begin
   raise 'Use explicit mode' unless apply || ARGV==['--dry-run']
-  raise 'Approved plan changed' unless Digest::SHA256.file(plan_path).hexdigest==approved_sha
+  raise 'Approved scope changed' unless Digest::SHA256.file(original_path).hexdigest==approved_sha
+  raise 'Adapted request changed' unless Digest::SHA256.file(plan_path).hexdigest==request_sha
   raise 'Explicit authorization required' if apply && ENV['PLAY_APPROVED_LAUNCH_PLAN_SHA256']!=approved_sha
   plan=JSON.parse(File.read(plan_path))
+  original=JSON.parse(File.read(original_path))
+  raise 'Existing operations changed' unless plan['operations'].first(3)==original['operations'].first(3)
+  old_body=original['operations'][3]['body'];new_body=plan['operations'][3]['body']
+  raise 'App or availability policy changed' unless new_body['data']['type']==old_body['data']['type'] && new_body['data']['attributes']==old_body['data']['attributes'] && new_body.dig('data','relationships','app')==old_body.dig('data','relationships','app')
+  report['requestPlanSha256']=request_sha
+  report['technicalAdaptation']='All current territories explicitly listed; KOR enabled and all others disabled; approved scope unchanged'
   expected=[['PATCH',"/v1/appStoreVersions/#{version_id}"],['PATCH',"/v1/appStoreVersions/#{version_id}/relationships/build"],['POST','/v1/appPriceSchedules'],['POST','/v2/appAvailabilities']]
   raise 'Unapproved routes' unless plan.fetch('operations').map{|o|o.values_at('method','path')}==expected
   key_file=Dir.glob('/Users/jaemankim/Desktop/appstoreconnect/AuthKey_*.p8').sort.fetch(0)
@@ -101,6 +110,11 @@ begin
   raise 'Territory catalogue unavailable or paginated' unless territories && !territories.dig('links','next')
   report['territoryCatalogue']=territories.fetch('data').map{|t|{'id'=>t['id'],'currency'=>t.dig('attributes','currency')}}
   raise 'Korean territory unavailable' unless report['territoryCatalogue'].any?{|t|t['id']=='KOR'}
+  catalogue_ids=report['territoryCatalogue'].map{|t|t['id']}.sort
+  expected_rows=catalogue_ids.map do |id|
+    {'type'=>'territoryAvailabilities','id'=>"${play-area-#{id}}",'attributes'=>{'available'=>id=='KOR','preOrderEnabled'=>false,'releaseDate'=>nil},'relationships'=>{'territory'=>{'data'=>{'type'=>'territories','id'=>id}}}}
+  end
+  raise 'Availability enumeration differs from approved KOR-only policy' unless new_body['included'].sort_by{|r|r.dig('relationships','territory','data','id')}==expected_rows && new_body.dig('data','relationships','territoryAvailabilities','data').sort_by{|r|r['id']}==expected_rows.map{|r|r.slice('type','id')}.sort_by{|r|r['id']}
   report['preconditionsPassed']=true
   report['before']={'copyright'=>current.dig('attributes','copyright'),'selectedBuildId'=>selected && selected['id'],'price'=>before_price,'availability'=>before_availability}
   if apply
@@ -132,7 +146,7 @@ begin
   end
   report['passed']=true
 rescue StandardError=>error
-  report['passed']=false;report['failureClass']=error.class.name
+  report['passed']=false;report['failureClass']=error.class.name;report['failureReason']=error.message
 ensure
   File.write('play-launch-settings-result.json',JSON.pretty_generate(report)+"\n");puts JSON.generate(report)
 end
