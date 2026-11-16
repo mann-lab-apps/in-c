@@ -1,92 +1,76 @@
 require 'spaceship'
-require 'net/http'
 require 'json'
-require 'base64'
+require 'net/http'
+require 'time'
+require 'bigdecimal'
 
-result = {'operation'=>'read-only Play inspection','appId'=>'6828809673','storeWrites'=>false,'attempts'=>[]}
-refs = [{'reference'=>'repository-secret','key_id'=>ENV.fetch('APPLE_API_KEY_ID'),'key'=>ENV.fetch('APPLE_API_KEY')}]
-Dir.glob('/Users/jaemankim/Desktop/appstoreconnect/AuthKey_*.p8').sort.each_with_index do |file,index|
-  refs << {'reference'=>"user-provided-desktop-#{index}",'key_id'=>File.basename(file)[/AuthKey_(.+)\.p8/,1],'key'=>File.read(file)}
-end
-get=nil
-refs.each do |ref|
-  attempt={'keyReference'=>ref['reference']}
-  begin
-    key=ref['key'];key=Base64.strict_decode64(key.gsub(/\s+/,'')) unless key.include?('-----BEGIN')
-    token=Spaceship::ConnectAPI::Token.create(key_id:ref['key_id'],issuer_id:ENV.fetch('APPLE_API_ISSUER_ID'),key:key,in_house:false)
-    get=lambda do |path|
-      uri=URI('https://api.appstoreconnect.apple.com'+path);req=Net::HTTP::Get.new(uri);req['Authorization']="Bearer #{token.text}"
-      response=Net::HTTP.start(uri.hostname,uri.port,use_ssl:true,open_timeout:15,read_timeout:30){|http|http.request(req)}
-      unless response.is_a?(Net::HTTPSuccess)
-        attempt['failedRead']={'resource'=>path.split('?').first,'httpStatus'=>response.code.to_i}
-        begin;attempt['failedRead']['codes']=JSON.parse(response.body).fetch('errors',[]).map{|e|e['code']};rescue JSON::ParserError;end
-        raise 'Read-only request rejected'
-      end
-      JSON.parse(response.body)
+report={'operation'=>'Read-only remaining Play launch inputs','observedAtUtc'=>Time.now.utc.iso8601,'appId'=>'6828809673','mutations'=>false,'requests'=>[]}
+begin
+  key_file=Dir.glob('/Users/jaemankim/Desktop/appstoreconnect/AuthKey_*.p8').sort.fetch(0)
+  token=Spaceship::ConnectAPI::Token.create(key_id:File.basename(key_file)[/AuthKey_(.+)\.p8/,1],issuer_id:ENV.fetch('APPLE_API_ISSUER_ID'),key:File.read(key_file),in_house:false)
+  get=lambda do |path|
+    uri=path.start_with?('https://') ? URI(path) : URI('https://api.appstoreconnect.apple.com'+path)
+    raise 'Unexpected origin' unless uri.scheme=='https' && uri.host=='api.appstoreconnect.apple.com' && !uri.userinfo
+    req=Net::HTTP::Get.new(uri);req['Authorization']="Bearer #{token.text}"
+    res=Net::HTTP.start(uri.host,uri.port,use_ssl:true,open_timeout:15,read_timeout:40){|h|h.request(req)}
+    observation={'path'=>uri.request_uri,'httpStatus'=>res.code.to_i}
+    report['requests'] << observation
+    data=JSON.parse(res.body)
+    unless res.is_a?(Net::HTTPSuccess)
+      observation['errors']=data.fetch('errors',[]).map{|e|e.slice('code','title','detail')}
+      return_value=nil
+    else
+      return_value=data
     end
-    app=get.call('/v1/apps/6828809673').fetch('data')
-    raise 'Unexpected app' unless app['id']=='6828809673' && app.dig('attributes','bundleId')=='com.mannlab.ddirori.play'
-    resources={}
-    {'versions'=>'/v1/apps/6828809673/appStoreVersions?limit=50','builds'=>'/v1/apps/6828809673/builds?limit=100','uploads'=>'/v1/apps/6828809673/buildUploads?limit=100'}.each do |name,path|
-      data=get.call(path)
-      resources[name]=data.fetch('data').map{|r|{'id'=>r['id'],'attributes'=>r.fetch('attributes').select{|k,_|%w[version versionString cfBundleShortVersionString cfBundleVersion platform appVersionState appStoreState releaseType processingState uploadedDate expired usesNonExemptEncryption buildAudienceType state].include?(k)}}}
-      resources[name+'HasNextPage']=!!data.dig('links','next')
-      result['resources']=resources
-    end
-    attempt['passed']=true;result['passed']=true;result['selectedKeyReference']=ref['reference']
-  rescue StandardError=>e
-    attempt['passed']=false;attempt['failureClass']=e.class.name
-  ensure
-    result['attempts'] << attempt
+    return_value
   end
-  break if result['passed']
-end
-result['passed']=false unless result.key?('passed')
-if result['passed']
-  begin
-    infos=get.call('/v1/apps/6828809673/appInfos?include=primaryCategory,secondaryCategory').fetch('data')
-    info=infos.find{|r|r.dig('attributes','appStoreState')=='PREPARE_FOR_SUBMISSION'} || infos.first
-    result['appInfos']=infos.map{|r|{'id'=>r['id'],'attributes'=>r['attributes'],'relationships'=>r['relationships']}}
-    optional=lambda do |path|
-      begin;get.call(path).fetch('data');rescue StandardError;nil;end
-    end
-    if info
-      result['appInfoLocalizations']=optional.call("/v1/appInfos/#{info['id']}/appInfoLocalizations")
-      result['ageRatingDeclaration']=optional.call("/v1/appInfos/#{info['id']}/ageRatingDeclaration")
-    end
-    version=result.fetch('resources').fetch('versions').first
-    if version
-      result['versionLocalizations']=optional.call("/v1/appStoreVersions/#{version['id']}/appStoreVersionLocalizations")
-      review=optional.call("/v1/appStoreVersions/#{version['id']}/appStoreReviewDetail")
-      keys=%w[contactFirstName contactLastName contactPhone contactEmail]
-      values=review ? review.fetch('attributes',{}).slice(*keys) : {}
-      result['reviewContactPresence']=keys.to_h{|k|[k,!values[k].to_s.strip.empty?]}
-      if result['reviewContactPresence'].values.all?
-        require 'fileutils'
-        directory='/Users/jaemankim/.local/share/ddirori-play-release'
-        FileUtils.mkdir_p(directory,mode:0700)
-        File.open(File.join(directory,'review-details-20261116.json'),'w',0600){|f|f.write(JSON.generate(values))}
-        result['externalPrivateReviewPrepared']=true
-      end
-    end
-    beta=optional.call('/v1/apps/6828809673/betaAppReviewDetail')
-    result['betaReviewContactPresence']=beta ? beta.fetch('attributes',{}).slice('contactFirstName','contactLastName','contactPhone','contactEmail').transform_values{|v|!v.to_s.strip.empty?} : {}
-    groups=optional.call('/v1/apps/6828809673/betaGroups')
-    result['internalGroups']=(groups || []).select{|r|r.dig('attributes','isInternalGroup')}.map{|r|{'id'=>r['id'],'name'=>r.dig('attributes','name')}}
-    result['appDeclarations']=get.call('/v1/apps/6828809673').fetch('data').fetch('attributes').slice('contentRightsDeclaration','isOrEverWasMadeForKids')
-    result['priceSchedule']=optional.call('/v1/apps/6828809673/appPriceSchedule')
-    result['availability']=optional.call('/v1/apps/6828809673/appAvailabilityV2')
-    if result['priceSchedule']
-      price_id=result['priceSchedule'].fetch('id')
-      result['manualPrices']=get.call("/v1/appPriceSchedules/#{price_id}/manualPrices?include=appPricePoint,territory&limit=200")
-    end
-    if result['availability']
-      availability_id=result['availability'].fetch('id')
-      result['territoryAvailabilities']=get.call("/v2/appAvailabilities/#{availability_id}/territoryAvailabilities?include=territory&limit=200")
-    end
-  rescue StandardError=>e
-    result['additionalReadFailureClass']=e.class.name
+  app=get.call('/v1/apps/6828809673')&.fetch('data')
+  raise 'App identity unavailable' unless app && app.dig('attributes','bundleId')=='com.mannlab.ddirori.play'
+  report['app']=app.fetch('attributes').slice('name','bundleId','primaryLocale','contentRightsDeclaration','isOrEverWasMadeForKids')
+  relation=lambda do |name,fallback|
+    target=app.dig('relationships',name,'links','related') || fallback
+    get.call(target)
   end
+  version=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567')&.fetch('data')
+  report['version']=version&.fetch('attributes')&.slice('versionString','appStoreState','appVersionState','releaseType','copyright')
+  report['selectedBuild']=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/build')&.fetch('data')&.slice('id','attributes')
+  schedule=relation.call('appPriceSchedule','/v1/apps/6828809673/appPriceSchedule')
+  report['schedule']=schedule
+  if schedule && schedule['data']
+    resource=schedule['data']
+    %w[baseTerritory manualPrices automaticPrices].each do |name|
+      url=resource.dig('relationships',name,'links','related')
+      next unless url
+      report[name]=get.call(url)
+    end
+  end
+  points=get.call('/v1/apps/6828809673/appPricePoints?filter%5Bterritory%5D=KOR&include=territory&limit=200')
+  report['freeKoreanPricePoints']=(points && points['data'] || []).select{|p|BigDecimal(p.dig('attributes','customerPrice').to_s)==0}.map{|p|p.slice('id','type','attributes','relationships')}
+  report['pricePointsHasNextPage']=!!points&.dig('links','next')
+  availability=relation.call('appAvailabilityV2','/v1/apps/6828809673/appAvailabilityV2')
+  report['availability']=availability
+  if availability && availability['data']
+    url=availability.dig('data','relationships','territoryAvailabilities','links','related')
+    report['territoryAvailabilities']=get.call(url) if url
+  end
+  %w[appClips inAppPurchasesV2 subscriptionGroups].each do |name|
+    url=app.dig('relationships',name,'links','related')
+    value=url && get.call(url)
+    report[name]={'configured'=>!value.nil?,'count'=>value && value.fetch('data').length,'hasNextPage'=>!!value&.dig('links','next')}
+  end
+  url=app.dig('relationships','endUserLicenseAgreement','links','related')
+  eula=url && get.call(url)
+  report['customEulaConfigured']=eula ? !eula['data'].nil? : nil
+  contact=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/appStoreReviewDetail')&.fetch('data')
+  report['remoteReviewContactPresence']=%w[contactFirstName contactLastName contactPhone contactEmail].to_h{|k|[k,!contact&.dig('attributes',k).to_s.strip.empty?]}
+  file='/Users/jaemankim/.local/share/ddirori-play-release/review-details-20261116.json'
+  local=File.file?(file) ? JSON.parse(File.read(file)) : {}
+  report['externalContactFieldsPresent']=%w[contactFirstName contactLastName contactPhone contactEmail].to_h{|k|[k,!local[k].to_s.strip.empty?]}
+  report['passed']=true
+rescue StandardError=>error
+  report['passed']=false;report['failureClass']=error.class.name
+ensure
+  File.write('play-remaining-readonly.json',JSON.pretty_generate(report)+"\n")
+  puts JSON.generate({'passed'=>report['passed'],'requests'=>report['requests'].map{|r|r.slice('path','httpStatus')},'freeKoreanPricePointCount'=>report['freeKoreanPricePoints']&.length,'mutations'=>false})
 end
-File.write('play-asc-inspection.json',JSON.pretty_generate(result)+"\n");puts JSON.generate(result)
-exit(result['passed'] ? 0 : 1)
+exit(report['passed'] ? 0 : 1)
