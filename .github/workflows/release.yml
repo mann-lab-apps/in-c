@@ -1,4 +1,4 @@
-name: Play launch settings read-only preflight
+name: Play operator inputs read-only inventory
 on:
   workflow_dispatch:
     inputs:
@@ -22,11 +22,11 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_launch_settings.rb --dry-run
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_operator_inputs.rb
       - name: Preserve public-field-only precondition result
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: play-launch-settings-${{ github.run_id }}
-          path: deployment/play-launch-settings-result.json
+          path: deployment/play-operator-inputs-readonly.json
           retention-days: 14
