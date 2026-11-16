@@ -35,3 +35,7 @@ Apple의 기기/locale별 최대10장 규칙에 따라 기존12 scene 중7개만
 운영자 확정값은 버전1.0.0·만랩·ddirori.com URI·기존 승인 아이콘·무료·한국 우선이다. 공개 Store 쓰기·심사·출시와 사용자 물리 QA는 이 결정으로 자동 승인되지 않는다.
 
 추가 읽기 전용 확인: 기존 self-hosted Mac runner에서 사용자 지정 Desktop 키와 기존 Secrets의 issuer 조합으로 [run43809020423](https://github.com/mann-lab-apps/in-c/actions/runs/43809020423)이 성공했다. 빌드·업로드1~4 모두 COMPLETE/VALID이고 다음 페이지가 없다. 앞의 ROLE_NOT_VALID는 repository-secret 역할 제한이며 사용자 지정 키에서는 해결됐다. issuer/키 내용을 로그·저장소로 추출하지 않았다. 확인 시점 새 후보 번호5가 비어 있음을 검증했으며 공개 Store 쓰기는 하지 않았다.
+
+## 제품 checkpoint
+
+실제 제품 commit은 `2814dbd30aa5764ec70544772d6fcd418260367f`다. 이전 누적 Play 기능/QA와 이번1.0.0+5·운영 URL·feedback/binding 도구를 검증 후 포함했으며 다른 앱의 작업은 포함하지 않았다. 제품 fingerprint v2는 `ff88d244cb3d8caf3d868f462a1357827d2f235c7cb69dbfea1953f59c63a982`다. 이 commit이 존재한 뒤 YAML source를 pin하고 content.reviewed와 미완료 manual은 false/pending으로 유지했다. 빌드 checkout은 이 제품 commit을 그대로 사용하고 후속 메타데이터 commit을 제품 소스로 오인하지 않는다.

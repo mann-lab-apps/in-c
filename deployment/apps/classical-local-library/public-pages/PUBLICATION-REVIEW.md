@@ -1,5 +1,7 @@
 # Play 개인정보 페이지 게시 검토
 
+2026-11-16 사용자 명시 승인 후 게시 완료: 웹 commit `5a0d7f90f5a176966fffc9f06ddb344d793cf6a3`, Pages run43805476424 성공. `/play/privacy/`와 지원 링크의 실제 HTTPS200·내용을 확인했다. 아래는 승인 전 검토의 이력이며 당시404 상태는 현재 상태가 아니다. 게시 증거는 `docs/quality/evidence/play-public-release-20261116/web-publication/`에 별도로 보존한다.
+
 운영 주체 **만랩**, 대표 도메인 **ddirori.com**, 공개 앱 목표 버전 **1.0.0**은 사용자 결정이다.
 
 게시 제안 범위:
