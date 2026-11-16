@@ -34,7 +34,7 @@ begin
     if response.code=='404' && method=='GET';nil
     elsif response.is_a?(Net::HTTPSuccess);parsed
     else
-      report['failedRequest']={'method'=>method,'path'=>uri.request_uri,'httpStatus'=>response.code.to_i,'codes'=>parsed.fetch('errors',[]).map{|e|e['code']}}
+      report['failedRequest']={'method'=>method,'path'=>uri.request_uri,'httpStatus'=>response.code.to_i,'codes'=>parsed.fetch('errors',[]).map{|e|e['code']}.uniq,'errorCount'=>parsed.fetch('errors',[]).length,'details'=>parsed.fetch('errors',[]).first(3).map{|e|e.slice('code','title','detail','source')}}
       raise 'Apple rejected scoped request'
     end
   end
@@ -97,6 +97,10 @@ begin
     end
   }
   before_price=price_state.call;before_availability=availability_state.call
+  territories=get.call('/v1/territories?limit=200')
+  raise 'Territory catalogue unavailable or paginated' unless territories && !territories.dig('links','next')
+  report['territoryCatalogue']=territories.fetch('data').map{|t|{'id'=>t['id'],'currency'=>t.dig('attributes','currency')}}
+  raise 'Korean territory unavailable' unless report['territoryCatalogue'].any?{|t|t['id']=='KOR'}
   report['preconditionsPassed']=true
   report['before']={'copyright'=>current.dig('attributes','copyright'),'selectedBuildId'=>selected && selected['id'],'price'=>before_price,'availability'=>before_availability}
   if apply
