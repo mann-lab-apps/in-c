@@ -31,11 +31,12 @@ begin
   result['resources'] = {}
   {
     'versions' => '/v1/apps/6828809673/appStoreVersions?limit=50',
-    'builds' => '/v1/apps/6828809673/builds?limit=100'
+    'builds' => '/v1/apps/6828809673/builds?limit=100',
+    'uploads' => '/v1/apps/6828809673/buildUploads?limit=100'
   }.each do |name, path|
     data = get.call(path)
     result['resources'][name] = data.fetch('data').map do |row|
-      { 'id' => row['id'], 'attributes' => row.fetch('attributes').select { |k, _| %w[version versionString platform appVersionState appStoreState processingState uploadedDate expired usesNonExemptEncryption buildAudienceType state].include?(k) } }
+      { 'id' => row['id'], 'attributes' => row.fetch('attributes').select { |k, _| %w[version versionString cfBundleShortVersionString cfBundleVersion platform appVersionState appStoreState releaseType processingState uploadedDate expired usesNonExemptEncryption buildAudienceType state].include?(k) } }
     end
     result['resources'][name + 'HasNextPage'] = !!data.dig('links', 'next')
   end
