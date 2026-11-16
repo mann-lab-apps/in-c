@@ -40,6 +40,8 @@ begin
   end
   get=->(path){request.call('GET',path)}
   draft=-> {
+    version_list=get.call("/v1/apps/#{app_id}/appStoreVersions?limit=200")
+    raise 'Another version appeared' unless version_list && version_list['data'].length==1 && version_list['data'][0]['id']==version_id && !version_list.dig('links','next')
     value=get.call("/v1/appStoreVersions/#{version_id}")&.fetch('data')
     raise 'Draft changed' unless value && value.dig('attributes','versionString')=='1.0.0' && value.dig('attributes','appStoreState')=='PREPARE_FOR_SUBMISSION' && value.dig('attributes','releaseType')=='MANUAL'
     value
@@ -65,7 +67,9 @@ begin
     manual_url=schedule.dig('relationships','manualPrices','links','related')
     automatic_url=schedule.dig('relationships','automaticPrices','links','related')
     raise 'Price links unavailable' unless manual_url && automatic_url
-    manual=get.call(manual_url);automatic=get.call(automatic_url)
+    manual_uri=URI(manual_url)
+    manual_uri.query=URI.encode_www_form({'include'=>'appPricePoint,territory','limit'=>'200'})
+    manual=get.call(manual_uri.to_s);automatic=get.call(automatic_url)
     if manual.nil? && automatic.nil?
       {'configured'=>false}
     else
