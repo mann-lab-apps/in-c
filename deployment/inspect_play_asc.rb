@@ -41,5 +41,40 @@ refs.each do |ref|
   break if result['passed']
 end
 result['passed']=false unless result.key?('passed')
+if result['passed']
+  begin
+    infos=get.call('/v1/apps/6828809673/appInfos?include=primaryCategory,secondaryCategory').fetch('data')
+    info=infos.find{|r|r.dig('attributes','appStoreState')=='PREPARE_FOR_SUBMISSION'} || infos.first
+    result['appInfos']=infos.map{|r|{'id'=>r['id'],'attributes'=>r['attributes'],'relationships'=>r['relationships']}}
+    optional=lambda do |path|
+      begin;get.call(path).fetch('data');rescue StandardError;nil;end
+    end
+    if info
+      result['appInfoLocalizations']=optional.call("/v1/appInfos/#{info['id']}/appInfoLocalizations")
+      result['ageRatingDeclaration']=optional.call("/v1/appInfos/#{info['id']}/ageRatingDeclaration")
+    end
+    version=result.fetch('resources').fetch('versions').first
+    if version
+      result['versionLocalizations']=optional.call("/v1/appStoreVersions/#{version['id']}/appStoreVersionLocalizations")
+      review=optional.call("/v1/appStoreVersions/#{version['id']}/appStoreReviewDetail")
+      keys=%w[contactFirstName contactLastName contactPhone contactEmail]
+      values=review ? review.fetch('attributes',{}).slice(*keys) : {}
+      result['reviewContactPresence']=keys.to_h{|k|[k,!values[k].to_s.strip.empty?]}
+      if result['reviewContactPresence'].values.all?
+        require 'fileutils'
+        directory='/Users/jaemankim/.local/share/ddirori-play-release'
+        FileUtils.mkdir_p(directory,mode:0700)
+        File.open(File.join(directory,'review-details-20261116.json'),'w',0600){|f|f.write(JSON.generate(values))}
+        result['externalPrivateReviewPrepared']=true
+      end
+    end
+    beta=optional.call('/v1/apps/6828809673/betaAppReviewDetail')
+    result['betaReviewContactPresence']=beta ? beta.fetch('attributes',{}).slice('contactFirstName','contactLastName','contactPhone','contactEmail').transform_values{|v|!v.to_s.strip.empty?} : {}
+    groups=optional.call('/v1/apps/6828809673/betaGroups')
+    result['internalGroups']=(groups || []).select{|r|r.dig('attributes','isInternalGroup')}.map{|r|{'id'=>r['id'],'name'=>r.dig('attributes','name')}}
+  rescue StandardError=>e
+    result['additionalReadFailureClass']=e.class.name
+  end
+end
 File.write('play-asc-inspection.json',JSON.pretty_generate(result)+"\n");puts JSON.generate(result)
 exit(result['passed'] ? 0 : 1)
