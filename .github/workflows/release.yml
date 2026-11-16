@@ -1,34 +1,32 @@
-name: Play read-only ASC inspection
+name: Play approved unreleased draft metadata
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Diagnostic label only; no tag is created or published
+        description: Approved draft operation label
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  inspect:
+  approved-draft:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Read Play app and build metadata only
+      - name: Apply only the exact four user-approved draft patches and read back
         working-directory: deployment
         env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_asc.rb
-      - name: Preserve sanitized inspection
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby approved_play_draft.rb
+      - name: Preserve sanitized read-back proof
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: play-asc-readonly-${{ github.run_id }}
-          path: deployment/play-asc-inspection.json
-          retention-days: 7
+          name: play-approved-draft-${{ github.run_id }}
+          path: deployment/play-approved-draft-result.json
+          retention-days: 14
