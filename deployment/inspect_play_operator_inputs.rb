@@ -20,8 +20,8 @@ begin
   version=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567')
   raise 'Unexpected version/state' unless version.dig('attributes','versionString')=='1.0.0' && version.dig('attributes','appStoreState')=='PREPARE_FOR_SUBMISSION' && version.dig('attributes','releaseType')=='MANUAL'
   locale=get.call('/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960')
-  owner=get.call('/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960/appStoreVersion')
-  raise 'Locale ownership mismatch' unless locale.dig('attributes','locale')=='ko' && owner['id']==version['id']
+  owned_locales=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/appStoreVersionLocalizations?limit=200')
+  raise 'Locale ownership mismatch' unless locale.dig('attributes','locale')=='ko' && owned_locales.any?{|row|row['id']==locale['id']}
   public_review=get.call('/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/appStoreReviewDetail')
   beta=get.call('/v1/apps/6828809673/betaAppReviewDetail')
   age=get.call('/v1/appInfos/c41cc51c-2a81-4560-96c2-0539371940c8/ageRatingDeclaration')

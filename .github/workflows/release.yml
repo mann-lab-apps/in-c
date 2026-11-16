@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Read-only settings check label
+        description: Read-only operator-input inspection label
         required: true
         type: string
 permissions:
@@ -16,14 +16,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Validate exact launch-setting preconditions without writes
+      - name: Read public copy, declarations and contact presence without writes
         working-directory: deployment
         env:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
         run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_operator_inputs.rb
-      - name: Preserve public-field-only precondition result
+      - name: Preserve public fields and private-field presence only
         if: always()
         uses: actions/upload-artifact@v7
         with:
