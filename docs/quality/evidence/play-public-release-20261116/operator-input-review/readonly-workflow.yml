@@ -1,0 +1,32 @@
+name: Play operator inputs read-only inventory
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Read-only operator-input inspection label
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  check-settings:
+    runs-on: [self-hosted, macOS, ARM64, in-c-release]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Read public copy, declarations and contact presence without writes
+        working-directory: deployment
+        env:
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
+          BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_operator_inputs.rb
+      - name: Preserve public fields and private-field presence only
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-launch-settings-${{ github.run_id }}
+          path: deployment/play-operator-inputs-readonly.json
+          retention-days: 14

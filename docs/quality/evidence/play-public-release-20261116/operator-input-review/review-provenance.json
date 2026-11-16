@@ -1,0 +1,34 @@
+{
+  "checkedAtUtc": "2026-11-16T07:06:30.168774+00:00",
+  "sources": [
+    "https://developer.apple.com/app-store/app-privacy-details/",
+    "https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions",
+    "https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/",
+    "https://developer.apple.com/help/app-store-connect/manage-agreements/sign-and-update-agreements",
+    "https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements",
+    "https://metabrainz.org/privacy"
+  ],
+  "draftCorrectionRequiresSeparateApproval": true,
+  "noSurveyAnswersCreated": true,
+  "noContactValuesExported": true,
+  "noNewStoreWrites": true,
+  "readOnlySuccessfulRun": 43821097782,
+  "readOnlySuccessfulCommit": "fa8bc6ee6d22a348c49cacc01c558b61c5d3944d",
+  "failedRunsPreserved": [
+    43820874392,
+    43821010558
+  ],
+  "failureResolution": "Unsupported reverse localization path replaced with documented parent localizations GET",
+  "metadataCheckPassed": true,
+  "metadataRubyTests": {
+    "tests": 13,
+    "assertions": 40,
+    "failures": 0,
+    "errors": 0
+  },
+  "requestSchemaCheckedAgainstOfficialOpenApi": "4.6",
+  "copyCorrectionFields": [
+    "description",
+    "keywords"
+  ]
+}

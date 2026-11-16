@@ -1,0 +1,11 @@
+{
+  "candidate-capability-inspection.json": "be9f474d0ec5a6a99f8897b346316a4e07f8a92b23c38efd0f710307c18dcac2",
+  "copy-correction-plan.json": "82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2",
+  "first-inspection-failed.json": "f639893277993eada0fcdbf50af42e31c4c78a5e1ee28fce0f21ac0e3ef8b0c3",
+  "readonly-inspector.rb": "768aadb85a93f23733c08c6d7e3e4a1d979ac28cd526a581eb46920379700ba1",
+  "readonly-workflow.yml": "7b396a24b43d75578f374c493494757c4ab2c200bb73ed9a6154b40f7f11ca73",
+  "remote-readonly.json": "9ee0b4cbb2fa5a0366668a0996b60edd60751d6f3560994b8b79869cdb48d2af",
+  "review-provenance.json": "a7a37ab0f80b4db4607455734baa5f98f37c984064ebc3da639fcbae4699c78a",
+  "route-inspection-failed.json": "0dd5b080a222d2a7640ecfe8ae3c9c22a854d725397e25f79f881069c2fdcfde",
+  "updated-preflight.json": "0a9330c3e954863ada3347ef9cacce90245428e239215fce3c511800a7e88de3"
+}

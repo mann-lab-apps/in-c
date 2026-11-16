@@ -22,7 +22,7 @@ store:
   first_release: true
   test_only: false
 content:
-  reviewed: true
+  reviewed: false
   copyright: 2026 MannLab
   locales:
     ko:
@@ -51,7 +51,6 @@ content:
         • 작곡가의 한글·원어 이름과 확인한 별칭 관리
         • 작품·녹음·악장을 구분하고 악장 순서대로 감상
         • 출처와 추정 여부를 구분하는 시대별 탐색
-        • MusicBrainz 후보를 확인하고 선택한 정보만 반영
         • IMSLP 공식 작품 페이지 검색과 참조 연결
         IMSLP 검색 결과는 다운로드 가능한 음원 목록이나 저작권 승인을 뜻하지 않습니다.
 
@@ -59,7 +58,7 @@ content:
         원본 음원과 태그는 수정하지 않습니다. 카탈로그·재생목록·감상 기록을 논리 백업으로 내보내고 복원할 수 있습니다. 논리 백업은 음원 내용과 원래 경로를 포함하지 않으므로 복원 후 실제 파일을 다시 연결해야 합니다.
 
         앱 내부에 회원가입·광고·분석 SDK는 없습니다. 자료는 기본적으로 기기에 저장되며 외부 검색·공식 페이지 열기는 사용자가 선택합니다. 외부 서비스에는 인터넷 연결과 해당 서비스의 이용 조건이 적용됩니다.
-      keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz
+      keywords: 클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP
       promotional_text: 내 음원을 가져와 곧바로 듣고, 원할 때 작품·녹음·악장으로 정리하세요.
       support_url: https://ddirori.com/support/
       marketing_url: https://ddirori.com/play/
@@ -80,7 +79,7 @@ review:
     Now Playing reflects the actual engine and queue. Pause/seek/previous/next, shuffle/repeat and queue selection share one controller. Screen lock/app switching alone does not pause iOS playback. Interruption or route loss pauses without automatic resume. Relaunch restores state without autoplay.
     Optional tools manage composer names/confirmed aliases, works/recordings/movements, uncertain eras and official IMSLP work-page links. Search results are not downloadable audio lists or rights approval. External searches are user-initiated. Original tags/media are not modified.
     Settings opens https://ddirori.com/play/privacy/ and https://ddirori.com/support/. Operator: 만랩. No in-app account, advertising or analytics SDK; website analytics are separate. Logical backups omit audio/original paths and require relinking. Legacy nonportable backups must be re-exported from the source library.
-    First public target is1.0.0. Candidate1.0.0(5) was uploaded and verified VALID/IN_BETA_TESTING in the existing internal group; it is APP_STORE_ELIGIBLE but not submitted for public review. Device QA and final media review remain pending. Simulator or injected-picker tests are not physical audibility, Files-provider, VoiceOver or Bluetooth approval.
+    First public target is1.0.0. Candidate1.0.0(5) is VALID/IN_BETA_TESTING in the existing internal group, APP_STORE_ELIGIBLE and selected for the public draft, but not submitted for public review. Fourteen screenshots were approved, uploaded and read-back verified. MusicBrainz lookup is unavailable in this candidate because MUSICBRAINZ_CONTACT was not configured; AcoustID fingerprinting is also unavailable. Device QA remains pending. Simulator or injected-picker tests are not physical audibility, Files-provider, VoiceOver or Bluetooth approval.
 testflight:
   reviewed: false
   feedback_email: daga4242@gmail.com
@@ -395,6 +394,7 @@ manual:
   privacy_labels:
     status: pending
     evidence: >-
+      2026-11-16 후보 빌드 입력/제품 소스 대조에서 MUSICBRAINZ_CONTACT 미설정으로 MusicBrainz client=null을 확인했다. IMSLP 검색/파일 요청과 iOS 기본 SFSafariViewController 경로는 별도 검토 대상이다. SDK 분석 없음만으로 수집 없음 답변을 확정하지 않는다. STORE-OPERATOR-CHECKLIST-1.0.0.md에 데이터 흐름/공식 설문 근거를 기록했다.
       2026-11-16 사용자가 운영 주체 만랩·공개 도메인 ddirori.com을 확정하고 검토본 게시를 명시 승인했다. 웹 commit5a0d7f90f5a176966fffc9f06ddb344d793cf6a3·GitHub Pages run43805476424 성공 후 /play/privacy/·/support/ HTTPS200와 내용을 확인했다. 앱 define과 스토어 URL을 일치시켰으며 사이트 GA와 앱의 데이터 처리는 구분한다. Apple 개인정보 설문 확정은 별도 pending.
       2026-11-12 처리 안내·확인된 공개 이메일의 작성 진입 추가. 문의 메일은 사용자 작성이며 자동 진단/개인 음원을 첨부하지 않는다. 게시용 privacy/support 초안은 로컬에만 있고 공개 도메인은 현재 환경 DNS 실패/기존 임시 URL403으로 미검증이다. 기존 개인정보 처리 범위와 설문 pending을 유지한다.
       2026-11-12 작곡가 이름/별칭·확인 출처·시대·연결 file ID는 로컬 SQLite와 사용자 명시 논리 백업에 저장된다. IMSLP는 사용자가 실행한 작곡가/작품 검색 텍스트만 전송하고 파일/경로/음원은 보내지 않는다. 검색 캐시는 메모리5분/32개이며 앱 종료 후 남지 않는다. 자동 전송/새 SDK 없음; Apple 설문 답변은 여전히 운영자 확인 pending.
@@ -449,10 +449,12 @@ manual:
       2026-11-16 사용자가 copyright·build5·한국 무료·한국만 배포의4개 설정을 승인했다. run43818551473에서 가격/후보/저작권을 저장했고 지역 요청409는 실패 기록으로 보존했다. 동일 승인 범위에서 전체175개 지역을 명시한 run43819563157이 성공했으며 KOR만 available=true·기준 KOR/가격0·신규 지역 자동 추가=false·예약 주문=false·출시일 없음과 PREPARE_FOR_SUBMISSION/MANUAL을 재조회했다. 증거는 docs/quality/evidence/play-public-release-20261116/remaining-launch-settings/에 있다. 이 설정은 심사 제출·실제 공개 승인이 아니다.
   agreements_tax_banking:
     status: pending
-    evidence: ''
+    evidence: >-
+      2026-11-16 Apple Sign and update agreements 공식 안내에 따르면 무료 앱은 Developer Program License Agreement로 배포할 수 있고 Paid Apps Agreement는 유료 판매/IAP에 필요하다. 이 앱은 실제0원·IAP/구독0개이므로 유료 정산용 세금/은행 입력을 이 앱의 필수 요구로 추가하지 않는다. 계정의 최신 무료 배포 계약 수락/유효 상태는 별도 운영자 확인이 필요하며 현재 확인하지 않아 pending이다.
   trader_status:
     status: pending
-    evidence: ''
+    evidence: >-
+      2026-11-16 실제 배포 지역은 KOR만이지만 Apple 공식 DSA 안내는 EU 미배포인 경우에도 trader status 신고가 필요하다고 명시한다. EU 공개 연락처 검증과 상태 신고를 구분하고 다른 앱의 EU 배포 여부/계정 신고 상태를 추정하지 않는다. 계정 또는 앱별 운영자 확인 전에는 not_applicable/verified로 낮추지 않는다.
   review_device_qa:
     status: pending
     evidence: >-

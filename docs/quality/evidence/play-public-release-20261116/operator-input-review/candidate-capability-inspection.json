@@ -1,0 +1,81 @@
+{
+  "observedAtUtc": "2026-11-16T07:04:06.306782+00:00",
+  "verificationKind": "source and actual archive input/log inspection; not network-capture or physical QA",
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "appVersion": "1.0.0",
+  "buildNumber": "5",
+  "archiveManifestSha256": "87fc5b8e2da8803eb29ee5034665e2b23b1775ba7060dfdf16ee2483bf3e8694",
+  "archiveLogSha256": "3b8cebdb28aa0ea11b91a8f0ead56cbe5217ca16d71488793da61cf0fa368882",
+  "archiveDartDefinesOccurrences": 4,
+  "archiveDartDefineKeysByOccurrence": [
+    [
+      "APP_VERSION_LABEL",
+      "ENABLE_DEMO_LIBRARY",
+      "FLUTTER_BUILD_NAME",
+      "FLUTTER_BUILD_NUMBER",
+      "FLUTTER_CHANNEL",
+      "FLUTTER_DART_VERSION",
+      "FLUTTER_ENGINE_REVISION",
+      "FLUTTER_FRAMEWORK_REVISION",
+      "FLUTTER_GIT_URL",
+      "FLUTTER_VERSION",
+      "PRIVACY_POLICY_URL",
+      "SUPPORT_URL"
+    ],
+    [
+      "APP_VERSION_LABEL",
+      "ENABLE_DEMO_LIBRARY",
+      "FLUTTER_BUILD_NAME",
+      "FLUTTER_BUILD_NUMBER",
+      "FLUTTER_CHANNEL",
+      "FLUTTER_DART_VERSION",
+      "FLUTTER_ENGINE_REVISION",
+      "FLUTTER_FRAMEWORK_REVISION",
+      "FLUTTER_GIT_URL",
+      "FLUTTER_VERSION",
+      "PRIVACY_POLICY_URL",
+      "SUPPORT_URL"
+    ],
+    [
+      "APP_VERSION_LABEL",
+      "ENABLE_DEMO_LIBRARY",
+      "FLUTTER_BUILD_NAME",
+      "FLUTTER_BUILD_NUMBER",
+      "FLUTTER_CHANNEL",
+      "FLUTTER_DART_VERSION",
+      "FLUTTER_ENGINE_REVISION",
+      "FLUTTER_FRAMEWORK_REVISION",
+      "FLUTTER_GIT_URL",
+      "FLUTTER_VERSION",
+      "PRIVACY_POLICY_URL",
+      "SUPPORT_URL"
+    ],
+    [
+      "APP_VERSION_LABEL",
+      "ENABLE_DEMO_LIBRARY",
+      "FLUTTER_BUILD_NAME",
+      "FLUTTER_BUILD_NUMBER",
+      "FLUTTER_CHANNEL",
+      "FLUTTER_DART_VERSION",
+      "FLUTTER_ENGINE_REVISION",
+      "FLUTTER_FRAMEWORK_REVISION",
+      "FLUTTER_GIT_URL",
+      "FLUTTER_VERSION",
+      "PRIVACY_POLICY_URL",
+      "SUPPORT_URL"
+    ]
+  ],
+  "musicBrainzContactConfigured": false,
+  "musicBrainzProductionClientConfigured": false,
+  "metadataCorrectionRequired": true,
+  "remoteCopyChanged": false,
+  "physicalQaReceived": false,
+  "sourceFilesSha256": {
+    "apps/classical_local_library/lib/main.dart": "3312d98bca0b0d927ac8a5200fcc4aa6ddc21c8923817d2661dd1955ba3f252d",
+    "apps/classical_local_library/lib/library_management.dart": "fe39b0b3cfe54dfdd520bf9fe63381b3cea07d7879439fa036f738c3ae670cf2",
+    "apps/classical_local_library/lib/imslp_library.dart": "7f3d69ec95668b40411738c3abf5530bd2902b2ee07609aadaf904d67b4ff434",
+    "apps/classical_local_library/lib/imslp.dart": "fd8b8161ca54a35f5b0a090fdda43b6175cd4cd7fdf0e409cb9c1c408ce56df5",
+    "apps/classical_local_library/lib/app_settings.dart": "01aec1198ba5803f961ce02158921369932f48f0aaf42f34d2ca76f7da3010f6",
+    "deployment/lib/release.rb": "4931fde37c1087bbac25f87b19083e2e94095da59f22af85fc98ca9e12160982"
+  }
+}

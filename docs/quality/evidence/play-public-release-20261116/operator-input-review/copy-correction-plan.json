@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "preparedAtUtc": "2026-11-16T07:04:53Z",
+  "reason": "Build5 has no MUSICBRAINZ_CONTACT; remove unavailable MusicBrainz lookup claim and keyword only",
+  "appId": "6828809673",
+  "bundleId": "com.mannlab.ddirori.play",
+  "version": "1.0.0",
+  "buildId": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e",
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "metadataYamlSha256": "94d3872cefc91d6062b9f548b210357c61cc6f1fb9fa181ee77fd186fb864261",
+  "readOnlyRun": 43821097782,
+  "readOnlyResultSha256": "9ee0b4cbb2fa5a0366668a0996b60edd60751d6f3560994b8b79869cdb48d2af",
+  "requiresSeparateApproval": true,
+  "executed": false,
+  "before": {
+    "description": "내 음악을 가져와 바로 듣고, 원하는 방식으로 보관하세요.\n\n띠로리 플레이는 기기에 보관한 음원을 관리하고 재생하는 음악 플레이어입니다. 작품을 등록하기 전에도 파일 앱에서 가져온 곡을 바로 들을 수 있습니다.\n\n익숙한 내 음악 보관함\n• 곡·앨범·작곡가·재생목록으로 탐색\n• 보관함 검색과 목록 정렬, 최근 추가한 음악 확인\n• 재생목록 만들기·곡 추가·순서 편집과 즐겨찾기\n• 여러 곡을 함께 선택해 재생하거나 대기열에 예약\n\n이어지는 감상\n• 축약 플레이어와 전체 재생 화면\n• 이전·다음 곡, 진행 위치, 셔플·한 곡/전체 반복\n• 화면 잠금과 앱 전환 중 재생 유지\n• 잠금 화면·제어센터에서 곡 정보와 재생 조작\n• 큐·재생 위치 복원과 감상 기록\n앱을 다시 열거나 오디오 중단이 끝났다는 이유만으로 자동 재생하지 않습니다.\n\n클래식 음원도 차근차근\n• 작곡가의 한글·원어 이름과 확인한 별칭 관리\n• 작품·녹음·악장을 구분하고 악장 순서대로 감상\n• 출처와 추정 여부를 구분하는 시대별 탐색\n• MusicBrainz 후보를 확인하고 선택한 정보만 반영\n• IMSLP 공식 작품 페이지 검색과 참조 연결\nIMSLP 검색 결과는 다운로드 가능한 음원 목록이나 저작권 승인을 뜻하지 않습니다.\n\n데이터를 내 손으로\n원본 음원과 태그는 수정하지 않습니다. 카탈로그·재생목록·감상 기록을 논리 백업으로 내보내고 복원할 수 있습니다. 논리 백업은 음원 내용과 원래 경로를 포함하지 않으므로 복원 후 실제 파일을 다시 연결해야 합니다.\n\n앱 내부에 회원가입·광고·분석 SDK는 없습니다. 자료는 기본적으로 기기에 저장되며 외부 검색·공식 페이지 열기는 사용자가 선택합니다. 외부 서비스에는 인터넷 연결과 해당 서비스의 이용 조건이 적용됩니다.",
+    "keywords": "클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP,MusicBrainz"
+  },
+  "operations": [
+    {
+      "method": "PATCH",
+      "path": "/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960",
+      "body": {
+        "data": {
+          "type": "appStoreVersionLocalizations",
+          "id": "23e24ace-28ca-482d-a87b-8909d8744960",
+          "attributes": {
+            "description": "내 음악을 가져와 바로 듣고, 원하는 방식으로 보관하세요.\n\n띠로리 플레이는 기기에 보관한 음원을 관리하고 재생하는 음악 플레이어입니다. 작품을 등록하기 전에도 파일 앱에서 가져온 곡을 바로 들을 수 있습니다.\n\n익숙한 내 음악 보관함\n• 곡·앨범·작곡가·재생목록으로 탐색\n• 보관함 검색과 목록 정렬, 최근 추가한 음악 확인\n• 재생목록 만들기·곡 추가·순서 편집과 즐겨찾기\n• 여러 곡을 함께 선택해 재생하거나 대기열에 예약\n\n이어지는 감상\n• 축약 플레이어와 전체 재생 화면\n• 이전·다음 곡, 진행 위치, 셔플·한 곡/전체 반복\n• 화면 잠금과 앱 전환 중 재생 유지\n• 잠금 화면·제어센터에서 곡 정보와 재생 조작\n• 큐·재생 위치 복원과 감상 기록\n앱을 다시 열거나 오디오 중단이 끝났다는 이유만으로 자동 재생하지 않습니다.\n\n클래식 음원도 차근차근\n• 작곡가의 한글·원어 이름과 확인한 별칭 관리\n• 작품·녹음·악장을 구분하고 악장 순서대로 감상\n• 출처와 추정 여부를 구분하는 시대별 탐색\n• IMSLP 공식 작품 페이지 검색과 참조 연결\nIMSLP 검색 결과는 다운로드 가능한 음원 목록이나 저작권 승인을 뜻하지 않습니다.\n\n데이터를 내 손으로\n원본 음원과 태그는 수정하지 않습니다. 카탈로그·재생목록·감상 기록을 논리 백업으로 내보내고 복원할 수 있습니다. 논리 백업은 음원 내용과 원래 경로를 포함하지 않으므로 복원 후 실제 파일을 다시 연결해야 합니다.\n\n앱 내부에 회원가입·광고·분석 SDK는 없습니다. 자료는 기본적으로 기기에 저장되며 외부 검색·공식 페이지 열기는 사용자가 선택합니다. 외부 서비스에는 인터넷 연결과 해당 서비스의 이용 조건이 적용됩니다.",
+            "keywords": "클래식,음악플레이어,로컬음원,음원관리,악장,작품,녹음,감상이력,IMSLP"
+          }
+        }
+      }
+    }
+  ],
+  "guards": [
+    "verify exact app/version/locale ownership and selected build5",
+    "PREPARE_FOR_SUBMISSION/MANUAL",
+    "before fields still match or already equal desired fields",
+    "only description and keywords changed; no competing writes",
+    "read back both fields and unchanged version/build state"
+  ],
+  "excluded": [
+    "binary build/upload",
+    "version or build changes",
+    "screenshots",
+    "pricing/territories",
+    "review/contact/survey writes",
+    "review submission",
+    "public release"
+  ]
+}

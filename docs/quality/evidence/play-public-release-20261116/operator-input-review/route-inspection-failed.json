@@ -1,0 +1,27 @@
+{
+  "operation": "Read-only Play operator inputs and copy guard",
+  "observedAtUtc": "2026-11-16T07:03:04Z",
+  "mutations": false,
+  "reviewSubmitted": false,
+  "released": false,
+  "requests": [
+    {
+      "path": "/v1/apps/6828809673",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersionLocalizations/23e24ace-28ca-482d-a87b-8909d8744960/appStoreVersion",
+      "httpStatus": 403
+    }
+  ],
+  "passed": false,
+  "failureClass": "RuntimeError"
+}

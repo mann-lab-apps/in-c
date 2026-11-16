@@ -95,3 +95,11 @@ bundle은 증분이며 base f57602c18ce55031833faabf37a073da437453b9가 필요�
 읽기 전용43816884187에서 IAP·구독 그룹·App Clips0개/custom EULA 없음도 확인했다. 기본 EULA 적용 근거와 함께 해당 manual, 실제 가격/지역과 후보 선택만 verified로 갱신한다. 개인정보/권리/등급 설문·운영 계약·연락처·접근성/물리 QA·최종 심사/출시 승인은 계속 미완료다. 원본 실패·재조회·계속 실행·입력/도구 hash를 remaining-launch-settings 증거로 보존한다.
 
 [최종 독립 읽기43819775297](https://github.com/mann-lab-apps/in-c/actions/runs/43819775297)은175개 전체의 KOR1개 활성/174개 비활성·예약 주문0개·출시일 지정0개를 확인했다. HTTP 쓰기를 거부하는 inspector로 진단 ref를 복구했다. metadata check PASS, metadata Ruby13개/40 assertions PASS, 실제 서명 IPA preflight PASS26/BLOCKED5/FAIL0이다. 이번에는 앱 소스/의존성/서명 artifact를 변경하지 않아 앞의830개 host와 native 결과를 새로 실행한 것처럼 표시하지 않는다. 수동 확인 목록에서 해결된 가격/지역·후보 선택·IAP/EULA/App Clips만 제외했으며 공개 출시 No-Go는 유지한다.
+
+## 후보 기능·설문 대조 후 발견한 문구 교정
+
+후속 감사에서 빌드5의 MusicBrainz client가 비활성임을 확인했다. 실제 archive release-manifest의 SHA87fc5b8e와 성공 result 연결, 실제 Xcode 로그의4개 DART_DEFINES export, main.dart의 기본 주입 조건을 대조했다. 네 번 모두 MUSICBRAINZ_CONTACT가 없고 앱은 client=null이면 설정 안내를 표시한다. 조회 구현/fixture가 존재하는 것과 서명 후보에서 활성화된 것은 달랐다. 따라서 설명의 조회 보장1줄과 검색어MusicBrainz를 삭제하는 YAML 초안을 준비하고 content.reviewed=false로 되돌렸다. source/IPA/build5와 최종14장·가격/지역은 보존했다.
+
+새 정확한 교정 계획 SHA256은 `82aab8ead247d274a42d9f0f0aa9db365fb39ef7259b462d81e5a74852732fd2`이며 description/keywords만 포함한다. 아직 원격에 실행하지 않았다. [읽기 전용43821097782](https://github.com/mann-lab-apps/in-c/actions/runs/43821097782)에서 현재 원격의 MusicBrainz 문구와 빈 심사/beta 연락처·미응답 권리/연령 설문을 확인했다. 최초 inspector의 미지원 역방향 locale 소유 조회로 인한 실패2개는 보존하고 공식 parent localization 목록 경로로 수정한 후 성공했다. API403을 설문 완료나 쓰기 권한 승인으로 해석하지 않는다.
+
+운영자 확인표 STORE-OPERATOR-CHECKLIST-1.0.0.md에 실제 데이터 흐름·SFSafariViewController와 외부 Safari의 차이·무료 계약/유료 정산의 구분·한국만 배포해도 필요한 DSA 상태 신고를 공식 자료와 연결했다. 설문/연락처 답변은 만들지 않았다. metadata check와 Ruby13개/40 assertions PASS, 교정 검토 대기로 현 preflight는 PASS25/BLOCKED6/FAIL0이다. 새 차단은 발견한 문구의 검토/승인을 정직하게 보존한 것이며 구현 실패가 아니다. 증거는 operator-input-review에 있다.
